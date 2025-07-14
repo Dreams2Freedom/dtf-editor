@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vectorizer.AI API Test</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 p-8">
+    <div class="max-w-2xl mx-auto">
+        <h1 class="text-3xl font-bold text-gray-900 mb-8">Vectorizer.AI API Test</h1>
+        
+        <div class="bg-white rounded-lg shadow p-6 mb-6">
+            <h2 class="text-xl font-semibold mb-4">API Configuration</h2>
+            <div class="space-y-2 text-sm">
+                <p><strong>Endpoint:</strong> https://vectorizer.ai/api/v1/vectorize</p>
+                <p><strong>API ID:</strong> vkxq4f4d9b7qwjh</p>
+                <p><strong>Authentication:</strong> HTTP Basic Auth</p>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-lg shadow p-6">
+            <h2 class="text-xl font-semibold mb-4">Test API Connection</h2>
+            <input type="file" id="testFile" accept="image/*" class="mb-4">
+            <button id="testBtn" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
+                Test Vectorization
+            </button>
+            
+            <div id="result" class="mt-4"></div>
+        </div>
+    </div>
+
+    <script>
+        const API_ID = 'vkxq4f4d9b7qwjh';
+        const API_SECRET = '3i3cdh559d3e1csqi2e4rsk319qdrbn2otls0flbdjqo9qmrnkfj';
+        const API_ENDPOINT = 'https://vectorizer.ai/api/v1/vectorize';
+
+        document.getElementById('testBtn').addEventListener('click', async () => {
+            const fileInput = document.getElementById('testFile');
+            const resultDiv = document.getElementById('result');
+            
+            if (!fileInput.files[0]) {
+                resultDiv.innerHTML = '<p class="text-red-600">Please select a file first.</p>';
+                return;
+            }
+
+            const file = fileInput.files[0];
+            resultDiv.innerHTML = '<p class="text-blue-600">Testing API connection...</p>';
+
+            try {
+                const formData = new FormData();
+                formData.append('image', file);
+                
+                const credentials = btoa(`${API_ID}:${API_SECRET}`);
+                
+                const response = await fetch(API_ENDPOINT, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Basic ${credentials}`,
+                    },
+                    body: formData
+                });
+
+                if (response.ok) {
+                    const blob = await response.blob();
+                    const url = URL.createObjectURL(blob);
+                    
+                    resultDiv.innerHTML = `
+                        <div class="text-green-600">
+                            <p class="font-semibold">✅ API Test Successful!</p>
+                            <p>Response Status: ${response.status}</p>
+                            <p>File Size: ${(blob.size / 1024).toFixed(2)} KB</p>
+                            <p>Content Type: ${blob.type}</p>
+                            <a href="${url}" download="test-vector.svg" class="text-blue-600 underline">Download Result</a>
+                        </div>
+                    `;
+                } else {
+                    resultDiv.innerHTML = `
+                        <div class="text-red-600">
+                            <p class="font-semibold">❌ API Test Failed</p>
+                            <p>Status: ${response.status}</p>
+                            <p>Status Text: ${response.statusText}</p>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <div class="text-red-600">
+                        <p class="font-semibold">❌ Error</p>
+                        <p>${error.message}</p>
+                    </div>
+                `;
+            }
+        });
+    </script>
+</body>
+</html> 

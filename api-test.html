@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>API Connectivity Test</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 p-8">
+    <div class="max-w-2xl mx-auto">
+        <h1 class="text-3xl font-bold text-gray-900 mb-8">API Connectivity Test</h1>
+        
+        <div class="space-y-6">
+            <!-- Vectorizer.AI Test -->
+            <div class="bg-white rounded-lg shadow p-6">
+                <h2 class="text-xl font-semibold mb-4">Vectorizer.AI API Test</h2>
+                <div class="space-y-2 text-sm mb-4">
+                    <p><strong>Endpoint:</strong> <span id="vectorizerEndpoint">https://api.vectorizer.ai/vectorize</span></p>
+                    <p><strong>API ID:</strong> vkxq4f4d9b7qwjh</p>
+                    <p><strong>Status:</strong> <span id="vectorizerStatus" class="text-gray-500">Testing...</span></p>
+                </div>
+                <button id="testVectorizerBtn" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
+                    Test Connection
+                </button>
+                <div id="vectorizerResult" class="mt-4"></div>
+            </div>
+
+            <!-- Clipping Magic Test -->
+            <div class="bg-white rounded-lg shadow p-6">
+                <h2 class="text-xl font-semibold mb-4">Clipping Magic API Test</h2>
+                <div class="space-y-2 text-sm mb-4">
+                    <p><strong>Endpoint:</strong> <span id="clippingMagicEndpoint">https://api.clippingmagic.com/remove-background</span></p>
+                    <p><strong>API ID:</strong> 24469</p>
+                    <p><strong>Status:</strong> <span id="clippingMagicStatus" class="text-gray-500">Testing...</span></p>
+                </div>
+                <button id="testClippingMagicBtn" class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">
+                    Test Connection
+                </button>
+                <div id="clippingMagicResult" class="mt-4"></div>
+            </div>
+
+            <!-- Alternative Endpoints Test -->
+            <div class="bg-white rounded-lg shadow p-6">
+                <h2 class="text-xl font-semibold mb-4">Alternative Endpoints Test</h2>
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Vectorizer.AI Alternative Endpoints:</label>
+                        <div class="space-y-2">
+                            <button class="testAltEndpoint bg-gray-200 text-gray-700 px-3 py-1 rounded text-sm" data-endpoint="https://vectorizer.ai/api/v1/vectorize" data-api="vectorizer">
+                                https://vectorizer.ai/api/v1/vectorize
+                            </button>
+                            <button class="testAltEndpoint bg-gray-200 text-gray-700 px-3 py-1 rounded text-sm" data-endpoint="https://api.vectorizer.ai/vectorize" data-api="vectorizer">
+                                https://api.vectorizer.ai/vectorize
+                            </button>
+                            <button class="testAltEndpoint bg-gray-200 text-gray-700 px-3 py-1 rounded text-sm" data-endpoint="https://vectorizer.ai/vectorize" data-api="vectorizer">
+                                https://vectorizer.ai/vectorize
+                            </button>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Clipping Magic Alternative Endpoints:</label>
+                        <div class="space-y-2">
+                            <button class="testAltEndpoint bg-gray-200 text-gray-700 px-3 py-1 rounded text-sm" data-endpoint="https://clippingmagic.com/api/v1/remove-background" data-api="clippingMagic">
+                                https://clippingmagic.com/api/v1/remove-background
+                            </button>
+                            <button class="testAltEndpoint bg-gray-200 text-gray-700 px-3 py-1 rounded text-sm" data-endpoint="https://api.clippingmagic.com/remove-background" data-api="clippingMagic">
+                                https://api.clippingmagic.com/remove-background
+                            </button>
+                            <button class="testAltEndpoint bg-gray-200 text-gray-700 px-3 py-1 rounded text-sm" data-endpoint="https://clippingmagic.com/remove-background" data-api="clippingMagic">
+                                https://clippingmagic.com/remove-background
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // API configuration
+        const VECTORIZER_API_ID = 'vkxq4f4d9b7qwjh';
+        const VECTORIZER_API_SECRET = '3i3cdh559d3e1csqi2e4rsk319qdrbn2otls0flbdjqo9qmrnkfj';
+        const CLIPPING_MAGIC_API_ID = '24469';
+        const CLIPPING_MAGIC_API_SECRET = 'mngg89bme2has9hojc7n5cbjr8ptg3bjc8r3v225c555nhkvv11';
+
+        // Test Vectorizer.AI API
+        document.getElementById('testVectorizerBtn').addEventListener('click', async () => {
+            const statusSpan = document.getElementById('vectorizerStatus');
+            const resultDiv = document.getElementById('vectorizerResult');
+            
+            statusSpan.textContent = 'Testing...';
+            statusSpan.className = 'text-yellow-500';
+            
+            try {
+                const endpoint = document.getElementById('vectorizerEndpoint').textContent;
+                const credentials = btoa(`${VECTORIZER_API_ID}:${VECTORIZER_API_SECRET}`);
+                
+                console.log('Testing Vectorizer.AI endpoint:', endpoint);
+                
+                const response = await fetch(endpoint, {
+                    method: 'OPTIONS',
+                    headers: {
+                        'Authorization': `Basic ${credentials}`,
+                    }
+                });
+                
+                console.log('Vectorizer.AI OPTIONS response:', response.status, response.statusText);
+                
+                if (response.status === 200 || response.status === 405) {
+                    statusSpan.textContent = '✅ Accessible';
+                    statusSpan.className = 'text-green-500';
+                    resultDiv.innerHTML = '<p class="text-green-600">Endpoint is accessible!</p>';
+                } else {
+                    statusSpan.textContent = '❌ Not accessible';
+                    statusSpan.className = 'text-red-500';
+                    resultDiv.innerHTML = `<p class="text-red-600">Status: ${response.status} - ${response.statusText}</p>`;
+                }
+            } catch (error) {
+                statusSpan.textContent = '❌ Error';
+                statusSpan.className = 'text-red-500';
+                resultDiv.innerHTML = `<p class="text-red-600">Error: ${error.message}</p>`;
+            }
+        });
+
+        // Test Clipping Magic API
+        document.getElementById('testClippingMagicBtn').addEventListener('click', async () => {
+            const statusSpan = document.getElementById('clippingMagicStatus');
+            const resultDiv = document.getElementById('clippingMagicResult');
+            
+            statusSpan.textContent = 'Testing...';
+            statusSpan.className = 'text-yellow-500';
+            
+            try {
+                const endpoint = document.getElementById('clippingMagicEndpoint').textContent;
+                const credentials = btoa(`${CLIPPING_MAGIC_API_ID}:${CLIPPING_MAGIC_API_SECRET}`);
+                
+                console.log('Testing Clipping Magic endpoint:', endpoint);
+                
+                const response = await fetch(endpoint, {
+                    method: 'OPTIONS',
+                    headers: {
+                        'Authorization': `Basic ${credentials}`,
+                    }
+                });
+                
+                console.log('Clipping Magic OPTIONS response:', response.status, response.statusText);
+                
+                if (response.status === 200 || response.status === 405) {
+                    statusSpan.textContent = '✅ Accessible';
+                    statusSpan.className = 'text-green-500';
+                    resultDiv.innerHTML = '<p class="text-green-600">Endpoint is accessible!</p>';
+                } else {
+                    statusSpan.textContent = '❌ Not accessible';
+                    statusSpan.className = 'text-red-500';
+                    resultDiv.innerHTML = `<p class="text-red-600">Status: ${response.status} - ${response.statusText}</p>`;
+                }
+            } catch (error) {
+                statusSpan.textContent = '❌ Error';
+                statusSpan.className = 'text-red-500';
+                resultDiv.innerHTML = `<p class="text-red-600">Error: ${error.message}</p>`;
+            }
+        });
+
+        // Test alternative endpoints
+        document.querySelectorAll('.testAltEndpoint').forEach(button => {
+            button.addEventListener('click', async () => {
+                const endpoint = button.dataset.endpoint;
+                const api = button.dataset.api;
+                const credentials = api === 'vectorizer' 
+                    ? btoa(`${VECTORIZER_API_ID}:${VECTORIZER_API_SECRET}`)
+                    : btoa(`${CLIPPING_MAGIC_API_ID}:${CLIPPING_MAGIC_API_SECRET}`);
+                
+                button.textContent = 'Testing...';
+                button.className = 'bg-yellow-200 text-yellow-700 px-3 py-1 rounded text-sm';
+                
+                try {
+                    const response = await fetch(endpoint, {
+                        method: 'OPTIONS',
+                        headers: {
+                            'Authorization': `Basic ${credentials}`,
+                        }
+                    });
+                    
+                    if (response.status === 200 || response.status === 405) {
+                        button.textContent = `${endpoint} ✅`;
+                        button.className = 'bg-green-200 text-green-700 px-3 py-1 rounded text-sm';
+                    } else {
+                        button.textContent = `${endpoint} ❌ (${response.status})`;
+                        button.className = 'bg-red-200 text-red-700 px-3 py-1 rounded text-sm';
+                    }
+                } catch (error) {
+                    button.textContent = `${endpoint} ❌ (Error)`;
+                    button.className = 'bg-red-200 text-red-700 px-3 py-1 rounded text-sm';
+                }
+            });
+        });
+
+        // Auto-test on load
+        window.addEventListener('load', () => {
+            setTimeout(() => {
+                document.getElementById('testVectorizerBtn').click();
+                setTimeout(() => {
+                    document.getElementById('testClippingMagicBtn').click();
+                }, 1000);
+            }, 500);
+        });
+    </script>
+</body>
+</html> 

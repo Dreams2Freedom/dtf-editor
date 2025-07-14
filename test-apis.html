@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DTF Editor - API Test</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 p-8">
+    <div class="max-w-4xl mx-auto">
+        <h1 class="text-3xl font-bold text-gray-900 mb-8">DTF Editor - API Test</h1>
+        
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <!-- Vectorizer.AI Test -->
+            <div class="bg-white rounded-lg shadow p-6">
+                <h2 class="text-xl font-semibold mb-4">Vectorizer.AI API Test</h2>
+                <div class="space-y-2 text-sm mb-4">
+                    <p><strong>Endpoint:</strong> https://vectorizer.ai/api/v1/vectorize</p>
+                    <p><strong>API ID:</strong> vkxq4f4d9b7qwjh</p>
+                    <p><strong>Authentication:</strong> HTTP Basic Auth</p>
+                </div>
+                <input type="file" id="vectorizeTestFile" accept="image/*" class="mb-4">
+                <button id="vectorizeTestBtn" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
+                    Test Vectorization
+                </button>
+                <div id="vectorizeResult" class="mt-4"></div>
+            </div>
+
+            <!-- Clipping Magic Test -->
+            <div class="bg-white rounded-lg shadow p-6">
+                <h2 class="text-xl font-semibold mb-4">Clipping Magic API Test</h2>
+                <div class="space-y-2 text-sm mb-4">
+                    <p><strong>Endpoint:</strong> https://clippingmagic.com/api/v1/remove-background</p>
+                    <p><strong>API ID:</strong> 24469</p>
+                    <p><strong>Authentication:</strong> HTTP Basic Auth</p>
+                </div>
+                <input type="file" id="bgRemoveTestFile" accept="image/*" class="mb-4">
+                <button id="bgRemoveTestBtn" class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">
+                    Test Background Removal
+                </button>
+                <div id="bgRemoveResult" class="mt-4"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Vectorizer.AI API configuration
+        const VECTORIZER_API_ID = 'vkxq4f4d9b7qwjh';
+        const VECTORIZER_API_SECRET = '3i3cdh559d3e1csqi2e4rsk319qdrbn2otls0flbdjqo9qmrnkfj';
+        const VECTORIZER_ENDPOINT = 'https://api.vectorizer.ai/vectorize';
+
+        // Clipping Magic API configuration
+        const CLIPPING_MAGIC_API_ID = '24469';
+        const CLIPPING_MAGIC_API_SECRET = 'mngg89bme2has9hojc7n5cbjr8ptg3bjc8r3v225c555nhkvv11';
+        const CLIPPING_MAGIC_ENDPOINT = 'https://api.clippingmagic.com/remove-background';
+
+        // Vectorization test
+        document.getElementById('vectorizeTestBtn').addEventListener('click', async () => {
+            const fileInput = document.getElementById('vectorizeTestFile');
+            const resultDiv = document.getElementById('vectorizeResult');
+            
+            if (!fileInput.files[0]) {
+                resultDiv.innerHTML = '<p class="text-red-600">Please select a file first.</p>';
+                return;
+            }
+
+            const file = fileInput.files[0];
+            resultDiv.innerHTML = '<p class="text-blue-600">Testing Vectorizer.AI API...</p>';
+
+            try {
+                const formData = new FormData();
+                formData.append('image', file);
+                
+                const credentials = btoa(`${VECTORIZER_API_ID}:${VECTORIZER_API_SECRET}`);
+                
+                const response = await fetch(VECTORIZER_ENDPOINT, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Basic ${credentials}`,
+                    },
+                    body: formData
+                });
+
+                if (response.ok) {
+                    const blob = await response.blob();
+                    const url = URL.createObjectURL(blob);
+                    
+                    resultDiv.innerHTML = `
+                        <div class="text-green-600">
+                            <p class="font-semibold">✅ Vectorizer.AI API Test Successful!</p>
+                            <p>Response Status: ${response.status}</p>
+                            <p>File Size: ${(blob.size / 1024).toFixed(2)} KB</p>
+                            <p>Content Type: ${blob.type}</p>
+                            <a href="${url}" download="test-vector.svg" class="text-blue-600 underline">Download Result</a>
+                        </div>
+                    `;
+                } else {
+                    resultDiv.innerHTML = `
+                        <div class="text-red-600">
+                            <p class="font-semibold">❌ Vectorizer.AI API Test Failed</p>
+                            <p>Status: ${response.status}</p>
+                            <p>Status Text: ${response.statusText}</p>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <div class="text-red-600">
+                        <p class="font-semibold">❌ Vectorizer.AI Error</p>
+                        <p>${error.message}</p>
+                    </div>
+                `;
+            }
+        });
+
+        // Background removal test
+        document.getElementById('bgRemoveTestBtn').addEventListener('click', async () => {
+            const fileInput = document.getElementById('bgRemoveTestFile');
+            const resultDiv = document.getElementById('bgRemoveResult');
+            
+            if (!fileInput.files[0]) {
+                resultDiv.innerHTML = '<p class="text-red-600">Please select a file first.</p>';
+                return;
+            }
+
+            const file = fileInput.files[0];
+            resultDiv.innerHTML = '<p class="text-blue-600">Testing Clipping Magic API...</p>';
+
+            try {
+                const formData = new FormData();
+                formData.append('image', file);
+                
+                const credentials = btoa(`${CLIPPING_MAGIC_API_ID}:${CLIPPING_MAGIC_API_SECRET}`);
+                
+                const response = await fetch(CLIPPING_MAGIC_ENDPOINT, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Basic ${credentials}`,
+                    },
+                    body: formData
+                });
+
+                if (response.ok) {
+                    const blob = await response.blob();
+                    const url = URL.createObjectURL(blob);
+                    
+                    resultDiv.innerHTML = `
+                        <div class="text-green-600">
+                            <p class="font-semibold">✅ Clipping Magic API Test Successful!</p>
+                            <p>Response Status: ${response.status}</p>
+                            <p>File Size: ${(blob.size / 1024).toFixed(2)} KB</p>
+                            <p>Content Type: ${blob.type}</p>
+                            <a href="${url}" download="test-bg-removed.png" class="text-blue-600 underline">Download Result</a>
+                        </div>
+                    `;
+                } else {
+                    resultDiv.innerHTML = `
+                        <div class="text-red-600">
+                            <p class="font-semibold">❌ Clipping Magic API Test Failed</p>
+                            <p>Status: ${response.status}</p>
+                            <p>Status Text: ${response.statusText}</p>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <div class="text-red-600">
+                        <p class="font-semibold">❌ Clipping Magic Error</p>
+                        <p>${error.message}</p>
+                    </div>
+                `;
+            }
+        });
+    </script>
+</body>
+</html> 

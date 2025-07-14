@@ -1,0 +1,46 @@
+{
+  "version": 2,
+  "name": "dtf-editor",
+  "builds": [
+    {
+      "src": "api/*.js",
+      "use": "@vercel/node"
+    },
+    {
+      "src": "*.html",
+      "use": "@vercel/static"
+    },
+    {
+      "src": "*.css",
+      "use": "@vercel/static"
+    },
+    {
+      "src": "*.js",
+      "use": "@vercel/static"
+    }
+  ],
+  "routes": [
+    {
+      "src": "/api/vectorize",
+      "dest": "/api/vectorize.js"
+    },
+    {
+      "src": "/api/remove-background",
+      "dest": "/api/remove-background.js"
+    },
+    {
+      "src": "/api/health",
+      "dest": "/api/health.js"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "/$1"
+    }
+  ],
+  "env": {
+    "VECTORIZER_API_ID": "vkxq4f4d9b7qwjh",
+    "VECTORIZER_API_SECRET": "3i3cdh559d3e1csqi2e4rsk319qdrbn2otls0flbdjqo9qmrnkfj",
+    "CLIPPING_MAGIC_API_ID": "24469",
+    "CLIPPING_MAGIC_API_SECRET": "mngg89bme2has9hojc7n5cbjr8ptg3bjc8r3v225c555nhkvv11"
+  }
+} 

@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vectorizer.AI API Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .upload-area {
+            border: 2px dashed #3b82f6;
+            border-radius: 10px;
+            padding: 40px;
+            text-align: center;
+            margin: 20px 0;
+            background-color: #f8fafc;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        .upload-area:hover {
+            background-color: #eff6ff;
+            border-color: #2563eb;
+        }
+        .upload-area.dragover {
+            background-color: #dbeafe;
+            border-color: #1d4ed8;
+        }
+        .progress {
+            display: none;
+            margin: 20px 0;
+        }
+        .progress-bar {
+            width: 100%;
+            height: 20px;
+            background-color: #e5e7eb;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+        .progress-fill {
+            height: 100%;
+            background-color: #3b82f6;
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+        .result {
+            display: none;
+            margin: 20px 0;
+        }
+        .result img {
+            max-width: 100%;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        .error {
+            color: #dc2626;
+            background-color: #fef2f2;
+            border: 1px solid #fecaca;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+        .success {
+            color: #059669;
+            background-color: #f0fdf4;
+            border: 1px solid #bbf7d0;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+        button {
+            background-color: #3b82f6;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 10px 5px;
+        }
+        button:hover {
+            background-color: #2563eb;
+        }
+        button:disabled {
+            background-color: #9ca3af;
+            cursor: not-allowed;
+        }
+        .log {
+            background-color: #1f2937;
+            color: #f9fafb;
+            padding: 15px;
+            border-radius: 8px;
+            font-family: monospace;
+            font-size: 14px;
+            max-height: 300px;
+            overflow-y: auto;
+            margin: 20px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Vectorizer.AI API Test</h1>
+        <p>This page tests the Vectorizer.AI API with the corrected endpoint: <code>https://vectorizer.ai/api/v1/vectorize</code></p>
+        
+        <div class="upload-area" id="uploadArea">
+            <h3>Upload an image to vectorize</h3>
+            <p>Click here or drag and drop an image file</p>
+            <input type="file" id="fileInput" accept="image/*" style="display: none;">
+        </div>
+
+        <div class="progress" id="progress">
+            <h4>Processing...</h4>
+            <div class="progress-bar">
+                <div class="progress-fill" id="progressFill"></div>
+            </div>
+            <p id="progressText">Starting...</p>
+        </div>
+
+        <div class="result" id="result">
+            <h3>Vectorized Result</h3>
+            <img id="resultImage" alt="Vectorized result">
+            <br>
+            <button onclick="downloadResult()">Download SVG</button>
+            <button onclick="resetTest()">Try Another Image</button>
+        </div>
+
+        <div class="log" id="log">
+            <strong>Console Log:</strong><br>
+            <div id="logContent"></div>
+        </div>
+    </div>
+
+    <script>
+        // Vectorizer.AI API configuration
+        const VECTORIZER_ENDPOINT = 'https://vectorizer.ai/api/v1/vectorize';
+        const VECTORIZER_API_ID = 'vkxq4f4d9b7qwjh';
+        const VECTORIZER_API_SECRET = '3i3cdh559d3e1csqi2e4rsk319qdrbn2otls0flbdjqo9qmrnkfj';
+
+        let currentResult = null;
+
+        // DOM elements
+        const uploadArea = document.getElementById('uploadArea');
+        const fileInput = document.getElementById('fileInput');
+        const progress = document.getElementById('progress');
+        const progressFill = document.getElementById('progressFill');
+        const progressText = document.getElementById('progressText');
+        const result = document.getElementById('result');
+        const resultImage = document.getElementById('resultImage');
+        const logContent = document.getElementById('logContent');
+
+        // Event listeners
+        uploadArea.addEventListener('click', () => fileInput.click());
+        fileInput.addEventListener('change', handleFileSelect);
+
+        // Drag and drop
+        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+            uploadArea.addEventListener(eventName, preventDefaults, false);
+        });
+
+        ['dragenter', 'dragover'].forEach(eventName => {
+            uploadArea.addEventListener(eventName, () => {
+                uploadArea.classList.add('dragover');
+            }, false);
+        });
+
+        ['dragleave', 'drop'].forEach(eventName => {
+            uploadArea.addEventListener(eventName, () => {
+                uploadArea.classList.remove('dragover');
+            }, false);
+        });
+
+        uploadArea.addEventListener('drop', (e) => {
+            const dt = e.dataTransfer;
+            const files = dt.files;
+            if (files.length > 0) {
+                handleFile(files[0]);
+            }
+        }, false);
+
+        function preventDefaults(e) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+
+        function log(message) {
+            const timestamp = new Date().toLocaleTimeString();
+            logContent.innerHTML += `[${timestamp}] ${message}<br>`;
+            logContent.scrollTop = logContent.scrollHeight;
+            console.log(message);
+        }
+
+        function handleFileSelect(e) {
+            const file = e.target.files[0];
+            if (file) {
+                handleFile(file);
+            }
+        }
+
+        function handleFile(file) {
+            log(`Selected file: ${file.name} (${file.size} bytes)`);
+            
+            // Validate file
+            if (!file.type.startsWith('image/')) {
+                showError('Please select an image file.');
+                return;
+            }
+
+            if (file.size > 30 * 1024 * 1024) { // 30MB limit
+                showError('File size must be less than 30MB.');
+                return;
+            }
+
+            // Start processing
+            showProgress();
+            vectorizeImage(file);
+        }
+
+        function showProgress() {
+            progress.style.display = 'block';
+            result.style.display = 'none';
+            hideError();
+            updateProgress(0, 'Starting vectorization...');
+        }
+
+        function updateProgress(percentage, text) {
+            progressFill.style.width = `${percentage}%`;
+            progressText.textContent = text;
+        }
+
+        function showResult(vectorUrl) {
+            progress.style.display = 'none';
+            result.style.display = 'block';
+            resultImage.src = vectorUrl;
+            currentResult = vectorUrl;
+            log('Vectorization completed successfully!');
+        }
+
+        function showError(message) {
+            log(`ERROR: ${message}`);
+            const errorDiv = document.createElement('div');
+            errorDiv.className = 'error';
+            errorDiv.textContent = message;
+            progress.style.display = 'none';
+            result.style.display = 'none';
+            
+            // Remove any existing error
+            const existingError = document.querySelector('.error');
+            if (existingError) {
+                existingError.remove();
+            }
+            
+            document.querySelector('.container').appendChild(errorDiv);
+        }
+
+        function hideError() {
+            const error = document.querySelector('.error');
+            if (error) {
+                error.remove();
+            }
+        }
+
+        async function vectorizeImage(file) {
+            try {
+                log('Creating FormData...');
+                const formData = new FormData();
+                formData.append('image', file);
+                
+                log('Creating Basic Auth credentials...');
+                const credentials = btoa(`${VECTORIZER_API_ID}:${VECTORIZER_API_SECRET}`);
+                
+                log(`Making API call to: ${VECTORIZER_ENDPOINT}`);
+                updateProgress(25, 'Uploading image...');
+                
+                const response = await fetch(VECTORIZER_ENDPOINT, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Basic ${credentials}`,
+                    },
+                    body: formData
+                });
+                
+                log(`Response status: ${response.status}`);
+                log(`Response headers: ${JSON.stringify([...response.headers.entries()])}`);
+                
+                updateProgress(75, 'Processing response...');
+                
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    log(`Error response: ${errorText}`);
+                    throw new Error(`API call failed: ${response.status} - ${response.statusText}`);
+                }
+                
+                log('Getting response as blob...');
+                const vectorBlob = await response.blob();
+                log(`Response blob size: ${vectorBlob.size} bytes`);
+                
+                updateProgress(100, 'Creating result URL...');
+                const vectorUrl = URL.createObjectURL(vectorBlob);
+                
+                showResult(vectorUrl);
+                
+            } catch (error) {
+                log(`Vectorization error: ${error.message}`);
+                showError(`Failed to vectorize image: ${error.message}`);
+            }
+        }
+
+        function downloadResult() {
+            if (currentResult) {
+                const link = document.createElement('a');
+                link.href = currentResult;
+                link.download = 'vectorized-image.svg';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                log('Download initiated');
+            }
+        }
+
+        function resetTest() {
+            fileInput.value = '';
+            progress.style.display = 'none';
+            result.style.display = 'none';
+            hideError();
+            currentResult = null;
+            log('Test reset');
+        }
+
+        // Initialize
+        log('Vectorizer.AI API Test initialized');
+        log(`Endpoint: ${VECTORIZER_ENDPOINT}`);
+        log(`API ID: ${VECTORIZER_API_ID}`);
+    </script>
+</body>
+</html> 
