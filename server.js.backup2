@@ -20,10 +20,7 @@ const adminRoutes = require('./admin-routes');
 const app = express();
 
 // Initialize database
-console.log('Starting database initialization...');
-initializeDatabase().then(() => {
-    console.log('Database initialized successfully');
-}).catch((error) => {
+initializeDatabase().catch((error) => {
     console.error('Failed to initialize database:', error);
     process.exit(1);
 });
@@ -73,7 +70,6 @@ app.use('/api/admin', adminRoutes);
 
 // Root health check endpoint for Railway
 app.get('/', (req, res) => {
-    console.log('Root endpoint requested');
     res.json({ 
         status: 'ok', 
         message: 'DTF Editor API is running',
@@ -82,15 +78,8 @@ app.get('/', (req, res) => {
     });
 });
 
-// Simple health check endpoint (works without database)
-app.get('/health', (req, res) => {
-    console.log('Simple health check requested');
-    res.status(200).json({ status: 'ok', message: 'Server is running', timestamp: new Date().toISOString() });
-});
-
 // Health check endpoint
 app.get('/api/health', (req, res) => {
-    console.log('Health check requested');
     res.json({ 
         status: 'ok', 
         timestamp: new Date().toISOString(),
