@@ -57,3 +57,4 @@ jspm_packages/
 .DS_Store
 Thumbs.db
 .env
+dtf_editor.db
