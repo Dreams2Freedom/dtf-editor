@@ -538,13 +538,13 @@ class DTFEditorApp {
     }
 
     removePaywallOverlay() {
-    closePaywallPopup() {
-        this.removePaywallOverlay();
-    }
-        const overlay = document.getElementById('paywall-overlay');
+        const overlay = document.getElementById(paywall-overlay);
         if (overlay) {
             overlay.remove();
-        }
+        }    }
+
+    closePaywallPopup() {
+        this.removePaywallOverlay();
     }
 
     upgradeToFullVersion() {
