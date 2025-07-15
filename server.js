@@ -173,11 +173,12 @@ app.post('/api/preview', upload.single('image'), async (req, res) => {
         console.log(`Preview buffer first 100 bytes: ${previewBuffer.slice(0, 100).toString('hex')}`);
         console.log(`Preview buffer is PNG: ${previewBuffer.slice(0, 8).toString() === '\x89PNG\r\n\x1a\n'}`);
         // Set appropriate headers for PNG preview
-        res.set({
+        // NOTE: Test mode returns SVG, production mode returns PNG
+        // TODO: Change Content-Type to 'image/png' when switching to production mode        res.set({
             'Content-Type': 'image/svg+xml',
             'Content-Length': previewBuffer.length,
             'Content-Disposition': 'attachment; filename="preview.svg"'
-        });
+            // TODO: Change filename to "preview.png" when switching to production mode        });
 
         res.send(previewBuffer);
 
