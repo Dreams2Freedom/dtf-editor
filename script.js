@@ -446,15 +446,20 @@ class DTFEditorApp {
         this.vectorizeProgress.classList.add('hidden');
         
         // Set preview image
-        console.log('Setting preview image URL:', previewData.previewUrl);
+        // Wait for image to load before showing paywall
+        this.vectorizeResultImg.onload = () => {
+            console.log('Image loaded successfully, creating paywall overlay');
+            this.addPaywallOverlay();
+        };
+        this.vectorizeResultImg.onerror = () => {
+            console.error('Failed to load preview image');
+        };        console.log('Setting preview image URL:', previewData.previewUrl);
         console.log('vectorizeResultImg.src will be:', previewData.previewUrl);        this.vectorizeResultImg.src = previewData.previewUrl;
         
         // Show result section
         this.vectorizeResult.classList.remove('hidden');
         this.vectorizeResult.classList.add('fade-in');
         
-        // Add paywall overlay
-        this.addPaywallOverlay();
         
         // Scroll to results
         this.vectorizeResult.scrollIntoView({ behavior: 'smooth', block: 'center' });
