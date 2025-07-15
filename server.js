@@ -174,9 +174,9 @@ app.post('/api/preview', upload.single('image'), async (req, res) => {
         console.log(`Preview buffer is PNG: ${previewBuffer.slice(0, 8).toString() === '\x89PNG\r\n\x1a\n'}`);
         // Set appropriate headers for PNG preview
         res.set({
-            'Content-Type': 'image/png',
+            'Content-Type': 'image/svg+xml',
             'Content-Length': previewBuffer.length,
-            'Content-Disposition': 'attachment; filename="preview.png"'
+            'Content-Disposition': 'attachment; filename="preview.svg"'
         });
 
         res.send(previewBuffer);
