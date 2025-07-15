@@ -30,7 +30,7 @@ class DTFEditorApp {
         this.vectorizerEndpoint = '/api/vectorize';
         this.previewEndpoint = '/api/preview';
         this.clippingMagicEndpoint = '/api/remove-background';
-        
+        this.clippingMagicUploadEndpoint = '/api/clipping-magic-upload';        
         this.init();
     }
 
@@ -65,7 +65,7 @@ class DTFEditorApp {
         this.bgRemoveFileInput.addEventListener('change', (e) => {
             const file = e.target.files[0];
             if (file) {
-                this.handleBackgroundRemoval(file);
+                this.handleBackgroundRemovalWithEditor(file);
             }
         });
 
@@ -420,6 +420,147 @@ class DTFEditorApp {
             console.error('Background removal API error:', error);
             throw error;
         }
+
+    // Clipping Magic White Label Smart Editor methods
+    async uploadToClippingMagic(file) {
+        try {
+            console.log('Starting Clipping Magic upload for file:', file.name, 'Size:', file.size);
+            
+            // Create FormData for the upload endpoint
+            const formData = new FormData();
+            formData.append('image', file);
+            
+            console.log('Clipping Magic upload endpoint:', this.clippingMagicUploadEndpoint);
+            
+            // Make API call to upload endpoint
+            const response = await fetch(this.clippingMagicUploadEndpoint, {
+                method: 'POST',
+                body: formData
+            });
+            
+            console.log('Clipping Magic upload response status:', response.status);
+            
+            if (!response.ok) {
+                const errorText = await response.text();
+                console.error('Clipping Magic upload error response:', errorText);
+                throw new Error(`Clipping Magic upload failed: ${response.status} - ${response.statusText} - ${errorText}`);
+            }
+            
+            const result = await response.json();
+            console.log('Clipping Magic upload successful:', result);
+            
+            return {
+                success: true,
+                id: result.id,
+                secret: result.secret,
+                message: result.message
+            };
+            
+        } catch (error) {
+            console.error('Clipping Magic upload error:', error);
+            throw error;
+        }
+    }
+
+    launchClippingMagicEditor(id, secret) {
+        try {
+            console.log('Launching Clipping Magic editor with ID:', id);
+            
+            // Check if Clipping Magic library is loaded
+            if (typeof ClippingMagic === 'undefined') {
+                throw new Error('Clipping Magic library not loaded. Please ensure the script is included.');
+            }
+            
+            // Launch the White Label Smart Editor
+            ClippingMagic.launch({
+                id: id,
+                secret: secret,
+                onSave: (imageData) => {
+                    console.log('Editor save callback triggered');
+                    this.handleEditorSave(imageData);
+                },
+                onCancel: () => {
+                    console.log('Editor cancel callback triggered');
+                    this.handleEditorCancel();
+                },
+                onError: (error) => {
+                    console.error('Editor error callback:', error);
+                    this.handleEditorError(error);
+                }
+            });
+            
+        } catch (error) {
+            console.error('Failed to launch Clipping Magic editor:', error);
+            utils.showNotification('Failed to launch editor. Please try again.', 'error');
+        }
+    }
+
+    handleEditorSave(imageData) {
+        console.log('Editor save handler called with image data');
+        
+        // Create a blob URL from the image data
+        const blob = new Blob([imageData], { type: 'image/png' });
+        const imageUrl = URL.createObjectURL(blob);
+        
+        // Show the result
+        this.showBgRemoveResults({
+            success: true,
+            bgRemovedUrl: imageUrl,
+            originalUrl: this.currentOriginalUrl
+        });
+        
+        utils.showNotification('Background removed successfully!', 'success');
+    }
+
+    handleEditorCancel() {
+        console.log('Editor cancel handler called');
+        utils.showNotification('Background removal cancelled', 'info');
+        
+        // Reset the background removal state
+        this.resetBackgroundRemoval();
+    }
+
+    handleEditorError(error) {
+        console.error('Editor error handler called:', error);
+        utils.showNotification('Editor error: ' + error.message, 'error');
+        
+        // Reset the background removal state
+        this.resetBackgroundRemoval();
+    }
+
+    // Enhanced background removal with editor option
+    async handleBackgroundRemovalWithEditor(file) {
+        try {
+            console.log('Starting background removal with editor for file:', file.name);
+            
+            // Validate file
+            if (!this.validateFile(file)) {
+                return;
+            }
+            
+            // Show original image preview
+            this.showBgRemoveOriginalPreview(file);
+            
+            // Store original URL for later use
+            this.currentOriginalUrl = URL.createObjectURL(file);
+            
+            // Show progress
+            this.showBgRemoveProgress();
+            
+            // Upload to Clipping Magic and get credentials
+            const uploadResult = await this.uploadToClippingMagic(file);
+            
+            // Complete progress
+            this.updateBgRemoveProgress(100);
+            
+            // Launch the editor
+            this.launchClippingMagicEditor(uploadResult.id, uploadResult.secret);
+            
+        } catch (error) {
+            this.showBgRemoveError('Failed to start background removal editor. Please try again.');
+            console.error('Background removal with editor error:', error);
+        }
+    }
     }
 
     // This method is no longer needed since we're using the real API
