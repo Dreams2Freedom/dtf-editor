@@ -8,7 +8,7 @@ const morgan = require('morgan');
 require('dotenv').config();
 
 // Import our modules
-const { dbHelpers } = require('./database');
+const { dbHelpers, initializeDatabase } = require('./database');
 const { authenticateToken, checkCredits } = require('./auth');
 const { stripeHelpers } = require('./stripe');
 
@@ -18,6 +18,12 @@ const userRoutes = require('./user-routes');
 const adminRoutes = require('./admin-routes');
 
 const app = express();
+
+// Initialize database
+initializeDatabase().catch((error) => {
+    console.error('Failed to initialize database:', error);
+    process.exit(1);
+});
 const PORT = process.env.PORT || 3000;
 
 // Security middleware
