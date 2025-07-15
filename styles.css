@@ -409,3 +409,41 @@ a:focus {
         transform: scale(1);
     }
 }
+
+/* Paywall Close Button */
+.paywall-close-btn {
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    width: 40px;
+    height: 40px;
+    border: none;
+    background: rgba(255, 255, 255, 0.9);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    color: #6b7280;
+    transition: all 0.2s ease;
+    z-index: 10;
+    backdrop-filter: blur(4px);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.paywall-close-btn:hover {
+    background: rgba(255, 255, 255, 1);
+    color: #374151;
+    transform: scale(1.1);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+.paywall-close-btn svg {
+    width: 20px;
+    height: 20px;
+}
+
+/* Make paywall-content relative for absolute positioning of close button */
+.paywall-content {
+    position: relative;
+}
