@@ -157,7 +157,7 @@ app.post('/api/preview', upload.single('image'), async (req, res) => {
         });
 
         console.log(`Vectorizer.AI preview response status: ${response.status}`);
-
+        console.log(`Vectorizer.AI response headers:`, response.headers);
         if (!response.ok) {
             const errorText = await response.text();
             console.error('Vectorizer.AI preview error:', errorText);
@@ -170,7 +170,8 @@ app.post('/api/preview', upload.single('image'), async (req, res) => {
         // Get the response as buffer
         const previewBuffer = await response.buffer();
         console.log(`Preview generation successful: ${previewBuffer.length} bytes`);
-
+        console.log(`Preview buffer first 100 bytes: ${previewBuffer.slice(0, 100).toString('hex')}`);
+        console.log(`Preview buffer is PNG: ${previewBuffer.slice(0, 8).toString() === '\x89PNG\r\n\x1a\n'}`);
         // Set appropriate headers for PNG preview
         res.set({
             'Content-Type': 'image/png',
