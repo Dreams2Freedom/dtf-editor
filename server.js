@@ -140,7 +140,7 @@ app.post('/api/preview', upload.single('image'), async (req, res) => {
         });
         
         // Use preview mode
-        formData.append('mode', 'preview');
+        formData.append('mode', 'test');
 
         // Create Basic Auth header
         const credentials = Buffer.from(`${VECTORIZER_API_ID}:${VECTORIZER_API_SECRET}`).toString('base64');

@@ -10,7 +10,7 @@ class DTFEditorApp {
         this.vectorizeProgressText = document.getElementById('vectorizeProgressText');
         this.vectorizeResult = document.getElementById('vectorizeResult');
         this.vectorizeOriginal = document.getElementById('vectorizeOriginal');
-        this.vectorizeResultImg = document.getElementById('vectorizeResult');
+        this.vectorizeResultImg = document.getElementById('vectorizeResultImg');
         this.vectorizeDownloadBtn = document.getElementById('vectorizeDownloadBtn');
         this.vectorizeNewBtn = document.getElementById('vectorizeNewBtn');
         
