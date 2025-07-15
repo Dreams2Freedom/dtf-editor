@@ -275,6 +275,15 @@ app.post('/api/clipping-magic-upload', upload.single('image'), async (req, res) 
         });
     }
 });
+// Root health check endpoint for Railway
+app.get('/', (req, res) => {
+    res.json({ 
+        status: 'ok', 
+        message: 'DTF Editor API is running',
+        timestamp: new Date().toISOString(),
+        version: '1.0.0'
+    });
+});
 // Health check endpoint
 app.get('/api/health', (req, res) => {
     res.json({ 
@@ -310,16 +319,19 @@ app.use((error, req, res, next) => {
 
 // Start server
 app.listen(PORT, () => {
-    console.log(`🚀 DTF Editor server running on http://localhost:${PORT}`);
-    console.log(`📁 Static files served from: ${__dirname}`);
-    console.log(`🔧 API endpoints:`);
-    console.log(`   - POST /api/vectorize - Vectorize images (test mode by default)`);
-    console.log(`   - POST /api/preview - Generate preview images (watermarked)`);
-    console.log(`   - POST /api/remove-background - Remove backgrounds (pending)`);
-    console.log(`   - POST /api/clipping-magic-upload - Upload images for Clipping Magic editor`);
-    console.log(`   - GET /api/health - Health check`);
-    console.log(`📋 Modes available:`);
-    console.log(`   - test: Free testing mode (default)`);
-    console.log(`   - preview: Watermarked preview images`);
-    console.log(`   - production: Full quality (requires subscription)`);
-}); 
+}).on('error', (error) => {
+    console.error('Failed to start server:', error);
+    process.exit(1);
+});
+
+// Handle uncaught exceptions
+process.on('uncaughtException', (error) => {
+    console.error('Uncaught Exception:', error);
+    process.exit(1);
+});
+
+// Handle unhandled promise rejections
+process.on('unhandledRejection', (reason, promise) => {
+    console.error('Unhandled Rejection at:', promise, 'reason:', reason);
+    process.exit(1);
+});}); 
