@@ -3,9 +3,26 @@ const multer = require('multer');
 const fetch = require('node-fetch');
 const path = require('path');
 const cors = require('cors');
+const helmet = require('helmet');
+const morgan = require('morgan');
+require('dotenv').config();
+
+// Import our modules
+const { dbHelpers } = require('./database');
+const { authenticateToken, checkCredits } = require('./auth');
+const { stripeHelpers } = require('./stripe');
+
+// Import routes
+const authRoutes = require('./auth-routes');
+const userRoutes = require('./user-routes');
+const adminRoutes = require('./admin-routes');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+
+// Security middleware
+app.use(helmet());
+app.use(morgan('combined'));
 
 // Middleware
 app.use(cors());
@@ -27,20 +44,60 @@ const upload = multer({
     }
 });
 
-// Vectorizer.AI API configuration
+// API configuration
 const VECTORIZER_ENDPOINT = 'https://vectorizer.ai/api/v1/vectorize';
 const VECTORIZER_API_ID = process.env.VECTORIZER_API_ID || 'vkxq4f4d9b7qwjh';
 const VECTORIZER_API_SECRET = process.env.VECTORIZER_API_SECRET || '3i3cdh559d3e1csqi2e4rsk319qdrbn2otls0flbdjqo9qmrnkfj';
 
-// Clipping Magic API configuration (placeholder - need correct endpoint)
 const CLIPPING_MAGIC_ENDPOINT = 'https://api.clippingmagic.com/remove-background';
 const CLIPPING_MAGIC_API_ID = process.env.CLIPPING_MAGIC_API_ID || '24469';
 const CLIPPING_MAGIC_API_SECRET = process.env.CLIPPING_MAGIC_API_SECRET || 'mngg89bme2has9hojc7n5cbjr8ptg3bjc8r3v225c555nhkvv11';
 
-// Vectorizer.AI proxy endpoint
-app.post('/api/vectorize', upload.single('image'), async (req, res) => {
+// Authentication routes
+app.use('/api/auth', authRoutes);
+
+// User routes (protected)
+app.use('/api/user', userRoutes);
+
+// Admin routes (protected)
+app.use('/api/admin', adminRoutes);
+
+// Root health check endpoint for Railway
+app.get('/', (req, res) => {
+    res.json({ 
+        status: 'ok', 
+        message: 'DTF Editor API is running',
+        timestamp: new Date().toISOString(),
+        version: '2.0.0'
+    });
+});
+
+// Health check endpoint
+app.get('/api/health', (req, res) => {
+    res.json({ 
+        status: 'ok', 
+        timestamp: new Date().toISOString(),
+        services: {
+            vectorizer: 'available (test mode)',
+            vectorizerPreview: 'available',
+            clippingMagic: 'available',
+            clippingMagicUpload: 'available',
+            authentication: 'available',
+            userManagement: 'available',
+            adminPanel: 'available'
+        },
+        modes: {
+            test: 'Free testing mode',
+            preview: 'Watermarked preview images',
+            production: 'Full quality (requires subscription)'
+        }
+    });
+});
+
+// Vectorizer.AI proxy endpoint (with credit checking)
+app.post('/api/vectorize', authenticateToken, checkCredits(1), upload.single('image'), async (req, res) => {
     try {
-        console.log('Vectorization request received');
+        console.log('Vectorization request received from user:', req.user.id);
         
         if (!req.file) {
             return res.status(400).json({ error: 'No image file provided' });
@@ -59,31 +116,22 @@ app.post('/api/vectorize', upload.single('image'), async (req, res) => {
             filename: req.file.originalname,
             contentType: req.file.mimetype
         });
-        
-        // Add mode parameter
-        formData.append('mode', mode);
 
-        // Create Basic Auth header
-        const credentials = Buffer.from(`${VECTORIZER_API_ID}:${VECTORIZER_API_SECRET}`).toString('base64');
-
-        console.log('Making request to Vectorizer.AI...');
-
+        // Make request to Vectorizer.AI
         const response = await fetch(VECTORIZER_ENDPOINT, {
             method: 'POST',
             headers: {
-                'Authorization': `Basic ${credentials}`,
+                'Authorization': `Basic ${Buffer.from(`${VECTORIZER_API_ID}:${VECTORIZER_API_SECRET}`).toString('base64')}`,
                 ...formData.getHeaders()
             },
             body: formData
         });
 
-        console.log(`Vectorizer.AI response status: ${response.status}`);
-
         if (!response.ok) {
             const errorText = await response.text();
-            console.error('Vectorizer.AI error:', errorText);
+            console.error(`Vectorizer.AI API error: ${response.status} - ${errorText}`);
             return res.status(response.status).json({ 
-                error: `Vectorizer.AI API error: ${response.status} - ${response.statusText}`,
+                error: 'Failed to vectorize image',
                 details: errorText
             });
         }
@@ -92,21 +140,28 @@ app.post('/api/vectorize', upload.single('image'), async (req, res) => {
         const vectorBuffer = await response.buffer();
         console.log(`Vectorization successful: ${vectorBuffer.length} bytes`);
 
-        // Determine content type and filename based on mode
-        let contentType, filename;
-        if (mode === 'preview') {
-            contentType = 'image/png';
-            filename = 'preview.png';
-        } else {
-            contentType = 'image/png';
-            filename = 'vectorized.png';
-        }
+        // Save image to database
+        const imageData = {
+            user_id: req.user.id,
+            original_filename: req.file.originalname,
+            processed_filename: `vectorized_${Date.now()}.svg`,
+            file_size: req.file.size,
+            image_type: 'vectorization',
+            tool_used: 'vectorizer',
+            credits_used: 1,
+            processing_time_ms: Date.now() - req.startTime
+        };
 
-        // Set appropriate headers
+        await dbHelpers.saveImage(imageData);
+
+        // Use credits
+        await stripeHelpers.useCredits(req.user.id, 1, `Vectorized image: ${req.file.originalname}`);
+
+        // Set appropriate headers for SVG
         res.set({
-            'Content-Type': contentType,
+            'Content-Type': 'image/svg+xml',
             'Content-Length': vectorBuffer.length,
-            'Content-Disposition': `attachment; filename="${filename}"`
+            'Content-Disposition': 'attachment; filename="vectorized.svg"'
         });
 
         res.send(vectorBuffer);
@@ -120,16 +175,20 @@ app.post('/api/vectorize', upload.single('image'), async (req, res) => {
     }
 });
 
-// Vectorizer.AI preview endpoint
-app.post('/api/preview', upload.single('image'), async (req, res) => {
+// Vectorizer.AI preview endpoint (with credit checking)
+app.post('/api/preview', authenticateToken, checkCredits(1), upload.single('image'), async (req, res) => {
     try {
-        console.log('Preview request received');
+        console.log('Preview generation request received from user:', req.user.id);
         
         if (!req.file) {
             return res.status(400).json({ error: 'No image file provided' });
         }
 
         console.log(`Processing file: ${req.file.originalname} (${req.file.size} bytes)`);
+
+        // Get mode from query parameters (default to preview for watermarked results)
+        const mode = req.query.mode || 'preview';
+        console.log(`Using mode: ${mode}`);
 
         // Create FormData for Vectorizer.AI
         const FormData = require('form-data');
@@ -138,31 +197,22 @@ app.post('/api/preview', upload.single('image'), async (req, res) => {
             filename: req.file.originalname,
             contentType: req.file.mimetype
         });
-        
-        // Use preview mode
-        formData.append('mode', 'test');
 
-        // Create Basic Auth header
-        const credentials = Buffer.from(`${VECTORIZER_API_ID}:${VECTORIZER_API_SECRET}`).toString('base64');
-
-        console.log('Making preview request to Vectorizer.AI...');
-
+        // Make request to Vectorizer.AI
         const response = await fetch(VECTORIZER_ENDPOINT, {
             method: 'POST',
             headers: {
-                'Authorization': `Basic ${credentials}`,
+                'Authorization': `Basic ${Buffer.from(`${VECTORIZER_API_ID}:${VECTORIZER_API_SECRET}`).toString('base64')}`,
                 ...formData.getHeaders()
             },
             body: formData
         });
 
-        console.log(`Vectorizer.AI preview response status: ${response.status}`);
-        console.log(`Vectorizer.AI response headers:`, response.headers);
         if (!response.ok) {
             const errorText = await response.text();
-            console.error('Vectorizer.AI preview error:', errorText);
+            console.error(`Vectorizer.AI API error: ${response.status} - ${errorText}`);
             return res.status(response.status).json({ 
-                error: `Vectorizer.AI API error: ${response.status} - ${response.statusText}`,
+                error: 'Failed to generate preview',
                 details: errorText
             });
         }
@@ -170,15 +220,30 @@ app.post('/api/preview', upload.single('image'), async (req, res) => {
         // Get the response as buffer
         const previewBuffer = await response.buffer();
         console.log(`Preview generation successful: ${previewBuffer.length} bytes`);
-        console.log(`Preview buffer first 100 bytes: ${previewBuffer.slice(0, 100).toString('hex')}`);
-        console.log(`Preview buffer is PNG: ${previewBuffer.slice(0, 8).toString() === '\x89PNG\r\n\x1a\n'}`);
-        // Set appropriate headers for PNG preview
-        // NOTE: Test mode returns SVG, production mode returns PNG
+
+        // Save image to database
+        const imageData = {
+            user_id: req.user.id,
+            original_filename: req.file.originalname,
+            processed_filename: `preview_${Date.now()}.svg`,
+            file_size: req.file.size,
+            image_type: 'preview',
+            tool_used: 'vectorizer',
+            credits_used: 1,
+            processing_time_ms: Date.now() - req.startTime
+        };
+
+        await dbHelpers.saveImage(imageData);
+
+        // Use credits
+        await stripeHelpers.useCredits(req.user.id, 1, `Preview generated: ${req.file.originalname}`);
+
+        // Set appropriate headers for SVG preview
         res.set({
             'Content-Type': 'image/svg+xml',
             'Content-Length': previewBuffer.length,
             'Content-Disposition': 'attachment; filename="preview.svg"'
-            });
+        });
 
         res.send(previewBuffer);
 
@@ -191,10 +256,10 @@ app.post('/api/preview', upload.single('image'), async (req, res) => {
     }
 });
 
-// Clipping Magic proxy endpoint (placeholder)
-app.post('/api/remove-background', upload.single('image'), async (req, res) => {
+// Clipping Magic proxy endpoint (with credit checking)
+app.post('/api/remove-background', authenticateToken, checkCredits(1), upload.single('image'), async (req, res) => {
     try {
-        console.log('Background removal request received');
+        console.log('Background removal request received from user:', req.user.id);
         
         if (!req.file) {
             return res.status(400).json({ error: 'No image file provided' });
@@ -202,8 +267,8 @@ app.post('/api/remove-background', upload.single('image'), async (req, res) => {
 
         console.log(`Processing file: ${req.file.originalname} (${req.file.size} bytes)`);
 
-        // TODO: Implement Clipping Magic API call once we have the correct endpoint
-        // For now, return an error
+        // TODO: Implement actual Clipping Magic API call
+        // For now, return a placeholder response
         res.status(501).json({ 
             error: 'Background removal not yet implemented - need correct Clipping Magic API endpoint',
             details: 'The Clipping Magic API endpoint needs to be verified and implemented'
@@ -218,10 +283,10 @@ app.post('/api/remove-background', upload.single('image'), async (req, res) => {
     }
 });
 
-// Clipping Magic White Label Smart Editor upload endpoint
-app.post('/api/clipping-magic-upload', upload.single('image'), async (req, res) => {
+// Clipping Magic White Label Smart Editor upload endpoint (with credit checking)
+app.post('/api/clipping-magic-upload', authenticateToken, checkCredits(1), upload.single('image'), async (req, res) => {
     try {
-        console.log('Clipping Magic upload request received');
+        console.log('Clipping Magic upload request received from user:', req.user.id);
         
         if (!req.file) {
             return res.status(400).json({ error: 'No image file provided' });
@@ -259,6 +324,23 @@ app.post('/api/clipping-magic-upload', upload.single('image'), async (req, res) 
         const result = await response.json();
         console.log('Clipping Magic upload successful:', result);
 
+        // Save image to database
+        const imageData = {
+            user_id: req.user.id,
+            original_filename: req.file.originalname,
+            processed_filename: `clipping_magic_${Date.now()}.png`,
+            file_size: req.file.size,
+            image_type: 'background_removal',
+            tool_used: 'clipping_magic',
+            credits_used: 1,
+            processing_time_ms: Date.now() - req.startTime
+        };
+
+        await dbHelpers.saveImage(imageData);
+
+        // Use credits
+        await stripeHelpers.useCredits(req.user.id, 1, `Clipping Magic upload: ${req.file.originalname}`);
+
         // Return the id and secret needed for the White Label Smart Editor
         res.json({
             success: true,
@@ -275,37 +357,43 @@ app.post('/api/clipping-magic-upload', upload.single('image'), async (req, res) 
         });
     }
 });
-// Root health check endpoint for Railway
-app.get('/', (req, res) => {
-    res.json({ 
-        status: 'ok', 
-        message: 'DTF Editor API is running',
-        timestamp: new Date().toISOString(),
-        version: '1.0.0'
-    });
-});
-// Health check endpoint
-app.get('/api/health', (req, res) => {
-    res.json({ 
-        status: 'ok', 
-        timestamp: new Date().toISOString(),
-        services: {
-            vectorizer: 'available (test mode)',
-            vectorizerPreview: 'available',
-            clippingMagic: 'available',
-            clippingMagicUpload: 'available'
-        },
-        modes: {
-            test: 'Free testing mode',
-            preview: 'Watermarked preview images',
-            production: 'Full quality (requires subscription)'
-        }
-    });
-});
 
-// Serve the main application
-app.get('/', (req, res) => {
-    res.sendFile(path.join(__dirname, 'index.html'));
+// Stripe webhook endpoint
+app.post('/api/webhooks/stripe', express.raw({ type: 'application/json' }), async (req, res) => {
+    const sig = req.headers['stripe-signature'];
+    const endpointSecret = process.env.STRIPE_WEBHOOK_SECRET;
+
+    let event;
+
+    try {
+        event = stripe.webhooks.constructEvent(req.body, sig, endpointSecret);
+    } catch (err) {
+        console.error('Webhook signature verification failed:', err.message);
+        return res.status(400).send(`Webhook Error: ${err.message}`);
+    }
+
+    // Handle the event
+    switch (event.type) {
+        case 'customer.subscription.created':
+            console.log('Subscription created:', event.data.object);
+            break;
+        case 'customer.subscription.updated':
+            console.log('Subscription updated:', event.data.object);
+            break;
+        case 'customer.subscription.deleted':
+            console.log('Subscription deleted:', event.data.object);
+            break;
+        case 'invoice.payment_succeeded':
+            console.log('Payment succeeded:', event.data.object);
+            break;
+        case 'invoice.payment_failed':
+            console.log('Payment failed:', event.data.object);
+            break;
+        default:
+            console.log(`Unhandled event type: ${event.type}`);
+    }
+
+    res.json({ received: true });
 });
 
 // Error handling middleware
@@ -319,6 +407,24 @@ app.use((error, req, res, next) => {
 
 // Start server
 app.listen(PORT, () => {
+    console.log(`🚀 DTF Editor server running on http://localhost:${PORT}`);
+    console.log(`📁 Static files served from: ${__dirname}`);
+    console.log(`🔧 API endpoints:`);
+    console.log(`   - GET / - Root health check`);
+    console.log(`   - POST /api/auth/register - User registration`);
+    console.log(`   - POST /api/auth/login - User login`);
+    console.log(`   - GET /api/user/profile - User profile`);
+    console.log(`   - GET /api/admin/users - Admin user management`);
+    console.log(`   - POST /api/vectorize - Vectorize images (requires auth)`);
+    console.log(`   - POST /api/preview - Generate preview images (requires auth)`);
+    console.log(`   - POST /api/clipping-magic-upload - Upload for Clipping Magic editor (requires auth)`);
+    console.log(`   - GET /api/health - Health check`);
+    console.log(`📋 Features:`);
+    console.log(`   - User authentication and authorization`);
+    console.log(`   - Credit-based usage tracking`);
+    console.log(`   - Stripe subscription management`);
+    console.log(`   - Admin dashboard and user management`);
+    console.log(`   - Image processing with credit validation`);
 }).on('error', (error) => {
     console.error('Failed to start server:', error);
     process.exit(1);
@@ -334,4 +440,4 @@ process.on('uncaughtException', (error) => {
 process.on('unhandledRejection', (reason, promise) => {
     console.error('Unhandled Rejection at:', promise, 'reason:', reason);
     process.exit(1);
-}); 
+});
