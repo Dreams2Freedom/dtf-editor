@@ -449,9 +449,16 @@ class DTFEditorApp {
         // Wait for image to load before showing paywall
         this.vectorizeResultImg.onload = () => {
             console.log('Image loaded successfully, creating paywall overlay');
+            console.log('Image src:', this.vectorizeResultImg.src);
+            console.log('Image naturalWidth:', this.vectorizeResultImg.naturalWidth);
+            console.log('Image naturalHeight:', this.vectorizeResultImg.naturalHeight);
+            console.log('Image loaded successfully, creating paywall overlay');
             this.addPaywallOverlay();
         };
-        this.vectorizeResultImg.onerror = () => {
+        this.vectorizeResultImg.onerror = (error) => {
+            console.error('Failed to load preview image', error);
+            console.error('Image src was:', this.vectorizeResultImg.src);
+            console.error('Image element:', this.vectorizeResultImg);
             console.error('Failed to load preview image');
         };        console.log('Setting preview image URL:', previewData.previewUrl);
         console.log('vectorizeResultImg.src will be:', previewData.previewUrl);        this.vectorizeResultImg.src = previewData.previewUrl;
