@@ -2,7 +2,7 @@
 
 class DTFEditorApp {
     constructor() {
-        // Vectorization elements
+        console.log('DTFEditorApp constructor called');        // Vectorization elements
         this.vectorizeUploadArea = document.getElementById('vectorizeUploadArea');
         this.vectorizeFileInput = document.getElementById('vectorize-file-upload');
         this.vectorizeProgress = document.getElementById('vectorizeProgress');
@@ -35,14 +35,15 @@ class DTFEditorApp {
     }
 
     init() {
-        this.setupEventListeners();
+        console.log('DTFEditorApp init called');        this.setupEventListeners();
         this.setupDragAndDrop();
     }
 
     setupEventListeners() {
         // Vectorization event listeners
         this.vectorizeFileInput.addEventListener('change', (e) => {
-            const file = e.target.files[0];
+            console.log('File input change event triggered');
+            console.log('Files selected:', e.target.files);            const file = e.target.files[0];
             if (file) {
                 this.handleVectorization(file);
             }
@@ -156,7 +157,7 @@ class DTFEditorApp {
     }
 
     async handleVectorization(file) {
-        // Validate file
+        console.log('handleVectorization called with file:', file);        // Validate file
         if (!this.validateFile(file)) {
             return;
         }
