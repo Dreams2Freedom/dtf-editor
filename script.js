@@ -446,7 +446,8 @@ class DTFEditorApp {
         this.vectorizeProgress.classList.add('hidden');
         
         // Set preview image
-        this.vectorizeResultImg.src = previewData.previewUrl;
+        console.log('Setting preview image URL:', previewData.previewUrl);
+        console.log('vectorizeResultImg.src will be:', previewData.previewUrl);        this.vectorizeResultImg.src = previewData.previewUrl;
         
         // Show result section
         this.vectorizeResult.classList.remove('hidden');
@@ -478,7 +479,7 @@ class DTFEditorApp {
         this.removePaywallOverlay();
         
         // Create paywall overlay
-        const overlay = document.createElement('div');
+        console.log('Creating paywall overlay with image URL:', this.vectorizeResultImg.src);        const overlay = document.createElement('div');
         overlay.id = 'paywall-overlay';
         overlay.className = 'paywall-overlay fade-in';
         overlay.innerHTML = `
