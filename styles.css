@@ -197,3 +197,215 @@ a:focus {
     transform: translateY(-4px);
     box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
 } 
+
+/* Paywall Overlay Styles */
+.paywall-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(0, 0, 0, 0.8);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    backdrop-filter: blur(4px);
+}
+
+.paywall-content {
+    background: white;
+    border-radius: 16px;
+    max-width: 1200px;
+    width: 90%;
+    max-height: 90vh;
+    display: flex;
+    overflow: hidden;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+}
+
+.paywall-preview-section {
+    flex: 1.2;
+    position: relative;
+    background: #f8f9fa;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+}
+
+.paywall-preview-image {
+    max-width: 100%;
+    max-height: 600px;
+    object-fit: contain;
+    border-radius: 8px;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+}
+
+.watermark-badge {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    background: rgba(0, 0, 0, 0.7);
+    color: white;
+    padding: 8px 16px;
+    border-radius: 20px;
+    font-size: 14px;
+    font-weight: 600;
+    backdrop-filter: blur(4px);
+}
+
+.paywall-info-section {
+    flex: 1;
+    padding: 40px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
+.paywall-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 16px;
+}
+
+.paywall-lock-icon {
+    width: 24px;
+    height: 24px;
+    color: #6b7280;
+}
+
+.paywall-header h2 {
+    font-size: 28px;
+    font-weight: 700;
+    color: #1f2937;
+    margin: 0;
+}
+
+.paywall-description {
+    color: #6b7280;
+    font-size: 16px;
+    margin-bottom: 32px;
+    line-height: 1.5;
+}
+
+.paywall-features {
+    margin-bottom: 32px;
+}
+
+.paywall-feature {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 16px;
+    background: #f9fafb;
+    border-radius: 8px;
+    margin-bottom: 8px;
+}
+
+.feature-check {
+    width: 20px;
+    height: 20px;
+    color: #10b981;
+    flex-shrink: 0;
+}
+
+.paywall-feature span {
+    color: #374151;
+    font-size: 14px;
+    font-weight: 500;
+}
+
+.paywall-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.paywall-primary-btn {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border: none;
+    padding: 16px 24px;
+    border-radius: 12px;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+}
+
+.paywall-primary-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 15px -3px rgba(0, 0, 0, 0.2);
+}
+
+.paywall-secondary-btn {
+    background: white;
+    color: #6b7280;
+    border: 2px solid #e5e7eb;
+    padding: 14px 24px;
+    border-radius: 12px;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.paywall-secondary-btn:hover {
+    background: #f9fafb;
+    border-color: #d1d5db;
+}
+
+/* Mobile Responsive */
+@media (max-width: 768px) {
+    .paywall-content {
+        flex-direction: column;
+        max-height: 95vh;
+    }
+    
+    .paywall-preview-section {
+        flex: none;
+        max-height: 40vh;
+        padding: 16px;
+    }
+    
+    .paywall-preview-image {
+        max-height: 300px;
+    }
+    
+    .paywall-info-section {
+        padding: 24px;
+    }
+    
+    .paywall-header h2 {
+        font-size: 24px;
+    }
+    
+    .paywall-actions {
+        gap: 8px;
+    }
+    
+    .paywall-primary-btn,
+    .paywall-secondary-btn {
+        padding: 14px 20px;
+        font-size: 14px;
+    }
+}
+
+/* Animation */
+.paywall-overlay.fade-in {
+    animation: fadeIn 0.3s ease-out;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: scale(0.95);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}

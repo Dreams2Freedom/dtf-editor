@@ -28,6 +28,7 @@ class DTFEditorApp {
         
         // API configuration - using local proxy server
         this.vectorizerEndpoint = '/api/vectorize';
+        this.previewEndpoint = '/api/preview';
         this.clippingMagicEndpoint = '/api/remove-background';
         
         this.init();
@@ -170,17 +171,17 @@ class DTFEditorApp {
             // Start progress simulation
             const progressInterval = this.simulateVectorizeProgress();
             
-            // Make actual API call to Vectorizer.AI
-            const vectorData = await this.vectorizeImage(file);
+            // First, generate preview (watermarked)
+            const previewData = await this.generatePreview(file);
             
             // Complete progress
             this.updateVectorizeProgress(100);
             
-            // Show results
-            this.showVectorizeResults(vectorData);
+            // Show preview results with paywall
+            this.showVectorizePreviewResults(previewData);
         } catch (error) {
-            this.showVectorizeError('Failed to vectorize image. Please try again.');
-            console.error('Vectorization error:', error);
+            this.showVectorizeError('Failed to generate preview. Please try again.');
+            console.error('Preview generation error:', error);
         }
     }
 
@@ -206,7 +207,7 @@ class DTFEditorApp {
             // Complete progress
             this.updateBgRemoveProgress(100);
             
-            // Show results
+            // Show preview results with paywall
             this.showBgRemoveResults(bgRemovedData);
         } catch (error) {
             this.showBgRemoveError('Failed to remove background. Please try again.');
@@ -296,6 +297,46 @@ class DTFEditorApp {
         this.bgRemoveProgressText.textContent = `Removing background... ${Math.round(percentage)}%`;
     }
 
+    async generatePreview(file) {
+        try {
+            console.log('Starting preview generation for file:', file.name, 'Size:', file.size);
+            
+            // Create FormData for the preview endpoint
+            const formData = new FormData();
+            formData.append('image', file);
+            
+            console.log('Preview API endpoint:', this.previewEndpoint);
+            
+            // Make API call to preview endpoint
+            const response = await fetch(this.previewEndpoint, {
+                method: 'POST',
+                body: formData
+            });
+            
+            console.log('Preview API response status:', response.status);
+            
+            if (!response.ok) {
+                const errorText = await response.text();
+                console.error('Preview API error response:', errorText);
+                throw new Error(`Preview API call failed: ${response.status} - ${response.statusText} - ${errorText}`);
+            }
+            
+            // Get the response as blob (preview image)
+            const previewBlob = await response.blob();
+            console.log('Preview API response blob size:', previewBlob.size);
+            const previewUrl = URL.createObjectURL(previewBlob);
+            
+            return {
+                success: true,
+                previewUrl: previewUrl,
+                originalUrl: URL.createObjectURL(file)
+            };
+            
+        } catch (error) {
+            console.error('Preview API error:', error);
+            throw error;
+        }
+    }
     async vectorizeImage(file) {
         try {
             console.log('Starting vectorization for file:', file.name, 'Size:', file.size);
@@ -399,6 +440,23 @@ class DTFEditorApp {
         return canvas.toDataURL();
     }
 
+    showVectorizePreviewResults(previewData) {
+        // Hide progress
+        this.vectorizeProgress.classList.add('hidden');
+        
+        // Set preview image
+        this.vectorizeResultImg.src = previewData.previewUrl;
+        
+        // Show result section
+        this.vectorizeResult.classList.remove('hidden');
+        this.vectorizeResult.classList.add('fade-in');
+        
+        // Add paywall overlay
+        this.addPaywallOverlay();
+        
+        // Scroll to results
+        this.vectorizeResult.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
     showVectorizeResults(vectorData) {
         // Hide progress
         this.vectorizeProgress.classList.add('hidden');
@@ -414,6 +472,78 @@ class DTFEditorApp {
         this.vectorizeResult.scrollIntoView({ behavior: 'smooth', block: 'center' });
     }
 
+    addPaywallOverlay() {
+        // Remove existing overlay if any
+        this.removePaywallOverlay();
+        
+        // Create paywall overlay
+        const overlay = document.createElement('div');
+        overlay.id = 'paywall-overlay';
+        overlay.className = 'paywall-overlay fade-in';
+        overlay.innerHTML = `
+            <div class="paywall-content">
+                <div class="paywall-preview-section">
+                    <img src="${this.vectorizeResultImg.src}" alt="Vectorized Preview" class="paywall-preview-image">
+                    <div class="watermark-badge">Preview</div>
+                </div>
+                <div class="paywall-info-section">
+                    <div class="paywall-header">
+                        <svg class="paywall-lock-icon" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clip-rule="evenodd" />
+                        </svg>
+                        <h2>Preview Mode</h2>
+                    </div>
+                    <p class="paywall-description">Get the full version for high-quality results!</p>
+                    <div class="paywall-features">
+                        <div class="paywall-feature">
+                            <svg class="feature-check" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
+                            </svg>
+                            <span>High-quality vectorization</span>
+                        </div>
+                        <div class="paywall-feature">
+                            <svg class="feature-check" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
+                            </svg>
+                            <span>No watermarks</span>
+                        </div>
+                        <div class="paywall-feature">
+                            <svg class="feature-check" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
+                            </svg>
+                            <span>PNG download</span>
+                        </div>
+                        <div class="paywall-feature">
+                            <svg class="feature-check" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
+                            </svg>
+                            <span>Commercial use</span>
+                        </div>
+                    </div>
+                    <div class="paywall-actions">
+                        <button class="paywall-primary-btn" onclick="app.upgradeToFullVersion()">Get Full Version - $9.99</button>
+                        <button class="paywall-secondary-btn" onclick="app.removePaywallOverlay()">Keep Preview (Free)</button>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        // Append to body for full viewport coverage
+        document.body.appendChild(overlay);
+    }
+
+    removePaywallOverlay() {
+        const overlay = document.getElementById('paywall-overlay');
+        if (overlay) {
+            overlay.remove();
+        }
+    }
+
+    upgradeToFullVersion() {
+        // Simulate purchase process
+        alert('Thank you for your interest! Payment integration coming soon.');
+        this.removePaywallOverlay();
+    }
     showBgRemoveResults(bgRemovedData) {
         // Hide progress
         this.bgRemoveProgress.classList.add('hidden');
