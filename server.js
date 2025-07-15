@@ -21,6 +21,13 @@ const app = express();
 
 // Initialize database
 console.log('Starting database initialization...');
+console.log('Environment check:', {
+    PORT: process.env.PORT || 'not set',
+    NODE_ENV: process.env.NODE_ENV || 'not set',
+    STRIPE_SECRET_KEY: process.env.STRIPE_SECRET_KEY ? 'set' : 'not set',
+    VECTORIZER_API_ID: process.env.VECTORIZER_API_ID ? 'set' : 'not set',
+    CLIPPING_MAGIC_API_ID: process.env.CLIPPING_MAGIC_API_ID ? 'set' : 'not set'
+});
 initializeDatabase().then(() => {
     console.log('Database initialized successfully');
 }).catch((error) => {
