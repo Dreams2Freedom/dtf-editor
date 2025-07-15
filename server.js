@@ -218,6 +218,63 @@ app.post('/api/remove-background', upload.single('image'), async (req, res) => {
     }
 });
 
+// Clipping Magic White Label Smart Editor upload endpoint
+app.post('/api/clipping-magic-upload', upload.single('image'), async (req, res) => {
+    try {
+        console.log('Clipping Magic upload request received');
+        
+        if (!req.file) {
+            return res.status(400).json({ error: 'No image file provided' });
+        }
+
+        console.log(`Processing file: ${req.file.originalname} (${req.file.size} bytes)`);
+
+        // Create FormData for Clipping Magic API
+        const FormData = require('form-data');
+        const formData = new FormData();
+        formData.append('image', req.file.buffer, {
+            filename: req.file.originalname,
+            contentType: req.file.mimetype
+        });
+
+        // Make request to Clipping Magic API
+        const response = await fetch('https://clippingmagic.com/api/v1/images', {
+            method: 'POST',
+            headers: {
+                'Authorization': `Basic ${Buffer.from(`${CLIPPING_MAGIC_API_ID}:${CLIPPING_MAGIC_API_SECRET}`).toString('base64')}`,
+                ...formData.getHeaders()
+            },
+            body: formData
+        });
+
+        if (!response.ok) {
+            const errorText = await response.text();
+            console.error(`Clipping Magic API error: ${response.status} - ${errorText}`);
+            return res.status(response.status).json({ 
+                error: 'Failed to upload image to Clipping Magic',
+                details: errorText
+            });
+        }
+
+        const result = await response.json();
+        console.log('Clipping Magic upload successful:', result);
+
+        // Return the id and secret needed for the White Label Smart Editor
+        res.json({
+            success: true,
+            id: result.id,
+            secret: result.secret,
+            message: 'Image uploaded successfully. Ready to launch editor.'
+        });
+
+    } catch (error) {
+        console.error('Clipping Magic upload error:', error);
+        res.status(500).json({ 
+            error: 'Internal server error during Clipping Magic upload',
+            details: error.message 
+        });
+    }
+});
 // Health check endpoint
 app.get('/api/health', (req, res) => {
     res.json({ 
@@ -226,7 +283,8 @@ app.get('/api/health', (req, res) => {
         services: {
             vectorizer: 'available (test mode)',
             vectorizerPreview: 'available',
-            clippingMagic: 'pending'
+            clippingMagic: 'available',
+            clippingMagicUpload: 'available'
         },
         modes: {
             test: 'Free testing mode',
@@ -258,6 +316,7 @@ app.listen(PORT, () => {
     console.log(`   - POST /api/vectorize - Vectorize images (test mode by default)`);
     console.log(`   - POST /api/preview - Generate preview images (watermarked)`);
     console.log(`   - POST /api/remove-background - Remove backgrounds (pending)`);
+    console.log(`   - POST /api/clipping-magic-upload - Upload images for Clipping Magic editor`);
     console.log(`   - GET /api/health - Health check`);
     console.log(`📋 Modes available:`);
     console.log(`   - test: Free testing mode (default)`);
