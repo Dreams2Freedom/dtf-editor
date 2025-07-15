@@ -48,6 +48,10 @@ app.post('/api/vectorize', upload.single('image'), async (req, res) => {
 
         console.log(`Processing file: ${req.file.originalname} (${req.file.size} bytes)`);
 
+        // Get mode from query parameters (default to test for development)
+        const mode = req.query.mode || 'test';
+        console.log(`Using mode: ${mode}`);
+
         // Create FormData for Vectorizer.AI
         const FormData = require('form-data');
         const formData = new FormData();
@@ -55,6 +59,9 @@ app.post('/api/vectorize', upload.single('image'), async (req, res) => {
             filename: req.file.originalname,
             contentType: req.file.mimetype
         });
+        
+        // Add mode parameter
+        formData.append('mode', mode);
 
         // Create Basic Auth header
         const credentials = Buffer.from(`${VECTORIZER_API_ID}:${VECTORIZER_API_SECRET}`).toString('base64');
@@ -85,11 +92,21 @@ app.post('/api/vectorize', upload.single('image'), async (req, res) => {
         const vectorBuffer = await response.buffer();
         console.log(`Vectorization successful: ${vectorBuffer.length} bytes`);
 
+        // Determine content type and filename based on mode
+        let contentType, filename;
+        if (mode === 'preview') {
+            contentType = 'image/png';
+            filename = 'preview.png';
+        } else {
+            contentType = 'image/png';
+            filename = 'vectorized.png';
+        }
+
         // Set appropriate headers
         res.set({
-            'Content-Type': 'image/svg+xml',
+            'Content-Type': contentType,
             'Content-Length': vectorBuffer.length,
-            'Content-Disposition': 'attachment; filename="vectorized.svg"'
+            'Content-Disposition': `attachment; filename="${filename}"`
         });
 
         res.send(vectorBuffer);
@@ -98,6 +115,75 @@ app.post('/api/vectorize', upload.single('image'), async (req, res) => {
         console.error('Vectorization error:', error);
         res.status(500).json({ 
             error: 'Internal server error during vectorization',
+            details: error.message 
+        });
+    }
+});
+
+// Vectorizer.AI preview endpoint
+app.post('/api/preview', upload.single('image'), async (req, res) => {
+    try {
+        console.log('Preview request received');
+        
+        if (!req.file) {
+            return res.status(400).json({ error: 'No image file provided' });
+        }
+
+        console.log(`Processing file: ${req.file.originalname} (${req.file.size} bytes)`);
+
+        // Create FormData for Vectorizer.AI
+        const FormData = require('form-data');
+        const formData = new FormData();
+        formData.append('image', req.file.buffer, {
+            filename: req.file.originalname,
+            contentType: req.file.mimetype
+        });
+        
+        // Use preview mode
+        formData.append('mode', 'preview');
+
+        // Create Basic Auth header
+        const credentials = Buffer.from(`${VECTORIZER_API_ID}:${VECTORIZER_API_SECRET}`).toString('base64');
+
+        console.log('Making preview request to Vectorizer.AI...');
+
+        const response = await fetch(VECTORIZER_ENDPOINT, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Basic ${credentials}`,
+                ...formData.getHeaders()
+            },
+            body: formData
+        });
+
+        console.log(`Vectorizer.AI preview response status: ${response.status}`);
+
+        if (!response.ok) {
+            const errorText = await response.text();
+            console.error('Vectorizer.AI preview error:', errorText);
+            return res.status(response.status).json({ 
+                error: `Vectorizer.AI API error: ${response.status} - ${response.statusText}`,
+                details: errorText
+            });
+        }
+
+        // Get the response as buffer
+        const previewBuffer = await response.buffer();
+        console.log(`Preview generation successful: ${previewBuffer.length} bytes`);
+
+        // Set appropriate headers for PNG preview
+        res.set({
+            'Content-Type': 'image/png',
+            'Content-Length': previewBuffer.length,
+            'Content-Disposition': 'attachment; filename="preview.png"'
+        });
+
+        res.send(previewBuffer);
+
+    } catch (error) {
+        console.error('Preview generation error:', error);
+        res.status(500).json({ 
+            error: 'Internal server error during preview generation',
             details: error.message 
         });
     }
@@ -136,8 +222,14 @@ app.get('/api/health', (req, res) => {
         status: 'ok', 
         timestamp: new Date().toISOString(),
         services: {
-            vectorizer: 'available',
+            vectorizer: 'available (test mode)',
+            vectorizerPreview: 'available',
             clippingMagic: 'pending'
+        },
+        modes: {
+            test: 'Free testing mode',
+            preview: 'Watermarked preview images',
+            production: 'Full quality (requires subscription)'
         }
     });
 });
@@ -161,7 +253,12 @@ app.listen(PORT, () => {
     console.log(`🚀 DTF Editor server running on http://localhost:${PORT}`);
     console.log(`📁 Static files served from: ${__dirname}`);
     console.log(`🔧 API endpoints:`);
-    console.log(`   - POST /api/vectorize - Vectorize images`);
+    console.log(`   - POST /api/vectorize - Vectorize images (test mode by default)`);
+    console.log(`   - POST /api/preview - Generate preview images (watermarked)`);
     console.log(`   - POST /api/remove-background - Remove backgrounds (pending)`);
     console.log(`   - GET /api/health - Health check`);
+    console.log(`📋 Modes available:`);
+    console.log(`   - test: Free testing mode (default)`);
+    console.log(`   - preview: Watermarked preview images`);
+    console.log(`   - production: Full quality (requires subscription)`);
 }); 
