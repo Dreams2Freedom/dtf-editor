@@ -712,7 +712,7 @@ class DTFEditorApp {
 
 // Initialize the app when DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {
-    new DTFEditorApp();
+    window.app = new DTFEditorApp();
 });
 
 // Add some additional utility functions
