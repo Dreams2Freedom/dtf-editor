@@ -132,7 +132,8 @@ app.get('/health', (req, res) => {
         timestamp: new Date().toISOString(),
         database: dbInitialized ? 'connected' : 'disconnected',
         version: '2.1.0',
-        deployment: '2025-07-16T18:10:00Z'
+        deployment: '2025-07-16T18:30:00Z',
+        build: 'v2.2.0'
     });
 });
 
