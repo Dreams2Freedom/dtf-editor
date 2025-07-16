@@ -44,6 +44,11 @@ let isInitialized = false;
 async function initializeDatabase() {
     try {
         console.log('Connecting to PostgreSQL database...');
+        console.log('Database config type:', process.env.SUPABASE_DB_URL ? 'Supabase' : process.env.DATABASE_URL ? 'Railway' : 'Local');
+        console.log('Environment check - SUPABASE_DB_URL:', process.env.SUPABASE_DB_URL ? 'SET' : 'NOT SET');
+        console.log('Environment check - DATABASE_URL:', process.env.DATABASE_URL ? 'SET' : 'NOT SET');
+        console.log('Environment check - DB_HOST:', process.env.DB_HOST || 'NOT SET');
+        
         pool = new Pool(dbConfig);
         
         // Test connection
