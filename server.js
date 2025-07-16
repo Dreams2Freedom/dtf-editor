@@ -50,6 +50,21 @@ app.use(cors());
 app.use(express.json());
 app.use(express.static('.'));
 
+// Simple health check endpoint (works immediately without database)
+app.get('/health', (req, res) => {
+    console.log('Simple health check requested');
+    res.status(200).json({ 
+        status: 'ok', 
+        message: 'Server is running', 
+        timestamp: new Date().toISOString(),
+        database: dbInitialized ? 'connected' : 'disconnected',
+        version: '2.1.0',
+        deployment: '2025-07-16T18:50:00Z',
+        build: 'v2.4.0',
+        status: 'immediate-health-check'
+    });
+});
+
 // Configure multer for file uploads
 const upload = multer({
     storage: multer.memoryStorage(),
@@ -120,21 +135,6 @@ app.get('/api/health-check', (req, res) => {
         message: 'DTF Editor API is running',
         timestamp: new Date().toISOString(),
         version: '2.0.0'
-    });
-});
-
-// Simple health check endpoint (works without database)
-app.get('/health', (req, res) => {
-    console.log('Simple health check requested');
-    res.status(200).json({ 
-        status: 'ok', 
-        message: 'Server is running', 
-        timestamp: new Date().toISOString(),
-        database: dbInitialized ? 'connected' : 'disconnected',
-        version: '2.1.0',
-        deployment: '2025-07-16T18:45:00Z',
-        build: 'v2.3.0',
-        status: 'simplified-deployment'
     });
 });
 
