@@ -329,18 +329,39 @@ class AdminDashboard {
                     </span>
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                    <button onclick="adminDashboard.viewUser(${user.id})" class="text-primary-600 hover:text-primary-900 mr-3">
+                    <button data-action="view" data-user-id="${user.id}" class="text-primary-600 hover:text-primary-900 mr-3">
                         View
                     </button>
-                    <button onclick="adminDashboard.editUser(${user.id})" class="text-indigo-600 hover:text-indigo-900 mr-3">
+                    <button data-action="edit" data-user-id="${user.id}" class="text-indigo-600 hover:text-indigo-900 mr-3">
                         Edit
                     </button>
-                    <button onclick="adminDashboard.toggleUserStatus(${user.id})" class="text-yellow-600 hover:text-yellow-900">
+                    <button data-action="toggle" data-user-id="${user.id}" class="text-yellow-600 hover:text-yellow-900">
                         ${user.is_active ? 'Deactivate' : 'Activate'}
                     </button>
                 </td>
             `;
             tbody.appendChild(row);
+        });
+
+        // Add event listeners to the buttons
+        tbody.addEventListener('click', (e) => {
+            const button = e.target.closest('button[data-action]');
+            if (!button) return;
+
+            const action = button.dataset.action;
+            const userId = parseInt(button.dataset.userId);
+
+            switch (action) {
+                case 'view':
+                    this.viewUser(userId);
+                    break;
+                case 'edit':
+                    this.editUser(userId);
+                    break;
+                case 'toggle':
+                    this.toggleUserStatus(userId);
+                    break;
+            }
         });
     }
 
@@ -358,9 +379,59 @@ class AdminDashboard {
         tbody.innerHTML = '';
 
         users.forEach(user => {
-            // Same rendering logic as renderUsers but with filtered data
             const row = document.createElement('tr');
-            // ... (same row creation logic)
+            row.innerHTML = `
+                <td class="px-6 py-4 whitespace-nowrap">
+                    <div class="flex items-center">
+                        <div class="flex-shrink-0 h-10 w-10">
+                            <div class="h-10 w-10 rounded-full bg-gray-300 flex items-center justify-center">
+                                <span class="text-sm font-medium text-gray-700">
+                                    ${user.first_name ? user.first_name.charAt(0) : 'U'}
+                                </span>
+                            </div>
+                        </div>
+                        <div class="ml-4">
+                            <div class="text-sm font-medium text-gray-900">
+                                ${user.first_name} ${user.last_name}
+                            </div>
+                            <div class="text-sm text-gray-500">${user.email}</div>
+                        </div>
+                    </div>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap">
+                    <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                        user.subscription_status === 'active' ? 'bg-green-100 text-green-800' :
+                        user.subscription_status === 'canceled' ? 'bg-red-100 text-red-800' :
+                        'bg-gray-100 text-gray-800'
+                    }">
+                        ${user.subscription_plan || 'Free'}
+                    </span>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    ${user.credits_remaining} / ${user.total_credits_purchased}
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    ${user.credits_used || 0}
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap">
+                    <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                        user.is_active ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                    }">
+                        ${user.is_active ? 'Active' : 'Inactive'}
+                    </span>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                    <button data-action="view" data-user-id="${user.id}" class="text-primary-600 hover:text-primary-900 mr-3">
+                        View
+                    </button>
+                    <button data-action="edit" data-user-id="${user.id}" class="text-indigo-600 hover:text-indigo-900 mr-3">
+                        Edit
+                    </button>
+                    <button data-action="toggle" data-user-id="${user.id}" class="text-yellow-600 hover:text-yellow-900">
+                        ${user.is_active ? 'Deactivate' : 'Activate'}
+                    </button>
+                </td>
+            `;
             tbody.appendChild(row);
         });
     }
