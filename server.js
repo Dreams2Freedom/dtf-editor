@@ -478,6 +478,7 @@ app.listen(PORT, () => {
     console.log(`   - Stripe subscription management`);
     console.log(`   - Admin dashboard and user management`);
     console.log(`   - Image processing with credit validation`);
+    console.log(`🔄 Railway deployment version: ${new Date().toISOString()}`);
 }).on('error', (error) => {
     console.error('Failed to start server:', error);
     process.exit(1);
