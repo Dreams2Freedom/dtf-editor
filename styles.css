@@ -1,34 +1,58 @@
-/* Custom styles for Vectorizer Pro */
+:root {
+  --primary-blue: #386594;
+  --accent-orange: #E88B4B;
+  --black: #000000;
+  --white: #FFFFFF;
+  --secondary-blue: #457BB9;
+}
 
-/* Upload area styling */
+body {
+  background: var(--white);
+  color: var(--black);
+}
+
+a,
+a:visited {
+  color: var(--primary-blue);
+}
+
+a:hover {
+  color: var(--accent-orange);
+}
+
+.btn-primary,
+.bg-primary-600 {
+  background: var(--primary-blue) !important;
+  color: var(--white) !important;
+  border: none;
+}
+
+.btn-primary:hover,
+.bg-primary-700 {
+  background: var(--secondary-blue) !important;
+}
+
+.border-primary-500 {
+  border-color: var(--accent-orange) !important;
+}
+
+.bg-primary-500 {
+  background: var(--accent-orange) !important;
+  color: var(--white) !important;
+}
+
+.hero-gradient {
+  background: linear-gradient(135deg, var(--primary-blue) 0%, var(--secondary-blue) 100%);
+}
+
+/* Update upload area and other UI elements to use brand colors */
 .upload-area {
-    border: 2px dashed #d1d5db;
-    border-radius: 0.5rem;
-    padding: 2rem;
-    text-align: center;
-    transition: all 0.3s ease;
+    border: 2px dashed var(--primary-blue);
     background-color: #f9fafb;
-    cursor: pointer;
 }
-
-.upload-area:hover {
-    border-color: #3b82f6;
-    background-color: #eff6ff;
-}
-
-.upload-area.dragover {
-    border-color: #3b82f6;
-    background-color: #eff6ff;
-    transform: scale(1.02);
-}
-
-.upload-area.error {
-    border-color: #ef4444;
-    background-color: #fef2f2;
-}
-
-.upload-content {
-    pointer-events: none;
+.upload-area:hover, .upload-area.dragover {
+    border-color: var(--accent-orange);
+    background-color: #f0f4f8;
 }
 
 /* Smooth scrolling */
@@ -97,7 +121,7 @@ html {
 /* Loading spinner */
 .spinner {
     border: 2px solid #f3f3f3;
-    border-top: 2px solid #3b82f6;
+    border-top: 2px solid var(--primary-blue);
     border-radius: 50%;
     width: 20px;
     height: 20px;
@@ -133,19 +157,19 @@ html {
 }
 
 ::-webkit-scrollbar-thumb {
-    background: #c1c1c1;
+    background: var(--primary-blue);
     border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-    background: #a8a8a8;
+    background: var(--secondary-blue);
 }
 
 /* Focus styles for accessibility */
 button:focus,
 input:focus,
 a:focus {
-    outline: 2px solid #3b82f6;
+    outline: 2px solid var(--accent-orange);
     outline-offset: 2px;
 }
 
@@ -185,7 +209,7 @@ a:focus {
 
 /* Gradient background for hero section */
 .hero-gradient {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(135deg, var(--primary-blue) 0%, var(--secondary-blue) 100%);
 }
 
 /* Card hover effects */
@@ -195,7 +219,7 @@ a:focus {
 
 .feature-card:hover {
     transform: translateY(-4px);
-    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 10px 25px rgba(56, 101, 148, 0.15);
 } 
 
 /* Paywall Overlay Styles */
@@ -324,8 +348,8 @@ a:focus {
 }
 
 .paywall-primary-btn {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    color: white;
+    background: linear-gradient(135deg, var(--primary-blue) 0%, var(--secondary-blue) 100%);
+    color: var(--white);
     border: none;
     padding: 16px 24px;
     border-radius: 12px;
@@ -337,14 +361,16 @@ a:focus {
 }
 
 .paywall-primary-btn:hover {
+    background: var(--accent-orange);
+    color: var(--white);
     transform: translateY(-2px);
     box-shadow: 0 8px 15px -3px rgba(0, 0, 0, 0.2);
 }
 
 .paywall-secondary-btn {
-    background: white;
-    color: #6b7280;
-    border: 2px solid #e5e7eb;
+    background: var(--white);
+    color: var(--primary-blue);
+    border: 2px solid var(--primary-blue);
     padding: 14px 24px;
     border-radius: 12px;
     font-size: 16px;
@@ -355,7 +381,7 @@ a:focus {
 
 .paywall-secondary-btn:hover {
     background: #f9fafb;
-    border-color: #d1d5db;
+    border-color: var(--accent-orange);
 }
 
 /* Mobile Responsive */
