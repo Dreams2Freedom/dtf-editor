@@ -367,6 +367,19 @@ const dbHelpers = {
         }
     },
 
+    getUserCreditTransactions: async (userId) => {
+        const client = await dbHelpers.getClient();
+        try {
+            const result = await client.query(
+                'SELECT * FROM credit_transactions WHERE user_id = $1 ORDER BY created_at DESC',
+                [userId]
+            );
+            return result.rows;
+        } finally {
+            client.release();
+        }
+    },
+
     // Admin operations
     getAllUsers: async (limit = 100, offset = 0) => {
         const client = await dbHelpers.getClient();
@@ -391,13 +404,44 @@ const dbHelpers = {
         }
     },
 
-    addAdminLog: async (adminId, action, targetUserId = null, details = null) => {
+    addAdminLog: async (logData) => {
         const client = await dbHelpers.getClient();
         try {
+            const { admin_user_id, action, target_user_id, details, ip_address } = logData;
             await client.query(
                 'INSERT INTO admin_logs (admin_id, action, target_user_id, details) VALUES ($1, $2, $3, $4)',
-                [adminId, action, targetUserId, details]
+                [admin_user_id, action, target_user_id, details]
             );
+        } finally {
+            client.release();
+        }
+    },
+
+    getAdminLogs: async (limit = 100, offset = 0) => {
+        const client = await dbHelpers.getClient();
+        try {
+            const result = await client.query(`
+                SELECT 
+                    al.*,
+                    u.email as admin_email,
+                    tu.email as target_email
+                FROM admin_logs al
+                LEFT JOIN users u ON al.admin_id = u.id
+                LEFT JOIN users tu ON al.target_user_id = tu.id
+                ORDER BY al.created_at DESC
+                LIMIT $1 OFFSET $2
+            `, [limit, offset]);
+            return result.rows;
+        } finally {
+            client.release();
+        }
+    },
+
+    getSubscriptionPlans: async () => {
+        const client = await dbHelpers.getClient();
+        try {
+            const result = await client.query('SELECT * FROM subscription_plans WHERE is_active = true ORDER BY monthly_price ASC');
+            return result.rows;
         } finally {
             client.release();
         }
