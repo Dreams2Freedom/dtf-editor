@@ -58,3 +58,7 @@ jspm_packages/
 Thumbs.db
 .env
 dtf_editor.db
+.env
+*.db
+*.dump
+node_modules/

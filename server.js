@@ -8,7 +8,7 @@ const morgan = require('morgan');
 require('dotenv').config();
 
 // Import our modules
-const { dbHelpers, initializeDatabase } = require('./database');
+const { dbHelpers, initializeDatabase } = require('./database-postgres');
 const { authenticateToken, checkCredits } = require('./auth');
 const { stripeHelpers } = require('./stripe');
 
