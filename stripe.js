@@ -1,11 +1,22 @@
-const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 const { dbHelpers } = require('./database-postgres');
+
+// Lazy initialization of Stripe to ensure environment variables are loaded
+let stripe = null;
+function getStripe() {
+    if (!stripe) {
+        if (!process.env.STRIPE_SECRET_KEY) {
+            throw new Error('STRIPE_SECRET_KEY environment variable is not set');
+        }
+        stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
+    }
+    return stripe;
+}
 
 const stripeHelpers = {
     // Create Stripe customer
     createCustomer: async (user) => {
         try {
-            const customer = await stripe.customers.create({
+            const customer = await getStripe().customers.create({
                 email: user.email,
                 name: `${user.first_name} ${user.last_name}`,
                 metadata: {
@@ -39,7 +50,7 @@ const stripeHelpers = {
             }
 
             // Create subscription
-            const subscription = await stripe.subscriptions.create({
+            const subscription = await getStripe().subscriptions.create({
                 customer: customerId,
                 items: [{ price: priceId }],
                 payment_behavior: 'default_incomplete',
@@ -85,7 +96,7 @@ const stripeHelpers = {
             }
 
             // Get user's active subscription
-            const subscriptions = await stripe.subscriptions.list({
+            const subscriptions = await getStripe().subscriptions.list({
                 customer: user.stripe_customer_id,
                 status: 'active'
             });
@@ -97,7 +108,7 @@ const stripeHelpers = {
             const subscription = subscriptions.data[0];
 
             // Cancel at period end
-            const canceledSubscription = await stripe.subscriptions.update(subscription.id, {
+            const canceledSubscription = await getStripe().subscriptions.update(subscription.id, {
                 cancel_at_period_end: true
             });
 
@@ -123,7 +134,7 @@ const stripeHelpers = {
             }
 
             // Get user's canceled subscription
-            const subscriptions = await stripe.subscriptions.list({
+            const subscriptions = await getStripe().subscriptions.list({
                 customer: user.stripe_customer_id,
                 status: 'canceled'
             });
@@ -135,7 +146,7 @@ const stripeHelpers = {
             const subscription = subscriptions.data[0];
 
             // Reactivate subscription
-            const reactivatedSubscription = await stripe.subscriptions.update(subscription.id, {
+            const reactivatedSubscription = await getStripe().subscriptions.update(subscription.id, {
                 cancel_at_period_end: false
             });
 
@@ -161,7 +172,7 @@ const stripeHelpers = {
             }
 
             // Get user's active subscription
-            const subscriptions = await stripe.subscriptions.list({
+            const subscriptions = await getStripe().subscriptions.list({
                 customer: user.stripe_customer_id,
                 status: 'active'
             });
@@ -173,7 +184,7 @@ const stripeHelpers = {
             const subscription = subscriptions.data[0];
 
             // Update subscription
-            const updatedSubscription = await stripe.subscriptions.update(subscription.id, {
+            const updatedSubscription = await getStripe().subscriptions.update(subscription.id, {
                 items: [{
                     id: subscription.items.data[0].id,
                     price: newPriceId,
@@ -268,7 +279,7 @@ const stripeHelpers = {
             const stats = await dbHelpers.getRevenueStats();
             
             // Get monthly recurring revenue
-            const activeSubscriptions = await stripe.subscriptions.list({
+            const activeSubscriptions = await getStripe().subscriptions.list({
                 status: 'active',
                 limit: 100
             });
