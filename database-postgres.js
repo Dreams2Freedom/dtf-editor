@@ -234,9 +234,9 @@ async function insertDefaultData(client) {
         INSERT INTO subscription_plans (name, stripe_price_id, monthly_price, yearly_price, credits_per_month, credits_per_year, features) 
         VALUES 
             ('Free', NULL, 0, 0, 5, 60, 'Basic vectorization and background removal'),
-            ('Starter', 'price_starter_monthly', 9.99, 99.99, 50, 600, 'Professional tools with priority processing'),
-            ('Professional', 'price_professional_monthly', 29.99, 299.99, 200, 2400, 'Advanced features with unlimited processing'),
-            ('Enterprise', 'price_enterprise_monthly', 99.99, 999.99, 1000, 12000, 'Custom solutions with dedicated support')
+            ('Basic', 'price_basic_monthly', 9.99, 99.99, 20, 240, 'Professional vectorization and background removal'),
+            ('Starter', 'price_starter_monthly', 24.99, 249.99, 60, 720, 'Professional tools with priority processing'),
+            ('Professional', 'price_professional_monthly', 49.99, 499.99, 120, 1440, 'Advanced features with unlimited processing')
         ON CONFLICT (stripe_price_id) DO NOTHING
     `);
 
