@@ -209,6 +209,21 @@ function calculateVectorizerCost(operationType) {
     return credits * 0.20; // $0.20 per credit
 }
 
+// Helper function to calculate Clipping Magic costs
+function calculateClippingMagicCost(operationType) {
+    // Clipping Magic pricing: 1 Credit = 1 Image
+    // Downloading a result multiple times counts only once
+    // Duplicate uploads of the same image count separately
+    const creditCosts = {
+        'upload': 1.000,      // 1 credit per image upload
+        'edit': 0.000,        // Free to re-edit (no additional cost)
+        'download': 0.000     // Free to download multiple times (no additional cost)
+    };
+    
+    const credits = creditCosts[operationType] || 0;
+    return credits * 0.125; // $0.125 per credit
+}
+
 // Vectorizer.AI proxy endpoint (with credit checking)
 app.post('/api/vectorize', authenticateToken, checkCredits(1), upload.single('image'), async (req, res) => {
     try {
@@ -532,16 +547,21 @@ app.post('/api/clipping-magic-upload', authenticateToken, checkCredits(1), uploa
         const result = await response.json();
         console.log('Clipping Magic upload successful:', result);
 
-        // Log successful API cost (Clipping Magic charges $0.125 per image)
+        // Log successful API cost using the helper function
+        const costAmount = calculateClippingMagicCost('upload');
         await dbHelpers.logApiCost({
             service_name: 'clipping_magic',
             operation_type: 'upload',
-            cost_amount: 0.125, // $0.125 per image as per pricing
+            cost_amount: costAmount,
             user_id: req.user.id,
             request_id: `clipping_magic_${Date.now()}`,
             response_time_ms: responseTime,
             success: true,
-            metadata: { file_size: req.file.size, image_id: result.id }
+            metadata: { 
+                file_size: req.file.size, 
+                image_id: result.id,
+                credits_used: costAmount / 0.125 // Convert back to credits for reference
+            }
         });
 
         // Save image to database
