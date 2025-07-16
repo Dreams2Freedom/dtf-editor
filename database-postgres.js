@@ -1,10 +1,19 @@
 const { Pool } = require('pg');
 require('dotenv').config();
 
-// Database configuration - Support both DATABASE_URL (Railway) and individual variables
+// Database configuration - Support Supabase, Railway DATABASE_URL, and individual variables
 let dbConfig;
 
-if (process.env.DATABASE_URL) {
+if (process.env.SUPABASE_DB_URL) {
+    // Use Supabase connection string
+    dbConfig = {
+        connectionString: process.env.SUPABASE_DB_URL,
+        ssl: { rejectUnauthorized: false }, // Supabase requires SSL
+        max: 20, // Maximum number of clients in the pool
+        idleTimeoutMillis: 30000,
+        connectionTimeoutMillis: 2000,
+    };
+} else if (process.env.DATABASE_URL) {
     // Use Railway's DATABASE_URL format
     dbConfig = {
         connectionString: process.env.DATABASE_URL,
