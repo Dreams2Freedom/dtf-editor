@@ -28,11 +28,16 @@ console.log('Environment check:', {
     VECTORIZER_API_ID: process.env.VECTORIZER_API_ID ? 'set' : 'not set',
     CLIPPING_MAGIC_API_ID: process.env.CLIPPING_MAGIC_API_ID ? 'set' : 'not set'
 });
+
+// Initialize database without exiting on failure
+let dbInitialized = false;
 initializeDatabase().then(() => {
     console.log('Database initialized successfully');
+    dbInitialized = true;
 }).catch((error) => {
     console.error('Failed to initialize database:', error);
-    process.exit(1);
+    console.log('Server will start without database connection. Some features may not work.');
+    dbInitialized = false;
 });
 const PORT = process.env.PORT || 3000;
 
@@ -121,7 +126,12 @@ app.get('/api/health-check', (req, res) => {
 // Simple health check endpoint (works without database)
 app.get('/health', (req, res) => {
     console.log('Simple health check requested');
-    res.status(200).json({ status: 'ok', message: 'Server is running', timestamp: new Date().toISOString() });
+    res.status(200).json({ 
+        status: 'ok', 
+        message: 'Server is running', 
+        timestamp: new Date().toISOString(),
+        database: dbInitialized ? 'connected' : 'disconnected'
+    });
 });
 
 // Health check endpoint
@@ -458,40 +468,46 @@ app.use((error, req, res, next) => {
     });
 });
 
-// Start server
-app.listen(PORT, () => {
-    console.log(`🚀 DTF Editor server running on http://localhost:${PORT}`);
-    console.log(`📁 Static files served from: ${__dirname}`);
-    console.log(`🔧 API endpoints:`);
-    console.log(`   - GET / - Root health check`);
-    console.log(`   - POST /api/auth/register - User registration`);
-    console.log(`   - POST /api/auth/login - User login`);
-    console.log(`   - GET /api/user/profile - User profile`);
-    console.log(`   - GET /api/admin/users - Admin user management`);
-    console.log(`   - POST /api/vectorize - Vectorize images (requires auth)`);
-    console.log(`   - POST /api/preview - Generate preview images (requires auth)`);
-    console.log(`   - POST /api/clipping-magic-upload - Upload for Clipping Magic editor (requires auth)`);
-    console.log(`   - GET /api/health - Health check`);
-    console.log(`📋 Features:`);
-    console.log(`   - User authentication and authorization`);
-    console.log(`   - Credit-based usage tracking`);
-    console.log(`   - Stripe subscription management`);
-    console.log(`   - Admin dashboard and user management`);
-    console.log(`   - Image processing with credit validation`);
-    console.log(`🔄 Railway deployment version: ${new Date().toISOString()}`);
-}).on('error', (error) => {
-    console.error('Failed to start server:', error);
-    process.exit(1);
-});
+// Start server with delay to allow database connection
+setTimeout(() => {
+    app.listen(PORT, () => {
+        console.log(`🚀 DTF Editor server running on http://localhost:${PORT}`);
+        console.log(`📁 Static files served from: ${__dirname}`);
+        console.log(`🔧 API endpoints:`);
+        console.log(`   - GET / - Root health check`);
+        console.log(`   - POST /api/auth/register - User registration`);
+        console.log(`   - POST /api/auth/login - User login`);
+        console.log(`   - GET /api/user/profile - User profile`);
+        console.log(`   - GET /api/admin/users - Admin user management`);
+        console.log(`   - POST /api/vectorize - Vectorize images (requires auth)`);
+        console.log(`   - POST /api/preview - Generate preview images (requires auth)`);
+        console.log(`   - POST /api/clipping-magic-upload - Upload for Clipping Magic editor (requires auth)`);
+        console.log(`   - GET /api/health - Health check`);
+        console.log(`📋 Features:`);
+        console.log(`   - User authentication and authorization`);
+        console.log(`   - Credit-based usage tracking`);
+        console.log(`   - Stripe subscription management`);
+        console.log(`   - Admin dashboard and user management`);
+        console.log(`   - Image processing with credit validation`);
+        console.log(`🔄 Railway deployment version: ${new Date().toISOString()}`);
+        console.log(`🗄️  Database status: ${dbInitialized ? 'Connected' : 'Disconnected'}`);
+    }).on('error', (error) => {
+        console.error('Failed to start server:', error);
+        // Don't exit on port errors, just log them
+        if (error.code === 'EADDRINUSE') {
+            console.error('Port is already in use. Please check if another instance is running.');
+        }
+    });
+}, 2000); // 2 second delay to allow database connection
 
 // Handle uncaught exceptions
 process.on('uncaughtException', (error) => {
     console.error('Uncaught Exception:', error);
-    process.exit(1);
+    // Don't exit, just log the error
 });
 
 // Handle unhandled promise rejections
 process.on('unhandledRejection', (reason, promise) => {
     console.error('Unhandled Rejection at:', promise, 'reason:', reason);
-    process.exit(1);
+    // Don't exit, just log the error
 });
