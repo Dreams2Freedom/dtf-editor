@@ -132,8 +132,9 @@ app.get('/health', (req, res) => {
         timestamp: new Date().toISOString(),
         database: dbInitialized ? 'connected' : 'disconnected',
         version: '2.1.0',
-        deployment: '2025-07-16T18:30:00Z',
-        build: 'v2.2.0'
+        deployment: '2025-07-16T18:45:00Z',
+        build: 'v2.3.0',
+        status: 'simplified-deployment'
     });
 });
 
@@ -471,7 +472,8 @@ app.use((error, req, res, next) => {
     });
 });
 
-// Start server with delay to allow database connection
+// Start server with delay to allow database connection and Railway initialization
+console.log('Waiting 3 seconds for Railway initialization...');
 setTimeout(() => {
     app.listen(PORT, () => {
         console.log(`🚀 DTF Editor server running on http://localhost:${PORT}`);
