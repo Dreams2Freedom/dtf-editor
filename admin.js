@@ -739,8 +739,133 @@ class AdminDashboard {
     }
 
     async editUser(userId) {
-        // Implement user editing functionality
-        this.showNotification('User editing coming soon', 'info');
+        try {
+            const response = await fetch(`/api/admin/users/${userId}`, {
+                headers: {
+                    'Authorization': `Bearer ${this.token}`
+                }
+            });
+
+            if (response.ok) {
+                const data = await response.json();
+                this.showEditUserModal(data.user);
+            } else {
+                this.showNotification('Failed to load user details for editing', 'error');
+            }
+        } catch (error) {
+            console.error('Error loading user details for editing:', error);
+            this.showNotification('Failed to load user details for editing', 'error');
+        }
+    }
+
+    showEditUserModal(user) {
+        const modal = document.getElementById('userModal');
+        const content = document.getElementById('userModalContent');
+
+        content.innerHTML = `
+            <div class="space-y-4">
+                <h3 class="text-lg font-semibold text-gray-900 mb-4">Edit User: ${user.email}</h3>
+                
+                <form id="editUserForm" class="space-y-4">
+                    <input type="hidden" id="editUserId" value="${user.id}">
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label for="editFirstName" class="block text-sm font-medium text-gray-700">First Name</label>
+                            <input type="text" id="editFirstName" value="${user.first_name || ''}" 
+                                   class="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-500">
+                        </div>
+                        <div>
+                            <label for="editLastName" class="block text-sm font-medium text-gray-700">Last Name</label>
+                            <input type="text" id="editLastName" value="${user.last_name || ''}" 
+                                   class="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-500">
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <label for="editCompany" class="block text-sm font-medium text-gray-700">Company</label>
+                        <input type="text" id="editCompany" value="${user.company || ''}" 
+                               class="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-500">
+                    </div>
+                    
+                    <div>
+                        <label for="editCredits" class="block text-sm font-medium text-gray-700">Credits Remaining</label>
+                        <input type="number" id="editCredits" value="${user.credits_remaining || 0}" min="0"
+                               class="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-500">
+                    </div>
+                    
+                    <div class="flex items-center">
+                        <input type="checkbox" id="editIsActive" ${user.is_active ? 'checked' : ''} 
+                               class="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded">
+                        <label for="editIsActive" class="ml-2 block text-sm text-gray-900">Active Account</label>
+                    </div>
+                    
+                    <div class="flex justify-end space-x-3 pt-4">
+                        <button type="button" id="cancelEdit" 
+                                class="bg-gray-500 text-white px-4 py-2 rounded-md hover:bg-gray-600 transition-colors">
+                            Cancel
+                        </button>
+                        <button type="submit" 
+                                class="bg-primary-600 text-white px-4 py-2 rounded-md hover:bg-primary-700 transition-colors">
+                            Save Changes
+                        </button>
+                    </div>
+                </form>
+            </div>
+        `;
+
+        modal.classList.remove('hidden');
+
+        // Add event listeners
+        const form = document.getElementById('editUserForm');
+        const cancelBtn = document.getElementById('cancelEdit');
+
+        form.addEventListener('submit', (e) => {
+            e.preventDefault();
+            this.saveUserChanges();
+        });
+
+        cancelBtn.addEventListener('click', () => {
+            this.closeUserModal();
+        });
+    }
+
+    async saveUserChanges() {
+        const userId = document.getElementById('editUserId').value;
+        const firstName = document.getElementById('editFirstName').value;
+        const lastName = document.getElementById('editLastName').value;
+        const company = document.getElementById('editCompany').value;
+        const credits = parseInt(document.getElementById('editCredits').value);
+        const isActive = document.getElementById('editIsActive').checked;
+
+        try {
+            const response = await fetch(`/api/admin/users/${userId}`, {
+                method: 'PUT',
+                headers: {
+                    'Authorization': `Bearer ${this.token}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    first_name: firstName,
+                    last_name: lastName,
+                    company: company,
+                    credits_remaining: credits,
+                    is_active: isActive
+                })
+            });
+
+            if (response.ok) {
+                this.showNotification('User updated successfully', 'success');
+                this.closeUserModal();
+                this.loadUsers(); // Refresh the users list
+            } else {
+                const errorData = await response.json();
+                this.showNotification(`Failed to update user: ${errorData.error || 'Unknown error'}`, 'error');
+            }
+        } catch (error) {
+            console.error('Error updating user:', error);
+            this.showNotification('Failed to update user', 'error');
+        }
     }
 
     async toggleUserStatus(userId) {
