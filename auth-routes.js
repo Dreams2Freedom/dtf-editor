@@ -1,6 +1,6 @@
 const express = require('express');
 const { authHelpers } = require('./auth');
-const { dbHelpers } = require('./database');
+const { dbHelpers } = require('./database-postgres');
 
 const router = express.Router();
 

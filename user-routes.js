@@ -1,6 +1,6 @@
 const express = require('express');
 const { authenticateToken, checkCredits } = require('./auth');
-const { dbHelpers } = require('./database');
+const { dbHelpers } = require('./database-postgres');
 const { stripeHelpers } = require('./stripe');
 
 const router = express.Router();

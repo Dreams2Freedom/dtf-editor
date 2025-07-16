@@ -78,8 +78,37 @@ app.use('/api/user', userRoutes);
 // Admin routes (protected)
 app.use('/api/admin', adminRoutes);
 
-// Root health check endpoint for Railway
+// Serve HTML pages
 app.get('/', (req, res) => {
+    res.sendFile(path.join(__dirname, 'index.html'));
+});
+
+app.get('/login', (req, res) => {
+    res.sendFile(path.join(__dirname, 'login.html'));
+});
+
+app.get('/register', (req, res) => {
+    res.sendFile(path.join(__dirname, 'register.html'));
+});
+
+app.get('/dashboard', (req, res) => {
+    res.sendFile(path.join(__dirname, 'dashboard.html'));
+});
+
+app.get('/admin', (req, res) => {
+    res.sendFile(path.join(__dirname, 'admin.html'));
+});
+
+app.get('/vectorize', (req, res) => {
+    res.sendFile(path.join(__dirname, 'vectorize.html'));
+});
+
+app.get('/background-remove', (req, res) => {
+    res.sendFile(path.join(__dirname, 'background-remove.html'));
+});
+
+// API health check endpoint for Railway
+app.get('/api/health-check', (req, res) => {
     console.log('Root endpoint requested');
     res.json({ 
         status: 'ok', 

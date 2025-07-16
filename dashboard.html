@@ -6,6 +6,7 @@
     <title>User Dashboard - DTF Editor</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="styles.css">
+    <script src="auth-utils.js"></script>
     <script>
         tailwind.config = {
             theme: {
@@ -41,8 +42,9 @@
                 <div class="flex items-center space-x-4">
                     <a href="vectorize.html" class="text-gray-700 hover:text-primary-600 transition-colors">Vectorize</a>
                     <a href="background-remove.html" class="text-gray-700 hover:text-primary-600 transition-colors">Background Removal</a>
-                    <span id="userEmail" class="text-gray-700"></span>
-                    <button id="logoutBtn" class="text-red-600 hover:text-red-800 transition-colors">Logout</button>
+                    <div id="authContainer">
+                        <!-- Auth buttons will be inserted here by JavaScript -->
+                    </div>
                 </div>
             </div>
         </div>
@@ -248,5 +250,72 @@
     </div>
 
     <script src="dashboard.js"></script>
+    
+    <script>
+        // Protect dashboard page - redirect to login if not authenticated
+        async function initDashboard() {
+            const user = await authUtils.protectPage();
+            if (!user) return;
+            
+            // Update navigation
+            updateNavigation();
+            
+            // Show dashboard content
+            document.getElementById('loginSection').classList.add('hidden');
+            document.getElementById('registerSection').classList.add('hidden');
+            document.getElementById('dashboardSection').classList.remove('hidden');
+            
+            // Populate user data
+            populateUserData(user);
+        }
+
+        // Update navigation based on authentication status
+        async function updateNavigation() {
+            const authContainer = document.getElementById('authContainer');
+            const user = await authUtils.verifyToken();
+            
+            if (user) {
+                // User is logged in
+                authContainer.innerHTML = `
+                    <div class="flex items-center space-x-3">
+                        <div class="text-sm">
+                            <p class="text-gray-900 font-medium">${user.first_name} ${user.last_name}</p>
+                            <p class="text-gray-500">${user.email}</p>
+                        </div>
+                        ${user.is_admin ? '<span class="bg-red-100 text-red-800 text-xs px-2 py-1 rounded-full">Admin</span>' : ''}
+                        <button 
+                            onclick="logout()" 
+                            class="text-gray-700 hover:text-primary-600 transition-colors px-3 py-2 rounded-md text-sm font-medium"
+                        >
+                            Logout
+                        </button>
+                    </div>
+                `;
+            } else {
+                // User is not logged in
+                authContainer.innerHTML = `
+                    <a href="login.html" class="text-gray-700 hover:text-primary-600 transition-colors px-3 py-2 rounded-md text-sm font-medium">
+                        Login
+                    </a>
+                `;
+            }
+        }
+
+        // Populate user data in dashboard
+        function populateUserData(user) {
+            document.getElementById('userName').textContent = user.first_name;
+            document.getElementById('creditsRemaining').textContent = user.credits_remaining || 0;
+            document.getElementById('subscriptionStatus').textContent = user.subscription_status || 'Free';
+            
+            // Populate profile form
+            document.getElementById('profileFirstName').value = user.first_name || '';
+            document.getElementById('profileLastName').value = user.last_name || '';
+            document.getElementById('profileEmail').value = user.email || '';
+            document.getElementById('profileCompany').value = user.company || '';
+        }
+
+        // Initialize dashboard on page load
+        initDashboard();
+    </script>
 </body>
 </html>

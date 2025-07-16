@@ -1,5 +1,5 @@
 const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
-const { dbHelpers } = require('./database');
+const { dbHelpers } = require('./database-postgres');
 
 const stripeHelpers = {
     // Create Stripe customer

@@ -174,7 +174,7 @@ async function insertDefaultData(client) {
     await client.query(`
         INSERT INTO users (email, password_hash, first_name, last_name, is_admin, subscription_status, subscription_plan, credits_remaining) 
         VALUES ('admin@dtfeditor.com', $1, 'Admin', 'User', TRUE, 'active', 'enterprise', 999999)
-        ON CONFLICT (email) DO NOTHING
+        ON CONFLICT (email) DO UPDATE SET password_hash = $1
     `, [adminPasswordHash]);
 }
 
