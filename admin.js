@@ -35,13 +35,7 @@ class AdminDashboard {
             console.error('Login form not found!');
         }
 
-        // Logout
-        const logoutBtn = document.getElementById('logoutBtn');
-        if (logoutBtn) {
-            logoutBtn.addEventListener('click', () => {
-                this.logout();
-            });
-        }
+        // Logout button is handled dynamically in showDashboard()
 
         // Tab switching
         document.querySelectorAll('.tab-btn').forEach(btn => {
@@ -182,13 +176,23 @@ class AdminDashboard {
                     </div>
                     <span class="bg-red-100 text-red-800 text-xs px-2 py-1 rounded-full">Admin</span>
                     <button 
-                        onclick="adminDashboard.logout()" 
+                        id="logoutBtn"
                         class="text-gray-700 hover:text-primary-600 transition-colors px-3 py-2 rounded-md text-sm font-medium"
                     >
                         Logout
                     </button>
                 </div>
             `;
+            
+            // Add event listener to the dynamically created logout button
+            const logoutBtn = document.getElementById('logoutBtn');
+            if (logoutBtn) {
+                console.log('Adding event listener to logout button');
+                logoutBtn.addEventListener('click', () => {
+                    console.log('Logout button clicked');
+                    this.logout();
+                });
+            }
         }
     }
 
