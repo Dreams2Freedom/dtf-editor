@@ -14,5 +14,8 @@ COPY . .
 # Expose port
 EXPOSE 3000
 
+# Make startup script executable
+RUN chmod +x start.sh
+
 # Start the application
-CMD ["node", "server.js"]
+CMD ["./start.sh"]
