@@ -1,18 +1,32 @@
 const { Pool } = require('pg');
 require('dotenv').config();
 
-// Database configuration
-const dbConfig = {
-    host: process.env.DB_HOST || 'localhost',
-    port: process.env.DB_PORT || 5432,
-    database: process.env.DB_NAME || 'dtf_editor',
-    user: process.env.DB_USER || 'postgres',
-    password: process.env.DB_PASSWORD || '',
-    ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
-    max: 20, // Maximum number of clients in the pool
-    idleTimeoutMillis: 30000,
-    connectionTimeoutMillis: 2000,
-};
+// Database configuration - Support both DATABASE_URL (Railway) and individual variables
+let dbConfig;
+
+if (process.env.DATABASE_URL) {
+    // Use Railway's DATABASE_URL format
+    dbConfig = {
+        connectionString: process.env.DATABASE_URL,
+        ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
+        max: 20, // Maximum number of clients in the pool
+        idleTimeoutMillis: 30000,
+        connectionTimeoutMillis: 2000,
+    };
+} else {
+    // Use individual environment variables (local development)
+    dbConfig = {
+        host: process.env.DB_HOST || 'localhost',
+        port: process.env.DB_PORT || 5432,
+        database: process.env.DB_NAME || 'dtf_editor',
+        user: process.env.DB_USER || 'postgres',
+        password: process.env.DB_PASSWORD || '',
+        ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
+        max: 20, // Maximum number of clients in the pool
+        idleTimeoutMillis: 30000,
+        connectionTimeoutMillis: 2000,
+    };
+}
 
 let pool = null;
 let isInitialized = false;
@@ -170,7 +184,7 @@ async function insertDefaultData(client) {
     `);
 
     // Insert default admin user (password: admin123)
-    const adminPasswordHash = '$2b$10$rQZ8K9vX2mN3pL4qR5sT6uV7wX8yZ9aA0bB1cC2dE3fF4gG5hH6iI7jJ8kK9lL';
+    const adminPasswordHash = '$2b$10$9Tr04G6uJGGoG8My2shK6.DPI2vvWwAPozoOsN2q923uyt85b2Phm';
     await client.query(`
         INSERT INTO users (email, password_hash, first_name, last_name, is_admin, subscription_status, subscription_plan, credits_remaining) 
         VALUES ('admin@dtfeditor.com', $1, 'Admin', 'User', TRUE, 'active', 'enterprise', 999999)
