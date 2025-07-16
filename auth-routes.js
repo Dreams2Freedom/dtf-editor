@@ -1,5 +1,5 @@
 const express = require('express');
-const { authHelpers } = require('./auth');
+const { authHelpers, authenticateToken } = require('./auth');
 const { dbHelpers } = require('./database-postgres');
 
 const router = express.Router();
@@ -102,13 +102,32 @@ router.post('/login', async (req, res) => {
 });
 
 // Verify token
-router.get('/verify', (req, res) => {
-    // This route is protected by authenticateToken middleware
-    // If we reach here, the token is valid
-    res.json({ 
-        message: 'Token is valid',
-        user: req.user 
-    });
+router.get('/verify', authenticateToken, async (req, res) => {
+    try {
+        // Get full user data from database
+        const user = await dbHelpers.getUserById(req.user.id);
+        if (!user) {
+            return res.status(404).json({ error: 'User not found' });
+        }
+        
+        res.json({ 
+            message: 'Token is valid',
+            user: {
+                id: user.id,
+                email: user.email,
+                first_name: user.first_name,
+                last_name: user.last_name,
+                company: user.company,
+                is_admin: user.is_admin,
+                credits_remaining: user.credits_remaining,
+                subscription_status: user.subscription_status,
+                subscription_plan: user.subscription_plan
+            }
+        });
+    } catch (error) {
+        console.error('Token verification error:', error);
+        res.status(500).json({ error: 'Token verification failed' });
+    }
 });
 
 // Forgot password (placeholder)

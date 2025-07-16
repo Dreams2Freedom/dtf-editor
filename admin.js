@@ -2,6 +2,7 @@
 
 class AdminDashboard {
     constructor() {
+        console.log('AdminDashboard constructor called');
         this.token = localStorage.getItem('adminToken');
         this.currentUser = null;
         this.users = [];
@@ -12,21 +13,35 @@ class AdminDashboard {
     }
 
     init() {
+        console.log('AdminDashboard init called');
         this.setupEventListeners();
         this.checkAuth();
     }
 
     setupEventListeners() {
+        console.log('Setting up event listeners');
+        
         // Login form
-        document.getElementById('loginForm').addEventListener('submit', (e) => {
-            e.preventDefault();
-            this.login();
-        });
+        const loginForm = document.getElementById('loginForm');
+        console.log('Login form element:', loginForm);
+        
+        if (loginForm) {
+            loginForm.addEventListener('submit', (e) => {
+                console.log('Login form submitted');
+                e.preventDefault();
+                this.login();
+            });
+        } else {
+            console.error('Login form not found!');
+        }
 
         // Logout
-        document.getElementById('logoutBtn').addEventListener('click', () => {
-            this.logout();
-        });
+        const logoutBtn = document.getElementById('logoutBtn');
+        if (logoutBtn) {
+            logoutBtn.addEventListener('click', () => {
+                this.logout();
+            });
+        }
 
         // Tab switching
         document.querySelectorAll('.tab-btn').forEach(btn => {
@@ -36,44 +51,63 @@ class AdminDashboard {
         });
 
         // User management
-        document.getElementById('refreshUsers').addEventListener('click', () => {
-            this.loadUsers();
-        });
+        const refreshUsersBtn = document.getElementById('refreshUsers');
+        if (refreshUsersBtn) {
+            refreshUsersBtn.addEventListener('click', () => {
+                this.loadUsers();
+            });
+        }
 
-        document.getElementById('userSearch').addEventListener('input', (e) => {
-            this.filterUsers(e.target.value);
-        });
+        const userSearchInput = document.getElementById('userSearch');
+        if (userSearchInput) {
+            userSearchInput.addEventListener('input', (e) => {
+                this.filterUsers(e.target.value);
+            });
+        }
 
         // Logs
-        document.getElementById('refreshLogs').addEventListener('click', () => {
-            this.loadLogs();
-        });
+        const refreshLogsBtn = document.getElementById('refreshLogs');
+        if (refreshLogsBtn) {
+            refreshLogsBtn.addEventListener('click', () => {
+                this.loadLogs();
+            });
+        }
 
         // Modal
-        document.getElementById('closeUserModal').addEventListener('click', () => {
-            this.closeUserModal();
-        });
+        const closeUserModalBtn = document.getElementById('closeUserModal');
+        if (closeUserModalBtn) {
+            closeUserModalBtn.addEventListener('click', () => {
+                this.closeUserModal();
+            });
+        }
     }
 
     async checkAuth() {
+        console.log('checkAuth called, token exists:', !!this.token);
         if (this.token) {
             try {
+                console.log('Verifying token...');
                 const response = await fetch('/api/auth/verify', {
                     headers: {
                         'Authorization': `Bearer ${this.token}`
                     }
                 });
 
+                console.log('Verify response status:', response.status);
                 if (response.ok) {
                     const data = await response.json();
+                    console.log('Verify response data:', data);
                     if (data.user.is_admin) {
+                        console.log('User is admin, showing dashboard');
                         this.currentUser = data.user;
                         this.showDashboard();
                         this.loadDashboardData();
                     } else {
+                        console.log('User is not admin, logging out');
                         this.logout();
                     }
                 } else {
+                    console.log('Verify failed, logging out');
                     this.logout();
                 }
             } catch (error) {
@@ -87,6 +121,8 @@ class AdminDashboard {
         const email = document.getElementById('email').value;
         const password = document.getElementById('password').value;
 
+        console.log('Login attempt:', { email, password: password ? '***' : 'empty' });
+
         try {
             const response = await fetch('/api/auth/login', {
                 method: 'POST',
@@ -96,7 +132,9 @@ class AdminDashboard {
                 body: JSON.stringify({ email, password })
             });
 
+            console.log('Login response status:', response.status);
             const data = await response.json();
+            console.log('Login response data:', data);
 
             if (response.ok && data.user.is_admin) {
                 this.token = data.token;
@@ -105,6 +143,7 @@ class AdminDashboard {
                 this.showDashboard();
                 this.loadDashboardData();
             } else {
+                console.log('Login failed - not ok or not admin:', { ok: response.ok, is_admin: data.user?.is_admin });
                 this.showNotification('Invalid credentials or not an admin', 'error');
             }
         } catch (error) {
@@ -114,6 +153,7 @@ class AdminDashboard {
     }
 
     logout() {
+        console.log('logout called');
         this.token = null;
         this.currentUser = null;
         localStorage.removeItem('adminToken');
@@ -126,9 +166,30 @@ class AdminDashboard {
     }
 
     showDashboard() {
+        console.log('showDashboard called');
         document.getElementById('loginSection').classList.add('hidden');
         document.getElementById('dashboardSection').classList.remove('hidden');
-        document.getElementById('adminEmail').textContent = this.currentUser.email;
+        // Update the auth container with user info
+        const authContainer = document.getElementById('authContainer');
+        console.log('Auth container found:', !!authContainer);
+        if (authContainer && this.currentUser) {
+            console.log('Updating auth container with user:', this.currentUser.email);
+            authContainer.innerHTML = `
+                <div class="flex items-center space-x-3">
+                    <div class="text-sm">
+                        <p class="text-gray-900 font-medium">${this.currentUser.first_name} ${this.currentUser.last_name}</p>
+                        <p class="text-gray-500">${this.currentUser.email}</p>
+                    </div>
+                    <span class="bg-red-100 text-red-800 text-xs px-2 py-1 rounded-full">Admin</span>
+                    <button 
+                        onclick="adminDashboard.logout()" 
+                        class="text-gray-700 hover:text-primary-600 transition-colors px-3 py-2 rounded-md text-sm font-medium"
+                    >
+                        Logout
+                    </button>
+                </div>
+            `;
+        }
     }
 
     switchTab(tabName) {

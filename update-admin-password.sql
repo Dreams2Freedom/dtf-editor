@@ -1,0 +1,1 @@
+UPDATE users SET password_hash = '$2b$10$9Tr04G6uJGGoG8My2shK6.DPI2vvWwAPozoOsN2q923uyt85b2Phm' WHERE email = 'admin@dtfeditor.com'; 
