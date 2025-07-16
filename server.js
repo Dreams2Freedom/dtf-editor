@@ -193,6 +193,22 @@ app.get('/api/health', (req, res) => {
     });
 });
 
+// Helper function to calculate Vectorizer.AI costs
+function calculateVectorizerCost(operationType) {
+    const creditCosts = {
+        'test': 0.000,        // Free
+        'test_preview': 0.000, // Free
+        'preview': 0.200,     // 0.200 credits
+        'vectorize': 1.000,   // 1.000 credits
+        'upgrade_preview': 0.900, // 0.900 credits
+        'download_format': 0.100, // 0.100 credits
+        'storage_day': 0.010  // 0.010 credits per day
+    };
+    
+    const credits = creditCosts[operationType] || 0;
+    return credits * 0.20; // $0.20 per credit
+}
+
 // Vectorizer.AI proxy endpoint (with credit checking)
 app.post('/api/vectorize', authenticateToken, checkCredits(1), upload.single('image'), async (req, res) => {
     try {
@@ -235,11 +251,11 @@ app.post('/api/vectorize', authenticateToken, checkCredits(1), upload.single('im
             const errorText = await response.text();
             console.error(`Vectorizer.AI API error: ${response.status} - ${errorText}`);
             
-            // Log failed API cost
+            // Log failed API cost (no charge for failed requests)
             await dbHelpers.logApiCost({
                 service_name: 'vectorizer',
-                operation_type: 'vectorization',
-                cost_amount: 0.01, // Base cost for failed request
+                operation_type: mode,
+                cost_amount: 0.00, // No charge for failed requests
                 user_id: req.user.id,
                 request_id: `vectorize_${Date.now()}`,
                 response_time_ms: responseTime,
@@ -258,16 +274,22 @@ app.post('/api/vectorize', authenticateToken, checkCredits(1), upload.single('im
         const vectorBuffer = await response.buffer();
         console.log(`Vectorization successful: ${vectorBuffer.length} bytes`);
 
-        // Log successful API cost (Vectorizer.AI typically charges per image)
+        // Log successful API cost using the helper function
+        const costAmount = calculateVectorizerCost(mode);
         await dbHelpers.logApiCost({
             service_name: 'vectorizer',
-            operation_type: 'vectorization',
-            cost_amount: 0.05, // Estimated cost per vectorization (adjust based on actual pricing)
+            operation_type: mode,
+            cost_amount: costAmount,
             user_id: req.user.id,
             request_id: `vectorize_${Date.now()}`,
             response_time_ms: responseTime,
             success: true,
-            metadata: { mode, file_size: req.file.size, output_size: vectorBuffer.length }
+            metadata: { 
+                mode, 
+                file_size: req.file.size, 
+                output_size: vectorBuffer.length, 
+                credits_used: costAmount / 0.20 // Convert back to credits for reference
+            }
         });
 
         // Save image to database
@@ -347,11 +369,11 @@ app.post('/api/preview', authenticateToken, checkCredits(1), upload.single('imag
             const errorText = await response.text();
             console.error(`Vectorizer.AI API error: ${response.status} - ${errorText}`);
             
-            // Log failed API cost
+            // Log failed API cost (no charge for failed requests)
             await dbHelpers.logApiCost({
                 service_name: 'vectorizer',
-                operation_type: 'preview',
-                cost_amount: 0.01, // Base cost for failed request
+                operation_type: mode,
+                cost_amount: 0.00, // No charge for failed requests
                 user_id: req.user.id,
                 request_id: `preview_${Date.now()}`,
                 response_time_ms: responseTime,
@@ -370,16 +392,22 @@ app.post('/api/preview', authenticateToken, checkCredits(1), upload.single('imag
         const previewBuffer = await response.buffer();
         console.log(`Preview generation successful: ${previewBuffer.length} bytes`);
 
-        // Log successful API cost (preview might be cheaper than full vectorization)
+        // Log successful API cost using the helper function
+        const costAmount = calculateVectorizerCost(mode);
         await dbHelpers.logApiCost({
             service_name: 'vectorizer',
-            operation_type: 'preview',
-            cost_amount: 0.02, // Estimated cost per preview (adjust based on actual pricing)
+            operation_type: mode,
+            cost_amount: costAmount,
             user_id: req.user.id,
             request_id: `preview_${Date.now()}`,
             response_time_ms: responseTime,
             success: true,
-            metadata: { mode, file_size: req.file.size, output_size: previewBuffer.length }
+            metadata: { 
+                mode, 
+                file_size: req.file.size, 
+                output_size: previewBuffer.length, 
+                credits_used: costAmount / 0.20 // Convert back to credits for reference
+            }
         });
 
         // Save image to database
@@ -482,11 +510,11 @@ app.post('/api/clipping-magic-upload', authenticateToken, checkCredits(1), uploa
             const errorText = await response.text();
             console.error(`Clipping Magic API error: ${response.status} - ${errorText}`);
             
-            // Log failed API cost
+            // Log failed API cost (no charge for failed requests)
             await dbHelpers.logApiCost({
                 service_name: 'clipping_magic',
                 operation_type: 'upload',
-                cost_amount: 0.01, // Base cost for failed request
+                cost_amount: 0.00, // No charge for failed requests
                 user_id: req.user.id,
                 request_id: `clipping_magic_${Date.now()}`,
                 response_time_ms: responseTime,
@@ -504,11 +532,11 @@ app.post('/api/clipping-magic-upload', authenticateToken, checkCredits(1), uploa
         const result = await response.json();
         console.log('Clipping Magic upload successful:', result);
 
-        // Log successful API cost (Clipping Magic typically charges per image)
+        // Log successful API cost (Clipping Magic charges $0.125 per image)
         await dbHelpers.logApiCost({
             service_name: 'clipping_magic',
             operation_type: 'upload',
-            cost_amount: 0.10, // Estimated cost per image upload (adjust based on actual pricing)
+            cost_amount: 0.125, // $0.125 per image as per pricing
             user_id: req.user.id,
             request_id: `clipping_magic_${Date.now()}`,
             response_time_ms: responseTime,
