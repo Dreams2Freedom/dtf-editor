@@ -67,6 +67,28 @@ class AdminDashboard {
             });
         }
 
+        // Costs
+        const refreshCostsBtn = document.getElementById('refreshCosts');
+        if (refreshCostsBtn) {
+            refreshCostsBtn.addEventListener('click', () => {
+                this.loadCosts();
+            });
+        }
+
+        const costPeriodSelect = document.getElementById('costPeriod');
+        if (costPeriodSelect) {
+            costPeriodSelect.addEventListener('change', () => {
+                this.loadCosts();
+            });
+        }
+
+        const costServiceSelect = document.getElementById('costService');
+        if (costServiceSelect) {
+            costServiceSelect.addEventListener('change', () => {
+                this.loadCosts();
+            });
+        }
+
         // Modal
         const closeUserModalBtn = document.getElementById('closeUserModal');
         if (closeUserModalBtn) {
@@ -221,6 +243,9 @@ class AdminDashboard {
                 break;
             case 'analytics':
                 this.loadAnalytics();
+                break;
+            case 'costs':
+                this.loadCosts();
                 break;
             case 'logs':
                 this.loadLogs();
@@ -451,6 +476,134 @@ class AdminDashboard {
             `;
             tbody.appendChild(row);
         });
+    }
+
+    async loadCosts() {
+        try {
+            const period = document.getElementById('costPeriod')?.value || '30d';
+            const service = document.getElementById('costService')?.value || '';
+            
+            const response = await fetch(`/api/admin/cost-analytics?period=${period}&service=${service}`, {
+                headers: {
+                    'Authorization': `Bearer ${this.token}`
+                }
+            });
+
+            if (response.ok) {
+                const data = await response.json();
+                this.costAnalytics = data.cost_analytics;
+                this.renderCosts();
+            } else {
+                this.showNotification('Failed to load cost analytics', 'error');
+            }
+        } catch (error) {
+            console.error('Error loading cost analytics:', error);
+            this.showNotification('Failed to load cost analytics', 'error');
+        }
+    }
+
+    renderCosts() {
+        if (!this.costAnalytics) return;
+
+        // Update summary cards
+        const totalCost = this.costAnalytics.costs_by_service.reduce((sum, service) => sum + parseFloat(service.total_cost || 0), 0);
+        const vectorizerCost = this.costAnalytics.costs_by_service.find(s => s.service_name === 'vectorizer')?.total_cost || 0;
+        const clippingMagicCost = this.costAnalytics.costs_by_service.find(s => s.service_name === 'clipping_magic')?.total_cost || 0;
+
+        document.getElementById('totalApiCosts').textContent = `$${totalCost.toFixed(4)}`;
+        document.getElementById('vectorizerCosts').textContent = `$${parseFloat(vectorizerCost).toFixed(4)}`;
+        document.getElementById('clippingMagicCosts').textContent = `$${parseFloat(clippingMagicCost).toFixed(4)}`;
+
+        // Calculate profit margin (simplified - you can enhance this with actual revenue data)
+        const monthlyRevenue = this.analytics?.monthly_recurring_revenue || 0;
+        const profitMargin = monthlyRevenue > 0 ? ((monthlyRevenue - totalCost) / monthlyRevenue * 100) : 0;
+        document.getElementById('profitMargin').textContent = `${profitMargin.toFixed(1)}%`;
+
+        // Render costs table
+        const tbody = document.getElementById('costsTableBody');
+        tbody.innerHTML = '';
+
+        this.costAnalytics.costs_by_service.forEach(service => {
+            const row = document.createElement('tr');
+            const successRate = service.total_requests > 0 ? (service.successful_requests / service.total_requests * 100) : 0;
+            const avgResponseTime = service.avg_response_time || 0;
+            
+            row.innerHTML = `
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-medium">
+                    ${service.service_name.charAt(0).toUpperCase() + service.service_name.slice(1)}
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    $${parseFloat(service.total_cost).toFixed(4)}
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    ${service.total_requests}
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    <span class="px-2 py-1 text-xs rounded-full ${successRate >= 95 ? 'bg-green-100 text-green-800' : successRate >= 80 ? 'bg-yellow-100 text-yellow-800' : 'bg-red-100 text-red-800'}">
+                        ${successRate.toFixed(1)}%
+                    </span>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    ${avgResponseTime > 0 ? `${avgResponseTime.toFixed(0)}ms` : 'N/A'}
+                </td>
+            `;
+            tbody.appendChild(row);
+        });
+
+        // Render simple charts (you can enhance with Chart.js or similar)
+        this.renderCostCharts();
+    }
+
+    renderCostCharts() {
+        // Simple cost vs revenue chart
+        const costRevenueChart = document.getElementById('costRevenueChart');
+        if (this.costAnalytics && this.costAnalytics.revenue_data) {
+            const totalRevenue = this.costAnalytics.revenue_data.reduce((sum, day) => sum + (day.credits_purchased || 0), 0);
+            const totalCost = this.costAnalytics.costs_by_service.reduce((sum, service) => sum + parseFloat(service.total_cost || 0), 0);
+            
+            costRevenueChart.innerHTML = `
+                <div class="w-full h-full flex items-center justify-center space-x-8">
+                    <div class="text-center">
+                        <div class="text-2xl font-bold text-green-600">$${totalRevenue.toFixed(2)}</div>
+                        <div class="text-sm text-gray-600">Total Revenue</div>
+                    </div>
+                    <div class="text-center">
+                        <div class="text-2xl font-bold text-red-600">$${totalCost.toFixed(4)}</div>
+                        <div class="text-sm text-gray-600">Total Costs</div>
+                    </div>
+                    <div class="text-center">
+                        <div class="text-2xl font-bold ${totalRevenue > totalCost ? 'text-green-600' : 'text-red-600'}">
+                            $${(totalRevenue - totalCost).toFixed(2)}
+                        </div>
+                        <div class="text-sm text-gray-600">Net Profit</div>
+                    </div>
+                </div>
+            `;
+        }
+
+        // Simple daily cost trend
+        const dailyCostChart = document.getElementById('dailyCostChart');
+        if (this.costAnalytics && this.costAnalytics.daily_breakdown) {
+            const dailyData = this.costAnalytics.daily_breakdown.slice(0, 7); // Last 7 days
+            const maxCost = Math.max(...dailyData.map(d => parseFloat(d.daily_cost || 0)));
+            
+            dailyCostChart.innerHTML = `
+                <div class="w-full h-full p-4">
+                    <div class="flex items-end justify-between h-full space-x-2">
+                        ${dailyData.map(day => {
+                            const height = maxCost > 0 ? (parseFloat(day.daily_cost || 0) / maxCost * 100) : 0;
+                            return `
+                                <div class="flex-1 flex flex-col items-center">
+                                    <div class="bg-blue-500 rounded-t w-full" style="height: ${height}%"></div>
+                                    <div class="text-xs text-gray-600 mt-2">$${parseFloat(day.daily_cost || 0).toFixed(3)}</div>
+                                    <div class="text-xs text-gray-500">${new Date(day.date).toLocaleDateString()}</div>
+                                </div>
+                            `;
+                        }).join('')}
+                    </div>
+                </div>
+            `;
+        }
     }
 
     async viewUser(userId) {

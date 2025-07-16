@@ -247,6 +247,36 @@ router.get('/analytics', async (req, res) => {
     }
 });
 
+// Get cost analytics
+router.get('/cost-analytics', async (req, res) => {
+    try {
+        const { period = '30d', service } = req.query;
+        const costAnalytics = await dbHelpers.getCostAnalytics(period, service);
+        
+        res.json({ 
+            cost_analytics: costAnalytics
+        });
+    } catch (error) {
+        console.error('Error fetching cost analytics:', error);
+        res.status(500).json({ error: 'Failed to fetch cost analytics' });
+    }
+});
+
+// Get cost summary
+router.get('/cost-summary', async (req, res) => {
+    try {
+        const { period_type = 'daily', days = 30 } = req.query;
+        const costSummary = await dbHelpers.getCostSummary(period_type, parseInt(days));
+        
+        res.json({ 
+            cost_summary: costSummary
+        });
+    } catch (error) {
+        console.error('Error fetching cost summary:', error);
+        res.status(500).json({ error: 'Failed to fetch cost summary' });
+    }
+});
+
 // Get admin logs
 router.get('/logs', async (req, res) => {
     try {

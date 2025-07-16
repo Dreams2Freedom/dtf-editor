@@ -216,6 +216,9 @@ app.post('/api/vectorize', authenticateToken, checkCredits(1), upload.single('im
             contentType: req.file.mimetype
         });
 
+        // Track API cost start time
+        const apiStartTime = Date.now();
+        
         // Make request to Vectorizer.AI
         const response = await fetch(VECTORIZER_ENDPOINT, {
             method: 'POST',
@@ -226,9 +229,25 @@ app.post('/api/vectorize', authenticateToken, checkCredits(1), upload.single('im
             body: formData
         });
 
+        const responseTime = Date.now() - apiStartTime;
+
         if (!response.ok) {
             const errorText = await response.text();
             console.error(`Vectorizer.AI API error: ${response.status} - ${errorText}`);
+            
+            // Log failed API cost
+            await dbHelpers.logApiCost({
+                service_name: 'vectorizer',
+                operation_type: 'vectorization',
+                cost_amount: 0.01, // Base cost for failed request
+                user_id: req.user.id,
+                request_id: `vectorize_${Date.now()}`,
+                response_time_ms: responseTime,
+                success: false,
+                error_message: errorText,
+                metadata: { mode, file_size: req.file.size }
+            });
+            
             return res.status(response.status).json({ 
                 error: 'Failed to vectorize image',
                 details: errorText
@@ -238,6 +257,18 @@ app.post('/api/vectorize', authenticateToken, checkCredits(1), upload.single('im
         // Get the response as buffer
         const vectorBuffer = await response.buffer();
         console.log(`Vectorization successful: ${vectorBuffer.length} bytes`);
+
+        // Log successful API cost (Vectorizer.AI typically charges per image)
+        await dbHelpers.logApiCost({
+            service_name: 'vectorizer',
+            operation_type: 'vectorization',
+            cost_amount: 0.05, // Estimated cost per vectorization (adjust based on actual pricing)
+            user_id: req.user.id,
+            request_id: `vectorize_${Date.now()}`,
+            response_time_ms: responseTime,
+            success: true,
+            metadata: { mode, file_size: req.file.size, output_size: vectorBuffer.length }
+        });
 
         // Save image to database
         const imageData = {
@@ -297,6 +328,9 @@ app.post('/api/preview', authenticateToken, checkCredits(1), upload.single('imag
             contentType: req.file.mimetype
         });
 
+        // Track API cost start time
+        const apiStartTime = Date.now();
+        
         // Make request to Vectorizer.AI
         const response = await fetch(VECTORIZER_ENDPOINT, {
             method: 'POST',
@@ -307,9 +341,25 @@ app.post('/api/preview', authenticateToken, checkCredits(1), upload.single('imag
             body: formData
         });
 
+        const responseTime = Date.now() - apiStartTime;
+
         if (!response.ok) {
             const errorText = await response.text();
             console.error(`Vectorizer.AI API error: ${response.status} - ${errorText}`);
+            
+            // Log failed API cost
+            await dbHelpers.logApiCost({
+                service_name: 'vectorizer',
+                operation_type: 'preview',
+                cost_amount: 0.01, // Base cost for failed request
+                user_id: req.user.id,
+                request_id: `preview_${Date.now()}`,
+                response_time_ms: responseTime,
+                success: false,
+                error_message: errorText,
+                metadata: { mode, file_size: req.file.size }
+            });
+            
             return res.status(response.status).json({ 
                 error: 'Failed to generate preview',
                 details: errorText
@@ -319,6 +369,18 @@ app.post('/api/preview', authenticateToken, checkCredits(1), upload.single('imag
         // Get the response as buffer
         const previewBuffer = await response.buffer();
         console.log(`Preview generation successful: ${previewBuffer.length} bytes`);
+
+        // Log successful API cost (preview might be cheaper than full vectorization)
+        await dbHelpers.logApiCost({
+            service_name: 'vectorizer',
+            operation_type: 'preview',
+            cost_amount: 0.02, // Estimated cost per preview (adjust based on actual pricing)
+            user_id: req.user.id,
+            request_id: `preview_${Date.now()}`,
+            response_time_ms: responseTime,
+            success: true,
+            metadata: { mode, file_size: req.file.size, output_size: previewBuffer.length }
+        });
 
         // Save image to database
         const imageData = {
@@ -401,6 +463,9 @@ app.post('/api/clipping-magic-upload', authenticateToken, checkCredits(1), uploa
             contentType: req.file.mimetype
         });
 
+        // Track API cost start time
+        const apiStartTime = Date.now();
+        
         // Make request to Clipping Magic API
         const response = await fetch('https://clippingmagic.com/api/v1/images', {
             method: 'POST',
@@ -411,9 +476,25 @@ app.post('/api/clipping-magic-upload', authenticateToken, checkCredits(1), uploa
             body: formData
         });
 
+        const responseTime = Date.now() - apiStartTime;
+
         if (!response.ok) {
             const errorText = await response.text();
             console.error(`Clipping Magic API error: ${response.status} - ${errorText}`);
+            
+            // Log failed API cost
+            await dbHelpers.logApiCost({
+                service_name: 'clipping_magic',
+                operation_type: 'upload',
+                cost_amount: 0.01, // Base cost for failed request
+                user_id: req.user.id,
+                request_id: `clipping_magic_${Date.now()}`,
+                response_time_ms: responseTime,
+                success: false,
+                error_message: errorText,
+                metadata: { file_size: req.file.size }
+            });
+            
             return res.status(response.status).json({ 
                 error: 'Failed to upload image to Clipping Magic',
                 details: errorText
@@ -422,6 +503,18 @@ app.post('/api/clipping-magic-upload', authenticateToken, checkCredits(1), uploa
 
         const result = await response.json();
         console.log('Clipping Magic upload successful:', result);
+
+        // Log successful API cost (Clipping Magic typically charges per image)
+        await dbHelpers.logApiCost({
+            service_name: 'clipping_magic',
+            operation_type: 'upload',
+            cost_amount: 0.10, // Estimated cost per image upload (adjust based on actual pricing)
+            user_id: req.user.id,
+            request_id: `clipping_magic_${Date.now()}`,
+            response_time_ms: responseTime,
+            success: true,
+            metadata: { file_size: req.file.size, image_id: result.id }
+        });
 
         // Save image to database
         const imageData = {

@@ -165,6 +165,44 @@ async function createTables() {
             )
         `);
 
+        // API costs tracking table
+        await client.query(`
+            CREATE TABLE IF NOT EXISTS api_costs (
+                id SERIAL PRIMARY KEY,
+                service_name VARCHAR(50) NOT NULL,
+                operation_type VARCHAR(50) NOT NULL,
+                cost_amount DECIMAL(10,6) NOT NULL,
+                currency VARCHAR(3) DEFAULT 'USD',
+                user_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
+                image_id INTEGER REFERENCES images(id) ON DELETE SET NULL,
+                request_id VARCHAR(255),
+                response_time_ms INTEGER,
+                success BOOLEAN DEFAULT TRUE,
+                error_message TEXT,
+                metadata JSONB,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        `);
+
+        // Cost summaries table for daily/weekly/monthly aggregations
+        await client.query(`
+            CREATE TABLE IF NOT EXISTS cost_summaries (
+                id SERIAL PRIMARY KEY,
+                period_type VARCHAR(20) NOT NULL, -- 'daily', 'weekly', 'monthly'
+                period_start DATE NOT NULL,
+                period_end DATE NOT NULL,
+                service_name VARCHAR(50) NOT NULL,
+                total_cost DECIMAL(10,6) NOT NULL,
+                total_requests INTEGER NOT NULL,
+                successful_requests INTEGER NOT NULL,
+                failed_requests INTEGER NOT NULL,
+                average_response_time_ms DECIMAL(10,2),
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                UNIQUE(period_type, period_start, service_name)
+            )
+        `);
+
         // Create indexes for better performance
         await client.query(`
             CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
@@ -174,6 +212,11 @@ async function createTables() {
             CREATE INDEX IF NOT EXISTS idx_credit_transactions_user_id ON credit_transactions(user_id);
             CREATE INDEX IF NOT EXISTS idx_subscriptions_user_id ON subscriptions(user_id);
             CREATE INDEX IF NOT EXISTS idx_admin_logs_admin_id ON admin_logs(admin_id);
+            CREATE INDEX IF NOT EXISTS idx_api_costs_service_name ON api_costs(service_name);
+            CREATE INDEX IF NOT EXISTS idx_api_costs_created_at ON api_costs(created_at);
+            CREATE INDEX IF NOT EXISTS idx_api_costs_user_id ON api_costs(user_id);
+            CREATE INDEX IF NOT EXISTS idx_cost_summaries_period ON cost_summaries(period_type, period_start);
+            CREATE INDEX IF NOT EXISTS idx_cost_summaries_service ON cost_summaries(service_name);
         `);
 
         // Insert default data
@@ -385,6 +428,164 @@ const dbHelpers = {
             stats.recentActivity = parseInt(recentResult.rows[0].count);
             
             return stats;
+        } finally {
+            client.release();
+        }
+    },
+
+    // Cost tracking operations
+    logApiCost: async (costData) => {
+        const client = await dbHelpers.getClient();
+        try {
+            const {
+                service_name,
+                operation_type,
+                cost_amount,
+                currency = 'USD',
+                user_id = null,
+                image_id = null,
+                request_id = null,
+                response_time_ms = null,
+                success = true,
+                error_message = null,
+                metadata = null
+            } = costData;
+
+            const result = await client.query(
+                `INSERT INTO api_costs (
+                    service_name, operation_type, cost_amount, currency, user_id, image_id, 
+                    request_id, response_time_ms, success, error_message, metadata
+                ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) RETURNING id`,
+                [service_name, operation_type, cost_amount, currency, user_id, image_id, 
+                 request_id, response_time_ms, success, error_message, metadata ? JSON.stringify(metadata) : null]
+            );
+            return result.rows[0].id;
+        } finally {
+            client.release();
+        }
+    },
+
+    getCostAnalytics: async (period = '30d', service = null) => {
+        const client = await dbHelpers.getClient();
+        try {
+            let periodFilter = '';
+            switch (period) {
+                case '7d':
+                    periodFilter = "WHERE created_at >= NOW() - INTERVAL '7 days'";
+                    break;
+                case '30d':
+                    periodFilter = "WHERE created_at >= NOW() - INTERVAL '30 days'";
+                    break;
+                case '90d':
+                    periodFilter = "WHERE created_at >= NOW() - INTERVAL '90 days'";
+                    break;
+                case '1y':
+                    periodFilter = "WHERE created_at >= NOW() - INTERVAL '1 year'";
+                    break;
+                default:
+                    periodFilter = "WHERE created_at >= NOW() - INTERVAL '30 days'";
+            }
+
+            const serviceFilter = service ? `AND service_name = '${service}'` : '';
+            
+            // Get total costs by service
+            const costsResult = await client.query(`
+                SELECT 
+                    service_name,
+                    SUM(cost_amount) as total_cost,
+                    COUNT(*) as total_requests,
+                    COUNT(CASE WHEN success = true THEN 1 END) as successful_requests,
+                    COUNT(CASE WHEN success = false THEN 1 END) as failed_requests,
+                    AVG(response_time_ms) as avg_response_time
+                FROM api_costs 
+                ${periodFilter} ${serviceFilter}
+                GROUP BY service_name
+                ORDER BY total_cost DESC
+            `);
+
+            // Get daily breakdown
+            const dailyResult = await client.query(`
+                SELECT 
+                    DATE(created_at) as date,
+                    service_name,
+                    SUM(cost_amount) as daily_cost,
+                    COUNT(*) as daily_requests
+                FROM api_costs 
+                ${periodFilter} ${serviceFilter}
+                GROUP BY DATE(created_at), service_name
+                ORDER BY date DESC
+            `);
+
+            // Get cost vs revenue comparison (if revenue data available)
+            const revenueResult = await client.query(`
+                SELECT 
+                    DATE(ct.created_at) as date,
+                    SUM(CASE WHEN ct.transaction_type = 'purchase' THEN ct.credits_amount ELSE 0 END) as credits_purchased,
+                    SUM(CASE WHEN ct.transaction_type = 'usage' THEN ct.credits_amount ELSE 0 END) as credits_used
+                FROM credit_transactions ct
+                ${periodFilter.replace('api_costs', 'ct')}
+                GROUP BY DATE(ct.created_at)
+                ORDER BY date DESC
+            `);
+
+            return {
+                costs_by_service: costsResult.rows,
+                daily_breakdown: dailyResult.rows,
+                revenue_data: revenueResult.rows,
+                period: period
+            };
+        } finally {
+            client.release();
+        }
+    },
+
+    getCostSummary: async (periodType = 'daily', days = 30) => {
+        const client = await dbHelpers.getClient();
+        try {
+            const result = await client.query(`
+                SELECT 
+                    period_start,
+                    period_end,
+                    service_name,
+                    total_cost,
+                    total_requests,
+                    successful_requests,
+                    failed_requests,
+                    average_response_time_ms
+                FROM cost_summaries 
+                WHERE period_type = $1 
+                AND period_start >= NOW() - INTERVAL '${days} days'
+                ORDER BY period_start DESC
+            `, [periodType]);
+            
+            return result.rows;
+        } finally {
+            client.release();
+        }
+    },
+
+    updateCostSummary: async (periodType, periodStart, periodEnd, serviceName, costData) => {
+        const client = await dbHelpers.getClient();
+        try {
+            await client.query(`
+                INSERT INTO cost_summaries (
+                    period_type, period_start, period_end, service_name, 
+                    total_cost, total_requests, successful_requests, failed_requests, average_response_time_ms
+                ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+                ON CONFLICT (period_type, period_start, service_name) 
+                DO UPDATE SET 
+                    total_cost = EXCLUDED.total_cost,
+                    total_requests = EXCLUDED.total_requests,
+                    successful_requests = EXCLUDED.successful_requests,
+                    failed_requests = EXCLUDED.failed_requests,
+                    average_response_time_ms = EXCLUDED.average_response_time_ms,
+                    updated_at = CURRENT_TIMESTAMP
+            `, [
+                periodType, periodStart, periodEnd, serviceName,
+                costData.total_cost, costData.total_requests, 
+                costData.successful_requests, costData.failed_requests,
+                costData.average_response_time_ms
+            ]);
         } finally {
             client.release();
         }
