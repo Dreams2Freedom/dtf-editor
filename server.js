@@ -130,7 +130,9 @@ app.get('/health', (req, res) => {
         status: 'ok', 
         message: 'Server is running', 
         timestamp: new Date().toISOString(),
-        database: dbInitialized ? 'connected' : 'disconnected'
+        database: dbInitialized ? 'connected' : 'disconnected',
+        version: '2.1.0',
+        deployment: '2025-07-16T17:20:00Z'
     });
 });
 
