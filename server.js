@@ -472,10 +472,8 @@ app.use((error, req, res, next) => {
     });
 });
 
-// Start server with delay to allow database connection and Railway initialization
-console.log('Waiting 3 seconds for Railway initialization...');
-setTimeout(() => {
-    app.listen(PORT, () => {
+// Start server immediately for Railway health check
+app.listen(PORT, () => {
         console.log(`🚀 DTF Editor server running on http://localhost:${PORT}`);
         console.log(`📁 Static files served from: ${__dirname}`);
         console.log(`🔧 API endpoints:`);
@@ -503,7 +501,6 @@ setTimeout(() => {
             console.error('Port is already in use. Please check if another instance is running.');
         }
     });
-}, 2000); // 2 second delay to allow database connection
 
 // Handle uncaught exceptions
 process.on('uncaughtException', (error) => {
