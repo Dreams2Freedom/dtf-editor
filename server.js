@@ -48,7 +48,18 @@ app.use(morgan('combined'));
 // Middleware
 app.use(cors());
 app.use(express.json());
-app.use(express.static('.'));
+
+// Serve static files with proper MIME types
+app.use(express.static('.', {
+    setHeaders: (res, path) => {
+        if (path.endsWith('.css')) {
+            res.setHeader('Content-Type', 'text/css');
+        }
+        if (path.endsWith('.js')) {
+            res.setHeader('Content-Type', 'application/javascript');
+        }
+    }
+}));
 
 // Simple health check endpoint (works immediately without database)
 app.get('/health', (req, res) => {
@@ -125,6 +136,12 @@ app.get('/vectorize', (req, res) => {
 
 app.get('/background-remove', (req, res) => {
     res.sendFile(path.join(__dirname, 'background-remove.html'));
+});
+
+// Explicit CSS serving route
+app.get('/styles.css', (req, res) => {
+    res.setHeader('Content-Type', 'text/css');
+    res.sendFile(path.join(__dirname, 'styles.css'));
 });
 
 // API health check endpoint for Railway
