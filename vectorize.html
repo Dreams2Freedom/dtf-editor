@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Vectorize Images - DTF Editor</title>
+    <title>Create Vector Graphics for DTF Transfers - DTF Editor</title>
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
@@ -12,7 +12,7 @@
         <div class="nav-content">
             <div class="flex items-center">
                 <a href="index.html" class="nav-brand">DTF Editor</a>
-                <span class="ml-4 text-gray-500">/ Vectorize</span>
+                <span class="ml-4 text-gray-500">/ Vector Graphics</span>
             </div>
             <div class="nav-links">
                 <a href="index.html" class="btn-nav">Home</a>
@@ -26,10 +26,10 @@
     <div class="container py-12">
         <!-- Header -->
         <div class="text-center mb-12">
-            <h1 class="text-4xl font-bold text-primary mb-4">Vectorize Images</h1>
+            <h1 class="text-4xl font-bold text-primary mb-4">Create Vector Graphics for DTF Transfers</h1>
             <p class="text-xl text-gray-600 max-w-3xl mx-auto">
-                Convert your raster images to scalable vector graphics with AI-powered precision. 
-                Perfect for logos, illustrations, and designs that need to scale to any size.
+                Convert any image to crisp, scalable vector graphics perfect for DTF printing. 
+                Get sharp edges and clean lines that transfer beautifully to any fabric type.
             </p>
         </div>
 
@@ -42,7 +42,7 @@
                             <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
                         </svg>
                         <div class="mt-4">
-                            <p class="text-lg font-medium text-primary">Upload an image to vectorize</p>
+                            <p class="text-lg font-medium text-primary">Upload an image to create DTF-ready vector graphics</p>
                             <p class="text-gray-500">PNG, JPG, or GIF up to 10MB</p>
                         </div>
                         <p class="text-sm text-gray-400 mt-2">Click to browse or drag and drop</p>
@@ -63,7 +63,7 @@
                         </svg>
                     </div>
                 </div>
-                <h3 class="text-lg font-medium text-primary mb-2">Vectorizing your image...</h3>
+                <h3 class="text-lg font-medium text-primary mb-2">Creating your DTF-ready vector...</h3>
                 <div class="progress-bar mb-4">
                     <div id="vectorizeProgressBar" class="progress-fill" style="width: 0%"></div>
                 </div>
@@ -74,8 +74,8 @@
         <!-- Results Section -->
         <div id="vectorizeResult" class="card hidden">
             <div class="text-center mb-8">
-                <h3 class="text-2xl font-bold text-primary mb-4">Vectorization Complete!</h3>
-                <p class="text-gray-600">Your image has been successfully converted to vector format.</p>
+                <h3 class="text-2xl font-bold text-primary mb-4">Vector Graphics Ready for DTF!</h3>
+                <p class="text-gray-600">Your image has been converted to crisp vector graphics perfect for DTF transfers.</p>
             </div>
             
             <div class="grid md:grid-cols-2 gap-8 mb-8">
@@ -89,7 +89,7 @@
                 
                 <!-- Vectorized Result -->
                 <div>
-                    <h4 class="text-lg font-semibold text-primary mb-4">Vectorized Result</h4>
+                    <h4 class="text-lg font-semibold text-primary mb-4">DTF-Ready Vector</h4>
                     <div class="border rounded-lg overflow-hidden">
                         <img id="vectorizeResultImg" class="w-full h-auto" alt="Vectorized result">
                     </div>
@@ -98,7 +98,41 @@
             
             <div class="flex justify-center space-x-4">
                 <button id="vectorizeDownloadBtn" class="btn-primary">Download Vector</button>
-                <button id="vectorizeNewBtn" class="btn-secondary">Vectorize Another Image</button>
+                <button id="vectorizeNewBtn" class="btn-secondary">Create Another Vector</button>
+            </div>
+        </div>
+
+        <!-- DTF Benefits Section -->
+        <div class="card mb-8">
+            <h3 class="text-2xl font-bold text-primary mb-6 text-center">Perfect for DTF Transfers</h3>
+            <div class="grid md:grid-cols-3 gap-6">
+                <div class="text-center">
+                    <div class="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <svg class="w-6 h-6 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"></path>
+                        </svg>
+                    </div>
+                    <h4 class="font-semibold mb-2 text-primary">Crisp Edges</h4>
+                    <p class="text-gray-600">Sharp, clean edges that transfer perfectly to fabric</p>
+                </div>
+                <div class="text-center">
+                    <div class="w-12 h-12 bg-orange-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <svg class="w-6 h-6 text-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                        </svg>
+                    </div>
+                    <h4 class="font-semibold mb-2 text-primary">Scalable Quality</h4>
+                    <p class="text-gray-600">Print at any size without losing detail or sharpness</p>
+                </div>
+                <div class="text-center">
+                    <div class="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <svg class="w-6 h-6 text-secondary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                    </div>
+                    <h4 class="font-semibold mb-2 text-primary">Print-Ready</h4>
+                    <p class="text-gray-600">Optimized for DTF printing with perfect color separation</p>
+                </div>
             </div>
         </div>
 
@@ -131,7 +165,7 @@
                         </svg>
                     </div>
                     <h4 class="font-semibold mb-2 text-primary">Professional</h4>
-                    <p class="text-gray-600">Industry-standard results for professional use</p>
+                    <p class="text-gray-600">Industry-standard results for professional DTF printing</p>
                 </div>
             </div>
         </div>
