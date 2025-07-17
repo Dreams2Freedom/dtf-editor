@@ -55,6 +55,15 @@ class BackgroundRemoveApp {
         try {
             console.log('Starting background removal with editor for file:', file.name);
             
+            // Check authentication first
+            if (!window.authUtils || !window.authUtils.isAuthenticated()) {
+                this.showError('Please log in to use the background removal feature.');
+                setTimeout(() => {
+                    window.location.href = 'login.html';
+                }, 2000);
+                return;
+            }
+            
             // Validate file
             if (!utils.validateFile(file)) {
                 return;
@@ -79,8 +88,22 @@ class BackgroundRemoveApp {
             this.launchClippingMagicEditor(uploadResult.id, uploadResult.secret);
             
         } catch (error) {
-            this.showError('Failed to start background removal editor. Please try again.');
             console.error('Background removal with editor error:', error);
+            
+            // Handle specific error types
+            if (error.message.includes('Authentication required') || error.message.includes('Please log in')) {
+                this.showError('Please log in to use this feature.');
+                setTimeout(() => {
+                    window.location.href = 'login.html';
+                }, 2000);
+            } else if (error.message.includes('Insufficient credits')) {
+                this.showError(error.message);
+                setTimeout(() => {
+                    window.location.href = 'dashboard.html';
+                }, 3000);
+            } else {
+                this.showError('Failed to start background removal editor. Please try again.');
+            }
         }
     }
 
@@ -107,15 +130,26 @@ class BackgroundRemoveApp {
         try {
             console.log('Starting Clipping Magic upload for file:', file.name, 'Size:', file.size);
             
+            // Get authentication token
+            const token = window.authUtils ? window.authUtils.getAuthToken() : null;
+            if (!token) {
+                throw new Error('Authentication required. Please log in to use this feature.');
+            }
+            
             // Create FormData for the upload endpoint
             const formData = new FormData();
             formData.append('image', file);
             
             console.log('Clipping Magic upload endpoint:', this.clippingMagicUploadEndpoint);
             
-            // Make API call to upload endpoint
+            // Make API call to upload endpoint with authentication
+            const headers = {
+                'Authorization': `Bearer ${token}`
+            };
+            
             const response = await fetch(this.clippingMagicUploadEndpoint, {
                 method: 'POST',
+                headers: headers,
                 body: formData
             });
             
@@ -124,7 +158,15 @@ class BackgroundRemoveApp {
             if (!response.ok) {
                 const errorText = await response.text();
                 console.error('Clipping Magic upload error response:', errorText);
-                throw new Error(`Clipping Magic upload failed: ${response.status} - ${response.statusText} - ${errorText}`);
+                
+                if (response.status === 401) {
+                    throw new Error('Authentication required. Please log in to use this feature.');
+                } else if (response.status === 402) {
+                    const errorData = JSON.parse(errorText);
+                    throw new Error(`Insufficient credits. You have ${errorData.credits_remaining} credits remaining.`);
+                } else {
+                    throw new Error(`Clipping Magic upload failed: ${response.status} - ${response.statusText} - ${errorText}`);
+                }
             }
             
             const result = await response.json();
