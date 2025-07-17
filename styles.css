@@ -1,3 +1,6 @@
+/* Import our custom utility system */
+@import url('./custom-tailwind.css');
+
 :root {
   /* Brand Colors */
   --primary-blue: #386594;
