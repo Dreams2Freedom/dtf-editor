@@ -759,8 +759,8 @@ app.post('/api/clipping-magic-upload', authenticateToken, checkCredits(1), uploa
         // Track API cost start time
         const apiStartTime = Date.now();
         
-        // Make request to Clipping Magic API
-        const response = await fetch('https://clippingmagic.com/api/v1/images', {
+        // Make request to Clipping Magic API (using test mode)
+        const response = await fetch('https://clippingmagic.com/api/v1/images?test=true', {
             method: 'POST',
             headers: {
                 'Authorization': `Basic ${Buffer.from(`${CLIPPING_MAGIC_API_ID}:${CLIPPING_MAGIC_API_SECRET}`).toString('base64')}`,
