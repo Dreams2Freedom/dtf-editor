@@ -118,28 +118,39 @@ class AdminDashboard {
             });
         }
 
-        // User table event delegation
+
+    }
+
+    setupUserTableEvents() {
+        console.log('Setting up user table events');
         const usersTableBody = document.getElementById('usersTableBody');
         if (usersTableBody) {
+            console.log('Users table body found, adding event listener');
             usersTableBody.addEventListener('click', (e) => {
                 const button = e.target.closest('button[data-action]');
                 if (!button) return;
 
+                console.log('Button clicked:', button.dataset.action, button.dataset.userId);
                 const action = button.dataset.action;
                 const userId = button.dataset.userId;
 
                 switch (action) {
                     case 'view':
+                        console.log('Calling viewUser with ID:', userId);
                         this.viewUser(userId);
                         break;
                     case 'edit':
+                        console.log('Calling editUser with ID:', userId);
                         this.editUser(userId);
                         break;
                     case 'toggle':
+                        console.log('Calling toggleUserStatus with ID:', userId);
                         this.toggleUserStatus(userId);
                         break;
                 }
             });
+        } else {
+            console.error('Users table body not found');
         }
     }
 
@@ -252,6 +263,9 @@ class AdminDashboard {
                 </div>
             `;
         }
+
+        // Set up user table event delegation after dashboard is shown
+        this.setupUserTableEvents();
     }
 
     switchTab(tabName) {
