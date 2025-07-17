@@ -13,16 +13,28 @@
                 extend: {
                     colors: {
                         primary: {
-                            50: '#eff6ff',
-                            100: '#dbeafe',
-                            200: '#bfdbfe',
-                            300: '#93c5fd',
-                            400: '#60a5fa',
-                            500: '#3b82f6',
-                            600: '#2563eb',
-                            700: '#1d4ed8',
-                            800: '#1e40af',
-                            900: '#1e3a8a',
+                            50: '#f0f4f8',
+                            100: '#e0e9f2',
+                            200: '#c1d4e6',
+                            300: '#93b8d9',
+                            400: '#5a8bc7',
+                            500: '#386594',
+                            600: '#2d5176',
+                            700: '#25425f',
+                            800: '#1f374e',
+                            900: '#1a2f42',
+                        },
+                        accent: {
+                            50: '#fef7f0',
+                            100: '#fdecd8',
+                            200: '#fbd5b0',
+                            300: '#f8b87d',
+                            400: '#f59347',
+                            500: '#E88B4B',
+                            600: '#d46d2e',
+                            700: '#b15526',
+                            800: '#8e4524',
+                            900: '#733a22',
                         }
                     }
                 }
@@ -36,7 +48,7 @@
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex justify-between h-16">
                 <div class="flex items-center">
-                    <h1 class="text-2xl font-bold text-gray-900">DTF Editor Admin</h1>
+                    <h1 class="text-2xl font-bold text-[#386594]">DTF Editor Admin</h1>
                 </div>
                 <div class="flex items-center space-x-4">
                     <div id="authContainer">
@@ -51,17 +63,17 @@
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <!-- Login Section -->
         <div id="loginSection" class="bg-white rounded-lg shadow-lg p-8 max-w-md mx-auto">
-            <h2 class="text-2xl font-bold text-gray-900 mb-6 text-center">Admin Login</h2>
+            <h2 class="text-2xl font-bold text-[#386594] mb-6 text-center">Admin Login</h2>
             <form id="loginForm">
                 <div class="mb-4">
-                    <label for="email" class="block text-sm font-medium text-gray-700 mb-2">Email</label>
-                    <input type="email" id="email" name="email" required class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500">
+                    <label for="email" class="block text-sm font-medium text-[#386594] mb-2">Email</label>
+                    <input type="email" id="email" name="email" required class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#E88B4B]">
                 </div>
                 <div class="mb-6">
-                    <label for="password" class="block text-sm font-medium text-gray-700 mb-2">Password</label>
-                    <input type="password" id="password" name="password" required class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500">
+                    <label for="password" class="block text-sm font-medium text-[#386594] mb-2">Password</label>
+                    <input type="password" id="password" name="password" required class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#E88B4B]">
                 </div>
-                <button type="submit" class="w-full bg-primary-600 text-white py-2 px-4 rounded-md hover:bg-primary-700 transition-colors">
+                <button type="submit" class="w-full bg-[#386594] text-white py-2 px-4 rounded-md hover:bg-[#457BB9] transition-colors">
                     Login
                 </button>
             </form>
@@ -71,21 +83,21 @@
         <div id="dashboardSection" class="hidden">
             <!-- Stats Cards -->
             <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-                <div class="bg-white rounded-lg shadow p-6">
-                    <h3 class="text-lg font-semibold text-gray-900 mb-2">Total Users</h3>
-                    <p id="totalUsers" class="text-3xl font-bold text-primary-600">-</p>
+                <div class="bg-white rounded-lg shadow p-6 hover:shadow-lg transition-shadow">
+                    <h3 class="text-lg font-semibold text-[#386594] mb-2">Total Users</h3>
+                    <p id="totalUsers" class="text-3xl font-bold text-[#386594]">-</p>
                 </div>
-                <div class="bg-white rounded-lg shadow p-6">
-                    <h3 class="text-lg font-semibold text-gray-900 mb-2">Active Subscribers</h3>
-                    <p id="activeSubscribers" class="text-3xl font-bold text-green-600">-</p>
+                <div class="bg-white rounded-lg shadow p-6 hover:shadow-lg transition-shadow">
+                    <h3 class="text-lg font-semibold text-[#386594] mb-2">Active Subscribers</h3>
+                    <p id="activeSubscribers" class="text-3xl font-bold text-[#E88B4B]">-</p>
                 </div>
-                <div class="bg-white rounded-lg shadow p-6">
-                    <h3 class="text-lg font-semibold text-gray-900 mb-2">Monthly Revenue</h3>
-                    <p id="monthlyRevenue" class="text-3xl font-bold text-blue-600">-</p>
+                <div class="bg-white rounded-lg shadow p-6 hover:shadow-lg transition-shadow">
+                    <h3 class="text-lg font-semibold text-[#386594] mb-2">Monthly Revenue</h3>
+                    <p id="monthlyRevenue" class="text-3xl font-bold text-[#457BB9]">-</p>
                 </div>
-                <div class="bg-white rounded-lg shadow p-6">
-                    <h3 class="text-lg font-semibold text-gray-900 mb-2">Total Images</h3>
-                    <p id="totalImages" class="text-3xl font-bold text-purple-600">-</p>
+                <div class="bg-white rounded-lg shadow p-6 hover:shadow-lg transition-shadow">
+                    <h3 class="text-lg font-semibold text-[#386594] mb-2">Total Images</h3>
+                    <p id="totalImages" class="text-3xl font-bold text-[#E88B4B]">-</p>
                 </div>
             </div>
 
@@ -93,16 +105,16 @@
             <div class="bg-white rounded-lg shadow-lg">
                 <div class="border-b border-gray-200">
                     <nav class="-mb-px flex space-x-8 px-6">
-                        <button class="tab-btn active py-4 px-1 border-b-2 border-primary-500 text-primary-600 font-medium" data-tab="users">
+                        <button class="tab-btn active py-4 px-1 border-b-2 border-[#E88B4B] text-[#E88B4B] font-medium" data-tab="users">
                             Users
                         </button>
-                        <button class="tab-btn py-4 px-1 border-b-2 border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 font-medium" data-tab="analytics">
+                        <button class="tab-btn py-4 px-1 border-b-2 border-transparent text-gray-500 hover:text-[#386594] hover:border-gray-300 font-medium" data-tab="analytics">
                             Analytics
                         </button>
-                        <button class="tab-btn py-4 px-1 border-b-2 border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 font-medium" data-tab="costs">
+                        <button class="tab-btn py-4 px-1 border-b-2 border-transparent text-gray-500 hover:text-[#386594] hover:border-gray-300 font-medium" data-tab="costs">
                             API Costs
                         </button>
-                        <button class="tab-btn py-4 px-1 border-b-2 border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 font-medium" data-tab="logs">
+                        <button class="tab-btn py-4 px-1 border-b-2 border-transparent text-gray-500 hover:text-[#386594] hover:border-gray-300 font-medium" data-tab="logs">
                             Admin Logs
                         </button>
                     </nav>
@@ -111,10 +123,10 @@
                 <!-- Users Tab -->
                 <div id="usersTab" class="tab-content p-6">
                     <div class="flex justify-between items-center mb-6">
-                        <h3 class="text-lg font-semibold text-gray-900">User Management</h3>
+                        <h3 class="text-lg font-semibold text-[#386594]">User Management</h3>
                         <div class="flex space-x-2">
-                            <input type="text" id="userSearch" placeholder="Search users..." class="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500">
-                            <button id="refreshUsers" class="bg-primary-600 text-white px-4 py-2 rounded-md hover:bg-primary-700 transition-colors">
+                            <input type="text" id="userSearch" placeholder="Search users..." class="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#E88B4B]">
+                            <button id="refreshUsers" class="bg-[#386594] text-white px-4 py-2 rounded-md hover:bg-[#457BB9] transition-colors">
                                 Refresh
                             </button>
                         </div>
@@ -140,16 +152,16 @@
 
                 <!-- Analytics Tab -->
                 <div id="analyticsTab" class="tab-content p-6 hidden">
-                    <h3 class="text-lg font-semibold text-gray-900 mb-6">Analytics Dashboard</h3>
+                    <h3 class="text-lg font-semibold text-[#386594] mb-6">Analytics Dashboard</h3>
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div class="bg-gray-50 rounded-lg p-6">
-                            <h4 class="text-lg font-medium text-gray-900 mb-4">Subscription Overview</h4>
+                            <h4 class="text-lg font-medium text-[#386594] mb-4">Subscription Overview</h4>
                             <div id="subscriptionStats" class="space-y-3">
                                 <!-- Subscription stats will be populated here -->
                             </div>
                         </div>
                         <div class="bg-gray-50 rounded-lg p-6">
-                            <h4 class="text-lg font-medium text-gray-900 mb-4">Revenue Metrics</h4>
+                            <h4 class="text-lg font-medium text-[#386594] mb-4">Revenue Metrics</h4>
                             <div id="revenueStats" class="space-y-3">
                                 <!-- Revenue stats will be populated here -->
                             </div>
@@ -160,20 +172,20 @@
                 <!-- Costs Tab -->
                 <div id="costsTab" class="tab-content p-6 hidden">
                     <div class="flex justify-between items-center mb-6">
-                        <h3 class="text-lg font-semibold text-gray-900">API Cost Analytics</h3>
+                        <h3 class="text-lg font-semibold text-[#386594]">API Cost Analytics</h3>
                         <div class="flex space-x-2">
-                            <select id="costPeriod" class="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500">
+                            <select id="costPeriod" class="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#E88B4B]">
                                 <option value="7d">Last 7 Days</option>
                                 <option value="30d" selected>Last 30 Days</option>
                                 <option value="90d">Last 90 Days</option>
                                 <option value="1y">Last Year</option>
                             </select>
-                            <select id="costService" class="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500">
+                            <select id="costService" class="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#E88B4B]">
                                 <option value="">All Services</option>
                                 <option value="vectorizer">Vectorizer.ai</option>
                                 <option value="clipping_magic">Clipping Magic</option>
                             </select>
-                            <button id="refreshCosts" class="bg-primary-600 text-white px-4 py-2 rounded-md hover:bg-primary-700 transition-colors">
+                            <button id="refreshCosts" class="bg-[#386594] text-white px-4 py-2 rounded-md hover:bg-[#457BB9] transition-colors">
                                 Refresh
                             </button>
                         </div>
@@ -181,11 +193,11 @@
                     
                     <!-- Pricing Reference -->
                     <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
-                        <h4 class="text-sm font-semibold text-blue-900 mb-2">Current API Pricing:</h4>
+                        <h4 class="text-sm font-semibold text-[#386594] mb-2">Current API Pricing:</h4>
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
                             <div>
-                                <h5 class="font-medium text-blue-800">Vectorizer.ai ($0.20/credit):</h5>
-                                <ul class="text-blue-700 space-y-1">
+                                <h5 class="font-medium text-[#386594]">Vectorizer.ai ($0.20/credit):</h5>
+                                <ul class="text-[#457BB9] space-y-1">
                                     <li>• Test/Test Preview: Free</li>
                                     <li>• Preview: $0.04 (0.2 credits)</li>
                                     <li>• Vectorize: $0.20 (1.0 credits)</li>
@@ -194,8 +206,8 @@
                                 </ul>
                             </div>
                             <div>
-                                <h5 class="font-medium text-blue-800">Clipping Magic ($0.125/credit):</h5>
-                                <ul class="text-blue-700 space-y-1">
+                                <h5 class="font-medium text-[#386594]">Clipping Magic ($0.125/credit):</h5>
+                                <ul class="text-[#457BB9] space-y-1">
                                     <li>• Image Upload: $0.125 (1 credit per image)</li>
                                     <li>• Re-editing: Free (no additional cost)</li>
                                     <li>• Multiple Downloads: Free (no additional cost)</li>

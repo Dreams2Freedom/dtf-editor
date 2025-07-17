@@ -12,16 +12,28 @@
                 extend: {
                     colors: {
                         primary: {
-                            50: '#eff6ff',
-                            100: '#dbeafe',
-                            200: '#bfdbfe',
-                            300: '#93c5fd',
-                            400: '#60a5fa',
-                            500: '#3b82f6',
-                            600: '#2563eb',
-                            700: '#1d4ed8',
-                            800: '#1e40af',
-                            900: '#1e3a8a',
+                            50: '#f0f4f8',
+                            100: '#e0e9f2',
+                            200: '#c1d4e6',
+                            300: '#93b8d9',
+                            400: '#5a8bc7',
+                            500: '#386594',
+                            600: '#2d5176',
+                            700: '#25425f',
+                            800: '#1f374e',
+                            900: '#1a2f42',
+                        },
+                        accent: {
+                            50: '#fef7f0',
+                            100: '#fdecd8',
+                            200: '#fbd5b0',
+                            300: '#f8b87d',
+                            400: '#f59347',
+                            500: '#E88B4B',
+                            600: '#d46d2e',
+                            700: '#b15526',
+                            800: '#8e4524',
+                            900: '#733a22',
                         }
                     }
                 }
@@ -29,20 +41,20 @@
         }
     </script>
 </head>
-<body class="bg-gray-50 min-h-screen flex items-center justify-center">
+<body class="bg-gradient-to-br from-[#386594] to-[#457BB9] min-h-screen flex items-center justify-center">
     <div class="max-w-md w-full space-y-8">
         <!-- Logo and Title -->
         <div class="text-center">
-            <h1 class="text-3xl font-bold text-gray-900 mb-2">DTF Editor</h1>
-            <p class="text-gray-600">Sign in to your account</p>
+            <h1 class="text-3xl font-bold text-white mb-2">DTF Editor</h1>
+            <p class="text-blue-100">Sign in to your account</p>
         </div>
 
         <!-- Login Form -->
-        <div class="bg-white py-8 px-6 shadow-lg rounded-lg">
+        <div class="bg-white py-8 px-6 shadow-xl rounded-lg">
             <form id="loginForm" method="POST" class="space-y-6">
                 <!-- Email Field -->
                 <div>
-                    <label for="email" class="block text-sm font-medium text-gray-700 mb-2">
+                    <label for="email" class="block text-sm font-medium text-[#386594] mb-2">
                         Email Address
                     </label>
                     <input 
@@ -50,14 +62,14 @@
                         id="email" 
                         name="email" 
                         required 
-                        class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                        class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#E88B4B] focus:border-[#E88B4B]"
                         placeholder="Enter your email"
                     >
                 </div>
 
                 <!-- Password Field -->
                 <div>
-                    <label for="password" class="block text-sm font-medium text-gray-700 mb-2">
+                    <label for="password" class="block text-sm font-medium text-[#386594] mb-2">
                         Password
                     </label>
                     <input 
@@ -65,7 +77,7 @@
                         id="password" 
                         name="password" 
                         required 
-                        class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                        class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#E88B4B] focus:border-[#E88B4B]"
                         placeholder="Enter your password"
                     >
                 </div>
@@ -77,14 +89,14 @@
                             id="remember" 
                             name="remember" 
                             type="checkbox" 
-                            class="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded"
+                            class="h-4 w-4 text-[#E88B4B] focus:ring-[#E88B4B] border-gray-300 rounded"
                         >
-                        <label for="remember" class="ml-2 block text-sm text-gray-900">
+                        <label for="remember" class="ml-2 block text-sm text-[#386594]">
                             Remember me
                         </label>
                     </div>
                     <div class="text-sm">
-                        <a href="#" id="forgotPassword" class="font-medium text-primary-600 hover:text-primary-500">
+                        <a href="#" id="forgotPassword" class="font-medium text-[#E88B4B] hover:text-[#d46d2e]">
                             Forgot password?
                         </a>
                     </div>
@@ -95,7 +107,7 @@
                     <button 
                         type="submit" 
                         id="loginBtn"
-                        class="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-colors duration-200"
+                        class="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-[#386594] hover:bg-[#457BB9] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#E88B4B] transition-colors duration-200"
                     >
                         <span id="loginBtnText">Sign In</span>
                         <svg id="loginBtnSpinner" class="hidden animate-spin ml-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
@@ -130,7 +142,7 @@
 
             <!-- Register Link -->
             <div class="mt-6 text-center">
-                <a href="register.html" class="font-medium text-primary-600 hover:text-primary-500">
+                <a href="register.html" class="font-medium text-[#E88B4B] hover:text-[#d46d2e]">
                     Create a new account
                 </a>
             </div>
@@ -138,7 +150,7 @@
 
         <!-- Back to Home -->
         <div class="text-center">
-            <a href="index.html" class="text-sm text-gray-600 hover:text-gray-900">
+            <a href="index.html" class="text-sm text-blue-100 hover:text-white">
                 ← Back to Home
             </a>
         </div>

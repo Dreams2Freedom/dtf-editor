@@ -13,16 +13,28 @@
                 extend: {
                     colors: {
                         primary: {
-                            50: '#eff6ff',
-                            100: '#dbeafe',
-                            200: '#bfdbfe',
-                            300: '#93c5fd',
-                            400: '#60a5fa',
-                            500: '#3b82f6',
-                            600: '#2563eb',
-                            700: '#1d4ed8',
-                            800: '#1e40af',
-                            900: '#1e3a8a',
+                            50: '#f0f4f8',
+                            100: '#e0e9f2',
+                            200: '#c1d4e6',
+                            300: '#93b8d9',
+                            400: '#5a8bc7',
+                            500: '#386594',
+                            600: '#2d5176',
+                            700: '#25425f',
+                            800: '#1f374e',
+                            900: '#1a2f42',
+                        },
+                        accent: {
+                            50: '#fef7f0',
+                            100: '#fdecd8',
+                            200: '#fbd5b0',
+                            300: '#f8b87d',
+                            400: '#f59347',
+                            500: '#E88B4B',
+                            600: '#d46d2e',
+                            700: '#b15526',
+                            800: '#8e4524',
+                            900: '#733a22',
                         }
                     }
                 }
@@ -36,13 +48,13 @@
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex justify-between h-16">
                 <div class="flex items-center">
-                    <h1 class="text-2xl font-bold text-gray-900">DTF Editor</h1>
+                    <h1 class="text-2xl font-bold text-[#386594]">DTF Editor</h1>
                 </div>
                 <div class="flex items-center space-x-4">
-                    <a href="vectorize.html" class="text-gray-700 hover:text-primary-600 transition-colors">Vectorize</a>
-                    <a href="background-remove.html" class="text-gray-700 hover:text-primary-600 transition-colors">Background Removal</a>
-                    <a href="dashboard.html" class="text-gray-700 hover:text-primary-600 transition-colors">Dashboard</a>
-                    <a href="admin.html" class="text-gray-700 hover:text-primary-600 transition-colors">Admin</a>
+                    <a href="vectorize.html" class="text-[#386594] hover:text-[#E88B4B] transition-colors">Vectorize</a>
+                    <a href="background-remove.html" class="text-[#386594] hover:text-[#E88B4B] transition-colors">Background Removal</a>
+                    <a href="dashboard.html" class="text-[#386594] hover:text-[#E88B4B] transition-colors">Dashboard</a>
+                    <a href="admin.html" class="text-[#386594] hover:text-[#E88B4B] transition-colors">Admin</a>
                     <div id="authContainer">
                         <!-- Auth buttons will be inserted here by JavaScript -->
                     </div>
@@ -52,20 +64,20 @@
     </nav>
 
     <!-- Hero Section -->
-    <div class="bg-gradient-to-r from-primary-600 to-primary-800 text-white">
+    <div class="bg-gradient-to-r from-[#386594] to-[#457BB9] text-white">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24">
             <div class="text-center">
                 <h1 class="text-4xl md:text-6xl font-bold mb-6">
                     Professional Image Processing
                 </h1>
-                <p class="text-xl md:text-2xl mb-8 text-primary-100">
+                <p class="text-xl md:text-2xl mb-8 text-blue-100">
                     Vectorize images and remove backgrounds with AI-powered precision
                 </p>
                 <div class="flex flex-col sm:flex-row gap-4 justify-center">
-                    <a href="vectorize.html" class="bg-white text-primary-600 px-8 py-3 rounded-lg font-semibold hover:bg-gray-100 transition-colors">
+                    <a href="vectorize.html" class="bg-white text-[#386594] px-8 py-3 rounded-lg font-semibold hover:bg-gray-100 transition-colors">
                         Start Vectorizing
                     </a>
-                    <a href="background-remove.html" class="border-2 border-white text-white px-8 py-3 rounded-lg font-semibold hover:bg-white hover:text-primary-600 transition-colors">
+                    <a href="background-remove.html" class="border-2 border-white text-white px-8 py-3 rounded-lg font-semibold hover:bg-[#E88B4B] hover:border-[#E88B4B] transition-colors">
                         Remove Backgrounds
                     </a>
                 </div>
@@ -76,7 +88,7 @@
     <!-- Features Section -->
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
         <div class="text-center mb-16">
-            <h2 class="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
+            <h2 class="text-3xl md:text-4xl font-bold text-[#386594] mb-4">
                 Powerful Tools for Professional Results
             </h2>
             <p class="text-xl text-gray-600">
@@ -86,74 +98,74 @@
 
         <div class="grid grid-cols-1 md:grid-cols-2 gap-12">
             <!-- Vectorization Feature -->
-            <div class="bg-white rounded-lg shadow-lg p-8">
+            <div class="bg-white rounded-lg shadow-lg p-8 hover:shadow-xl transition-shadow">
                 <div class="text-center mb-6">
-                    <div class="w-16 h-16 bg-primary-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                        <svg class="w-8 h-8 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <div class="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <svg class="w-8 h-8 text-[#386594]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zM21 5a2 2 0 00-2-2h-4a2 2 0 00-2 2v12a4 4 0 004 4h4a2 2 0 002-2V5z"></path>
                         </svg>
                     </div>
-                    <h3 class="text-2xl font-bold text-gray-900 mb-4">AI Vectorization</h3>
+                    <h3 class="text-2xl font-bold text-[#386594] mb-4">AI Vectorization</h3>
                     <p class="text-gray-600 mb-6">
                         Convert raster images to scalable vector graphics with perfect precision. 
                         Maintain quality at any size for professional printing and design work.
                     </p>
                     <ul class="text-left space-y-2 mb-6">
                         <li class="flex items-center">
-                            <span class="text-green-500 mr-2">✓</span>
+                            <span class="text-[#E88B4B] mr-2">✓</span>
                             High-quality SVG output
                         </li>
                         <li class="flex items-center">
-                            <span class="text-green-500 mr-2">✓</span>
+                            <span class="text-[#E88B4B] mr-2">✓</span>
                             Scalable to any size
                         </li>
                         <li class="flex items-center">
-                            <span class="text-green-500 mr-2">✓</span>
+                            <span class="text-[#E88B4B] mr-2">✓</span>
                             Perfect for DTF printing
                         </li>
                         <li class="flex items-center">
-                            <span class="text-green-500 mr-2">✓</span>
+                            <span class="text-[#E88B4B] mr-2">✓</span>
                             Batch processing support
                         </li>
                     </ul>
-                    <a href="vectorize.html" class="inline-block bg-primary-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-primary-700 transition-colors">
+                    <a href="vectorize.html" class="inline-block bg-[#386594] text-white px-6 py-3 rounded-lg font-semibold hover:bg-[#457BB9] transition-colors">
                         Try Vectorization
                     </a>
                 </div>
             </div>
 
             <!-- Background Removal Feature -->
-            <div class="bg-white rounded-lg shadow-lg p-8">
+            <div class="bg-white rounded-lg shadow-lg p-8 hover:shadow-xl transition-shadow">
                 <div class="text-center mb-6">
-                    <div class="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                        <svg class="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <div class="w-16 h-16 bg-orange-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <svg class="w-8 h-8 text-[#E88B4B]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
                         </svg>
                     </div>
-                    <h3 class="text-2xl font-bold text-gray-900 mb-4">Background Removal</h3>
+                    <h3 class="text-2xl font-bold text-[#386594] mb-4">Background Removal</h3>
                     <p class="text-gray-600 mb-6">
                         Remove backgrounds from images with AI precision. 
                         Get clean, professional results perfect for product photography and design.
                     </p>
                     <ul class="text-left space-y-2 mb-6">
                         <li class="flex items-center">
-                            <span class="text-green-500 mr-2">✓</span>
+                            <span class="text-[#E88B4B] mr-2">✓</span>
                             AI-powered detection
                         </li>
                         <li class="flex items-center">
-                            <span class="text-green-500 mr-2">✓</span>
+                            <span class="text-[#E88B4B] mr-2">✓</span>
                             Interactive editor
                         </li>
                         <li class="flex items-center">
-                            <span class="text-green-500 mr-2">✓</span>
+                            <span class="text-[#E88B4B] mr-2">✓</span>
                             High-resolution output
                         </li>
                         <li class="flex items-center">
-                            <span class="text-green-500 mr-2">✓</span>
+                            <span class="text-[#E88B4B] mr-2">✓</span>
                             Batch processing
                         </li>
                     </ul>
-                    <a href="background-remove.html" class="inline-block bg-green-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-green-700 transition-colors">
+                    <a href="background-remove.html" class="inline-block bg-[#E88B4B] text-white px-6 py-3 rounded-lg font-semibold hover:bg-[#d46d2e] transition-colors">
                         Try Background Removal
                     </a>
                 </div>
@@ -165,7 +177,7 @@
     <div class="bg-gray-100 py-16">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="text-center mb-16">
-                <h2 class="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
+                <h2 class="text-3xl md:text-4xl font-bold text-[#386594] mb-4">
                     Simple, Transparent Pricing
                 </h2>
                 <p class="text-xl text-gray-600">
@@ -328,41 +340,41 @@
     </div>
 
     <!-- Footer -->
-    <footer class="bg-gray-900 text-white py-12">
+    <footer class="bg-[#386594] text-white py-12">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="grid grid-cols-1 md:grid-cols-4 gap-8">
                 <div>
-                    <h3 class="text-xl font-bold mb-4">DTF Editor</h3>
-                    <p class="text-gray-400">
+                    <h3 class="text-xl font-bold mb-4 text-white">DTF Editor</h3>
+                    <p class="text-blue-100">
                         Professional image processing tools for designers and businesses.
                     </p>
                 </div>
                 <div>
-                    <h4 class="font-semibold mb-4">Tools</h4>
-                    <ul class="space-y-2 text-gray-400">
-                        <li><a href="vectorize.html" class="hover:text-white transition-colors">Vectorization</a></li>
-                        <li><a href="background-remove.html" class="hover:text-white transition-colors">Background Removal</a></li>
-                        <li><a href="dashboard.html" class="hover:text-white transition-colors">Dashboard</a></li>
+                    <h4 class="font-semibold mb-4 text-white">Tools</h4>
+                    <ul class="space-y-2 text-blue-100">
+                        <li><a href="vectorize.html" class="hover:text-[#E88B4B] transition-colors">Vectorization</a></li>
+                        <li><a href="background-remove.html" class="hover:text-[#E88B4B] transition-colors">Background Removal</a></li>
+                        <li><a href="dashboard.html" class="hover:text-[#E88B4B] transition-colors">Dashboard</a></li>
                     </ul>
                 </div>
                 <div>
-                    <h4 class="font-semibold mb-4">Support</h4>
-                    <ul class="space-y-2 text-gray-400">
-                        <li><a href="#" class="hover:text-white transition-colors">Help Center</a></li>
-                        <li><a href="#" class="hover:text-white transition-colors">Contact Support</a></li>
-                        <li><a href="#" class="hover:text-white transition-colors">API Documentation</a></li>
+                    <h4 class="font-semibold mb-4 text-white">Support</h4>
+                    <ul class="space-y-2 text-blue-100">
+                        <li><a href="#" class="hover:text-[#E88B4B] transition-colors">Help Center</a></li>
+                        <li><a href="#" class="hover:text-[#E88B4B] transition-colors">Contact Support</a></li>
+                        <li><a href="#" class="hover:text-[#E88B4B] transition-colors">API Documentation</a></li>
                     </ul>
                 </div>
                 <div>
-                    <h4 class="font-semibold mb-4">Company</h4>
-                    <ul class="space-y-2 text-gray-400">
-                        <li><a href="#" class="hover:text-white transition-colors">About</a></li>
-                        <li><a href="#" class="hover:text-white transition-colors">Privacy Policy</a></li>
-                        <li><a href="#" class="hover:text-white transition-colors">Terms of Service</a></li>
+                    <h4 class="font-semibold mb-4 text-white">Company</h4>
+                    <ul class="space-y-2 text-blue-100">
+                        <li><a href="#" class="hover:text-[#E88B4B] transition-colors">About</a></li>
+                        <li><a href="#" class="hover:text-[#E88B4B] transition-colors">Privacy Policy</a></li>
+                        <li><a href="#" class="hover:text-[#E88B4B] transition-colors">Terms of Service</a></li>
                     </ul>
                 </div>
             </div>
-            <div class="border-t border-gray-800 mt-8 pt-8 text-center text-gray-400">
+            <div class="border-t border-[#457BB9] mt-8 pt-8 text-center text-blue-100">
                 <p>&copy; 2024 DTF Editor. All rights reserved.</p>
             </div>
         </div>
@@ -385,7 +397,7 @@
                         ${user.is_admin ? '<span class="bg-red-100 text-red-800 text-xs px-2 py-1 rounded-full">Admin</span>' : ''}
                         <button 
                             onclick="logout()" 
-                            class="text-gray-700 hover:text-primary-600 transition-colors px-3 py-2 rounded-md text-sm font-medium"
+                            class="text-gray-700 hover:text-[#E88B4B] transition-colors px-3 py-2 rounded-md text-sm font-medium"
                         >
                             Logout
                         </button>
@@ -394,7 +406,7 @@
             } else {
                 // User is not logged in
                 authContainer.innerHTML = `
-                    <a href="login.html" class="text-gray-700 hover:text-primary-600 transition-colors px-3 py-2 rounded-md text-sm font-medium">
+                    <a href="login.html" class="text-gray-700 hover:text-[#E88B4B] transition-colors px-3 py-2 rounded-md text-sm font-medium">
                         Login
                     </a>
                 `;
