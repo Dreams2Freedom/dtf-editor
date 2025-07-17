@@ -126,7 +126,7 @@ a:hover {
 }
 .btn-hero:hover {
   background: var(--btn-hero-hover-bg);
-  color: var(--btn-hero-hover-text);
+  color: var(--white) !important;
 }
 
 .border-primary-500 {
