@@ -132,7 +132,7 @@ a:hover {
 }
 .btn-hero:hover {
   background: var(--btn-hero-hover-bg);
-  color: var(--white) !important;
+  color: var(--btn-hero-text) !important;
 }
 
 /* Hero Secondary Button */
