@@ -473,3 +473,8 @@ a:focus {
 .paywall-content {
     position: relative;
 }
+
+/* Ensure blue buttons have white text */
+a[href*="dashboard.html"] {
+    color: var(--white) !important;
+}
