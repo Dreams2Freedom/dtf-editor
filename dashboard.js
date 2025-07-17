@@ -178,6 +178,37 @@ class UserDashboard {
         document.getElementById('dashboardSection').classList.remove('hidden');
         
         this.updateUserInfo();
+        this.updateNavigation();
+    }
+
+    updateNavigation() {
+        const authContainer = document.getElementById('authContainer');
+        
+        if (this.currentUser) {
+            // User is logged in
+            authContainer.innerHTML = `
+                <div class="flex items-center space-x-3">
+                    <div class="text-sm">
+                        <p class="text-gray-900 font-medium">${this.currentUser.first_name} ${this.currentUser.last_name}</p>
+                        <p class="text-gray-500">${this.currentUser.email}</p>
+                    </div>
+                    ${this.currentUser.is_admin ? '<span class="bg-red-100 text-red-800 text-xs px-2 py-1 rounded-full">Admin</span>' : ''}
+                    <button 
+                        onclick="userDashboard.logout()" 
+                        class="text-gray-700 hover:text-[#386594] transition-colors px-3 py-2 rounded-md text-sm font-medium"
+                    >
+                        Logout
+                    </button>
+                </div>
+            `;
+        } else {
+            // User is not logged in
+            authContainer.innerHTML = `
+                <a href="login.html" class="text-gray-700 hover:text-[#386594] transition-colors px-3 py-2 rounded-md text-sm font-medium">
+                    Login
+                </a>
+            `;
+        }
     }
 
     updateUserInfo() {
