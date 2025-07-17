@@ -555,6 +555,11 @@ a:hover {
   display: none;
 }
 
+/* Hidden utility class */
+.hidden {
+  display: none !important;
+}
+
 /* Upload Areas */
 .upload-area {
   border: 2px dashed #d1d5db;
