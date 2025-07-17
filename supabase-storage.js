@@ -1,13 +1,24 @@
 const { createClient } = require('@supabase/supabase-js');
 require('dotenv').config();
 
-// Initialize Supabase client
-const supabase = createClient(
-    process.env.SUPABASE_URL,
-    process.env.SUPABASE_SERVICE_ROLE_KEY
-);
-
 const BUCKET_NAME = 'user-images';
+
+// Lazy initialization of Supabase client
+let supabase = null;
+
+function getSupabaseClient() {
+    if (!supabase) {
+        const SUPABASE_URL = process.env.SUPABASE_URL;
+        const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
+        
+        if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
+            throw new Error('Supabase Storage is not configured. Please set SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY environment variables.');
+        }
+        
+        supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+    }
+    return supabase;
+}
 
 class SupabaseStorage {
     /**
@@ -21,6 +32,8 @@ class SupabaseStorage {
      */
     static async uploadFile(userId, filename, fileBuffer, contentType, fileType = 'original') {
         try {
+            const supabase = getSupabaseClient();
+            
             // Create unique filename to avoid conflicts
             const timestamp = Date.now();
             const randomSuffix = Math.round(Math.random() * 1000000);
@@ -64,6 +77,7 @@ class SupabaseStorage {
      * @returns {string} Public URL
      */
     static getPublicUrl(filePath) {
+        const supabase = getSupabaseClient();
         const { data } = supabase
             .storage
             .from(BUCKET_NAME)
@@ -80,6 +94,7 @@ class SupabaseStorage {
      */
     static async createSignedUrl(filePath, expiresIn = 3600) {
         try {
+            const supabase = getSupabaseClient();
             const { data, error } = await supabase
                 .storage
                 .from(BUCKET_NAME)
@@ -104,6 +119,7 @@ class SupabaseStorage {
      */
     static async deleteFile(filePath) {
         try {
+            const supabase = getSupabaseClient();
             console.log(`Deleting file from Supabase: ${filePath}`);
             
             const { error } = await supabase
@@ -132,6 +148,7 @@ class SupabaseStorage {
      */
     static async listUserFiles(userId, folder = '') {
         try {
+            const supabase = getSupabaseClient();
             const path = folder ? `${userId}/${folder}` : `${userId}`;
             
             const { data, error } = await supabase
@@ -158,6 +175,7 @@ class SupabaseStorage {
      */
     static async downloadFile(filePath) {
         try {
+            const supabase = getSupabaseClient();
             const { data, error } = await supabase
                 .storage
                 .from(BUCKET_NAME)
@@ -182,6 +200,7 @@ class SupabaseStorage {
      */
     static async getFileMetadata(filePath) {
         try {
+            const supabase = getSupabaseClient();
             const { data, error } = await supabase
                 .storage
                 .from(BUCKET_NAME)
