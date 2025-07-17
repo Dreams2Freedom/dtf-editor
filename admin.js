@@ -674,6 +674,7 @@ class AdminDashboard {
 
             if (response.ok) {
                 const data = await response.json();
+                console.log('View user API response:', data);
                 this.showUserModal(data.user);
             } else {
                 this.showNotification('Failed to load user details', 'error');
@@ -685,8 +686,13 @@ class AdminDashboard {
     }
 
     showUserModal(userData) {
+        console.log('showUserModal called with:', userData);
         const modal = document.getElementById('userModal');
         const content = document.getElementById('userModalContent');
+
+        // Safely handle the images array
+        const images = userData.images || [];
+        const imagesCount = images.length;
 
         content.innerHTML = `
             <div class="space-y-6">
@@ -735,9 +741,9 @@ class AdminDashboard {
                 </div>
 
                 <div class="space-y-3">
-                    <h4 class="font-semibold text-gray-900">Recent Images (${userData.images.length})</h4>
+                    <h4 class="font-semibold text-gray-900">Recent Images (${imagesCount})</h4>
                     <div class="max-h-40 overflow-y-auto border border-gray-200 rounded-md p-3">
-                        ${userData.images.slice(0, 5).map(img => `
+                        ${images.slice(0, 5).map(img => `
                             <div class="flex justify-between items-center py-2 border-b border-gray-100 last:border-b-0">
                                 <span class="text-sm">${img.original_filename}</span>
                                 <span class="text-xs text-gray-500">${new Date(img.created_at).toLocaleDateString()}</span>
@@ -761,6 +767,7 @@ class AdminDashboard {
 
     async editUser(userId) {
         try {
+            console.log('editUser called with userId:', userId);
             const response = await fetch(`/api/admin/users/${userId}`, {
                 headers: {
                     'Authorization': `Bearer ${this.token}`
@@ -769,8 +776,10 @@ class AdminDashboard {
 
             if (response.ok) {
                 const data = await response.json();
+                console.log('Edit user API response:', data);
                 this.showEditUserModal(data.user);
             } else {
+                console.error('Edit user API failed with status:', response.status);
                 this.showNotification('Failed to load user details for editing', 'error');
             }
         } catch (error) {
@@ -840,8 +849,19 @@ class AdminDashboard {
 
     async toggleUserStatus(userId) {
         try {
-            const user = this.users.find(u => u.id === userId);
+            console.log('toggleUserStatus called with userId:', userId);
+            console.log('Current users:', this.users);
+            
+            const user = this.users.find(u => u.id == userId); // Use == for string/number comparison
+            console.log('Found user:', user);
+            
+            if (!user) {
+                this.showNotification('User not found', 'error');
+                return;
+            }
+            
             const newStatus = !user.is_active;
+            console.log('Toggling status from', user.is_active, 'to', newStatus);
 
             const response = await fetch(`/api/admin/users/${userId}`, {
                 method: 'PUT',
