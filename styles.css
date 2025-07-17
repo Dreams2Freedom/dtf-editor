@@ -487,6 +487,10 @@ a:hover {
   background: linear-gradient(to right, var(--primary-blue), var(--secondary-blue));
 }
 
+.mt-auto {
+  margin-top: auto;
+}
+
 /* Responsive Design */
 @media (min-width: 640px) {
   .hero-buttons {

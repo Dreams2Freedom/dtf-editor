@@ -528,7 +528,7 @@ class UserDashboard {
                         <li><span class="check">✓</span>Background removal</li>
                         <li><span class="check">✓</span>Email support</li>
                     </ul>
-                    <button class="btn-secondary w-full" disabled>
+                    <button class="btn-secondary w-full mt-auto" disabled>
                         Current Plan
                     </button>
                 </div>
@@ -548,7 +548,7 @@ class UserDashboard {
                         <li><span class="check">✓</span>Background removal</li>
                         <li><span class="check">✓</span>Priority support</li>
                     </ul>
-                    <button onclick="userDashboard.subscribe('starter')" class="btn-primary w-full">
+                    <button onclick="userDashboard.subscribe('starter')" class="btn-primary w-full mt-auto">
                         Upgrade to Starter
                     </button>
                 </div>
@@ -566,7 +566,7 @@ class UserDashboard {
                         <li><span class="check">✓</span>API access</li>
                         <li><span class="check">✓</span>Dedicated support</li>
                     </ul>
-                    <button onclick="userDashboard.subscribe('professional')" class="btn-primary w-full">
+                    <button onclick="userDashboard.subscribe('professional')" class="btn-primary w-full mt-auto">
                         Upgrade to Professional
                     </button>
                 </div>
