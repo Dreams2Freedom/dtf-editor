@@ -570,8 +570,3 @@ a:focus {
 .paywall-content {
     position: relative;
 }
-
-/* Ensure blue buttons have white text */
-a[href*="vectorize.html"] {
-    color: var(--white) !important;
-}
