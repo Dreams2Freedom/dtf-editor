@@ -7,50 +7,44 @@
     <link rel="stylesheet" href="styles.css">
     <script src="auth-utils.js"></script>
 </head>
-<body class="bg-gray-50 min-h-screen">
+<body>
     <!-- Navigation -->
-    <nav class="bg-white shadow-lg">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="flex justify-between h-16">
-                <div class="flex items-center">
-                    <h1 class="text-2xl font-bold text-[#386594]">DTF Editor</h1>
-                </div>
-                <div class="flex items-center space-x-4">
-                    <a href="vectorize.html" class="btn-nav">Vectorize</a>
-                    <a href="background-remove.html" class="btn-nav">Background Removal</a>
-                    <a href="dashboard.html" class="btn-nav">Dashboard</a>
-                    <a href="faq.html" class="btn-nav">FAQ</a>
-                    <a href="admin.html" class="btn-nav">Admin</a>
-                    <div id="authContainer">
-                        <!-- Auth buttons will be inserted here by JavaScript -->
-                    </div>
+    <nav class="nav-container">
+        <div class="nav-content">
+            <a href="index.html" class="nav-brand">DTF Editor</a>
+            <div class="nav-links">
+                <a href="vectorize.html" class="btn-nav">Vectorize</a>
+                <a href="background-remove.html" class="btn-nav">Background Removal</a>
+                <a href="dashboard.html" class="btn-nav">Dashboard</a>
+                <a href="faq.html" class="btn-nav">FAQ</a>
+                <a href="admin.html" class="btn-nav">Admin</a>
+                <div id="authContainer">
+                    <!-- Auth buttons will be inserted here by JavaScript -->
                 </div>
             </div>
         </div>
     </nav>
 
     <!-- Hero Section -->
-    <div class="bg-gradient-to-r from-[#386594] to-[#457BB9] text-white">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24">
-            <div class="text-center">
-                <h1 class="text-4xl md:text-6xl font-bold mb-6">
-                    Professional Image Processing
-                </h1>
-                <p class="text-xl md:text-2xl mb-8 text-blue-100">
-                    Vectorize images and remove backgrounds with AI-powered precision
-                </p>
-                <div class="flex flex-col sm:flex-row gap-4 justify-center">
-                    <a href="vectorize.html" class="btn-hero px-8 py-3 rounded-lg font-semibold">Start Vectorizing</a>
-                    <a href="background-remove.html" class="btn-hero-secondary px-8 py-3 rounded-lg font-semibold">Remove Backgrounds</a>
-                </div>
+    <section class="hero-section">
+        <div class="hero-content">
+            <h1 class="hero-title">
+                Professional Image Processing
+            </h1>
+            <p class="hero-subtitle">
+                Vectorize images and remove backgrounds with AI-powered precision
+            </p>
+            <div class="hero-buttons">
+                <a href="vectorize.html" class="btn-hero">Start Vectorizing</a>
+                <a href="background-remove.html" class="btn-hero-secondary">Remove Backgrounds</a>
             </div>
         </div>
-    </div>
+    </section>
 
     <!-- Features Section -->
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+    <section class="container py-16">
         <div class="text-center mb-16">
-            <h2 class="text-3xl md:text-4xl font-bold text-[#386594] mb-4">
+            <h2 class="text-4xl font-bold text-primary mb-4">
                 Powerful Tools for Professional Results
             </h2>
             <p class="text-xl text-gray-600">
@@ -60,82 +54,82 @@
 
         <div class="grid grid-cols-1 md:grid-cols-2 gap-12">
             <!-- Vectorization Feature -->
-            <div class="bg-white rounded-lg shadow-lg p-8 hover:shadow-xl transition-shadow">
+            <div class="card">
                 <div class="text-center mb-6">
                     <div class="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                        <svg class="w-8 h-8 text-[#386594]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg class="w-8 h-8 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zM21 5a2 2 0 00-2-2h-4a2 2 0 00-2 2v12a4 4 0 004 4h4a2 2 0 002-2V5z"></path>
                         </svg>
                     </div>
-                    <h3 class="text-2xl font-bold text-[#386594] mb-4">AI Vectorization</h3>
+                    <h3 class="text-2xl font-bold text-primary mb-4">AI Vectorization</h3>
                     <p class="text-gray-600 mb-6">
                         Convert raster images to scalable vector graphics with perfect precision. 
                         Maintain quality at any size for professional printing and design work.
                     </p>
                     <ul class="text-left space-y-2 mb-6">
                         <li class="flex items-center">
-                            <span class="text-[#E88B4B] mr-2">✓</span>
+                            <span class="text-accent mr-2">✓</span>
                             High-quality SVG output
                         </li>
                         <li class="flex items-center">
-                            <span class="text-[#E88B4B] mr-2">✓</span>
+                            <span class="text-accent mr-2">✓</span>
                             Scalable to any size
                         </li>
                         <li class="flex items-center">
-                            <span class="text-[#E88B4B] mr-2">✓</span>
+                            <span class="text-accent mr-2">✓</span>
                             Perfect for DTF printing
                         </li>
                         <li class="flex items-center">
-                            <span class="text-[#E88B4B] mr-2">✓</span>
+                            <span class="text-accent mr-2">✓</span>
                             Batch processing support
                         </li>
                     </ul>
-                    <a href="vectorize.html" class="btn-tools px-6 py-3 rounded-lg font-semibold">Try Vectorization</a>
+                    <a href="vectorize.html" class="btn-tools">Try Vectorization</a>
                 </div>
             </div>
 
             <!-- Background Removal Feature -->
-            <div class="bg-white rounded-lg shadow-lg p-8 hover:shadow-xl transition-shadow">
+            <div class="card">
                 <div class="text-center mb-6">
                     <div class="w-16 h-16 bg-orange-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                        <svg class="w-8 h-8 text-[#E88B4B]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg class="w-8 h-8 text-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
                         </svg>
                     </div>
-                    <h3 class="text-2xl font-bold text-[#386594] mb-4">Background Removal</h3>
+                    <h3 class="text-2xl font-bold text-primary mb-4">Background Removal</h3>
                     <p class="text-gray-600 mb-6">
                         Remove backgrounds from images with AI precision. 
                         Get clean, professional results perfect for product photography and design.
                     </p>
                     <ul class="text-left space-y-2 mb-6">
                         <li class="flex items-center">
-                            <span class="text-[#E88B4B] mr-2">✓</span>
+                            <span class="text-accent mr-2">✓</span>
                             AI-powered detection
                         </li>
                         <li class="flex items-center">
-                            <span class="text-[#E88B4B] mr-2">✓</span>
+                            <span class="text-accent mr-2">✓</span>
                             Interactive editor
                         </li>
                         <li class="flex items-center">
-                            <span class="text-[#E88B4B] mr-2">✓</span>
+                            <span class="text-accent mr-2">✓</span>
                             High-resolution output
                         </li>
                         <li class="flex items-center">
-                            <span class="text-[#E88B4B] mr-2">✓</span>
+                            <span class="text-accent mr-2">✓</span>
                             Batch processing
                         </li>
                     </ul>
-                    <a href="background-remove.html" class="btn-tools px-6 py-3 rounded-lg font-semibold">Try Background Removal</a>
+                    <a href="background-remove.html" class="btn-tools">Try Background Removal</a>
                 </div>
             </div>
         </div>
-    </div>
+    </section>
 
     <!-- Pricing Section -->
-    <div class="bg-gray-100 py-16">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <section class="bg-gray-100 py-16">
+        <div class="container">
             <div class="text-center mb-16">
-                <h2 class="text-3xl md:text-4xl font-bold text-[#386594] mb-4">
+                <h2 class="text-4xl font-bold text-primary mb-4">
                     Simple, Transparent Pricing
                 </h2>
                 <p class="text-xl text-gray-600">
@@ -145,187 +139,187 @@
 
             <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
                 <!-- Free Plan -->
-                <div class="bg-white rounded-lg shadow-lg p-8 flex flex-col h-full">
-                    <div class="flex-grow">
-                        <h3 class="text-2xl font-bold text-[#386594] mb-4">Free</h3>
-                        <p class="text-4xl font-bold text-[#386594] mb-6">$0<span class="text-lg text-gray-500">/month</span></p>
-                        <ul class="space-y-3 mb-8">
-                            <li class="flex items-center">
-                                <span class="text-[#E88B4B] mr-2">✓</span>
+                <div class="pricing-card">
+                    <div class="pricing-content">
+                        <h3 class="pricing-title">Free</h3>
+                        <p class="pricing-price">$0<span class="period">/month</span></p>
+                        <ul class="pricing-features">
+                            <li>
+                                <span class="check">✓</span>
                                 5 credits per month
                             </li>
-                            <li class="flex items-center">
-                                <span class="text-[#E88B4B] mr-2">✓</span>
+                            <li>
+                                <span class="check">✓</span>
                                 Basic vectorization
                             </li>
-                            <li class="flex items-center">
-                                <span class="text-[#E88B4B] mr-2">✓</span>
+                            <li>
+                                <span class="check">✓</span>
                                 Standard support
                             </li>
                         </ul>
                     </div>
-                    <a href="dashboard.html" class="btn-pricing w-full py-3 px-4 rounded-lg font-semibold text-center block mt-auto">Get Started Free</a>
+                    <a href="dashboard.html" class="btn-pricing">Get Started Free</a>
                 </div>
 
                 <!-- Basic Plan -->
-                <div class="bg-white rounded-lg shadow-lg p-8 border-2 border-[#E88B4B] relative flex flex-col h-full">
-                    <div class="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 flex items-center gap-2 bg-[#E88B4B] text-white px-4 py-1 rounded-full text-sm font-semibold shadow-lg z-10" style="min-width: 110px;">
+                <div class="pricing-card popular">
+                    <div class="pricing-badge">
                         <svg class="w-4 h-4 mr-1 text-yellow-300" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.286 3.967a1 1 0 00.95.69h4.175c.969 0 1.371 1.24.588 1.81l-3.38 2.455a1 1 0 00-.364 1.118l1.287 3.966c.3.922-.755 1.688-1.54 1.118l-3.38-2.454a1 1 0 00-1.175 0l-3.38 2.454c-.784.57-1.838-.196-1.54-1.118l1.287-3.966a1 1 0 00-.364-1.118L2.05 9.394c-.783-.57-.38-1.81.588-1.81h4.175a1 1 0 00.95-.69l1.286-3.967z"/></svg>
                         Popular
                     </div>
-                    <div class="flex-grow mt-6">
-                        <h3 class="text-2xl font-bold text-[#386594] mb-4">Basic</h3>
-                        <p class="text-4xl font-bold text-[#386594] mb-6">$9.99<span class="text-lg text-gray-500">/month</span></p>
-                        <ul class="space-y-3 mb-8">
-                            <li class="flex items-center">
-                                <span class="text-[#E88B4B] mr-2">✓</span>
+                    <div class="pricing-content">
+                        <h3 class="pricing-title">Basic</h3>
+                        <p class="pricing-price">$9.99<span class="period">/month</span></p>
+                        <ul class="pricing-features">
+                            <li>
+                                <span class="check">✓</span>
                                 20 credits per month
                             </li>
-                            <li class="flex items-center">
-                                <span class="text-[#E88B4B] mr-2">✓</span>
+                            <li>
+                                <span class="check">✓</span>
                                 Professional vectorization
                             </li>
-                            <li class="flex items-center">
-                                <span class="text-[#E88B4B] mr-2">✓</span>
+                            <li>
+                                <span class="check">✓</span>
                                 Background removal
                             </li>
-                            <li class="flex items-center">
-                                <span class="text-[#E88B4B] mr-2">✓</span>
+                            <li>
+                                <span class="check">✓</span>
                                 Standard support
                             </li>
                         </ul>
                     </div>
-                    <a href="dashboard.html" class="btn-pricing w-full py-3 px-4 rounded-lg font-semibold text-center block mt-auto">Start Basic Plan</a>
+                    <a href="dashboard.html" class="btn-pricing">Start Basic Plan</a>
                 </div>
 
                 <!-- Starter Plan -->
-                <div class="bg-white rounded-lg shadow-lg p-8 flex flex-col h-full">
-                    <div class="flex-grow">
-                        <h3 class="text-2xl font-bold text-[#386594] mb-4">Starter</h3>
-                        <p class="text-4xl font-bold text-[#386594] mb-6">$24.99<span class="text-lg text-gray-500">/month</span></p>
-                        <ul class="space-y-3 mb-8">
-                            <li class="flex items-center">
-                                <span class="text-[#E88B4B] mr-2">✓</span>
+                <div class="pricing-card">
+                    <div class="pricing-content">
+                        <h3 class="pricing-title">Starter</h3>
+                        <p class="pricing-price">$24.99<span class="period">/month</span></p>
+                        <ul class="pricing-features">
+                            <li>
+                                <span class="check">✓</span>
                                 60 credits per month
                             </li>
-                            <li class="flex items-center">
-                                <span class="text-[#E88B4B] mr-2">✓</span>
+                            <li>
+                                <span class="check">✓</span>
                                 Professional tools
                             </li>
-                            <li class="flex items-center">
-                                <span class="text-[#E88B4B] mr-2">✓</span>
+                            <li>
+                                <span class="check">✓</span>
                                 Priority processing
                             </li>
-                            <li class="flex items-center">
-                                <span class="text-[#E88B4B] mr-2">✓</span>
+                            <li>
+                                <span class="check">✓</span>
                                 Priority support
                             </li>
-                            <li class="flex items-center">
-                                <span class="text-[#E88B4B] mr-2">✓</span>
+                            <li>
+                                <span class="check">✓</span>
                                 Batch processing
                             </li>
                         </ul>
                     </div>
-                    <a href="dashboard.html" class="btn-pricing w-full py-3 px-4 rounded-lg font-semibold text-center block mt-auto">Start Starter Plan</a>
+                    <a href="dashboard.html" class="btn-pricing">Start Starter Plan</a>
                 </div>
             </div>
 
             <!-- Professional Plan (Full Width) -->
             <div class="mt-8">
-                <div class="bg-white rounded-lg shadow-lg p-8 border-2 border-[#386594]">
+                <div class="card border-2 border-primary">
                     <div class="text-center mb-6">
-                        <h3 class="text-3xl font-bold text-[#386594] mb-2">Professional</h3>
-                        <p class="text-5xl font-bold text-[#457BB9] mb-4">$49.99<span class="text-xl text-gray-500">/month</span></p>
+                        <h3 class="text-3xl font-bold text-primary mb-2">Professional</h3>
+                        <p class="text-5xl font-bold text-secondary mb-4">$49.99<span class="text-xl text-gray-500">/month</span></p>
                         <p class="text-lg text-gray-600">Perfect for high-volume users and teams</p>
                     </div>
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
                         <div>
-                            <h4 class="text-xl font-semibold text-[#386594] mb-4">What's Included:</h4>
-                            <ul class="space-y-3">
-                                <li class="flex items-center">
-                                    <span class="text-[#E88B4B] mr-2">✓</span>
+                            <h4 class="text-xl font-semibold text-primary mb-4">What's Included:</h4>
+                            <ul class="pricing-features">
+                                <li>
+                                    <span class="check">✓</span>
                                     120 credits per month
                                 </li>
-                                <li class="flex items-center">
-                                    <span class="text-[#E88B4B] mr-2">✓</span>
+                                <li>
+                                    <span class="check">✓</span>
                                     Advanced features
                                 </li>
-                                <li class="flex items-center">
-                                    <span class="text-[#E88B4B] mr-2">✓</span>
+                                <li>
+                                    <span class="check">✓</span>
                                     Unlimited processing
                                 </li>
-                                <li class="flex items-center">
-                                    <span class="text-[#E88B4B] mr-2">✓</span>
+                                <li>
+                                    <span class="check">✓</span>
                                     API access
                                 </li>
                             </ul>
                         </div>
                         <div>
-                            <h4 class="text-xl font-semibold text-[#386594] mb-4">Additional Benefits:</h4>
-                            <ul class="space-y-3">
-                                <li class="flex items-center">
-                                    <span class="text-[#E88B4B] mr-2">✓</span>
+                            <h4 class="text-xl font-semibold text-primary mb-4">Additional Benefits:</h4>
+                            <ul class="pricing-features">
+                                <li>
+                                    <span class="check">✓</span>
                                     Dedicated support
                                 </li>
-                                <li class="flex items-center">
-                                    <span class="text-[#E88B4B] mr-2">✓</span>
+                                <li>
+                                    <span class="check">✓</span>
                                     Custom integrations
                                 </li>
-                                <li class="flex items-center">
-                                    <span class="text-[#E88B4B] mr-2">✓</span>
+                                <li>
+                                    <span class="check">✓</span>
                                     Team management
                                 </li>
-                                <li class="flex items-center">
-                                    <span class="text-[#E88B4B] mr-2">✓</span>
+                                <li>
+                                    <span class="check">✓</span>
                                     Advanced analytics
                                 </li>
                             </ul>
                         </div>
                     </div>
                     <div class="text-center mt-8">
-                        <a href="dashboard.html" class="btn-pricing inline-block py-3 px-8 rounded-lg font-semibold text-lg mt-8">Start Professional Plan</a>
+                        <a href="dashboard.html" class="btn-pricing inline-block text-lg">Start Professional Plan</a>
                     </div>
                 </div>
             </div>
         </div>
-    </div>
+    </section>
 
     <!-- Footer -->
-    <footer class="bg-[#386594] text-white py-12">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="grid grid-cols-1 md:grid-cols-4 gap-8">
-                <div>
-                    <h3 class="text-xl font-bold mb-4 text-white">DTF Editor</h3>
+    <footer class="footer">
+        <div class="footer-content">
+            <div class="footer-grid">
+                <div class="footer-section">
+                    <h3>DTF Editor</h3>
                     <p class="text-blue-100">
                         Professional image processing tools for designers and businesses.
                     </p>
                 </div>
-                <div>
-                    <h4 class="font-semibold mb-4 text-white">Tools</h4>
-                    <ul class="space-y-2 text-blue-100">
-                        <li><a href="vectorize.html" class="hover:text-[#E88B4B] transition-colors">Vectorization</a></li>
-                        <li><a href="background-remove.html" class="hover:text-[#E88B4B] transition-colors">Background Removal</a></li>
-                        <li><a href="dashboard.html" class="hover:text-[#E88B4B] transition-colors">Dashboard</a></li>
+                <div class="footer-section">
+                    <h4>Tools</h4>
+                    <ul>
+                        <li><a href="vectorize.html">Vectorization</a></li>
+                        <li><a href="background-remove.html">Background Removal</a></li>
+                        <li><a href="dashboard.html">Dashboard</a></li>
                     </ul>
                 </div>
-                <div>
-                    <h4 class="font-semibold mb-4 text-white">Support</h4>
-                    <ul class="space-y-2 text-blue-100">
-                        <li><a href="#" class="hover:text-[#E88B4B] transition-colors">Help Center</a></li>
-                        <li><a href="#" class="hover:text-[#E88B4B] transition-colors">Contact Support</a></li>
-                        <li><a href="#" class="hover:text-[#E88B4B] transition-colors">API Documentation</a></li>
+                <div class="footer-section">
+                    <h4>Support</h4>
+                    <ul>
+                        <li><a href="#">Help Center</a></li>
+                        <li><a href="#">Contact Support</a></li>
+                        <li><a href="#">API Documentation</a></li>
                     </ul>
                 </div>
-                <div>
-                    <h4 class="font-semibold mb-4 text-white">Company</h4>
-                    <ul class="space-y-2 text-blue-100">
-                        <li><a href="#" class="hover:text-[#E88B4B] transition-colors">About</a></li>
-                        <li><a href="#" class="hover:text-[#E88B4B] transition-colors">Privacy Policy</a></li>
-                        <li><a href="#" class="hover:text-[#E88B4B] transition-colors">Terms of Service</a></li>
+                <div class="footer-section">
+                    <h4>Company</h4>
+                    <ul>
+                        <li><a href="#">About</a></li>
+                        <li><a href="#">Privacy Policy</a></li>
+                        <li><a href="#">Terms of Service</a></li>
                     </ul>
                 </div>
             </div>
-            <div class="border-t border-[#457BB9] mt-8 pt-8 text-center text-blue-100">
+            <div class="footer-bottom">
                 <p>&copy; 2024 DTF Editor. All rights reserved.</p>
             </div>
         </div>
@@ -348,7 +342,7 @@
                         ${user.is_admin ? '<span class="bg-red-100 text-red-800 text-xs px-2 py-1 rounded-full">Admin</span>' : ''}
                         <button 
                             onclick="logout()" 
-                            class="text-gray-700 hover:text-[#E88B4B] transition-colors px-3 py-2 rounded-md text-sm font-medium"
+                            class="btn-nav"
                         >
                             Logout
                         </button>
@@ -357,7 +351,7 @@
             } else {
                 // User is not logged in
                 authContainer.innerHTML = `
-                    <a href="login.html" class="text-gray-700 hover:text-[#E88B4B] transition-colors px-3 py-2 rounded-md text-sm font-medium">
+                    <a href="login.html" class="btn-nav">
                         Login
                     </a>
                 `;

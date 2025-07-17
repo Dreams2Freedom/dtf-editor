@@ -7,36 +7,32 @@
     <link rel="stylesheet" href="styles.css">
     <script src="auth-utils.js"></script>
 </head>
-<body class="bg-gray-50 min-h-screen">
+<body>
     <!-- Navigation -->
-    <nav class="bg-white shadow-lg">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="flex justify-between h-16">
-                <div class="flex items-center">
-                    <h1 class="text-2xl font-bold text-[#386594]">DTF Editor Admin</h1>
-                </div>
-                <div class="flex items-center space-x-4">
-                    <div id="authContainer">
-                        <!-- Auth buttons will be inserted here by JavaScript -->
-                    </div>
+    <nav class="nav-container">
+        <div class="nav-content">
+            <h1 class="nav-brand">DTF Editor Admin</h1>
+            <div class="nav-links">
+                <div id="authContainer">
+                    <!-- Auth buttons will be inserted here by JavaScript -->
                 </div>
             </div>
         </div>
     </nav>
 
     <!-- Main Content -->
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div class="container py-8">
         <!-- Login Section -->
-        <div id="loginSection" class="bg-white rounded-lg shadow-lg p-8 max-w-md mx-auto">
-            <h2 class="text-2xl font-bold text-[#386594] mb-6 text-center">Admin Login</h2>
+        <div id="loginSection" class="card max-w-md mx-auto">
+            <h2 class="text-2xl font-bold text-primary mb-6 text-center">Admin Login</h2>
             <form id="loginForm">
                 <div class="mb-4">
-                    <label for="email" class="block text-sm font-medium text-[#386594] mb-2">Email</label>
-                    <input type="email" id="email" name="email" required class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#E88B4B]">
+                    <label for="email" class="form-label">Email</label>
+                    <input type="email" id="email" name="email" required class="form-input">
                 </div>
                 <div class="mb-6">
-                    <label for="password" class="block text-sm font-medium text-[#386594] mb-2">Password</label>
-                    <input type="password" id="password" name="password" required class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#E88B4B]">
+                    <label for="password" class="form-label">Password</label>
+                    <input type="password" id="password" name="password" required class="form-input">
                 </div>
                 <button type="submit" class="btn-primary w-full">Login</button>
             </form>
@@ -45,66 +41,74 @@
         <!-- Dashboard Section -->
         <div id="dashboardSection" class="hidden">
             <!-- Stats Cards -->
-            <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-                <div class="bg-white rounded-lg shadow p-6 hover:shadow-lg transition-shadow">
-                    <h3 class="text-lg font-semibold text-[#386594] mb-2">Total Users</h3>
-                    <p id="totalUsers" class="text-3xl font-bold text-[#386594]">-</p>
+            <div class="stats-grid mb-8">
+                <div class="stats-card">
+                    <h3 class="stats-title">Total Users</h3>
+                    <p id="totalUsers" class="stats-value">-</p>
                 </div>
-                <div class="bg-white rounded-lg shadow p-6 hover:shadow-lg transition-shadow">
-                    <h3 class="text-lg font-semibold text-[#386594] mb-2">Active Subscribers</h3>
-                    <p id="activeSubscribers" class="text-3xl font-bold text-[#E88B4B]">-</p>
+                <div class="stats-card">
+                    <h3 class="stats-title">Active Subscribers</h3>
+                    <p id="activeSubscribers" class="stats-value accent">-</p>
                 </div>
-                <div class="bg-white rounded-lg shadow p-6 hover:shadow-lg transition-shadow">
-                    <h3 class="text-lg font-semibold text-[#386594] mb-2">Monthly Revenue</h3>
-                    <p id="monthlyRevenue" class="text-3xl font-bold text-[#457BB9]">-</p>
+                <div class="stats-card">
+                    <h3 class="stats-title">Monthly Revenue</h3>
+                    <p id="monthlyRevenue" class="stats-value secondary">-</p>
                 </div>
-                <div class="bg-white rounded-lg shadow p-6 hover:shadow-lg transition-shadow">
-                    <h3 class="text-lg font-semibold text-[#386594] mb-2">Total Images</h3>
-                    <p id="totalImages" class="text-3xl font-bold text-[#E88B4B]">-</p>
+                <div class="stats-card">
+                    <h3 class="stats-title">Total Images</h3>
+                    <p id="totalImages" class="stats-value accent">-</p>
                 </div>
             </div>
 
             <!-- Tabs -->
-            <div class="bg-white rounded-lg shadow-lg">
-                <div class="border-b border-gray-200">
-                    <nav class="-mb-px flex space-x-8 px-6">
-                        <button class="tab-btn active py-4 px-1 border-b-2 border-[#E88B4B] text-[#E88B4B] font-medium" data-tab="users">
-                            Users
-                        </button>
-                        <button class="tab-btn py-4 px-1 border-b-2 border-transparent text-gray-500 hover:text-[#386594] hover:border-gray-300 font-medium" data-tab="analytics">
-                            Analytics
-                        </button>
-                        <button class="tab-btn py-4 px-1 border-b-2 border-transparent text-gray-500 hover:text-[#386594] hover:border-gray-300 font-medium" data-tab="costs">
-                            API Costs
-                        </button>
-                        <button class="tab-btn py-4 px-1 border-b-2 border-transparent text-gray-500 hover:text-[#386594] hover:border-gray-300 font-medium" data-tab="logs">
-                            Admin Logs
-                        </button>
+            <div class="card">
+                <div class="tab-nav">
+                    <nav class="tab-nav-list">
+                        <div class="tab-nav-item">
+                            <button class="tab-nav-button active" data-tab="users">
+                                Users
+                            </button>
+                        </div>
+                        <div class="tab-nav-item">
+                            <button class="tab-nav-button" data-tab="analytics">
+                                Analytics
+                            </button>
+                        </div>
+                        <div class="tab-nav-item">
+                            <button class="tab-nav-button" data-tab="costs">
+                                API Costs
+                            </button>
+                        </div>
+                        <div class="tab-nav-item">
+                            <button class="tab-nav-button" data-tab="logs">
+                                Admin Logs
+                            </button>
+                        </div>
                     </nav>
                 </div>
 
                 <!-- Users Tab -->
-                <div id="usersTab" class="tab-content p-6">
+                <div id="usersTab" class="tab-content">
                     <div class="flex justify-between items-center mb-6">
-                        <h3 class="text-lg font-semibold text-[#386594]">User Management</h3>
+                        <h3 class="text-lg font-semibold text-primary">User Management</h3>
                         <div class="flex space-x-2">
-                            <input type="text" id="userSearch" placeholder="Search users..." class="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#E88B4B]">
-                            <button id="refreshUsers" class="btn-primary px-4 py-2 rounded-md">Refresh</button>
+                            <input type="text" id="userSearch" placeholder="Search users..." class="form-input">
+                            <button id="refreshUsers" class="btn-primary">Refresh</button>
                         </div>
                     </div>
-                    <div class="overflow-x-auto">
-                        <table class="min-w-full divide-y divide-gray-200">
-                            <thead class="bg-gray-50">
+                    <div class="table-container">
+                        <table class="table">
+                            <thead>
                                 <tr>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">User</th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Subscription</th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Credits</th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Images</th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                                    <th>User</th>
+                                    <th>Subscription</th>
+                                    <th>Credits</th>
+                                    <th>Images</th>
+                                    <th>Status</th>
+                                    <th>Actions</th>
                                 </tr>
                             </thead>
-                            <tbody id="usersTableBody" class="bg-white divide-y divide-gray-200">
+                            <tbody id="usersTableBody">
                                 <!-- Users will be populated here -->
                             </tbody>
                         </table>
@@ -112,17 +116,17 @@
                 </div>
 
                 <!-- Analytics Tab -->
-                <div id="analyticsTab" class="tab-content p-6 hidden">
-                    <h3 class="text-lg font-semibold text-[#386594] mb-6">Analytics Dashboard</h3>
+                <div id="analyticsTab" class="tab-content hidden">
+                    <h3 class="text-lg font-semibold text-primary mb-6">Analytics Dashboard</h3>
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div class="bg-gray-50 rounded-lg p-6">
-                            <h4 class="text-lg font-medium text-[#386594] mb-4">Subscription Overview</h4>
+                            <h4 class="text-lg font-medium text-primary mb-4">Subscription Overview</h4>
                             <div id="subscriptionStats" class="space-y-3">
                                 <!-- Subscription stats will be populated here -->
                             </div>
                         </div>
                         <div class="bg-gray-50 rounded-lg p-6">
-                            <h4 class="text-lg font-medium text-[#386594] mb-4">Revenue Metrics</h4>
+                            <h4 class="text-lg font-medium text-primary mb-4">Revenue Metrics</h4>
                             <div id="revenueStats" class="space-y-3">
                                 <!-- Revenue stats will be populated here -->
                             </div>
@@ -131,32 +135,32 @@
                 </div>
 
                 <!-- Costs Tab -->
-                <div id="costsTab" class="tab-content p-6 hidden">
+                <div id="costsTab" class="tab-content hidden">
                     <div class="flex justify-between items-center mb-6">
-                        <h3 class="text-lg font-semibold text-[#386594]">API Cost Analytics</h3>
+                        <h3 class="text-lg font-semibold text-primary">API Cost Analytics</h3>
                         <div class="flex space-x-2">
-                            <select id="costPeriod" class="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#E88B4B]">
+                            <select id="costPeriod" class="form-input">
                                 <option value="7d">Last 7 Days</option>
                                 <option value="30d" selected>Last 30 Days</option>
                                 <option value="90d">Last 90 Days</option>
                                 <option value="1y">Last Year</option>
                             </select>
-                            <select id="costService" class="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#E88B4B]">
+                            <select id="costService" class="form-input">
                                 <option value="">All Services</option>
                                 <option value="vectorizer">Vectorizer.ai</option>
                                 <option value="clipping_magic">Clipping Magic</option>
                             </select>
-                            <button id="refreshCosts" class="btn-primary px-4 py-2 rounded-md">Refresh</button>
+                            <button id="refreshCosts" class="btn-primary">Refresh</button>
                         </div>
                     </div>
                     
                     <!-- Pricing Reference -->
                     <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
-                        <h4 class="text-sm font-semibold text-[#386594] mb-2">Current API Pricing:</h4>
+                        <h4 class="text-sm font-semibold text-primary mb-2">Current API Pricing:</h4>
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
                             <div>
-                                <h5 class="font-medium text-[#386594]">Vectorizer.ai ($0.20/credit):</h5>
-                                <ul class="text-[#457BB9] space-y-1">
+                                <h5 class="font-medium text-primary">Vectorizer.ai ($0.20/credit):</h5>
+                                <ul class="text-secondary space-y-1">
                                     <li>• Test/Test Preview: Free</li>
                                     <li>• Preview: $0.04 (0.2 credits)</li>
                                     <li>• Vectorize: $0.20 (1.0 credits)</li>
@@ -165,8 +169,8 @@
                                 </ul>
                             </div>
                             <div>
-                                <h5 class="font-medium text-[#386594]">Clipping Magic ($0.125/credit):</h5>
-                                <ul class="text-[#457BB9] space-y-1">
+                                <h5 class="font-medium text-primary">Clipping Magic ($0.125/credit):</h5>
+                                <ul class="text-secondary space-y-1">
                                     <li>• Image Upload: $0.125 (1 credit per image)</li>
                                     <li>• Re-editing: Free (no additional cost)</li>
                                     <li>• Multiple Downloads: Free (no additional cost)</li>
@@ -177,81 +181,68 @@
                     </div>
                     
                     <!-- Cost Summary Cards -->
-                    <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-                        <div class="bg-white rounded-lg shadow p-6">
-                            <h4 class="text-lg font-semibold text-gray-900 mb-2">Total API Costs</h4>
-                            <p id="totalApiCosts" class="text-3xl font-bold text-red-600">$0.00</p>
+                    <div class="stats-grid mb-8">
+                        <div class="stats-card">
+                            <h4 class="stats-title">Total API Costs</h4>
+                            <p id="totalApiCosts" class="stats-value text-red-600">$0.00</p>
                         </div>
-                        <div class="bg-white rounded-lg shadow p-6">
-                            <h4 class="text-lg font-semibold text-gray-900 mb-2">Vectorizer.ai Costs</h4>
-                            <p id="vectorizerCosts" class="text-3xl font-bold text-blue-600">$0.00</p>
+                        <div class="stats-card">
+                            <h4 class="stats-title">Vectorizer.ai Costs</h4>
+                            <p id="vectorizerCosts" class="stats-value text-blue-600">$0.00</p>
                         </div>
-                        <div class="bg-white rounded-lg shadow p-6">
-                            <h4 class="text-lg font-semibold text-gray-900 mb-2">Clipping Magic Costs</h4>
-                            <p id="clippingMagicCosts" class="text-3xl font-bold text-green-600">$0.00</p>
+                        <div class="stats-card">
+                            <h4 class="stats-title">Clipping Magic Costs</h4>
+                            <p id="clippingMagicCosts" class="stats-value text-green-600">$0.00</p>
                         </div>
-                        <div class="bg-white rounded-lg shadow p-6">
-                            <h4 class="text-lg font-semibold text-gray-900 mb-2">Profit Margin</h4>
-                            <p id="profitMargin" class="text-3xl font-bold text-purple-600">0%</p>
+                        <div class="stats-card">
+                            <h4 class="stats-title">Profit Margin</h4>
+                            <p id="profitMargin" class="stats-value text-purple-600">0%</p>
                         </div>
                     </div>
 
                     <!-- Cost vs Revenue Chart -->
-                    <div class="bg-white rounded-lg shadow p-6 mb-8">
-                        <h4 class="text-lg font-semibold text-gray-900 mb-4">Cost vs Revenue Comparison</h4>
-                        <div id="costRevenueChart" class="h-64 bg-gray-50 rounded flex items-center justify-center">
-                            <p class="text-gray-500">Chart will be displayed here</p>
+                    <div class="card mb-8">
+                        <h4 class="text-lg font-semibold text-primary mb-4">Cost vs Revenue Analysis</h4>
+                        <div id="costRevenueChart" class="h-64">
+                            <!-- Chart will be populated here -->
                         </div>
                     </div>
 
-                    <!-- Cost Breakdown by Service -->
-                    <div class="bg-white rounded-lg shadow p-6 mb-8">
-                        <h4 class="text-lg font-semibold text-gray-900 mb-4">Cost Breakdown by Service</h4>
-                        <div class="overflow-x-auto">
-                            <table class="min-w-full divide-y divide-gray-200">
-                                <thead class="bg-gray-50">
-                                    <tr>
-                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Service</th>
-                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total Cost</th>
-                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Requests</th>
-                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Success Rate</th>
-                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Avg Response Time</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="costsTableBody" class="bg-white divide-y divide-gray-200">
-                                    <!-- Cost data will be populated here -->
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-
-                    <!-- Daily Cost Trend -->
-                    <div class="bg-white rounded-lg shadow p-6">
-                        <h4 class="text-lg font-semibold text-gray-900 mb-4">Daily Cost Trend</h4>
-                        <div id="dailyCostChart" class="h-64 bg-gray-50 rounded flex items-center justify-center">
-                            <p class="text-gray-500">Daily trend chart will be displayed here</p>
+                    <!-- Daily Cost Trends -->
+                    <div class="card">
+                        <h4 class="text-lg font-semibold text-primary mb-4">Daily Cost Trends</h4>
+                        <div id="dailyCostChart" class="h-64">
+                            <!-- Chart will be populated here -->
                         </div>
                     </div>
                 </div>
 
                 <!-- Logs Tab -->
-                <div id="logsTab" class="tab-content p-6 hidden">
+                <div id="logsTab" class="tab-content hidden">
                     <div class="flex justify-between items-center mb-6">
-                        <h3 class="text-lg font-semibold text-gray-900">Admin Activity Logs</h3>
-                        <button id="refreshLogs" class="btn-primary px-4 py-2 rounded-md">Refresh</button>
+                        <h3 class="text-lg font-semibold text-primary">Admin Activity Logs</h3>
+                        <div class="flex space-x-2">
+                            <select id="logLevel" class="form-input">
+                                <option value="">All Levels</option>
+                                <option value="info">Info</option>
+                                <option value="warning">Warning</option>
+                                <option value="error">Error</option>
+                            </select>
+                            <button id="refreshLogs" class="btn-primary">Refresh</button>
+                        </div>
                     </div>
-                    <div class="overflow-x-auto">
-                        <table class="min-w-full divide-y divide-gray-200">
-                            <thead class="bg-gray-50">
+                    <div class="table-container">
+                        <table class="table">
+                            <thead>
                                 <tr>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Admin</th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-xs font-medium text-gray-500 uppercase tracking-wider">Action</th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Target</th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Details</th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+                                    <th>Timestamp</th>
+                                    <th>Level</th>
+                                    <th>Action</th>
+                                    <th>User</th>
+                                    <th>Details</th>
                                 </tr>
                             </thead>
-                            <tbody id="logsTableBody" class="bg-white divide-y divide-gray-200">
+                            <tbody id="logsTableBody">
                                 <!-- Logs will be populated here -->
                             </tbody>
                         </table>
@@ -262,16 +253,68 @@
     </div>
 
     <!-- User Details Modal -->
-    <div id="userModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full hidden">
-        <div class="relative top-20 mx-auto p-6 border w-11/12 md:w-3/4 lg:w-1/2 shadow-lg rounded-md bg-white">
-            <div class="space-y-4">
-                <div id="userModalContent">
-                    <!-- User details will be populated here -->
-                </div>
-                <div class="flex justify-end space-x-3 pt-4 border-t border-gray-200">
-                    <button id="closeUserModal" class="btn-secondary px-4 py-2 rounded-md">Close</button>
-                </div>
+    <div id="userModal" class="modal-overlay hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">User Details</h3>
+                <button class="modal-close" id="closeUserModal">&times;</button>
             </div>
+            <div id="userModalContent">
+                <!-- User details will be populated here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit User Modal -->
+    <div id="editUserModal" class="modal-overlay hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">Edit User</h3>
+                <button class="modal-close" id="closeEditModal">&times;</button>
+            </div>
+            <form id="editUserForm">
+                <div class="space-y-4">
+                    <div>
+                        <label for="editFirstName" class="form-label">First Name</label>
+                        <input type="text" id="editFirstName" name="first_name" class="form-input" required>
+                    </div>
+                    <div>
+                        <label for="editLastName" class="form-label">Last Name</label>
+                        <input type="text" id="editLastName" name="last_name" class="form-input" required>
+                    </div>
+                    <div>
+                        <label for="editEmail" class="form-label">Email</label>
+                        <input type="email" id="editEmail" name="email" class="form-input" required>
+                    </div>
+                    <div>
+                        <label for="editCompany" class="form-label">Company</label>
+                        <input type="text" id="editCompany" name="company" class="form-input">
+                    </div>
+                    <div>
+                        <label for="editCredits" class="form-label">Credits</label>
+                        <input type="number" id="editCredits" name="credits" class="form-input" min="0" required>
+                    </div>
+                    <div>
+                        <label for="editSubscription" class="form-label">Subscription Plan</label>
+                        <select id="editSubscription" name="subscription_plan_id" class="form-input">
+                            <option value="">No Subscription</option>
+                            <!-- Subscription options will be populated here -->
+                        </select>
+                    </div>
+                    <div>
+                        <label for="editStatus" class="form-label">Status</label>
+                        <select id="editStatus" name="status" class="form-input">
+                            <option value="active">Active</option>
+                            <option value="suspended">Suspended</option>
+                            <option value="deleted">Deleted</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="flex justify-end space-x-3 mt-6">
+                    <button type="button" id="cancelEdit" class="btn-secondary">Cancel</button>
+                    <button type="submit" class="btn-primary">Save Changes</button>
+                </div>
+            </form>
         </div>
     </div>
 

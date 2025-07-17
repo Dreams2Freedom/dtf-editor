@@ -7,40 +7,38 @@
     <link rel="stylesheet" href="styles.css">
     <script src="auth-utils.js"></script>
 </head>
-<body class="bg-gray-50 min-h-screen">
+<body>
     <!-- Navigation -->
-    <nav class="bg-white shadow-lg">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="flex justify-between h-16">
-                <div class="flex items-center">
-                    <a href="index.html" class="text-2xl font-bold text-[#386594]">DTF Editor</a>
-                    <span class="ml-4 text-gray-500">/ Dashboard</span>
-                </div>
-                <div class="flex items-center space-x-4">
-                    <a href="vectorize.html" class="btn-nav">Vectorize</a>
-                    <a href="background-remove.html" class="btn-nav">Background Removal</a>
-                    <a href="faq.html" class="btn-nav">FAQ</a>
-                    <div id="authContainer">
-                        <!-- Auth buttons will be inserted here by JavaScript -->
-                    </div>
+    <nav class="nav-container">
+        <div class="nav-content">
+            <div class="flex items-center">
+                <a href="index.html" class="nav-brand">DTF Editor</a>
+                <span class="ml-4 text-gray-500">/ Dashboard</span>
+            </div>
+            <div class="nav-links">
+                <a href="vectorize.html" class="btn-nav">Vectorize</a>
+                <a href="background-remove.html" class="btn-nav">Background Removal</a>
+                <a href="faq.html" class="btn-nav">FAQ</a>
+                <div id="authContainer">
+                    <!-- Auth buttons will be inserted here by JavaScript -->
                 </div>
             </div>
         </div>
     </nav>
 
     <!-- Main Content -->
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div class="container py-8">
         <!-- Login Section -->
-        <div id="loginSection" class="bg-white rounded-lg shadow-lg p-8 max-w-md mx-auto">
-            <h2 class="text-2xl font-bold text-[#386594] mb-6 text-center">User Login</h2>
+        <div id="loginSection" class="card max-w-md mx-auto">
+            <h2 class="text-2xl font-bold text-primary mb-6 text-center">User Login</h2>
             <form id="loginForm">
                 <div class="mb-4">
-                    <label for="email" class="block text-sm font-medium text-[#386594] mb-2">Email</label>
-                    <input type="email" id="email" name="email" required class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#E88B4B]">
+                    <label for="email" class="form-label">Email</label>
+                    <input type="email" id="email" name="email" required class="form-input">
                 </div>
                 <div class="mb-6">
-                    <label for="password" class="block text-sm font-medium text-[#386594] mb-2">Password</label>
-                    <input type="password" id="password" name="password" required class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#E88B4B]">
+                    <label for="password" class="form-label">Password</label>
+                    <input type="password" id="password" name="password" required class="form-input">
                 </div>
                 <button type="submit" class="btn-primary w-full">Login</button>
             </form>
@@ -51,28 +49,28 @@
         </div>
 
         <!-- Register Section -->
-        <div id="registerSection" class="bg-white rounded-lg shadow-lg p-8 max-w-md mx-auto hidden">
-            <h2 class="text-2xl font-bold text-[#386594] mb-6 text-center">Create Account</h2>
+        <div id="registerSection" class="card max-w-md mx-auto hidden">
+            <h2 class="text-2xl font-bold text-primary mb-6 text-center">Create Account</h2>
             <form id="registerForm">
                 <div class="mb-4">
-                    <label for="regEmail" class="block text-sm font-medium text-[#386594] mb-2">Email</label>
-                    <input type="email" id="regEmail" name="email" required class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#E88B4B]">
+                    <label for="regEmail" class="form-label">Email</label>
+                    <input type="email" id="regEmail" name="email" required class="form-input">
                 </div>
                 <div class="mb-4">
-                    <label for="regFirstName" class="block text-sm font-medium text-[#386594] mb-2">First Name</label>
-                    <input type="text" id="regFirstName" name="first_name" required class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#E88B4B]">
+                    <label for="regFirstName" class="form-label">First Name</label>
+                    <input type="text" id="regFirstName" name="first_name" required class="form-input">
                 </div>
                 <div class="mb-4">
-                    <label for="regLastName" class="block text-sm font-medium text-[#386594] mb-2">Last Name</label>
-                    <input type="text" id="regLastName" name="last_name" required class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#E88B4B]">
+                    <label for="regLastName" class="form-label">Last Name</label>
+                    <input type="text" id="regLastName" name="last_name" required class="form-input">
                 </div>
                 <div class="mb-4">
-                    <label for="regCompany" class="block text-sm font-medium text-[#386594] mb-2">Company (Optional)</label>
-                    <input type="text" id="regCompany" name="company" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#E88B4B]">
+                    <label for="regCompany" class="form-label">Company (Optional)</label>
+                    <input type="text" id="regCompany" name="company" class="form-input">
                 </div>
                 <div class="mb-6">
-                    <label for="regPassword" class="block text-sm font-medium text-[#386594] mb-2">Password</label>
-                    <input type="password" id="regPassword" name="password" required class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#E88B4B]">
+                    <label for="regPassword" class="form-label">Password</label>
+                    <input type="password" id="regPassword" name="password" required class="form-input">
                 </div>
                 <button type="submit" class="btn-primary w-full">Create Account</button>
             </form>
@@ -85,53 +83,61 @@
         <!-- Dashboard Section -->
         <div id="dashboardSection" class="hidden">
             <!-- Welcome Section -->
-            <div class="bg-white rounded-lg shadow-lg p-8 mb-8">
-                <h1 class="text-3xl font-bold text-[#386594] mb-4">Welcome back, <span id="userName">User</span>!</h1>
+            <div class="card mb-8">
+                <h1 class="text-3xl font-bold text-primary mb-4">Welcome back, <span id="userName">User</span>!</h1>
                 <p class="text-gray-600">Manage your account, view your images, and track your usage.</p>
             </div>
 
             <!-- Stats Cards -->
-            <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-                <div class="bg-white rounded-lg shadow p-6 hover:shadow-lg transition-shadow">
-                    <h3 class="text-lg font-semibold text-[#386594] mb-2">Credits Remaining</h3>
-                    <p id="creditsRemaining" class="text-3xl font-bold text-[#386594]">-</p>
+            <div class="stats-grid mb-8">
+                <div class="stats-card">
+                    <h3 class="stats-title">Credits Remaining</h3>
+                    <p id="creditsRemaining" class="stats-value">-</p>
                 </div>
-                <div class="bg-white rounded-lg shadow p-6 hover:shadow-lg transition-shadow">
-                    <h3 class="text-lg font-semibold text-[#386594] mb-2">Credits Used</h3>
-                    <p id="creditsUsed" class="text-3xl font-bold text-[#E88B4B]">-</p>
+                <div class="stats-card">
+                    <h3 class="stats-title">Credits Used</h3>
+                    <p id="creditsUsed" class="stats-value accent">-</p>
                 </div>
-                <div class="bg-white rounded-lg shadow p-6 hover:shadow-lg transition-shadow">
-                    <h3 class="text-lg font-semibold text-[#386594] mb-2">Images Generated</h3>
-                    <p id="imagesGenerated" class="text-3xl font-bold text-[#457BB9]">-</p>
+                <div class="stats-card">
+                    <h3 class="stats-title">Images Generated</h3>
+                    <p id="imagesGenerated" class="stats-value secondary">-</p>
                 </div>
-                <div class="bg-white rounded-lg shadow p-6 hover:shadow-lg transition-shadow">
-                    <h3 class="text-lg font-semibold text-[#386594] mb-2">Subscription</h3>
-                    <p id="subscriptionStatus" class="text-3xl font-bold text-[#E88B4B]">-</p>
+                <div class="stats-card">
+                    <h3 class="stats-title">Subscription</h3>
+                    <p id="subscriptionStatus" class="stats-value accent">-</p>
                 </div>
             </div>
 
             <!-- Tabs -->
-            <div class="bg-white rounded-lg shadow-lg">
-                <div class="border-b border-gray-200">
-                    <nav class="-mb-px flex space-x-8 px-6">
-                        <button class="tab-btn active py-4 px-1 border-b-2 border-[#E88B4B] text-[#E88B4B] font-medium" data-tab="profile">
-                            Profile
-                        </button>
-                        <button class="tab-btn py-4 px-1 border-b-2 border-transparent text-gray-500 hover:text-[#386594] hover:border-gray-300 font-medium" data-tab="images">
-                            My Images
-                        </button>
-                        <button class="tab-btn py-4 px-1 border-b-2 border-transparent text-gray-500 hover:text-[#386594] hover:border-gray-300 font-medium" data-tab="subscription">
-                            Subscription
-                        </button>
-                        <button class="tab-btn py-4 px-1 border-b-2 border-transparent text-gray-500 hover:text-[#386594] hover:border-gray-300 font-medium" data-tab="usage">
-                            Usage History
-                        </button>
+            <div class="card">
+                <div class="tab-nav">
+                    <nav class="tab-nav-list">
+                        <div class="tab-nav-item">
+                            <button class="tab-nav-button active" data-tab="profile">
+                                Profile
+                            </button>
+                        </div>
+                        <div class="tab-nav-item">
+                            <button class="tab-nav-button" data-tab="images">
+                                My Images
+                            </button>
+                        </div>
+                        <div class="tab-nav-item">
+                            <button class="tab-nav-button" data-tab="subscription">
+                                Subscription
+                            </button>
+                        </div>
+                        <div class="tab-nav-item">
+                            <button class="tab-nav-button" data-tab="usage">
+                                Usage History
+                            </button>
+                        </div>
                     </nav>
                 </div>
 
                 <!-- Profile Tab -->
-                <div id="profileTab" class="tab-content p-6">
-                    <h3 class="text-lg font-semibold text-[#386594] mb-6">Profile Information</h3>
+                <div id="profileTab" class="tab-content">
+                    <h3 class="text-lg font-semibold text-primary mb-6">Profile Information</h3>
                     <div class="flex items-center mb-8">
                         <div class="flex-shrink-0 h-16 w-16">
                             <div id="profileAvatar" class="h-16 w-16 rounded-full bg-gray-300 flex items-center justify-center">
@@ -142,58 +148,58 @@
                             <form id="profileForm" class="max-w-2xl">
                                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                                     <div>
-                                        <label for="profileFirstName" class="block text-sm font-medium text-[#386594] mb-2">First Name</label>
-                                        <input type="text" id="profileFirstName" name="first_name" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#E88B4B]">
+                                        <label for="profileFirstName" class="form-label">First Name</label>
+                                        <input type="text" id="profileFirstName" name="first_name" class="form-input">
                                     </div>
                                     <div>
-                                        <label for="profileLastName" class="block text-sm font-medium text-[#386594] mb-2">Last Name</label>
-                                        <input type="text" id="profileLastName" name="last_name" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#E88B4B]">
+                                        <label for="profileLastName" class="form-label">Last Name</label>
+                                        <input type="text" id="profileLastName" name="last_name" class="form-input">
                                     </div>
                                     <div>
-                                        <label for="profileEmail" class="block text-sm font-medium text-[#386594] mb-2">Email</label>
-                                        <input type="email" id="profileEmail" name="email" readonly class="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50">
+                                        <label for="profileEmail" class="form-label">Email</label>
+                                        <input type="email" id="profileEmail" name="email" readonly class="form-input bg-gray-50">
                                     </div>
                                     <div>
-                                        <label for="profileCompany" class="block text-sm font-medium text-[#386594] mb-2">Company</label>
-                                        <input type="text" id="profileCompany" name="company" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#E88B4B]">
+                                        <label for="profileCompany" class="form-label">Company</label>
+                                        <input type="text" id="profileCompany" name="company" class="form-input">
                                     </div>
                                 </div>
                                 <div class="mt-6">
-                                    <button type="submit" class="btn-primary px-6 py-2 rounded-md">Update Profile</button>
+                                    <button type="submit" class="btn-primary">Update Profile</button>
                                 </div>
                             </form>
                         </div>
                     </div>
                     <div class="mt-8 pt-8 border-t border-gray-200">
-                        <h4 class="text-lg font-semibold text-[#386594] mb-4">Change Password</h4>
+                        <h4 class="text-lg font-semibold text-primary mb-4">Change Password</h4>
                         <form id="passwordForm" class="max-w-md">
                             <div class="mb-4">
-                                <label for="currentPassword" class="block text-sm font-medium text-[#386594] mb-2">Current Password</label>
-                                <input type="password" id="currentPassword" name="current_password" required class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#E88B4B]">
+                                <label for="currentPassword" class="form-label">Current Password</label>
+                                <input type="password" id="currentPassword" name="current_password" required class="form-input">
                             </div>
                             <div class="mb-4">
-                                <label for="newPassword" class="block text-sm font-medium text-[#386594] mb-2">New Password</label>
-                                <input type="password" id="newPassword" name="new_password" required class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#E88B4B]">
+                                <label for="newPassword" class="form-label">New Password</label>
+                                <input type="password" id="newPassword" name="new_password" required class="form-input">
                             </div>
-                            <button type="submit" class="btn-secondary px-6 py-2 rounded-md">Change Password</button>
+                            <button type="submit" class="btn-secondary">Change Password</button>
                         </form>
                     </div>
                 </div>
 
                 <!-- Images Tab -->
-                <div id="imagesTab" class="tab-content p-6 hidden">
+                <div id="imagesTab" class="tab-content hidden">
                     <div class="flex justify-between items-center mb-6">
-                        <h3 class="text-lg font-semibold text-[#386594]">My Generated Images</h3>
-                        <button id="refreshImages" class="btn-primary px-4 py-2 rounded-md">Refresh</button>
+                        <h3 class="text-lg font-semibold text-primary">My Generated Images</h3>
+                        <button id="refreshImages" class="btn-primary">Refresh</button>
                     </div>
-                    <div id="imagesGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <div id="imagesGrid" class="image-grid">
                         <!-- Images will be populated here -->
                     </div>
                 </div>
 
                 <!-- Subscription Tab -->
-                <div id="subscriptionTab" class="tab-content p-6 hidden">
-                    <h3 class="text-lg font-semibold text-[#386594] mb-6">Subscription Management</h3>
+                <div id="subscriptionTab" class="tab-content hidden">
+                    <h3 class="text-lg font-semibold text-primary mb-6">Subscription Management</h3>
                     <div id="subscriptionInfo" class="bg-gray-50 rounded-lg p-6 mb-6">
                         <!-- Subscription info will be populated here -->
                     </div>
@@ -202,23 +208,11 @@
                     </div>
                 </div>
 
-                <!-- Usage Tab -->
-                <div id="usageTab" class="tab-content p-6 hidden">
-                    <h3 class="text-lg font-semibold text-[#386594] mb-6">Usage History</h3>
-                    <div class="overflow-x-auto">
-                        <table class="min-w-full divide-y divide-gray-200">
-                            <thead class="bg-gray-50">
-                                <tr>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Credits</th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Description</th>
-                                </tr>
-                            </thead>
-                            <tbody id="usageTableBody" class="bg-white divide-y divide-gray-200">
-                                <!-- Usage history will be populated here -->
-                            </tbody>
-                        </table>
+                <!-- Usage History Tab -->
+                <div id="usageTab" class="tab-content hidden">
+                    <h3 class="text-lg font-semibold text-primary mb-6">Usage History</h3>
+                    <div id="usageHistory" class="space-y-4">
+                        <!-- Usage history will be populated here -->
                     </div>
                 </div>
             </div>

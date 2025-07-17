@@ -6,7 +6,7 @@
     <title>Register - DTF Editor</title>
     <link rel="stylesheet" href="styles.css">
 </head>
-<body class="bg-gradient-to-br from-[#386594] to-[#457BB9] min-h-screen flex items-center justify-center">
+<body class="bg-gradient-primary min-h-screen flex items-center justify-center">
     <div class="max-w-md w-full space-y-8">
         <!-- Logo and Title -->
         <div class="text-center">
@@ -14,12 +14,12 @@
             <p class="text-blue-100">Create your account</p>
         </div>
 
-        <!-- Registration Form -->
-        <div class="bg-white py-8 px-6 shadow-lg rounded-lg">
+        <!-- Register Form -->
+        <div class="bg-white py-8 px-6 shadow-xl rounded-lg">
             <form id="registerForm" method="POST" class="space-y-6">
                 <!-- First Name Field -->
                 <div>
-                    <label for="firstName" class="block text-sm font-medium text-[#386594] mb-2">
+                    <label for="firstName" class="form-label">
                         First Name
                     </label>
                     <input 
@@ -27,14 +27,14 @@
                         id="firstName" 
                         name="first_name" 
                         required 
-                        class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#E88B4B] focus:border-[#E88B4B]"
+                        class="form-input"
                         placeholder="Enter your first name"
                     >
                 </div>
 
                 <!-- Last Name Field -->
                 <div>
-                    <label for="lastName" class="block text-sm font-medium text-[#386594] mb-2">
+                    <label for="lastName" class="form-label">
                         Last Name
                     </label>
                     <input 
@@ -42,14 +42,14 @@
                         id="lastName" 
                         name="last_name" 
                         required 
-                        class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#E88B4B] focus:border-[#E88B4B]"
+                        class="form-input"
                         placeholder="Enter your last name"
                     >
                 </div>
 
                 <!-- Email Field -->
                 <div>
-                    <label for="email" class="block text-sm font-medium text-[#386594] mb-2">
+                    <label for="email" class="form-label">
                         Email Address
                     </label>
                     <input 
@@ -57,28 +57,28 @@
                         id="email" 
                         name="email" 
                         required 
-                        class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#E88B4B] focus:border-[#E88B4B]"
+                        class="form-input"
                         placeholder="Enter your email"
                     >
                 </div>
 
                 <!-- Company Field -->
                 <div>
-                    <label for="company" class="block text-sm font-medium text-[#386594] mb-2">
+                    <label for="company" class="form-label">
                         Company (Optional)
                     </label>
                     <input 
                         type="text" 
                         id="company" 
                         name="company" 
-                        class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#E88B4B] focus:border-[#E88B4B]"
+                        class="form-input"
                         placeholder="Enter your company name"
                     >
                 </div>
 
                 <!-- Password Field -->
                 <div>
-                    <label for="password" class="block text-sm font-medium text-[#386594] mb-2">
+                    <label for="password" class="form-label">
                         Password
                     </label>
                     <input 
@@ -86,15 +86,15 @@
                         id="password" 
                         name="password" 
                         required 
-                        class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#E88B4B] focus:border-[#E88B4B]"
+                        class="form-input"
                         placeholder="Create a password"
+                        minlength="8"
                     >
-                    <p class="mt-1 text-sm text-gray-500">Must be at least 8 characters long</p>
                 </div>
 
                 <!-- Confirm Password Field -->
                 <div>
-                    <label for="confirmPassword" class="block text-sm font-medium text-[#386594] mb-2">
+                    <label for="confirmPassword" class="form-label">
                         Confirm Password
                     </label>
                     <input 
@@ -102,8 +102,9 @@
                         id="confirmPassword" 
                         name="confirm_password" 
                         required 
-                        class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#E88B4B] focus:border-[#E88B4B]"
+                        class="form-input"
                         placeholder="Confirm your password"
+                        minlength="8"
                     >
                 </div>
 
@@ -114,13 +115,10 @@
                         name="terms" 
                         type="checkbox" 
                         required
-                        class="h-4 w-4 text-[#E88B4B] focus:ring-[#E88B4B] border-gray-300 rounded"
+                        class="h-4 w-4 text-accent focus:ring-accent border-gray-300 rounded"
                     >
-                    <label for="terms" class="ml-2 block text-sm text-gray-900">
-                        I agree to the 
-                        <a href="#" class="text-[#E88B4B] hover:text-[#d46d2e]">Terms of Service</a>
-                        and 
-                        <a href="#" class="text-[#E88B4B] hover:text-[#d46d2e]">Privacy Policy</a>
+                    <label for="terms" class="ml-2 block text-sm text-primary">
+                        I agree to the <a href="#" class="text-accent hover:underline">Terms of Service</a> and <a href="#" class="text-accent hover:underline">Privacy Policy</a>
                     </label>
                 </div>
 
@@ -129,7 +127,7 @@
                     <button 
                         type="submit" 
                         id="registerBtn"
-                        class="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-[#386594] hover:bg-[#25425f] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#E88B4B] transition-colors duration-200"
+                        class="btn-primary w-full"
                     >
                         <span id="registerBtnText">Create Account</span>
                         <svg id="registerBtnSpinner" class="hidden animate-spin ml-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
@@ -140,12 +138,12 @@
                 </div>
 
                 <!-- Error Message -->
-                <div id="errorMessage" class="hidden bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-md">
+                <div id="errorMessage" class="notification error hidden">
                     <p id="errorText"></p>
                 </div>
 
                 <!-- Success Message -->
-                <div id="successMessage" class="hidden bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-md">
+                <div id="successMessage" class="notification success hidden">
                     <p id="successText"></p>
                 </div>
             </form>
@@ -164,7 +162,7 @@
 
             <!-- Login Link -->
             <div class="mt-6 text-center">
-                <a href="login.html" class="font-medium text-[#E88B4B] hover:text-[#d46d2e]">
+                <a href="login.html" class="font-medium text-accent hover:text-[#d46d2e]">
                     Sign in to your account
                 </a>
             </div>
@@ -211,7 +209,7 @@
             }
         }
 
-        // Handle registration form submission
+        // Handle register form submission
         document.getElementById('registerForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             
@@ -223,21 +221,24 @@
             const confirmPassword = document.getElementById('confirmPassword').value;
             const terms = document.getElementById('terms').checked;
             
-            // Validate password
-            if (password.length < 8) {
-                showError('Password must be at least 8 characters long');
+            // Validate password match
+            if (password !== confirmPassword) {
+                document.getElementById('errorText').textContent = 'Passwords do not match.';
+                document.getElementById('errorMessage').classList.remove('hidden');
                 return;
             }
             
-            // Validate password confirmation
-            if (password !== confirmPassword) {
-                showError('Passwords do not match');
+            // Validate password length
+            if (password.length < 8) {
+                document.getElementById('errorText').textContent = 'Password must be at least 8 characters long.';
+                document.getElementById('errorMessage').classList.remove('hidden');
                 return;
             }
             
             // Validate terms
             if (!terms) {
-                showError('You must agree to the Terms of Service and Privacy Policy');
+                document.getElementById('errorText').textContent = 'You must agree to the Terms of Service and Privacy Policy.';
+                document.getElementById('errorMessage').classList.remove('hidden');
                 return;
             }
             
@@ -247,19 +248,20 @@
             const registerBtnSpinner = document.getElementById('registerBtnSpinner');
             
             registerBtn.disabled = true;
-            registerBtnText.textContent = 'Creating Account...';
+            registerBtnText.textContent = 'Creating account...';
             registerBtnSpinner.classList.remove('hidden');
             
-            // Hide any previous messages
-            hideMessages();
+            // Hide any existing messages
+            document.getElementById('errorMessage').classList.add('hidden');
+            document.getElementById('successMessage').classList.add('hidden');
             
             try {
                 const response = await fetch('/api/auth/register', {
                     method: 'POST',
                     headers: {
-                        'Content-Type': 'application/json'
+                        'Content-Type': 'application/json',
                     },
-                    body: JSON.stringify({ 
+                    body: JSON.stringify({
                         first_name: firstName,
                         last_name: lastName,
                         email,
@@ -273,23 +275,24 @@
                 if (response.ok) {
                     // Store token
                     localStorage.setItem('authToken', data.token);
-                    localStorage.setItem('userData', JSON.stringify(data.user));
                     
                     // Show success message
-                    showSuccess('Account created successfully! Redirecting...');
+                    document.getElementById('successText').textContent = 'Account created successfully! Redirecting...';
+                    document.getElementById('successMessage').classList.remove('hidden');
                     
                     // Redirect based on user type
                     setTimeout(() => {
                         redirectBasedOnUserType(data.user);
                     }, 1000);
-                    
                 } else {
-                    showError(data.error || 'Registration failed');
+                    // Show error message
+                    document.getElementById('errorText').textContent = data.message || 'Registration failed. Please try again.';
+                    document.getElementById('errorMessage').classList.remove('hidden');
                 }
-                
             } catch (error) {
                 console.error('Registration error:', error);
-                showError('Network error. Please try again.');
+                document.getElementById('errorText').textContent = 'Network error. Please try again.';
+                document.getElementById('errorMessage').classList.remove('hidden');
             } finally {
                 // Reset button state
                 registerBtn.disabled = false;
@@ -297,26 +300,6 @@
                 registerBtnSpinner.classList.add('hidden');
             }
         });
-
-        // Utility functions
-        function showError(message) {
-            const errorDiv = document.getElementById('errorMessage');
-            const errorText = document.getElementById('errorText');
-            errorText.textContent = message;
-            errorDiv.classList.remove('hidden');
-        }
-
-        function showSuccess(message) {
-            const successDiv = document.getElementById('successMessage');
-            const successText = document.getElementById('successText');
-            successText.textContent = message;
-            successDiv.classList.remove('hidden');
-        }
-
-        function hideMessages() {
-            document.getElementById('errorMessage').classList.add('hidden');
-            document.getElementById('successMessage').classList.add('hidden');
-        }
 
         // Check auth status on page load
         checkAuthStatus();
