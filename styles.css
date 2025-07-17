@@ -162,6 +162,42 @@ a:hover {
   border-color: var(--accent-orange);
 }
 
+/* Hero Button */
+.btn-hero {
+  background: var(--btn-hero-bg);
+  color: var(--btn-hero-text);
+  border: none;
+  transition: color 0.2s, background 0.2s;
+}
+.btn-hero:hover {
+  background: var(--btn-hero-hover-bg);
+  color: var(--btn-hero-text) !important;
+}
+
+/* Tools Button */
+.btn-tools {
+  background: var(--btn-tools-bg);
+  color: var(--btn-tools-text);
+  border: none;
+  transition: color 0.2s, background 0.2s;
+}
+.btn-tools:hover {
+  background: var(--btn-tools-hover-bg);
+  color: var(--btn-tools-hover-text);
+}
+
+/* Pricing Button */
+.btn-pricing {
+  background: var(--btn-pricing-bg);
+  color: var(--btn-pricing-text);
+  border: none;
+  transition: color 0.2s, background 0.2s;
+}
+.btn-pricing:hover {
+  background: var(--btn-pricing-hover-bg);
+  color: var(--btn-pricing-hover-text);
+}
+
 .border-primary-500 {
   border-color: var(--accent-orange) !important;
 }
@@ -173,6 +209,29 @@ a:hover {
 
 .hero-gradient {
   background: linear-gradient(135deg, var(--primary-blue) 0%, var(--secondary-blue) 100%);
+}
+
+/* Additional background gradients */
+.bg-gradient-to-r {
+  background: linear-gradient(to right, var(--primary-blue), var(--secondary-blue));
+}
+
+/* Additional text colors */
+.text-blue-100 {
+  color: #dbeafe;
+}
+
+/* Additional background colors */
+.bg-blue-50 {
+  background-color: #eff6ff;
+}
+
+.bg-blue-100 {
+  background-color: #dbeafe;
+}
+
+.bg-orange-100 {
+  background-color: #fed7aa;
 }
 
 /* Update upload area and other UI elements to use brand colors */
