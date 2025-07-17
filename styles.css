@@ -40,7 +40,13 @@
 --btn-hero-bg: var(--white);
 --btn-hero-text: #386594;
 --btn-hero-hover-bg: #f3f4f6;
---btn-hero-hover-text: #386594;
+--btn-hero-hover-text: var(--white);
+
+/* Button Colors - Hero Secondary */
+--btn-hero-secondary-bg: transparent;
+--btn-hero-secondary-text: var(--white);
+--btn-hero-secondary-hover-bg: var(--accent-orange);
+--btn-hero-secondary-hover-text: var(--white);
 }
 
 body {
@@ -127,6 +133,19 @@ a:hover {
 .btn-hero:hover {
   background: var(--btn-hero-hover-bg);
   color: var(--white) !important;
+}
+
+/* Hero Secondary Button */
+.btn-hero-secondary {
+  background: var(--btn-hero-secondary-bg);
+  color: var(--btn-hero-secondary-text) !important;
+  border: 2px solid var(--white);
+  transition: color 0.2s, background 0.2s;
+}
+.btn-hero-secondary:hover {
+  background: var(--btn-hero-secondary-hover-bg);
+  color: var(--btn-hero-secondary-hover-text) !important;
+  border-color: var(--accent-orange);
 }
 
 .border-primary-500 {
