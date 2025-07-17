@@ -329,13 +329,13 @@ class AdminDashboard {
                     </span>
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                    <button data-action="view" data-user-id="${user.id}" class="text-blue-600 hover:text-blue-800 underline mr-3 cursor-pointer">
+                    <button data-action="view" data-user-id="${user.id}" class="btn btn-secondary mr-2">
                         View
                     </button>
-                    <button data-action="edit" data-user-id="${user.id}" class="text-blue-600 hover:text-blue-800 underline mr-3 cursor-pointer">
+                    <button data-action="edit" data-user-id="${user.id}" class="btn btn-primary mr-2">
                         Edit
                     </button>
-                    <button data-action="toggle" data-user-id="${user.id}" class="text-orange-600 hover:text-orange-800 underline cursor-pointer">
+                    <button data-action="toggle" data-user-id="${user.id}" class="btn btn-nav">
                         ${user.is_active ? 'Deactivate' : 'Activate'}
                     </button>
                 </td>
@@ -421,13 +421,13 @@ class AdminDashboard {
                     </span>
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                    <button data-action="view" data-user-id="${user.id}" class="text-blue-600 hover:text-blue-800 underline mr-3 cursor-pointer">
+                    <button data-action="view" data-user-id="${user.id}" class="btn btn-secondary mr-2">
                         View
                     </button>
-                    <button data-action="edit" data-user-id="${user.id}" class="text-blue-600 hover:text-blue-800 underline mr-3 cursor-pointer">
+                    <button data-action="edit" data-user-id="${user.id}" class="btn btn-primary mr-2">
                         Edit
                     </button>
-                    <button data-action="toggle" data-user-id="${user.id}" class="text-orange-600 hover:text-orange-800 underline cursor-pointer">
+                    <button data-action="toggle" data-user-id="${user.id}" class="btn btn-nav">
                         ${user.is_active ? 'Deactivate' : 'Activate'}
                     </button>
                 </td>
