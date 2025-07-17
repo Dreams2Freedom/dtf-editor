@@ -161,7 +161,7 @@ async function createTables() {
             DO $$ 
             BEGIN 
                 IF NOT EXISTS (
-                    SELECT 1FROM information_schema.columns 
+                    SELECT 1 FROM information_schema.columns 
                     WHERE table_name = 'images' 
                     AND column_name = 'storage_path'
                 ) THEN
