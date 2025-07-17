@@ -397,10 +397,12 @@ class UserDashboard {
                 <div class="aspect-w-16 aspect-h-9 bg-gray-200 flex items-center justify-center">
                     ${isSvg ? 
                         `<div class="text-center p-4">
-                            <svg class="w-16 h-16 mx-auto text-gray-400 mb-2" fill="currentColor" viewBox="0 0 20 20">
-                                <path fill-rule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" clip-rule="evenodd"></path>
-                            </svg>
-                            <p class="text-sm text-gray-500">SVG Vector Image</p>
+                            <div class="w-full h-48 flex items-center justify-center">
+                                <svg class="w-32 h-32 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" clip-rule="evenodd"></path>
+                                </svg>
+                            </div>
+                            <p class="text-sm text-gray-500 mt-2">SVG Vector Image</p>
                             ${!image.storage_path ? '<p class="text-xs text-orange-500 mt-1">Preview Only</p>' : ''}
                         </div>` :
                         `<img src="/api/user/images/${image.id}/download" alt="${image.original_filename}" class="w-full h-48 object-cover">`
