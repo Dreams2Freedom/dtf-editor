@@ -596,10 +596,11 @@ app.post('/api/preview', authenticateToken, checkCredits(1), upload.single('imag
 
         // Always try to save to database, but don't fail the preview if it doesn't work
         try {
-            await dbHelpers.saveImage(imageData);
-            console.log('Image saved to database successfully');
+            const imageId = await dbHelpers.saveImage(imageData);
+            console.log('Image saved to database successfully with ID:', imageId);
         } catch (dbError) {
-            console.warn('Database save failed, continuing without database record:', dbError.message);
+            console.error('Database save failed, continuing without database record:', dbError);
+            console.error('Database error details:', dbError.message, dbError.stack);
             // Continue without database save - the preview will still work
         }
 
