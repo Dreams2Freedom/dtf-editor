@@ -271,6 +271,15 @@ async function createTables() {
         // Insert default data
         await insertDefaultData(client);
         
+        // Ensure default credits are set correctly for existing users
+        await client.query(`
+            UPDATE users 
+            SET credits_remaining = 2, 
+                total_credits_purchased = 2
+            WHERE subscription_plan = 'free' 
+              AND (credits_remaining != 2 OR total_credits_purchased != 2)
+        `);
+        
     } finally {
         client.release();
     }
