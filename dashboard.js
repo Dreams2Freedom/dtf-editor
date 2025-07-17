@@ -211,12 +211,17 @@ class UserDashboard {
 
     updateUserInfo() {
         document.getElementById('userName').textContent = this.currentUser.first_name || 'User';
-        
         // Update profile form
         document.getElementById('profileFirstName').value = this.currentUser.first_name || '';
         document.getElementById('profileLastName').value = this.currentUser.last_name || '';
         document.getElementById('profileEmail').value = this.currentUser.email || '';
         document.getElementById('profileCompany').value = this.currentUser.company || '';
+        // Render avatar initials
+        const avatar = document.getElementById('profileAvatar');
+        if (avatar) {
+            const initials = ((this.currentUser.first_name ? this.currentUser.first_name.charAt(0) : '') + (this.currentUser.last_name ? this.currentUser.last_name.charAt(0) : '')).toUpperCase() || 'U';
+            avatar.innerHTML = `<span class="text-2xl font-semibold text-gray-700">${initials}</span>`;
+        }
     }
 
     switchTab(tabName) {
