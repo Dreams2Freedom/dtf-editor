@@ -357,10 +357,10 @@ class UserDashboard {
                         <h3 class="text-lg font-semibold text-[#386594] mb-2">No Images Yet</h3>
                         <p class="text-gray-500 mb-4">You haven't generated any images yet. Start by vectorizing an image or removing a background.</p>
                         <div class="flex flex-col sm:flex-row gap-3 justify-center">
-                            <a href="vectorize.html" class="btn-primary px-6 py-2 rounded-md text-center">
+                            <a href="vectorize.html" class="btn-primary px-6 py-2 rounded-md text-center inline-block">
                                 Start Vectorizing
                             </a>
-                            <a href="background-remove.html" class="btn-secondary px-6 py-2 rounded-md text-center">
+                            <a href="background-remove.html" class="btn-accent px-6 py-2 rounded-md text-center inline-block">
                                 Remove Background
                             </a>
                         </div>
@@ -400,7 +400,7 @@ class UserDashboard {
                         <button onclick="userDashboard.downloadImage(${image.id})" class="btn-primary px-3 py-1 rounded text-sm">
                             Download
                         </button>
-                        <button onclick="userDashboard.deleteImage(${image.id})" class="bg-red-600 text-white px-3 py-1 rounded text-sm hover:bg-red-700 transition-colors">
+                        <button onclick="userDashboard.deleteImage(${image.id})" class="btn-delete px-3 py-1 rounded text-sm">
                             Delete
                         </button>
                     </div>
