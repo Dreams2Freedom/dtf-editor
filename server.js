@@ -355,6 +355,7 @@ app.get('/api/health', async (req, res) => {
 app.post('/api/vectorize', authenticateToken, upload.single('image'), async (req, res) => {
     try {
         console.log('Vectorization request received from user:', req.user.id);
+        req.startTime = Date.now(); // Initialize start time for processing duration
         
         if (!req.file) {
             return res.status(400).json({ error: 'No image file provided' });
@@ -510,6 +511,7 @@ app.post('/api/vectorize', authenticateToken, upload.single('image'), async (req
 app.post('/api/preview', authenticateToken, upload.single('image'), async (req, res) => {
     try {
         console.log('Preview generation request received from user:', req.user.id);
+        req.startTime = Date.now(); // Initialize start time for processing duration
         
         if (!req.file) {
             return res.status(400).json({ error: 'No image file provided' });
@@ -710,6 +712,7 @@ app.post('/api/preview', authenticateToken, upload.single('image'), async (req, 
 app.post('/api/remove-background', authenticateToken, checkCredits(1), upload.single('image'), async (req, res) => {
     try {
         console.log('Background removal request received from user:', req.user.id);
+        req.startTime = Date.now(); // Initialize start time for processing duration
         
         if (!req.file) {
             return res.status(400).json({ error: 'No image file provided' });
@@ -737,6 +740,7 @@ app.post('/api/remove-background', authenticateToken, checkCredits(1), upload.si
 app.post('/api/clipping-magic-upload', authenticateToken, checkCredits(1), upload.single('image'), async (req, res) => {
     try {
         console.log('Clipping Magic upload request received from user:', req.user.id);
+        req.startTime = Date.now(); // Initialize start time for processing duration
         
         if (!req.file) {
             return res.status(400).json({ error: 'No image file provided' });
