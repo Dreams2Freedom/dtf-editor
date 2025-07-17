@@ -222,6 +222,8 @@ class UserDashboard {
     }
 
     switchTab(tabName) {
+        console.log('Switching to tab:', tabName);
+        
         // Update tab buttons
         document.querySelectorAll('.tab-btn').forEach(btn => {
             btn.classList.remove('active', 'border-[#E88B4B]', 'text-[#E88B4B]');
@@ -229,19 +231,28 @@ class UserDashboard {
         });
 
         const activeBtn = document.querySelector(`[data-tab="${tabName}"]`);
-        activeBtn.classList.add('active', 'border-[#E88B4B]', 'text-[#E88B4B]');
-        activeBtn.classList.remove('border-transparent', 'text-gray-500');
+        if (activeBtn) {
+            activeBtn.classList.add('active', 'border-[#E88B4B]', 'text-[#E88B4B]');
+            activeBtn.classList.remove('border-transparent', 'text-gray-500');
+        }
 
         // Update tab content
         document.querySelectorAll('.tab-content').forEach(content => {
             content.classList.add('hidden');
         });
 
-        document.getElementById(`${tabName}Tab`).classList.remove('hidden');
+        const tabContent = document.getElementById(`${tabName}Tab`);
+        if (tabContent) {
+            tabContent.classList.remove('hidden');
+            console.log(`Tab content ${tabName}Tab is now visible`);
+        } else {
+            console.error(`Tab content ${tabName}Tab not found`);
+        }
 
         // Load tab-specific data
         switch (tabName) {
             case 'images':
+                console.log('Loading images...');
                 this.loadImages();
                 break;
             case 'subscription':
@@ -287,6 +298,7 @@ class UserDashboard {
     }
 
     async loadImages() {
+        console.log('Loading images...');
         try {
             const response = await fetch('/api/user/images', {
                 headers: {
@@ -294,11 +306,15 @@ class UserDashboard {
                 }
             });
 
+            console.log('Images response status:', response.status);
+            
             if (response.ok) {
                 const data = await response.json();
-                this.images = data.images;
+                console.log('Images data:', data);
+                this.images = data.images || [];
                 this.renderImages();
             } else {
+                console.error('Failed to load images, status:', response.status);
                 this.showNotification('Failed to load images', 'error');
             }
         } catch (error) {
@@ -314,8 +330,21 @@ class UserDashboard {
         if (this.images.length === 0) {
             grid.innerHTML = `
                 <div class="col-span-full text-center py-12">
-                    <p class="text-gray-500">No images generated yet.</p>
-                    <a href="vectorize.html" class="text-primary-600 hover:text-primary-800 mt-2 inline-block">Start vectorizing images</a>
+                    <div class="bg-white rounded-lg shadow-lg p-8">
+                        <svg class="w-16 h-16 mx-auto text-gray-400 mb-4" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" clip-rule="evenodd"></path>
+                        </svg>
+                        <h3 class="text-lg font-semibold text-[#386594] mb-2">No Images Yet</h3>
+                        <p class="text-gray-500 mb-4">You haven't generated any images yet. Start by vectorizing an image or removing a background.</p>
+                        <div class="flex flex-col sm:flex-row gap-3 justify-center">
+                            <a href="vectorize.html" class="btn-primary px-6 py-2 rounded-md text-center">
+                                Start Vectorizing
+                            </a>
+                            <a href="background-remove.html" class="btn-secondary px-6 py-2 rounded-md text-center">
+                                Remove Background
+                            </a>
+                        </div>
+                    </div>
                 </div>
             `;
             return;
