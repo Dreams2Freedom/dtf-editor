@@ -28,9 +28,9 @@ class AdminDashboard {
         if (loginForm) {
             loginForm.addEventListener('submit', (e) => {
                 console.log('Login form submitted');
-                e.preventDefault();
-                this.login();
-            });
+            e.preventDefault();
+            this.login();
+        });
         } else {
             console.error('Login form not found!');
         }
@@ -48,23 +48,23 @@ class AdminDashboard {
         const refreshUsersBtn = document.getElementById('refreshUsers');
         if (refreshUsersBtn) {
             refreshUsersBtn.addEventListener('click', () => {
-                this.loadUsers();
-            });
+            this.loadUsers();
+        });
         }
 
         const userSearchInput = document.getElementById('userSearch');
         if (userSearchInput) {
             userSearchInput.addEventListener('input', (e) => {
-                this.filterUsers(e.target.value);
-            });
+            this.filterUsers(e.target.value);
+        });
         }
 
         // Logs
         const refreshLogsBtn = document.getElementById('refreshLogs');
         if (refreshLogsBtn) {
             refreshLogsBtn.addEventListener('click', () => {
-                this.loadLogs();
-            });
+            this.loadLogs();
+        });
         }
 
         // Costs
@@ -93,8 +93,8 @@ class AdminDashboard {
         const closeUserModalBtn = document.getElementById('closeUserModal');
         if (closeUserModalBtn) {
             closeUserModalBtn.addEventListener('click', () => {
-                this.closeUserModal();
-            });
+            this.closeUserModal();
+        });
         }
     }
 

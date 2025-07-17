@@ -30,23 +30,34 @@
   --btn-pricing-hover-bg: var(--secondary-blue);
   --btn-pricing-hover-text: var(--white);
 
-  /* Button Colors - Feature Cards */
---btn-feature-bg: var(--primary-blue);
---btn-feature-text: var(--white);
---btn-feature-hover-bg: var(--secondary-blue);
---btn-feature-hover-text: var(--white);
+  /* Button Colors - Tools/Features Section */
+  --btn-tools-bg: var(--primary-blue);
+  --btn-tools-text: var(--white);
+  --btn-tools-hover-bg: var(--secondary-blue);
+  --btn-tools-hover-text: var(--white);
 
-/* Button Colors - Hero Section */
---btn-hero-bg: var(--white);
---btn-hero-text: #386594;
---btn-hero-hover-bg: #f3f4f6;
---btn-hero-hover-text: var(--white);
+  /* Button Colors - Hero Section */
+  --btn-hero-bg: var(--white);
+  --btn-hero-text: #386594;
+  --btn-hero-hover-bg: #f3f4f6;
+  --btn-hero-hover-text: var(--white);
 
-/* Button Colors - Hero Secondary */
---btn-hero-secondary-bg: transparent;
---btn-hero-secondary-text: var(--white);
---btn-hero-secondary-hover-bg: var(--accent-orange);
---btn-hero-secondary-hover-text: var(--white);
+  /* Button Colors - Hero Secondary */
+  --btn-hero-secondary-bg: transparent;
+  --btn-hero-secondary-text: var(--white);
+  --btn-hero-secondary-hover-bg: var(--accent-orange);
+  --btn-hero-secondary-hover-text: var(--white);
+
+  /* Button Colors - Paywall */
+  --btn-paywall-primary-bg: var(--primary-blue);
+  --btn-paywall-primary-text: var(--white);
+  --btn-paywall-primary-hover-bg: var(--secondary-blue);
+  --btn-paywall-primary-hover-text: var(--white);
+
+  --btn-paywall-secondary-bg: transparent;
+  --btn-paywall-secondary-text: var(--primary-blue);
+  --btn-paywall-secondary-hover-bg: var(--primary-blue);
+  --btn-paywall-secondary-hover-text: var(--white);
 }
 
 body {
@@ -111,16 +122,16 @@ a:hover {
   color: var(--white) !important;
 }
 
-/* Feature Card Button */
-.btn-feature {
-  background: var(--btn-feature-bg);
-  color: var(--btn-feature-text);
+/* Tools/Features Section Button */
+.btn-tools {
+  background: var(--btn-tools-bg);
+  color: var(--btn-tools-text);
   border: none;
   transition: color 0.2s, background 0.2s;
 }
-.btn-feature:hover {
-  background: var(--btn-feature-hover-bg);
-  color: var(--btn-feature-hover-text);
+.btn-tools:hover {
+  background: var(--btn-tools-hover-bg);
+  color: var(--btn-tools-hover-text);
 }
 
 /* Hero Section Button */

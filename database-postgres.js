@@ -146,6 +146,7 @@ async function createTables() {
                 user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
                 original_filename VARCHAR(255) NOT NULL,
                 processed_filename VARCHAR(255) NOT NULL,
+                storage_path VARCHAR(500), -- Supabase Storage path
                 file_size INTEGER,
                 image_type VARCHAR(50) NOT NULL,
                 tool_used VARCHAR(50) NOT NULL,
@@ -153,6 +154,20 @@ async function createTables() {
                 processing_time_ms INTEGER,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
+        `);
+
+        // Add storage_path column if it doesn't exist
+        await client.query(`
+            DO $$ 
+            BEGIN 
+                IF NOT EXISTS (
+                    SELECT 1FROM information_schema.columns 
+                    WHERE table_name = 'images' 
+                    AND column_name = 'storage_path'
+                ) THEN
+                    ALTER TABLE images ADD COLUMN storage_path VARCHAR(500);
+                END IF;
+            END $$;
         `);
 
         // Credit transactions table
@@ -338,10 +353,10 @@ const dbHelpers = {
     saveImage: async (imageData) => {
         const client = await dbHelpers.getClient();
         try {
-            const { user_id, original_filename, processed_filename, file_size, image_type, tool_used, credits_used, processing_time_ms } = imageData;
+            const { user_id, original_filename, processed_filename, storage_path, file_size, image_type, tool_used, credits_used, processing_time_ms } = imageData;
             const result = await client.query(
-                'INSERT INTO images (user_id, original_filename, processed_filename, file_size, image_type, tool_used, credits_used, processing_time_ms) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id',
-                [user_id, original_filename, processed_filename, file_size, image_type, tool_used, credits_used, processing_time_ms]
+                'INSERT INTO images (user_id, original_filename, processed_filename, storage_path, file_size, image_type, tool_used, credits_used, processing_time_ms) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING id',
+                [user_id, original_filename, processed_filename, storage_path, file_size, image_type, tool_used, credits_used, processing_time_ms]
             );
             return result.rows[0].id;
         } finally {
@@ -356,6 +371,46 @@ const dbHelpers = {
                 'SELECT * FROM images WHERE user_id = $1 ORDER BY created_at DESC LIMIT $2 OFFSET $3',
                 [userId, limit, offset]
             );
+            return result.rows;
+        } finally {
+            client.release();
+        }
+    },
+
+    getImageById: async (imageId) => {
+        const client = await dbHelpers.getClient();
+        try {
+            const result = await client.query(
+                'SELECT * FROM images WHERE id = $1',
+                [imageId]
+            );
+            return result.rows[0] || null;
+        } finally {
+            client.release();
+        }
+    },
+
+    deleteImage: async (imageId) => {
+        const client = await dbHelpers.getClient();
+        try {
+            await client.query(
+                'DELETE FROM images WHERE id = $1',
+                [imageId]
+            );
+        } finally {
+            client.release();
+        }
+    },
+
+    getOldImagesForCleanup: async () => {
+        const client = await dbHelpers.getClient();
+        try {
+            const result = await client.query(`
+                SELECT i.*, u.subscription_status 
+                FROM images i 
+                JOIN users u ON i.user_id = u.id 
+                ORDER BY i.created_at ASC
+            `);
             return result.rows;
         } finally {
             client.release();

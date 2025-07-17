@@ -5,12 +5,15 @@ const path = require('path');
 const cors = require('cors');
 const helmet = require('helmet');
 const morgan = require('morgan');
+const fs = require('fs').promises;
 require('dotenv').config();
 
 // Import our modules
 const { dbHelpers, initializeDatabase } = require('./database-postgres');
 const { authenticateToken, checkCredits } = require('./auth');
 const { stripeHelpers } = require('./stripe');
+const { logApiCost, calculateVectorizerCost, calculateClippingMagicCost } = require('./cost-tracking');
+const SupabaseStorage = require('./supabase-storage');
 
 // Import routes
 const authRoutes = require('./auth-routes');
@@ -91,11 +94,26 @@ app.get('/health', (req, res) => {
     });
 });
 
-// Configure multer for file uploads
+// Configure file storage
+const uploadsDir = path.join(__dirname, 'uploads');
+const processedDir = path.join(__dirname, 'processed');
+
+// Ensure upload directories exist
+async function ensureUploadDirs() {
+    try {
+        await fs.mkdir(uploadsDir, { recursive: true });
+        await fs.mkdir(processedDir, { recursive: true });
+        console.log('Upload directories created/verified');
+    } catch (error) {
+        console.error('Error creating upload directories:', error);
+    }
+}
+
+// Configure multer for file uploads (wellstill use this for temporary processing)
 const upload = multer({
-    storage: multer.memoryStorage(),
+    storage: multer.memoryStorage(), // Use memory storage for processing
     limits: {
-        fileSize: 30 * 1024 * 1024, // 30MB limit
+        fileSize: 30 * 1024 * 1024 // 30B limit
     },
     fileFilter: (req, file, cb) => {
         if (file.mimetype.startsWith('image/')) {
@@ -307,11 +325,31 @@ app.post('/api/vectorize', authenticateToken, checkCredits(1), upload.single('im
             }
         });
 
-        // Save image to database
+        // Upload original file to Supabase Storage
+        const originalUpload = await SupabaseStorage.uploadFile(
+            req.user.id.toString(),
+            req.file.originalname,
+            req.file.buffer,
+            req.file.mimetype,
+            'original'
+        );
+
+        // Upload processed file to Supabase Storage
+        const processedFilename = `vectorized_${Date.now()}.svg`;
+        const processedUpload = await SupabaseStorage.uploadFile(
+            req.user.id.toString(),
+            processedFilename,
+            vectorBuffer,
+            'image/svg+xml',
+            'processed'
+        );
+
+        // Save image to database with storage paths
         const imageData = {
             user_id: req.user.id,
             original_filename: req.file.originalname,
-            processed_filename: `vectorized_${Date.now()}.svg`,
+            processed_filename: processedFilename,
+            storage_path: processedUpload.path,
             file_size: req.file.size,
             image_type: 'vectorization',
             tool_used: 'vectorizer',
@@ -425,11 +463,31 @@ app.post('/api/preview', authenticateToken, checkCredits(1), upload.single('imag
             }
         });
 
-        // Save image to database
+        // Upload original file to Supabase Storage
+        const originalUpload = await SupabaseStorage.uploadFile(
+            req.user.id.toString(),
+            req.file.originalname,
+            req.file.buffer,
+            req.file.mimetype,
+            'original'
+        );
+
+        // Upload processed file to Supabase Storage
+        const processedFilename = `preview_${Date.now()}.svg`;
+        const processedUpload = await SupabaseStorage.uploadFile(
+            req.user.id.toString(),
+            processedFilename,
+            previewBuffer,
+            'image/svg+xml',
+            'processed'
+        );
+
+        // Save image to database with storage paths
         const imageData = {
             user_id: req.user.id,
             original_filename: req.file.originalname,
-            processed_filename: `preview_${Date.now()}.svg`,
+            processed_filename: processedFilename,
+            storage_path: processedUpload.path,
             file_size: req.file.size,
             image_type: 'preview',
             tool_used: 'vectorizer',
@@ -564,11 +622,21 @@ app.post('/api/clipping-magic-upload', authenticateToken, checkCredits(1), uploa
             }
         });
 
-        // Save image to database
+        // Upload original file to Supabase Storage
+        const originalUpload = await SupabaseStorage.uploadFile(
+            req.user.id.toString(),
+            req.file.originalname,
+            req.file.buffer,
+            req.file.mimetype,
+            'original'
+        );
+
+        // Save image to database with storage path
         const imageData = {
             user_id: req.user.id,
             original_filename: req.file.originalname,
             processed_filename: `clipping_magic_${Date.now()}.png`,
+            storage_path: originalUpload.path,
             file_size: req.file.size,
             image_type: 'background_removal',
             tool_used: 'clipping_magic',
@@ -686,3 +754,128 @@ process.on('unhandledRejection', (reason, promise) => {
     console.error('Unhandled Rejection at:', promise, 'reason:', reason);
     // Don't exit, just log the error
 });
+
+// Image Management Endpoints
+app.get('/api/user/images', authenticateToken, async (req, res) => {
+    try {
+        const images = await dbHelpers.getUserImages(req.user.id);
+        res.json({ images });
+    } catch (error) {
+        console.error('Error fetching user images:', error);
+        res.status(500).json({ error: 'Failed to fetch images' });
+    }
+});
+
+app.get('/api/user/images/:imageId/download', authenticateToken, async (req, res) => {
+    try {
+        const { imageId } = req.params;
+        
+        // Get image details from database
+        const image = await dbHelpers.getImageById(imageId);
+        if (!image || image.user_id !== req.user.id) {
+            return res.status(404).json({ error: 'Image not found' });
+        }
+
+        // Check if storage path exists
+        if (!image.storage_path) {
+            return res.status(404).json({ error: 'Image file not found in storage' });
+        }
+
+        // Download file from Supabase Storage
+        const fileBuffer = await SupabaseStorage.downloadFile(image.storage_path);
+
+        // Set appropriate headers
+        const ext = path.extname(image.processed_filename).toLowerCase();
+        let contentType = 'application/octet-stream';
+        if (ext === '.svg') contentType = 'image/svg+xml';
+        else if (ext === '.png') contentType = 'image/png';
+        else if (ext === '.jpg' || ext === '.jpeg') contentType = 'image/jpeg';
+
+        res.setHeader('Content-Type', contentType);
+        res.setHeader('Content-Disposition', `attachment; filename="${image.processed_filename}"`);
+        
+        // Send the file buffer
+        res.send(fileBuffer);
+    } catch (error) {
+        console.error('Error downloading image:', error);
+        res.status(500).json({ error: 'Failed to download image' });
+    }
+});
+
+app.delete('/api/user/images/:imageId', authenticateToken, async (req, res) => {
+    try {
+        const { imageId } = req.params;
+        
+        // Get image details from database
+        const image = await dbHelpers.getImageById(imageId);
+        if (!image || image.user_id !== req.user.id) {
+            return res.status(404).json({ error: 'Image not found' });
+        }
+
+        // Delete files from Supabase Storage
+        if (image.storage_path) {
+            try {
+                await SupabaseStorage.deleteFile(image.storage_path);
+            } catch (error) {
+                console.warn(`Could not delete file from storage ${image.storage_path}:`, error.message);
+            }
+        }
+
+        // Delete from database
+        await dbHelpers.deleteImage(imageId);
+        
+        res.json({ message: 'Image deleted successfully' });
+    } catch (error) {
+        console.error('Error deleting image:', error);
+        res.status(500).json({ error: 'Failed to delete image' });
+    }
+});
+
+// Automatic cleanup of old images
+async function cleanupOldImages() {
+    try {
+        console.log('Starting image cleanup...');
+        
+        // Get retention periods based on subscription
+        const retentionDays = {
+            free: 30,
+            basic: 60,
+            starter: 90,
+            professional: 120,
+            enterprise: 365
+        };
+
+        // Get all images with their user subscription info
+        const oldImages = await dbHelpers.getOldImagesForCleanup();
+        
+        let deletedCount = 0;
+        for (const image of oldImages) {
+            const retentionPeriod = retentionDays[image.subscription_status] || 30;
+            const cutoffDate = new Date();
+            cutoffDate.setDate(cutoffDate.getDate() - retentionPeriod);
+            
+            if (new Date(image.created_at) < cutoffDate) {
+                try {
+                    // Delete files from Supabase Storage
+                    if (image.storage_path) {
+                        await SupabaseStorage.deleteFile(image.storage_path).catch(() => {});
+                    }
+                    
+                    // Delete from database
+                    await dbHelpers.deleteImage(image.id);
+                    deletedCount++;
+                } catch (error) {
+                    console.error(`Error cleaning up image ${image.id}:`, error);
+                }
+            }
+        }
+        
+        console.log(`Image cleanup completed. Deleted ${deletedCount} old images.`);
+    } catch (error) {
+        console.error('Error during image cleanup:', error);
+    }
+}
+
+// Run cleanup daily at 2 AM UTC
+setInterval(cleanupOldImages, 24 * 60 * 60 * 1000); // Initial cleanup after 1 hour
+setTimeout(cleanupOldImages, 60 * 60 * 1000);
