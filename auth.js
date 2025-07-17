@@ -133,14 +133,19 @@ const authHelpers = {
     // Login user
     loginUser: async (email, password) => {
         try {
+            console.log('Login attempt for email:', email);
+            
             // Get user by email
             const user = await dbHelpers.getUserByEmail(email);
+            console.log('User found:', user ? 'yes' : 'no');
             if (!user) {
                 throw new Error('Invalid credentials');
             }
 
+            console.log('Checking password...');
             // Check password
             const isValidPassword = await authHelpers.comparePassword(password, user.password_hash);
+            console.log('Password valid:', isValidPassword);
             if (!isValidPassword) {
                 throw new Error('Invalid credentials');
             }
@@ -150,11 +155,13 @@ const authHelpers = {
                 throw new Error('Account is deactivated');
             }
 
+            console.log('Generating token...');
             // Generate token
             const token = authHelpers.generateToken(user);
 
             return { user, token };
         } catch (error) {
+            console.error('Login error:', error);
             throw error;
         }
     },

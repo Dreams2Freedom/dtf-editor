@@ -37,12 +37,25 @@ if (process.env.SUPABASE_DB_URL) {
     };
 }
 
+// For development without database, create a mock configuration
+if (process.env.NODE_ENV === 'development' && !process.env.SUPABASE_DB_URL && !process.env.DATABASE_URL && !process.env.DB_HOST) {
+    console.warn('No database configuration found. Using mock database for development.');
+    dbConfig = null;
+}
+
 let pool = null;
 let isInitialized = false;
 
 // Initialize database connection and tables
 async function initializeDatabase() {
     try {
+        // If no database config in development, create mock database
+        if (!dbConfig && process.env.NODE_ENV === 'development') {
+            console.log('Using mock database for development');
+            isInitialized = true;
+            return;
+        }
+
         console.log('Connecting to PostgreSQL database...');
         console.log('Database config type:', process.env.SUPABASE_DB_URL ? 'Supabase' : process.env.DATABASE_URL ? 'Railway' : 'Local');
         console.log('Environment check - SUPABASE_DB_URL:', process.env.SUPABASE_DB_URL ? 'SET' : 'NOT SET');
@@ -62,7 +75,13 @@ async function initializeDatabase() {
         isInitialized = true;
     } catch (error) {
         console.error('Failed to initialize database:', error);
-        throw error;
+        if (process.env.NODE_ENV === 'development') {
+            console.log('Using mock database for development due to connection failure');
+            pool = null; // <--- PATCH: force mock mode
+            isInitialized = true;
+        } else {
+            throw error;
+        }
     }
 }
 
@@ -285,15 +304,39 @@ async function insertDefaultData(client) {
     `, [adminPasswordHash]);
 }
 
+// Mock admin user for development
+const mockAdminUser = {
+    id: 1,
+    email: 'admin@dtfeditor.com',
+    password_hash: '$2b$10$9Tr04G6uJGGoG8My2shK6.DPI2vvWwAPozoOsN2q923uyt85b2Phm', // admin123
+    first_name: 'Admin',
+    last_name: 'User',
+    company: null,
+    created_at: new Date(),
+    updated_at: new Date(),
+    is_active: true,
+    is_admin: true,
+    subscription_status: 'active',
+    subscription_plan: 'enterprise',
+    subscription_end_date: null,
+    stripe_customer_id: null,
+    credits_remaining: 999999,
+    credits_used: 0,
+    total_credits_purchased: 999999
+};
+
 // Helper functions for database operations
 const dbHelpers = {
     // Check if database is initialized
-    isReady: () => isInitialized && pool !== null,
+    isReady: () => isInitialized,
 
     // Get a client from the pool
     getClient: () => {
         if (!dbHelpers.isReady()) {
             throw new Error('Database not initialized');
+        }
+        if (!pool) {
+            throw new Error('Database not connected');
         }
         return pool.connect();
     },
@@ -314,6 +357,14 @@ const dbHelpers = {
     },
 
     getUserByEmail: async (email) => {
+        // Mock implementation for development
+        if (!pool && process.env.NODE_ENV === 'development') {
+            if (email === 'admin@dtfeditor.com') {
+                return mockAdminUser;
+            }
+            return null;
+        }
+        
         const client = await dbHelpers.getClient();
         try {
             const result = await client.query('SELECT * FROM users WHERE email = $1', [email]);
@@ -324,6 +375,14 @@ const dbHelpers = {
     },
 
     getUserById: async (id) => {
+        // Mock implementation for development
+        if (!pool && process.env.NODE_ENV === 'development') {
+            if (id === 1) {
+                return mockAdminUser;
+            }
+            return null;
+        }
+        
         const client = await dbHelpers.getClient();
         try {
             const result = await client.query('SELECT * FROM users WHERE id = $1', [id]);

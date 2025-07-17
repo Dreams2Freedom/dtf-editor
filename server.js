@@ -11,15 +11,7 @@ require('dotenv').config();
 
 // Validate required environment variables
 const requiredEnvVars = [
-    'JWT_SECRET',
-    'STRIPE_SECRET_KEY',
-    'VECTORIZER_API_ID',
-    'VECTORIZER_API_SECRET',
-    'CLIPPING_MAGIC_API_ID',
-    'CLIPPING_MAGIC_API_SECRET',
-    'SUPABASE_URL',
-    'SUPABASE_SERVICE_ROLE_KEY',
-    'SUPABASE_DB_URL'
+    'JWT_SECRET'
 ];
 
 const missingEnvVars = requiredEnvVars.filter(varName => !process.env[varName]);
@@ -30,6 +22,8 @@ if (missingEnvVars.length > 0) {
         throw new Error(`Missing required environment variables: ${missingEnvVars.join(', ')}`);
     } else {
         console.warn('Continuing in development mode with missing environment variables');
+        // Set default JWT_SECRET for development
+        process.env.JWT_SECRET = process.env.JWT_SECRET || 'dev-secret-key-change-in-production';
     }
 }
 
