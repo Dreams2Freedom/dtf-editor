@@ -112,6 +112,8 @@ a:hover {
   display: inline-block;
   text-decoration: none;
   text-align: center;
+  white-space: nowrap;
+  min-width: fit-content;
 }
 
 .btn-primary:hover {
@@ -193,6 +195,8 @@ a:hover {
   transition: all 0.2s ease;
   cursor: pointer;
   font-size: 0.875rem;
+  white-space: nowrap;
+  min-width: fit-content;
 }
 
 .btn-accent:hover {
@@ -910,6 +914,86 @@ a:hover {
 
 .empty-state-description {
   margin-bottom: 1.5rem;
+}
+
+/* Retention Policy Styles */
+.retention-policy-container {
+  margin-bottom: 1.5rem;
+}
+
+.retention-policy-box {
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  border-radius: 0.5rem;
+  padding: 1rem;
+}
+
+.retention-policy-content {
+  display: flex;
+  align-items: flex-start;
+}
+
+.retention-icon {
+  width: 1.25rem;
+  height: 1.25rem;
+  color: var(--primary-blue);
+  margin-right: 0.75rem;
+  margin-top: 0.125rem;
+  flex-shrink: 0;
+}
+
+.retention-title {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--primary-blue);
+  margin-bottom: 0.25rem;
+}
+
+.retention-message {
+  font-size: 0.875rem;
+  color: var(--primary-blue);
+  margin-bottom: 0.5rem;
+}
+
+.retention-link {
+  font-size: 0.875rem;
+  color: var(--primary-blue);
+  text-decoration: underline;
+  display: inline-block;
+  margin-top: 0.25rem;
+}
+
+.retention-link:hover {
+  color: var(--accent-orange);
+}
+
+/* Empty State Card Styles */
+.empty-state-container {
+  text-align: center;
+  padding: 3rem 0;
+}
+
+.empty-state-card {
+  background: var(--white);
+  border-radius: 0.5rem;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+  padding: 2rem;
+  max-width: 500px;
+  margin: 0 auto;
+}
+
+.empty-state-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  justify-content: center;
+  align-items: center;
+}
+
+@media (min-width: 640px) {
+  .empty-state-buttons {
+    flex-direction: row;
+  }
 }
 
 /* Responsive Utilities */

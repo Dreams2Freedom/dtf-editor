@@ -331,16 +331,16 @@ class UserDashboard {
         // Add retention policy info at the top
         const retentionInfo = this.getRetentionPolicyInfo();
         grid.innerHTML = `
-            <div class="col-span-full mb-6">
-                <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                    <div class="flex items-start">
-                        <svg class="w-5 h-5 text-blue-600 mt-0.5 mr-3 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+            <div class="retention-policy-container">
+                <div class="retention-policy-box">
+                    <div class="retention-policy-content">
+                        <svg class="retention-icon" fill="currentColor" viewBox="0 0 20 20">
                             <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"></path>
                         </svg>
                         <div>
-                            <h4 class="text-sm font-semibold text-blue-900 mb-1">Image Retention Policy</h4>
-                            <p class="text-sm text-blue-700">${retentionInfo.message}</p>
-                            <a href="faq.html#retention" class="text-sm text-blue-600 hover:text-blue-800 underline mt-1 inline-block">Learn more about retention policies</a>
+                            <h4 class="retention-title">Image Retention Policy</h4>
+                            <p class="retention-message">${retentionInfo.message}</p>
+                            <a href="faq.html#retention" class="retention-link">Learn more about retention policies</a>
                         </div>
                     </div>
                 </div>
@@ -349,18 +349,18 @@ class UserDashboard {
 
         if (this.images.length === 0) {
             grid.innerHTML += `
-                <div class="col-span-full text-center py-12">
-                    <div class="bg-white rounded-lg shadow-lg p-8">
-                        <svg class="w-16 h-16 mx-auto text-gray-400 mb-4" fill="currentColor" viewBox="0 0 20 20">
+                <div class="empty-state-container">
+                    <div class="empty-state-card">
+                        <svg class="empty-state-icon" fill="currentColor" viewBox="0 0 20 20">
                             <path fill-rule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" clip-rule="evenodd"></path>
                         </svg>
-                        <h3 class="text-lg font-semibold text-[#386594] mb-2">No Images Yet</h3>
-                        <p class="text-gray-500 mb-4">You haven't generated any images yet. Start by vectorizing an image or removing a background.</p>
-                        <div class="flex flex-col sm:flex-row gap-3 justify-center">
-                            <a href="vectorize.html" class="btn-primary px-6 py-2 rounded-md text-center inline-block">
+                        <h3 class="empty-state-title">No Images Yet</h3>
+                        <p class="empty-state-description">You haven't generated any images yet. Start by vectorizing an image or removing a background.</p>
+                        <div class="empty-state-buttons">
+                            <a href="vectorize.html" class="btn-primary">
                                 Start Vectorizing
                             </a>
-                            <a href="background-remove.html" class="btn-accent px-6 py-2 rounded-md text-center inline-block">
+                            <a href="background-remove.html" class="btn-accent">
                                 Remove Background
                             </a>
                         </div>
