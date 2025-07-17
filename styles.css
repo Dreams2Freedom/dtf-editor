@@ -96,13 +96,13 @@ a:hover {
 /* Pricing Card Button */
 .btn-pricing {
   background: var(--btn-pricing-bg);
-  color: var(--btn-pricing-text);
+  color: var(--white) !important;
   border: none;
   transition: color 0.2s, background 0.2s;
 }
 .btn-pricing:hover {
   background: var(--btn-pricing-hover-bg);
-  color: var(--btn-pricing-hover-text);
+  color: var(--white) !important;
 }
 
 /* Feature Card Button */
