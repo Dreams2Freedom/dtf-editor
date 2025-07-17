@@ -41,22 +41,25 @@ const adminRoutes = require('./admin-routes');
 
 const app = express();
 
-// Rate limiting configuration
+// Rate limiting configuration - more lenient in development
+const isDevelopment = process.env.NODE_ENV === 'development';
+
 const limiter = rateLimit({
     windowMs: 15 * 60 * 1000, // 15 minutes
-    max: 100, // limit each IP to 100 requests per windowMs
+    max: isDevelopment ? 1000 : 100, // much higher limit in development
     message: {
         error: 'Too many requests from this IP, please try again later.',
         retryAfter: '15 minutes'
     },
     standardHeaders: true,
     legacyHeaders: false,
+    skip: (req) => isDevelopment && req.path === '/rate-limit-status', // skip for status check in dev
 });
 
 // Stricter rate limiting for auth endpoints
 const authLimiter = rateLimit({
     windowMs: 15 * 60 * 1000, // 15 minutes
-    max: 20, // limit each IP to 20 login attempts per windowMs (increased from 5)
+    max: isDevelopment ? 100 : 20, // much higher limit in development
     message: {
         error: 'Too many login attempts, please try again later.',
         retryAfter: '15 minutes'
@@ -68,7 +71,7 @@ const authLimiter = rateLimit({
 // Stricter rate limiting for API endpoints
 const apiLimiter = rateLimit({
     windowMs: 15 * 60 * 1000, // 15 minutes
-    max: 50, // limit each IP to 50 API requests per windowMs
+    max: isDevelopment ? 500 : 50, // much higher limit in development
     message: {
         error: 'Too many API requests, please try again later.',
         retryAfter: '15 minutes'
@@ -184,6 +187,22 @@ app.get('/rate-limit-status', (req, res) => {
         note: 'This endpoint can help reset rate limits by making a request'
     });
 });
+
+// Rate limit reset endpoint (development only)
+if (isDevelopment) {
+    app.get('/reset-rate-limits', (req, res) => {
+        // Clear rate limit stores
+        limiter.resetKey(req.ip);
+        authLimiter.resetKey(req.ip);
+        apiLimiter.resetKey(req.ip);
+        
+        res.status(200).json({ 
+            message: 'Rate limits reset for your IP',
+            timestamp: new Date().toISOString(),
+            ip: req.ip
+        });
+    });
+}
 
 // Configure file storage
 const uploadsDir = path.join(__dirname, 'uploads');
