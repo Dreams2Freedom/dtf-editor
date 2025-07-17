@@ -28,17 +28,15 @@ class AdminDashboard {
         if (loginForm) {
             loginForm.addEventListener('submit', (e) => {
                 console.log('Login form submitted');
-            e.preventDefault();
-            this.login();
-        });
+                e.preventDefault();
+                this.login();
+            });
         } else {
             console.error('Login form not found!');
         }
 
-        // Logout button is handled dynamically in showDashboard()
-
         // Tab switching
-        document.querySelectorAll('.tab-btn').forEach(btn => {
+        document.querySelectorAll('.tab-nav-button').forEach(btn => {
             btn.addEventListener('click', (e) => {
                 this.switchTab(e.target.dataset.tab);
             });
@@ -48,23 +46,23 @@ class AdminDashboard {
         const refreshUsersBtn = document.getElementById('refreshUsers');
         if (refreshUsersBtn) {
             refreshUsersBtn.addEventListener('click', () => {
-            this.loadUsers();
-        });
+                this.loadUsers();
+            });
         }
 
         const userSearchInput = document.getElementById('userSearch');
         if (userSearchInput) {
             userSearchInput.addEventListener('input', (e) => {
-            this.filterUsers(e.target.value);
-        });
+                this.filterUsers(e.target.value);
+            });
         }
 
         // Logs
         const refreshLogsBtn = document.getElementById('refreshLogs');
         if (refreshLogsBtn) {
             refreshLogsBtn.addEventListener('click', () => {
-            this.loadLogs();
-        });
+                this.loadLogs();
+            });
         }
 
         // Costs
@@ -89,12 +87,35 @@ class AdminDashboard {
             });
         }
 
-        // Modal
+        // Modal close buttons
         const closeUserModalBtn = document.getElementById('closeUserModal');
         if (closeUserModalBtn) {
             closeUserModalBtn.addEventListener('click', () => {
-            this.closeUserModal();
-        });
+                this.closeUserModal();
+            });
+        }
+
+        const closeEditModalBtn = document.getElementById('closeEditModal');
+        if (closeEditModalBtn) {
+            closeEditModalBtn.addEventListener('click', () => {
+                this.closeEditUserModal();
+            });
+        }
+
+        const cancelEditBtn = document.getElementById('cancelEdit');
+        if (cancelEditBtn) {
+            cancelEditBtn.addEventListener('click', () => {
+                this.closeEditUserModal();
+            });
+        }
+
+        // Edit user form
+        const editUserForm = document.getElementById('editUserForm');
+        if (editUserForm) {
+            editUserForm.addEventListener('submit', (e) => {
+                e.preventDefault();
+                this.saveUserChanges();
+            });
         }
     }
 
@@ -185,6 +206,7 @@ class AdminDashboard {
         console.log('showDashboard called');
         document.getElementById('loginSection').classList.add('hidden');
         document.getElementById('dashboardSection').classList.remove('hidden');
+        
         // Update the auth container with user info
         const authContainer = document.getElementById('authContainer');
         console.log('Auth container found:', !!authContainer);
@@ -198,46 +220,35 @@ class AdminDashboard {
                     </div>
                     <span class="bg-red-100 text-red-800 text-xs px-2 py-1 rounded-full">Admin</span>
                     <button 
-                        id="logoutBtn"
-                        class="text-gray-700 hover:text-primary-600 transition-colors px-3 py-2 rounded-md text-sm font-medium"
+                        onclick="adminDashboard.logout()" 
+                        class="btn-nav"
                     >
                         Logout
                     </button>
                 </div>
             `;
-            
-            // Add event listener to the dynamically created logout button
-            const logoutBtn = document.getElementById('logoutBtn');
-            if (logoutBtn) {
-                console.log('Adding event listener to logout button');
-                logoutBtn.addEventListener('click', () => {
-                    console.log('Logout button clicked');
-                    this.logout();
-                });
-            }
         }
     }
 
     switchTab(tabName) {
-        // Update tab buttons
-        document.querySelectorAll('.tab-btn').forEach(btn => {
-            btn.classList.remove('active', 'border-primary-500', 'text-primary-600');
-            btn.classList.add('border-transparent', 'text-gray-500');
+        // Remove active class from all tabs
+        document.querySelectorAll('.tab-nav-button').forEach(btn => {
+            btn.classList.remove('active');
         });
-
-        const activeBtn = document.querySelector(`[data-tab="${tabName}"]`);
-        activeBtn.classList.add('active', 'border-primary-500', 'text-primary-600');
-        activeBtn.classList.remove('border-transparent', 'text-gray-500');
-
-        // Update tab content
+        
+        // Add active class to clicked tab
+        document.querySelector(`[data-tab="${tabName}"]`).classList.add('active');
+        
+        // Hide all tab content
         document.querySelectorAll('.tab-content').forEach(content => {
             content.classList.add('hidden');
         });
-
+        
+        // Show selected tab content
         document.getElementById(`${tabName}Tab`).classList.remove('hidden');
-
-        // Load tab-specific data
-        switch (tabName) {
+        
+        // Load data for the selected tab
+        switch(tabName) {
             case 'users':
                 this.loadUsers();
                 break;
@@ -256,7 +267,9 @@ class AdminDashboard {
     async loadDashboardData() {
         await Promise.all([
             this.loadUsers(),
-            this.loadAnalytics()
+            this.loadAnalytics(),
+            this.loadCosts(),
+            this.loadLogs()
         ]);
     }
 
@@ -284,165 +297,125 @@ class AdminDashboard {
 
     renderUsers() {
         const tbody = document.getElementById('usersTableBody');
-        tbody.innerHTML = '';
+        if (!tbody) return;
 
-        this.users.forEach(user => {
-            const row = document.createElement('tr');
-            row.innerHTML = `
-                <td class="px-6 py-4 whitespace-nowrap">
+        tbody.innerHTML = this.users.map(user => `
+            <tr>
+                <td>
                     <div class="flex items-center">
                         <div class="flex-shrink-0 h-10 w-10">
                             <div class="h-10 w-10 rounded-full bg-gray-300 flex items-center justify-center">
                                 <span class="text-sm font-medium text-gray-700">
-                                    ${user.first_name ? user.first_name.charAt(0) : 'U'}
+                                    ${(user.first_name || '').charAt(0)}${(user.last_name || '').charAt(0)}
                                 </span>
                             </div>
                         </div>
                         <div class="ml-4">
                             <div class="text-sm font-medium text-gray-900">
-                                ${user.first_name} ${user.last_name}
+                                ${user.first_name || ''} ${user.last_name || ''}
                             </div>
                             <div class="text-sm text-gray-500">${user.email}</div>
                         </div>
                     </div>
                 </td>
-                <td class="px-6 py-4 whitespace-nowrap">
-                    <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                        user.subscription_status === 'active' ? 'bg-green-100 text-green-800' :
-                        user.subscription_status === 'canceled' ? 'bg-red-100 text-red-800' :
-                        'bg-gray-100 text-gray-800'
-                    }">
-                        ${user.subscription_plan || 'Free'}
-                    </span>
+                <td class="text-sm text-gray-900">
+                    ${user.subscription_plan ? user.subscription_plan.name : 'No Subscription'}
                 </td>
-                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    ${user.credits_remaining} / ${user.total_credits_purchased}
-                </td>
-                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    ${user.credits_used || 0}
-                </td>
-                <td class="px-6 py-4 whitespace-nowrap">
+                <td class="text-sm text-gray-900">${user.credits_remaining || 0}</td>
+                <td class="text-sm text-gray-900">${user.images_count || 0}</td>
+                <td>
                     <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
                         user.is_active ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
                     }">
                         ${user.is_active ? 'Active' : 'Inactive'}
                     </span>
                 </td>
-                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                    <button data-action="view" data-user-id="${user.id}" class="btn btn-secondary mr-2">
-                        View
-                    </button>
-                    <button data-action="edit" data-user-id="${user.id}" class="btn btn-primary mr-2">
-                        Edit
-                    </button>
-                    <button data-action="toggle" data-user-id="${user.id}" class="btn btn-nav">
+                <td class="text-sm font-medium">
+                    <button onclick="adminDashboard.viewUser('${user.id}')" class="action-btn view">View</button>
+                    <button onclick="adminDashboard.editUser('${user.id}')" class="action-btn edit">Edit</button>
+                    <button onclick="adminDashboard.toggleUserStatus('${user.id}')" class="action-btn ${user.is_active ? 'delete' : 'view'}">
                         ${user.is_active ? 'Deactivate' : 'Activate'}
                     </button>
                 </td>
-            `;
-            tbody.appendChild(row);
-        });
-
-        // Add event listeners to the buttons
-        tbody.addEventListener('click', (e) => {
-            const button = e.target.closest('button[data-action]');
-            if (!button) return;
-
-            const action = button.dataset.action;
-            const userId = parseInt(button.dataset.userId);
-
-            switch (action) {
-                case 'view':
-                    this.viewUser(userId);
-                    break;
-                case 'edit':
-                    this.editUser(userId);
-                    break;
-                case 'toggle':
-                    this.toggleUserStatus(userId);
-                    break;
-            }
-        });
+            </tr>
+        `).join('');
     }
 
     filterUsers(searchTerm) {
+        if (!searchTerm) {
+            this.renderUsers();
+            return;
+        }
+
         const filteredUsers = this.users.filter(user => 
             user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            user.first_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            user.last_name?.toLowerCase().includes(searchTerm.toLowerCase())
+            (user.first_name && user.first_name.toLowerCase().includes(searchTerm.toLowerCase())) ||
+            (user.last_name && user.last_name.toLowerCase().includes(searchTerm.toLowerCase()))
         );
+
         this.renderFilteredUsers(filteredUsers);
     }
 
     renderFilteredUsers(users) {
         const tbody = document.getElementById('usersTableBody');
-        tbody.innerHTML = '';
+        if (!tbody) return;
 
-        users.forEach(user => {
-            const row = document.createElement('tr');
-            row.innerHTML = `
-                <td class="px-6 py-4 whitespace-nowrap">
+        tbody.innerHTML = users.map(user => `
+            <tr>
+                <td>
                     <div class="flex items-center">
                         <div class="flex-shrink-0 h-10 w-10">
                             <div class="h-10 w-10 rounded-full bg-gray-300 flex items-center justify-center">
                                 <span class="text-sm font-medium text-gray-700">
-                                    ${user.first_name ? user.first_name.charAt(0) : 'U'}
+                                    ${(user.first_name || '').charAt(0)}${(user.last_name || '').charAt(0)}
                                 </span>
                             </div>
                         </div>
                         <div class="ml-4">
                             <div class="text-sm font-medium text-gray-900">
-                                ${user.first_name} ${user.last_name}
+                                ${user.first_name || ''} ${user.last_name || ''}
                             </div>
                             <div class="text-sm text-gray-500">${user.email}</div>
                         </div>
                     </div>
                 </td>
-                <td class="px-6 py-4 whitespace-nowrap">
-                    <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                        user.subscription_status === 'active' ? 'bg-green-100 text-green-800' :
-                        user.subscription_status === 'canceled' ? 'bg-red-100 text-red-800' :
-                        'bg-gray-100 text-gray-800'
-                    }">
-                        ${user.subscription_plan || 'Free'}
-                    </span>
+                <td class="text-sm text-gray-900">
+                    ${user.subscription_plan ? user.subscription_plan.name : 'No Subscription'}
                 </td>
-                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    ${user.credits_remaining} / ${user.total_credits_purchased}
-                </td>
-                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    ${user.credits_used || 0}
-                </td>
-                <td class="px-6 py-4 whitespace-nowrap">
+                <td class="text-sm text-gray-900">${user.credits_remaining || 0}</td>
+                <td class="text-sm text-gray-900">${user.images_count || 0}</td>
+                <td>
                     <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
                         user.is_active ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
                     }">
                         ${user.is_active ? 'Active' : 'Inactive'}
                     </span>
                 </td>
-                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                    <button data-action="view" data-user-id="${user.id}" class="btn btn-secondary mr-2">
-                        View
-                    </button>
-                    <button data-action="edit" data-user-id="${user.id}" class="btn btn-primary mr-2">
-                        Edit
-                    </button>
-                    <button data-action="toggle" data-user-id="${user.id}" class="btn btn-nav">
+                <td class="text-sm font-medium">
+                    <button onclick="adminDashboard.viewUser('${user.id}')" class="action-btn view">View</button>
+                    <button onclick="adminDashboard.editUser('${user.id}')" class="action-btn edit">Edit</button>
+                    <button onclick="adminDashboard.toggleUserStatus('${user.id}')" class="action-btn ${user.is_active ? 'delete' : 'view'}">
                         ${user.is_active ? 'Deactivate' : 'Activate'}
                     </button>
                 </td>
-            `;
-            tbody.appendChild(row);
-        });
+            </tr>
+        `).join('');
     }
 
     updateStats() {
         const totalUsers = this.users.length;
-        const activeSubscribers = this.users.filter(u => u.subscription_status === 'active').length;
-        const totalImages = this.users.reduce((sum, u) => sum + (u.credits_used || 0), 0);
+        const activeSubscribers = this.users.filter(u => u.subscription_plan && u.is_active).length;
+        const totalImages = this.users.reduce((sum, u) => sum + (u.images_count || 0), 0);
+        const monthlyRevenue = this.users.reduce((sum, u) => {
+            if (u.subscription_plan && u.is_active) {
+                return sum + (u.subscription_plan.price || 0);
+            }
+            return sum;
+        }, 0);
 
         document.getElementById('totalUsers').textContent = totalUsers;
         document.getElementById('activeSubscribers').textContent = activeSubscribers;
+        document.getElementById('monthlyRevenue').textContent = `$${monthlyRevenue.toFixed(2)}`;
         document.getElementById('totalImages').textContent = totalImages;
     }
 
@@ -456,7 +429,7 @@ class AdminDashboard {
 
             if (response.ok) {
                 const data = await response.json();
-                this.analytics = data.analytics;
+                this.analytics = data;
                 this.renderAnalytics();
             } else {
                 this.showNotification('Failed to load analytics', 'error');
@@ -468,37 +441,42 @@ class AdminDashboard {
     }
 
     renderAnalytics() {
-        // Subscription stats
         const subscriptionStats = document.getElementById('subscriptionStats');
-        subscriptionStats.innerHTML = `
-            <div class="flex justify-between">
-                <span>Total Subscribers:</span>
-                <span class="font-semibold">${this.analytics.total_subscribers || 0}</span>
-            </div>
-            <div class="flex justify-between">
-                <span>Active Subscribers:</span>
-                <span class="font-semibold text-green-600">${this.analytics.active_subscribers || 0}</span>
-            </div>
-            <div class="flex justify-between">
-                <span>Canceled Subscribers:</span>
-                <span class="font-semibold text-red-600">${this.analytics.canceled_subscribers || 0}</span>
-            </div>
-        `;
-
-        // Revenue stats
         const revenueStats = document.getElementById('revenueStats');
-        revenueStats.innerHTML = `
-            <div class="flex justify-between">
-                <span>Monthly Revenue:</span>
-                <span class="font-semibold text-blue-600">$${(this.analytics.monthly_recurring_revenue || 0).toFixed(2)}</span>
-            </div>
-            <div class="flex justify-between">
-                <span>Total Subscriptions:</span>
-                <span class="font-semibold">${this.analytics.total_subscriptions || 0}</span>
-            </div>
-        `;
 
-        document.getElementById('monthlyRevenue').textContent = `$${(this.analytics.monthly_recurring_revenue || 0).toFixed(2)}`;
+        if (subscriptionStats) {
+            subscriptionStats.innerHTML = `
+                <div class="flex justify-between">
+                    <span class="text-gray-600">Total Subscriptions:</span>
+                    <span class="font-semibold">${this.analytics.total_subscriptions || 0}</span>
+                </div>
+                <div class="flex justify-between">
+                    <span class="text-gray-600">Active Subscriptions:</span>
+                    <span class="font-semibold">${this.analytics.active_subscriptions || 0}</span>
+                </div>
+                <div class="flex justify-between">
+                    <span class="text-gray-600">Free Users:</span>
+                    <span class="font-semibold">${this.analytics.free_users || 0}</span>
+                </div>
+            `;
+        }
+
+        if (revenueStats) {
+            revenueStats.innerHTML = `
+                <div class="flex justify-between">
+                    <span class="text-gray-600">Monthly Revenue:</span>
+                    <span class="font-semibold">$${(this.analytics.monthly_revenue || 0).toFixed(2)}</span>
+                </div>
+                <div class="flex justify-between">
+                    <span class="text-gray-600">Total Revenue:</span>
+                    <span class="font-semibold">$${(this.analytics.total_revenue || 0).toFixed(2)}</span>
+                </div>
+                <div class="flex justify-between">
+                    <span class="text-gray-600">Avg. Revenue/User:</span>
+                    <span class="font-semibold">$${(this.analytics.avg_revenue_per_user || 0).toFixed(2)}</span>
+                </div>
+            `;
+        }
     }
 
     async loadLogs() {
@@ -524,37 +502,33 @@ class AdminDashboard {
 
     renderLogs() {
         const tbody = document.getElementById('logsTableBody');
-        tbody.innerHTML = '';
+        if (!tbody) return;
 
-        this.logs.forEach(log => {
-            const row = document.createElement('tr');
-            row.innerHTML = `
-                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    ${log.admin_email || 'Unknown'}
+        tbody.innerHTML = this.logs.map(log => `
+            <tr>
+                <td class="text-sm text-gray-900">${new Date(log.created_at).toLocaleString()}</td>
+                <td>
+                    <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                        log.level === 'error' ? 'bg-red-100 text-red-800' :
+                        log.level === 'warning' ? 'bg-yellow-100 text-yellow-800' :
+                        'bg-blue-100 text-blue-800'
+                    }">
+                        ${log.level}
+                    </span>
                 </td>
-                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    ${log.action}
-                </td>
-                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    ${log.target_email || 'N/A'}
-                </td>
-                <td class="px-6 py-4 text-sm text-gray-900">
-                    ${log.details || 'No details'}
-                </td>
-                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    ${new Date(log.created_at).toLocaleString()}
-                </td>
-            `;
-            tbody.appendChild(row);
-        });
+                <td class="text-sm text-gray-900">${log.action}</td>
+                <td class="text-sm text-gray-900">${log.user_email || 'System'}</td>
+                <td class="text-sm text-gray-900">${log.details}</td>
+            </tr>
+        `).join('');
     }
 
     async loadCosts() {
         try {
             const period = document.getElementById('costPeriod')?.value || '30d';
             const service = document.getElementById('costService')?.value || '';
-            
-            const response = await fetch(`/api/admin/cost-analytics?period=${period}&service=${service}`, {
+
+            const response = await fetch(`/api/admin/costs?period=${period}&service=${service}`, {
                 headers: {
                     'Authorization': `Bearer ${this.token}`
                 }
@@ -562,115 +536,64 @@ class AdminDashboard {
 
             if (response.ok) {
                 const data = await response.json();
-                this.costAnalytics = data.cost_analytics;
-                this.renderCosts();
+                this.renderCosts(data);
             } else {
-                this.showNotification('Failed to load cost analytics', 'error');
+                this.showNotification('Failed to load cost data', 'error');
             }
         } catch (error) {
-            console.error('Error loading cost analytics:', error);
-            this.showNotification('Failed to load cost analytics', 'error');
+            console.error('Error loading costs:', error);
+            this.showNotification('Failed to load cost data', 'error');
         }
     }
 
-    renderCosts() {
-        if (!this.costAnalytics) return;
-
-        // Update summary cards
-        const totalCost = this.costAnalytics.costs_by_service.reduce((sum, service) => sum + parseFloat(service.total_cost || 0), 0);
-        const vectorizerCost = this.costAnalytics.costs_by_service.find(s => s.service_name === 'vectorizer')?.total_cost || 0;
-        const clippingMagicCost = this.costAnalytics.costs_by_service.find(s => s.service_name === 'clipping_magic')?.total_cost || 0;
-
-        document.getElementById('totalApiCosts').textContent = `$${totalCost.toFixed(4)}`;
-        document.getElementById('vectorizerCosts').textContent = `$${parseFloat(vectorizerCost).toFixed(4)}`;
-        document.getElementById('clippingMagicCosts').textContent = `$${parseFloat(clippingMagicCost).toFixed(4)}`;
-
-        // Calculate profit margin (simplified - you can enhance this with actual revenue data)
-        const monthlyRevenue = this.analytics?.monthly_recurring_revenue || 0;
-        const profitMargin = monthlyRevenue > 0 ? ((monthlyRevenue - totalCost) / monthlyRevenue * 100) : 0;
+    renderCosts(data) {
+        // Update cost summary cards
+        document.getElementById('totalApiCosts').textContent = `$${data.total_cost.toFixed(2)}`;
+        document.getElementById('vectorizerCosts').textContent = `$${data.vectorizer_cost.toFixed(2)}`;
+        document.getElementById('clippingMagicCosts').textContent = `$${data.clipping_magic_cost.toFixed(2)}`;
+        
+        const profitMargin = data.total_revenue > 0 ? ((data.total_revenue - data.total_cost) / data.total_revenue * 100) : 0;
         document.getElementById('profitMargin').textContent = `${profitMargin.toFixed(1)}%`;
 
-        // Render costs table
-        const tbody = document.getElementById('costsTableBody');
-        tbody.innerHTML = '';
-
-        this.costAnalytics.costs_by_service.forEach(service => {
-            const row = document.createElement('tr');
-            const successRate = service.total_requests > 0 ? (service.successful_requests / service.total_requests * 100) : 0;
-            const avgResponseTime = service.avg_response_time || 0;
-            
-            row.innerHTML = `
-                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-medium">
-                    ${service.service_name.charAt(0).toUpperCase() + service.service_name.slice(1)}
-                </td>
-                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    $${parseFloat(service.total_cost).toFixed(4)}
-                </td>
-                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    ${service.total_requests}
-                </td>
-                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    <span class="px-2 py-1 text-xs rounded-full ${successRate >= 95 ? 'bg-green-100 text-green-800' : successRate >= 80 ? 'bg-yellow-100 text-yellow-800' : 'bg-red-100 text-red-800'}">
-                        ${successRate.toFixed(1)}%
-                    </span>
-                </td>
-                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    ${avgResponseTime > 0 ? `${avgResponseTime.toFixed(0)}ms` : 'N/A'}
-                </td>
-            `;
-            tbody.appendChild(row);
-        });
-
-        // Render simple charts (you can enhance with Chart.js or similar)
-        this.renderCostCharts();
+        // Render charts
+        this.renderCostCharts(data);
     }
 
-    renderCostCharts() {
-        // Simple cost vs revenue chart
+    renderCostCharts(data) {
+        // Simple chart placeholders - you can replace with actual chart library
         const costRevenueChart = document.getElementById('costRevenueChart');
-        if (this.costAnalytics && this.costAnalytics.revenue_data) {
-            const totalRevenue = this.costAnalytics.revenue_data.reduce((sum, day) => sum + (day.credits_purchased || 0), 0);
-            const totalCost = this.costAnalytics.costs_by_service.reduce((sum, service) => sum + parseFloat(service.total_cost || 0), 0);
-            
+        const dailyCostChart = document.getElementById('dailyCostChart');
+
+        if (costRevenueChart) {
             costRevenueChart.innerHTML = `
-                <div class="w-full h-full flex items-center justify-center space-x-8">
+                <div class="h-full flex items-center justify-center">
                     <div class="text-center">
-                        <div class="text-2xl font-bold text-green-600">$${totalRevenue.toFixed(2)}</div>
-                        <div class="text-sm text-gray-600">Total Revenue</div>
-                    </div>
-                    <div class="text-center">
-                        <div class="text-2xl font-bold text-red-600">$${totalCost.toFixed(4)}</div>
-                        <div class="text-sm text-gray-600">Total Costs</div>
-                    </div>
-                    <div class="text-center">
-                        <div class="text-2xl font-bold ${totalRevenue > totalCost ? 'text-green-600' : 'text-red-600'}">
-                            $${(totalRevenue - totalCost).toFixed(2)}
+                        <h4 class="font-semibold text-gray-900 mb-2">Cost vs Revenue</h4>
+                        <div class="space-y-2">
+                            <div class="flex justify-between">
+                                <span>Revenue:</span>
+                                <span class="font-semibold text-green-600">$${data.total_revenue.toFixed(2)}</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span>Costs:</span>
+                                <span class="font-semibold text-red-600">$${data.total_cost.toFixed(2)}</span>
+                            </div>
+                            <div class="flex justify-between border-t pt-2">
+                                <span>Profit:</span>
+                                <span class="font-semibold text-blue-600">$${(data.total_revenue - data.total_cost).toFixed(2)}</span>
+                            </div>
                         </div>
-                        <div class="text-sm text-gray-600">Net Profit</div>
                     </div>
                 </div>
             `;
         }
 
-        // Simple daily cost trend
-        const dailyCostChart = document.getElementById('dailyCostChart');
-        if (this.costAnalytics && this.costAnalytics.daily_breakdown) {
-            const dailyData = this.costAnalytics.daily_breakdown.slice(0, 7); // Last 7 days
-            const maxCost = Math.max(...dailyData.map(d => parseFloat(d.daily_cost || 0)));
-            
+        if (dailyCostChart) {
             dailyCostChart.innerHTML = `
-                <div class="w-full h-full p-4">
-                    <div class="flex items-end justify-between h-full space-x-2">
-                        ${dailyData.map(day => {
-                            const height = maxCost > 0 ? (parseFloat(day.daily_cost || 0) / maxCost * 100) : 0;
-                            return `
-                                <div class="flex-1 flex flex-col items-center">
-                                    <div class="bg-blue-500 rounded-t w-full" style="height: ${height}%"></div>
-                                    <div class="text-xs text-gray-600 mt-2">$${parseFloat(day.daily_cost || 0).toFixed(3)}</div>
-                                    <div class="text-xs text-gray-500">${new Date(day.date).toLocaleDateString()}</div>
-                                </div>
-                            `;
-                        }).join('')}
+                <div class="h-full flex items-center justify-center">
+                    <div class="text-center">
+                        <h4 class="font-semibold text-gray-900 mb-2">Daily Cost Trends</h4>
+                        <p class="text-gray-600">Chart data available</p>
                     </div>
                 </div>
             `;
@@ -687,7 +610,7 @@ class AdminDashboard {
 
             if (response.ok) {
                 const data = await response.json();
-                this.showUserModal(data);
+                this.showUserModal(data.user);
             } else {
                 this.showNotification('Failed to load user details', 'error');
             }
@@ -703,26 +626,50 @@ class AdminDashboard {
 
         content.innerHTML = `
             <div class="space-y-6">
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div class="space-y-3">
-                        <h4 class="font-semibold text-gray-900">User Information</h4>
-                        <div class="space-y-2 text-sm">
-                            <p><strong>Name:</strong> ${userData.user.first_name} ${userData.user.last_name}</p>
-                            <p><strong>Email:</strong> ${userData.user.email}</p>
-                            <p><strong>Company:</strong> ${userData.user.company || 'N/A'}</p>
-                            <p><strong>Joined:</strong> ${new Date(userData.user.created_at).toLocaleDateString()}</p>
+                <div class="flex items-center space-x-4">
+                    <div class="flex-shrink-0 h-16 w-16">
+                        <div class="h-16 w-16 rounded-full bg-gray-300 flex items-center justify-center">
+                            <span class="text-lg font-medium text-gray-700">
+                                ${(userData.first_name || '').charAt(0)}${(userData.last_name || '').charAt(0)}
+                            </span>
                         </div>
                     </div>
-                    <div class="space-y-3">
-                        <h4 class="font-semibold text-gray-900">Subscription</h4>
-                        <div class="space-y-2 text-sm">
-                            <p><strong>Status:</strong> ${userData.user.subscription_status}</p>
-                            <p><strong>Plan:</strong> ${userData.user.subscription_plan}</p>
-                            <p><strong>Credits:</strong> ${userData.user.credits_remaining} remaining</p>
-                            <p><strong>Used:</strong> ${userData.user.credits_used} credits</p>
-                        </div>
+                    <div>
+                        <h3 class="text-lg font-semibold text-gray-900">
+                            ${userData.first_name || ''} ${userData.last_name || ''}
+                        </h3>
+                        <p class="text-gray-600">${userData.email}</p>
+                        <p class="text-sm text-gray-500">${userData.company || 'No company'}</p>
                     </div>
                 </div>
+
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <h4 class="font-semibold text-gray-900">Account Status</h4>
+                        <p class="text-sm text-gray-600">
+                            <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                                userData.is_active ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                            }">
+                                ${userData.is_active ? 'Active' : 'Inactive'}
+                            </span>
+                        </p>
+                    </div>
+                    <div>
+                        <h4 class="font-semibold text-gray-900">Credits Remaining</h4>
+                        <p class="text-sm text-gray-600">${userData.credits_remaining || 0}</p>
+                    </div>
+                    <div>
+                        <h4 class="font-semibold text-gray-900">Subscription</h4>
+                        <p class="text-sm text-gray-600">
+                            ${userData.subscription_plan ? userData.subscription_plan.name : 'No Subscription'}
+                        </p>
+                    </div>
+                    <div>
+                        <h4 class="font-semibold text-gray-900">Images Generated</h4>
+                        <p class="text-sm text-gray-600">${userData.images_count || 0}</p>
+                    </div>
+                </div>
+
                 <div class="space-y-3">
                     <h4 class="font-semibold text-gray-900">Recent Images (${userData.images.length})</h4>
                     <div class="max-h-40 overflow-y-auto border border-gray-200 rounded-md p-3">
@@ -742,6 +689,10 @@ class AdminDashboard {
 
     closeUserModal() {
         document.getElementById('userModal').classList.add('hidden');
+    }
+
+    closeEditUserModal() {
+        document.getElementById('editUserModal').classList.add('hidden');
     }
 
     async editUser(userId) {
@@ -765,84 +716,32 @@ class AdminDashboard {
     }
 
     showEditUserModal(user) {
-        const modal = document.getElementById('userModal');
-        const content = document.getElementById('userModalContent');
+        // Populate the edit form fields
+        document.getElementById('editUserId').value = user.id;
+        document.getElementById('editFirstName').value = user.first_name || '';
+        document.getElementById('editLastName').value = user.last_name || '';
+        document.getElementById('editEmail').value = user.email || '';
+        document.getElementById('editCompany').value = user.company || '';
+        document.getElementById('editCredits').value = user.credits_remaining || 0;
+        document.getElementById('editStatus').value = user.is_active ? 'active' : 'suspended';
 
-        content.innerHTML = `
-            <div class="space-y-6">
-                <h3 class="text-lg font-semibold text-gray-900">Edit User: ${user.email}</h3>
-                
-                <form id="editUserForm" class="space-y-6">
-                    <input type="hidden" id="editUserId" value="${user.id}">
-                    
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div class="space-y-2">
-                            <label for="editFirstName" class="block text-sm font-medium text-gray-700">First Name</label>
-                            <input type="text" id="editFirstName" value="${user.first_name || ''}" 
-                                   class="block w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-                        </div>
-                        <div class="space-y-2">
-                            <label for="editLastName" class="block text-sm font-medium text-gray-700">Last Name</label>
-                            <input type="text" id="editLastName" value="${user.last_name || ''}" 
-                                   class="block w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-                        </div>
-                    </div>
-                    
-                    <div class="space-y-2">
-                        <label for="editCompany" class="block text-sm font-medium text-gray-700">Company</label>
-                        <input type="text" id="editCompany" value="${user.company || ''}" 
-                               class="block w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-                    </div>
-                    
-                    <div class="space-y-2">
-                        <label for="editCredits" class="block text-sm font-medium text-gray-700">Credits Remaining</label>
-                        <input type="number" id="editCredits" value="${user.credits_remaining || 0}" min="0"
-                               class="block w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-                    </div>
-                    
-                    <div class="flex items-center space-x-3">
-                        <input type="checkbox" id="editIsActive" ${user.is_active ? 'checked' : ''} 
-                               class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded">
-                        <label for="editIsActive" class="block text-sm text-gray-900">Active Account</label>
-                    </div>
-                    
-                    <div class="flex justify-end space-x-3 pt-4 border-t border-gray-200">
-                        <button type="button" id="cancelEdit" 
-                                class="bg-gray-500 text-white px-4 py-2 rounded-md hover:bg-gray-600 transition-colors">
-                            Cancel
-                        </button>
-                        <button type="submit" 
-                                class="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors">
-                            Save Changes
-                        </button>
-                    </div>
-                </form>
-            </div>
-        `;
-
-        modal.classList.remove('hidden');
-
-        // Add event listeners
-        const form = document.getElementById('editUserForm');
-        const cancelBtn = document.getElementById('cancelEdit');
-
-        form.addEventListener('submit', (e) => {
-            e.preventDefault();
-            this.saveUserChanges();
-        });
-
-        cancelBtn.addEventListener('click', () => {
-            this.closeUserModal();
-        });
+        // Show the modal
+        document.getElementById('editUserModal').classList.remove('hidden');
     }
 
     async saveUserChanges() {
-        const userId = document.getElementById('editUserId').value;
+        const userId = document.getElementById('editUserId')?.value;
         const firstName = document.getElementById('editFirstName').value;
         const lastName = document.getElementById('editLastName').value;
+        const email = document.getElementById('editEmail').value;
         const company = document.getElementById('editCompany').value;
         const credits = parseInt(document.getElementById('editCredits').value);
-        const isActive = document.getElementById('editIsActive').checked;
+        const status = document.getElementById('editStatus').value;
+
+        if (!userId) {
+            this.showNotification('User ID not found', 'error');
+            return;
+        }
 
         try {
             const response = await fetch(`/api/admin/users/${userId}`, {
@@ -854,15 +753,16 @@ class AdminDashboard {
                 body: JSON.stringify({
                     first_name: firstName,
                     last_name: lastName,
+                    email: email,
                     company: company,
                     credits_remaining: credits,
-                    is_active: isActive
+                    is_active: status === 'active'
                 })
             });
 
             if (response.ok) {
                 this.showNotification('User updated successfully', 'success');
-                this.closeUserModal();
+                this.closeEditUserModal();
                 this.loadUsers(); // Refresh the users list
             } else {
                 const errorData = await response.json();
