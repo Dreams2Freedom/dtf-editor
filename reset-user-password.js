@@ -14,7 +14,7 @@ async function resetUserPassword() {
         const client = await pool.connect();
         
         // Hash the new password
-        const newPassword = 'test123';
+        const newPassword = 'pl$A9jNvpu4Duj4Fs9S8';
         const saltRounds = 10;
         const passwordHash = await bcrypt.hash(newPassword, saltRounds);
         
