@@ -16,6 +16,20 @@ class VectorizeApp {
         this.downloadBtn = document.getElementById('vectorizeDownloadBtn');
         this.newBtn = document.getElementById('vectorizeNewBtn');
         
+        // Debug element finding
+        console.log('Elements found:', {
+            uploadArea: !!this.uploadArea,
+            fileInput: !!this.fileInput,
+            progress: !!this.progress,
+            progressBar: !!this.progressBar,
+            progressText: !!this.progressText,
+            result: !!this.result,
+            original: !!this.original,
+            resultImg: !!this.resultImg,
+            downloadBtn: !!this.downloadBtn,
+            newBtn: !!this.newBtn
+        });
+        
         // API configuration
         this.vectorizerEndpoint = '/api/vectorize';
         this.previewEndpoint = '/api/preview';
@@ -189,11 +203,63 @@ class VectorizeApp {
     }
 
     showPreviewResults(previewData) {
+        console.log('showPreviewResults called with:', previewData);
+        
         // Hide progress
         this.progress.classList.add('hidden');
         
+        // Check if resultImg element exists
+        if (!this.resultImg) {
+            console.error('resultImg element not found!');
+            this.showError('Failed to display preview - element not found');
+            return;
+        }
+        
         // Set preview image
-        this.resultImg.src = previewData.previewUrl;
+        console.log('Setting resultImg.src to:', previewData.previewUrl);
+        
+        // For SVG files, we might need to set the type
+        if (previewData.previewUrl.includes('blob:')) {
+            // It's a blob URL, check if it's SVG
+            fetch(previewData.previewUrl)
+                .then(response => response.text())
+                .then(svgContent => {
+                    if (svgContent.trim().startsWith('<svg')) {
+                        // It's an SVG, create a data URL
+                        const svgBlob = new Blob([svgContent], { type: 'image/svg+xml' });
+                        const svgUrl = URL.createObjectURL(svgBlob);
+                        this.resultImg.src = svgUrl;
+                        console.log('SVG preview set successfully');
+                    } else {
+                        // Not SVG, use as is
+                        this.resultImg.src = previewData.previewUrl;
+                        console.log('Non-SVG preview set successfully');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error processing preview:', error);
+                    this.resultImg.src = previewData.previewUrl;
+                });
+        } else {
+            this.resultImg.src = previewData.previewUrl;
+        }
+        
+        // Add error handling for image load
+        this.resultImg.onerror = (e) => {
+            console.error('Failed to load preview image:', e);
+            this.showError('Failed to load preview image');
+        };
+        
+        this.resultImg.onload = () => {
+            console.log('Preview image loaded successfully');
+        };
+        
+        // Check if result element exists
+        if (!this.result) {
+            console.error('result element not found!');
+            this.showError('Failed to display results - element not found');
+            return;
+        }
         
         // Show result section
         this.result.classList.remove('hidden');
@@ -201,6 +267,8 @@ class VectorizeApp {
         
         // Scroll to results
         this.result.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        
+        console.log('Preview results displayed successfully');
     }
 
     showError(message) {
