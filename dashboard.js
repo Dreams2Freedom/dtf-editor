@@ -497,18 +497,18 @@ class UserDashboard {
         infoDiv.innerHTML = `
             <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
-                    <h4 class="font-semibold text-gray-900">Current Plan</h4>
-                    <p class="text-lg">${user.subscription_plan || 'Free'}</p>
+                    <h4 class="font-semibold text-primary">Current Plan</h4>
+                    <p class="text-lg text-gray-900">${user.subscription_plan || 'Free'}</p>
                 </div>
                 <div>
-                    <h4 class="font-semibold text-gray-900">Status</h4>
+                    <h4 class="font-semibold text-primary">Status</h4>
                     <p class="text-lg ${user.subscription_status === 'active' ? 'text-green-600' : 'text-red-600'}">
                         ${user.subscription_status || 'Inactive'}
                     </p>
                 </div>
                 <div>
-                    <h4 class="font-semibold text-gray-900">Next Billing</h4>
-                    <p class="text-lg">${data.subscription?.next_billing_date ? new Date(data.subscription.next_billing_date).toLocaleDateString() : 'N/A'}</p>
+                    <h4 class="font-semibold text-primary">Next Billing</h4>
+                    <p class="text-lg text-gray-900">${data.subscription?.next_billing_date ? new Date(data.subscription.next_billing_date).toLocaleDateString() : 'N/A'}</p>
                 </div>
             </div>
         `;
@@ -516,75 +516,60 @@ class UserDashboard {
         // Render subscription plans
         const plansDiv = document.getElementById('subscriptionPlans');
         plansDiv.innerHTML = `
-            <div class="bg-white border rounded-lg p-6">
-                <h4 class="text-lg font-semibold text-gray-900 mb-4">Free Plan</h4>
-                <p class="text-3xl font-bold text-gray-900 mb-4">$0<span class="text-lg text-gray-500">/month</span></p>
-                <ul class="space-y-2 mb-6">
-                    <li class="flex items-center">
-                        <span class="text-green-500 mr-2">✓</span>
-                        5 credits per month
-                    </li>
-                    <li class="flex items-center">
-                        <span class="text-green-500 mr-2">✓</span>
-                        Basic vectorization
-                    </li>
-                </ul>
-                <button class="w-full bg-gray-300 text-gray-700 py-2 px-4 rounded-md cursor-not-allowed">
-                    Current Plan
-                </button>
-            </div>
-            <div class="bg-white border-2 border-primary-500 rounded-lg p-6 relative">
-                <div class="absolute top-0 right-0 bg-primary-500 text-white px-3 py-1 rounded-bl-lg text-sm">
-                    Popular
+            <div class="pricing-card">
+                <div class="pricing-content">
+                    <h4 class="pricing-title">Basic Plan</h4>
+                    <div class="pricing-price">
+                        $9.99<span class="period">/month</span>
+                    </div>
+                    <ul class="pricing-features">
+                        <li><span class="check">✓</span>20 credits per month</li>
+                        <li><span class="check">✓</span>Vectorization</li>
+                        <li><span class="check">✓</span>Background removal</li>
+                        <li><span class="check">✓</span>Email support</li>
+                    </ul>
+                    <button class="btn-secondary w-full" disabled>
+                        Current Plan
+                    </button>
                 </div>
-                <h4 class="text-lg font-semibold text-gray-900 mb-4">Pro Plan</h4>
-                <p class="text-3xl font-bold text-gray-900 mb-4">$29<span class="text-lg text-gray-500">/month</span></p>
-                <ul class="space-y-2 mb-6">
-                    <li class="flex items-center">
-                        <span class="text-green-500 mr-2">✓</span>
-                        100 credits per month
-                    </li>
-                    <li class="flex items-center">
-                        <span class="text-green-500 mr-2">✓</span>
-                        Advanced vectorization
-                    </li>
-                    <li class="flex items-center">
-                        <span class="text-green-500 mr-2">✓</span>
-                        Background removal
-                    </li>
-                    <li class="flex items-center">
-                        <span class="text-green-500 mr-2">✓</span>
-                        Priority support
-                    </li>
-                </ul>
-                <button onclick="userDashboard.subscribe('pro')" class="w-full bg-primary-600 text-white py-2 px-4 rounded-md hover:bg-primary-700 transition-colors">
-                    Upgrade to Pro
-                </button>
             </div>
-            <div class="bg-white border rounded-lg p-6">
-                <h4 class="text-lg font-semibold text-gray-900 mb-4">Enterprise Plan</h4>
-                <p class="text-3xl font-bold text-gray-900 mb-4">$99<span class="text-lg text-gray-500">/month</span></p>
-                <ul class="space-y-2 mb-6">
-                    <li class="flex items-center">
-                        <span class="text-green-500 mr-2">✓</span>
-                        Unlimited credits
-                    </li>
-                    <li class="flex items-center">
-                        <span class="text-green-500 mr-2">✓</span>
-                        All features
-                    </li>
-                    <li class="flex items-center">
-                        <span class="text-green-500 mr-2">✓</span>
-                        API access
-                    </li>
-                    <li class="flex items-center">
-                        <span class="text-green-500 mr-2">✓</span>
-                        Dedicated support
-                    </li>
-                </ul>
-                <button onclick="userDashboard.subscribe('enterprise')" class="w-full bg-gray-600 text-white py-2 px-4 rounded-md hover:bg-gray-700 transition-colors">
-                    Contact Sales
-                </button>
+            <div class="pricing-card popular">
+                <div class="pricing-badge">
+                    <span>Popular</span>
+                </div>
+                <div class="pricing-content">
+                    <h4 class="pricing-title">Starter Plan</h4>
+                    <div class="pricing-price">
+                        $24.99<span class="period">/month</span>
+                    </div>
+                    <ul class="pricing-features">
+                        <li><span class="check">✓</span>60 credits per month</li>
+                        <li><span class="check">✓</span>Vectorization</li>
+                        <li><span class="check">✓</span>Background removal</li>
+                        <li><span class="check">✓</span>Priority support</li>
+                    </ul>
+                    <button onclick="userDashboard.subscribe('starter')" class="btn-primary w-full">
+                        Upgrade to Starter
+                    </button>
+                </div>
+            </div>
+            <div class="pricing-card">
+                <div class="pricing-content">
+                    <h4 class="pricing-title">Professional Plan</h4>
+                    <div class="pricing-price">
+                        $49.99<span class="period">/month</span>
+                    </div>
+                    <ul class="pricing-features">
+                        <li><span class="check">✓</span>120 credits per month</li>
+                        <li><span class="check">✓</span>Vectorization</li>
+                        <li><span class="check">✓</span>Background removal</li>
+                        <li><span class="check">✓</span>API access</li>
+                        <li><span class="check">✓</span>Dedicated support</li>
+                    </ul>
+                    <button onclick="userDashboard.subscribe('professional')" class="btn-primary w-full">
+                        Upgrade to Professional
+                    </button>
+                </div>
             </div>
         `;
     }
