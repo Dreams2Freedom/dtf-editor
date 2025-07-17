@@ -11,11 +11,24 @@ function getSupabaseClient() {
         const SUPABASE_URL = process.env.SUPABASE_URL;
         const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
         
+        console.log('Supabase config check:', {
+            SUPABASE_URL: SUPABASE_URL ? 'SET' : 'NOT SET',
+            SUPABASE_SERVICE_ROLE_KEY: SUPABASE_SERVICE_ROLE_KEY ? 
+                `${SUPABASE_SERVICE_ROLE_KEY.substring(0, 10)}...` : 'NOT SET'
+        });
+        
         if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
             throw new Error('Supabase Storage is not configured. Please set SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY environment variables.');
         }
         
+        // Check if the service role key looks valid (should start with 'eyJ')
+        if (!SUPABASE_SERVICE_ROLE_KEY.startsWith('eyJ')) {
+            console.error('Invalid Supabase Service Role Key format. Should start with "eyJ"');
+            throw new Error('Invalid Supabase Service Role Key format');
+        }
+        
         supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+        console.log('Supabase client created successfully');
     }
     return supabase;
 }

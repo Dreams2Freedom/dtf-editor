@@ -544,31 +544,40 @@ app.post('/api/preview', authenticateToken, checkCredits(1), upload.single('imag
             }
         });
 
-        // Upload original file to Supabase Storage
-        const originalUpload = await SupabaseStorage.uploadFile(
-            req.user.id.toString(),
-            req.file.originalname,
-            req.file.buffer,
-            req.file.mimetype,
-            'original'
-        );
+        // Try to upload files to Supabase Storage, but don't fail if it doesn't work
+        let originalUpload = null;
+        let processedUpload = null;
+        
+        try {
+            // Upload original file to Supabase Storage
+            originalUpload = await SupabaseStorage.uploadFile(
+                req.user.id.toString(),
+                req.file.originalname,
+                req.file.buffer,
+                req.file.mimetype,
+                'original'
+            );
 
-        // Upload processed file to Supabase Storage
-        const processedFilename = `preview_${Date.now()}.svg`;
-        const processedUpload = await SupabaseStorage.uploadFile(
-            req.user.id.toString(),
-            processedFilename,
-            previewBuffer,
-            'image/svg+xml',
-            'processed'
-        );
+            // Upload processed file to Supabase Storage
+            const processedFilename = `preview_${Date.now()}.svg`;
+            processedUpload = await SupabaseStorage.uploadFile(
+                req.user.id.toString(),
+                processedFilename,
+                previewBuffer,
+                'image/svg+xml',
+                'processed'
+            );
+        } catch (storageError) {
+            console.warn('Supabase Storage upload failed, continuing without storage:', storageError.message);
+            // Continue without storage - the preview will still work
+        }
 
-        // Save image to database with storage paths
+        // Save image to database (with or without storage paths)
         const imageData = {
             user_id: req.user.id,
             original_filename: req.file.originalname,
-            processed_filename: processedFilename,
-            storage_path: processedUpload.path,
+            processed_filename: `preview_${Date.now()}.svg`,
+            storage_path: processedUpload ? processedUpload.path : null,
             file_size: req.file.size,
             image_type: 'preview',
             tool_used: 'vectorizer',
@@ -576,7 +585,12 @@ app.post('/api/preview', authenticateToken, checkCredits(1), upload.single('imag
             processing_time_ms: Date.now() - req.startTime
         };
 
-        await dbHelpers.saveImage(imageData);
+        try {
+            await dbHelpers.saveImage(imageData);
+        } catch (dbError) {
+            console.warn('Database save failed, continuing without database record:', dbError.message);
+            // Continue without database save - the preview will still work
+        }
 
         // Use credits
         await stripeHelpers.useCredits(req.user.id, 1, `Preview generated: ${req.file.originalname}`);
