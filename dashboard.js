@@ -37,10 +37,8 @@ class UserDashboard {
             this.showLoginForm();
         });
 
-        // Logout
-        document.getElementById('logoutBtn').addEventListener('click', () => {
-            this.logout();
-        });
+        // Logout - handle dynamically since the button is created in updateNavigation
+        // We'll use event delegation instead
 
         // Tab switching
         document.querySelectorAll('.tab-btn').forEach(btn => {
@@ -452,7 +450,8 @@ class UserDashboard {
 
     async loadSubscriptionInfo() {
         try {
-            const response = await fetch('/api/user/subscription', {
+            // Get user profile which includes subscription info
+            const response = await fetch('/api/user/profile', {
                 headers: {
                     'Authorization': `Bearer ${this.token}`
                 }
@@ -472,16 +471,17 @@ class UserDashboard {
 
     renderSubscriptionInfo(data) {
         const infoDiv = document.getElementById('subscriptionInfo');
+        const user = data.user;
         infoDiv.innerHTML = `
             <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
                     <h4 class="font-semibold text-gray-900">Current Plan</h4>
-                    <p class="text-lg">${data.subscription?.plan_name || 'Free'}</p>
+                    <p class="text-lg">${user.subscription_plan || 'Free'}</p>
                 </div>
                 <div>
                     <h4 class="font-semibold text-gray-900">Status</h4>
-                    <p class="text-lg ${data.subscription?.status === 'active' ? 'text-green-600' : 'text-red-600'}">
-                        ${data.subscription?.status || 'Inactive'}
+                    <p class="text-lg ${user.subscription_status === 'active' ? 'text-green-600' : 'text-red-600'}">
+                        ${user.subscription_status || 'Inactive'}
                     </p>
                 </div>
                 <div>
@@ -594,7 +594,7 @@ class UserDashboard {
 
     async loadUsageHistory() {
         try {
-            const response = await fetch('/api/user/usage', {
+            const response = await fetch('/api/user/credits/transactions', {
                 headers: {
                     'Authorization': `Bearer ${this.token}`
                 }
@@ -602,7 +602,7 @@ class UserDashboard {
 
             if (response.ok) {
                 const data = await response.json();
-                this.usageHistory = data.usage;
+                this.usageHistory = data.transactions || [];
                 this.renderUsageHistory();
             } else {
                 this.showNotification('Failed to load usage history', 'error');
@@ -617,7 +617,7 @@ class UserDashboard {
         const tbody = document.getElementById('usageTableBody');
         tbody.innerHTML = '';
 
-        if (this.usageHistory.length === 0) {
+        if (!this.usageHistory || this.usageHistory.length === 0) {
             tbody.innerHTML = `
                 <tr>
                     <td colspan="4" class="px-6 py-4 text-center text-gray-500">
@@ -628,20 +628,20 @@ class UserDashboard {
             return;
         }
 
-        this.usageHistory.forEach(usage => {
+        this.usageHistory.forEach(transaction => {
             const row = document.createElement('tr');
             row.innerHTML = `
                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    ${new Date(usage.created_at).toLocaleDateString()}
+                    ${new Date(transaction.created_at).toLocaleDateString()}
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    ${usage.type}
+                    ${transaction.transaction_type}
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    ${usage.credits_used}
+                    ${transaction.credits_amount}
                 </td>
                 <td class="px-6 py-4 text-sm text-gray-900">
-                    ${usage.description}
+                    ${transaction.description || 'No description'}
                 </td>
             `;
             tbody.appendChild(row);
