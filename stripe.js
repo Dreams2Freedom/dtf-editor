@@ -219,13 +219,7 @@ const stripeHelpers = {
             }
 
             // Add credit transaction
-            await dbHelpers.addCreditTransaction({
-                user_id: userId,
-                transaction_type: 'purchase',
-                credits_amount: credits,
-                description: description,
-                stripe_payment_intent_id: paymentIntentId
-            });
+            await dbHelpers.addCreditTransaction(userId, 'purchase', credits, description, paymentIntentId);
 
             // Update user credits
             await dbHelpers.updateUser(userId, {
@@ -253,12 +247,7 @@ const stripeHelpers = {
             }
 
             // Add credit transaction
-            await dbHelpers.addCreditTransaction({
-                user_id: userId,
-                transaction_type: 'usage',
-                credits_amount: -credits,
-                description: description
-            });
+            await dbHelpers.addCreditTransaction(userId, 'usage', -credits, description);
 
             // Update user credits
             await dbHelpers.updateUser(userId, {
