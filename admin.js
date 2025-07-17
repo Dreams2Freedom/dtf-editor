@@ -118,6 +118,13 @@ class AdminDashboard {
             });
         }
 
+        // Admin logout button - use event delegation since it's created dynamically
+        document.addEventListener('click', (e) => {
+            if (e.target.id === 'adminLogoutBtn') {
+                e.preventDefault();
+                this.logout();
+            }
+        });
 
     }
 
@@ -256,7 +263,7 @@ class AdminDashboard {
                     </div>
                     <span class="bg-red-100 text-red-800 text-xs px-2 py-1 rounded-full">Admin</span>
                     <button 
-                        onclick="adminDashboard.logout()" 
+                        id="adminLogoutBtn"
                         class="btn-nav"
                     >
                         Logout
