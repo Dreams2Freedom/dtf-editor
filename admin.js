@@ -528,7 +528,7 @@ class AdminDashboard {
             const period = document.getElementById('costPeriod')?.value || '30d';
             const service = document.getElementById('costService')?.value || '';
 
-            const response = await fetch(`/api/admin/costs?period=${period}&service=${service}`, {
+            const response = await fetch(`/api/admin/cost-analytics?period=${period}&service=${service}`, {
                 headers: {
                     'Authorization': `Bearer ${this.token}`
                 }
@@ -536,7 +536,7 @@ class AdminDashboard {
 
             if (response.ok) {
                 const data = await response.json();
-                this.renderCosts(data);
+                this.renderCosts(data.cost_analytics);
             } else {
                 this.showNotification('Failed to load cost data', 'error');
             }
@@ -546,25 +546,37 @@ class AdminDashboard {
         }
     }
 
-    renderCosts(data) {
+    renderCosts(costAnalytics) {
+        if (!costAnalytics) return;
+
+        // Calculate totals from the costs_by_service data
+        const totalCost = costAnalytics.costs_by_service.reduce((sum, service) => sum + parseFloat(service.total_cost || 0), 0);
+        const vectorizerCost = costAnalytics.costs_by_service.find(s => s.service_name === 'vectorizer')?.total_cost || 0;
+        const clippingMagicCost = costAnalytics.costs_by_service.find(s => s.service_name === 'clipping_magic')?.total_cost || 0;
+
         // Update cost summary cards
-        document.getElementById('totalApiCosts').textContent = `$${data.total_cost.toFixed(2)}`;
-        document.getElementById('vectorizerCosts').textContent = `$${data.vectorizer_cost.toFixed(2)}`;
-        document.getElementById('clippingMagicCosts').textContent = `$${data.clipping_magic_cost.toFixed(2)}`;
+        document.getElementById('totalApiCosts').textContent = `$${totalCost.toFixed(2)}`;
+        document.getElementById('vectorizerCosts').textContent = `$${parseFloat(vectorizerCost).toFixed(2)}`;
+        document.getElementById('clippingMagicCosts').textContent = `$${parseFloat(clippingMagicCost).toFixed(2)}`;
         
-        const profitMargin = data.total_revenue > 0 ? ((data.total_revenue - data.total_cost) / data.total_revenue * 100) : 0;
+        // Calculate profit margin (simplified - you can enhance this with actual revenue data)
+        const monthlyRevenue = this.analytics?.monthly_revenue || 0;
+        const profitMargin = monthlyRevenue > 0 ? ((monthlyRevenue - totalCost) / monthlyRevenue * 100) : 0;
         document.getElementById('profitMargin').textContent = `${profitMargin.toFixed(1)}%`;
 
         // Render charts
-        this.renderCostCharts(data);
+        this.renderCostCharts(costAnalytics);
     }
 
-    renderCostCharts(data) {
+    renderCostCharts(costAnalytics) {
         // Simple chart placeholders - you can replace with actual chart library
         const costRevenueChart = document.getElementById('costRevenueChart');
         const dailyCostChart = document.getElementById('dailyCostChart');
 
         if (costRevenueChart) {
+            const totalCost = costAnalytics.costs_by_service.reduce((sum, service) => sum + parseFloat(service.total_cost || 0), 0);
+            const monthlyRevenue = this.analytics?.monthly_revenue || 0;
+            
             costRevenueChart.innerHTML = `
                 <div class="h-full flex items-center justify-center">
                     <div class="text-center">
@@ -572,15 +584,15 @@ class AdminDashboard {
                         <div class="space-y-2">
                             <div class="flex justify-between">
                                 <span>Revenue:</span>
-                                <span class="font-semibold text-green-600">$${data.total_revenue.toFixed(2)}</span>
+                                <span class="font-semibold text-green-600">$${monthlyRevenue.toFixed(2)}</span>
                             </div>
                             <div class="flex justify-between">
                                 <span>Costs:</span>
-                                <span class="font-semibold text-red-600">$${data.total_cost.toFixed(2)}</span>
+                                <span class="font-semibold text-red-600">$${totalCost.toFixed(2)}</span>
                             </div>
                             <div class="flex justify-between border-t pt-2">
                                 <span>Profit:</span>
-                                <span class="font-semibold text-blue-600">$${(data.total_revenue - data.total_cost).toFixed(2)}</span>
+                                <span class="font-semibold text-blue-600">$${(monthlyRevenue - totalCost).toFixed(2)}</span>
                             </div>
                         </div>
                     </div>
@@ -589,11 +601,25 @@ class AdminDashboard {
         }
 
         if (dailyCostChart) {
+            const dailyData = costAnalytics.daily_breakdown.slice(0, 7); // Last 7 days
+            const maxCost = Math.max(...dailyData.map(d => parseFloat(d.daily_cost || 0)));
+            
             dailyCostChart.innerHTML = `
                 <div class="h-full flex items-center justify-center">
                     <div class="text-center">
                         <h4 class="font-semibold text-gray-900 mb-2">Daily Cost Trends</h4>
-                        <p class="text-gray-600">Chart data available</p>
+                        <div class="flex items-end justify-between h-full space-x-2">
+                            ${dailyData.map(day => {
+                                const height = maxCost > 0 ? (parseFloat(day.daily_cost || 0) / maxCost * 100) : 0;
+                                return `
+                                    <div class="flex-1 flex flex-col items-center">
+                                        <div class="bg-blue-500 rounded-t w-full" style="height: ${height}%"></div>
+                                        <div class="text-xs text-gray-600 mt-2">$${parseFloat(day.daily_cost || 0).toFixed(3)}</div>
+                                        <div class="text-xs text-gray-500">${new Date(day.date).toLocaleDateString()}</div>
+                                    </div>
+                                `;
+                            }).join('')}
+                        </div>
                     </div>
                 </div>
             `;

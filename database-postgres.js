@@ -711,6 +711,33 @@ const dbHelpers = {
         }
     },
 
+    // Get revenue statistics
+    getRevenueStats: async () => {
+        const client = await dbHelpers.getClient();
+        try {
+            // Get total revenue from credit transactions
+            const revenueResult = await client.query(`
+                SELECT 
+                    SUM(CASE WHEN transaction_type = 'purchase' THEN credits_amount ELSE 0 END) as total_revenue,
+                    COUNT(CASE WHEN transaction_type = 'purchase' THEN 1 END) as total_purchases,
+                    COUNT(CASE WHEN transaction_type = 'usage' THEN 1 END) as total_usage
+                FROM credit_transactions
+            `);
+
+            const stats = revenueResult.rows[0];
+            
+            return {
+                total_revenue: parseFloat(stats.total_revenue || 0),
+                total_purchases: parseInt(stats.total_purchases || 0),
+                total_usage: parseInt(stats.total_usage || 0),
+                monthly_revenue: parseFloat(stats.total_revenue || 0) / 12, // Simplified monthly calculation
+                avg_revenue_per_user: 0 // Will be calculated based on user count
+            };
+        } finally {
+            client.release();
+        }
+    },
+
     // Close database connection
     close: async () => {
         if (pool) {
