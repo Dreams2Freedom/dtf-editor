@@ -185,14 +185,17 @@ class VectorizeApp {
                 }
             }
             
-            // Get the response as blob (preview image)
-            const previewBlob = await response.blob();
-            console.log('Preview API response blob size:', previewBlob.size);
-            const previewUrl = URL.createObjectURL(previewBlob);
+            // Get the response as JSON
+            const previewData = await response.json();
+            console.log('Preview API response data:', previewData);
+            
+            if (!previewData.success) {
+                throw new Error(previewData.error || 'Preview generation failed');
+            }
             
             return {
                 success: true,
-                previewUrl: previewUrl,
+                previewUrl: previewData.previewUrl,
                 originalUrl: URL.createObjectURL(file)
             };
             
@@ -215,34 +218,9 @@ class VectorizeApp {
             return;
         }
         
-        // Set preview image
+        // Set preview image directly (now it's a data URL)
         console.log('Setting resultImg.src to:', previewData.previewUrl);
-        
-        // For SVG files, we might need to set the type
-        if (previewData.previewUrl.includes('blob:')) {
-            // It's a blob URL, check if it's SVG
-            fetch(previewData.previewUrl)
-                .then(response => response.text())
-                .then(svgContent => {
-                    if (svgContent.trim().startsWith('<svg')) {
-                        // It's an SVG, create a data URL
-                        const svgBlob = new Blob([svgContent], { type: 'image/svg+xml' });
-                        const svgUrl = URL.createObjectURL(svgBlob);
-                        this.resultImg.src = svgUrl;
-                        console.log('SVG preview set successfully');
-                    } else {
-                        // Not SVG, use as is
-                        this.resultImg.src = previewData.previewUrl;
-                        console.log('Non-SVG preview set successfully');
-                    }
-                })
-                .catch(error => {
-                    console.error('Error processing preview:', error);
-                    this.resultImg.src = previewData.previewUrl;
-                });
-        } else {
-            this.resultImg.src = previewData.previewUrl;
-        }
+        this.resultImg.src = previewData.previewUrl;
         
         // Add error handling for image load
         this.resultImg.onerror = (e) => {

@@ -595,14 +595,19 @@ app.post('/api/preview', authenticateToken, checkCredits(1), upload.single('imag
         // Use credits
         await stripeHelpers.useCredits(req.user.id, 1, `Preview generated: ${req.file.originalname}`);
 
-        // Set appropriate headers for SVG preview
-        res.set({
-            'Content-Type': 'image/svg+xml',
-            'Content-Length': previewBuffer.length,
-            'Content-Disposition': 'attachment; filename="preview.svg"'
-        });
+        // Convert SVG buffer to base64 for JSON response
+        const svgBase64 = previewBuffer.toString('base64');
+        const dataUrl = `data:image/svg+xml;base64,${svgBase64}`;
 
-        res.send(previewBuffer);
+        // Return JSON response with SVG data URL
+        res.json({
+            success: true,
+            previewUrl: dataUrl,
+            originalFilename: req.file.originalname,
+            processedFilename: `preview_${Date.now()}.svg`,
+            fileSize: req.file.size,
+            processingTime: Date.now() - req.startTime
+        });
 
     } catch (error) {
         console.error('Preview generation error:', error);
