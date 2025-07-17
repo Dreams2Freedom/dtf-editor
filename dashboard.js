@@ -294,16 +294,31 @@ class UserDashboard {
         this.images.forEach(image => {
             const card = document.createElement('div');
             card.className = 'bg-white rounded-lg shadow-md overflow-hidden';
+            
+            // Determine image type and display appropriate content
+            const isSvg = image.processed_filename.toLowerCase().endsWith('.svg');
+            const imageType = image.image_type || 'processed';
+            const toolUsed = image.tool_used || 'unknown';
+            
             card.innerHTML = `
-                <div class="aspect-w-16 aspect-h-9 bg-gray-200">
-                    <img src="/api/user/images/${image.id}/download" alt="${image.original_filename}" class="w-full h-48 object-cover">
+                <div class="aspect-w-16 aspect-h-9 bg-gray-200 flex items-center justify-center">
+                    ${isSvg ? 
+                        `<div class="text-center p-4">
+                            <svg class="w-16 h-16 mx-auto text-gray-400 mb-2" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" clip-rule="evenodd"></path>
+                            </svg>
+                            <p class="text-sm text-gray-500">SVG Vector Image</p>
+                        </div>` :
+                        `<img src="/api/user/images/${image.id}/download" alt="${image.original_filename}" class="w-full h-48 object-cover">`
+                    }
                 </div>
                 <div class="p-4">
-                    <h4 class="font-semibold text-gray-900 mb-2">${image.original_filename}</h4>
-                    <p class="text-sm text-gray-600 mb-2">${image.processing_type}</p>
+                    <h4 class="font-semibold text-gray-900 mb-2 truncate">${image.original_filename}</h4>
+                    <p class="text-sm text-gray-600 mb-1">Type: ${imageType}</p>
+                    <p class="text-sm text-gray-600 mb-1">Tool: ${toolUsed}</p>
                     <p class="text-xs text-gray-500">${new Date(image.created_at).toLocaleDateString()}</p>
                     <div class="mt-3 flex space-x-2">
-                        <button onclick="userDashboard.downloadImage(${image.id})" class="bg-primary-600 text-white px-3 py-1 rounded text-sm hover:bg-primary-700 transition-colors">
+                        <button onclick="userDashboard.downloadImage(${image.id})" class="btn-primary px-3 py-1 rounded text-sm">
                             Download
                         </button>
                         <button onclick="userDashboard.deleteImage(${image.id})" class="bg-red-600 text-white px-3 py-1 rounded text-sm hover:bg-red-700 transition-colors">
@@ -318,6 +333,13 @@ class UserDashboard {
 
     async downloadImage(imageId) {
         try {
+            // Find the image to get the filename
+            const image = this.images.find(img => img.id === imageId);
+            if (!image) {
+                this.showNotification('Image not found', 'error');
+                return;
+            }
+
             const response = await fetch(`/api/user/images/${imageId}/download`, {
                 headers: {
                     'Authorization': `Bearer ${this.token}`
@@ -329,11 +351,12 @@ class UserDashboard {
                 const url = window.URL.createObjectURL(blob);
                 const a = document.createElement('a');
                 a.href = url;
-                a.download = `processed_image_${imageId}.png`;
+                a.download = image.processed_filename || `processed_image_${imageId}.png`;
                 document.body.appendChild(a);
                 a.click();
                 window.URL.revokeObjectURL(url);
                 document.body.removeChild(a);
+                this.showNotification('Download started', 'success');
             } else {
                 this.showNotification('Failed to download image', 'error');
             }
