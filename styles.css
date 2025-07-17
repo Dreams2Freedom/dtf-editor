@@ -31,10 +31,16 @@
   --btn-pricing-hover-text: var(--white);
 
   /* Button Colors - Feature Cards */
-  --btn-feature-bg: var(--primary-blue);
-  --btn-feature-text: var(--white);
-  --btn-feature-hover-bg: var(--secondary-blue);
-  --btn-feature-hover-text: var(--white);
+--btn-feature-bg: var(--primary-blue);
+--btn-feature-text: var(--white);
+--btn-feature-hover-bg: var(--secondary-blue);
+--btn-feature-hover-text: var(--white);
+
+/* Button Colors - Hero Section */
+--btn-hero-bg: var(--white);
+--btn-hero-text: var(--primary-blue);
+--btn-hero-hover-bg: #f3f4f6;
+--btn-hero-hover-text: var(--primary-blue);
 }
 
 body {
@@ -109,6 +115,18 @@ a:hover {
 .btn-feature:hover {
   background: var(--btn-feature-hover-bg);
   color: var(--btn-feature-hover-text);
+}
+
+/* Hero Section Button */
+.btn-hero {
+  background: var(--btn-hero-bg);
+  color: var(--btn-hero-text);
+  border: none;
+  transition: color 0.2s, background 0.2s;
+}
+.btn-hero:hover {
+  background: var(--btn-hero-hover-bg);
+  color: var(--btn-hero-hover-text);
 }
 
 .border-primary-500 {
