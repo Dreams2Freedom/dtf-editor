@@ -51,9 +51,9 @@ function createTables() {
                 subscription_plan TEXT DEFAULT 'free',
                 subscription_end_date DATETIME,
                 stripe_customer_id TEXT,
-                credits_remaining INTEGER DEFAULT 5,
+                credits_remaining INTEGER DEFAULT 2,
                 credits_used INTEGER DEFAULT 0,
-                total_credits_purchased INTEGER DEFAULT 5
+                total_credits_purchased INTEGER DEFAULT 2
             )`,
             
             // Subscription plans table

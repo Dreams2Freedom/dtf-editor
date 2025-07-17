@@ -88,9 +88,9 @@ async function createTables() {
                 subscription_plan VARCHAR(50) DEFAULT 'free',
                 subscription_end_date TIMESTAMP,
                 stripe_customer_id VARCHAR(255),
-                credits_remaining INTEGER DEFAULT 5,
+                credits_remaining INTEGER DEFAULT 2,
                 credits_used INTEGER DEFAULT 0,
-                total_credits_purchased INTEGER DEFAULT 5
+                total_credits_purchased INTEGER DEFAULT 2
             )
         `);
 
@@ -263,7 +263,7 @@ async function insertDefaultData(client) {
     await client.query(`
         INSERT INTO subscription_plans (name, stripe_price_id, stripe_product_id, monthly_price, yearly_price, credits_per_month, credits_per_year, features) 
         VALUES 
-            ('Free', NULL, NULL, 0, 0, 5, 60, 'Basic vectorization and background removal'),
+            ('Free', NULL, NULL, 0, 0, 2, 24, 'Basic vectorization and background removal'),
             ('Basic', 'price_basic_monthly', 'prod_Sh2uT3rKKH78hU', 9.99, 99.99, 20, 240, 'Professional vectorization and background removal'),
             ('Starter', 'price_starter_monthly', 'prod_Sh2vUAOgkSKVTT', 24.99, 249.99, 60, 720, 'Professional tools with priority processing'),
             ('Professional', 'price_professional_monthly', 'prod_Sh2wEde5Me5q9d', 49.99, 499.99, 120, 1440, 'Advanced features with unlimited processing')
