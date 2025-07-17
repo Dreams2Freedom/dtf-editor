@@ -160,8 +160,16 @@ class UserDashboard {
     logout() {
         this.token = null;
         this.currentUser = null;
-        localStorage.removeItem('userToken');
-        this.showLogin();
+        // Use the standardized logout function
+        if (window.logout) {
+            window.logout();
+        } else {
+            // Fallback if auth-utils is not loaded
+            localStorage.removeItem('userToken');
+            localStorage.removeItem('authToken');
+            localStorage.removeItem('userData');
+            window.location.href = 'login.html';
+        }
     }
 
     showLoginForm() {

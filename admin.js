@@ -220,8 +220,17 @@ class AdminDashboard {
         console.log('logout called');
         this.token = null;
         this.currentUser = null;
-        localStorage.removeItem('adminToken');
-        this.showLogin();
+        // Use the standardized logout function
+        if (window.logout) {
+            window.logout();
+        } else {
+            // Fallback if auth-utils is not loaded
+            localStorage.removeItem('adminToken');
+            localStorage.removeItem('userToken');
+            localStorage.removeItem('authToken');
+            localStorage.removeItem('userData');
+            window.location.href = 'login.html';
+        }
     }
 
     showLogin() {

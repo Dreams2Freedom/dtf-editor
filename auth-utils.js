@@ -2,8 +2,10 @@
 
 // Logout function
 function logout() {
-    // Clear all auth data
+    // Clear all auth data (handle all token naming conventions)
     localStorage.removeItem('authToken');
+    localStorage.removeItem('userToken');
+    localStorage.removeItem('adminToken');
     localStorage.removeItem('userData');
     localStorage.removeItem('rememberMe');
     
@@ -13,7 +15,7 @@ function logout() {
 
 // Check if user is authenticated
 function isAuthenticated() {
-    const token = localStorage.getItem('authToken');
+    const token = getAuthToken();
     return !!token;
 }
 
@@ -25,7 +27,8 @@ function getCurrentUser() {
 
 // Get auth token
 function getAuthToken() {
-    return localStorage.getItem('authToken');
+    // Check both token naming conventions
+    return localStorage.getItem('userToken') || localStorage.getItem('authToken');
 }
 
 // Verify token with server
