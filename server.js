@@ -585,8 +585,10 @@ app.post('/api/preview', authenticateToken, checkCredits(1), upload.single('imag
             processing_time_ms: Date.now() - req.startTime
         };
 
+        // Always try to save to database, but don't fail the preview if it doesn't work
         try {
             await dbHelpers.saveImage(imageData);
+            console.log('Image saved to database successfully');
         } catch (dbError) {
             console.warn('Database save failed, continuing without database record:', dbError.message);
             // Continue without database save - the preview will still work
@@ -888,7 +890,12 @@ app.get('/api/user/images/:imageId/download', authenticateToken, async (req, res
 
         // Check if storage path exists
         if (!image.storage_path) {
-            return res.status(404).json({ error: 'Image file not found in storage' });
+            // For preview images without storage, we can't serve them directly
+            // Return a placeholder or error
+            return res.status(404).json({ 
+                error: 'Image file not available for download',
+                message: 'This preview image was not stored permanently. Please regenerate it.'
+            });
         }
 
         // Download file from Supabase Storage

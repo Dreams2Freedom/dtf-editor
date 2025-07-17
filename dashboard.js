@@ -401,6 +401,7 @@ class UserDashboard {
                                 <path fill-rule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" clip-rule="evenodd"></path>
                             </svg>
                             <p class="text-sm text-gray-500">SVG Vector Image</p>
+                            ${!image.storage_path ? '<p class="text-xs text-orange-500 mt-1">Preview Only</p>' : ''}
                         </div>` :
                         `<img src="/api/user/images/${image.id}/download" alt="${image.original_filename}" class="w-full h-48 object-cover">`
                     }
@@ -411,9 +412,14 @@ class UserDashboard {
                     <p class="text-sm text-gray-600 mb-1">Tool: ${toolUsed}</p>
                     <p class="text-xs text-gray-500">${new Date(image.created_at).toLocaleDateString()}</p>
                     <div class="mt-3 flex space-x-2">
-                        <button onclick="userDashboard.downloadImage(${image.id})" class="btn-primary px-3 py-1 rounded text-sm">
-                            Download
-                        </button>
+                        ${image.storage_path ? 
+                            `<button onclick="userDashboard.downloadImage(${image.id})" class="btn-primary px-3 py-1 rounded text-sm">
+                                Download
+                            </button>` :
+                            `<button onclick="userDashboard.showNotification('This preview image cannot be downloaded. Please regenerate it.', 'warning')" class="btn-secondary px-3 py-1 rounded text-sm">
+                                Preview Only
+                            </button>`
+                        }
                         <button onclick="userDashboard.deleteImage(${image.id})" class="btn-delete px-3 py-1 rounded text-sm">
                             Delete
                         </button>
