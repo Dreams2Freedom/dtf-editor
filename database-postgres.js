@@ -302,7 +302,7 @@ async function createTables() {
 
 // Insert default data
 async function insertDefaultData(client) {
-    // Insert default subscription plans
+    // Insert default subscription plans (ignore conflicts)
     await client.query(`
         INSERT INTO subscription_plans (name, stripe_price_id, stripe_product_id, monthly_price, yearly_price, credits_per_month, credits_per_year, features) 
         VALUES 
@@ -310,13 +310,7 @@ async function insertDefaultData(client) {
             ('Basic', 'price_basic_monthly', 'prod_Sh2uT3rKKH78hU', 9.99, 99.99, 20, 240, 'Professional vectorization and background removal'),
             ('Starter', 'price_starter_monthly', 'prod_Sh2vUAOgkSKVTT', 24.99, 249.99, 60, 720, 'Professional tools with priority processing'),
             ('Professional', 'price_professional_monthly', 'prod_Sh2wEde5Me5q9d', 49.99, 499.99, 120, 1440, 'Advanced features with unlimited processing')
-        ON CONFLICT (stripe_price_id) DO UPDATE SET 
-            stripe_product_id = EXCLUDED.stripe_product_id,
-            monthly_price = EXCLUDED.monthly_price,
-            yearly_price = EXCLUDED.yearly_price,
-            credits_per_month = EXCLUDED.credits_per_month,
-            credits_per_year = EXCLUDED.credits_per_year,
-            features = EXCLUDED.features
+        ON CONFLICT DO NOTHING
     `);
 
     // Insert default admin user (password: admin123)
