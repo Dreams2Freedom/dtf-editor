@@ -38,9 +38,9 @@
 
 /* Button Colors - Hero Section */
 --btn-hero-bg: var(--white);
---btn-hero-text: var(--primary-blue);
+--btn-hero-text: #386594;
 --btn-hero-hover-bg: #f3f4f6;
---btn-hero-hover-text: var(--primary-blue);
+--btn-hero-hover-text: #386594;
 }
 
 body {
