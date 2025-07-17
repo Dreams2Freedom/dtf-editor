@@ -117,6 +117,30 @@ class AdminDashboard {
                 this.saveUserChanges();
             });
         }
+
+        // User table event delegation
+        const usersTableBody = document.getElementById('usersTableBody');
+        if (usersTableBody) {
+            usersTableBody.addEventListener('click', (e) => {
+                const button = e.target.closest('button[data-action]');
+                if (!button) return;
+
+                const action = button.dataset.action;
+                const userId = button.dataset.userId;
+
+                switch (action) {
+                    case 'view':
+                        this.viewUser(userId);
+                        break;
+                    case 'edit':
+                        this.editUser(userId);
+                        break;
+                    case 'toggle':
+                        this.toggleUserStatus(userId);
+                        break;
+                }
+            });
+        }
     }
 
     async checkAuth() {
@@ -304,7 +328,7 @@ class AdminDashboard {
                 <td>
                     <div class="flex items-center">
                         <div class="flex-shrink-0 h-10 w-10">
-                            <div class="h-10 w-10 rounded-full bg-gray-300 flex items-center justify-center">
+                            <div class="h-10 w-10 rounded-full bg-gray-300 flex items-center justify-center p-2">
                                 <span class="text-sm font-medium text-gray-700">
                                     ${(user.first_name || '').charAt(0)}${(user.last_name || '').charAt(0)}
                                 </span>
@@ -331,9 +355,9 @@ class AdminDashboard {
                     </span>
                 </td>
                 <td class="text-sm font-medium">
-                    <button onclick="adminDashboard.viewUser('${user.id}')" class="action-btn view">View</button>
-                    <button onclick="adminDashboard.editUser('${user.id}')" class="action-btn edit">Edit</button>
-                    <button onclick="adminDashboard.toggleUserStatus('${user.id}')" class="action-btn ${user.is_active ? 'delete' : 'view'}">
+                    <button data-action="view" data-user-id="${user.id}" class="action-btn view">View</button>
+                    <button data-action="edit" data-user-id="${user.id}" class="action-btn edit">Edit</button>
+                    <button data-action="toggle" data-user-id="${user.id}" class="action-btn ${user.is_active ? 'delete' : 'view'}">
                         ${user.is_active ? 'Deactivate' : 'Activate'}
                     </button>
                 </td>
@@ -365,7 +389,7 @@ class AdminDashboard {
                 <td>
                     <div class="flex items-center">
                         <div class="flex-shrink-0 h-10 w-10">
-                            <div class="h-10 w-10 rounded-full bg-gray-300 flex items-center justify-center">
+                            <div class="h-10 w-10 rounded-full bg-gray-300 flex items-center justify-center p-2">
                                 <span class="text-sm font-medium text-gray-700">
                                     ${(user.first_name || '').charAt(0)}${(user.last_name || '').charAt(0)}
                                 </span>
@@ -392,9 +416,9 @@ class AdminDashboard {
                     </span>
                 </td>
                 <td class="text-sm font-medium">
-                    <button onclick="adminDashboard.viewUser('${user.id}')" class="action-btn view">View</button>
-                    <button onclick="adminDashboard.editUser('${user.id}')" class="action-btn edit">Edit</button>
-                    <button onclick="adminDashboard.toggleUserStatus('${user.id}')" class="action-btn ${user.is_active ? 'delete' : 'view'}">
+                    <button data-action="view" data-user-id="${user.id}" class="action-btn view">View</button>
+                    <button data-action="edit" data-user-id="${user.id}" class="action-btn edit">Edit</button>
+                    <button data-action="toggle" data-user-id="${user.id}" class="action-btn ${user.is_active ? 'delete' : 'view'}">
                         ${user.is_active ? 'Deactivate' : 'Activate'}
                     </button>
                 </td>
