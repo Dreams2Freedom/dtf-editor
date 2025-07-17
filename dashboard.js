@@ -39,6 +39,12 @@ class UserDashboard {
 
         // Logout - handle dynamically since the button is created in updateNavigation
         // We'll use event delegation instead
+        document.addEventListener('click', (e) => {
+            if (e.target.id === 'logoutBtn') {
+                e.preventDefault();
+                this.logout();
+            }
+        });
 
         // Tab switching
         document.querySelectorAll('.tab-nav-button').forEach(btn => {
@@ -192,7 +198,7 @@ class UserDashboard {
                     </div>
                     ${this.currentUser.is_admin ? '<span class="bg-red-100 text-red-800 text-xs px-2 py-1 rounded-full">Admin</span>' : ''}
                     <button 
-                        onclick="userDashboard.logout()" 
+                        id="logoutBtn"
                         class="text-gray-700 hover:text-[#386594] transition-colors px-3 py-2 rounded-md text-sm font-medium"
                     >
                         Logout
