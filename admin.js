@@ -122,35 +122,27 @@ class AdminDashboard {
     }
 
     setupUserTableEvents() {
-        console.log('Setting up user table events');
         const usersTableBody = document.getElementById('usersTableBody');
         if (usersTableBody) {
-            console.log('Users table body found, adding event listener');
             usersTableBody.addEventListener('click', (e) => {
                 const button = e.target.closest('button[data-action]');
                 if (!button) return;
 
-                console.log('Button clicked:', button.dataset.action, button.dataset.userId);
                 const action = button.dataset.action;
                 const userId = button.dataset.userId;
 
                 switch (action) {
                     case 'view':
-                        console.log('Calling viewUser with ID:', userId);
                         this.viewUser(userId);
                         break;
                     case 'edit':
-                        console.log('Calling editUser with ID:', userId);
                         this.editUser(userId);
                         break;
                     case 'toggle':
-                        console.log('Calling toggleUserStatus with ID:', userId);
                         this.toggleUserStatus(userId);
                         break;
                 }
             });
-        } else {
-            console.error('Users table body not found');
         }
     }
 
@@ -674,7 +666,6 @@ class AdminDashboard {
 
             if (response.ok) {
                 const data = await response.json();
-                console.log('View user API response:', data);
                 this.showUserModal(data.user);
             } else {
                 this.showNotification('Failed to load user details', 'error');
@@ -686,7 +677,6 @@ class AdminDashboard {
     }
 
     showUserModal(userData) {
-        console.log('showUserModal called with:', userData);
         const modal = document.getElementById('userModal');
         const content = document.getElementById('userModalContent');
 
@@ -767,7 +757,6 @@ class AdminDashboard {
 
     async editUser(userId) {
         try {
-            console.log('editUser called with userId:', userId);
             const response = await fetch(`/api/admin/users/${userId}`, {
                 headers: {
                     'Authorization': `Bearer ${this.token}`
@@ -776,10 +765,8 @@ class AdminDashboard {
 
             if (response.ok) {
                 const data = await response.json();
-                console.log('Edit user API response:', data);
                 this.showEditUserModal(data.user);
             } else {
-                console.error('Edit user API failed with status:', response.status);
                 this.showNotification('Failed to load user details for editing', 'error');
             }
         } catch (error) {
@@ -849,11 +836,7 @@ class AdminDashboard {
 
     async toggleUserStatus(userId) {
         try {
-            console.log('toggleUserStatus called with userId:', userId);
-            console.log('Current users:', this.users);
-            
             const user = this.users.find(u => u.id == userId); // Use == for string/number comparison
-            console.log('Found user:', user);
             
             if (!user) {
                 this.showNotification('User not found', 'error');
@@ -861,7 +844,6 @@ class AdminDashboard {
             }
             
             const newStatus = !user.is_active;
-            console.log('Toggling status from', user.is_active, 'to', newStatus);
 
             const response = await fetch(`/api/admin/users/${userId}`, {
                 method: 'PUT',
