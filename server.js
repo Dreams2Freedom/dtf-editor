@@ -639,7 +639,7 @@ app.post('/api/preview', authenticateToken, upload.single('image'), async (req, 
             processed_filename: `preview_${Date.now()}.svg`,
             storage_path: processedUpload ? processedUpload.path : null,
             file_size: req.file.size,
-            image_type: 'preview',
+            image_type: 'vectorized', // Changed from 'preview' to 'vectorized' for better categorization
             tool_used: 'vectorizer',
             credits_used: mode === 'test' || mode === 'test_preview' ? 0 : 1,
             processing_time_ms: Date.now() - req.startTime
@@ -647,10 +647,33 @@ app.post('/api/preview', authenticateToken, upload.single('image'), async (req, 
 
         // Always try to save to database, but don't fail the preview if it doesn't work
         try {
+            console.log('Attempting to save image to database with data:', {
+                user_id: imageData.user_id,
+                original_filename: imageData.original_filename,
+                image_type: imageData.image_type,
+                tool_used: imageData.tool_used
+            });
+            
             const imageId = await dbHelpers.saveImage(imageData);
-            console.log('Image saved to database successfully with ID:', imageId);
+            console.log('✅ Image saved to database successfully with ID:', imageId);
+            
+            // Verify the image was saved by trying to retrieve it
+            try {
+                const savedImage = await dbHelpers.getImageById(imageId);
+                if (savedImage) {
+                    console.log('✅ Image retrieval verification successful:', {
+                        id: savedImage.id,
+                        user_id: savedImage.user_id,
+                        image_type: savedImage.image_type
+                    });
+                } else {
+                    console.warn('⚠️ Image was saved but could not be retrieved immediately');
+                }
+            } catch (verifyError) {
+                console.warn('⚠️ Could not verify saved image:', verifyError.message);
+            }
         } catch (dbError) {
-            console.error('Database save failed, continuing without database record:', dbError);
+            console.error('❌ Database save failed, continuing without database record:', dbError);
             console.error('Database error details:', dbError.message, dbError.stack);
             // Continue without database save - the preview will still work
         }
@@ -933,10 +956,25 @@ app.listen(PORT, () => {
 // Image Management Endpoints
 app.get('/api/user/images', authenticateToken, async (req, res) => {
     try {
+        console.log(`🔍 Fetching images for user ${req.user.id} (${req.user.email})`);
+        
         const images = await dbHelpers.getUserImages(req.user.id);
+        console.log(`✅ Found ${images.length} images for user ${req.user.id}`);
+        
+        // Log first few images for debugging
+        if (images.length > 0) {
+            console.log('📋 Sample images:', images.slice(0, 3).map(img => ({
+                id: img.id,
+                original_filename: img.original_filename,
+                image_type: img.image_type,
+                tool_used: img.tool_used,
+                created_at: img.created_at
+            })));
+        }
+        
         res.json({ images });
     } catch (error) {
-        console.error('Error fetching user images:', error);
+        console.error('❌ Error fetching user images:', error);
         res.status(500).json({ error: 'Failed to fetch images' });
     }
 });
