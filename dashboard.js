@@ -41,7 +41,7 @@ class UserDashboard {
         // We'll use event delegation instead
 
         // Tab switching
-        document.querySelectorAll('.tab-btn').forEach(btn => {
+        document.querySelectorAll('.tab-nav-button').forEach(btn => {
             btn.addEventListener('click', (e) => {
                 this.switchTab(e.target.dataset.tab);
             });
@@ -228,15 +228,13 @@ class UserDashboard {
         console.log('Switching to tab:', tabName);
         
         // Update tab buttons
-        document.querySelectorAll('.tab-btn').forEach(btn => {
-            btn.classList.remove('active', 'border-[#E88B4B]', 'text-[#E88B4B]');
-            btn.classList.add('border-transparent', 'text-gray-500');
+        document.querySelectorAll('.tab-nav-button').forEach(btn => {
+            btn.classList.remove('active');
         });
 
         const activeBtn = document.querySelector(`[data-tab="${tabName}"]`);
         if (activeBtn) {
-            activeBtn.classList.add('active', 'border-[#E88B4B]', 'text-[#E88B4B]');
-            activeBtn.classList.remove('border-transparent', 'text-gray-500');
+            activeBtn.classList.add('active');
         }
 
         // Update tab content
