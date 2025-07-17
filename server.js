@@ -352,7 +352,7 @@ app.get('/api/health', async (req, res) => {
 });
 
 // Vectorizer.AI proxy endpoint (with credit checking)
-app.post('/api/vectorize', authenticateToken, checkCredits(1), upload.single('image'), async (req, res) => {
+app.post('/api/vectorize', authenticateToken, upload.single('image'), async (req, res) => {
     try {
         console.log('Vectorization request received from user:', req.user.id);
         
@@ -366,6 +366,18 @@ app.post('/api/vectorize', authenticateToken, checkCredits(1), upload.single('im
         const mode = req.query.mode || 'test';
         console.log(`Using mode: ${mode}`);
 
+        // Check credits only for paid operations
+        if (mode !== 'test' && mode !== 'test_preview') {
+            const creditCheck = await stripeHelpers.checkCredits(req.user.id, 1);
+            if (!creditCheck.hasEnough) {
+                return res.status(402).json({ 
+                    error: 'Insufficient credits',
+                    credits_remaining: creditCheck.credits,
+                    credits_required: 1
+                });
+            }
+        }
+
         // Create FormData for Vectorizer.AI
         const FormData = require('form-data');
         const formData = new FormData();
@@ -373,6 +385,9 @@ app.post('/api/vectorize', authenticateToken, checkCredits(1), upload.single('im
             filename: req.file.originalname,
             contentType: req.file.mimetype
         });
+        
+        // Add mode parameter to the request
+        formData.append('mode', mode);
 
         // Track API cost start time
         const apiStartTime = Date.now();
@@ -462,14 +477,16 @@ app.post('/api/vectorize', authenticateToken, checkCredits(1), upload.single('im
             file_size: req.file.size,
             image_type: 'vectorization',
             tool_used: 'vectorizer',
-            credits_used: 1,
+            credits_used: mode === 'test' || mode === 'test_preview' ? 0 : 1,
             processing_time_ms: Date.now() - req.startTime
         };
 
         await dbHelpers.saveImage(imageData);
 
-        // Use credits
-        await stripeHelpers.useCredits(req.user.id, 1, `Vectorized image: ${req.file.originalname}`);
+        // Use credits only for paid operations
+        if (mode !== 'test' && mode !== 'test_preview') {
+            await stripeHelpers.useCredits(req.user.id, 1, `Vectorized image: ${req.file.originalname}`);
+        }
 
         // Set appropriate headers for SVG
         res.set({
@@ -490,7 +507,7 @@ app.post('/api/vectorize', authenticateToken, checkCredits(1), upload.single('im
 });
 
 // Vectorizer.AI preview endpoint (with credit checking)
-app.post('/api/preview', authenticateToken, checkCredits(1), upload.single('image'), async (req, res) => {
+app.post('/api/preview', authenticateToken, upload.single('image'), async (req, res) => {
     try {
         console.log('Preview generation request received from user:', req.user.id);
         
@@ -500,9 +517,21 @@ app.post('/api/preview', authenticateToken, checkCredits(1), upload.single('imag
 
         console.log(`Processing file: ${req.file.originalname} (${req.file.size} bytes)`);
 
-        // Get mode from query parameters (default to preview for watermarked results)
-        const mode = req.query.mode || 'preview';
+        // Get mode from query parameters (default to test for free watermarked preview)
+        const mode = req.query.mode || 'test';
         console.log(`Using mode: ${mode}`);
+
+        // Check credits only for paid operations
+        if (mode !== 'test' && mode !== 'test_preview') {
+            const creditCheck = await stripeHelpers.checkCredits(req.user.id, 1);
+            if (!creditCheck.hasEnough) {
+                return res.status(402).json({ 
+                    error: 'Insufficient credits',
+                    credits_remaining: creditCheck.credits,
+                    credits_required: 1
+                });
+            }
+        }
 
         // Create FormData for Vectorizer.AI
         const FormData = require('form-data');
@@ -511,6 +540,9 @@ app.post('/api/preview', authenticateToken, checkCredits(1), upload.single('imag
             filename: req.file.originalname,
             contentType: req.file.mimetype
         });
+        
+        // Add mode parameter to the request
+        formData.append('mode', mode);
 
         // Track API cost start time
         const apiStartTime = Date.now();
@@ -609,7 +641,7 @@ app.post('/api/preview', authenticateToken, checkCredits(1), upload.single('imag
             file_size: req.file.size,
             image_type: 'preview',
             tool_used: 'vectorizer',
-            credits_used: 1,
+            credits_used: mode === 'test' || mode === 'test_preview' ? 0 : 1,
             processing_time_ms: Date.now() - req.startTime
         };
 
@@ -623,8 +655,10 @@ app.post('/api/preview', authenticateToken, checkCredits(1), upload.single('imag
             // Continue without database save - the preview will still work
         }
 
-        // Use credits
-        await stripeHelpers.useCredits(req.user.id, 1, `Preview generated: ${req.file.originalname}`);
+        // Use credits only for paid operations
+        if (mode !== 'test' && mode !== 'test_preview') {
+            await stripeHelpers.useCredits(req.user.id, 1, `Preview generated: ${req.file.originalname}`);
+        }
 
         // Convert SVG buffer to base64 for JSON response
         const svgBase64 = previewBuffer.toString('base64');
