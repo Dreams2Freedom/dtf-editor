@@ -440,10 +440,7 @@ const dbHelpers = {
             
             console.log('Saving image to database:', { user_id, original_filename, processed_filename, image_type, tool_used, credits_used });
             
-            // Start a transaction
-            await client.query('BEGIN');
-            
-            // Insert the image
+            // Insert the image without transaction first to see if it works
             const result = await client.query(
                 'INSERT INTO images (user_id, original_filename, processed_filename, storage_path, file_size, image_type, tool_used, credits_used, processing_time_ms) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING id',
                 [user_id, original_filename, processed_filename, storage_path, file_size, image_type, tool_used, credits_used, processing_time_ms]
@@ -451,10 +448,10 @@ const dbHelpers = {
             
             console.log('Image inserted with ID:', result.rows[0].id);
             
-            // Increment the user's total_images_generated counter
+            // Try to increment the user's total_images_generated counter (optional)
             try {
                 await client.query(
-                    'UPDATE users SET total_images_generated = total_images_generated + 1 WHERE id = $1',
+                    'UPDATE users SET total_images_generated = COALESCE(total_images_generated, 0) + 1 WHERE id = $1',
                     [user_id]
                 );
                 console.log('Updated total_images_generated for user:', user_id);
@@ -463,19 +460,11 @@ const dbHelpers = {
                 // Continue without updating the counter - the image is still saved
             }
             
-            // Commit the transaction
-            await client.query('COMMIT');
             console.log('Image saved successfully to database');
             
             return result.rows[0].id;
         } catch (error) {
             console.error('Error saving image to database:', error);
-            // Rollback on error
-            try {
-                await client.query('ROLLBACK');
-            } catch (rollbackError) {
-                console.error('Error during rollback:', rollbackError);
-            }
             throw error;
         } finally {
             client.release();
