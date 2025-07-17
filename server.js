@@ -211,37 +211,6 @@ app.get('/api/health', (req, res) => {
     });
 });
 
-// Helper function to calculate Vectorizer.AI costs
-function calculateVectorizerCost(operationType) {
-    const creditCosts = {
-        'test': 0.000,        // Free
-        'test_preview': 0.000, // Free
-        'preview': 0.200,     // 0.200 credits
-        'vectorize': 1.000,   // 1.000 credits
-        'upgrade_preview': 0.900, // 0.900 credits
-        'download_format': 0.100, // 0.100 credits
-        'storage_day': 0.010  // 0.010 credits per day
-    };
-    
-    const credits = creditCosts[operationType] || 0;
-    return credits * 0.20; // $0.20 per credit
-}
-
-// Helper function to calculate Clipping Magic costs
-function calculateClippingMagicCost(operationType) {
-    // Clipping Magic pricing: 1 Credit = 1 Image
-    // Downloading a result multiple times counts only once
-    // Duplicate uploads of the same image count separately
-    const creditCosts = {
-        'upload': 1.000,      // 1 credit per image upload
-        'edit': 0.000,        // Free to re-edit (no additional cost)
-        'download': 0.000     // Free to download multiple times (no additional cost)
-    };
-    
-    const credits = creditCosts[operationType] || 0;
-    return credits * 0.125; // $0.125 per credit
-}
-
 // Vectorizer.AI proxy endpoint (with credit checking)
 app.post('/api/vectorize', authenticateToken, checkCredits(1), upload.single('image'), async (req, res) => {
     try {
