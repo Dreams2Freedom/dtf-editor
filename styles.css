@@ -475,6 +475,6 @@ a:focus {
 }
 
 /* Ensure blue buttons have white text */
-a[href*="dashboard.html"] {
+a[href*="vectorize.html"] {
     color: var(--white) !important;
 }
