@@ -357,10 +357,10 @@ class UserDashboard {
                         <h3 class="empty-state-title">No Images Yet</h3>
                         <p class="empty-state-description">You haven't generated any images yet. Start by vectorizing an image or removing a background.</p>
                         <div class="empty-state-buttons">
-                            <button onclick="window.location.href='vectorize.html'" class="btn-primary">
+                            <button onclick="window.location.href='vectorize.html'" class="btn-primary" style="min-width: 180px; width: auto; overflow: visible; text-overflow: unset; white-space: nowrap;">
                                 Start Vectorizing
                             </button>
-                            <button onclick="window.location.href='background-remove.html'" class="btn-accent">
+                            <button onclick="window.location.href='background-remove.html'" class="btn-accent" style="min-width: 180px; width: auto; overflow: visible; text-overflow: unset; white-space: nowrap;">
                                 Remove Background
                             </button>
                         </div>
