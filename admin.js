@@ -329,13 +329,13 @@ class AdminDashboard {
                     </span>
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                    <button data-action="view" data-user-id="${user.id}" class="text-primary-600 hover:text-primary-900 mr-3">
+                    <button data-action="view" data-user-id="${user.id}" class="text-blue-600 hover:text-blue-800 underline mr-3 cursor-pointer">
                         View
                     </button>
-                    <button data-action="edit" data-user-id="${user.id}" class="text-indigo-600 hover:text-indigo-900 mr-3">
+                    <button data-action="edit" data-user-id="${user.id}" class="text-blue-600 hover:text-blue-800 underline mr-3 cursor-pointer">
                         Edit
                     </button>
-                    <button data-action="toggle" data-user-id="${user.id}" class="text-yellow-600 hover:text-yellow-900">
+                    <button data-action="toggle" data-user-id="${user.id}" class="text-orange-600 hover:text-orange-800 underline cursor-pointer">
                         ${user.is_active ? 'Deactivate' : 'Activate'}
                     </button>
                 </td>
@@ -421,13 +421,13 @@ class AdminDashboard {
                     </span>
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                    <button data-action="view" data-user-id="${user.id}" class="text-primary-600 hover:text-primary-900 mr-3">
+                    <button data-action="view" data-user-id="${user.id}" class="text-blue-600 hover:text-blue-800 underline mr-3 cursor-pointer">
                         View
                     </button>
-                    <button data-action="edit" data-user-id="${user.id}" class="text-indigo-600 hover:text-indigo-900 mr-3">
+                    <button data-action="edit" data-user-id="${user.id}" class="text-blue-600 hover:text-blue-800 underline mr-3 cursor-pointer">
                         Edit
                     </button>
-                    <button data-action="toggle" data-user-id="${user.id}" class="text-yellow-600 hover:text-yellow-900">
+                    <button data-action="toggle" data-user-id="${user.id}" class="text-orange-600 hover:text-orange-800 underline cursor-pointer">
                         ${user.is_active ? 'Deactivate' : 'Activate'}
                     </button>
                 </td>
@@ -702,31 +702,37 @@ class AdminDashboard {
         const content = document.getElementById('userModalContent');
 
         content.innerHTML = `
-            <div class="grid grid-cols-2 gap-4">
-                <div>
-                    <h4 class="font-semibold">User Information</h4>
-                    <p><strong>Name:</strong> ${userData.user.first_name} ${userData.user.last_name}</p>
-                    <p><strong>Email:</strong> ${userData.user.email}</p>
-                    <p><strong>Company:</strong> ${userData.user.company || 'N/A'}</p>
-                    <p><strong>Joined:</strong> ${new Date(userData.user.created_at).toLocaleDateString()}</p>
-                </div>
-                <div>
-                    <h4 class="font-semibold">Subscription</h4>
-                    <p><strong>Status:</strong> ${userData.user.subscription_status}</p>
-                    <p><strong>Plan:</strong> ${userData.user.subscription_plan}</p>
-                    <p><strong>Credits:</strong> ${userData.user.credits_remaining} remaining</p>
-                    <p><strong>Used:</strong> ${userData.user.credits_used} credits</p>
-                </div>
-            </div>
-            <div class="mt-4">
-                <h4 class="font-semibold">Recent Images (${userData.images.length})</h4>
-                <div class="max-h-40 overflow-y-auto">
-                    ${userData.images.slice(0, 5).map(img => `
-                        <div class="flex justify-between items-center py-1">
-                            <span>${img.original_filename}</span>
-                            <span class="text-sm text-gray-500">${new Date(img.created_at).toLocaleDateString()}</span>
+            <div class="space-y-6">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="space-y-3">
+                        <h4 class="font-semibold text-gray-900">User Information</h4>
+                        <div class="space-y-2 text-sm">
+                            <p><strong>Name:</strong> ${userData.user.first_name} ${userData.user.last_name}</p>
+                            <p><strong>Email:</strong> ${userData.user.email}</p>
+                            <p><strong>Company:</strong> ${userData.user.company || 'N/A'}</p>
+                            <p><strong>Joined:</strong> ${new Date(userData.user.created_at).toLocaleDateString()}</p>
                         </div>
-                    `).join('')}
+                    </div>
+                    <div class="space-y-3">
+                        <h4 class="font-semibold text-gray-900">Subscription</h4>
+                        <div class="space-y-2 text-sm">
+                            <p><strong>Status:</strong> ${userData.user.subscription_status}</p>
+                            <p><strong>Plan:</strong> ${userData.user.subscription_plan}</p>
+                            <p><strong>Credits:</strong> ${userData.user.credits_remaining} remaining</p>
+                            <p><strong>Used:</strong> ${userData.user.credits_used} credits</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="space-y-3">
+                    <h4 class="font-semibold text-gray-900">Recent Images (${userData.images.length})</h4>
+                    <div class="max-h-40 overflow-y-auto border border-gray-200 rounded-md p-3">
+                        ${userData.images.slice(0, 5).map(img => `
+                            <div class="flex justify-between items-center py-2 border-b border-gray-100 last:border-b-0">
+                                <span class="text-sm">${img.original_filename}</span>
+                                <span class="text-xs text-gray-500">${new Date(img.created_at).toLocaleDateString()}</span>
+                            </div>
+                        `).join('')}
+                    </div>
                 </div>
             </div>
         `;
@@ -763,50 +769,50 @@ class AdminDashboard {
         const content = document.getElementById('userModalContent');
 
         content.innerHTML = `
-            <div class="space-y-4">
-                <h3 class="text-lg font-semibold text-gray-900 mb-4">Edit User: ${user.email}</h3>
+            <div class="space-y-6">
+                <h3 class="text-lg font-semibold text-gray-900">Edit User: ${user.email}</h3>
                 
-                <form id="editUserForm" class="space-y-4">
+                <form id="editUserForm" class="space-y-6">
                     <input type="hidden" id="editUserId" value="${user.id}">
                     
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div class="space-y-2">
                             <label for="editFirstName" class="block text-sm font-medium text-gray-700">First Name</label>
                             <input type="text" id="editFirstName" value="${user.first_name || ''}" 
-                                   class="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-500">
+                                   class="block w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
                         </div>
-                        <div>
+                        <div class="space-y-2">
                             <label for="editLastName" class="block text-sm font-medium text-gray-700">Last Name</label>
                             <input type="text" id="editLastName" value="${user.last_name || ''}" 
-                                   class="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-500">
+                                   class="block w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
                         </div>
                     </div>
                     
-                    <div>
+                    <div class="space-y-2">
                         <label for="editCompany" class="block text-sm font-medium text-gray-700">Company</label>
                         <input type="text" id="editCompany" value="${user.company || ''}" 
-                               class="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-500">
+                               class="block w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
                     </div>
                     
-                    <div>
+                    <div class="space-y-2">
                         <label for="editCredits" class="block text-sm font-medium text-gray-700">Credits Remaining</label>
                         <input type="number" id="editCredits" value="${user.credits_remaining || 0}" min="0"
-                               class="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-500">
+                               class="block w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
                     </div>
                     
-                    <div class="flex items-center">
+                    <div class="flex items-center space-x-3">
                         <input type="checkbox" id="editIsActive" ${user.is_active ? 'checked' : ''} 
-                               class="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded">
-                        <label for="editIsActive" class="ml-2 block text-sm text-gray-900">Active Account</label>
+                               class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded">
+                        <label for="editIsActive" class="block text-sm text-gray-900">Active Account</label>
                     </div>
                     
-                    <div class="flex justify-end space-x-3 pt-4">
+                    <div class="flex justify-end space-x-3 pt-4 border-t border-gray-200">
                         <button type="button" id="cancelEdit" 
                                 class="bg-gray-500 text-white px-4 py-2 rounded-md hover:bg-gray-600 transition-colors">
                             Cancel
                         </button>
                         <button type="submit" 
-                                class="bg-primary-600 text-white px-4 py-2 rounded-md hover:bg-primary-700 transition-colors">
+                                class="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors">
                             Save Changes
                         </button>
                     </div>
