@@ -1,9 +1,40 @@
 :root {
+  /* Brand Colors */
   --primary-blue: #386594;
   --accent-orange: #E88B4B;
   --black: #000000;
   --white: #FFFFFF;
   --secondary-blue: #457BB9;
+
+  /* Button Colors - Header/Navigation */
+  --btn-nav-bg: transparent;
+  --btn-nav-text: var(--primary-blue);
+  --btn-nav-hover-bg: transparent;
+  --btn-nav-hover-text: var(--accent-orange);
+
+  /* Button Colors - Primary Actions */
+  --btn-primary-bg: var(--primary-blue);
+  --btn-primary-text: var(--white);
+  --btn-primary-hover-bg: var(--secondary-blue);
+  --btn-primary-hover-text: var(--white);
+
+  /* Button Colors - Secondary Actions */
+  --btn-secondary-bg: var(--accent-orange);
+  --btn-secondary-text: var(--white);
+  --btn-secondary-hover-bg: #d46d2e;
+  --btn-secondary-hover-text: var(--white);
+
+  /* Button Colors - Pricing Cards */
+  --btn-pricing-bg: var(--primary-blue);
+  --btn-pricing-text: var(--white);
+  --btn-pricing-hover-bg: var(--secondary-blue);
+  --btn-pricing-hover-text: var(--white);
+
+  /* Button Colors - Feature Cards */
+  --btn-feature-bg: var(--primary-blue);
+  --btn-feature-text: var(--white);
+  --btn-feature-hover-bg: var(--secondary-blue);
+  --btn-feature-hover-text: var(--white);
 }
 
 body {
@@ -20,16 +51,64 @@ a:hover {
   color: var(--accent-orange);
 }
 
-.btn-primary,
-.bg-primary-600 {
-  background: var(--primary-blue) !important;
-  color: var(--white) !important;
+/* Header/Nav Button */
+.btn-nav {
+  background: var(--btn-nav-bg);
+  color: var(--btn-nav-text);
   border: none;
+  transition: color 0.2s, background 0.2s;
+}
+.btn-nav:hover {
+  background: var(--btn-nav-hover-bg);
+  color: var(--btn-nav-hover-text);
 }
 
-.btn-primary:hover,
-.bg-primary-700 {
-  background: var(--secondary-blue) !important;
+/* Primary Button */
+.btn-primary {
+  background: var(--btn-primary-bg);
+  color: var(--btn-primary-text);
+  border: none;
+  transition: color 0.2s, background 0.2s;
+}
+.btn-primary:hover {
+  background: var(--btn-primary-hover-bg);
+  color: var(--btn-primary-hover-text);
+}
+
+/* Secondary Button */
+.btn-secondary {
+  background: var(--btn-secondary-bg);
+  color: var(--btn-secondary-text);
+  border: none;
+  transition: color 0.2s, background 0.2s;
+}
+.btn-secondary:hover {
+  background: var(--btn-secondary-hover-bg);
+  color: var(--btn-secondary-hover-text);
+}
+
+/* Pricing Card Button */
+.btn-pricing {
+  background: var(--btn-pricing-bg);
+  color: var(--btn-pricing-text);
+  border: none;
+  transition: color 0.2s, background 0.2s;
+}
+.btn-pricing:hover {
+  background: var(--btn-pricing-hover-bg);
+  color: var(--btn-pricing-hover-text);
+}
+
+/* Feature Card Button */
+.btn-feature {
+  background: var(--btn-feature-bg);
+  color: var(--btn-feature-text);
+  border: none;
+  transition: color 0.2s, background 0.2s;
+}
+.btn-feature:hover {
+  background: var(--btn-feature-hover-bg);
+  color: var(--btn-feature-hover-text);
 }
 
 .border-primary-500 {

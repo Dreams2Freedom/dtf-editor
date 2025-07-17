@@ -52,8 +52,8 @@
                     <span class="ml-4 text-gray-500">/ Dashboard</span>
                 </div>
                 <div class="flex items-center space-x-4">
-                    <a href="vectorize.html" class="text-[#386594] hover:text-[#457BB9] transition-colors">Vectorize</a>
-                    <a href="background-remove.html" class="text-[#386594] hover:text-[#457BB9] transition-colors">Background Removal</a>
+                    <a href="vectorize.html" class="btn-nav">Vectorize</a>
+                    <a href="background-remove.html" class="btn-nav">Background Removal</a>
                     <div id="authContainer">
                         <!-- Auth buttons will be inserted here by JavaScript -->
                     </div>
@@ -76,13 +76,11 @@
                     <label for="password" class="block text-sm font-medium text-[#386594] mb-2">Password</label>
                     <input type="password" id="password" name="password" required class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#E88B4B]">
                 </div>
-                <button type="submit" class="w-full bg-[#386594] text-white py-2 px-4 rounded-md hover:bg-[#25425f] transition-colors">
-                    Login
-                </button>
+                <button type="submit" class="btn-primary w-full">Login</button>
             </form>
             <div class="mt-4 text-center">
                 <p class="text-sm text-gray-600">Don't have an account?</p>
-                <button id="showRegister" class="text-[#E88B4B] hover:text-[#d46d2e] text-sm">Register here</button>
+                <button id="showRegister" class="btn-secondary text-sm">Register here</button>
             </div>
         </div>
 
@@ -110,13 +108,11 @@
                     <label for="regPassword" class="block text-sm font-medium text-[#386594] mb-2">Password</label>
                     <input type="password" id="regPassword" name="password" required class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#E88B4B]">
                 </div>
-                <button type="submit" class="w-full bg-[#386594] text-white py-2 px-4 rounded-md hover:bg-[#25425f] transition-colors">
-                    Create Account
-                </button>
+                <button type="submit" class="btn-primary w-full">Create Account</button>
             </form>
             <div class="mt-4 text-center">
                 <p class="text-sm text-gray-600">Already have an account?</p>
-                <button id="showLogin" class="text-[#E88B4B] hover:text-[#d46d2e] text-sm">Login here</button>
+                <button id="showLogin" class="btn-secondary text-sm">Login here</button>
             </div>
         </div>
 
@@ -190,9 +186,7 @@
                             </div>
                         </div>
                         <div class="mt-6">
-                            <button type="submit" class="bg-[#386594] text-white px-6 py-2 rounded-md hover:bg-[#25425f] transition-colors">
-                                Update Profile
-                            </button>
+                            <button type="submit" class="btn-primary px-6 py-2 rounded-md">Update Profile</button>
                         </div>
                     </form>
 
@@ -207,9 +201,7 @@
                                 <label for="newPassword" class="block text-sm font-medium text-[#386594] mb-2">New Password</label>
                                 <input type="password" id="newPassword" name="new_password" required class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#E88B4B]">
                             </div>
-                            <button type="submit" class="bg-[#E88B4B] text-white px-6 py-2 rounded-md hover:bg-[#d46d2e] transition-colors">
-                                Change Password
-                            </button>
+                            <button type="submit" class="btn-secondary px-6 py-2 rounded-md">Change Password</button>
                         </form>
                     </div>
                 </div>
@@ -218,9 +210,7 @@
                 <div id="imagesTab" class="tab-content p-6 hidden">
                     <div class="flex justify-between items-center mb-6">
                         <h3 class="text-lg font-semibold text-[#386594]">My Generated Images</h3>
-                        <button id="refreshImages" class="bg-[#386594] text-white px-4 py-2 rounded-md hover:bg-[#25425f] transition-colors">
-                            Refresh
-                        </button>
+                        <button id="refreshImages" class="btn-primary px-4 py-2 rounded-md">Refresh</button>
                     </div>
                     <div id="imagesGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                         <!-- Images will be populated here -->
