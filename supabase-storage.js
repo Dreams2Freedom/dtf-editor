@@ -1,26 +1,13 @@
 const { createClient } = require('@supabase/supabase-js');
 require('dotenv').config();
 
-// Check if Supabase environment variables are available
-const SUPABASE_URL = process.env.SUPABASE_URL;
-const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
+// Initialize Supabase client
+const supabase = createClient(
+    process.env.SUPABASE_URL,
+    process.env.SUPABASE_SERVICE_ROLE_KEY
+);
 
-let supabase = null;
 const BUCKET_NAME = 'user-images';
-
-// Initialize Supabase client only if environment variables are available
-if (SUPABASE_URL && SUPABASE_SERVICE_ROLE_KEY) {
-    try {
-        supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
-        console.log('✅ Supabase Storage initialized successfully');
-    } catch (error) {
-        console.error('❌ Failed to initialize Supabase client:', error);
-        supabase = null;
-    }
-} else {
-    console.warn('⚠️  Supabase environment variables not found. Storage features will be disabled.');
-    console.warn('   Required: SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY');
-}
 
 class SupabaseStorage {
     /**
@@ -33,10 +20,6 @@ class SupabaseStorage {
      * @returns {Promise<Object>} Upload result with path and URL
      */
     static async uploadFile(userId, filename, fileBuffer, contentType, fileType = 'original') {
-        if (!supabase) {
-            throw new Error('Supabase Storage is not configured. Please set SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY environment variables.');
-        }
-
         try {
             // Create unique filename to avoid conflicts
             const timestamp = Date.now();
@@ -81,10 +64,6 @@ class SupabaseStorage {
      * @returns {string} Public URL
      */
     static getPublicUrl(filePath) {
-        if (!supabase) {
-            throw new Error('Supabase Storage is not configured. Please set SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY environment variables.');
-        }
-
         const { data } = supabase
             .storage
             .from(BUCKET_NAME)
@@ -100,10 +79,6 @@ class SupabaseStorage {
      * @returns {Promise<string>} Signed URL
      */
     static async createSignedUrl(filePath, expiresIn = 3600) {
-        if (!supabase) {
-            throw new Error('Supabase Storage is not configured. Please set SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY environment variables.');
-        }
-
         try {
             const { data, error } = await supabase
                 .storage
@@ -128,10 +103,6 @@ class SupabaseStorage {
      * @returns {Promise<boolean>} Success status
      */
     static async deleteFile(filePath) {
-        if (!supabase) {
-            throw new Error('Supabase Storage is not configured. Please set SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY environment variables.');
-        }
-
         try {
             console.log(`Deleting file from Supabase: ${filePath}`);
             
@@ -160,10 +131,6 @@ class SupabaseStorage {
      * @returns {Promise<Array>} List of files
      */
     static async listUserFiles(userId, folder = '') {
-        if (!supabase) {
-            throw new Error('Supabase Storage is not configured. Please set SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY environment variables.');
-        }
-
         try {
             const path = folder ? `${userId}/${folder}` : `${userId}`;
             
@@ -190,10 +157,6 @@ class SupabaseStorage {
      * @returns {Promise<Buffer>} File buffer
      */
     static async downloadFile(filePath) {
-        if (!supabase) {
-            throw new Error('Supabase Storage is not configured. Please set SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY environment variables.');
-        }
-
         try {
             const { data, error } = await supabase
                 .storage
@@ -218,10 +181,6 @@ class SupabaseStorage {
      * @returns {Promise<Object>} File metadata
      */
     static async getFileMetadata(filePath) {
-        if (!supabase) {
-            throw new Error('Supabase Storage is not configured. Please set SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY environment variables.');
-        }
-
         try {
             const { data, error } = await supabase
                 .storage
