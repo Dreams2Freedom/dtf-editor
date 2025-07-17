@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FAQ - DTF Editor</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="styles.css">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: {
+                            50: '#f0f4f8',
+                            100: '#e0e9f2',
+                            200: '#c1d4e6',
+                            300: '#93b8d9',
+                            400: '#5a8bc7',
+                            500: '#386594',
+                            600: '#2d5176',
+                            700: '#25425f',
+                            800: '#1f374e',
+                            900: '#1a2f42',
+                        },
+                        accent: {
+                            50: '#fef7f0',
+                            100: '#fdecd8',
+                            200: '#fbd5b0',
+                            300: '#f8b87d',
+                            400: '#f59347',
+                            500: '#E88B4B',
+                            600: '#d46d2e',
+                            700: '#b15526',
+                            800: '#8e4524',
+                            900: '#733a22',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <!-- Navigation -->
+    <nav class="bg-white shadow-lg">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16">
+                <div class="flex items-center">
+                    <a href="index.html" class="text-2xl font-bold text-[#386594]">DTF Editor</a>
+                    <span class="ml-4 text-gray-500">/ FAQ</span>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <a href="vectorize.html" class="btn-nav">Vectorize</a>
+                    <a href="background-remove.html" class="btn-nav">Background Removal</a>
+                    <a href="dashboard.html" class="btn-nav">Dashboard</a>
+                    <a href="login.html" class="btn-nav">Login</a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <!-- Header -->
+        <div class="text-center mb-12">
+            <h1 class="text-4xl font-bold text-[#386594] mb-4">Frequently Asked Questions</h1>
+            <p class="text-lg text-gray-600">Find answers to common questions about DTF Editor</p>
+        </div>
+
+        <!-- FAQ Sections -->
+        <div class="space-y-8">
+            <!-- Image Processing -->
+            <div class="bg-white rounded-lg shadow-lg p-8">
+                <h2 class="text-2xl font-bold text-[#386594] mb-6">Image Processing</h2>
+                
+                <div class="space-y-6">
+                    <div class="border-b border-gray-200 pb-6">
+                        <h3 class="text-lg font-semibold text-gray-900 mb-3">What file formats are supported?</h3>
+                        <p class="text-gray-600">We support most common image formats including JPG, PNG, GIF, BMP, TIFF, and WebP. For vectorization, we recommend high-quality images for best results.</p>
+                    </div>
+
+                    <div class="border-b border-gray-200 pb-6">
+                        <h3 class="text-lg font-semibold text-gray-900 mb-3">What is the maximum file size?</h3>
+                        <p class="text-gray-600">The maximum file size is 30MB per image. For best performance, we recommend keeping files under 10MB.</p>
+                    </div>
+
+                    <div class="border-b border-gray-200 pb-6">
+                        <h3 class="text-lg font-semibold text-gray-900 mb-3">How long does processing take?</h3>
+                        <p class="text-gray-600">Processing time varies based on image complexity and size. Simple images typically process in 10-30 seconds, while complex images may take 1-2 minutes.</p>
+                    </div>
+
+                    <div class="border-b border-gray-200 pb-6">
+                        <h3 class="text-lg font-semibold text-gray-900 mb-3">What's the difference between vectorization and background removal?</h3>
+                        <p class="text-gray-600">Vectorization converts raster images into scalable vector graphics (SVG) that can be resized without quality loss. Background removal creates transparent backgrounds for easier integration into designs.</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Storage & Retention -->
+            <div class="bg-white rounded-lg shadow-lg p-8" id="retention">
+                <h2 class="text-2xl font-bold text-[#386594] mb-6">Storage & Retention</h2>
+                
+                <div class="space-y-6">
+                    <div class="border-b border-gray-200 pb-6">
+                        <h3 class="text-lg font-semibold text-gray-900 mb-3">How long are my images stored?</h3>
+                        <div class="text-gray-600 space-y-3">
+                            <p>Our image retention policy varies based on your subscription tier:</p>
+                            <ul class="list-disc list-inside space-y-2 ml-4">
+                                <li><strong>Free Tier:</strong> Images are automatically deleted after 7 days</li>
+                                <li><strong>Active Paid Subscriptions:</strong> Images are stored indefinitely with no automatic deletion</li>
+                                <li><strong>Expired Subscriptions:</strong> Images are deleted 30 days after subscription expiration</li>
+                            </ul>
+                            <p class="mt-3 text-sm text-gray-500">We recommend downloading your processed images to ensure you don't lose them. You can always re-upload and process images again.</p>
+                        </div>
+                    </div>
+
+                    <div class="border-b border-gray-200 pb-6">
+                        <h3 class="text-lg font-semibold text-gray-900 mb-3">Can I download my images?</h3>
+                        <p class="text-gray-600">Yes! You can download your processed images from your dashboard. Vectorized images are downloaded as SVG files, and background-removed images are typically PNG with transparency.</p>
+                    </div>
+
+                    <div class="border-b border-gray-200 pb-6">
+                        <h3 class="text-lg font-semibold text-gray-900 mb-3">Is there a limit on how many images I can process?</h3>
+                        <p class="text-gray-600">Image processing is limited by your credit balance. Each operation costs credits based on the service used. Free users get 5 credits to start, and paid plans include more credits.</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Credits & Billing -->
+            <div class="bg-white rounded-lg shadow-lg p-8">
+                <h2 class="text-2xl font-bold text-[#386594] mb-6">Credits & Billing</h2>
+                
+                <div class="space-y-6">
+                    <div class="border-b border-gray-200 pb-6">
+                        <h3 class="text-lg font-semibold text-gray-900 mb-3">How do credits work?</h3>
+                        <p class="text-gray-600">Credits are consumed for each image processing operation. Vectorization typically costs 1 credit, while background removal costs 1 credit. Credits are included with your subscription plan.</p>
+                    </div>
+
+                    <div class="border-b border-gray-200 pb-6">
+                        <h3 class="text-lg font-semibold text-gray-900 mb-3">Can I purchase additional credits?</h3>
+                        <p class="text-gray-600">Yes, you can purchase additional credits or upgrade your subscription plan to get more credits. Visit your dashboard to manage your subscription.</p>
+                    </div>
+
+                    <div class="border-b border-gray-200 pb-6">
+                        <h3 class="text-lg font-semibold text-gray-900 mb-3">What payment methods do you accept?</h3>
+                        <p class="text-gray-600">We accept all major credit cards through our secure Stripe payment processing. All payments are encrypted and secure.</p>
+                    </div>
+
+                    <div class="border-b border-gray-200 pb-6">
+                        <h3 class="text-lg font-semibold text-gray-900 mb-3">Can I cancel my subscription?</h3>
+                        <p class="text-gray-600">Yes, you can cancel your subscription at any time from your dashboard. Your images will be retained for 30 days after cancellation.</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Account & Security -->
+            <div class="bg-white rounded-lg shadow-lg p-8">
+                <h2 class="text-2xl font-bold text-[#386594] mb-6">Account & Security</h2>
+                
+                <div class="space-y-6">
+                    <div class="border-b border-gray-200 pb-6">
+                        <h3 class="text-lg font-semibold text-gray-900 mb-3">Is my data secure?</h3>
+                        <p class="text-gray-600">Yes, we take security seriously. All images are encrypted in transit and at rest. We use industry-standard security practices to protect your data.</p>
+                    </div>
+
+                    <div class="border-b border-gray-200 pb-6">
+                        <h3 class="text-lg font-semibold text-gray-900 mb-3">Can I delete my account?</h3>
+                        <p class="text-gray-600">Yes, you can delete your account from your dashboard settings. This will permanently delete all your data, including processed images.</p>
+                    </div>
+
+                    <div class="border-b border-gray-200 pb-6">
+                        <h3 class="text-lg font-semibold text-gray-900 mb-3">Do you share my images with third parties?</h3>
+                        <p class="text-gray-600">No, we never share your images with third parties. Your images are processed for your use only and are not used for any other purpose.</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Support -->
+            <div class="bg-white rounded-lg shadow-lg p-8">
+                <h2 class="text-2xl font-bold text-[#386594] mb-6">Support</h2>
+                
+                <div class="space-y-6">
+                    <div class="border-b border-gray-200 pb-6">
+                        <h3 class="text-lg font-semibold text-gray-900 mb-3">How can I get help?</h3>
+                        <p class="text-gray-600">If you need help, you can contact our support team through your dashboard. We typically respond within 24 hours.</p>
+                    </div>
+
+                    <div class="border-b border-gray-200 pb-6">
+                        <h3 class="text-lg font-semibold text-gray-900 mb-3">Do you offer refunds?</h3>
+                        <p class="text-gray-600">We offer refunds within 30 days of purchase if you're not satisfied with our service. Contact support to request a refund.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Contact Support -->
+        <div class="mt-12 text-center">
+            <div class="bg-blue-50 border border-blue-200 rounded-lg p-8">
+                <h3 class="text-xl font-semibold text-blue-900 mb-4">Still have questions?</h3>
+                <p class="text-blue-700 mb-6">Can't find what you're looking for? Contact our support team for personalized help.</p>
+                <a href="dashboard.html" class="btn-primary px-8 py-3 rounded-md">
+                    Contact Support
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="bg-gray-800 text-white py-8 mt-16">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center">
+                <p class="text-gray-400">&copy; 2024 DTF Editor. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+</body>
+</html> 

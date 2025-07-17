@@ -325,8 +325,27 @@ class UserDashboard {
         const grid = document.getElementById('imagesGrid');
         grid.innerHTML = '';
 
+        // Add retention policy info at the top
+        const retentionInfo = this.getRetentionPolicyInfo();
+        grid.innerHTML = `
+            <div class="col-span-full mb-6">
+                <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                    <div class="flex items-start">
+                        <svg class="w-5 h-5 text-blue-600 mt-0.5 mr-3 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"></path>
+                        </svg>
+                        <div>
+                            <h4 class="text-sm font-semibold text-blue-900 mb-1">Image Retention Policy</h4>
+                            <p class="text-sm text-blue-700">${retentionInfo.message}</p>
+                            <a href="faq.html#retention" class="text-sm text-blue-600 hover:text-blue-800 underline mt-1 inline-block">Learn more about retention policies</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+
         if (this.images.length === 0) {
-            grid.innerHTML = `
+            grid.innerHTML += `
                 <div class="col-span-full text-center py-12">
                     <div class="bg-white rounded-lg shadow-lg p-8">
                         <svg class="w-16 h-16 mx-auto text-gray-400 mb-4" fill="currentColor" viewBox="0 0 20 20">
@@ -704,6 +723,28 @@ class UserDashboard {
         } catch (error) {
             console.error('Error changing password:', error);
             this.showNotification('Failed to change password', 'error');
+        }
+    }
+
+    getRetentionPolicyInfo() {
+        const user = this.currentUser;
+        const subscriptionStatus = user.subscription_status || 'free';
+        
+        if (subscriptionStatus === 'free') {
+            return {
+                message: 'Free tier: Images are stored for 7 days. Upgrade to a paid plan for unlimited storage.',
+                type: 'warning'
+            };
+        } else if (subscriptionStatus === 'active') {
+            return {
+                message: 'Active subscription: Your images are stored indefinitely. No automatic deletion.',
+                type: 'success'
+            };
+        } else {
+            return {
+                message: 'Expired subscription: Images will be deleted 30 days after subscription expiration. Renew to keep your images.',
+                type: 'warning'
+            };
         }
     }
 
