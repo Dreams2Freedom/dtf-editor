@@ -308,7 +308,7 @@ class UserDashboard {
     updateStats(user) {
         document.getElementById('creditsRemaining').textContent = user.credits_remaining || 0;
         document.getElementById('creditsUsed').textContent = user.credits_used || 0;
-        document.getElementById('imagesGenerated').textContent = user.credits_used || 0;
+        document.getElementById('imagesGenerated').textContent = user.total_images_generated || 0;
         document.getElementById('subscriptionStatus').textContent = user.subscription_status || 'Free';
     }
 

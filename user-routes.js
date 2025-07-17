@@ -16,6 +16,10 @@ router.get('/profile', async (req, res) => {
             return res.status(404).json({ error: 'User not found' });
         }
 
+        // Get total images generated
+        const images = await dbHelpers.getUserImages(req.user.id);
+        user.total_images_generated = images.length;
+
         // Remove sensitive data
         delete user.password_hash;
         

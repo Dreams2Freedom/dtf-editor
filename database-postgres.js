@@ -109,7 +109,8 @@ async function createTables() {
                 stripe_customer_id VARCHAR(255),
                 credits_remaining INTEGER DEFAULT 2,
                 credits_used INTEGER DEFAULT 0,
-                total_credits_purchased INTEGER DEFAULT 2
+                total_credits_purchased INTEGER DEFAULT 2,
+                total_images_generated INTEGER DEFAULT 0
             )
         `);
 
@@ -185,6 +186,20 @@ async function createTables() {
                     AND column_name = 'storage_path'
                 ) THEN
                     ALTER TABLE images ADD COLUMN storage_path VARCHAR(500);
+                END IF;
+            END $$;
+        `);
+
+        // Add total_images_generated column if it doesn't exist
+        await client.query(`
+            DO $$ 
+            BEGIN 
+                IF NOT EXISTS (
+                    SELECT 1 FROM information_schema.columns 
+                    WHERE table_name = 'users' 
+                    AND column_name = 'total_images_generated'
+                ) THEN
+                    ALTER TABLE users ADD COLUMN total_images_generated INTEGER DEFAULT 0;
                 END IF;
             END $$;
         `);
@@ -422,11 +437,30 @@ const dbHelpers = {
         const client = await dbHelpers.getClient();
         try {
             const { user_id, original_filename, processed_filename, storage_path, file_size, image_type, tool_used, credits_used, processing_time_ms } = imageData;
+            
+            // Start a transaction
+            await client.query('BEGIN');
+            
+            // Insert the image
             const result = await client.query(
                 'INSERT INTO images (user_id, original_filename, processed_filename, storage_path, file_size, image_type, tool_used, credits_used, processing_time_ms) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING id',
                 [user_id, original_filename, processed_filename, storage_path, file_size, image_type, tool_used, credits_used, processing_time_ms]
             );
+            
+            // Increment the user's total_images_generated counter
+            await client.query(
+                'UPDATE users SET total_images_generated = total_images_generated + 1 WHERE id = $1',
+                [user_id]
+            );
+            
+            // Commit the transaction
+            await client.query('COMMIT');
+            
             return result.rows[0].id;
+        } catch (error) {
+            // Rollback on error
+            await client.query('ROLLBACK');
+            throw error;
         } finally {
             client.release();
         }
