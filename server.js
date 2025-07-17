@@ -5,8 +5,33 @@ const path = require('path');
 const cors = require('cors');
 const helmet = require('helmet');
 const morgan = require('morgan');
+const rateLimit = require('express-rate-limit');
 const fs = require('fs').promises;
 require('dotenv').config();
+
+// Validate required environment variables
+const requiredEnvVars = [
+    'JWT_SECRET',
+    'STRIPE_SECRET_KEY',
+    'VECTORIZER_API_ID',
+    'VECTORIZER_API_SECRET',
+    'CLIPPING_MAGIC_API_ID',
+    'CLIPPING_MAGIC_API_SECRET',
+    'SUPABASE_URL',
+    'SUPABASE_SERVICE_ROLE_KEY',
+    'SUPABASE_DB_URL'
+];
+
+const missingEnvVars = requiredEnvVars.filter(varName => !process.env[varName]);
+
+if (missingEnvVars.length > 0) {
+    console.error('Missing required environment variables:', missingEnvVars);
+    if (process.env.NODE_ENV === 'production') {
+        throw new Error(`Missing required environment variables: ${missingEnvVars.join(', ')}`);
+    } else {
+        console.warn('Continuing in development mode with missing environment variables');
+    }
+}
 
 // Import our modules
 const { dbHelpers, initializeDatabase } = require('./database-postgres');
@@ -21,6 +46,42 @@ const userRoutes = require('./user-routes');
 const adminRoutes = require('./admin-routes');
 
 const app = express();
+
+// Rate limiting configuration
+const limiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 100, // limit each IP to 100 requests per windowMs
+    message: {
+        error: 'Too many requests from this IP, please try again later.',
+        retryAfter: '15 minutes'
+    },
+    standardHeaders: true,
+    legacyHeaders: false,
+});
+
+// Stricter rate limiting for auth endpoints
+const authLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 5, // limit each IP to 5 login attempts per windowMs
+    message: {
+        error: 'Too many login attempts, please try again later.',
+        retryAfter: '15 minutes'
+    },
+    standardHeaders: true,
+    legacyHeaders: false,
+});
+
+// Stricter rate limiting for API endpoints
+const apiLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 50, // limit each IP to 50 API requests per windowMs
+    message: {
+        error: 'Too many API requests, please try again later.',
+        retryAfter: '15 minutes'
+    },
+    standardHeaders: true,
+    legacyHeaders: false,
+});
 
 // Initialize database
 console.log('Starting database initialization...');
@@ -44,7 +105,7 @@ initializeDatabase().then(() => {
 });
 const PORT = process.env.PORT || 3000;
 
-// Security middleware with CSP that allows Tailwind CDN
+// Security middleware with enhanced CSP and security headers
 app.use(helmet({
     contentSecurityPolicy: {
         directives: {
@@ -52,16 +113,43 @@ app.use(helmet({
             styleSrc: ["'self'", "'unsafe-inline'", "https://cdn.tailwindcss.com"],
             scriptSrc: ["'self'", "'unsafe-inline'", "https://cdn.tailwindcss.com"],
             fontSrc: ["'self'", "https:", "data:"],
-            imgSrc: ["'self'", "data:"],
-            connectSrc: ["'self'"],
-            frameSrc: ["'self'"],
+            imgSrc: ["'self'", "data:", "https:"],
+            connectSrc: ["'self'", "https://api.stripe.com", "https://vectorizer.ai", "https://api.clippingmagic.com"],
+            frameSrc: ["'self'", "https://js.stripe.com"],
             objectSrc: ["'none'"],
             mediaSrc: ["'self'"],
-            manifestSrc: ["'self'"]
+            manifestSrc: ["'self'"],
+            upgradeInsecureRequests: process.env.NODE_ENV === 'production' ? [] : null
         }
-    }
+    },
+    hsts: {
+        maxAge: 31536000,
+        includeSubDomains: true,
+        preload: true
+    },
+    noSniff: true,
+    referrerPolicy: { policy: 'strict-origin-when-cross-origin' }
 }));
 app.use(morgan('combined'));
+
+// Custom request logging middleware
+app.use((req, res, next) => {
+    const start = Date.now();
+    
+    // Log request details
+    console.log(`${new Date().toISOString()} - ${req.method} ${req.path} - IP: ${req.ip} - User-Agent: ${req.get('User-Agent')}`);
+    
+    // Log response details
+    res.on('finish', () => {
+        const duration = Date.now() - start;
+        console.log(`${new Date().toISOString()} - ${req.method} ${req.path} - Status: ${res.statusCode} - Duration: ${duration}ms`);
+    });
+    
+    next();
+});
+
+// Apply rate limiting
+app.use(limiter);
 
 // Middleware
 app.use(cors());
@@ -109,18 +197,34 @@ async function ensureUploadDirs() {
     }
 }
 
-// Configure multer for file uploads (wellstill use this for temporary processing)
+// Configure multer for file uploads with enhanced security
 const upload = multer({
     storage: multer.memoryStorage(), // Use memory storage for processing
     limits: {
-        fileSize: 30 * 1024 * 1024 // 30B limit
+        fileSize: 30 * 1024 * 1024, // 30MB limit
+        files: 1, // Only allow 1 file per request
+        fieldSize: 1024 * 1024 // 1MB field size limit
     },
     fileFilter: (req, file, cb) => {
-        if (file.mimetype.startsWith('image/')) {
-            cb(null, true);
-        } else {
-            cb(new Error('Only image files are allowed'), false);
+        // Check file type
+        const allowedMimes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
+        if (!allowedMimes.includes(file.mimetype)) {
+            return cb(new Error('Only JPEG, PNG, GIF, and WebP images are allowed'), false);
         }
+        
+        // Check file extension
+        const allowedExtensions = ['.jpg', '.jpeg', '.png', '.gif', '.webp'];
+        const fileExtension = path.extname(file.originalname).toLowerCase();
+        if (!allowedExtensions.includes(fileExtension)) {
+            return cb(new Error('Invalid file extension'), false);
+        }
+        
+        // Additional security checks
+        if (file.originalname.includes('..') || file.originalname.includes('/') || file.originalname.includes('\\')) {
+            return cb(new Error('Invalid filename'), false);
+        }
+        
+        cb(null, true);
     }
 });
 
@@ -133,14 +237,14 @@ const CLIPPING_MAGIC_ENDPOINT = 'https://api.clippingmagic.com/remove-background
 const CLIPPING_MAGIC_API_ID = process.env.CLIPPING_MAGIC_API_ID || '24469';
 const CLIPPING_MAGIC_API_SECRET = process.env.CLIPPING_MAGIC_API_SECRET || 'mngg89bme2has9hojc7n5cbjr8ptg3bjc8r3v225c555nhkvv11';
 
-// Authentication routes
-app.use('/api/auth', authRoutes);
+// Authentication routes (with stricter rate limiting)
+app.use('/api/auth', authLimiter, authRoutes);
 
-// User routes (protected)
-app.use('/api/user', userRoutes);
+// User routes (protected with API rate limiting)
+app.use('/api/user', apiLimiter, userRoutes);
 
-// Admin routes (protected)
-app.use('/api/admin', adminRoutes);
+// Admin routes (protected with API rate limiting)
+app.use('/api/admin', apiLimiter, adminRoutes);
 
 // Serve HTML pages
 app.get('/', (req, res) => {
@@ -189,27 +293,40 @@ app.get('/api/health-check', (req, res) => {
     });
 });
 
-// Health check endpoint
-app.get('/api/health', (req, res) => {
+// Enhanced health check endpoint
+app.get('/api/health', async (req, res) => {
     console.log('Health check requested');
-    res.json({ 
-        status: 'ok', 
+    
+    const healthStatus = {
+        status: 'ok',
         timestamp: new Date().toISOString(),
+        version: '2.4.0',
+        environment: process.env.NODE_ENV || 'development',
+        uptime: process.uptime(),
+        memory: process.memoryUsage(),
         services: {
-            vectorizer: 'available (test mode)',
-            vectorizerPreview: 'available',
+            database: dbInitialized ? 'connected' : 'disconnected',
+            vectorizer: 'available',
             clippingMagic: 'available',
-            clippingMagicUpload: 'available',
-            authentication: 'available',
-            userManagement: 'available',
-            adminPanel: 'available'
-        },
-        modes: {
-            test: 'Free testing mode',
-            preview: 'Watermarked preview images',
-            production: 'Full quality (requires subscription)'
+            stripe: process.env.STRIPE_SECRET_KEY ? 'configured' : 'not configured',
+            supabase: process.env.SUPABASE_URL ? 'configured' : 'not configured'
         }
-    });
+    };
+    
+    // Check database connection if initialized
+    if (dbInitialized) {
+        try {
+            const dbHelpers = require('./database-postgres');
+            await dbHelpers.testConnection();
+            healthStatus.services.database = 'healthy';
+        } catch (error) {
+            healthStatus.services.database = 'error';
+            healthStatus.status = 'degraded';
+        }
+    }
+    
+    const statusCode = healthStatus.status === 'ok' ? 200 : 503;
+    res.status(statusCode).json(healthStatus);
 });
 
 // Vectorizer.AI proxy endpoint (with credit checking)
@@ -675,54 +792,64 @@ app.post('/api/webhooks/stripe', express.raw({ type: 'application/json' }), asyn
 });
 
 // Error handling middleware
-app.use((error, req, res, next) => {
-    console.error('Server error:', error);
-    res.status(500).json({ 
-        error: 'Internal server error',
-        details: error.message 
+app.use((err, req, res, next) => {
+    console.error('Unhandled error:', err);
+    
+    // Don't leak error details in production
+    if (process.env.NODE_ENV === 'production') {
+        res.status(500).json({ 
+            error: 'Internal server error',
+            message: 'Something went wrong. Please try again later.'
+        });
+    } else {
+        res.status(500).json({ 
+            error: 'Internal server error',
+            message: err.message,
+            stack: err.stack
+        });
+    }
+});
+
+// 404 handler
+app.use((req, res) => {
+    res.status(404).json({ 
+        error: 'Not found',
+        message: 'The requested resource was not found'
     });
 });
 
-// Start server immediately for Railway health check
-app.listen(PORT, () => {
-        console.log(`🚀 DTF Editor server running on http://localhost:${PORT}`);
-        console.log(`📁 Static files served from: ${__dirname}`);
-        console.log(`🔧 API endpoints:`);
-        console.log(`   - GET / - Root health check`);
-        console.log(`   - POST /api/auth/register - User registration`);
-        console.log(`   - POST /api/auth/login - User login`);
-        console.log(`   - GET /api/user/profile - User profile`);
-        console.log(`   - GET /api/admin/users - Admin user management`);
-        console.log(`   - POST /api/vectorize - Vectorize images (requires auth)`);
-        console.log(`   - POST /api/preview - Generate preview images (requires auth)`);
-        console.log(`   - POST /api/clipping-magic-upload - Upload for Clipping Magic editor (requires auth)`);
-        console.log(`   - GET /api/health - Health check`);
-        console.log(`📋 Features:`);
-        console.log(`   - User authentication and authorization`);
-        console.log(`   - Credit-based usage tracking`);
-        console.log(`   - Stripe subscription management`);
-        console.log(`   - Admin dashboard and user management`);
-        console.log(`   - Image processing with credit validation`);
-        console.log(`🔄 Railway deployment version: ${new Date().toISOString()} - Force redeploy for environment variables`);
-        console.log(`🗄️  Database status: ${dbInitialized ? 'Connected' : 'Disconnected'}`);
-    }).on('error', (error) => {
-        console.error('Failed to start server:', error);
-        // Don't exit on port errors, just log them
-        if (error.code === 'EADDRINUSE') {
-            console.error('Port is already in use. Please check if another instance is running.');
-        }
-    });
-
-// Handle uncaught exceptions
-process.on('uncaughtException', (error) => {
-    console.error('Uncaught Exception:', error);
-    // Don't exit, just log the error
+// Graceful shutdown
+process.on('SIGTERM', () => {
+    console.log('SIGTERM received, shutting down gracefully');
+    process.exit(0);
 });
 
-// Handle unhandled promise rejections
+process.on('SIGINT', () => {
+    console.log('SIGINT received, shutting down gracefully');
+    process.exit(0);
+});
+
+// Unhandled promise rejection handler
 process.on('unhandledRejection', (reason, promise) => {
     console.error('Unhandled Rejection at:', promise, 'reason:', reason);
-    // Don't exit, just log the error
+    // Don't exit in production, just log
+    if (process.env.NODE_ENV !== 'production') {
+        process.exit(1);
+    }
+});
+
+// Uncaught exception handler
+process.on('uncaughtException', (error) => {
+    console.error('Uncaught Exception:', error);
+    // Exit in all cases for uncaught exceptions
+    process.exit(1);
+});
+
+// Start server
+app.listen(PORT, () => {
+    console.log(`Server running on port ${PORT}`);
+    console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
+    console.log(`Database status: ${dbInitialized ? 'connected' : 'disconnected'}`);
 });
 
 // Image Management Endpoints

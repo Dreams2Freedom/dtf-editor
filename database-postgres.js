@@ -738,6 +738,20 @@ const dbHelpers = {
         }
     },
 
+    // Test database connection
+    testConnection: async () => {
+        if (!pool) {
+            throw new Error('Database pool not initialized');
+        }
+        
+        const client = await pool.connect();
+        try {
+            await client.query('SELECT 1');
+        } finally {
+            client.release();
+        }
+    },
+
     // Close database connection
     close: async () => {
         if (pool) {
