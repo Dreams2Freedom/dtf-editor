@@ -6,6 +6,14 @@
     <title>DTF Editor - Professional DTF Transfer Image Processing</title>
     <link rel="stylesheet" href="styles.css">
     <script src="auth-utils.js"></script>
+    <script>
+        // Update admin links visibility when page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            if (window.authUtils) {
+                window.authUtils.updateAdminLinks();
+            }
+        });
+    </script>
 </head>
 <body>
     <!-- Navigation -->
@@ -17,7 +25,7 @@
                 <a href="background-remove.html" class="btn-nav">Background Removal</a>
                 <a href="dashboard.html" class="btn-nav">Dashboard</a>
                 <a href="faq.html" class="btn-nav">FAQ</a>
-                <a href="admin.html" class="btn-nav">Admin</a>
+                <a href="admin.html" class="btn-nav admin-link" style="display: none;">Admin</a>
                 <div id="authContainer">
                     <!-- Auth buttons will be inserted here by JavaScript -->
                 </div>

@@ -102,6 +102,20 @@ function addUserInfo(containerId = 'userInfoContainer') {
     }
 }
 
+// Show/hide admin links based on user permissions
+function updateAdminLinks() {
+    const user = getCurrentUser();
+    const adminLinks = document.querySelectorAll('.admin-link');
+    
+    adminLinks.forEach(link => {
+        if (user && user.is_admin) {
+            link.style.display = 'inline-block';
+        } else {
+            link.style.display = 'none';
+        }
+    });
+}
+
 // Protect page - redirect to login if not authenticated
 async function protectPage() {
     const user = await verifyToken();
@@ -132,6 +146,7 @@ window.authUtils = {
     redirectBasedOnUserType,
     addLogoutButton,
     addUserInfo,
+    updateAdminLinks,
     protectPage,
     protectAdminPage
 };

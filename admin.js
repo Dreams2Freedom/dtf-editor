@@ -155,36 +155,45 @@ class AdminDashboard {
 
     async checkAuth() {
         console.log('checkAuth called, token exists:', !!this.token);
-        if (this.token) {
-            try {
-                console.log('Verifying token...');
-                const response = await fetch('/api/auth/verify', {
-                    headers: {
-                        'Authorization': `Bearer ${this.token}`
-                    }
-                });
+        
+        // If no token, show login form
+        if (!this.token) {
+            console.log('No token found, showing login form');
+            this.showLogin();
+            return;
+        }
 
-                console.log('Verify response status:', response.status);
-                if (response.ok) {
-                    const data = await response.json();
-                    console.log('Verify response data:', data);
-                    if (data.user.is_admin) {
-                        console.log('User is admin, showing dashboard');
-                        this.currentUser = data.user;
-                        this.showDashboard();
-                        this.loadDashboardData();
-                    } else {
-                        console.log('User is not admin, logging out');
-                        this.logout();
-                    }
-                } else {
-                    console.log('Verify failed, logging out');
-                    this.logout();
+        try {
+            console.log('Verifying token...');
+            const response = await fetch('/api/auth/verify', {
+                headers: {
+                    'Authorization': `Bearer ${this.token}`
                 }
-            } catch (error) {
-                console.error('Auth check error:', error);
+            });
+
+            console.log('Verify response status:', response.status);
+            if (response.ok) {
+                const data = await response.json();
+                console.log('Verify response data:', data);
+                if (data.user.is_admin) {
+                    console.log('User is admin, showing dashboard');
+                    this.currentUser = data.user;
+                    this.showDashboard();
+                    this.loadDashboardData();
+                } else {
+                    console.log('User is not admin, redirecting to dashboard');
+                    // Redirect non-admin users to regular dashboard
+                    window.location.href = 'dashboard.html';
+                }
+            } else {
+                console.log('Verify failed, showing login form');
                 this.logout();
+                this.showLogin();
             }
+        } catch (error) {
+            console.error('Auth check error:', error);
+            this.logout();
+            this.showLogin();
         }
     }
 

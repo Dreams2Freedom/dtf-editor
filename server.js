@@ -10,7 +10,7 @@ require('dotenv').config();
 
 // Import our modules
 const { dbHelpers, initializeDatabase } = require('./database-postgres');
-const { authenticateToken, checkCredits } = require('./auth');
+const { authenticateToken, authenticateAdmin, checkCredits } = require('./auth');
 const { stripeHelpers } = require('./stripe');
 const { logApiCost, calculateVectorizerCost, calculateClippingMagicCost } = require('./cost-tracking');
 const SupabaseStorage = require('./supabase-storage');
@@ -159,7 +159,8 @@ app.get('/dashboard', (req, res) => {
     res.sendFile(path.join(__dirname, 'dashboard.html'));
 });
 
-app.get('/admin', (req, res) => {
+// Admin page route - protected by admin authentication
+app.get('/admin', authenticateAdmin, (req, res) => {
     res.sendFile(path.join(__dirname, 'admin.html'));
 });
 
