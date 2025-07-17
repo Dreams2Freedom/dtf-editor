@@ -56,7 +56,7 @@ const limiter = rateLimit({
 // Stricter rate limiting for auth endpoints
 const authLimiter = rateLimit({
     windowMs: 15 * 60 * 1000, // 15 minutes
-    max: 5, // limit each IP to 5 login attempts per windowMs
+    max: 20, // limit each IP to 20 login attempts per windowMs (increased from 5)
     message: {
         error: 'Too many login attempts, please try again later.',
         retryAfter: '15 minutes'
@@ -173,6 +173,15 @@ app.get('/health', (req, res) => {
         deployment: '2025-07-16T18:50:00Z',
         build: 'v2.4.0',
         status: 'immediate-health-check'
+    });
+});
+
+// Rate limit status endpoint (for debugging)
+app.get('/rate-limit-status', (req, res) => {
+    res.status(200).json({ 
+        message: 'Rate limit status endpoint',
+        timestamp: new Date().toISOString(),
+        note: 'This endpoint can help reset rate limits by making a request'
     });
 });
 
