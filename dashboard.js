@@ -182,7 +182,6 @@ class UserDashboard {
 
     updateUserInfo() {
         document.getElementById('userName').textContent = this.currentUser.first_name || 'User';
-        document.getElementById('userEmail').textContent = this.currentUser.email;
         
         // Update profile form
         document.getElementById('profileFirstName').value = this.currentUser.first_name || '';
@@ -194,12 +193,12 @@ class UserDashboard {
     switchTab(tabName) {
         // Update tab buttons
         document.querySelectorAll('.tab-btn').forEach(btn => {
-            btn.classList.remove('active', 'border-primary-500', 'text-primary-600');
+            btn.classList.remove('active', 'border-[#E88B4B]', 'text-[#E88B4B]');
             btn.classList.add('border-transparent', 'text-gray-500');
         });
 
         const activeBtn = document.querySelector(`[data-tab="${tabName}"]`);
-        activeBtn.classList.add('active', 'border-primary-500', 'text-primary-600');
+        activeBtn.classList.add('active', 'border-[#E88B4B]', 'text-[#E88B4B]');
         activeBtn.classList.remove('border-transparent', 'text-gray-500');
 
         // Update tab content
