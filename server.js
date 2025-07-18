@@ -925,7 +925,7 @@ app.post('/api/clipping-magic-download', authenticateToken, async (req, res) => 
         const apiStartTime = Date.now();
         
         // Make request to Clipping Magic API to download the result
-        const response = await fetch(`https://clippingmagic.com/api/v1/images/${imageId}/result`, {
+        const response = await fetch(`https://clippingmagic.com/api/v1/images/${imageId}?format=result`, {
             method: 'GET',
             headers: {
                 'Authorization': `Basic ${Buffer.from(`${CLIPPING_MAGIC_API_ID}:${CLIPPING_MAGIC_API_SECRET}`).toString('base64')}`,
