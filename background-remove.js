@@ -373,10 +373,19 @@ class BackgroundRemoveApp {
                 utils.showNotification('Downloading background-removed image...', 'info');
                 
                 try {
+                    console.log('Starting download of result for image:', opts.image.id);
+                    
                     // Download the processed image from ClippingMagic API
                     const result = await this.downloadClippingMagicResult(opts.image.id, opts.image.secret);
+                    console.log('Download completed, result URL:', result);
                     
                     // Show the result
+                    console.log('Calling showResults with:', {
+                        success: true,
+                        bgRemovedUrl: result,
+                        originalUrl: this.currentOriginalUrl
+                    });
+                    
                     this.showResults({
                         success: true,
                         bgRemovedUrl: result,
@@ -442,18 +451,25 @@ class BackgroundRemoveApp {
     }
 
     showResults(bgRemovedData) {
+        console.log('showResults called with data:', bgRemovedData);
+        
         // Hide progress
         this.progress.classList.add('hidden');
+        console.log('Progress hidden');
         
         // Set background removed image
+        console.log('Setting result image src to:', bgRemovedData.bgRemovedUrl);
         this.resultImg.src = bgRemovedData.bgRemovedUrl;
         
         // Show result section
+        console.log('Showing result section, current classes:', this.result.className);
         this.result.classList.remove('hidden');
         this.result.classList.add('fade-in');
+        console.log('Result section classes after update:', this.result.className);
         
         // Scroll to results
         this.result.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        console.log('Scrolled to results');
     }
 
     showError(message) {
