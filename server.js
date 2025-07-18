@@ -895,6 +895,7 @@ app.post('/api/clipping-magic-upload', authenticateToken, checkCredits(1), uploa
             success: true,
             id: result.image?.id,
             secret: result.image?.secret,
+            apiId: CLIPPING_MAGIC_API_ID,
             message: 'Image uploaded successfully. Ready to launch editor.'
         });
 

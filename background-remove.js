@@ -85,7 +85,7 @@ class BackgroundRemoveApp {
             this.updateProgress(100);
             
             // Launch the editor
-            await this.launchClippingMagicEditor(uploadResult.id, uploadResult.secret);
+            await this.launchClippingMagicEditor(uploadResult.id, uploadResult.secret, uploadResult.apiId);
             
         } catch (error) {
             console.error('Background removal with editor error:', error);
@@ -259,9 +259,9 @@ class BackgroundRemoveApp {
         });
     }
 
-    async launchClippingMagicEditor(id, secret) {
+    async launchClippingMagicEditor(id, secret, apiId) {
         try {
-            console.log('Launching Clipping Magic editor with ID:', id, 'Secret:', secret);
+            console.log('Launching Clipping Magic editor with ID:', id, 'Secret:', secret, 'API ID:', apiId);
             
             // Load the ClippingMagic library
             await this.loadClippingMagicLibrary();
@@ -281,22 +281,11 @@ class BackgroundRemoveApp {
             this.progress.classList.add('hidden');
             utils.showNotification('Launching background removal editor...', 'info');
             
-            // Get the API ID from the server
-            const configResponse = await fetch('/api/clipping-magic-config', {
-                headers: {
-                    'Authorization': `Bearer ${localStorage.getItem('token')}`
-                }
-            });
-            
-            if (!configResponse.ok) {
-                throw new Error('Failed to get Clipping Magic configuration');
-            }
-            
-            const config = await configResponse.json();
-            console.log('Clipping Magic config:', config);
+            // Use the API ID from the upload response
+            console.log('Using API ID from upload response:', apiId);
             
             // Initialize ClippingMagic with the real API ID
-            const errorsArray = ClippingMagic.initialize({apiId: config.apiId});
+            const errorsArray = ClippingMagic.initialize({apiId: apiId});
             
             if (errorsArray.length > 0) {
                 console.error('Browser compatibility errors:', errorsArray);
