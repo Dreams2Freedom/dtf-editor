@@ -46,7 +46,7 @@ const isDevelopment = process.env.NODE_ENV === 'development';
 
 const limiter = rateLimit({
     windowMs: 15 * 60 * 1000, // 15 minutes
-    max: isDevelopment ? 1000 : 100, // much higher limit in development
+    max: isDevelopment ? 1000 : 500, // increased limit for testing
     message: {
         error: 'Too many requests from this IP, please try again later.',
         retryAfter: '15 minutes'
@@ -71,7 +71,7 @@ const authLimiter = rateLimit({
 // Stricter rate limiting for API endpoints
 const apiLimiter = rateLimit({
     windowMs: 15 * 60 * 1000, // 15 minutes
-    max: isDevelopment ? 500 : 50, // much higher limit in development
+    max: isDevelopment ? 500 : 200, // increased limit for testing
     message: {
         error: 'Too many API requests, please try again later.',
         retryAfter: '15 minutes'
@@ -204,6 +204,20 @@ if (isDevelopment) {
         });
     });
 }
+
+// Rate limit reset endpoint for authenticated users (production safe)
+app.post('/api/reset-rate-limits', authenticateToken, (req, res) => {
+    // Clear rate limit stores for the requesting IP
+    limiter.resetKey(req.ip);
+    authLimiter.resetKey(req.ip);
+    apiLimiter.resetKey(req.ip);
+    
+    res.status(200).json({ 
+        message: 'Rate limits reset for your IP',
+        timestamp: new Date().toISOString(),
+        ip: req.ip
+    });
+});
 
 // Configure file storage
 const uploadsDir = path.join(__dirname, 'uploads');
