@@ -194,28 +194,50 @@ class BackgroundRemoveApp {
                 return;
             }
 
+            // First, let's try to fetch the script to see if it's accessible
+            console.log('Testing script URL accessibility...');
+            fetch('https://clippingmagic.com/api/v1/ClippingMagic.js', { 
+                method: 'HEAD',
+                mode: 'no-cors' // This allows cross-origin requests but with limited info
+            })
+            .then(() => {
+                console.log('Script URL appears to be accessible');
+            })
+            .catch(error => {
+                console.warn('Script URL fetch test failed:', error);
+            });
+
             // Create script element
             const script = document.createElement('script');
-            script.src = 'https://static.clippingmagic.com/js/wl-editor.js';
+            script.src = 'https://clippingmagic.com/api/v1/ClippingMagic.js';
             script.async = true;
+            script.crossOrigin = 'anonymous'; // Add crossOrigin attribute
             
+            // Add additional debugging
             script.onload = () => {
-                console.log('ClippingMagic script loaded successfully');
+                console.log('ClippingMagic script onload event fired');
+                console.log('Script readyState:', script.readyState);
+                console.log('Window.ClippingMagic immediately after load:', window.ClippingMagic);
                 
                 // Wait a bit for the library to initialize
                 let attempts = 0;
                 const maxAttempts = 50;
                 
                 const checkLibrary = () => {
+                    console.log(`Checking for ClippingMagic library... attempt ${attempts + 1}`);
+                    console.log('typeof window.ClippingMagic:', typeof window.ClippingMagic);
+                    console.log('window.ClippingMagic:', window.ClippingMagic);
+                    
                     if (typeof window.ClippingMagic !== 'undefined') {
-                        console.log('ClippingMagic library initialized');
+                        console.log('ClippingMagic library initialized successfully!');
                         resolve();
                     } else if (attempts < maxAttempts) {
                         attempts++;
-                        console.log(`Waiting for ClippingMagic library initialization... attempt ${attempts}`);
                         setTimeout(checkLibrary, 100);
                     } else {
                         console.error('ClippingMagic library failed to initialize after script load');
+                        console.error('Final check - window.ClippingMagic:', window.ClippingMagic);
+                        console.error('All window properties:', Object.keys(window));
                         reject(new Error('ClippingMagic library failed to initialize'));
                     }
                 };
@@ -224,13 +246,16 @@ class BackgroundRemoveApp {
             };
             
             script.onerror = (error) => {
-                console.error('Failed to load ClippingMagic script:', error);
+                console.error('Failed to load ClippingMagic script - onerror event:', error);
+                console.error('Script src:', script.src);
+                console.error('Script readyState:', script.readyState);
                 reject(new Error('Failed to load ClippingMagic script'));
             };
             
             // Add to head
             document.head.appendChild(script);
             console.log('ClippingMagic script added to DOM');
+            console.log('Script element:', script);
         });
     }
 
@@ -256,27 +281,61 @@ class BackgroundRemoveApp {
             this.progress.classList.add('hidden');
             utils.showNotification('Launching background removal editor...', 'info');
             
+            // Initialize ClippingMagic with API ID (we'll use a placeholder for now)
+            const apiId = 123; // TODO: Replace with actual API ID from server
+            const errorsArray = ClippingMagic.initialize({apiId: apiId});
+            
+            if (errorsArray.length > 0) {
+                console.error('Browser compatibility errors:', errorsArray);
+                this.showError('Sorry, your browser is missing some required features: ' + errorsArray.join(', '));
+                return;
+            }
+            
             // Launch the White Label Smart Editor
-            ClippingMagic.launch({
-                id: id,
-                secret: secret,
-                onSave: (imageData) => {
-                    console.log('Editor save callback triggered');
-                    this.handleEditorSave(imageData);
+            ClippingMagic.edit({
+                image: {
+                    id: id,
+                    secret: secret
                 },
-                onCancel: () => {
-                    console.log('Editor cancel callback triggered');
-                    this.handleEditorCancel();
-                },
-                onError: (error) => {
-                    console.error('Editor error callback:', error);
-                    this.handleEditorError(error);
-                }
+                useStickySettings: true,
+                hideBottomToolbar: false,
+                locale: 'en-US'
+            }, (opts) => {
+                console.log('Editor callback triggered:', opts);
+                this.handleEditorCallback(opts);
             });
             
         } catch (error) {
             console.error('Failed to launch Clipping Magic editor:', error);
             this.showError('Failed to launch background removal editor. Please try again.');
+        }
+    }
+
+    handleEditorCallback(opts) {
+        console.log('Editor callback - Event:', opts.event, 'Data:', opts);
+        
+        switch (opts.event) {
+            case 'result-generated':
+                console.log('Result generated for image:', opts.image.id);
+                utils.showNotification('Background removed successfully! Result generated.', 'success');
+                // TODO: Download the result using the Download API
+                break;
+                
+            case 'editor-exit':
+                console.log('Editor closed');
+                utils.showNotification('Background removal editor closed.', 'info');
+                this.resetBackgroundRemoval();
+                break;
+                
+            case 'error':
+                console.error('Editor error:', opts.error);
+                this.showError('An error occurred in the background removal editor: ' + opts.error.message);
+                this.resetBackgroundRemoval();
+                break;
+                
+            default:
+                console.log('Unknown editor event:', opts.event);
+                break;
         }
     }
 

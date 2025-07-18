@@ -108,7 +108,7 @@ app.use(helmet({
         directives: {
             defaultSrc: ["'self'"],
             styleSrc: ["'self'", "'unsafe-inline'", "https://cdn.tailwindcss.com"],
-            scriptSrc: ["'self'", "'unsafe-inline'", "https://cdn.tailwindcss.com", "https://static.clippingmagic.com"],
+            scriptSrc: ["'self'", "'unsafe-inline'", "https://cdn.tailwindcss.com", "https://clippingmagic.com"],
             fontSrc: ["'self'", "https:", "data:"],
             imgSrc: ["'self'", "data:", "https:"],
             connectSrc: ["'self'", "https://api.stripe.com", "https://vectorizer.ai", "https://api.clippingmagic.com", "https://clippingmagic.com"],
