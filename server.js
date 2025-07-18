@@ -737,6 +737,13 @@ app.post('/api/remove-background', authenticateToken, checkCredits(1), upload.si
     }
 });
 
+// Clipping Magic config endpoint
+app.get('/api/clipping-magic-config', authenticateToken, (req, res) => {
+    res.json({
+        apiId: CLIPPING_MAGIC_API_ID
+    });
+});
+
 // Clipping Magic White Label Smart Editor upload endpoint (with credit checking)
 app.post('/api/clipping-magic-upload', authenticateToken, checkCredits(1), upload.single('image'), async (req, res) => {
     try {

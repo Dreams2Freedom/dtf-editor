@@ -281,9 +281,22 @@ class BackgroundRemoveApp {
             this.progress.classList.add('hidden');
             utils.showNotification('Launching background removal editor...', 'info');
             
-            // Initialize ClippingMagic with API ID (we'll use a placeholder for now)
-            const apiId = 123; // TODO: Replace with actual API ID from server
-            const errorsArray = ClippingMagic.initialize({apiId: apiId});
+            // Get the API ID from the server
+            const configResponse = await fetch('/api/clipping-magic-config', {
+                headers: {
+                    'Authorization': `Bearer ${localStorage.getItem('token')}`
+                }
+            });
+            
+            if (!configResponse.ok) {
+                throw new Error('Failed to get Clipping Magic configuration');
+            }
+            
+            const config = await configResponse.json();
+            console.log('Clipping Magic config:', config);
+            
+            // Initialize ClippingMagic with the real API ID
+            const errorsArray = ClippingMagic.initialize({apiId: config.apiId});
             
             if (errorsArray.length > 0) {
                 console.error('Browser compatibility errors:', errorsArray);
