@@ -85,7 +85,7 @@ class BackgroundRemoveApp {
             this.updateProgress(100);
             
             // Launch the editor
-            this.launchClippingMagicEditor(uploadResult.id, uploadResult.secret);
+            await this.launchClippingMagicEditor(uploadResult.id, uploadResult.secret);
             
         } catch (error) {
             console.error('Background removal with editor error:', error);
@@ -185,9 +185,20 @@ class BackgroundRemoveApp {
         }
     }
 
-    launchClippingMagicEditor(id, secret) {
+    async launchClippingMagicEditor(id, secret) {
         try {
             console.log('Launching Clipping Magic editor with ID:', id, 'Secret:', secret);
+            
+            // Wait for the ClippingMagic library to load
+            let attempts = 0;
+            const maxAttempts = 50; // 5 seconds max wait
+            
+            while (typeof ClippingMagic === 'undefined' && attempts < maxAttempts) {
+                console.log(`Waiting for ClippingMagic library... attempt ${attempts + 1}`);
+                await new Promise(resolve => setTimeout(resolve, 100));
+                attempts++;
+            }
+            
             console.log('ClippingMagic library available:', typeof ClippingMagic !== 'undefined');
             console.log('Window.ClippingMagic:', window.ClippingMagic);
             

@@ -796,8 +796,8 @@ app.post('/api/clipping-magic-upload', authenticateToken, checkCredits(1), uploa
 
         const result = await response.json();
         console.log('Clipping Magic upload successful:', result);
-        console.log('Result ID:', result.id);
-        console.log('Result secret:', result.secret);
+        console.log('Result ID:', result.image?.id);
+        console.log('Result secret:', result.image?.secret);
 
         // Log successful API cost using the helper function
         const costAmount = calculateClippingMagicCost('upload');
@@ -811,7 +811,7 @@ app.post('/api/clipping-magic-upload', authenticateToken, checkCredits(1), uploa
             success: true,
             metadata: { 
                 file_size: req.file.size, 
-                image_id: result.id,
+                image_id: result.image?.id,
                 credits_used: costAmount / 0.125 // Convert back to credits for reference
             }
         });
@@ -846,8 +846,8 @@ app.post('/api/clipping-magic-upload', authenticateToken, checkCredits(1), uploa
         // Return the id and secret needed for the White Label Smart Editor
         res.json({
             success: true,
-            id: result.id,
-            secret: result.secret,
+            id: result.image?.id,
+            secret: result.image?.secret,
             message: 'Image uploaded successfully. Ready to launch editor.'
         });
 
