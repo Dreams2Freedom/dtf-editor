@@ -185,24 +185,66 @@ class BackgroundRemoveApp {
         }
     }
 
+    async loadClippingMagicLibrary() {
+        return new Promise((resolve, reject) => {
+            // Check if already loaded
+            if (typeof window.ClippingMagic !== 'undefined') {
+                console.log('ClippingMagic library already loaded');
+                resolve();
+                return;
+            }
+
+            // Create script element
+            const script = document.createElement('script');
+            script.src = 'https://static.clippingmagic.com/js/wl-editor.js';
+            script.async = true;
+            
+            script.onload = () => {
+                console.log('ClippingMagic script loaded successfully');
+                
+                // Wait a bit for the library to initialize
+                let attempts = 0;
+                const maxAttempts = 50;
+                
+                const checkLibrary = () => {
+                    if (typeof window.ClippingMagic !== 'undefined') {
+                        console.log('ClippingMagic library initialized');
+                        resolve();
+                    } else if (attempts < maxAttempts) {
+                        attempts++;
+                        console.log(`Waiting for ClippingMagic library initialization... attempt ${attempts}`);
+                        setTimeout(checkLibrary, 100);
+                    } else {
+                        console.error('ClippingMagic library failed to initialize after script load');
+                        reject(new Error('ClippingMagic library failed to initialize'));
+                    }
+                };
+                
+                checkLibrary();
+            };
+            
+            script.onerror = (error) => {
+                console.error('Failed to load ClippingMagic script:', error);
+                reject(new Error('Failed to load ClippingMagic script'));
+            };
+            
+            // Add to head
+            document.head.appendChild(script);
+            console.log('ClippingMagic script added to DOM');
+        });
+    }
+
     async launchClippingMagicEditor(id, secret) {
         try {
             console.log('Launching Clipping Magic editor with ID:', id, 'Secret:', secret);
             
-            // Wait for the ClippingMagic library to load
-            let attempts = 0;
-            const maxAttempts = 50; // 5 seconds max wait
-            
-            while (typeof ClippingMagic === 'undefined' && attempts < maxAttempts) {
-                console.log(`Waiting for ClippingMagic library... attempt ${attempts + 1}`);
-                await new Promise(resolve => setTimeout(resolve, 100));
-                attempts++;
-            }
+            // Load the ClippingMagic library
+            await this.loadClippingMagicLibrary();
             
             console.log('ClippingMagic library available:', typeof ClippingMagic !== 'undefined');
             console.log('Window.ClippingMagic:', window.ClippingMagic);
             
-            // Check if Clipping Magic library is loaded
+            // Final check if Clipping Magic library is loaded
             if (typeof ClippingMagic === 'undefined') {
                 console.error('ClippingMagic library not loaded!');
                 console.error('Available scripts:', Array.from(document.scripts).map(s => s.src));
