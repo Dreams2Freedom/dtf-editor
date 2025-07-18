@@ -190,6 +190,28 @@ async function createTables() {
             END $$;
         `);
 
+        // Add processed file columns if they don't exist
+        await client.query(`
+            DO $$ 
+            BEGIN 
+                IF NOT EXISTS (
+                    SELECT 1 FROM information_schema.columns 
+                    WHERE table_name = 'images' 
+                    AND column_name = 'processed_storage_path'
+                ) THEN
+                    ALTER TABLE images ADD COLUMN processed_storage_path VARCHAR(500);
+                END IF;
+                
+                IF NOT EXISTS (
+                    SELECT 1 FROM information_schema.columns 
+                    WHERE table_name = 'images' 
+                    AND column_name = 'processed_file_size'
+                ) THEN
+                    ALTER TABLE images ADD COLUMN processed_file_size INTEGER;
+                END IF;
+            END $$;
+        `);
+
         // Add total_images_generated column if it doesn't exist
         await client.query(`
             DO $$ 
