@@ -288,9 +288,9 @@ class BackgroundRemoveApp {
             // Set API ID as global variable (some libraries expect this)
             window.CLIPPING_MAGIC_API_ID = apiId;
             
-            // Initialize ClippingMagic with the real API ID
+            // Initialize ClippingMagic with the real API ID (must be number)
             console.log('Initializing ClippingMagic with API ID:', apiId, 'Type:', typeof apiId);
-            const errorsArray = ClippingMagic.initialize({apiId: apiId});
+            const errorsArray = ClippingMagic.initialize({apiId: Number(apiId)});
             console.log('ClippingMagic.initialize result:', errorsArray);
             
             if (errorsArray.length > 0) {
