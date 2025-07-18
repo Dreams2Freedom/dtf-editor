@@ -744,6 +744,31 @@ app.get('/api/clipping-magic-config', authenticateToken, (req, res) => {
     });
 });
 
+// Add test credits endpoint (for development/testing)
+app.post('/api/add-test-credits', authenticateToken, async (req, res) => {
+    try {
+        const creditsToAdd = 10; // Give 10 test credits
+        
+        // Update user credits
+        await db.query(
+            'UPDATE users SET credits_remaining = credits_remaining + $1 WHERE id = $2',
+            [creditsToAdd, req.user.id]
+        );
+        
+        // Get updated user info
+        const user = await dbHelpers.getUserById(req.user.id);
+        
+        res.json({
+            success: true,
+            message: `Added ${creditsToAdd} test credits`,
+            credits_remaining: user.credits_remaining
+        });
+    } catch (error) {
+        console.error('Add test credits error:', error);
+        res.status(500).json({ error: 'Failed to add test credits' });
+    }
+});
+
 // Clipping Magic White Label Smart Editor upload endpoint (with credit checking)
 app.post('/api/clipping-magic-upload', authenticateToken, checkCredits(1), upload.single('image'), async (req, res) => {
     try {
