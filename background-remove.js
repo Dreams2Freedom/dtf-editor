@@ -300,6 +300,7 @@ class BackgroundRemoveApp {
                     id: id,
                     secret: secret
                 },
+                apiId: String(apiId),
                 useStickySettings: true,
                 hideBottomToolbar: false,
                 locale: 'en-US'
