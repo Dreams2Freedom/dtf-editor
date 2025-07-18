@@ -796,6 +796,8 @@ app.post('/api/clipping-magic-upload', authenticateToken, checkCredits(1), uploa
 
         const result = await response.json();
         console.log('Clipping Magic upload successful:', result);
+        console.log('Result ID:', result.id);
+        console.log('Result secret:', result.secret);
 
         // Log successful API cost using the helper function
         const costAmount = calculateClippingMagicCost('upload');

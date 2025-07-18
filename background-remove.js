@@ -187,12 +187,21 @@ class BackgroundRemoveApp {
 
     launchClippingMagicEditor(id, secret) {
         try {
-            console.log('Launching Clipping Magic editor with ID:', id);
+            console.log('Launching Clipping Magic editor with ID:', id, 'Secret:', secret);
+            console.log('ClippingMagic library available:', typeof ClippingMagic !== 'undefined');
+            console.log('Window.ClippingMagic:', window.ClippingMagic);
             
             // Check if Clipping Magic library is loaded
             if (typeof ClippingMagic === 'undefined') {
-                throw new Error('Clipping Magic library not loaded. Please ensure the script is included.');
+                console.error('ClippingMagic library not loaded!');
+                console.error('Available scripts:', Array.from(document.scripts).map(s => s.src));
+                this.showError('Background removal editor failed to load. Please refresh the page and try again.');
+                return;
             }
+            
+            // Hide progress and show that editor is launching
+            this.progress.classList.add('hidden');
+            utils.showNotification('Launching background removal editor...', 'info');
             
             // Launch the White Label Smart Editor
             ClippingMagic.launch({
@@ -214,7 +223,7 @@ class BackgroundRemoveApp {
             
         } catch (error) {
             console.error('Failed to launch Clipping Magic editor:', error);
-            utils.showNotification('Failed to launch editor. Please try again.', 'error');
+            this.showError('Failed to launch background removal editor. Please try again.');
         }
     }
 
