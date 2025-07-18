@@ -176,6 +176,7 @@ class BackgroundRemoveApp {
                 success: true,
                 id: result.id,
                 secret: result.secret,
+                apiId: result.apiId,
                 message: result.message
             };
             
