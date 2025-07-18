@@ -285,8 +285,8 @@ class BackgroundRemoveApp {
             // Use the API ID from the upload response
             console.log('Using API ID from upload response:', apiId);
             
-            // Initialize ClippingMagic with the real API ID
-            const errorsArray = ClippingMagic.initialize({apiId: apiId});
+            // Initialize ClippingMagic with the real API ID (must be string)
+            const errorsArray = ClippingMagic.initialize({apiId: String(apiId)});
             
             if (errorsArray.length > 0) {
                 console.error('Browser compatibility errors:', errorsArray);
