@@ -839,6 +839,32 @@ const dbHelpers = {
         }
     },
 
+    // Update image with processed file information
+    updateImageWithProcessedFile: async (imageId, processedData) => {
+        const client = await dbHelpers.getClient();
+        try {
+            const result = await client.query(`
+                UPDATE images 
+                SET 
+                    processed_filename = $1,
+                    processed_storage_path = $2,
+                    processed_file_size = $3,
+                    updated_at = CURRENT_TIMESTAMP
+                WHERE id = $4
+                RETURNING id
+            `, [
+                processedData.processed_filename,
+                processedData.processed_storage_path,
+                processedData.processed_file_size,
+                imageId
+            ]);
+            
+            return result.rows[0];
+        } finally {
+            client.release();
+        }
+    },
+
     // Test database connection
     testConnection: async () => {
         if (!pool) {

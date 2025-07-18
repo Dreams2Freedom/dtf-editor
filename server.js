@@ -908,6 +908,109 @@ app.post('/api/clipping-magic-upload', authenticateToken, checkCredits(1), uploa
     }
 });
 
+// Clipping Magic download endpoint
+app.post('/api/clipping-magic-download', authenticateToken, async (req, res) => {
+    try {
+        console.log('Clipping Magic download request received from user:', req.user.id);
+        
+        const { imageId, imageSecret } = req.body;
+        
+        if (!imageId || !imageSecret) {
+            return res.status(400).json({ error: 'Image ID and secret are required' });
+        }
+
+        console.log(`Downloading image: ${imageId}`);
+
+        // Track API cost start time
+        const apiStartTime = Date.now();
+        
+        // Make request to Clipping Magic API to download the result
+        const response = await fetch(`https://clippingmagic.com/api/v1/images/${imageId}/result`, {
+            method: 'GET',
+            headers: {
+                'Authorization': `Basic ${Buffer.from(`${CLIPPING_MAGIC_API_ID}:${CLIPPING_MAGIC_API_SECRET}`).toString('base64')}`,
+                'X-Image-Secret': imageSecret
+            }
+        });
+
+        const responseTime = Date.now() - apiStartTime;
+
+        if (!response.ok) {
+            const errorText = await response.text();
+            console.error(`Clipping Magic download API error: ${response.status} - ${errorText}`);
+            
+            // Log failed API cost (no charge for failed requests)
+            await dbHelpers.logApiCost({
+                service_name: 'clipping_magic',
+                operation_type: 'download',
+                cost_amount: 0.00, // No charge for failed requests
+                user_id: req.user.id,
+                request_id: `clipping_magic_download_${Date.now()}`,
+                response_time_ms: responseTime,
+                success: false,
+                error_message: errorText,
+                metadata: { image_id: imageId }
+            });
+            
+            return res.status(response.status).json({ 
+                error: 'Failed to download image from Clipping Magic',
+                details: errorText
+            });
+        }
+
+        // Get the image buffer
+        const imageBuffer = await response.buffer();
+        console.log('Clipping Magic download successful, buffer size:', imageBuffer.length);
+
+        // Log successful API cost
+        const costAmount = calculateClippingMagicCost('download');
+        await dbHelpers.logApiCost({
+            service_name: 'clipping_magic',
+            operation_type: 'download',
+            cost_amount: costAmount,
+            user_id: req.user.id,
+            request_id: `clipping_magic_download_${Date.now()}`,
+            response_time_ms: responseTime,
+            success: true,
+            metadata: { 
+                image_id: imageId,
+                file_size: imageBuffer.length,
+                credits_used: costAmount / 0.125 // Convert back to credits for reference
+            }
+        });
+
+        // Upload processed file to Supabase Storage
+        const processedUpload = await SupabaseStorage.uploadFile(
+            req.user.id.toString(),
+            `background_removed_${Date.now()}.png`,
+            imageBuffer,
+            'image/png',
+            'processed'
+        );
+
+        // Update the database record with processed file info
+        await dbHelpers.updateImageWithProcessedFile(imageId, {
+            processed_filename: `background_removed_${Date.now()}.png`,
+            processed_storage_path: processedUpload.path,
+            processed_file_size: imageBuffer.length
+        });
+
+        // Set response headers for image download
+        res.setHeader('Content-Type', 'image/png');
+        res.setHeader('Content-Disposition', `attachment; filename="background_removed_${Date.now()}.png"`);
+        
+        // Send the image buffer
+        res.send(imageBuffer);
+
+    } catch (error) {
+        console.error('Clipping Magic download error:', error);
+        res.status(500).json({ 
+            error: 'Internal server error during Clipping Magic download',
+            details: error.message 
+        });
+    }
+});
+
 // Stripe webhook endpoint
 app.post('/api/webhooks/stripe', express.raw({ type: 'application/json' }), async (req, res) => {
     const sig = req.headers['stripe-signature'];

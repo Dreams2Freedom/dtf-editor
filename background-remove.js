@@ -126,7 +126,7 @@ class BackgroundRemoveApp {
         this.progressText.textContent = `Processing... ${Math.round(percentage)}%`;
     }
 
-    async uploadToClippingMagic(file) {
+        async uploadToClippingMagic(file) {
         try {
             console.log('Starting Clipping Magic upload for file:', file.name, 'Size:', file.size);
             
@@ -141,7 +141,7 @@ class BackgroundRemoveApp {
             formData.append('image', file);
             
             console.log('Clipping Magic upload endpoint:', this.clippingMagicUploadEndpoint);
-            
+     
             // Make API call to upload endpoint with authentication
             const headers = {
                 'Authorization': `Bearer ${token}`
@@ -182,6 +182,51 @@ class BackgroundRemoveApp {
             
         } catch (error) {
             console.error('Clipping Magic upload error:', error);
+            throw error;
+        }
+    }
+
+    async downloadClippingMagicResult(imageId, imageSecret) {
+        try {
+            console.log('Downloading Clipping Magic result for image:', imageId);
+            
+            // Get authentication token
+            const token = window.authUtils ? window.authUtils.getAuthToken() : null;
+            if (!token) {
+                throw new Error('Authentication required. Please log in to use this feature.');
+            }
+            
+            // Make API call to download endpoint
+            const response = await fetch(`/api/clipping-magic-download`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    imageId: imageId,
+                    imageSecret: imageSecret
+                })
+            });
+            
+            console.log('Clipping Magic download response status:', response.status);
+            
+            if (!response.ok) {
+                const errorText = await response.text();
+                console.error('Clipping Magic download error response:', errorText);
+                throw new Error(`Failed to download result: ${response.status} - ${response.statusText}`);
+            }
+            
+            // Get the image as blob
+            const imageBlob = await response.blob();
+            console.log('Clipping Magic download successful, blob size:', imageBlob.size);
+            
+            // Create object URL for the image
+            const imageUrl = URL.createObjectURL(imageBlob);
+            return imageUrl;
+            
+        } catch (error) {
+            console.error('Clipping Magic download error:', error);
             throw error;
         }
     }
@@ -319,14 +364,30 @@ class BackgroundRemoveApp {
         }
     }
 
-    handleEditorCallback(opts) {
+    async handleEditorCallback(opts) {
         console.log('Editor callback - Event:', opts.event, 'Data:', opts);
         
         switch (opts.event) {
             case 'result-generated':
                 console.log('Result generated for image:', opts.image.id);
-                utils.showNotification('Background removed successfully! Result generated.', 'success');
-                // TODO: Download the result using the Download API
+                utils.showNotification('Downloading background-removed image...', 'info');
+                
+                try {
+                    // Download the processed image from ClippingMagic API
+                    const result = await this.downloadClippingMagicResult(opts.image.id, opts.image.secret);
+                    
+                    // Show the result
+                    this.showResults({
+                        success: true,
+                        bgRemovedUrl: result,
+                        originalUrl: this.currentOriginalUrl
+                    });
+                    
+                    utils.showNotification('Background removed successfully!', 'success');
+                } catch (error) {
+                    console.error('Failed to download result:', error);
+                    this.showError('Failed to download the background-removed image. Please try again.');
+                }
                 break;
                 
             case 'editor-exit':
