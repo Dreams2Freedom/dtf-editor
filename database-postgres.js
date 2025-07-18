@@ -172,7 +172,8 @@ async function createTables() {
                 tool_used VARCHAR(50) NOT NULL,
                 credits_used INTEGER DEFAULT 1,
                 processing_time_ms INTEGER,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
         `);
 
@@ -208,6 +209,14 @@ async function createTables() {
                     AND column_name = 'processed_file_size'
                 ) THEN
                     ALTER TABLE images ADD COLUMN processed_file_size INTEGER;
+                END IF;
+                
+                IF NOT EXISTS (
+                    SELECT 1 FROM information_schema.columns 
+                    WHERE table_name = 'images' 
+                    AND column_name = 'updated_at'
+                ) THEN
+                    ALTER TABLE images ADD COLUMN updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP;
                 END IF;
             END $$;
         `);
