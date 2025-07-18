@@ -285,8 +285,13 @@ class BackgroundRemoveApp {
             // Use the API ID from the upload response
             console.log('Using API ID from upload response:', apiId);
             
-            // Initialize ClippingMagic with the real API ID (must be string)
-            const errorsArray = ClippingMagic.initialize({apiId: String(apiId)});
+            // Set API ID as global variable (some libraries expect this)
+            window.CLIPPING_MAGIC_API_ID = apiId;
+            
+            // Initialize ClippingMagic with the real API ID
+            console.log('Initializing ClippingMagic with API ID:', apiId, 'Type:', typeof apiId);
+            const errorsArray = ClippingMagic.initialize({apiId: apiId});
+            console.log('ClippingMagic.initialize result:', errorsArray);
             
             if (errorsArray.length > 0) {
                 console.error('Browser compatibility errors:', errorsArray);
@@ -300,7 +305,6 @@ class BackgroundRemoveApp {
                     id: id,
                     secret: secret
                 },
-                apiId: String(apiId),
                 useStickySettings: true,
                 hideBottomToolbar: false,
                 locale: 'en-US'
