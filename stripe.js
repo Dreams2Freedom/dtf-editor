@@ -218,12 +218,15 @@ const stripeHelpers = {
                 throw new Error('User not found');
             }
 
-            // Add credit transaction
+            // Add credit transaction first
             await dbHelpers.addCreditTransaction(userId, 'purchase', credits, description, paymentIntentId);
 
-            // Update user credits
+            // Use atomic database operation to update credits
+            // This prevents race conditions by using the database to calculate the new value
+            await dbHelpers.updateUserCredits(userId, credits);
+
+            // Update total credits purchased separately
             await dbHelpers.updateUser(userId, {
-                credits_remaining: user.credits_remaining + credits,
                 total_credits_purchased: (user.total_credits_purchased || 0) + credits
             });
 
@@ -246,18 +249,35 @@ const stripeHelpers = {
                 throw new Error('Insufficient credits');
             }
 
-            // Add credit transaction
+            // Add credit transaction first
             await dbHelpers.addCreditTransaction(userId, 'usage', -credits, description);
 
-            // Update user credits
-            await dbHelpers.updateUser(userId, {
-                credits_remaining: user.credits_remaining - credits,
-                credits_used: (user.credits_used || 0) + credits
-            });
+            // Use atomic database operation to update credits
+            // This prevents race conditions by using the database to calculate the new value
+            await dbHelpers.updateUserCredits(userId, -credits);
 
             return true;
         } catch (error) {
             console.error('Error using credits:', error);
+            throw error;
+        }
+    },
+
+    // Check if user has enough credits (without consuming them)
+    checkCredits: async (userId, requiredCredits) => {
+        try {
+            const user = await dbHelpers.getUserById(userId);
+            if (!user) {
+                throw new Error('User not found');
+            }
+
+            return {
+                hasEnough: user.credits_remaining >= requiredCredits,
+                credits: user.credits_remaining,
+                required: requiredCredits
+            };
+        } catch (error) {
+            console.error('Error checking credits:', error);
             throw error;
         }
     },

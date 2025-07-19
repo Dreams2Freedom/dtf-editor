@@ -457,6 +457,35 @@ const dbHelpers = {
         }
     },
 
+    // Atomic credit update function to prevent race conditions
+    updateUserCredits: async (userId, creditChange) => {
+        const client = await dbHelpers.getClient();
+        try {
+            // Use atomic database operation to update credits
+            // This prevents race conditions by letting the database handle the calculation
+            const result = await client.query(
+                `UPDATE users 
+                 SET credits_remaining = GREATEST(0, credits_remaining + $2),
+                     credits_used = CASE 
+                         WHEN $2 < 0 THEN credits_used + ABS($2)
+                         ELSE credits_used
+                     END,
+                     updated_at = CURRENT_TIMESTAMP
+                 WHERE id = $1
+                 RETURNING credits_remaining, credits_used`,
+                [userId, creditChange]
+            );
+            
+            if (result.rows.length === 0) {
+                throw new Error('User not found');
+            }
+            
+            return result.rows[0];
+        } finally {
+            client.release();
+        }
+    },
+
     // Image operations
     saveImage: async (imageData) => {
         const client = await dbHelpers.getClient();
