@@ -5,21 +5,34 @@ class PaywallModal {
         console.log('PaywallModal constructor called');
         this.isVisible = false;
         this.currentAction = null; // 'vectorize' or 'background-remove'
-        this.init();
+        
+        try {
+            this.init();
+        } catch (error) {
+            console.error('Error in PaywallModal constructor:', error);
+            throw error;
+        }
     }
 
     init() {
         console.log('PaywallModal init called');
-        this.createModal();
-        this.setupEventListeners();
-        console.log('PaywallModal initialization complete');
+        try {
+            this.createModal();
+            this.setupEventListeners();
+            console.log('PaywallModal initialization complete');
+        } catch (error) {
+            console.error('Error in PaywallModal init:', error);
+            throw error;
+        }
     }
 
     createModal() {
-        // Create modal container
-        const modal = document.createElement('div');
-        modal.id = 'paywallModal';
-        modal.className = 'fixed inset-0 bg-black bg-opacity-50 z-50 hidden flex items-center justify-center p-4';
+        try {
+            console.log('Creating paywall modal...');
+            // Create modal container
+            const modal = document.createElement('div');
+            modal.id = 'paywallModal';
+            modal.className = 'fixed inset-0 bg-black bg-opacity-50 z-50 hidden flex items-center justify-center p-4';
         
         modal.innerHTML = `
             <div class="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
@@ -201,6 +214,10 @@ class PaywallModal {
         document.body.appendChild(modal);
         this.modal = modal;
         console.log('Paywall modal created and appended to DOM');
+        } catch (error) {
+            console.error('Error creating paywall modal:', error);
+            throw error;
+        }
     }
 
     setupEventListeners() {
@@ -314,15 +331,27 @@ class PaywallModal {
     }
 }
 
-// Create global instance
-window.paywallModal = new PaywallModal();
+// Create global instance with error handling
+try {
+    console.log('Attempting to create PaywallModal instance...');
+    window.paywallModal = new PaywallModal();
+    console.log('PaywallModal instance created successfully');
+} catch (error) {
+    console.error('Error creating PaywallModal instance:', error);
+    window.paywallModal = null;
+}
 
 // Ensure paywall is available after DOM is loaded
 document.addEventListener('DOMContentLoaded', function() {
-    if (!window.paywallModal) {
-        window.paywallModal = new PaywallModal();
+    try {
+        if (!window.paywallModal) {
+            console.log('Creating PaywallModal instance after DOM load...');
+            window.paywallModal = new PaywallModal();
+        }
+        console.log('Paywall modal initialized and available');
+    } catch (error) {
+        console.error('Error creating PaywallModal after DOM load:', error);
     }
-    console.log('Paywall modal initialized and available');
 });
 
 // Export for use in other modules
