@@ -2,14 +2,17 @@
 
 class PaywallModal {
     constructor() {
+        console.log('PaywallModal constructor called');
         this.isVisible = false;
         this.currentAction = null; // 'vectorize' or 'background-remove'
         this.init();
     }
 
     init() {
+        console.log('PaywallModal init called');
         this.createModal();
         this.setupEventListeners();
+        console.log('PaywallModal initialization complete');
     }
 
     createModal() {
@@ -197,6 +200,7 @@ class PaywallModal {
         
         document.body.appendChild(modal);
         this.modal = modal;
+        console.log('Paywall modal created and appended to DOM');
     }
 
     setupEventListeners() {
@@ -239,11 +243,18 @@ class PaywallModal {
     }
 
     show(action = null) {
+        console.log('Paywall show method called with action:', action);
         this.currentAction = action;
         this.isVisible = true;
-        this.modal.classList.remove('hidden');
-        this.modal.classList.add('flex');
-        document.body.style.overflow = 'hidden';
+        
+        if (this.modal) {
+            this.modal.classList.remove('hidden');
+            this.modal.classList.add('flex');
+            document.body.style.overflow = 'hidden';
+            console.log('Paywall modal should now be visible');
+        } else {
+            console.error('Paywall modal element not found!');
+        }
     }
 
     hide() {
@@ -277,21 +288,42 @@ class PaywallModal {
 
     // Check if user is authenticated
     isUserAuthenticated() {
-        return window.authUtils && window.authUtils.isAuthenticated();
+        // Check if authUtils is available
+        if (!window.authUtils) {
+            console.warn('authUtils not available, checking localStorage directly');
+            // Fallback: check localStorage directly
+            const token = localStorage.getItem('authToken');
+            return !!token;
+        }
+        return window.authUtils.isAuthenticated();
     }
 
     // Show paywall if user is not authenticated
     showIfNotAuthenticated(action) {
-        if (!this.isUserAuthenticated()) {
+        console.log('showIfNotAuthenticated called with action:', action);
+        const isAuthenticated = this.isUserAuthenticated();
+        console.log('User authenticated:', isAuthenticated);
+        
+        if (!isAuthenticated) {
+            console.log('Showing paywall modal');
             this.show(action);
             return true; // Paywall was shown
         }
+        console.log('User is authenticated, no paywall needed');
         return false; // User is authenticated, no paywall needed
     }
 }
 
 // Create global instance
 window.paywallModal = new PaywallModal();
+
+// Ensure paywall is available after DOM is loaded
+document.addEventListener('DOMContentLoaded', function() {
+    if (!window.paywallModal) {
+        window.paywallModal = new PaywallModal();
+    }
+    console.log('Paywall modal initialized and available');
+});
 
 // Export for use in other modules
 if (typeof module !== 'undefined' && module.exports) {
