@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mobile File Upload Debug - DTF Editor</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="nav-container">
+        <div class="nav-content">
+            <div class="flex items-center">
+                <a href="index.html" class="nav-brand">DTF Editor</a>
+                <span class="ml-4 text-gray-500">/ Mobile Debug</span>
+            </div>
+            <div class="nav-links">
+                <a href="index.html" class="btn-nav">Home</a>
+                <a href="background-remove.html" class="btn-nav">Background Removal</a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <div class="container py-12">
+        <div class="card">
+            <h1 class="text-2xl font-bold text-primary mb-6">Mobile File Upload Debug</h1>
+            
+            <!-- Device Info -->
+            <div class="mb-6 p-4 bg-gray-50 rounded-lg">
+                <h3 class="font-semibold mb-2">Device Information:</h3>
+                <div id="deviceInfo" class="text-sm text-gray-600">
+                    Loading...
+                </div>
+            </div>
+
+            <!-- Simple File Upload Test -->
+            <div class="mb-6 p-4 bg-blue-50 rounded-lg">
+                <h3 class="font-semibold mb-2">Simple File Upload Test:</h3>
+                <input type="file" id="simpleFileInput" accept="image/*" class="mb-2">
+                <div id="simpleFileResult" class="text-sm text-gray-600">
+                    Select a file to test...
+                </div>
+            </div>
+
+            <!-- Clickable Upload Area Test -->
+            <div class="mb-6 p-4 bg-green-50 rounded-lg">
+                <h3 class="font-semibold mb-2">Clickable Upload Area Test:</h3>
+                <div id="clickableUploadArea" class="upload-area cursor-pointer" style="border: 2px dashed #ccc; padding: 20px; text-align: center;">
+                    <p>Click here to select a file</p>
+                </div>
+                <input type="file" id="clickableFileInput" accept="image/*" class="hidden">
+                <div id="clickableFileResult" class="text-sm text-gray-600 mt-2">
+                    Click the area above to test...
+                </div>
+            </div>
+
+            <!-- Touch Event Test -->
+            <div class="mb-6 p-4 bg-yellow-50 rounded-lg">
+                <h3 class="font-semibold mb-2">Touch Event Test:</h3>
+                <div id="touchTestArea" class="border-2 border-yellow-400 p-4 text-center cursor-pointer" style="min-height: 100px;">
+                    <p>Touch this area to test touch events</p>
+                    <p class="text-sm text-gray-500">Touch count: <span id="touchCount">0</span></p>
+                </div>
+            </div>
+
+            <!-- Console Output -->
+            <div class="mb-6 p-4 bg-gray-100 rounded-lg">
+                <h3 class="font-semibold mb-2">Console Output:</h3>
+                <div id="consoleOutput" class="text-xs bg-black text-green-400 p-2 rounded h-32 overflow-y-auto">
+                    Console output will appear here...
+                </div>
+                <button id="clearConsole" class="btn-secondary mt-2">Clear Console</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Console logging override to capture output
+        const originalLog = console.log;
+        const originalError = console.error;
+        const consoleOutput = document.getElementById('consoleOutput');
+        
+        function addToConsole(message, type = 'log') {
+            const timestamp = new Date().toLocaleTimeString();
+            const color = type === 'error' ? 'text-red-400' : 'text-green-400';
+            consoleOutput.innerHTML += `<div class="${color}">[${timestamp}] ${message}</div>`;
+            consoleOutput.scrollTop = consoleOutput.scrollHeight;
+        }
+        
+        console.log = function(...args) {
+            originalLog.apply(console, args);
+            addToConsole(args.join(' '), 'log');
+        };
+        
+        console.error = function(...args) {
+            originalError.apply(console, args);
+            addToConsole(args.join(' '), 'error');
+        };
+
+        class MobileDebug {
+            constructor() {
+                this.touchCount = 0;
+                this.init();
+            }
+
+            init() {
+                this.showDeviceInfo();
+                this.setupFileTests();
+                this.setupTouchTest();
+                this.setupConsoleClear();
+                
+                console.log('Mobile debug page initialized');
+            }
+
+            showDeviceInfo() {
+                const userAgent = navigator.userAgent;
+                const isMobile = /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(userAgent);
+                const screenWidth = window.innerWidth;
+                const screenHeight = window.innerHeight;
+                
+                document.getElementById('deviceInfo').innerHTML = `
+                    <strong>User Agent:</strong> ${userAgent}<br>
+                    <strong>Mobile Device:</strong> ${isMobile ? 'Yes' : 'No'}<br>
+                    <strong>Screen Size:</strong> ${screenWidth}x${screenHeight}<br>
+                    <strong>Platform:</strong> ${navigator.platform}<br>
+                    <strong>Language:</strong> ${navigator.language}<br>
+                    <strong>Touch Support:</strong> ${('ontouchstart' in window) ? 'Yes' : 'No'}<br>
+                    <strong>Max Touch Points:</strong> ${navigator.maxTouchPoints || 'Unknown'}
+                `;
+            }
+
+            setupFileTests() {
+                // Simple file input test
+                const simpleFileInput = document.getElementById('simpleFileInput');
+                simpleFileInput.addEventListener('change', (e) => {
+                    console.log('Simple file input change event triggered');
+                    const file = e.target.files[0];
+                    if (file) {
+                        console.log('Simple file selected:', file.name, file.size, file.type);
+                        document.getElementById('simpleFileResult').innerHTML = `
+                            <strong>File Selected:</strong><br>
+                            Name: ${file.name}<br>
+                            Size: ${(file.size / 1024 / 1024).toFixed(2)} MB<br>
+                            Type: ${file.type}
+                        `;
+                    } else {
+                        console.log('No file selected in simple input');
+                        document.getElementById('simpleFileResult').textContent = 'No file selected';
+                    }
+                });
+
+                // Clickable upload area test
+                const clickableUploadArea = document.getElementById('clickableUploadArea');
+                const clickableFileInput = document.getElementById('clickableFileInput');
+                
+                clickableUploadArea.addEventListener('click', (e) => {
+                    console.log('Clickable upload area clicked');
+                    e.preventDefault();
+                    e.stopPropagation();
+                    clickableFileInput.click();
+                });
+
+                clickableUploadArea.addEventListener('touchend', (e) => {
+                    console.log('Clickable upload area touched');
+                    e.preventDefault();
+                    e.stopPropagation();
+                    clickableFileInput.click();
+                });
+
+                clickableFileInput.addEventListener('change', (e) => {
+                    console.log('Clickable file input change event triggered');
+                    const file = e.target.files[0];
+                    if (file) {
+                        console.log('Clickable file selected:', file.name, file.size, file.type);
+                        document.getElementById('clickableFileResult').innerHTML = `
+                            <strong>File Selected:</strong><br>
+                            Name: ${file.name}<br>
+                            Size: ${(file.size / 1024 / 1024).toFixed(2)} MB<br>
+                            Type: ${file.type}
+                        `;
+                    } else {
+                        console.log('No file selected in clickable input');
+                        document.getElementById('clickableFileResult').textContent = 'No file selected';
+                    }
+                });
+            }
+
+            setupTouchTest() {
+                const touchTestArea = document.getElementById('touchTestArea');
+                const touchCountElement = document.getElementById('touchCount');
+                
+                touchTestArea.addEventListener('touchstart', (e) => {
+                    console.log('Touch start event triggered');
+                    this.touchCount++;
+                    touchCountElement.textContent = this.touchCount;
+                    touchTestArea.style.backgroundColor = '#fef3c7';
+                });
+
+                touchTestArea.addEventListener('touchend', (e) => {
+                    console.log('Touch end event triggered');
+                    touchTestArea.style.backgroundColor = '';
+                });
+
+                touchTestArea.addEventListener('click', (e) => {
+                    console.log('Click event triggered on touch test area');
+                });
+            }
+
+            setupConsoleClear() {
+                document.getElementById('clearConsole').addEventListener('click', () => {
+                    consoleOutput.innerHTML = 'Console cleared...';
+                });
+            }
+        }
+
+        // Initialize when DOM is loaded
+        document.addEventListener('DOMContentLoaded', () => {
+            new MobileDebug();
+        });
+    </script>
+</body>
+</html> 

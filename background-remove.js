@@ -68,11 +68,38 @@ class BackgroundRemoveApp {
     }
 
     setupEventListeners() {
+        // File input change handler
         this.fileInput.addEventListener('change', (e) => {
+            console.log('File input change event triggered');
             const file = e.target.files[0];
             if (file) {
+                console.log('File selected:', file.name, file.size, file.type);
                 this.handleBackgroundRemoval(file);
+            } else {
+                console.log('No file selected');
             }
+        });
+
+        // Add explicit click handler for mobile
+        this.uploadArea.addEventListener('click', (e) => {
+            console.log('Upload area clicked');
+            e.preventDefault();
+            e.stopPropagation();
+            
+            // Trigger file input click
+            console.log('Triggering file input click');
+            this.fileInput.click();
+        });
+
+        // Add touch handler for mobile devices
+        this.uploadArea.addEventListener('touchend', (e) => {
+            console.log('Upload area touched');
+            e.preventDefault();
+            e.stopPropagation();
+            
+            // Trigger file input click
+            console.log('Triggering file input click from touch');
+            this.fileInput.click();
         });
 
         this.downloadBtn.addEventListener('click', () => {
@@ -85,20 +112,46 @@ class BackgroundRemoveApp {
     }
 
     setupDragAndDrop() {
+        // Call the original setupDragAndDrop
         utils.setupDragAndDrop(this.uploadArea, this.fileInput, (file) => {
+            console.log('Drag and drop callback triggered');
             this.handleBackgroundRemoval(file);
         });
+        
+        // Add additional mobile-specific handling
+        if (this.isMobile) {
+            console.log('Adding mobile-specific drag and drop handling');
+            
+            // Ensure the upload area is clickable on mobile
+            this.uploadArea.style.cursor = 'pointer';
+            this.uploadArea.style.userSelect = 'none';
+            this.uploadArea.style.webkitUserSelect = 'none';
+            this.uploadArea.style.webkitTouchCallout = 'none';
+            
+            // Add visual feedback for mobile
+            this.uploadArea.addEventListener('touchstart', () => {
+                this.uploadArea.style.opacity = '0.7';
+            });
+            
+            this.uploadArea.addEventListener('touchend', () => {
+                this.uploadArea.style.opacity = '1';
+            });
+        }
     }
 
     async handleBackgroundRemoval(file) {
         try {
+            console.log('=== BACKGROUND REMOVAL STARTED ===');
             console.log('Starting background removal with editor for file:', file.name);
             console.log('File size:', file.size, 'bytes');
             console.log('File type:', file.type);
             console.log('Mobile device:', this.isMobile);
+            console.log('User agent:', navigator.userAgent);
+            console.log('Current URL:', window.location.href);
             
             // Check authentication first
             if (!window.authUtils || !window.authUtils.isAuthenticated()) {
+                console.log('User not authenticated, redirecting to login');
                 this.showError('Please log in to use the background removal feature.');
                 setTimeout(() => {
                     window.location.href = 'login.html';
@@ -106,58 +159,81 @@ class BackgroundRemoveApp {
                 return;
             }
             
+            console.log('User is authenticated, proceeding with file validation');
+            
             // Validate file
             if (!utils.validateFile(file)) {
+                console.log('File validation failed');
                 return;
             }
             
+            console.log('File validation passed');
+            
             // Mobile-specific file size check (mobile browsers may have issues with large files)
             if (this.isMobile && file.size > 5 * 1024 * 1024) { // 5MB limit for mobile
+                console.log('File too large for mobile processing');
                 this.showError('File is too large for mobile processing. Please use a smaller image (under 5MB) or try on desktop.');
                 return;
             }
             
+            console.log('File size check passed');
+            
             // Show original image preview
             this.showOriginalPreview(file);
+            console.log('Original preview shown');
             
             // Store original URL for later use
             this.currentOriginalUrl = URL.createObjectURL(file);
+            console.log('Original URL created:', this.currentOriginalUrl);
             
             // Show progress
             this.showProgress();
+            console.log('Progress shown');
             
             // Upload to Clipping Magic and get credentials
+            console.log('Starting Clipping Magic upload...');
             const uploadResult = await this.uploadToClippingMagic(file);
+            console.log('Upload completed:', uploadResult);
             
             // Complete progress
             this.updateProgress(100);
+            console.log('Progress updated to 100%');
             
             // Check if we're on mobile and show mobile-specific message
             if (this.isMobile) {
                 this.progressText.textContent = 'Opening editor on mobile... This may take a moment.';
                 utils.showNotification('Opening background removal editor...', 'info');
+                console.log('Mobile-specific message shown');
             }
             
             // Launch the editor
+            console.log('Launching Clipping Magic editor...');
             await this.launchClippingMagicEditor(uploadResult.id, uploadResult.secret, uploadResult.apiId);
+            console.log('Editor launch completed');
             
         } catch (error) {
+            console.error('=== BACKGROUND REMOVAL ERROR ===');
             console.error('Background removal with editor error:', error);
+            console.error('Error stack:', error.stack);
             
             // Handle specific error types
             if (error.message.includes('Authentication required') || error.message.includes('Please log in')) {
+                console.log('Authentication error, redirecting to login');
                 this.showError('Please log in to use this feature.');
                 setTimeout(() => {
                     window.location.href = 'login.html';
                 }, 2000);
             } else if (error.message.includes('Insufficient credits')) {
+                console.log('Insufficient credits error, redirecting to dashboard');
                 this.showError(error.message);
                 setTimeout(() => {
                     window.location.href = 'dashboard.html';
                 }, 3000);
             } else if (this.isMobile && error.message.includes('Failed to load ClippingMagic script')) {
+                console.log('Mobile library load error');
                 this.showError('The background removal editor may not be compatible with your mobile browser. Please try using a desktop computer or a different mobile browser.');
             } else {
+                console.log('Generic error, showing fallback message');
                 this.showError('Failed to start background removal editor. Please try again.');
             }
         }
