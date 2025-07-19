@@ -35,175 +35,175 @@ class PaywallModal {
             modal.className = 'fixed inset-0 bg-black bg-opacity-50 z-50 hidden flex items-center justify-center p-4';
         
         modal.innerHTML = `
-            <div class="bg-white rounded-xl shadow-2xl max-w-5xl w-full max-h-[90vh] overflow-y-auto border border-gray-100">
+            <div class="bg-white rounded-xl shadow-2xl w-[95%] max-w-sm mx-auto max-h-[95vh] overflow-y-auto border border-gray-100 md:max-w-2xl lg:max-w-4xl">
                 <!-- Header -->
-                <div class="flex justify-between items-center p-8 border-b border-gray-100">
-                    <div>
-                        <h2 class="text-3xl font-bold text-primary mb-2">Unlock Professional DTF Tools</h2>
-                        <p class="text-gray-600 text-lg">Sign up to access vectorization and background removal</p>
+                <div class="flex justify-between items-center p-4 md:p-6 border-b border-gray-100">
+                    <div class="flex-1 pr-4">
+                        <h2 class="text-xl md:text-2xl lg:text-3xl font-bold text-primary mb-1 md:mb-2">Unlock Professional DTF Tools</h2>
+                        <p class="text-sm md:text-base lg:text-lg text-gray-600">Sign up to access vectorization and background removal</p>
                     </div>
-                    <button id="paywallCloseBtn" class="text-gray-400 hover:text-primary transition-colors p-2 rounded-lg hover:bg-gray-50">
-                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <button id="paywallCloseBtn" class="text-gray-400 hover:text-primary transition-colors p-2 rounded-lg hover:bg-gray-50 flex-shrink-0">
+                        <svg class="w-5 h-5 md:w-6 md:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
                         </svg>
                     </button>
                 </div>
 
                 <!-- Content -->
-                <div class="p-8">
+                <div class="p-4 md:p-6 lg:p-8">
                     <!-- Feature Preview -->
-                    <div class="mb-12">
-                        <div class="bg-gradient-to-r from-primary/5 to-accent/5 rounded-2xl p-8 border border-gray-100">
-                            <div class="flex items-center justify-center space-x-16">
+                    <div class="mb-6 md:mb-8 lg:mb-12">
+                        <div class="bg-gradient-to-r from-primary/5 to-accent/5 rounded-xl md:rounded-2xl p-4 md:p-6 lg:p-8 border border-gray-100">
+                            <div class="flex flex-col md:flex-row items-center justify-center space-y-4 md:space-y-0 md:space-x-8 lg:space-x-16">
                                 <div class="text-center">
-                                    <div class="w-20 h-20 bg-primary/10 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                                        <svg class="w-10 h-10 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <div class="w-16 h-16 md:w-20 md:h-20 bg-primary/10 rounded-xl md:rounded-2xl flex items-center justify-center mx-auto mb-3 md:mb-4">
+                                        <svg class="w-8 h-8 md:w-10 md:h-10 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                                         </svg>
                                     </div>
-                                    <h3 class="font-bold text-primary text-lg mb-2">Vectorization</h3>
-                                    <p class="text-gray-600">Convert images to DTF-ready vectors</p>
+                                    <h3 class="font-bold text-primary text-base md:text-lg mb-1 md:mb-2">Vectorization</h3>
+                                    <p class="text-sm md:text-base text-gray-600">Convert images to DTF-ready vectors</p>
                                 </div>
                                 <div class="text-center">
-                                    <div class="w-20 h-20 bg-accent/10 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                                        <svg class="w-10 h-10 text-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <div class="w-16 h-16 md:w-20 md:h-20 bg-accent/10 rounded-xl md:rounded-2xl flex items-center justify-center mx-auto mb-3 md:mb-4">
+                                        <svg class="w-8 h-8 md:w-10 md:h-10 text-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
                                         </svg>
                                     </div>
-                                    <h3 class="font-bold text-accent text-lg mb-2">Background Removal</h3>
-                                    <p class="text-gray-600">Remove backgrounds with AI precision</p>
+                                    <h3 class="font-bold text-accent text-base md:text-lg mb-1 md:mb-2">Background Removal</h3>
+                                    <p class="text-sm md:text-base text-gray-600">Remove backgrounds with AI precision</p>
                                 </div>
                             </div>
                         </div>
                     </div>
 
                     <!-- Pricing Options -->
-                    <div class="grid md:grid-cols-3 gap-8 mb-12">
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6 lg:gap-8 mb-6 md:mb-8 lg:mb-12">
                         <!-- Free Plan -->
-                        <div class="border-2 border-gray-200 rounded-2xl p-8 hover:border-primary/30 transition-all duration-300 hover:shadow-lg bg-white">
+                        <div class="border-2 border-gray-200 rounded-xl md:rounded-2xl p-4 md:p-6 lg:p-8 hover:border-primary/30 transition-all duration-300 hover:shadow-lg bg-white">
                             <div class="text-center">
-                                <h3 class="text-2xl font-bold text-primary mb-2">Free</h3>
-                                <div class="mb-4">
-                                    <span class="text-4xl font-bold text-primary">$0</span>
-                                    <span class="text-gray-600 text-lg">/month</span>
+                                <h3 class="text-lg md:text-xl lg:text-2xl font-bold text-primary mb-1 md:mb-2">Free</h3>
+                                <div class="mb-3 md:mb-4">
+                                    <span class="text-2xl md:text-3xl lg:text-4xl font-bold text-primary">$0</span>
+                                    <span class="text-sm md:text-base lg:text-lg text-gray-600">/month</span>
                                 </div>
-                                <p class="text-gray-600 mb-6">Perfect for getting started</p>
+                                <p class="text-sm md:text-base text-gray-600 mb-4 md:mb-6">Perfect for getting started</p>
                             </div>
-                            <ul class="space-y-4 mb-8">
+                            <ul class="space-y-3 md:space-y-4 mb-6 md:mb-8">
                                 <li class="flex items-center">
-                                    <svg class="w-5 h-5 text-primary mr-3 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                                    <svg class="w-4 h-4 md:w-5 md:h-5 text-primary mr-2 md:mr-3 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                                         <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
                                     </svg>
-                                    <span class="text-gray-700">2 credits per month</span>
+                                    <span class="text-sm md:text-base text-gray-700">2 credits per month</span>
                                 </li>
                                 <li class="flex items-center">
-                                    <svg class="w-5 h-5 text-primary mr-3 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                                    <svg class="w-4 h-4 md:w-5 md:h-5 text-primary mr-2 md:mr-3 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                                         <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
                                     </svg>
-                                    <span class="text-gray-700">Basic vectorization</span>
+                                    <span class="text-sm md:text-base text-gray-700">Basic vectorization</span>
                                 </li>
                                 <li class="flex items-center">
-                                    <svg class="w-5 h-5 text-primary mr-3 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                                    <svg class="w-4 h-4 md:w-5 md:h-5 text-primary mr-2 md:mr-3 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                                         <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
                                     </svg>
-                                    <span class="text-gray-700">Background removal</span>
+                                    <span class="text-sm md:text-base text-gray-700">Background removal</span>
                                 </li>
                             </ul>
-                            <button id="signupFreeBtn" class="w-full bg-gray-100 text-primary border-2 border-primary py-3 px-6 rounded-xl font-semibold hover:bg-primary hover:text-white transition-all duration-300">
+                            <button id="signupFreeBtn" class="w-full bg-gray-100 text-primary border-2 border-primary py-2 md:py-3 px-4 md:px-6 rounded-lg md:rounded-xl font-semibold hover:bg-primary hover:text-white transition-all duration-300 text-sm md:text-base">
                                 Start Free
                             </button>
                         </div>
 
                         <!-- Basic Plan -->
-                        <div class="border-2 border-primary rounded-2xl p-8 relative bg-gradient-to-br from-primary/5 to-secondary/5 shadow-lg transform scale-105">
-                            <div class="absolute -top-4 left-1/2 transform -translate-x-1/2">
-                                <span class="bg-primary text-white px-4 py-2 rounded-full text-sm font-semibold shadow-lg">MOST POPULAR</span>
+                        <div class="border-2 border-primary rounded-xl md:rounded-2xl p-4 md:p-6 lg:p-8 relative bg-gradient-to-br from-primary/5 to-secondary/5 shadow-lg md:transform md:scale-105">
+                            <div class="absolute -top-3 md:-top-4 left-1/2 transform -translate-x-1/2">
+                                <span class="bg-primary text-white px-3 md:px-4 py-1 md:py-2 rounded-full text-xs md:text-sm font-semibold shadow-lg">MOST POPULAR</span>
                             </div>
                             <div class="text-center">
-                                <h3 class="text-2xl font-bold text-primary mb-2">Basic</h3>
-                                <div class="mb-4">
-                                    <span class="text-4xl font-bold text-primary">$9.99</span>
-                                    <span class="text-gray-600 text-lg">/month</span>
+                                <h3 class="text-lg md:text-xl lg:text-2xl font-bold text-primary mb-1 md:mb-2">Basic</h3>
+                                <div class="mb-3 md:mb-4">
+                                    <span class="text-2xl md:text-3xl lg:text-4xl font-bold text-primary">$9.99</span>
+                                    <span class="text-sm md:text-base lg:text-lg text-gray-600">/month</span>
                                 </div>
-                                <p class="text-gray-600 mb-6">For growing businesses</p>
+                                <p class="text-sm md:text-base text-gray-600 mb-4 md:mb-6">For growing businesses</p>
                             </div>
-                            <ul class="space-y-4 mb-8">
+                            <ul class="space-y-3 md:space-y-4 mb-6 md:mb-8">
                                 <li class="flex items-center">
-                                    <svg class="w-5 h-5 text-primary mr-3 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                                    <svg class="w-4 h-4 md:w-5 md:h-5 text-primary mr-2 md:mr-3 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                                         <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
                                     </svg>
-                                    <span class="text-gray-700">20 credits per month</span>
+                                    <span class="text-sm md:text-base text-gray-700">20 credits per month</span>
                                 </li>
                                 <li class="flex items-center">
-                                    <svg class="w-5 h-5 text-primary mr-3 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                                    <svg class="w-4 h-4 md:w-5 md:h-5 text-primary mr-2 md:mr-3 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                                         <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
                                     </svg>
-                                    <span class="text-gray-700">Professional vectorization</span>
+                                    <span class="text-sm md:text-base text-gray-700">Professional vectorization</span>
                                 </li>
                                 <li class="flex items-center">
-                                    <svg class="w-5 h-5 text-primary mr-3 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                                    <svg class="w-4 h-4 md:w-5 md:h-5 text-primary mr-2 md:mr-3 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                                         <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
                                     </svg>
-                                    <span class="text-gray-700">Priority processing</span>
+                                    <span class="text-sm md:text-base text-gray-700">Priority processing</span>
                                 </li>
                                 <li class="flex items-center">
-                                    <svg class="w-5 h-5 text-primary mr-3 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                                    <svg class="w-4 h-4 md:w-5 md:h-5 text-primary mr-2 md:mr-3 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                                         <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
                                     </svg>
-                                    <span class="text-gray-700">Email support</span>
+                                    <span class="text-sm md:text-base text-gray-700">Email support</span>
                                 </li>
                             </ul>
-                            <button id="signupBasicBtn" class="w-full bg-primary text-white py-3 px-6 rounded-xl font-semibold hover:bg-dark-blue transition-all duration-300 shadow-lg">
+                            <button id="signupBasicBtn" class="w-full bg-primary text-white py-2 md:py-3 px-4 md:px-6 rounded-lg md:rounded-xl font-semibold hover:bg-dark-blue transition-all duration-300 shadow-lg text-sm md:text-base">
                                 Start Basic
                             </button>
                         </div>
 
                         <!-- Professional Plan -->
-                        <div class="border-2 border-gray-200 rounded-2xl p-8 hover:border-accent/30 transition-all duration-300 hover:shadow-lg bg-white">
+                        <div class="border-2 border-gray-200 rounded-xl md:rounded-2xl p-4 md:p-6 lg:p-8 hover:border-accent/30 transition-all duration-300 hover:shadow-lg bg-white">
                             <div class="text-center">
-                                <h3 class="text-2xl font-bold text-accent mb-2">Professional</h3>
-                                <div class="mb-4">
-                                    <span class="text-4xl font-bold text-accent">$24.99</span>
-                                    <span class="text-gray-600 text-lg">/month</span>
+                                <h3 class="text-lg md:text-xl lg:text-2xl font-bold text-accent mb-1 md:mb-2">Professional</h3>
+                                <div class="mb-3 md:mb-4">
+                                    <span class="text-2xl md:text-3xl lg:text-4xl font-bold text-accent">$24.99</span>
+                                    <span class="text-sm md:text-base lg:text-lg text-gray-600">/month</span>
                                 </div>
-                                <p class="text-gray-600 mb-6">For power users</p>
+                                <p class="text-sm md:text-base text-gray-600 mb-4 md:mb-6">For power users</p>
                             </div>
-                            <ul class="space-y-4 mb-8">
+                            <ul class="space-y-3 md:space-y-4 mb-6 md:mb-8">
                                 <li class="flex items-center">
-                                    <svg class="w-5 h-5 text-accent mr-3 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                                    <svg class="w-4 h-4 md:w-5 md:h-5 text-accent mr-2 md:mr-3 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                                         <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
                                     </svg>
-                                    <span class="text-gray-700">60 credits per month</span>
+                                    <span class="text-sm md:text-base text-gray-700">60 credits per month</span>
                                 </li>
                                 <li class="flex items-center">
-                                    <svg class="w-5 h-5 text-accent mr-3 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                                    <svg class="w-4 h-4 md:w-5 md:h-5 text-accent mr-2 md:mr-3 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                                         <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
                                     </svg>
-                                    <span class="text-gray-700">Advanced features</span>
+                                    <span class="text-sm md:text-base text-gray-700">Advanced features</span>
                                 </li>
                                 <li class="flex items-center">
-                                    <svg class="w-5 h-5 text-accent mr-3 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                                    <svg class="w-4 h-4 md:w-5 md:h-5 text-accent mr-2 md:mr-3 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                                         <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
                                     </svg>
-                                    <span class="text-gray-700">Unlimited processing</span>
+                                    <span class="text-sm md:text-base text-gray-700">Unlimited processing</span>
                                 </li>
                                 <li class="flex items-center">
-                                    <svg class="w-5 h-5 text-accent mr-3 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                                    <svg class="w-4 h-4 md:w-5 md:h-5 text-accent mr-2 md:mr-3 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                                         <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
                                     </svg>
-                                    <span class="text-gray-700">Priority support</span>
+                                    <span class="text-sm md:text-base text-gray-700">Priority support</span>
                                 </li>
                             </ul>
-                            <button id="signupProBtn" class="w-full bg-accent text-white py-3 px-6 rounded-xl font-semibold hover:bg-accent/90 transition-all duration-300 shadow-lg">
+                            <button id="signupProBtn" class="w-full bg-accent text-white py-2 md:py-3 px-4 md:px-6 rounded-lg md:rounded-xl font-semibold hover:bg-accent/90 transition-all duration-300 shadow-lg text-sm md:text-base">
                                 Start Professional
                             </button>
                         </div>
                     </div>
 
                     <!-- Login Option -->
-                    <div class="text-center border-t border-gray-100 pt-8">
-                        <p class="text-gray-600 mb-6 text-lg">Already have an account?</p>
-                        <button id="loginBtn" class="bg-gray-100 text-primary border-2 border-primary py-3 px-8 rounded-xl font-semibold hover:bg-primary hover:text-white transition-all duration-300">
+                    <div class="text-center border-t border-gray-100 pt-4 md:pt-6 lg:pt-8">
+                        <p class="text-sm md:text-base lg:text-lg text-gray-600 mb-4 md:mb-6">Already have an account?</p>
+                        <button id="loginBtn" class="bg-gray-100 text-primary border-2 border-primary py-2 md:py-3 px-6 md:px-8 rounded-lg md:rounded-xl font-semibold hover:bg-primary hover:text-white transition-all duration-300 text-sm md:text-base">
                             Log In
                         </button>
                     </div>
