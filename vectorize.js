@@ -46,11 +46,24 @@ class VectorizeApp {
     setupEventListeners() {
         this.fileInput.addEventListener('change', (e) => {
             console.log('File input change event triggered');
-            console.log('Files selected:', e.target.files);
             const file = e.target.files[0];
             if (file) {
+                // Check authentication before processing
+                if (window.paywallModal && window.paywallModal.showIfNotAuthenticated('vectorize')) {
+                    // Paywall was shown, don't process the file
+                    this.fileInput.value = ''; // Clear the file input
+                    return;
+                }
                 this.handleVectorization(file);
             }
+        });
+
+        this.uploadArea.addEventListener('click', () => {
+            // Check authentication before opening file dialog
+            if (window.paywallModal && window.paywallModal.showIfNotAuthenticated('vectorize')) {
+                return; // Paywall was shown, don't open file dialog
+            }
+            this.fileInput.click();
         });
 
         this.downloadBtn.addEventListener('click', () => {
@@ -63,9 +76,35 @@ class VectorizeApp {
     }
 
     setupDragAndDrop() {
-        utils.setupDragAndDrop(this.uploadArea, this.fileInput, (file) => {
-            this.handleVectorization(file);
+        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+            this.uploadArea.addEventListener(eventName, this.preventDefaults, false);
+            document.body.addEventListener(eventName, this.preventDefaults, false);
         });
+
+        ['dragenter', 'dragover'].forEach(eventName => {
+            this.uploadArea.addEventListener(eventName, () => {
+                this.uploadArea.classList.add('dragover');
+            }, false);
+        });
+
+        ['dragleave', 'drop'].forEach(eventName => {
+            this.uploadArea.addEventListener(eventName, () => {
+                this.uploadArea.classList.remove('dragover');
+            }, false);
+        });
+
+        this.uploadArea.addEventListener('drop', (e) => {
+            const dt = e.dataTransfer;
+            const files = dt.files;
+            
+            if (files.length > 0) {
+                // Check authentication before processing
+                if (window.paywallModal && window.paywallModal.showIfNotAuthenticated('vectorize')) {
+                    return; // Paywall was shown, don't process the file
+                }
+                this.handleVectorization(files[0]);
+            }
+        }, false);
     }
 
     async handleVectorization(file) {

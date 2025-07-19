@@ -1,0 +1,256 @@
+# DTF Editor - Cursor Rules
+
+## Project Overview
+DTF Editor is a web application for vectorizing images and removing backgrounds, specifically designed for DTF (Direct to Film) transfers. The app uses Node.js/Express backend with PostgreSQL database, and vanilla JavaScript frontend.
+
+## Tech Stack
+- **Backend**: Node.js, Express.js, PostgreSQL (Supabase)
+- **Frontend**: Vanilla JavaScript, HTML5, CSS3
+- **APIs**: Vectorizer.ai API, Clipping Magic API, Stripe
+- **Deployment**: Railway
+- **Security**: Helmet.js, JWT, bcrypt, rate limiting
+
+## Brand Colors & Design System
+- **Primary Blue**: #386594
+- **Accent Orange**: #E88B4B  
+- **Secondary Blue**: #457BB9
+- **Dark Blue**: #25425f
+- **Black**: #000000
+- **White**: #FFFFFF
+
+## File Structure & Architecture
+
+### Core Files
+- `server.js` - Main Express server with middleware and route setup
+- `database-postgres.js` - Database connection and operations
+- `auth-utils.js` - Authentication utilities and JWT handling
+- `script.js` - Main frontend JavaScript
+- `styles.css` - Main stylesheet with brand colors and components
+- `custom-tailwind.css` - Custom utility classes
+
+### Feature-Specific Files
+- `vectorize.js` - Vectorization feature logic
+- `background-remove.js` - Background removal feature logic
+- `dashboard.js` - User dashboard functionality
+- `admin.js` - Admin panel functionality
+
+### Route Files
+- `auth-routes.js` - Authentication endpoints
+- `user-routes.js` - User management endpoints
+- `admin-routes.js` - Admin endpoints
+
+### Configuration
+- `config.js` - Environment configuration
+- `config/database.js` - Database configuration
+- `.env` - Environment variables
+
+## Coding Standards
+
+### JavaScript
+- Use ES6+ features (const/let, arrow functions, template literals)
+- Prefer async/await over callbacks
+- Use meaningful variable and function names
+- Add JSDoc comments for complex functions
+- Handle errors with try/catch blocks
+- Use consistent indentation (2 spaces)
+
+### CSS
+- Use CSS custom properties (variables) for colors
+- Follow BEM-like naming conventions
+- Use semantic class names
+- Mobile-first responsive design
+- Use brand colors consistently
+
+### HTML
+- Semantic HTML5 elements
+- Proper accessibility attributes
+- Clean, readable structure
+- Consistent indentation
+
+## API Patterns
+
+### Response Format
+```javascript
+// Success response
+{
+  success: true,
+  data: {...},
+  message: "Operation completed successfully"
+}
+
+// Error response
+{
+  success: false,
+  error: "Error message",
+  code: "ERROR_CODE"
+}
+```
+
+### Authentication
+- Use JWT tokens for session management
+- Include user ID in token payload
+- Verify tokens on protected routes
+- Use bcrypt for password hashing
+
+### Rate Limiting
+- Apply rate limits to all API endpoints
+- Use different limits for auth vs API routes
+- Include rate limit headers in responses
+
+## Database Patterns
+
+### Table Naming
+- Use snake_case for table and column names
+- Prefix user-related tables with `user_`
+- Use descriptive names (e.g., `user_images`, `api_usage`)
+
+### Query Patterns
+- Use parameterized queries to prevent SQL injection
+- Handle connection pooling properly
+- Include error handling for all database operations
+- Use transactions for multi-step operations
+
+## Security Guidelines
+
+### Input Validation
+- Validate all user inputs
+- Sanitize file uploads
+- Check file types and sizes
+- Prevent path traversal attacks
+
+### Content Security Policy
+- Configure Helmet.js with appropriate CSP directives
+- Allow blob: URLs for image display
+- Restrict frame-src to trusted domains
+- Use nonce or hash for inline scripts when needed
+
+### File Upload Security
+- Validate file types (images only)
+- Limit file sizes (30MB max)
+- Generate unique filenames
+- Store files securely
+
+## Feature Implementation Patterns
+
+### Image Processing Features
+1. Upload validation and storage
+2. API integration (Vectorizer.ai, Clipping Magic)
+3. Progress tracking and user feedback
+4. Result display and download
+5. Database logging and cleanup
+
+### User Management
+1. Registration with email validation
+2. Login with JWT token generation
+3. Password reset functionality
+4. User profile management
+5. Usage tracking and limits
+
+### Payment Integration
+1. Stripe payment processing
+2. Subscription management
+3. Usage-based billing
+4. Payment history tracking
+
+## Error Handling
+
+### Server Errors
+- Log errors with context
+- Return appropriate HTTP status codes
+- Provide user-friendly error messages
+- Don't expose sensitive information
+
+### Client Errors
+- Show user-friendly notifications
+- Provide clear error messages
+- Include retry options when appropriate
+- Handle network errors gracefully
+
+## Performance Guidelines
+
+### Frontend
+- Minimize DOM manipulation
+- Use efficient event listeners
+- Optimize image loading
+- Implement proper caching
+
+### Backend
+- Use connection pooling
+- Implement proper indexing
+- Cache frequently accessed data
+- Optimize database queries
+
+## Testing & Debugging
+
+### Development
+- Use console.log for debugging
+- Test API endpoints with tools like Postman
+- Verify database operations
+- Check browser console for frontend issues
+
+### Production
+- Monitor error logs
+- Track API usage and performance
+- Monitor database performance
+- Set up health checks
+
+## Deployment Guidelines
+
+### Railway Deployment
+- Use Git-based deployment
+- Set environment variables in Railway dashboard
+- Monitor deployment logs
+- Test features after deployment
+
+### Environment Variables
+- Never commit sensitive data
+- Use .env for local development
+- Set production variables in Railway
+- Document all required variables
+
+## Common Patterns
+
+### File Upload Flow
+```javascript
+// 1. Validate file
+// 2. Generate unique filename
+// 3. Store in database
+// 4. Process with external API
+// 5. Store result
+// 6. Return success response
+```
+
+### Authentication Flow
+```javascript
+// 1. Validate credentials
+// 2. Generate JWT token
+// 3. Store user session
+// 4. Return token to client
+// 5. Verify token on protected routes
+```
+
+### API Integration Flow
+```javascript
+// 1. Prepare request data
+// 2. Make API call with error handling
+// 3. Process response
+// 4. Store results
+// 5. Update user usage
+// 6. Return processed data
+```
+
+## Future Considerations
+- Implement user roles and permissions
+- Add image optimization features
+- Implement batch processing
+- Add analytics and reporting
+- Consider microservices architecture
+- Implement WebSocket for real-time updates
+
+## Notes
+- Always prioritize user experience
+- Maintain consistent branding
+- Follow security best practices
+- Keep code clean and maintainable
+- Document complex features
+- Test thoroughly before deployment

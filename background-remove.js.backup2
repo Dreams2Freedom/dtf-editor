@@ -79,24 +79,22 @@ class BackgroundRemoveApp {
             console.log('File input change event triggered');
             const file = e.target.files[0];
             if (file) {
-                // Check authentication before processing
-                if (window.paywallModal && window.paywallModal.showIfNotAuthenticated('background-remove')) {
-                    // Paywall was shown, don't process the file
-                    this.fileInput.value = ''; // Clear the file input
-                    return;
-                }
                 console.log('File selected:', file.name, file.size, file.type);
                 this.currentFile = file; // Store for potential retry
                 this.handleBackgroundRemoval(file);
+            } else {
+                console.log('No file selected');
             }
         });
 
-        // Upload area click handler
-        this.uploadArea.addEventListener('click', () => {
-            // Check authentication before opening file dialog
-            if (window.paywallModal && window.paywallModal.showIfNotAuthenticated('background-remove')) {
-                return; // Paywall was shown, don't open file dialog
-            }
+        // Add explicit click handler for mobile
+        this.uploadArea.addEventListener('click', (e) => {
+            console.log('Upload area clicked');
+            e.preventDefault();
+            e.stopPropagation();
+            
+            // Trigger file input click
+            console.log('Triggering file input click');
             this.fileInput.click();
         });
 
@@ -133,13 +131,9 @@ class BackgroundRemoveApp {
     }
 
     setupDragAndDrop() {
-        // Call the original setupDragAndDrop with authentication check
+        // Call the original setupDragAndDrop
         utils.setupDragAndDrop(this.uploadArea, this.fileInput, (file) => {
             console.log('Drag and drop callback triggered');
-            // Check authentication before processing
-            if (window.paywallModal && window.paywallModal.showIfNotAuthenticated('background-remove')) {
-                return; // Paywall was shown, don't process the file
-            }
             this.handleBackgroundRemoval(file);
         });
         

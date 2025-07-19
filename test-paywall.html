@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Paywall Test - DTF Editor</title>
+    <link rel="stylesheet" href="styles.css">
+    <script src="auth-utils.js"></script>
+    <script src="paywall.js"></script>
+</head>
+<body>
+    <div class="container py-12">
+        <h1 class="text-3xl font-bold text-primary mb-8">Paywall Test Page</h1>
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <!-- Test Vectorization -->
+            <div class="card">
+                <h2 class="text-xl font-bold text-primary mb-4">Test Vectorization</h2>
+                <p class="text-gray-600 mb-4">Click the button below to test the vectorization paywall:</p>
+                <button id="testVectorizeBtn" class="btn-primary">Test Vectorization Paywall</button>
+            </div>
+            
+            <!-- Test Background Removal -->
+            <div class="card">
+                <h2 class="text-xl font-bold text-primary mb-4">Test Background Removal</h2>
+                <p class="text-gray-600 mb-4">Click the button below to test the background removal paywall:</p>
+                <button id="testBgRemoveBtn" class="btn-secondary">Test Background Removal Paywall</button>
+            </div>
+        </div>
+        
+        <!-- Authentication Status -->
+        <div class="card mt-8">
+            <h2 class="text-xl font-bold text-primary mb-4">Authentication Status</h2>
+            <div id="authStatus" class="text-gray-600">
+                Checking authentication status...
+            </div>
+            <div class="mt-4">
+                <button id="logoutBtn" class="btn-secondary">Logout</button>
+                <button id="loginBtn" class="btn-primary ml-2">Login</button>
+            </div>
+        </div>
+        
+        <!-- Test Results -->
+        <div class="card mt-8">
+            <h2 class="text-xl font-bold text-primary mb-4">Test Results</h2>
+            <div id="testResults" class="text-gray-600">
+                No tests run yet.
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Update authentication status
+        function updateAuthStatus() {
+            const authStatus = document.getElementById('authStatus');
+            const isAuth = window.authUtils && window.authUtils.isAuthenticated();
+            
+            if (isAuth) {
+                const user = window.authUtils.getCurrentUser();
+                authStatus.innerHTML = `
+                    <div class="text-green-600 font-medium">✅ Authenticated</div>
+                    <div class="text-sm mt-1">User: ${user ? `${user.first_name} ${user.last_name}` : 'Unknown'}</div>
+                    <div class="text-sm">Email: ${user ? user.email : 'Unknown'}</div>
+                `;
+            } else {
+                authStatus.innerHTML = `
+                    <div class="text-red-600 font-medium">❌ Not Authenticated</div>
+                    <div class="text-sm mt-1">No user logged in</div>
+                `;
+            }
+        }
+
+        // Test vectorization paywall
+        document.getElementById('testVectorizeBtn').addEventListener('click', () => {
+            const results = document.getElementById('testResults');
+            results.innerHTML = '<div class="text-blue-600">Testing vectorization paywall...</div>';
+            
+            if (window.paywallModal && window.paywallModal.showIfNotAuthenticated('vectorize')) {
+                results.innerHTML = '<div class="text-green-600">✅ Paywall shown for vectorization (user not authenticated)</div>';
+            } else {
+                results.innerHTML = '<div class="text-orange-600">⚠️ Paywall not shown (user is authenticated)</div>';
+            }
+        });
+
+        // Test background removal paywall
+        document.getElementById('testBgRemoveBtn').addEventListener('click', () => {
+            const results = document.getElementById('testResults');
+            results.innerHTML = '<div class="text-blue-600">Testing background removal paywall...</div>';
+            
+            if (window.paywallModal && window.paywallModal.showIfNotAuthenticated('background-remove')) {
+                results.innerHTML = '<div class="text-green-600">✅ Paywall shown for background removal (user not authenticated)</div>';
+            } else {
+                results.innerHTML = '<div class="text-orange-600">⚠️ Paywall not shown (user is authenticated)</div>';
+            }
+        });
+
+        // Logout button
+        document.getElementById('logoutBtn').addEventListener('click', () => {
+            if (window.authUtils) {
+                window.authUtils.logout();
+            } else {
+                localStorage.clear();
+                sessionStorage.clear();
+                location.reload();
+            }
+        });
+
+        // Login button
+        document.getElementById('loginBtn').addEventListener('click', () => {
+            window.location.href = 'login.html';
+        });
+
+        // Update status on page load
+        document.addEventListener('DOMContentLoaded', () => {
+            updateAuthStatus();
+        });
+
+        // Update status when authentication changes
+        window.addEventListener('storage', (e) => {
+            if (e.key === 'authToken' || e.key === 'userData') {
+                updateAuthStatus();
+            }
+        });
+    </script>
+</body>
+</html> 

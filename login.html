@@ -187,8 +187,23 @@
 
         // Redirect based on user type
         function redirectBasedOnUserType(user) {
+            // Check for pending action from paywall
+            const pendingAction = localStorage.getItem('pendingAction');
+            
+            // Clear the stored value
+            localStorage.removeItem('pendingAction');
+            
             if (user.is_admin) {
                 window.location.href = 'admin.html';
+            } else if (pendingAction) {
+                // Redirect to the specific action the user was trying to perform
+                if (pendingAction === 'vectorize') {
+                    window.location.href = 'vectorize.html';
+                } else if (pendingAction === 'background-remove') {
+                    window.location.href = 'background-remove.html';
+                } else {
+                    window.location.href = 'dashboard.html';
+                }
             } else {
                 window.location.href = 'dashboard.html';
             }
