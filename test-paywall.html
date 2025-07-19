@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Paywall Test - DTF Editor</title>
+    <link rel="stylesheet" href="styles.css">
+    <script src="auth-utils.js"></script>
+    <script src="paywall.js"></script>
+</head>
+<body>
+    <div class="container py-12">
+        <h1 class="text-2xl font-bold text-primary mb-4">Paywall Test Page</h1>
+        
+        <div class="card mb-8">
+            <h2 class="text-xl font-bold text-primary mb-4">Test Paywall Functionality</h2>
+            
+            <div class="space-y-4">
+                <button id="testPaywallBtn" class="btn-primary">
+                    Test Paywall (Vectorize)
+                </button>
+                
+                <button id="testPaywallBgBtn" class="btn-secondary">
+                    Test Paywall (Background Remove)
+                </button>
+                
+                <button id="checkAuthBtn" class="btn-accent">
+                    Check Authentication Status
+                </button>
+                
+                <button id="clearAuthBtn" class="btn-delete">
+                    Clear Authentication (Logout)
+                </button>
+            </div>
+            
+            <div id="testResults" class="mt-6 p-4 bg-gray-100 rounded-lg">
+                <h3 class="font-semibold mb-2">Test Results:</h3>
+                <div id="resultsContent">No tests run yet.</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Test functions
+        function logResult(message) {
+            const resultsContent = document.getElementById('resultsContent');
+            const timestamp = new Date().toLocaleTimeString();
+            resultsContent.innerHTML += `<div>[${timestamp}] ${message}</div>`;
+        }
+
+        function testPaywall(action) {
+            logResult(`Testing paywall for action: ${action}`);
+            
+            if (window.paywallModal) {
+                logResult('Paywall modal found');
+                const result = window.paywallModal.showIfNotAuthenticated(action);
+                logResult(`Paywall showIfNotAuthenticated returned: ${result}`);
+            } else {
+                logResult('ERROR: Paywall modal not found!');
+            }
+        }
+
+        function checkAuth() {
+            logResult('Checking authentication status...');
+            
+            if (window.authUtils) {
+                const isAuth = window.authUtils.isAuthenticated();
+                logResult(`AuthUtils says user is authenticated: ${isAuth}`);
+                
+                const token = window.authUtils.getAuthToken();
+                logResult(`Auth token exists: ${!!token}`);
+                
+                if (token) {
+                    logResult(`Token length: ${token.length} characters`);
+                }
+            } else {
+                logResult('ERROR: AuthUtils not found!');
+            }
+            
+            // Also check localStorage directly
+            const directToken = localStorage.getItem('authToken');
+            logResult(`Direct localStorage token exists: ${!!directToken}`);
+        }
+
+        function clearAuth() {
+            logResult('Clearing authentication...');
+            localStorage.removeItem('authToken');
+            localStorage.removeItem('userToken');
+            localStorage.removeItem('adminToken');
+            localStorage.removeItem('userData');
+            sessionStorage.clear();
+            logResult('Authentication cleared');
+        }
+
+        // Event listeners
+        document.getElementById('testPaywallBtn').addEventListener('click', () => {
+            testPaywall('vectorize');
+        });
+
+        document.getElementById('testPaywallBgBtn').addEventListener('click', () => {
+            testPaywall('background-remove');
+        });
+
+        document.getElementById('checkAuthBtn').addEventListener('click', () => {
+            checkAuth();
+        });
+
+        document.getElementById('clearAuthBtn').addEventListener('click', () => {
+            clearAuth();
+        });
+
+        // Initial check
+        document.addEventListener('DOMContentLoaded', () => {
+            logResult('Page loaded');
+            logResult(`Paywall modal available: ${!!window.paywallModal}`);
+            logResult(`AuthUtils available: ${!!window.authUtils}`);
+        });
+    </script>
+</body>
+</html> 
