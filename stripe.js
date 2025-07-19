@@ -224,7 +224,7 @@ const stripeHelpers = {
             // Update user credits
             await dbHelpers.updateUser(userId, {
                 credits_remaining: user.credits_remaining + credits,
-                total_credits_purchased: user.total_credits_purchased + credits
+                total_credits_purchased: (user.total_credits_purchased || 0) + credits
             });
 
             return true;
@@ -252,7 +252,7 @@ const stripeHelpers = {
             // Update user credits
             await dbHelpers.updateUser(userId, {
                 credits_remaining: user.credits_remaining - credits,
-                credits_used: user.credits_remaining - credits
+                credits_used: (user.credits_used || 0) + credits
             });
 
             return true;

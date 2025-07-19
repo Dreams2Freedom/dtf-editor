@@ -593,7 +593,7 @@ const dbHelpers = {
         const client = await dbHelpers.getClient();
         try {
             const result = await client.query(
-                'SELECT id, email, first_name, last_name, company, created_at, is_active, is_admin, subscription_status, credits_remaining FROM users ORDER BY created_at DESC LIMIT $1 OFFSET $2',
+                'SELECT id, email, first_name, last_name, company, created_at, is_active, is_admin, subscription_status, subscription_plan, credits_remaining, credits_used, total_credits_purchased FROM users ORDER BY created_at DESC LIMIT $1 OFFSET $2',
                 [limit, offset]
             );
             return result.rows;
