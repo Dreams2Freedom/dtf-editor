@@ -174,9 +174,13 @@ class BackgroundRemoveApp {
             console.log('User agent:', navigator.userAgent);
             console.log('Current URL:', window.location.href);
             
-            // Check authentication first
+            // Check authentication first - show paywall instead of redirecting
             if (!window.authUtils || !window.authUtils.isAuthenticated()) {
-                console.log('User not authenticated, redirecting to login');
+                console.log('User not authenticated, showing paywall');
+                if (window.paywallModal && window.paywallModal.showIfNotAuthenticated('background-remove')) {
+                    return; // Paywall was shown, don't process the file
+                }
+                // Fallback if paywall is not available
                 this.showError('Please log in to use the background removal feature.');
                 setTimeout(() => {
                     window.location.href = 'login.html';
@@ -234,7 +238,12 @@ class BackgroundRemoveApp {
             
             // Handle specific error types
             if (error.message.includes('Authentication required') || error.message.includes('Please log in')) {
-                console.log('Authentication error, redirecting to login');
+                console.log('Authentication error, showing paywall');
+                // Show paywall instead of redirecting
+                if (window.paywallModal && window.paywallModal.showIfNotAuthenticated('background-remove')) {
+                    return; // Paywall was shown
+                }
+                // Fallback if paywall is not available
                 this.showError('Please log in to use this feature.');
                 setTimeout(() => {
                     window.location.href = 'login.html';

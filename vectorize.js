@@ -110,8 +110,12 @@ class VectorizeApp {
     async handleVectorization(file) {
         console.log('handleVectorization called with file:', file);
         
-        // Check authentication first
+        // Check authentication first - show paywall instead of redirecting
         if (!window.authUtils || !window.authUtils.isAuthenticated()) {
+            if (window.paywallModal && window.paywallModal.showIfNotAuthenticated('vectorize')) {
+                return; // Paywall was shown, don't process the file
+            }
+            // Fallback if paywall is not available
             this.showError('Please log in to use the vectorization feature.');
             setTimeout(() => {
                 window.location.href = 'login.html';
@@ -147,6 +151,11 @@ class VectorizeApp {
             
             // Handle specific error types
             if (error.message.includes('Authentication required') || error.message.includes('Please log in')) {
+                // Show paywall instead of redirecting
+                if (window.paywallModal && window.paywallModal.showIfNotAuthenticated('vectorize')) {
+                    return; // Paywall was shown
+                }
+                // Fallback if paywall is not available
                 this.showError('Please log in to use this feature.');
                 setTimeout(() => {
                     window.location.href = 'login.html';
