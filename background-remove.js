@@ -10,6 +10,9 @@ class BackgroundRemoveApp {
         this.progress = document.getElementById('bgRemoveProgress');
         this.progressBar = document.getElementById('bgRemoveProgressBar');
         this.progressText = document.getElementById('bgRemoveProgressText');
+        this.error = document.getElementById('bgRemoveError');
+        this.errorText = document.getElementById('bgRemoveErrorText');
+        this.errorRetryBtn = document.getElementById('bgRemoveErrorRetryBtn');
         this.result = document.getElementById('bgRemoveResult');
         this.original = document.getElementById('bgRemoveOriginal');
         this.resultImg = document.getElementById('bgRemoveResultImg');
@@ -22,6 +25,9 @@ class BackgroundRemoveApp {
         // Mobile detection
         this.isMobile = this.detectMobile();
         console.log('Mobile device detected:', this.isMobile);
+        
+        // Store current file for retry
+        this.currentFile = null;
         
         this.init();
     }
@@ -74,6 +80,7 @@ class BackgroundRemoveApp {
             const file = e.target.files[0];
             if (file) {
                 console.log('File selected:', file.name, file.size, file.type);
+                this.currentFile = file; // Store for potential retry
                 this.handleBackgroundRemoval(file);
             } else {
                 console.log('No file selected');
@@ -100,6 +107,18 @@ class BackgroundRemoveApp {
             // Trigger file input click
             console.log('Triggering file input click from touch');
             this.fileInput.click();
+        });
+
+        // Error retry button
+        this.errorRetryBtn.addEventListener('click', () => {
+            console.log('Retry button clicked');
+            this.hideError();
+            if (this.currentFile) {
+                this.handleBackgroundRemoval(this.currentFile);
+            } else {
+                // If no current file, reset to upload state
+                this.resetBackgroundRemoval();
+            }
         });
 
         this.downloadBtn.addEventListener('click', () => {
@@ -161,22 +180,13 @@ class BackgroundRemoveApp {
             
             console.log('User is authenticated, proceeding with file validation');
             
-            // Validate file
-            if (!utils.validateFile(file)) {
-                console.log('File validation failed');
-                return;
+            // Validate file with mobile-specific options
+            if (!utils.validateFile(file, { isMobile: this.isMobile })) {
+                console.log('File validation failed - showing error notification');
+                return; // The validateFile function already shows the error notification
             }
             
             console.log('File validation passed');
-            
-            // Mobile-specific file size check (mobile browsers may have issues with large files)
-            if (this.isMobile && file.size > 5 * 1024 * 1024) { // 5MB limit for mobile
-                console.log('File too large for mobile processing');
-                this.showError('File is too large for mobile processing. Please use a smaller image (under 5MB) or try on desktop.');
-                return;
-            }
-            
-            console.log('File size check passed');
             
             // Show original image preview
             this.showOriginalPreview(file);
@@ -232,6 +242,12 @@ class BackgroundRemoveApp {
             } else if (this.isMobile && error.message.includes('Failed to load ClippingMagic script')) {
                 console.log('Mobile library load error');
                 this.showError('The background removal editor may not be compatible with your mobile browser. Please try using a desktop computer or a different mobile browser.');
+            } else if (error.message.includes('File is too large')) {
+                console.log('File size error - already handled by validation');
+                // Error already shown by validateFile function
+            } else if (error.message.includes('File type')) {
+                console.log('File type error - already handled by validation');
+                // Error already shown by validateFile function
             } else {
                 console.log('Generic error, showing fallback message');
                 this.showError('Failed to start background removal editor. Please try again.');
@@ -273,6 +289,10 @@ class BackgroundRemoveApp {
             formData.append('image', file);
             
             console.log('Clipping Magic upload endpoint:', this.clippingMagicUploadEndpoint);
+            
+            // Update progress to show upload starting
+            this.updateProgress(10);
+            this.progressText.textContent = 'Uploading image to server...';
      
             // Make API call to upload endpoint with authentication
             const headers = {
@@ -291,18 +311,32 @@ class BackgroundRemoveApp {
                 const errorText = await response.text();
                 console.error('Clipping Magic upload error response:', errorText);
                 
+                // Update progress to show error
+                this.updateProgress(0);
+                this.progressText.textContent = 'Upload failed';
+                
                 if (response.status === 401) {
                     throw new Error('Authentication required. Please log in to use this feature.');
                 } else if (response.status === 402) {
                     const errorData = JSON.parse(errorText);
                     throw new Error(`Insufficient credits. You have ${errorData.credits_remaining} credits remaining.`);
+                } else if (response.status === 413) {
+                    throw new Error('File is too large for processing. Please use a smaller image.');
+                } else if (response.status === 400) {
+                    throw new Error('Invalid file format. Please upload a valid image file (PNG, JPG, or GIF).');
+                } else if (response.status >= 500) {
+                    throw new Error('Server error. Please try again in a few moments.');
                 } else {
-                    throw new Error(`Clipping Magic upload failed: ${response.status} - ${response.statusText} - ${errorText}`);
+                    throw new Error(`Upload failed: ${response.status} - ${response.statusText}`);
                 }
             }
             
             const result = await response.json();
             console.log('Clipping Magic upload successful:', result);
+            
+            // Update progress to show upload complete
+            this.updateProgress(50);
+            this.progressText.textContent = 'Upload complete, preparing editor...';
             
             return {
                 success: true,
@@ -314,6 +348,11 @@ class BackgroundRemoveApp {
             
         } catch (error) {
             console.error('Clipping Magic upload error:', error);
+            
+            // Update progress to show error
+            this.updateProgress(0);
+            this.progressText.textContent = 'Upload failed';
+            
             throw error;
         }
     }
@@ -647,11 +686,26 @@ class BackgroundRemoveApp {
     }
 
     showError(message) {
+        console.log('Showing error:', message);
+        
         // Hide progress
         this.progress.classList.add('hidden');
         
-        // Show error message
+        // Show error display
+        this.errorText.textContent = message;
+        this.error.classList.remove('hidden');
+        
+        // Scroll to error
+        this.error.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        
+        // Also show notification for immediate feedback
         utils.showNotification(message, 'error');
+    }
+
+    hideError() {
+        this.error.classList.add('hidden');
+        this.errorText.textContent = '';
+        this.errorRetryBtn.classList.add('hidden');
     }
 
     downloadBackgroundRemoved() {
@@ -662,9 +716,14 @@ class BackgroundRemoveApp {
         // Reset all states
         this.fileInput.value = '';
         this.progress.classList.add('hidden');
+        this.error.classList.add('hidden');
         this.result.classList.add('hidden');
         this.progressBar.style.width = '0%';
         this.progressText.textContent = 'Processing...';
+        this.errorText.textContent = '';
+        
+        // Clear current file
+        this.currentFile = null;
         
         // Scroll back to upload area
         this.uploadArea.scrollIntoView({ behavior: 'smooth', block: 'center' });

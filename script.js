@@ -42,21 +42,44 @@ const utils = {
     },
 
     // Validate file
-    validateFile(file) {
+    validateFile(file, options = {}) {
+        const isMobile = options.isMobile || /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(navigator.userAgent);
+        
+        console.log('Validating file:', file.name, 'Size:', utils.formatFileSize(file.size), 'Type:', file.type, 'Mobile:', isMobile);
+        
         // Check file type
         const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif'];
         if (!allowedTypes.includes(file.type)) {
-            utils.showNotification('Please upload a valid image file (PNG, JPG, or GIF).', 'error');
+            const errorMsg = `Please upload a valid image file (PNG, JPG, or GIF). Your file type "${file.type}" is not supported.`;
+            console.error('File type validation failed:', file.type);
+            utils.showNotification(errorMsg, 'error');
             return false;
         }
 
-        // Check file size (10MB limit)
-        const maxSize = 10 * 1024 * 1024; // 10MB
+        // Check file size with mobile-specific limits
+        const maxSize = isMobile ? (5 * 1024 * 1024) : (10 * 1024 * 1024); // 5MB for mobile, 10MB for desktop
+        const maxSizeMB = isMobile ? 5 : 10;
+        
         if (file.size > maxSize) {
-            utils.showNotification('File size must be less than 10MB.', 'error');
+            const fileSizeMB = (file.size / 1024 / 1024).toFixed(1);
+            const errorMsg = isMobile 
+                ? `File is too large for mobile processing. Your file is ${fileSizeMB}MB, but mobile devices are limited to ${maxSizeMB}MB. Please use a smaller image or try on desktop.`
+                : `File size must be less than ${maxSizeMB}MB. Your file is ${fileSizeMB}MB.`;
+            
+            console.error('File size validation failed:', fileSizeMB, 'MB (max:', maxSizeMB, 'MB)');
+            utils.showNotification(errorMsg, 'error');
             return false;
         }
 
+        // Check for empty files
+        if (file.size === 0) {
+            const errorMsg = 'The selected file is empty. Please choose a valid image file.';
+            console.error('File is empty');
+            utils.showNotification(errorMsg, 'error');
+            return false;
+        }
+
+        console.log('File validation passed');
         return true;
     },
 
