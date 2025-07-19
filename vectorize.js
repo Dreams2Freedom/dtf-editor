@@ -44,14 +44,19 @@ class VectorizeApp {
     }
 
     setupEventListeners() {
+        // Flag to prevent multiple simultaneous processing
+        this.isProcessing = false;
+
         this.fileInput.addEventListener('change', (e) => {
             console.log('File input change event triggered');
             const file = e.target.files[0];
-            if (file) {
+            if (file && !this.isProcessing) {
+                this.isProcessing = true;
                 // Check authentication before processing
                 if (window.paywallModal && window.paywallModal.showIfNotAuthenticated('vectorize')) {
                     // Paywall was shown, don't process the file
                     this.fileInput.value = ''; // Clear the file input
+                    this.isProcessing = false;
                     return;
                 }
                 this.handleVectorization(file);
@@ -59,6 +64,12 @@ class VectorizeApp {
         });
 
         this.uploadArea.addEventListener('click', () => {
+            // Prevent duplicate triggers
+            if (this.isProcessing) {
+                console.log('Already processing, ignoring click');
+                return;
+            }
+            
             // Check authentication before opening file dialog
             if (window.paywallModal && window.paywallModal.showIfNotAuthenticated('vectorize')) {
                 return; // Paywall was shown, don't open file dialog
@@ -108,66 +119,75 @@ class VectorizeApp {
     }
 
     async handleVectorization(file) {
-        console.log('handleVectorization called with file:', file);
-        
-        // Check authentication first - show paywall instead of redirecting
-        if (!window.authUtils || !window.authUtils.isAuthenticated()) {
-            if (window.paywallModal && window.paywallModal.showIfNotAuthenticated('vectorize')) {
-                return; // Paywall was shown, don't process the file
-            }
-            // Fallback if paywall is not available
-            this.showError('Please log in to use the vectorization feature.');
-            setTimeout(() => {
-                window.location.href = 'login.html';
-            }, 2000);
-            return;
-        }
-        
-        // Validate file
-        if (!utils.validateFile(file)) {
-            return;
-        }
-
-        // Show original image preview
-        this.showOriginalPreview(file);
-
-        // Show progress
-        this.showProgress();
-
         try {
-            // Start progress simulation
-            const progressInterval = utils.simulateProgress(this.progressBar, this.progressText);
+            console.log('handleVectorization called with file:', file);
             
-            // Generate preview first
-            const previewData = await this.generatePreview(file);
-            
-            // Complete progress
-            this.updateProgress(100);
-            
-            // Show preview results with paywall
-            this.showPreviewResults(previewData);
-        } catch (error) {
-            console.error('Vectorization error:', error);
-            
-            // Handle specific error types
-            if (error.message.includes('Authentication required') || error.message.includes('Please log in')) {
-                // Show paywall instead of redirecting
+            // Check authentication first - show paywall instead of redirecting
+            if (!window.authUtils || !window.authUtils.isAuthenticated()) {
                 if (window.paywallModal && window.paywallModal.showIfNotAuthenticated('vectorize')) {
-                    return; // Paywall was shown
+                    this.isProcessing = false; // Reset processing flag
+                    return; // Paywall was shown, don't process the file
                 }
                 // Fallback if paywall is not available
-                this.showError('Please log in to use this feature.');
+                this.showError('Please log in to use the vectorization feature.');
                 setTimeout(() => {
                     window.location.href = 'login.html';
                 }, 2000);
-            } else if (error.message.includes('Insufficient credits')) {
-                this.showError(error.message);
-                setTimeout(() => {
-                    window.location.href = 'dashboard.html';
-                }, 3000);
-            } else {
-                this.showError('Failed to vectorize image. Please try again.');
+                this.isProcessing = false; // Reset processing flag
+                return;
             }
+            
+            // Validate file
+            if (!utils.validateFile(file)) {
+                this.isProcessing = false; // Reset processing flag
+                return;
+            }
+
+            // Show original image preview
+            this.showOriginalPreview(file);
+
+            // Show progress
+            this.showProgress();
+
+            try {
+                // Start progress simulation
+                const progressInterval = utils.simulateProgress(this.progressBar, this.progressText);
+                
+                // Generate preview first
+                const previewData = await this.generatePreview(file);
+                
+                // Complete progress
+                this.updateProgress(100);
+                
+                // Show preview results with paywall
+                this.showPreviewResults(previewData);
+            } catch (error) {
+                console.error('Vectorization error:', error);
+                
+                // Handle specific error types
+                if (error.message.includes('Authentication required') || error.message.includes('Please log in')) {
+                    // Show paywall instead of redirecting
+                    if (window.paywallModal && window.paywallModal.showIfNotAuthenticated('vectorize')) {
+                        this.isProcessing = false; // Reset processing flag
+                        return; // Paywall was shown
+                    }
+                    // Fallback if paywall is not available
+                    this.showError('Please log in to use this feature.');
+                    setTimeout(() => {
+                        window.location.href = 'login.html';
+                    }, 2000);
+                } else if (error.message.includes('Insufficient credits')) {
+                    this.showError(error.message);
+                    setTimeout(() => {
+                        window.location.href = 'dashboard.html';
+                    }, 3000);
+                } else {
+                    this.showError('Failed to vectorize image. Please try again.');
+                }
+            }
+        } finally {
+            // Always reset the processing flag
+            this.isProcessing = false;
         }
     }
 

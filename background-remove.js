@@ -74,15 +74,20 @@ class BackgroundRemoveApp {
     }
 
     setupEventListeners() {
+        // Flag to prevent multiple simultaneous processing
+        this.isProcessing = false;
+
         // File input change handler
         this.fileInput.addEventListener('change', (e) => {
             console.log('File input change event triggered');
             const file = e.target.files[0];
-            if (file) {
+            if (file && !this.isProcessing) {
+                this.isProcessing = true;
                 // Check authentication before processing
                 if (window.paywallModal && window.paywallModal.showIfNotAuthenticated('background-remove')) {
                     // Paywall was shown, don't process the file
                     this.fileInput.value = ''; // Clear the file input
+                    this.isProcessing = false;
                     return;
                 }
                 console.log('File selected:', file.name, file.size, file.type);
@@ -92,7 +97,13 @@ class BackgroundRemoveApp {
         });
 
         // Upload area click handler
-        this.uploadArea.addEventListener('click', () => {
+        this.uploadArea.addEventListener('click', (e) => {
+            // Prevent duplicate triggers
+            if (this.isProcessing) {
+                console.log('Already processing, ignoring click');
+                return;
+            }
+            
             // Check authentication before opening file dialog
             if (window.paywallModal && window.paywallModal.showIfNotAuthenticated('background-remove')) {
                 return; // Paywall was shown, don't open file dialog
@@ -100,11 +111,22 @@ class BackgroundRemoveApp {
             this.fileInput.click();
         });
 
-        // Add touch handler for mobile devices
+        // Add touch handler for mobile devices - but prevent duplicate triggers
         this.uploadArea.addEventListener('touchend', (e) => {
+            // Prevent duplicate triggers
+            if (this.isProcessing) {
+                console.log('Already processing, ignoring touch');
+                return;
+            }
+            
             console.log('Upload area touched');
             e.preventDefault();
             e.stopPropagation();
+            
+            // Check authentication before opening file dialog
+            if (window.paywallModal && window.paywallModal.showIfNotAuthenticated('background-remove')) {
+                return; // Paywall was shown, don't open file dialog
+            }
             
             // Trigger file input click
             console.log('Triggering file input click from touch');
@@ -178,6 +200,7 @@ class BackgroundRemoveApp {
             if (!window.authUtils || !window.authUtils.isAuthenticated()) {
                 console.log('User not authenticated, showing paywall');
                 if (window.paywallModal && window.paywallModal.showIfNotAuthenticated('background-remove')) {
+                    this.isProcessing = false; // Reset processing flag
                     return; // Paywall was shown, don't process the file
                 }
                 // Fallback if paywall is not available
@@ -185,6 +208,7 @@ class BackgroundRemoveApp {
                 setTimeout(() => {
                     window.location.href = 'login.html';
                 }, 2000);
+                this.isProcessing = false; // Reset processing flag
                 return;
             }
             
@@ -193,6 +217,7 @@ class BackgroundRemoveApp {
             // Validate file with mobile-specific options
             if (!utils.validateFile(file, { isMobile: this.isMobile })) {
                 console.log('File validation failed - showing error notification');
+                this.isProcessing = false; // Reset processing flag
                 return; // The validateFile function already shows the error notification
             }
             
@@ -241,6 +266,7 @@ class BackgroundRemoveApp {
                 console.log('Authentication error, showing paywall');
                 // Show paywall instead of redirecting
                 if (window.paywallModal && window.paywallModal.showIfNotAuthenticated('background-remove')) {
+                    this.isProcessing = false; // Reset processing flag
                     return; // Paywall was shown
                 }
                 // Fallback if paywall is not available
@@ -267,6 +293,9 @@ class BackgroundRemoveApp {
                 console.log('Generic error, showing fallback message');
                 this.showError('Failed to start background removal editor. Please try again.');
             }
+        } finally {
+            // Always reset the processing flag
+            this.isProcessing = false;
         }
     }
 

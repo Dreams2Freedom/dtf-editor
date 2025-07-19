@@ -270,9 +270,8 @@ const utils = {
             }
         }, false);
 
-        uploadArea.addEventListener('click', () => {
-            fileInput.click();
-        });
+        // Removed the click handler to prevent duplicate event listeners
+        // The click handler is now managed in the individual component's setupEventListeners
     },
 
     // Simulate progress
