@@ -394,7 +394,7 @@
                         </div>
                         ${user.is_admin ? '<span class="bg-red-100 text-red-800 text-xs px-2 py-1 rounded-full">Admin</span>' : ''}
                         <button 
-                            onclick="logout()" 
+                            id="logoutBtn"
                             class="btn-nav"
                         >
                             Logout
@@ -413,6 +413,25 @@
 
         // Update navigation on page load
         updateNavigation();
+        
+        // Add event listener for logout button
+        document.addEventListener('click', function(e) {
+            if (e.target.id === 'logoutBtn') {
+                e.preventDefault();
+                console.log('Logout button clicked');
+                if (typeof logout === 'function') {
+                    logout();
+                } else if (window.logout) {
+                    window.logout();
+                } else {
+                    console.error('Logout function not available');
+                    // Fallback logout
+                    localStorage.clear();
+                    sessionStorage.clear();
+                    window.location.href = 'login.html';
+                }
+            }
+        });
     </script>
 </body>
 </html>

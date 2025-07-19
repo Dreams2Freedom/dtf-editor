@@ -18,7 +18,12 @@
             <div class="nav-links">
                 <a href="index.html" class="btn-nav">Home</a>
                 <a href="vectorize.html" class="btn-nav">Vectorize</a>
+                <a href="dashboard.html" class="btn-nav">Dashboard</a>
                 <a href="faq.html" class="btn-nav">FAQ</a>
+                <a href="admin.html" class="btn-nav admin-link" style="display: none;">Admin</a>
+                <div id="authContainer">
+                    <!-- Auth buttons will be inserted here by JavaScript -->
+                </div>
             </div>
         </div>
     </nav>
@@ -184,5 +189,67 @@
     <script src="auth-utils.js"></script>
     <script src="script.js"></script>
     <script src="background-remove.js"></script>
+    <script>
+        // Universal navigation system
+        async function updateNavigation() {
+            const authContainer = document.getElementById('authContainer');
+            const user = await authUtils.verifyToken();
+            
+            if (user) {
+                // User is logged in
+                authContainer.innerHTML = `
+                    <div class="flex items-center space-x-3">
+                        <div class="text-sm">
+                            <p class="text-gray-900 font-medium">${user.first_name} ${user.last_name}</p>
+                            <p class="text-gray-500">${user.email}</p>
+                        </div>
+                        ${user.is_admin ? '<span class="bg-red-100 text-red-800 text-xs px-2 py-1 rounded-full">Admin</span>' : ''}
+                        <button 
+                            id="logoutBtn"
+                            class="btn-nav"
+                        >
+                            Logout
+                        </button>
+                    </div>
+                `;
+            } else {
+                // User is not logged in
+                authContainer.innerHTML = `
+                    <a href="login.html" class="btn-nav">
+                        Login
+                    </a>
+                `;
+            }
+        }
+
+        // Update navigation on page load
+        updateNavigation();
+        
+        // Add event listener for logout button
+        document.addEventListener('click', function(e) {
+            if (e.target.id === 'logoutBtn') {
+                e.preventDefault();
+                console.log('Logout button clicked');
+                if (typeof logout === 'function') {
+                    logout();
+                } else if (window.logout) {
+                    window.logout();
+                } else {
+                    console.error('Logout function not available');
+                    // Fallback logout
+                    localStorage.clear();
+                    sessionStorage.clear();
+                    window.location.href = 'login.html';
+                }
+            }
+        });
+
+        // Update admin links visibility when page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            if (window.authUtils) {
+                window.authUtils.updateAdminLinks();
+            }
+        });
+    </script>
 </body>
 </html>

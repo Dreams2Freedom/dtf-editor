@@ -1,7 +1,9 @@
 // Authentication utilities for client-side use
 
-// Logout function
+// Universal logout function
 function logout() {
+    console.log('Universal logout function called');
+    
     // Clear all auth data (handle all token naming conventions)
     localStorage.removeItem('authToken');
     localStorage.removeItem('userToken');
@@ -9,7 +11,11 @@ function logout() {
     localStorage.removeItem('userData');
     localStorage.removeItem('rememberMe');
     
+    // Clear any session storage
+    sessionStorage.clear();
+    
     // Redirect to login page
+    console.log('Redirecting to login page');
     window.location.href = 'login.html';
 }
 
@@ -151,5 +157,16 @@ window.authUtils = {
     protectAdminPage
 };
 
-// Also make logout globally available for onclick handlers
-window.logout = logout; 
+// Make logout globally available for onclick handlers
+window.logout = logout;
+
+// Ensure logout is available even if script loads after DOM
+document.addEventListener('DOMContentLoaded', function() {
+    window.logout = logout;
+    console.log('Logout function made globally available');
+});
+
+// Also make it available immediately
+if (typeof window !== 'undefined') {
+    window.logout = logout;
+} 
