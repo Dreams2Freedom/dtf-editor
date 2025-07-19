@@ -19,13 +19,52 @@ class BackgroundRemoveApp {
         // API configuration
         this.clippingMagicUploadEndpoint = '/api/clipping-magic-upload';
         
+        // Mobile detection
+        this.isMobile = this.detectMobile();
+        console.log('Mobile device detected:', this.isMobile);
+        
         this.init();
+    }
+
+    detectMobile() {
+        const userAgent = navigator.userAgent || navigator.vendor || window.opera;
+        const mobileRegex = /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini/i;
+        return mobileRegex.test(userAgent) || window.innerWidth <= 768;
     }
 
     init() {
         console.log('BackgroundRemoveApp init called');
         this.setupEventListeners();
         this.setupDragAndDrop();
+        this.updateUIForMobile();
+    }
+
+    updateUIForMobile() {
+        if (this.isMobile) {
+            // Add mobile-specific UI updates
+            console.log('Updating UI for mobile device');
+            
+            // Update upload area text for mobile
+            const uploadText = this.uploadArea.querySelector('p');
+            if (uploadText) {
+                uploadText.textContent = 'Tap to select an image from your phone';
+            }
+            
+            // Add mobile-specific instructions
+            const mobileInstructions = document.createElement('div');
+            mobileInstructions.className = 'mt-4 p-3 bg-blue-50 rounded-lg';
+            mobileInstructions.innerHTML = `
+                <p class="text-sm text-blue-800">
+                    <strong>Mobile Instructions:</strong><br>
+                    1. Tap the upload area above<br>
+                    2. Select an image from your photo library<br>
+                    3. The background removal editor will open<br>
+                    4. Use the editor tools to refine the result<br>
+                    5. Tap "Done" when finished
+                </p>
+            `;
+            this.uploadArea.appendChild(mobileInstructions);
+        }
     }
 
     setupEventListeners() {
@@ -54,6 +93,9 @@ class BackgroundRemoveApp {
     async handleBackgroundRemoval(file) {
         try {
             console.log('Starting background removal with editor for file:', file.name);
+            console.log('File size:', file.size, 'bytes');
+            console.log('File type:', file.type);
+            console.log('Mobile device:', this.isMobile);
             
             // Check authentication first
             if (!window.authUtils || !window.authUtils.isAuthenticated()) {
@@ -66,6 +108,12 @@ class BackgroundRemoveApp {
             
             // Validate file
             if (!utils.validateFile(file)) {
+                return;
+            }
+            
+            // Mobile-specific file size check (mobile browsers may have issues with large files)
+            if (this.isMobile && file.size > 5 * 1024 * 1024) { // 5MB limit for mobile
+                this.showError('File is too large for mobile processing. Please use a smaller image (under 5MB) or try on desktop.');
                 return;
             }
             
@@ -84,6 +132,12 @@ class BackgroundRemoveApp {
             // Complete progress
             this.updateProgress(100);
             
+            // Check if we're on mobile and show mobile-specific message
+            if (this.isMobile) {
+                this.progressText.textContent = 'Opening editor on mobile... This may take a moment.';
+                utils.showNotification('Opening background removal editor...', 'info');
+            }
+            
             // Launch the editor
             await this.launchClippingMagicEditor(uploadResult.id, uploadResult.secret, uploadResult.apiId);
             
@@ -101,6 +155,8 @@ class BackgroundRemoveApp {
                 setTimeout(() => {
                     window.location.href = 'dashboard.html';
                 }, 3000);
+            } else if (this.isMobile && error.message.includes('Failed to load ClippingMagic script')) {
+                this.showError('The background removal editor may not be compatible with your mobile browser. Please try using a desktop computer or a different mobile browser.');
             } else {
                 this.showError('Failed to start background removal editor. Please try again.');
             }
@@ -240,6 +296,14 @@ class BackgroundRemoveApp {
                 return;
             }
 
+            // Mobile-specific timeout (mobile browsers may be slower)
+            const timeout = this.isMobile ? 30000 : 15000; // 30 seconds for mobile, 15 for desktop
+            
+            const timeoutId = setTimeout(() => {
+                console.error('ClippingMagic library load timeout');
+                reject(new Error('Library load timeout - please try again'));
+            }, timeout);
+
             // First, let's try to fetch the script to see if it's accessible
             console.log('Testing script URL accessibility...');
             fetch('https://clippingmagic.com/api/v1/ClippingMagic.js', { 
@@ -267,7 +331,7 @@ class BackgroundRemoveApp {
                 
                 // Wait a bit for the library to initialize
                 let attempts = 0;
-                const maxAttempts = 50;
+                const maxAttempts = this.isMobile ? 100 : 50; // More attempts for mobile
                 
                 const checkLibrary = () => {
                     console.log(`Checking for ClippingMagic library... attempt ${attempts + 1}`);
@@ -276,14 +340,16 @@ class BackgroundRemoveApp {
                     
                     if (typeof window.ClippingMagic !== 'undefined') {
                         console.log('ClippingMagic library initialized successfully!');
+                        clearTimeout(timeoutId);
                         resolve();
                     } else if (attempts < maxAttempts) {
                         attempts++;
-                        setTimeout(checkLibrary, 100);
+                        setTimeout(checkLibrary, this.isMobile ? 200 : 100); // Slower for mobile
                     } else {
                         console.error('ClippingMagic library failed to initialize after script load');
                         console.error('Final check - window.ClippingMagic:', window.ClippingMagic);
                         console.error('All window properties:', Object.keys(window));
+                        clearTimeout(timeoutId);
                         reject(new Error('ClippingMagic library failed to initialize'));
                     }
                 };
@@ -295,6 +361,7 @@ class BackgroundRemoveApp {
                 console.error('Failed to load ClippingMagic script - onerror event:', error);
                 console.error('Script src:', script.src);
                 console.error('Script readyState:', script.readyState);
+                clearTimeout(timeoutId);
                 reject(new Error('Failed to load ClippingMagic script'));
             };
             
@@ -308,6 +375,7 @@ class BackgroundRemoveApp {
     async launchClippingMagicEditor(id, secret, apiId) {
         try {
             console.log('Launching Clipping Magic editor with ID:', id, 'Secret:', secret, 'API ID:', apiId);
+            console.log('Mobile device:', this.isMobile);
             
             // Load the ClippingMagic library
             await this.loadClippingMagicLibrary();
@@ -319,13 +387,23 @@ class BackgroundRemoveApp {
             if (typeof ClippingMagic === 'undefined') {
                 console.error('ClippingMagic library not loaded!');
                 console.error('Available scripts:', Array.from(document.scripts).map(s => s.src));
-                this.showError('Background removal editor failed to load. Please refresh the page and try again.');
+                
+                if (this.isMobile) {
+                    this.showError('The background removal editor is not compatible with your mobile browser. Please try using a desktop computer or a different mobile browser (Chrome or Safari recommended).');
+                } else {
+                    this.showError('Background removal editor failed to load. Please refresh the page and try again.');
+                }
                 return;
             }
             
             // Hide progress and show that editor is launching
             this.progress.classList.add('hidden');
-            utils.showNotification('Launching background removal editor...', 'info');
+            
+            if (this.isMobile) {
+                utils.showNotification('Opening mobile editor... Please wait.', 'info');
+            } else {
+                utils.showNotification('Launching background removal editor...', 'info');
+            }
             
             // Use the API ID from the upload response
             console.log('Using API ID from upload response:', apiId);
@@ -340,12 +418,17 @@ class BackgroundRemoveApp {
             
             if (errorsArray.length > 0) {
                 console.error('Browser compatibility errors:', errorsArray);
-                this.showError('Sorry, your browser is missing some required features: ' + errorsArray.join(', '));
+                
+                if (this.isMobile) {
+                    this.showError('Your mobile browser is missing required features for the background removal editor. Please try using Chrome or Safari, or use a desktop computer.');
+                } else {
+                    this.showError('Sorry, your browser is missing some required features: ' + errorsArray.join(', '));
+                }
                 return;
             }
             
-            // Launch the White Label Smart Editor
-            ClippingMagic.edit({
+            // Mobile-specific editor configuration
+            const editorConfig = {
                 image: {
                     id: id,
                     secret: secret
@@ -353,14 +436,29 @@ class BackgroundRemoveApp {
                 useStickySettings: true,
                 hideBottomToolbar: false,
                 locale: 'en-US'
-            }, (opts) => {
+            };
+            
+            // Add mobile-specific options
+            if (this.isMobile) {
+                editorConfig.mobile = true;
+                editorConfig.touchEnabled = true;
+                console.log('Using mobile-specific editor configuration');
+            }
+            
+            // Launch the White Label Smart Editor
+            ClippingMagic.edit(editorConfig, (opts) => {
                 console.log('Editor callback triggered:', opts);
                 this.handleEditorCallback(opts);
             });
             
         } catch (error) {
             console.error('Failed to launch Clipping Magic editor:', error);
-            this.showError('Failed to launch background removal editor. Please try again.');
+            
+            if (this.isMobile) {
+                this.showError('Failed to launch background removal editor on mobile. Please try using a desktop computer or a different mobile browser.');
+            } else {
+                this.showError('Failed to launch background removal editor. Please try again.');
+            }
         }
     }
 

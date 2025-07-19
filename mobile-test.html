@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mobile Background Removal Test - DTF Editor</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="nav-container">
+        <div class="nav-content">
+            <div class="flex items-center">
+                <a href="index.html" class="nav-brand">DTF Editor</a>
+                <span class="ml-4 text-gray-500">/ Mobile Test</span>
+            </div>
+            <div class="nav-links">
+                <a href="index.html" class="btn-nav">Home</a>
+                <a href="background-remove.html" class="btn-nav">Background Removal</a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <div class="container py-12">
+        <div class="card">
+            <h1 class="text-2xl font-bold text-primary mb-6">Mobile Background Removal Test</h1>
+            
+            <!-- Device Info -->
+            <div class="mb-6 p-4 bg-gray-50 rounded-lg">
+                <h3 class="font-semibold mb-2">Device Information:</h3>
+                <div id="deviceInfo" class="text-sm text-gray-600">
+                    Loading...
+                </div>
+            </div>
+
+            <!-- Browser Compatibility Test -->
+            <div class="mb-6 p-4 bg-blue-50 rounded-lg">
+                <h3 class="font-semibold mb-2">Browser Compatibility Test:</h3>
+                <div id="browserTest" class="text-sm text-gray-600">
+                    Testing...
+                </div>
+            </div>
+
+            <!-- File Upload Test -->
+            <div class="mb-6 p-4 bg-green-50 rounded-lg">
+                <h3 class="font-semibold mb-2">File Upload Test:</h3>
+                <input type="file" id="testFileInput" accept="image/*" class="mb-2">
+                <div id="fileTestResult" class="text-sm text-gray-600">
+                    Select a file to test...
+                </div>
+            </div>
+
+            <!-- Clipping Magic Library Test -->
+            <div class="mb-6 p-4 bg-yellow-50 rounded-lg">
+                <h3 class="font-semibold mb-2">Clipping Magic Library Test:</h3>
+                <button id="testLibraryBtn" class="btn-primary mb-2">Test Library Load</button>
+                <div id="libraryTestResult" class="text-sm text-gray-600">
+                    Click button to test...
+                </div>
+            </div>
+
+            <!-- Network Test -->
+            <div class="mb-6 p-4 bg-purple-50 rounded-lg">
+                <h3 class="font-semibold mb-2">Network Test:</h3>
+                <button id="testNetworkBtn" class="btn-primary mb-2">Test Network</button>
+                <div id="networkTestResult" class="text-sm text-gray-600">
+                    Click button to test...
+                </div>
+            </div>
+
+            <!-- Test Results -->
+            <div class="p-4 bg-gray-100 rounded-lg">
+                <h3 class="font-semibold mb-2">Overall Test Results:</h3>
+                <div id="overallResult" class="text-sm">
+                    Running tests...
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        class MobileTest {
+            constructor() {
+                this.deviceInfo = document.getElementById('deviceInfo');
+                this.browserTest = document.getElementById('browserTest');
+                this.fileTestResult = document.getElementById('fileTestResult');
+                this.libraryTestResult = document.getElementById('libraryTestResult');
+                this.networkTestResult = document.getElementById('networkTestResult');
+                this.overallResult = document.getElementById('overallResult');
+                
+                this.testResults = {
+                    device: false,
+                    browser: false,
+                    fileUpload: false,
+                    library: false,
+                    network: false
+                };
+                
+                this.init();
+            }
+
+            init() {
+                this.testDevice();
+                this.testBrowser();
+                this.setupFileTest();
+                this.setupLibraryTest();
+                this.setupNetworkTest();
+            }
+
+            testDevice() {
+                const userAgent = navigator.userAgent;
+                const isMobile = /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(userAgent);
+                const screenWidth = window.innerWidth;
+                const screenHeight = window.innerHeight;
+                
+                this.deviceInfo.innerHTML = `
+                    <strong>User Agent:</strong> ${userAgent}<br>
+                    <strong>Mobile Device:</strong> ${isMobile ? 'Yes' : 'No'}<br>
+                    <strong>Screen Size:</strong> ${screenWidth}x${screenHeight}<br>
+                    <strong>Platform:</strong> ${navigator.platform}<br>
+                    <strong>Language:</strong> ${navigator.language}<br>
+                    <strong>Connection:</strong> ${navigator.connection ? navigator.connection.effectiveType : 'Unknown'}
+                `;
+                
+                this.testResults.device = true;
+                this.updateOverallResult();
+            }
+
+            testBrowser() {
+                const features = {
+                    'File API': typeof File !== 'undefined',
+                    'FileReader': typeof FileReader !== 'undefined',
+                    'Blob': typeof Blob !== 'undefined',
+                    'URL.createObjectURL': typeof URL !== 'undefined' && typeof URL.createObjectURL === 'function',
+                    'Fetch API': typeof fetch !== 'undefined',
+                    'Promise': typeof Promise !== 'undefined',
+                    'Async/Await': (() => {
+                        try {
+                            new Function('async () => {}');
+                            return true;
+                        } catch {
+                            return false;
+                        }
+                    })(),
+                    'ES6 Classes': (() => {
+                        try {
+                            new Function('class Test {}');
+                            return true;
+                        } catch {
+                            return false;
+                        }
+                    })()
+                };
+
+                let html = '<strong>Browser Features:</strong><br>';
+                let allSupported = true;
+                
+                for (const [feature, supported] of Object.entries(features)) {
+                    const status = supported ? '✅' : '❌';
+                    const color = supported ? 'text-green-600' : 'text-red-600';
+                    html += `<span class="${color}">${status} ${feature}</span><br>`;
+                    if (!supported) allSupported = false;
+                }
+
+                this.browserTest.innerHTML = html;
+                this.testResults.browser = allSupported;
+                this.updateOverallResult();
+            }
+
+            setupFileTest() {
+                const fileInput = document.getElementById('testFileInput');
+                fileInput.addEventListener('change', (e) => {
+                    const file = e.target.files[0];
+                    if (file) {
+                        this.testFileUpload(file);
+                    }
+                });
+            }
+
+            testFileUpload(file) {
+                const fileInfo = `
+                    <strong>File Name:</strong> ${file.name}<br>
+                    <strong>File Size:</strong> ${(file.size / 1024 / 1024).toFixed(2)} MB<br>
+                    <strong>File Type:</strong> ${file.type}<br>
+                    <strong>Last Modified:</strong> ${new Date(file.lastModified).toLocaleString()}<br>
+                    <strong>File API Support:</strong> ✅
+                `;
+                
+                this.fileTestResult.innerHTML = fileInfo;
+                this.testResults.fileUpload = true;
+                this.updateOverallResult();
+            }
+
+            setupLibraryTest() {
+                const testBtn = document.getElementById('testLibraryBtn');
+                testBtn.addEventListener('click', () => {
+                    this.testClippingMagicLibrary();
+                });
+            }
+
+            async testClippingMagicLibrary() {
+                this.libraryTestResult.innerHTML = 'Testing library load...';
+                
+                try {
+                    // Test if we can access the script URL
+                    const response = await fetch('https://clippingmagic.com/api/v1/ClippingMagic.js', {
+                        method: 'HEAD',
+                        mode: 'no-cors'
+                    });
+                    
+                    this.libraryTestResult.innerHTML = '✅ Script URL accessible<br>❌ Library not loaded (requires full page test)';
+                    this.testResults.library = true; // URL is accessible
+                    this.updateOverallResult();
+                    
+                } catch (error) {
+                    this.libraryTestResult.innerHTML = `❌ Script URL not accessible: ${error.message}`;
+                    this.testResults.library = false;
+                    this.updateOverallResult();
+                }
+            }
+
+            setupNetworkTest() {
+                const testBtn = document.getElementById('testNetworkBtn');
+                testBtn.addEventListener('click', () => {
+                    this.testNetwork();
+                });
+            }
+
+            async testNetwork() {
+                this.networkTestResult.innerHTML = 'Testing network connectivity...';
+                
+                try {
+                    // Test basic connectivity
+                    const startTime = Date.now();
+                    const response = await fetch('https://httpbin.org/get', {
+                        method: 'GET',
+                        mode: 'cors'
+                    });
+                    const endTime = Date.now();
+                    const responseTime = endTime - startTime;
+                    
+                    if (response.ok) {
+                        this.networkTestResult.innerHTML = `✅ Network connectivity: ${responseTime}ms<br>✅ CORS support: Available`;
+                        this.testResults.network = true;
+                    } else {
+                        this.networkTestResult.innerHTML = `❌ Network error: ${response.status}`;
+                        this.testResults.network = false;
+                    }
+                    
+                } catch (error) {
+                    this.networkTestResult.innerHTML = `❌ Network error: ${error.message}`;
+                    this.testResults.network = false;
+                }
+                
+                this.updateOverallResult();
+            }
+
+            updateOverallResult() {
+                const totalTests = Object.keys(this.testResults).length;
+                const passedTests = Object.values(this.testResults).filter(Boolean).length;
+                const percentage = Math.round((passedTests / totalTests) * 100);
+                
+                let html = `<strong>Test Summary:</strong> ${passedTests}/${totalTests} tests passed (${percentage}%)<br><br>`;
+                
+                for (const [test, passed] of Object.entries(this.testResults)) {
+                    const status = passed ? '✅' : '❌';
+                    const color = passed ? 'text-green-600' : 'text-red-600';
+                    html += `<span class="${color}">${status} ${test.charAt(0).toUpperCase() + test.slice(1)} Test</span><br>`;
+                }
+                
+                if (percentage === 100) {
+                    html += '<br><strong class="text-green-600">🎉 All tests passed! Your device should work with background removal.</strong>';
+                } else if (percentage >= 80) {
+                    html += '<br><strong class="text-yellow-600">⚠️ Most tests passed. Background removal may work with some limitations.</strong>';
+                } else {
+                    html += '<br><strong class="text-red-600">❌ Several tests failed. Background removal may not work on this device.</strong>';
+                }
+                
+                this.overallResult.innerHTML = html;
+            }
+        }
+
+        // Initialize when DOM is loaded
+        document.addEventListener('DOMContentLoaded', () => {
+            new MobileTest();
+        });
+    </script>
+</body>
+</html> 
