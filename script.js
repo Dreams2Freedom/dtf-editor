@@ -43,6 +43,11 @@ const utils = {
 
     // Detect RAW image formats
     detectRawFormat(file) {
+        console.log('=== RAW FORMAT DETECTION ===');
+        console.log('File name:', file.name);
+        console.log('File type:', file.type);
+        console.log('File size:', file.size);
+        
         const rawExtensions = [
             // Canon
             '.cr2', '.cr3', '.crw',
@@ -66,6 +71,8 @@ const utils = {
             '.iiq',
             // Sigma
             '.x3f',
+            // iPhone ProRAW
+            '.dng', '.raw',
             // Other
             '.raw', '.dng', '.tiff', '.tif'
         ];
@@ -90,10 +97,14 @@ const utils = {
             'image/x-sony-arw',
             'image/x-adobe-dng',
             'image/tiff',
-            'image/x-tiff'
+            'image/x-tiff',
+            'image/x-raw',
+            'image/raw',
+            'application/octet-stream' // Sometimes RAW files are detected as this
         ];
         
         if (rawMimeTypes.includes(file.type)) {
+            console.log('RAW MIME type detected:', file.type);
             return {
                 isRaw: true,
                 format: file.type,
@@ -116,12 +127,17 @@ const utils = {
             /\.x3f$/i,      // Sigma
             /\.raw$/i,      // Generic RAW
             /\.dng$/i,      // Adobe DNG
-            /\.tiff?$/i     // TIFF
+            /\.tiff?$/i,    // TIFF
+            /proraw/i,      // iPhone ProRAW
+            /raw$/i,        // Any file ending with RAW
+            /\.dng$/i       // DNG files (iPhone ProRAW)
         ];
         
         for (const pattern of rawPatterns) {
+            console.log('Testing pattern:', pattern, 'against filename:', fileName);
             if (pattern.test(fileName)) {
                 const match = fileName.match(pattern);
+                console.log('RAW pattern matched:', match[0]);
                 return {
                     isRaw: true,
                     format: match[0].toUpperCase(),
@@ -130,6 +146,7 @@ const utils = {
             }
         }
         
+        console.log('No RAW patterns matched');
         return { isRaw: false };
     },
 
