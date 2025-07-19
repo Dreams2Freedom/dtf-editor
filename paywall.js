@@ -32,10 +32,10 @@ class PaywallModal {
             // Create modal container
             const modal = document.createElement('div');
             modal.id = 'paywallModal';
-            modal.className = 'fixed inset-0 bg-black bg-opacity-50 z-50 hidden flex items-center justify-center p-4';
+            modal.className = 'fixed inset-0 bg-black bg-opacity-50 z-50 hidden flex items-center justify-center p-4 md:p-6 lg:p-8';
         
         modal.innerHTML = `
-            <div class="bg-white rounded-xl shadow-2xl w-[95%] max-w-sm mx-auto max-h-[95vh] overflow-y-auto border border-gray-100 md:max-w-2xl lg:max-w-4xl">
+            <div class="bg-white rounded-xl shadow-2xl w-[90%] max-w-sm mx-auto max-h-[90vh] overflow-y-auto border border-gray-100 md:max-w-2xl lg:max-w-3xl">
                 <!-- Header -->
                 <div class="flex justify-between items-center p-4 md:p-6 border-b border-gray-100">
                     <div class="flex-1 pr-4">
