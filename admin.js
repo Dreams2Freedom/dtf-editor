@@ -242,7 +242,6 @@ class AdminDashboard {
         } else {
             // Fallback if auth-utils is not loaded
             localStorage.removeItem('adminToken');
-            localStorage.removeItem('userToken');
             localStorage.removeItem('authToken');
             localStorage.removeItem('userData');
             window.location.href = 'login.html';

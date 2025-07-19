@@ -27,8 +27,8 @@ function getCurrentUser() {
 
 // Get auth token
 function getAuthToken() {
-    // Check both token naming conventions
-    return localStorage.getItem('userToken') || localStorage.getItem('authToken');
+    // Standardize on authToken as primary key
+    return localStorage.getItem('authToken');
 }
 
 // Verify token with server

@@ -2,7 +2,7 @@
 
 class UserDashboard {
     constructor() {
-        this.token = localStorage.getItem('userToken');
+        this.token = localStorage.getItem('authToken');
         this.currentUser = null;
         this.images = [];
         this.usageHistory = [];
@@ -113,7 +113,7 @@ class UserDashboard {
             if (response.ok) {
                 this.token = data.token;
                 this.currentUser = data.user;
-                localStorage.setItem('userToken', this.token);
+                localStorage.setItem('authToken', this.token);
                 this.showDashboard();
                 this.loadDashboardData();
             } else {
@@ -165,7 +165,6 @@ class UserDashboard {
             window.logout();
         } else {
             // Fallback if auth-utils is not loaded
-            localStorage.removeItem('userToken');
             localStorage.removeItem('authToken');
             localStorage.removeItem('userData');
             window.location.href = 'login.html';
