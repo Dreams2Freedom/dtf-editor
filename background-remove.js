@@ -36,6 +36,40 @@ class BackgroundRemoveApp {
         const userAgent = navigator.userAgent || navigator.vendor || window.opera;
         const mobileRegex = /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini/i;
         return mobileRegex.test(userAgent) || window.innerWidth <= 768;
+
+    isICloudPhoto(file) {
+        const isIPhone = /iPhone|iPad|iPod/.test(navigator.userAgent);
+        const hasICloudName = file.name.includes("IMG_") && file.name.includes(".HEIC");
+        const isSmallFile = file.size < 100000;
+        const isHEIC = file.type === "image/heic" || file.type === "image/heif";
+        return isIPhone && (hasICloudName || isSmallFile || isHEIC);
+
+    showICloudPhotoWarning() {
+        const message = "<div class="text-left"><p class="font-semibold mb-2">📱 iCloud Photo Detected</p><p class="mb-3">This photo appears to be stored in iCloud. For best results:</p><ul class="list-disc list-inside mb-3 text-sm"><li>Wait a moment for the photo to fully download</li><li>Try selecting the photo again</li><li>Or save the photo to your device first</li></ul><p class="text-sm text-gray-600">iCloud photos are often optimized and need time to download the full resolution.</p></div>";
+        this.errorText.innerHTML = message;
+        this.error.classList.remove("hidden");
+        this.progress.classList.add("hidden");
+        this.error.scrollIntoView({ behavior: "smooth", block: "center" });
+        utils.showNotification("iCloud photo detected - please wait for download", "info");
+
+    showICloudPhotoError() {
+        const message = "<div class="text-left"><p class="font-semibold mb-2">📱 iCloud Photo Upload Issue</p><p class="mb-3">The upload failed, likely because the photo is still downloading from iCloud. Try these solutions:</p><ul class="list-disc list-inside mb-3 text-sm"><li><strong>Wait longer:</strong> Give the photo more time to download</li><li><strong>Save to device:</strong> Save the photo to your iPhone first</li><li><strong>Use a different photo:</strong> Try a photo that is already on your device</li><li><strong>Check storage:</strong> Make sure you have enough space for the full photo</li></ul><p class="text-sm text-gray-600">iCloud photos are optimized to save space and need to download the full version before uploading.</p></div>";
+        this.errorText.innerHTML = message;
+        this.error.classList.remove("hidden");
+        this.progress.classList.add("hidden");
+        this.error.scrollIntoView({ behavior: "smooth", block: "center" });
+        utils.showNotification("iCloud photo upload failed - try saving to device first", "error");
+
+    showFormatGuide() {
+        const message = "<div class="text-left"><p class="font-semibold mb-2">📸 Supported Image Formats</p><div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4"><div><p class="font-medium text-green-600 mb-1">✅ Supported Formats:</p><ul class="list-disc list-inside text-sm text-gray-600"><li>JPEG (.jpg, .jpeg)</li><li>PNG (.png)</li><li>GIF (.gif)</li></ul></div><div><p class="font-medium text-red-600 mb-1">❌ Not Supported:</p><ul class="list-disc list-inside text-sm text-gray-600"><li>RAW formats (.cr2, .nef, .arw, etc.)</li><li>TIFF (.tiff, .tif)</li><li>HEIC (.heic, .heif)</li><li>WebP (.webp)</li><li>SVG (.svg)</li><li>BMP (.bmp)</li></ul></div></div><p class="text-sm text-gray-600 mb-3"><strong>Need to convert?</strong> Use online tools like CloudConvert, or photo editing software like Lightroom, Photoshop, or your phone built-in editor.</p><p class="text-sm text-blue-600"><strong>💡 Tip:</strong> Most phones can convert HEIC to JPEG by sharing the photo and selecting "Convert to JPEG".</p></div>";
+        this.errorText.innerHTML = message;
+        this.error.classList.remove("hidden");
+        this.progress.classList.add("hidden");
+        this.error.scrollIntoView({ behavior: "smooth", block: "center" });
+    }
+    }
+    }
+    }
     }
 
     init() {
@@ -67,6 +101,17 @@ class BackgroundRemoveApp {
                     3. The background removal editor will open<br>
                     4. Use the editor tools to refine the result<br>
                     5. Tap "Done" when finished
+                </p>
+                <p class="text-sm text-orange-800 mt-2">
+                    <strong>💡 iCloud Photo Tip:</strong><br>
+                    If your photo is stored in iCloud, wait a moment for it to download before uploading, or save it to your device first.
+                </p>
+                <p class="text-sm text-purple-800 mt-2">
+                    <strong>📸 Format Support:</strong><br>
+                    Supported: JPEG, PNG, GIF<br>
+                    Not supported: RAW, HEIC, TIFF, WebP<br>
+                    <button id="formatGuideBtn" class="text-blue-600 underline text-xs mt-1">View full format guide</button>
+                </p>
                 </p>
             `;
             this.uploadArea.appendChild(mobileInstructions);
@@ -245,9 +290,15 @@ class BackgroundRemoveApp {
             } else if (error.message.includes('File is too large')) {
                 console.log('File size error - already handled by validation');
                 // Error already shown by validateFile function
+            } else if (this.isMobile && (error.message.includes("network") || error.message.includes("timeout"))) {
+                console.log("Mobile network/timeout error - possible iCloud photo issue");
+                this.showICloudPhotoError();
             } else if (error.message.includes('File type')) {
                 console.log('File type error - already handled by validation');
                 // Error already shown by validateFile function
+            } else if (this.isMobile && (error.message.includes("network") || error.message.includes("timeout"))) {
+                console.log("Mobile network/timeout error - possible iCloud photo issue");
+                this.showICloudPhotoError();
             } else {
                 console.log('Generic error, showing fallback message');
                 this.showError('Failed to start background removal editor. Please try again.');

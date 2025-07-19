@@ -41,16 +41,152 @@ const utils = {
         }, 3000);
     },
 
+    // Detect RAW image formats
+    detectRawFormat(file) {
+        const rawExtensions = [
+            // Canon
+            '.cr2', '.cr3', '.crw',
+            // Nikon
+            '.nef', '.nrw',
+            // Sony
+            '.arw', '.srw',
+            // Fujifilm
+            '.raf',
+            // Olympus
+            '.orf',
+            // Panasonic
+            '.rw2',
+            // Pentax
+            '.dng', '.pef',
+            // Leica
+            '.rwl',
+            // Hasselblad
+            '.3fr',
+            // Phase One
+            '.iiq',
+            // Sigma
+            '.x3f',
+            // Other
+            '.raw', '.dng', '.tiff', '.tif'
+        ];
+        
+        const fileName = file.name.toLowerCase();
+        const fileExtension = fileName.substring(fileName.lastIndexOf('.'));
+        
+        // Check file extension
+        if (rawExtensions.includes(fileExtension)) {
+            return {
+                isRaw: true,
+                format: fileExtension.toUpperCase(),
+                type: 'extension'
+            };
+        }
+        
+        // Check MIME type for RAW formats
+        const rawMimeTypes = [
+            'image/x-canon-cr2',
+            'image/x-canon-cr3',
+            'image/x-nikon-nef',
+            'image/x-sony-arw',
+            'image/x-adobe-dng',
+            'image/tiff',
+            'image/x-tiff'
+        ];
+        
+        if (rawMimeTypes.includes(file.type)) {
+            return {
+                isRaw: true,
+                format: file.type,
+                type: 'mime'
+            };
+        }
+        
+        // Check for RAW in filename patterns
+        const rawPatterns = [
+            /\.cr[23w]$/i,  // Canon
+            /\.nef$/i,      // Nikon
+            /\.arw$/i,      // Sony
+            /\.raf$/i,      // Fujifilm
+            /\.orf$/i,      // Olympus
+            /\.rw2$/i,      // Panasonic
+            /\.pef$/i,      // Pentax
+            /\.rwl$/i,      // Leica
+            /\.3fr$/i,      // Hasselblad
+            /\.iiq$/i,      // Phase One
+            /\.x3f$/i,      // Sigma
+            /\.raw$/i,      // Generic RAW
+            /\.dng$/i,      // Adobe DNG
+            /\.tiff?$/i     // TIFF
+        ];
+        
+        for (const pattern of rawPatterns) {
+            if (pattern.test(fileName)) {
+                const match = fileName.match(pattern);
+                return {
+                    isRaw: true,
+                    format: match[0].toUpperCase(),
+                    type: 'pattern'
+                };
+            }
+        }
+        
+        return { isRaw: false };
+    },
+
+    // Get specific guidance for unsupported formats
+    getFormatGuidance(mimeType, fileName) {
+        const fileNameLower = fileName.toLowerCase();
+        
+        // Check for specific formats and provide guidance
+        if (mimeType === 'image/webp') {
+            return 'WebP format is not supported. Please convert to JPEG or PNG using an online converter or photo editing software.';
+        }
+        
+        if (mimeType === 'image/svg+xml' || fileNameLower.includes('.svg')) {
+            return 'SVG files are vector graphics and cannot be processed. Please use a raster image format like JPEG or PNG.';
+        }
+        
+        if (mimeType === 'image/bmp' || fileNameLower.includes('.bmp')) {
+            return 'BMP format is not supported. Please convert to JPEG or PNG format.';
+        }
+        
+        if (mimeType === 'image/tiff' || fileNameLower.includes('.tiff') || fileNameLower.includes('.tif')) {
+            return 'TIFF format is not supported. Please convert to JPEG or PNG format.';
+        }
+        
+        if (mimeType === 'image/heic' || fileNameLower.includes('.heic') || fileNameLower.includes('.heif')) {
+            return 'HEIC format is not supported. Please convert to JPEG or PNG format. You can do this in your iPhone\'s Photos app by sharing and selecting "Convert to JPEG".';
+        }
+        
+        if (mimeType === 'image/avif' || fileNameLower.includes('.avif')) {
+            return 'AVIF format is not supported. Please convert to JPEG or PNG format.';
+        }
+        
+        // Generic message for unknown formats
+        return `Your file type "${mimeType}" is not supported. Please use JPEG, PNG, or GIF format.`;
+    },
+
     // Validate file
     validateFile(file, options = {}) {
         const isMobile = options.isMobile || /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(navigator.userAgent);
         
         console.log('Validating file:', file.name, 'Size:', utils.formatFileSize(file.size), 'Type:', file.type, 'Mobile:', isMobile);
         
+        // Check for RAW image formats
+        const rawFormats = utils.detectRawFormat(file);
+        if (rawFormats.isRaw) {
+            const errorMsg = `RAW image format (${rawFormats.format}) is not supported. Please convert your image to JPEG, PNG, or GIF format first. RAW files need to be processed in photo editing software before uploading.`;
+            console.error('RAW format detected:', rawFormats.format);
+            utils.showNotification(errorMsg, 'error');
+            return false;
+        }
+        
         // Check file type
         const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif'];
         if (!allowedTypes.includes(file.type)) {
-            const errorMsg = `Please upload a valid image file (PNG, JPG, or GIF). Your file type "${file.type}" is not supported.`;
+            // Provide specific guidance for common unsupported formats
+            const formatGuidance = utils.getFormatGuidance(file.type, file.name);
+            const errorMsg = `File format not supported. ${formatGuidance}`;
             console.error('File type validation failed:', file.type);
             utils.showNotification(errorMsg, 'error');
             return false;
