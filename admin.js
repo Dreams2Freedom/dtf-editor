@@ -3,7 +3,7 @@
 class AdminDashboard {
     constructor() {
         console.log('AdminDashboard constructor called');
-        this.token = localStorage.getItem('adminToken');
+        this.token = localStorage.getItem('authToken'); // Use standard authToken
         this.currentUser = null;
         this.users = [];
         this.logs = [];
@@ -164,29 +164,21 @@ class AdminDashboard {
         }
 
         try {
-            console.log('Verifying token...');
-            const response = await fetch('/api/auth/verify', {
-                headers: {
-                    'Authorization': `Bearer ${this.token}`
-                }
-            });
-
-            console.log('Verify response status:', response.status);
-            if (response.ok) {
-                const data = await response.json();
-                console.log('Verify response data:', data);
-                if (data.user.is_admin) {
-                    console.log('User is admin, showing dashboard');
-                    this.currentUser = data.user;
-                    this.showDashboard();
-                    this.loadDashboardData();
-                } else {
-                    console.log('User is not admin, redirecting to dashboard');
-                    // Redirect non-admin users to regular dashboard
-                    window.location.href = 'dashboard.html';
-                }
+            console.log('Verifying token using auth-utils...');
+            // Use the standard auth verification
+            const user = await window.authUtils.verifyToken();
+            
+            if (user && user.is_admin) {
+                console.log('User is admin, showing dashboard');
+                this.currentUser = user;
+                this.showDashboard();
+                this.loadDashboardData();
+            } else if (user && !user.is_admin) {
+                console.log('User is not admin, redirecting to dashboard');
+                // Redirect non-admin users to regular dashboard
+                window.location.href = 'dashboard.html';
             } else {
-                console.log('Verify failed, showing login form');
+                console.log('No valid user found, showing login form');
                 this.logout();
                 this.showLogin();
             }
@@ -219,7 +211,9 @@ class AdminDashboard {
             if (response.ok && data.user.is_admin) {
                 this.token = data.token;
                 this.currentUser = data.user;
-                localStorage.setItem('adminToken', this.token);
+                // Use standard auth storage
+                localStorage.setItem('authToken', this.token);
+                localStorage.setItem('userData', JSON.stringify(data.user));
                 this.showDashboard();
                 this.loadDashboardData();
             } else {

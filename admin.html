@@ -8,23 +8,10 @@
     <script src="auth-utils.js"></script>
 </head>
 <body>
-    <!-- Admin Access Protection -->
+    <!-- Admin Access Protection - Let admin.js handle this -->
     <script>
-        // Immediately check if user has admin access
-        (async function() {
-            try {
-                const user = await window.authUtils.protectAdminPage();
-                if (!user) {
-                    // User will be redirected by protectAdminPage
-                    return;
-                }
-                // User is admin, continue loading the page
-                console.log('Admin access verified');
-            } catch (error) {
-                console.error('Admin access check failed:', error);
-                window.location.href = 'login.html';
-            }
-        })();
+        // Let admin.js handle the authentication flow
+        console.log('Admin page loaded - authentication will be handled by admin.js');
     </script>
 
     <!-- Navigation -->
