@@ -72,7 +72,7 @@ class PaywallModal {
                             <!-- Slider Container -->
                             <div id="planSlider" class="flex transition-transform duration-300 ease-in-out" style="width: 300%;">
                                 <!-- Free Plan -->
-                                <div class="w-1/3 flex-shrink-0 px-2">
+                                <div class="w-1/3 flex-shrink-0 px-1">
                                     <div class="bg-white border border-gray-200 rounded-xl p-6 hover:border-primary/30 transition-all duration-300 hover:shadow-lg">
                                         <div class="text-center mb-6">
                                             <h3 class="text-xl font-bold text-gray-900 mb-2">Free</h3>
@@ -111,19 +111,19 @@ class PaywallModal {
                                 </div>
 
                                 <!-- Basic Plan - Featured -->
-                                <div class="w-1/3 flex-shrink-0 px-2">
+                                <div class="w-1/3 flex-shrink-0 px-1">
                                     <div class="relative bg-gradient-to-br from-primary to-secondary border-2 border-primary rounded-xl p-6 shadow-xl">
                                         <div class="absolute -top-3 left-1/2 transform -translate-x-1/2">
                                             <span class="bg-accent text-white px-3 py-1 rounded-full text-xs font-bold shadow-lg">MOST POPULAR</span>
                                         </div>
                                         
                                         <div class="text-center mb-6">
-                                            <h3 class="text-xl font-bold text-white mb-2">Basic</h3>
+                                            <h3 class="text-xl font-bold text-white mb-2 drop-shadow-sm">Basic</h3>
                                             <div class="mb-3">
-                                                <span class="text-3xl font-bold text-white">$9.99</span>
-                                                <span class="text-white/80">/month</span>
+                                                <span class="text-3xl font-bold text-white drop-shadow-sm">$9.99</span>
+                                                <span class="text-white drop-shadow-sm">/month</span>
                                             </div>
-                                            <p class="text-sm text-white/80">For growing businesses</p>
+                                            <p class="text-sm text-white drop-shadow-sm">For growing businesses</p>
                                         </div>
                                         
                                         <ul class="space-y-3 mb-8">
@@ -160,7 +160,7 @@ class PaywallModal {
                                 </div>
 
                                 <!-- Professional Plan -->
-                                <div class="w-1/3 flex-shrink-0 px-2">
+                                <div class="w-1/3 flex-shrink-0 px-1">
                                     <div class="bg-white border border-gray-200 rounded-xl p-6 hover:border-accent/30 transition-all duration-300 hover:shadow-lg">
                                         <div class="text-center mb-6">
                                             <h3 class="text-xl font-bold text-gray-900 mb-2">Professional</h3>
@@ -272,38 +272,38 @@ class PaywallModal {
                             </div>
                             
                             <div class="text-center mb-6">
-                                <h3 class="text-xl font-bold text-white mb-2">Basic</h3>
+                                <h3 class="text-xl font-bold text-white mb-2 drop-shadow-sm">Basic</h3>
                                 <div class="mb-3">
-                                    <span class="text-3xl font-bold text-white">$9.99</span>
-                                    <span class="text-white/80">/month</span>
+                                    <span class="text-3xl font-bold text-white drop-shadow-sm">$9.99</span>
+                                    <span class="text-white drop-shadow-sm">/month</span>
                                 </div>
-                                <p class="text-sm text-white/80">For growing businesses</p>
+                                <p class="text-sm text-white drop-shadow-sm">For growing businesses</p>
                             </div>
                             
                             <ul class="space-y-3 mb-8">
                                 <li class="flex items-start">
-                                    <svg class="w-5 h-5 text-white mr-3 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                                    <svg class="w-5 h-5 text-white mr-3 mt-0.5 flex-shrink-0 drop-shadow-sm" fill="currentColor" viewBox="0 0 20 20">
                                         <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
                                     </svg>
-                                    <span class="text-sm text-white">20 credits per month</span>
+                                    <span class="text-sm text-white drop-shadow-sm">20 credits per month</span>
                                 </li>
                                 <li class="flex items-start">
-                                    <svg class="w-5 h-5 text-white mr-3 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                                    <svg class="w-5 h-5 text-white mr-3 mt-0.5 flex-shrink-0 drop-shadow-sm" fill="currentColor" viewBox="0 0 20 20">
                                         <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
                                     </svg>
-                                    <span class="text-sm text-white">Professional vectorization</span>
+                                    <span class="text-sm text-white drop-shadow-sm">Professional vectorization</span>
                                 </li>
                                 <li class="flex items-start">
-                                    <svg class="w-5 h-5 text-white mr-3 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                                    <svg class="w-5 h-5 text-white mr-3 mt-0.5 flex-shrink-0 drop-shadow-sm" fill="currentColor" viewBox="0 0 20 20">
                                         <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
                                     </svg>
-                                    <span class="text-sm text-white">Priority processing</span>
+                                    <span class="text-sm text-white drop-shadow-sm">Priority processing</span>
                                 </li>
                                 <li class="flex items-start">
-                                    <svg class="w-5 h-5 text-white mr-3 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                                    <svg class="w-5 h-5 text-white mr-3 mt-0.5 flex-shrink-0 drop-shadow-sm" fill="currentColor" viewBox="0 0 20 20">
                                         <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
                                     </svg>
-                                    <span class="text-sm text-white">Email support</span>
+                                    <span class="text-sm text-white drop-shadow-sm">Email support</span>
                                 </li>
                             </ul>
                             
@@ -443,6 +443,11 @@ class PaywallModal {
         const updateSlider = () => {
             const translateX = -(currentPlan * 33.333);
             slider.style.transform = `translateX(${translateX}%)`;
+            
+            // Ensure proper alignment by adjusting container
+            const container = slider.parentElement;
+            container.style.display = 'flex';
+            container.style.justifyContent = 'flex-start';
             
             // Update dots
             dots.forEach((dot, index) => {
