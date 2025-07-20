@@ -49,13 +49,13 @@ class PaywallModal {
                         <p class="text-base md:text-lg text-gray-600 mb-2">Transform your images with AI-powered vectorization and background removal</p>
                         <div class="flex items-center justify-center space-x-6 text-sm text-gray-500">
                             <div class="flex items-center">
-                                <svg class="w-4 h-4 text-primary mr-2" fill="currentColor" viewBox="0 0 20 20">
+                                <svg class="w-4 h-4 mr-2" style="color: #386594;" fill="currentColor" viewBox="0 0 20 20">
                                     <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
                                 </svg>
                                 Vectorization
                             </div>
                             <div class="flex items-center">
-                                <svg class="w-4 h-4 text-accent mr-2" fill="currentColor" viewBox="0 0 20 20">
+                                <svg class="w-4 h-4 mr-2" style="color: #E88B4B;" fill="currentColor" viewBox="0 0 20 20">
                                     <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
                                 </svg>
                                 Background Removal
@@ -104,7 +104,7 @@ class PaywallModal {
                                             </li>
                                         </ul>
                                         
-                                        <button id="signupFreeBtn" class="w-full bg-white text-primary border-2 border-primary py-3 px-6 rounded-lg font-semibold hover:bg-primary hover:text-white transition-all duration-300 text-sm">
+                                        <button id="signupFreeBtn" class="w-full bg-white border-2 py-3 px-6 rounded-lg font-semibold transition-all duration-300 text-sm" style="color: #386594; border-color: #386594;">
                                             Start Free
                                         </button>
                                     </div>
@@ -112,12 +112,12 @@ class PaywallModal {
 
                                 <!-- Basic Plan - Featured -->
                                 <div class="w-1/3 flex-shrink-0 px-1">
-                                    <div class="relative bg-gradient-to-br from-primary to-secondary border-2 border-primary rounded-xl p-6 shadow-xl overflow-hidden">
+                                    <div class="relative border-2 rounded-xl p-6 shadow-xl overflow-hidden" style="background: linear-gradient(135deg, #386594, #457BB9); border-color: #386594;">
                                         <!-- Background overlay for better text readability -->
-                                        <div class="absolute inset-0 bg-black/10"></div>
+                                        <div class="absolute inset-0" style="background-color: rgba(0, 0, 0, 0.1);"></div>
                                         <div class="relative z-10">
                                         <div class="absolute -top-3 left-1/2 transform -translate-x-1/2">
-                                            <span class="bg-accent text-white px-3 py-1 rounded-full text-xs font-bold shadow-lg">MOST POPULAR</span>
+                                            <span class="text-white px-3 py-1 rounded-full text-xs font-bold shadow-lg" style="background-color: #E88B4B;">MOST POPULAR</span>
                                         </div>
                                         
                                         <div class="text-center mb-6">
@@ -156,7 +156,7 @@ class PaywallModal {
                                             </li>
                                         </ul>
                                         
-                                        <button id="signupBasicBtn" class="w-full bg-white text-primary py-3 px-6 rounded-lg font-bold hover:bg-gray-50 transition-all duration-300 text-sm shadow-lg">
+                                        <button id="signupBasicBtn" class="w-full bg-white py-3 px-6 rounded-lg font-bold transition-all duration-300 text-sm shadow-lg" style="color: #386594;">
                                             Start Basic
                                         </button>
                                         </div>
@@ -202,7 +202,7 @@ class PaywallModal {
                                             </li>
                                         </ul>
                                         
-                                        <button id="signupProBtn" class="w-full bg-accent text-white py-3 px-6 rounded-lg font-semibold hover:bg-accent/90 transition-all duration-300 text-sm shadow-lg">
+                                        <button id="signupProBtn" class="w-full text-white py-3 px-6 rounded-lg font-semibold transition-all duration-300 text-sm shadow-lg" style="background-color: #E88B4B;">
                                             Start Professional
                                         </button>
                                     </div>
@@ -224,9 +224,9 @@ class PaywallModal {
 
                         <!-- Pagination Dots -->
                         <div class="flex justify-center mt-6 space-x-2">
-                            <button class="planDot w-3 h-3 rounded-full bg-primary transition-all duration-300" data-plan="0"></button>
-                            <button class="planDot w-3 h-3 rounded-full bg-gray-300 transition-all duration-300" data-plan="1"></button>
-                            <button class="planDot w-3 h-3 rounded-full bg-gray-300 transition-all duration-300" data-plan="2"></button>
+                            <button class="planDot w-3 h-3 rounded-full transition-all duration-300" data-plan="0" style="background-color: #386594;"></button>
+                            <button class="planDot w-3 h-3 rounded-full transition-all duration-300" data-plan="1" style="background-color: #d1d5db;"></button>
+                            <button class="planDot w-3 h-3 rounded-full transition-all duration-300" data-plan="2" style="background-color: #d1d5db;"></button>
                         </div>
                     </div>
 
@@ -264,15 +264,15 @@ class PaywallModal {
                                 </li>
                             </ul>
                             
-                            <button id="signupFreeBtnDesktop" class="w-full bg-white text-primary border-2 border-primary py-3 px-6 rounded-lg font-semibold hover:bg-primary hover:text-white transition-all duration-300 text-sm">
+                            <button id="signupFreeBtnDesktop" class="w-full bg-white border-2 py-3 px-6 rounded-lg font-semibold transition-all duration-300 text-sm" style="color: #386594; border-color: #386594;">
                                 Start Free
                             </button>
                         </div>
 
                         <!-- Basic Plan - Featured -->
-                        <div class="relative bg-gradient-to-br from-primary to-secondary border-2 border-primary rounded-xl p-6 md:p-8 transform scale-105 shadow-xl">
+                        <div class="relative border-2 rounded-xl p-6 md:p-8 transform scale-105 shadow-xl" style="background: linear-gradient(135deg, #386594, #457BB9); border-color: #386594;">
                             <div class="absolute -top-4 left-1/2 transform -translate-x-1/2">
-                                <span class="bg-accent text-white px-4 py-2 rounded-full text-xs font-bold shadow-lg">MOST POPULAR</span>
+                                <span class="text-white px-4 py-2 rounded-full text-xs font-bold shadow-lg" style="background-color: #E88B4B;">MOST POPULAR</span>
                             </div>
                             
                             <div class="text-center mb-6">
@@ -311,7 +311,7 @@ class PaywallModal {
                                                 </li>
                                             </ul>
                             
-                            <button id="signupBasicBtnDesktop" class="w-full bg-white text-primary py-3 px-6 rounded-lg font-bold hover:bg-gray-50 transition-all duration-300 text-sm shadow-lg">
+                            <button id="signupBasicBtnDesktop" class="w-full bg-white py-3 px-6 rounded-lg font-bold transition-all duration-300 text-sm shadow-lg" style="color: #386594;">
                                 Start Basic
                             </button>
                         </div>
@@ -354,7 +354,7 @@ class PaywallModal {
                                 </li>
                             </ul>
                             
-                            <button id="signupProBtnDesktop" class="w-full bg-accent text-white py-3 px-6 rounded-lg font-semibold hover:bg-accent/90 transition-all duration-300 text-sm shadow-lg">
+                            <button id="signupProBtnDesktop" class="w-full text-white py-3 px-6 rounded-lg font-semibold transition-all duration-300 text-sm shadow-lg" style="background-color: #E88B4B;">
                                 Start Professional
                             </button>
                         </div>
@@ -363,7 +363,7 @@ class PaywallModal {
                     <!-- Login Option -->
                     <div class="text-center mt-8 pt-6 border-t border-gray-100">
                         <p class="text-sm text-gray-600 mb-4">Already have an account?</p>
-                        <button id="loginBtn" class="text-primary font-semibold hover:text-primary/80 transition-colors text-sm">
+                        <button id="loginBtn" class="font-semibold transition-colors text-sm" style="color: #386594;">
                             Log In
                         </button>
                     </div>
@@ -506,11 +506,9 @@ class PaywallModal {
             // Update dots
             dots.forEach((dot, index) => {
                 if (index === currentPlan) {
-                    dot.classList.remove('bg-gray-300');
-                    dot.classList.add('bg-primary');
+                    dot.style.backgroundColor = '#386594';
                 } else {
-                    dot.classList.remove('bg-primary');
-                    dot.classList.add('bg-gray-300');
+                    dot.style.backgroundColor = '#d1d5db';
                 }
             });
 
