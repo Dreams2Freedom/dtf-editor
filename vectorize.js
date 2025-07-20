@@ -347,8 +347,13 @@ class VectorizeApp {
             
             console.log('Stored processed image data:', imageData);
             
-            // Show signup modal for non-authenticated users
-            this.showSignupModal();
+            // Use paywall modal instead of custom signup modal
+            if (window.paywallModal) {
+                window.paywallModal.show('vectorize');
+            } else {
+                // Fallback to custom modal if paywall is not available
+                this.showSignupModal();
+            }
             return;
         }
         
