@@ -756,6 +756,16 @@ class BackgroundRemoveApp {
     downloadBackgroundRemoved() {
         // Check if user is authenticated
         if (!window.authUtils || !window.authUtils.isAuthenticated()) {
+            // Store the processed image data for post-signup page
+            const imageData = {
+                original_url: this.originalImg ? this.originalImg.src : null,
+                processed_url: this.resultImg ? this.resultImg.src : null,
+                filename: 'background-removed.png',
+                type: 'background-remove',
+                timestamp: new Date().toISOString()
+            };
+            sessionStorage.setItem('processedImageData', JSON.stringify(imageData));
+            
             // Show signup modal for non-authenticated users
             this.showSignupModal();
             return;
@@ -989,43 +999,14 @@ class BackgroundRemoveApp {
                         window.authUtils.setUserInfo(data.user);
                     }
                     
-                    // Close modal
+                    // Close modal and redirect to post-signup page
                     document.body.removeChild(modal);
-                    utils.showNotification('Account created successfully! Downloading your image...', 'success');
+                    utils.showNotification('Account created successfully! Redirecting to your download...', 'success');
                     
-                    // Handle pending download if exists
-                    if (this.pendingDownloadData) {
-                        try {
-                            // Download the processed image from ClippingMagic API
-                            const result = await this.downloadClippingMagicResult(
-                                this.pendingDownloadData.imageId, 
-                                this.pendingDownloadData.imageSecret
-                            );
-                            
-                            // Show the result
-                            this.showResults({
-                                success: true,
-                                bgRemovedUrl: result,
-                                originalUrl: this.currentOriginalUrl
-                            });
-                            
-                            // Download the file
-                            setTimeout(() => {
-                                utils.downloadFile(result, 'background-removed.png');
-                            }, 1000);
-                            
-                            // Clear pending download data
-                            this.pendingDownloadData = null;
-                        } catch (error) {
-                            console.error('Failed to download result after signup:', error);
-                            utils.showNotification('Failed to download your image. Please try again.', 'error');
-                        }
-                    } else {
-                        // Fallback to current image if no pending download
-                        setTimeout(() => {
-                            utils.downloadFile(this.resultImg.src, 'background-removed.png');
-                        }, 1000);
-                    }
+                    // Redirect to post-signup page
+                    setTimeout(() => {
+                        window.location.href = 'post-signup.html';
+                    }, 1500);
                 } else {
                     utils.showNotification(data.error || 'Registration failed', 'error');
                 }

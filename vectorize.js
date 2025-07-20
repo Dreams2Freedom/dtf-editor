@@ -317,6 +317,16 @@ class VectorizeApp {
     downloadVector() {
         // Check if user is authenticated
         if (!window.authUtils || !window.authUtils.isAuthenticated()) {
+            // Store the processed image data for post-signup page
+            const imageData = {
+                original_url: this.originalImg ? this.originalImg.src : null,
+                processed_url: this.resultImg ? this.resultImg.src : null,
+                filename: 'vectorized-image.svg',
+                type: 'vectorize',
+                timestamp: new Date().toISOString()
+            };
+            sessionStorage.setItem('processedImageData', JSON.stringify(imageData));
+            
             // Show signup modal for non-authenticated users
             this.showSignupModal();
             return;
@@ -384,7 +394,7 @@ class VectorizeApp {
                     <div style="font-size: 13px; color: #6b7280;">✓ Cancel anytime</div>
                 </div>
                 
-                <form id="signupForm" style="margin-bottom: 16px;">
+                <div id="signupForm" style="margin-bottom: 16px;">
                     <input type="text" id="signupFirstName" placeholder="First name" required style="
                         width: 100%;
                         padding: 12px 16px;
@@ -497,14 +507,14 @@ class VectorizeApp {
                         window.authUtils.setUserInfo(data.user);
                     }
                     
-                    // Close modal and download
+                    // Close modal and redirect to post-signup page
                     document.body.removeChild(modal);
-                    utils.showNotification('Account created successfully! Downloading your image...', 'success');
+                    utils.showNotification('Account created successfully! Redirecting to your download...', 'success');
                     
-                    // Download the image
+                    // Redirect to post-signup page
                     setTimeout(() => {
-                        utils.downloadFile(this.resultImg.src, 'vectorized-image.svg');
-                    }, 1000);
+                        window.location.href = 'post-signup.html';
+                    }, 1500);
                 } else {
                     utils.showNotification(data.error || 'Registration failed', 'error');
                 }

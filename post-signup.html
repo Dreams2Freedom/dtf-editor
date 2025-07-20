@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Your Download is Ready - DTF Editor</title>
+    <link rel="stylesheet" href="styles.css">
+    <script src="auth-utils.js"></script>
+    <script src="mobile-nav.js"></script>
+    <script>
+        // Update admin links visibility when page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            if (window.authUtils) {
+                window.authUtils.updateAdminLinks();
+            }
+        });
+    </script>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="nav-container">
+        <div class="nav-content">
+            <div class="flex items-center">
+                <a href="index.html" class="nav-brand">DTF Editor</a>
+                <span class="ml-4 text-gray-500 page-title">/ Your Download</span>
+            </div>
+            
+            <!-- Desktop Navigation -->
+            <div class="nav-links desktop-nav">
+                <a href="index.html" class="btn-nav">Home</a>
+                <a href="vectorize.html" class="btn-nav">Vectorize</a>
+                <a href="background-remove.html" class="btn-nav">Background Removal</a>
+                <a href="dashboard.html" class="btn-nav">Dashboard</a>
+                <a href="faq.html" class="btn-nav">FAQ</a>
+                <a href="admin.html" class="btn-nav admin-link" style="display: none;">Admin</a>
+                <div id="authContainer">
+                    <!-- Auth buttons will be inserted here by JavaScript -->
+                </div>
+            </div>
+
+            <!-- Mobile Hamburger Button -->
+            <button class="hamburger-btn" id="hamburgerBtn" aria-label="Toggle navigation menu">
+                <span class="hamburger-line"></span>
+                <span class="hamburger-line"></span>
+                <span class="hamburger-line"></span>
+            </button>
+        </div>
+
+        <!-- Mobile Navigation Menu -->
+        <div class="mobile-nav" id="mobileNav">
+            <div class="mobile-nav-content">
+                <a href="index.html" class="mobile-nav-link">Home</a>
+                <a href="vectorize.html" class="mobile-nav-link">Vectorize</a>
+                <a href="background-remove.html" class="mobile-nav-link">Background Removal</a>
+                <a href="dashboard.html" class="mobile-nav-link">Dashboard</a>
+                <a href="faq.html" class="mobile-nav-link">FAQ</a>
+                <a href="admin.html" class="mobile-nav-link admin-link" style="display: none;">Admin</a>
+                <div id="mobileAuthContainer">
+                    <!-- Mobile auth buttons will be inserted here by JavaScript -->
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Mobile Overlay -->
+    <div class="mobile-overlay" id="mobileOverlay"></div>
+
+    <!-- Main Content -->
+    <div class="container py-12">
+        <!-- Success Header -->
+        <div class="text-center mb-12">
+            <div class="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
+                <svg class="w-10 h-10 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                </svg>
+            </div>
+            <h1 class="text-4xl font-bold text-primary mb-4">Your Download is Ready! 🎉</h1>
+            <p class="text-xl text-gray-600 max-w-3xl mx-auto">
+                Great job! Your DTF-ready file has been created successfully. 
+                Download it below and discover how much more you can do with a premium plan.
+            </p>
+        </div>
+
+        <!-- Download Section -->
+        <div class="card mb-12">
+            <div class="text-center">
+                <h2 class="text-2xl font-bold text-primary mb-6">Your DTF-Ready File</h2>
+                
+                <!-- File Preview -->
+                <div class="grid md:grid-cols-2 gap-8 mb-8">
+                    <div>
+                        <h4 class="text-lg font-semibold text-primary mb-4">Original Image</h4>
+                        <div class="border rounded-lg overflow-hidden">
+                            <img id="originalPreview" class="w-full h-auto" alt="Original image">
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <h4 class="text-lg font-semibold text-primary mb-4">Your DTF-Ready Result</h4>
+                        <div class="border rounded-lg overflow-hidden bg-checkerboard">
+                            <img id="resultPreview" class="w-full h-auto" alt="DTF-ready result">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Download Button -->
+                <div class="mb-8">
+                    <button id="downloadBtn" class="btn-primary text-lg px-8 py-4">
+                        <svg class="w-6 h-6 mr-2 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                        </svg>
+                        Download Your File
+                    </button>
+                </div>
+
+                <div class="text-sm text-gray-500">
+                    <p>✅ High-quality DTF-ready format</p>
+                    <p>✅ Perfect for professional transfers</p>
+                    <p>✅ Ready to print immediately</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Value Proposition Section -->
+        <div class="bg-gradient-to-r from-primary-blue to-secondary-blue text-white rounded-lg p-8 mb-12">
+            <div class="text-center mb-8">
+                <h2 class="text-3xl font-bold mb-4">You've Seen What We Can Do!</h2>
+                <p class="text-xl opacity-90">
+                    Now imagine having unlimited access to professional DTF tools
+                </p>
+            </div>
+
+            <div class="grid md:grid-cols-3 gap-8">
+                <div class="text-center">
+                    <div class="w-16 h-16 bg-white bg-opacity-20 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                        </svg>
+                    </div>
+                    <h3 class="text-xl font-bold mb-2">Unlimited Processing</h3>
+                    <p class="opacity-90">No more limits! Process as many images as you need for your DTF business.</p>
+                </div>
+
+                <div class="text-center">
+                    <div class="w-16 h-16 bg-white bg-opacity-20 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                    </div>
+                    <h3 class="text-xl font-bold mb-2">Premium Quality</h3>
+                    <p class="opacity-90">Access to advanced AI algorithms for even better results.</p>
+                </div>
+
+                <div class="text-center">
+                    <div class="w-16 h-16 bg-white bg-opacity-20 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"></path>
+                        </svg>
+                    </div>
+                    <h3 class="text-xl font-bold mb-2">Save Money</h3>
+                    <p class="opacity-90">Professional results without expensive software or outsourcing.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Upgrade Plans Section -->
+        <div class="card mb-12">
+            <div class="text-center mb-8">
+                <h2 class="text-3xl font-bold text-primary mb-4">Choose Your Plan</h2>
+                <p class="text-xl text-gray-600">
+                    Start with a plan that fits your DTF business needs
+                </p>
+            </div>
+
+            <div class="grid md:grid-cols-3 gap-8">
+                <!-- Starter Plan -->
+                <div class="pricing-card">
+                    <div class="pricing-content">
+                        <h3 class="pricing-title">Starter</h3>
+                        <p class="pricing-price">$9<span class="period">/month</span></p>
+                        <ul class="pricing-features">
+                            <li><span class="check">✓</span> 50 images per month</li>
+                            <li><span class="check">✓</span> Vector graphics</li>
+                            <li><span class="check">✓</span> Background removal</li>
+                            <li><span class="check">✓</span> High-resolution output</li>
+                            <li><span class="check">✓</span> Email support</li>
+                        </ul>
+                        <button class="btn-pricing w-full" onclick="upgradeToPlan('starter')">
+                            Start with Starter
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Professional Plan -->
+                <div class="pricing-card popular">
+                    <div class="pricing-badge">
+                        <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M6.267 3.455a3.066 3.066 0 001.745-.723 3.066 3.066 0 013.976 0 3.066 3.066 0 001.745.723 3.066 3.066 0 012.812 2.812c.051.643.304 1.254.723 1.745a3.066 3.066 0 010 3.976 3.066 3.066 0 00-.723 1.745 3.066 3.066 0 01-2.812 2.812 3.066 3.066 0 00-1.745.723 3.066 3.066 0 01-3.976 0 3.066 3.066 0 00-1.745-.723 3.066 3.066 0 01-2.812-2.812 3.066 3.066 0 00-.723-1.745 3.066 3.066 0 010-3.976 3.066 3.066 0 00.723-1.745 3.066 3.066 0 012.812-2.812zm7.44 5.252a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+                        </svg>
+                        Most Popular
+                    </div>
+                    <div class="pricing-content">
+                        <h3 class="pricing-title">Professional</h3>
+                        <p class="pricing-price">$29<span class="period">/month</span></p>
+                        <ul class="pricing-features">
+                            <li><span class="check">✓</span> 500 images per month</li>
+                            <li><span class="check">✓</span> All Starter features</li>
+                            <li><span class="check">✓</span> Priority processing</li>
+                            <li><span class="check">✓</span> Advanced AI tools</li>
+                            <li><span class="check">✓</span> Priority support</li>
+                            <li><span class="check">✓</span> Bulk processing</li>
+                        </ul>
+                        <button class="btn-pricing w-full" onclick="upgradeToPlan('professional')">
+                            Get Professional
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Business Plan -->
+                <div class="pricing-card">
+                    <div class="pricing-content">
+                        <h3 class="pricing-title">Business</h3>
+                        <p class="pricing-price">$79<span class="period">/month</span></p>
+                        <ul class="pricing-features">
+                            <li><span class="check">✓</span> Unlimited images</li>
+                            <li><span class="check">✓</span> All Professional features</li>
+                            <li><span class="check">✓</span> API access</li>
+                            <li><span class="check">✓</span> White-label options</li>
+                            <li><span class="check">✓</span> Dedicated support</li>
+                            <li><span class="check">✓</span> Custom integrations</li>
+                        </ul>
+                        <button class="btn-pricing w-full" onclick="upgradeToPlan('business')">
+                            Scale Your Business
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Social Proof Section -->
+        <div class="card mb-12">
+            <div class="text-center mb-8">
+                <h2 class="text-2xl font-bold text-primary mb-4">Trusted by DTF Professionals</h2>
+                <p class="text-gray-600">Join thousands of successful DTF businesses</p>
+            </div>
+
+            <div class="grid md:grid-cols-3 gap-8">
+                <div class="text-center">
+                    <div class="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <svg class="w-8 h-8 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
+                        </svg>
+                    </div>
+                    <h4 class="font-semibold mb-2 text-primary">5,000+ Active Users</h4>
+                    <p class="text-gray-600">DTF professionals trust our tools daily</p>
+                </div>
+
+                <div class="text-center">
+                    <div class="w-16 h-16 bg-orange-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <svg class="w-8 h-8 text-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                    </div>
+                    <h4 class="font-semibold mb-2 text-primary">99.9% Uptime</h4>
+                    <p class="text-gray-600">Reliable processing when you need it most</p>
+                </div>
+
+                <div class="text-center">
+                    <div class="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <svg class="w-8 h-8 text-secondary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"></path>
+                        </svg>
+                    </div>
+                    <h4 class="font-semibold mb-2 text-primary">4.9/5 Rating</h4>
+                    <p class="text-gray-600">Consistently excellent user satisfaction</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- CTA Section -->
+        <div class="text-center">
+            <div class="bg-gray-50 rounded-lg p-8">
+                <h2 class="text-2xl font-bold text-primary mb-4">Ready to Scale Your DTF Business?</h2>
+                <p class="text-gray-600 mb-6">
+                    Start with a plan that grows with your business. No long-term contracts, cancel anytime.
+                </p>
+                <div class="flex flex-col sm:flex-row gap-4 justify-center">
+                    <button class="btn-primary text-lg px-8 py-4" onclick="upgradeToPlan('professional')">
+                        Start Free Trial
+                    </button>
+                    <a href="dashboard.html" class="btn-secondary text-lg px-8 py-4">
+                        Go to Dashboard
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="footer-content">
+            <div class="text-center">
+                <p class="text-blue-100">&copy; 2024 DTF Editor. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+
+    <script src="script.js"></script>
+    <script src="post-signup.js"></script>
+    <script>
+        // Universal navigation system
+        async function updateNavigation() {
+            const authContainer = document.getElementById('authContainer');
+            const user = await authUtils.verifyToken();
+            
+            if (user) {
+                // User is logged in
+                authContainer.innerHTML = `
+                    <div class="flex items-center space-x-3">
+                        <div class="text-sm">
+                            <p class="text-gray-900 font-medium">${user.first_name} ${user.last_name}</p>
+                            <p class="text-gray-500">${user.email}</p>
+                        </div>
+                        ${user.is_admin ? '<span class="bg-red-100 text-red-800 text-xs px-2 py-1 rounded-full">Admin</span>' : ''}
+                        <button 
+                            id="logoutBtn"
+                            class="btn-nav"
+                        >
+                            Logout
+                        </button>
+                    </div>
+                `;
+
+                // Add logout functionality
+                document.getElementById('logoutBtn').addEventListener('click', () => {
+                    authUtils.logout();
+                });
+            } else {
+                // User is not logged in
+                authContainer.innerHTML = `
+                    <a href="login.html" class="btn-nav">Login</a>
+                    <a href="register.html" class="btn-primary">Sign Up</a>
+                `;
+            }
+        }
+
+        // Initialize navigation
+        document.addEventListener('DOMContentLoaded', () => {
+            updateNavigation();
+        });
+    </script>
+</body>
+</html> 
