@@ -312,10 +312,17 @@
             const pendingAction = localStorage.getItem('pendingAction');
             const selectedPlan = localStorage.getItem('selectedPlan');
             
+            // Check for image key in URL parameters
+            const urlParams = new URLSearchParams(window.location.search);
+            const imgKey = urlParams.get('imgKey');
+            
             // Check if there's processed image data waiting to be shown
-            let processedImageData = sessionStorage.getItem('processedImageData');
-            if (!processedImageData) {
-                processedImageData = localStorage.getItem('processedImageData');
+            let processedImageData = null;
+            if (imgKey) {
+                processedImageData = localStorage.getItem(imgKey);
+                console.log('Found image data via URL key:', imgKey);
+            } else {
+                processedImageData = sessionStorage.getItem('processedImageData') || localStorage.getItem('processedImageData');
             }
             
             // Clear the stored values
@@ -324,15 +331,27 @@
             
             if (user.is_admin) {
                 window.location.href = 'admin.html';
-            } else if (processedImageData) {
+            } else if (processedImageData || imgKey) {
                 // If there's processed image data, redirect to post-signup page
+                let redirectUrl = 'post-signup.html';
+                if (imgKey) {
+                    redirectUrl += `?imgKey=${encodeURIComponent(imgKey)}`;
+                }
                 console.log('Found processed image data, redirecting to post-signup page');
-                window.location.href = 'post-signup.html';
+                window.location.href = redirectUrl;
             } else if (pendingAction) {
                 // Redirect to the specific action the user was trying to perform
                 if (pendingAction === 'vectorize') {
                     window.location.href = 'vectorize.html';
                 } else if (pendingAction === 'background-remove') {
+                    window.location.href = 'background-remove.html';
+                } else {
+                    window.location.href = 'dashboard.html';
+                }
+            } else {
+                window.location.href = 'dashboard.html';
+            }
+        }
                     window.location.href = 'background-remove.html';
                 } else {
                     window.location.href = 'dashboard.html';

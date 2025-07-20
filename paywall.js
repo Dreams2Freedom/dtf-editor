@@ -1003,6 +1003,7 @@ class PaywallModal {
         this.currentAction = null;
     }
 
+
     handleSignup(plan) {
         // Store the selected plan and action in localStorage
         localStorage.setItem('selectedPlan', plan);
@@ -1010,8 +1011,25 @@ class PaywallModal {
             localStorage.setItem('pendingAction', this.currentAction);
         }
         
-        // Redirect to registration page
-        window.location.href = 'register.html';
+        // Get processed image data and pass it via URL parameter
+        const processedImageData = sessionStorage.getItem('processedImageData') || localStorage.getItem('processedImageData');
+        let redirectUrl = 'register.html';
+        
+        if (processedImageData) {
+            try {
+                const imageData = JSON.parse(processedImageData);
+                // Create a unique key for the image data
+                const imageKey = `img_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+                localStorage.setItem(imageKey, processedImageData);
+                redirectUrl = `register.html?imgKey=${encodeURIComponent(imageKey)}`;
+                console.log('Passing image key via URL:', imageKey);
+            } catch (error) {
+                console.error('Error processing image data for URL handoff:', error);
+            }
+        }
+        
+        // Redirect to registration page with image key
+        window.location.href = redirectUrl;
     }
 
     handleLogin() {

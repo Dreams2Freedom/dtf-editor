@@ -2,6 +2,50 @@
 class PostSignupPage {
     constructor() {
         this.processedImageData = null;
+    constructor() {
+        this.processedImageData = null;
+        this.init();
+        this.refreshAuthToken(); // Add token refresh
+    }
+
+    async refreshAuthToken() {
+        try {
+            // Check if we have a valid token
+            const token = localStorage.getItem('authToken');
+            if (token) {
+                console.log('Checking auth token validity...');
+                // Verify token is still valid
+                const response = await fetch('/api/auth/verify', {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                
+                if (!response.ok) {
+                    console.log('Token invalid, attempting refresh');
+                    // Try to refresh the token
+                    const refreshResponse = await fetch('/api/auth/refresh', {
+                        method: 'POST',
+                        headers: {
+                            'Authorization': `Bearer ${token}`
+                        }
+                    });
+                    
+                    if (refreshResponse.ok) {
+                        const data = await refreshResponse.json();
+                        localStorage.setItem('authToken', data.token);
+                        console.log('Token refreshed successfully');
+                    } else {
+                        console.warn('Token refresh failed, user may need to login again');
+                    }
+                } else {
+                    console.log('Token is valid');
+                }
+            }
+        } catch (error) {
+            console.error('Error refreshing auth token:', error);
+        }
+    }
         this.init();
     }
 
@@ -10,29 +54,49 @@ class PostSignupPage {
         this.setupEventListeners();
     }
 
+
     async loadProcessedImage() {
         try {
-            // Get the processed image data from sessionStorage or URL params
-            const imageData = this.getImageDataFromStorage();
+            // First, check for image key in URL parameters
+            const urlParams = new URLSearchParams(window.location.search);
+            const imgKey = urlParams.get('imgKey');
             
+            if (imgKey) {
+                console.log('Found image key in URL:', imgKey);
+                const storedData = localStorage.getItem(imgKey);
+                if (storedData) {
+                    const imageData = JSON.parse(storedData);
+                    console.log('Retrieved image data from URL key:', imageData);
+                    this.processedImageData = imageData;
+                    this.displayImages(imageData);
+                    
+                    // Clean up the temporary storage
+                    localStorage.removeItem(imgKey);
+                    console.log('Cleaned up temporary image key storage');
+                    return;
+                }
+            }
+            
+            // Fallback to direct storage check
+            const imageData = this.getImageDataFromStorage();
             if (imageData) {
                 console.log('Found processed image data in storage:', imageData);
                 this.processedImageData = imageData;
                 this.displayImages(imageData);
                 
-                // Clear the data after using it to prevent showing old data on subsequent visits
+                // Clear the data after using it
                 sessionStorage.removeItem('processedImageData');
                 localStorage.removeItem('processedImageData');
                 console.log('Cleared processed image data from storage');
             } else {
-                // Fallback: try to get from URL parameters
-                const urlParams = new URLSearchParams(window.location.search);
-                const imageId = urlParams.get('imageId');
-                
-                if (imageId) {
-                    await this.loadImageFromServer(imageId);
-                } else {
-                    console.log('No processed image data found in storage or URL params');
+                console.log('No processed image data found in storage or URL params');
+                this.showNoImageMessage();
+            }
+        } catch (error) {
+            console.error('Error loading processed image:', error);
+            this.showNoImageMessage();
+        }
+    }
                     this.showNoImageMessage();
                 }
             }
