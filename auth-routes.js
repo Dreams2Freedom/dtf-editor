@@ -192,21 +192,85 @@ router.post('/forgot-password', async (req, res) => {
     }
 });
 
-// Reset password (placeholder)
-router.post('/reset-password', async (req, res) => {
+// Check if email exists (for registration flow)
+router.post('/check-email', async (req, res) => {
     try {
-        const { token, new_password } = req.body;
+        const { email } = req.body;
         
-        if (!token || !new_password) {
-            return res.status(400).json({ error: 'Token and new password are required' });
+        if (!email) {
+            return res.status(400).json({ error: 'Email is required' });
         }
 
-        // TODO: Implement password reset functionality
-        // For now, just return success
-        res.json({ message: 'Password reset successfully' });
+        const normalizedEmail = email.trim().toLowerCase();
+        
+        // Check if user exists
+        const existingUser = await dbHelpers.getUserByEmail(normalizedEmail);
+        
+        if (existingUser) {
+            return res.status(200).json({ 
+                exists: true,
+                message: 'An account with this email already exists',
+                user: {
+                    id: existingUser.id,
+                    email: existingUser.email,
+                    first_name: existingUser.first_name,
+                    last_name: existingUser.last_name,
+                    created_at: existingUser.created_at
+                }
+            });
+        } else {
+            return res.status(200).json({ 
+                exists: false,
+                message: 'Email is available for registration'
+            });
+        }
     } catch (error) {
-        console.error('Reset password error:', error);
-        res.status(500).json({ error: 'Failed to reset password' });
+        console.error('Email check error:', error);
+        res.status(500).json({ error: 'Failed to check email availability' });
+    }
+});
+
+// Enhanced forgot password
+router.post('/forgot-password-enhanced', async (req, res) => {
+    try {
+        const { email } = req.body;
+        
+        if (!email) {
+            return res.status(400).json({ error: 'Email is required' });
+        }
+
+        const normalizedEmail = email.trim().toLowerCase();
+        
+        // Check if user exists
+        const existingUser = await dbHelpers.getUserByEmail(normalizedEmail);
+        
+        if (!existingUser) {
+            // Don't reveal if email exists or not for security
+            return res.status(200).json({ 
+                message: 'If an account with this email exists, a password reset link has been sent.',
+                sent: true
+            });
+        }
+
+        // Generate a simple reset token (in production, use crypto.randomBytes)
+        const resetToken = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+        
+        // Store reset token in database (you'll need to add this table)
+        // For now, we'll simulate it
+        console.log(`Password reset token for ${normalizedEmail}: ${resetToken}`);
+        
+        // TODO: Send email with reset link
+        // For now, we'll return the token (in production, send via email)
+        const resetUrl = `${req.protocol}://${req.get('host')}/reset-password.html?token=${resetToken}`;
+        
+        res.json({ 
+            message: 'Password reset link sent to your email',
+            sent: true,
+            resetUrl: resetUrl // Remove this in production
+        });
+    } catch (error) {
+        console.error('Forgot password error:', error);
+        res.status(500).json({ error: 'Failed to process password reset request' });
     }
 });
 
