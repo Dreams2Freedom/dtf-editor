@@ -59,7 +59,9 @@
                         required 
                         class="form-input"
                         placeholder="Enter your email"
+                        autocomplete="email"
                     >
+                    <div id="emailValidation" class="text-sm mt-1 hidden"></div>
                 </div>
 
                 <!-- Company Field -->
@@ -226,38 +228,178 @@
             }
         }
 
-        // Handle register form submission
-        document.getElementById('registerForm').addEventListener('submit', async (e) => {
-            e.preventDefault();
+        // Enhanced email validation function
+        function validateEmail(email) {
+            // Remove leading/trailing whitespace and convert to lowercase
+            const normalizedEmail = email.trim().toLowerCase();
             
-            const firstName = document.getElementById('firstName').value;
-            const lastName = document.getElementById('lastName').value;
+            // Check if email is empty
+            if (!normalizedEmail) {
+                return {
+                    isValid: false,
+                    error: 'Email address is required.',
+                    normalizedEmail: ''
+                };
+            }
+            
+            // Enhanced email regex pattern
+            const emailRegex = /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/;
+            
+            if (!emailRegex.test(normalizedEmail)) {
+                return {
+                    isValid: false,
+                    error: 'Please enter a valid email address.',
+                    normalizedEmail: ''
+                };
+            }
+            
+            // Check for common invalid patterns
+            const invalidPatterns = [
+                /^[^@]*@[^@]*$/, // Must have exactly one @
+                /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/, // Basic format check
+                /^[^@]+@[^@]+\.[^@]+$/, // Must have domain and TLD
+                /^[^@]+@[^@]+\.[a-zA-Z]{2,}$/ // TLD must be at least 2 characters
+            ];
+            
+            for (const pattern of invalidPatterns) {
+                if (!pattern.test(normalizedEmail)) {
+                    return {
+                        isValid: false,
+                        error: 'Please enter a valid email address.',
+                        normalizedEmail: ''
+                    };
+                }
+            }
+            
+            // Check for common disposable email domains (optional)
+            const disposableDomains = [
+                'tempmail.org', '10minutemail.com', 'guerrillamail.com', 'mailinator.com',
+                'yopmail.com', 'temp-mail.org', 'sharklasers.com', 'getairmail.com'
+            ];
+            
+            const domain = normalizedEmail.split('@')[1];
+            if (disposableDomains.includes(domain)) {
+                return {
+                    isValid: false,
+                    error: 'Please use a valid email address (disposable emails are not allowed).',
+                    normalizedEmail: ''
+                };
+            }
+            
+            return {
+                isValid: true,
+                error: '',
+                normalizedEmail: normalizedEmail
+            };
+        }
+
+        // Enhanced form validation function
+        function validateForm() {
+            const firstName = document.getElementById('firstName').value.trim();
+            const lastName = document.getElementById('lastName').value.trim();
             const email = document.getElementById('email').value;
-            const company = document.getElementById('company').value;
             const password = document.getElementById('password').value;
             const confirmPassword = document.getElementById('confirmPassword').value;
             const terms = document.getElementById('terms').checked;
             
-            // Validate password match
-            if (password !== confirmPassword) {
-                document.getElementById('errorText').textContent = 'Passwords do not match.';
-                document.getElementById('errorMessage').classList.remove('hidden');
-                return;
+            // Validate first name
+            if (!firstName) {
+                return {
+                    isValid: false,
+                    error: 'First name is required.'
+                };
             }
             
-            // Validate password length
+            if (firstName.length < 2) {
+                return {
+                    isValid: false,
+                    error: 'First name must be at least 2 characters long.'
+                };
+            }
+            
+            // Validate last name
+            if (!lastName) {
+                return {
+                    isValid: false,
+                    error: 'Last name is required.'
+                };
+            }
+            
+            if (lastName.length < 2) {
+                return {
+                    isValid: false,
+                    error: 'Last name must be at least 2 characters long.'
+                };
+            }
+            
+            // Validate email
+            const emailValidation = validateEmail(email);
+            if (!emailValidation.isValid) {
+                return {
+                    isValid: false,
+                    error: emailValidation.error
+                };
+            }
+            
+            // Validate password
             if (password.length < 8) {
-                document.getElementById('errorText').textContent = 'Password must be at least 8 characters long.';
-                document.getElementById('errorMessage').classList.remove('hidden');
-                return;
+                return {
+                    isValid: false,
+                    error: 'Password must be at least 8 characters long.'
+                };
+            }
+            
+            // Check for password strength (optional enhancement)
+            const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/;
+            if (!passwordRegex.test(password)) {
+                return {
+                    isValid: false,
+                    error: 'Password must contain at least one uppercase letter, one lowercase letter, and one number.'
+                };
+            }
+            
+            // Validate password match
+            if (password !== confirmPassword) {
+                return {
+                    isValid: false,
+                    error: 'Passwords do not match.'
+                };
             }
             
             // Validate terms
             if (!terms) {
-                document.getElementById('errorText').textContent = 'You must agree to the Terms of Service and Privacy Policy.';
+                return {
+                    isValid: false,
+                    error: 'You must agree to the Terms of Service and Privacy Policy.'
+                };
+            }
+            
+            return {
+                isValid: true,
+                error: '',
+                normalizedEmail: emailValidation.normalizedEmail
+            };
+        }
+
+        // Handle register form submission
+        document.getElementById('registerForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            // Validate form
+            const validation = validateForm();
+            if (!validation.isValid) {
+                document.getElementById('errorText').textContent = validation.error;
                 document.getElementById('errorMessage').classList.remove('hidden');
                 return;
             }
+            
+            const firstName = document.getElementById('firstName').value.trim();
+            const lastName = document.getElementById('lastName').value.trim();
+            const email = validation.normalizedEmail; // Use normalized email
+            const company = document.getElementById('company').value.trim();
+            const password = document.getElementById('password').value;
+            const confirmPassword = document.getElementById('confirmPassword').value;
+            const terms = document.getElementById('terms').checked;
             
             // Show loading state
             const registerBtn = document.getElementById('registerBtn');
@@ -303,7 +445,17 @@
                     }, 1000);
                 } else {
                     // Show error message
-                    document.getElementById('errorText').textContent = data.message || 'Registration failed. Please try again.';
+                    let errorMessage = data.error || 'Registration failed. Please try again.';
+                    
+                    // Handle specific error cases
+                    if (data.code === 'USER_EXISTS') {
+                        errorMessage = data.error;
+                        // Add a link to login
+                        document.getElementById('errorText').innerHTML = `${errorMessage} <a href="login.html" class="text-accent hover:underline">Click here to login</a>`;
+                    } else {
+                        document.getElementById('errorText').textContent = errorMessage;
+                    }
+                    
                     document.getElementById('errorMessage').classList.remove('hidden');
                 }
             } catch (error) {
@@ -316,6 +468,34 @@
                 registerBtnText.textContent = 'Create Account';
                 registerBtnSpinner.classList.add('hidden');
             }
+        });
+
+        // Real-time email validation
+        document.getElementById('email').addEventListener('blur', function() {
+            const email = this.value;
+            const validationDiv = document.getElementById('emailValidation');
+            
+            if (!email) {
+                validationDiv.textContent = '';
+                validationDiv.className = 'text-sm mt-1 hidden';
+                return;
+            }
+            
+            const emailValidation = validateEmail(email);
+            
+            if (emailValidation.isValid) {
+                validationDiv.textContent = '✓ Valid email address';
+                validationDiv.className = 'text-sm mt-1 text-green-600';
+            } else {
+                validationDiv.textContent = emailValidation.error;
+                validationDiv.className = 'text-sm mt-1 text-red-600';
+            }
+        });
+
+        // Clear validation message when user starts typing
+        document.getElementById('email').addEventListener('input', function() {
+            const validationDiv = document.getElementById('emailValidation');
+            validationDiv.className = 'text-sm mt-1 hidden';
         });
 
         // Check auth status on page load

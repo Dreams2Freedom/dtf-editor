@@ -16,10 +16,44 @@ router.post('/register', async (req, res) => {
             });
         }
 
-        // Validate email format
-        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        if (!emailRegex.test(email)) {
+        // Enhanced email validation
+        const normalizedEmail = email.trim().toLowerCase();
+        
+        // Check if email is empty
+        if (!normalizedEmail) {
+            return res.status(400).json({ error: 'Email address is required' });
+        }
+        
+        // Enhanced email regex pattern
+        const emailRegex = /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/;
+        
+        if (!emailRegex.test(normalizedEmail)) {
             return res.status(400).json({ error: 'Invalid email format' });
+        }
+        
+        // Check for common invalid patterns
+        const invalidPatterns = [
+            /^[^@]*@[^@]*$/, // Must have exactly one @
+            /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/, // Basic format check
+            /^[^@]+@[^@]+\.[^@]+$/, // Must have domain and TLD
+            /^[^@]+@[^@]+\.[a-zA-Z]{2,}$/ // TLD must be at least 2 characters
+        ];
+        
+        for (const pattern of invalidPatterns) {
+            if (!pattern.test(normalizedEmail)) {
+                return res.status(400).json({ error: 'Invalid email format' });
+            }
+        }
+        
+        // Check for common disposable email domains
+        const disposableDomains = [
+            'tempmail.org', '10minutemail.com', 'guerrillamail.com', 'mailinator.com',
+            'yopmail.com', 'temp-mail.org', 'sharklasers.com', 'getairmail.com'
+        ];
+        
+        const domain = normalizedEmail.split('@')[1];
+        if (disposableDomains.includes(domain)) {
+            return res.status(400).json({ error: 'Disposable email addresses are not allowed' });
         }
 
         // Validate password strength
@@ -30,7 +64,7 @@ router.post('/register', async (req, res) => {
         }
 
         const result = await authHelpers.registerUser({
-            email,
+            email: normalizedEmail, // Use normalized email
             password,
             first_name,
             last_name,
@@ -54,9 +88,12 @@ router.post('/register', async (req, res) => {
     } catch (error) {
         console.error('Registration error:', error);
         if (error.message === 'User already exists') {
-            res.status(409).json({ error: 'User already exists' });
+            res.status(409).json({ 
+                error: 'An account with this email address already exists. Please try logging in instead.',
+                code: 'USER_EXISTS'
+            });
         } else {
-            res.status(500).json({ error: 'Registration failed' });
+            res.status(500).json({ error: 'Registration failed. Please try again.' });
         }
     }
 });
