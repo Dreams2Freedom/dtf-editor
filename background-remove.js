@@ -919,13 +919,7 @@ class BackgroundRemoveApp {
         const submitButton = modal.querySelector('#signupSubmitBtn');
         console.log('Submit button found:', !!submitButton);
         
-        // Add multiple event listeners to test
-        submitButton.addEventListener('click', (e) => {
-            console.log('Submit button clicked (click event)');
-            e.preventDefault();
-            e.stopPropagation();
-        });
-        
+        // Add mousedown event for debugging (without preventing form submission)
         submitButton.addEventListener('mousedown', (e) => {
             console.log('Submit button mousedown');
         });
