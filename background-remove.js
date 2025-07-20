@@ -744,7 +744,38 @@ class BackgroundRemoveApp {
         this.result.scrollIntoView({ behavior: 'smooth', block: 'center' });
         console.log('Scrolled to results');
 
-        // NEW: auto-store image data for guest users so paywall signup works even if they don't press Download yet
+        // ---------- NEW GUEST CTA OVERLAY ----------
+        if (!window.authUtils || !window.authUtils.isAuthenticated()) {
+            // Create overlay only once
+            if (!this.result.querySelector('.guest-cta-overlay')) {
+                const overlay = document.createElement('div');
+                overlay.className = 'guest-cta-overlay';
+                overlay.style.cssText = `
+                    position:absolute;
+                    top:0;left:0;right:0;bottom:0;
+                    background:rgba(0,0,0,0.55);
+                    display:flex;flex-direction:column;align-items:center;justify-content:center;
+                    color:#fff;border-radius:8px;gap:16px;text-align:center;padding:24px;`
+                overlay.innerHTML = `
+                    <p style="font-size:18px;font-weight:600;margin:0 0 8px;">Sign up to download full-resolution file</p>
+                    <button id="guestDownloadSignupBtn" style="background:#E88B4B;border:none;padding:12px 24px;border-radius:6px;font-size:16px;font-weight:600;cursor:pointer;">Sign Up Free</button>
+                `;
+                // ensure result container position:relative
+                this.result.style.position = 'relative';
+                this.result.appendChild(overlay);
+
+                overlay.querySelector('#guestDownloadSignupBtn').addEventListener('click', () => {
+                    if (window.paywallModal) {
+                        window.paywallModal.show('background-remove');
+                    } else {
+                        window.location.href = 'register.html';
+                    }
+                });
+            }
+        }
+        // --------------------------------------------
+
+        // Auto-store data (existing block)
         if (!window.authUtils || !window.authUtils.isAuthenticated()) {
             try {
                 const imageData = {
