@@ -312,12 +312,19 @@
             const pendingAction = localStorage.getItem('pendingAction');
             const selectedPlan = localStorage.getItem('selectedPlan');
             
+            // Check if there's processed image data waiting to be shown
+            const processedImageData = sessionStorage.getItem('processedImageData');
+            
             // Clear the stored values
             localStorage.removeItem('pendingAction');
             localStorage.removeItem('selectedPlan');
             
             if (user.is_admin) {
                 window.location.href = 'admin.html';
+            } else if (processedImageData) {
+                // If there's processed image data, redirect to post-signup page
+                console.log('Found processed image data, redirecting to post-signup page');
+                window.location.href = 'post-signup.html';
             } else if (pendingAction) {
                 // Redirect to the specific action the user was trying to perform
                 if (pendingAction === 'vectorize') {

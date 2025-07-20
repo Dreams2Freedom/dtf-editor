@@ -16,6 +16,7 @@ class PostSignupPage {
             const imageData = this.getImageDataFromStorage();
             
             if (imageData) {
+                console.log('Found processed image data in sessionStorage:', imageData);
                 this.processedImageData = imageData;
                 this.displayImages(imageData);
             } else {
@@ -26,6 +27,7 @@ class PostSignupPage {
                 if (imageId) {
                     await this.loadImageFromServer(imageId);
                 } else {
+                    console.log('No processed image data found in sessionStorage or URL params');
                     this.showNoImageMessage();
                 }
             }
@@ -73,11 +75,25 @@ class PostSignupPage {
         if (originalPreview && imageData.original_url) {
             originalPreview.src = imageData.original_url;
             originalPreview.alt = 'Original image';
+            
+            // Handle image load errors
+            originalPreview.onerror = () => {
+                console.warn('Failed to load original image:', imageData.original_url);
+                originalPreview.style.display = 'none';
+            };
         }
 
         if (resultPreview && imageData.processed_url) {
             resultPreview.src = imageData.processed_url;
             resultPreview.alt = 'DTF-ready result';
+            
+            // Handle image load errors
+            resultPreview.onerror = () => {
+                console.warn('Failed to load processed image:', imageData.processed_url);
+                resultPreview.style.display = 'none';
+                // If processed image fails to load, show no image message
+                this.showNoImageMessage();
+            };
         }
 
         // Enable download button
