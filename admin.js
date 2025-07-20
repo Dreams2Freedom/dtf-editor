@@ -148,6 +148,15 @@ class AdminDashboard {
                     case 'toggle':
                         this.toggleUserStatus(userId);
                         break;
+                    case 'soft-delete':
+                        this.softDeleteUser(userId);
+                        break;
+                    case 'hard-delete':
+                        this.hardDeleteUser(userId);
+                        break;
+                    case 'restore':
+                        this.restoreUser(userId);
+                        break;
                 }
             });
         }
@@ -384,6 +393,12 @@ class AdminDashboard {
                     <button data-action="toggle" data-user-id="${user.id}" class="action-btn ${user.is_active ? 'delete' : 'view'}">
                         ${user.is_active ? 'Deactivate' : 'Activate'}
                     </button>
+                    <button data-action="soft-delete" data-user-id="${user.id}" class="action-btn delete" title="Soft Delete (Preserve Data)">
+                        🗑️ Soft Delete
+                    </button>
+                    <button data-action="hard-delete" data-user-id="${user.id}" class="action-btn delete" title="Hard Delete (Permanent)">
+                        ⚠️ Hard Delete
+                    </button>
                 </td>
             </tr>
         `).join('');
@@ -444,6 +459,12 @@ class AdminDashboard {
                     <button data-action="edit" data-user-id="${user.id}" class="action-btn edit">Edit</button>
                     <button data-action="toggle" data-user-id="${user.id}" class="action-btn ${user.is_active ? 'delete' : 'view'}">
                         ${user.is_active ? 'Deactivate' : 'Activate'}
+                    </button>
+                    <button data-action="soft-delete" data-user-id="${user.id}" class="action-btn delete" title="Soft Delete (Preserve Data)">
+                        🗑️ Soft Delete
+                    </button>
+                    <button data-action="hard-delete" data-user-id="${user.id}" class="action-btn delete" title="Hard Delete (Permanent)">
+                        ⚠️ Hard Delete
                     </button>
                 </td>
             </tr>
@@ -881,6 +902,91 @@ class AdminDashboard {
         } catch (error) {
             console.error('Error updating user status:', error);
             this.showNotification('Failed to update user status', 'error');
+        }
+    }
+
+    async softDeleteUser(userId) {
+        if (!confirm('Are you sure you want to soft delete this user? This will hide them from the user list but preserve all data.')) {
+            return;
+        }
+
+        try {
+            const response = await fetch(`/api/admin/users/${userId}`, {
+                method: 'DELETE',
+                headers: {
+                    'Authorization': `Bearer ${this.token}`
+                }
+            });
+
+            if (response.ok) {
+                const result = await response.json();
+                this.showNotification(result.message, 'success');
+                this.loadUsers();
+            } else {
+                const errorData = await response.json();
+                this.showNotification(`Failed to delete user: ${errorData.error || 'Unknown error'}`, 'error');
+            }
+        } catch (error) {
+            console.error('Error soft deleting user:', error);
+            this.showNotification('Failed to delete user', 'error');
+        }
+    }
+
+    async hardDeleteUser(userId) {
+        if (!confirm('⚠️ WARNING: This will PERMANENTLY delete the user and all their data. This action cannot be undone. Are you absolutely sure?')) {
+            return;
+        }
+
+        if (!confirm('Final confirmation: This will delete ALL user data including images, transactions, and account history. Continue?')) {
+            return;
+        }
+
+        try {
+            const response = await fetch(`/api/admin/users/${userId}/hard`, {
+                method: 'DELETE',
+                headers: {
+                    'Authorization': `Bearer ${this.token}`
+                }
+            });
+
+            if (response.ok) {
+                const result = await response.json();
+                this.showNotification(result.message, 'success');
+                this.loadUsers();
+            } else {
+                const errorData = await response.json();
+                this.showNotification(`Failed to permanently delete user: ${errorData.error || 'Unknown error'}`, 'error');
+            }
+        } catch (error) {
+            console.error('Error hard deleting user:', error);
+            this.showNotification('Failed to permanently delete user', 'error');
+        }
+    }
+
+    async restoreUser(userId) {
+        if (!confirm('Are you sure you want to restore this user? They will be able to log in again.')) {
+            return;
+        }
+
+        try {
+            const response = await fetch(`/api/admin/users/${userId}/restore`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${this.token}`
+                }
+            });
+
+            if (response.ok) {
+                const result = await response.json();
+                this.showNotification(result.message, 'success');
+                this.loadUsers();
+            } else {
+                const errorData = await response.json();
+                this.showNotification(`Failed to restore user: ${errorData.error || 'Unknown error'}`, 'error');
+            }
+        } catch (error) {
+            console.error('Error restoring user:', error);
+            this.showNotification('Failed to restore user', 'error');
         }
     }
 

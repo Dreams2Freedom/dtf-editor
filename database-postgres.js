@@ -101,6 +101,7 @@ async function createTables() {
                 company VARCHAR(255),
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                deleted_at TIMESTAMP NULL,
                 is_active BOOLEAN DEFAULT TRUE,
                 is_admin BOOLEAN DEFAULT FALSE,
                 subscription_status VARCHAR(50) DEFAULT 'free',
@@ -112,6 +113,20 @@ async function createTables() {
                 total_credits_purchased INTEGER DEFAULT 2,
                 total_images_generated INTEGER DEFAULT 0
             )
+        `);
+
+        // Add deleted_at column if it doesn't exist
+        await client.query(`
+            DO $$ 
+            BEGIN 
+                IF NOT EXISTS (
+                    SELECT 1 FROM information_schema.columns 
+                    WHERE table_name = 'users' 
+                    AND column_name = 'deleted_at'
+                ) THEN
+                    ALTER TABLE users ADD COLUMN deleted_at TIMESTAMP NULL;
+                END IF;
+            END $$;
         `);
 
         // Subscription plans table
@@ -295,6 +310,28 @@ async function createTables() {
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 UNIQUE(period_type, period_start, service_name)
+            )
+        `);
+
+        // Archived user data table for hard deletes
+        await client.query(`
+            CREATE TABLE IF NOT EXISTS archived_user_data (
+                id SERIAL PRIMARY KEY,
+                user_id INTEGER NOT NULL,
+                email VARCHAR(255) NOT NULL,
+                first_name VARCHAR(100),
+                last_name VARCHAR(100),
+                company VARCHAR(255),
+                total_credits_purchased INTEGER DEFAULT 0,
+                total_credits_used INTEGER DEFAULT 0,
+                total_images_generated INTEGER DEFAULT 0,
+                subscription_status VARCHAR(50),
+                subscription_plan VARCHAR(50),
+                stripe_customer_id VARCHAR(255),
+                created_at TIMESTAMP,
+                deleted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                archived_by_admin_id INTEGER NOT NULL,
+                FOREIGN KEY (archived_by_admin_id) REFERENCES users(id)
             )
         `);
 
@@ -666,6 +703,186 @@ const dbHelpers = {
                 LEFT JOIN users u ON al.admin_id = u.id
                 LEFT JOIN users tu ON al.target_user_id = tu.id
                 ORDER BY al.created_at DESC
+                LIMIT $1 OFFSET $2
+            `, [limit, offset]);
+            return result.rows;
+        } finally {
+            client.release();
+        }
+    },
+
+    // Soft delete operations
+    softDeleteUser: async (userId, adminId) => {
+        const client = await dbHelpers.getClient();
+        try {
+            // Start transaction
+            await client.query('BEGIN');
+
+            // Get user info before deletion for logging
+            const userResult = await client.query('SELECT email, first_name, last_name FROM users WHERE id = $1', [userId]);
+            if (userResult.rows.length === 0) {
+                throw new Error('User not found');
+            }
+            const user = userResult.rows[0];
+
+            // Soft delete the user (set deleted_at timestamp)
+            await client.query(
+                'UPDATE users SET deleted_at = NOW(), is_active = false WHERE id = $1',
+                [userId]
+            );
+
+            // Cancel any active subscriptions
+            await client.query(
+                'UPDATE subscriptions SET status = \'canceled\' WHERE user_id = $1 AND status IN (\'active\', \'trialing\')',
+                [userId]
+            );
+
+            // Log the soft delete action
+            await client.query(
+                'INSERT INTO admin_logs (admin_id, action, target_user_id, details) VALUES ($1, $2, $3, $4)',
+                [adminId, 'soft_delete_user', userId, `Soft deleted user: ${user.email} (${user.first_name} ${user.last_name})`]
+            );
+
+            // Commit transaction
+            await client.query('COMMIT');
+
+            return {
+                success: true,
+                message: `User ${user.email} has been soft deleted successfully`,
+                user: user
+            };
+        } catch (error) {
+            await client.query('ROLLBACK');
+            throw error;
+        } finally {
+            client.release();
+        }
+    },
+
+    restoreUser: async (userId, adminId) => {
+        const client = await dbHelpers.getClient();
+        try {
+            // Start transaction
+            await client.query('BEGIN');
+
+            // Get user info before restoration
+            const userResult = await client.query('SELECT email, first_name, last_name FROM users WHERE id = $1', [userId]);
+            if (userResult.rows.length === 0) {
+                throw new Error('User not found');
+            }
+            const user = userResult.rows[0];
+
+            // Restore the user (clear deleted_at timestamp)
+            await client.query(
+                'UPDATE users SET deleted_at = NULL, is_active = true WHERE id = $1',
+                [userId]
+            );
+
+            // Log the restore action
+            await client.query(
+                'INSERT INTO admin_logs (admin_id, action, target_user_id, details) VALUES ($1, $2, $3, $4)',
+                [adminId, 'restore_user', userId, `Restored user: ${user.email} (${user.first_name} ${user.last_name})`]
+            );
+
+            // Commit transaction
+            await client.query('COMMIT');
+
+            return {
+                success: true,
+                message: `User ${user.email} has been restored successfully`,
+                user: user
+            };
+        } catch (error) {
+            await client.query('ROLLBACK');
+            throw error;
+        } finally {
+            client.release();
+        }
+    },
+
+    hardDeleteUser: async (userId, adminId) => {
+        const client = await dbHelpers.getClient();
+        try {
+            // Start transaction
+            await client.query('BEGIN');
+
+            // Get user info before deletion for logging
+            const userResult = await client.query('SELECT email, first_name, last_name FROM users WHERE id = $1', [userId]);
+            if (userResult.rows.length === 0) {
+                throw new Error('User not found');
+            }
+            const user = userResult.rows[0];
+
+            // Archive financial data before deletion
+            await client.query(`
+                INSERT INTO archived_user_data (
+                    user_id, email, first_name, last_name, company,
+                    total_credits_purchased, total_credits_used, total_images_generated,
+                    subscription_status, subscription_plan, stripe_customer_id,
+                    created_at, deleted_at, archived_by_admin_id
+                ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, NOW(), $13)
+            `, [
+                userId, user.email, user.first_name, user.last_name, user.company,
+                user.total_credits_purchased || 0, user.credits_used || 0, user.total_images_generated || 0,
+                user.subscription_status, user.subscription_plan, user.stripe_customer_id,
+                user.created_at, adminId
+            ]);
+
+            // Hard delete the user (this will cascade to related tables)
+            await client.query('DELETE FROM users WHERE id = $1', [userId]);
+
+            // Log the hard delete action
+            await client.query(
+                'INSERT INTO admin_logs (admin_id, action, target_user_id, details) VALUES ($1, $2, $3, $4)',
+                [adminId, 'hard_delete_user', null, `Hard deleted user: ${user.email} (${user.first_name} ${user.last_name})`]
+            );
+
+            // Commit transaction
+            await client.query('COMMIT');
+
+            return {
+                success: true,
+                message: `User ${user.email} has been permanently deleted`,
+                user: user
+            };
+        } catch (error) {
+            await client.query('ROLLBACK');
+            throw error;
+        } finally {
+            client.release();
+        }
+    },
+
+    // Get users excluding soft deleted ones
+    getActiveUsers: async (limit = 100, offset = 0) => {
+        const client = await dbHelpers.getClient();
+        try {
+            const result = await client.query(`
+                SELECT id, email, first_name, last_name, company, created_at, is_active, is_admin, 
+                       subscription_status, subscription_plan, credits_remaining, credits_used, 
+                       total_credits_purchased, deleted_at
+                FROM users 
+                WHERE deleted_at IS NULL
+                ORDER BY created_at DESC 
+                LIMIT $1 OFFSET $2
+            `, [limit, offset]);
+            return result.rows;
+        } finally {
+            client.release();
+        }
+    },
+
+    // Get soft deleted users
+    getDeletedUsers: async (limit = 100, offset = 0) => {
+        const client = await dbHelpers.getClient();
+        try {
+            const result = await client.query(`
+                SELECT id, email, first_name, last_name, company, created_at, deleted_at,
+                       subscription_status, subscription_plan, credits_remaining, credits_used, 
+                       total_credits_purchased
+                FROM users 
+                WHERE deleted_at IS NOT NULL
+                ORDER BY deleted_at DESC 
                 LIMIT $1 OFFSET $2
             `, [limit, offset]);
             return result.rows;

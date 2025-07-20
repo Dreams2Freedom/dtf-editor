@@ -8,14 +8,25 @@ const router = express.Router();
 // Apply admin authentication to all routes
 router.use(authenticateAdmin);
 
-// Get all users
+// Get all active users (excluding soft deleted)
 router.get('/users', async (req, res) => {
     try {
-        const users = await dbHelpers.getAllUsers();
+        const users = await dbHelpers.getActiveUsers();
         res.json({ users });
     } catch (error) {
         console.error('Error fetching users:', error);
         res.status(500).json({ error: 'Failed to fetch users' });
+    }
+});
+
+// Get soft deleted users
+router.get('/users/deleted', async (req, res) => {
+    try {
+        const users = await dbHelpers.getDeletedUsers();
+        res.json({ users });
+    } catch (error) {
+        console.error('Error fetching deleted users:', error);
+        res.status(500).json({ error: 'Failed to fetch deleted users' });
     }
 });
 
@@ -76,39 +87,36 @@ router.put('/users/:id', async (req, res) => {
     }
 });
 
-// Delete user
+// Soft delete user (default)
 router.delete('/users/:id', async (req, res) => {
     try {
-        const user = await dbHelpers.getUserById(req.params.id);
-        if (!user) {
-            return res.status(404).json({ error: 'User not found' });
-        }
-
-        // Cancel subscription if exists
-        if (user.stripe_customer_id) {
-            try {
-                await stripeHelpers.cancelSubscription(user.id);
-            } catch (error) {
-                console.error('Error canceling subscription:', error);
-            }
-        }
-
-        // Deactivate user
-        await dbHelpers.updateUser(req.params.id, { is_active: false });
-
-        // Log admin action
-        await dbHelpers.addAdminLog({
-            admin_user_id: req.adminUser.id,
-            action: 'delete_user',
-            target_user_id: req.params.id,
-            details: 'User account deactivated',
-            ip_address: req.ip
-        });
-
-        res.json({ message: 'User deleted successfully' });
+        const result = await dbHelpers.softDeleteUser(req.params.id, req.adminUser.id);
+        res.json({ message: result.message, user: result.user });
     } catch (error) {
-        console.error('Error deleting user:', error);
+        console.error('Error soft deleting user:', error);
         res.status(500).json({ error: 'Failed to delete user' });
+    }
+});
+
+// Hard delete user (permanent)
+router.delete('/users/:id/hard', async (req, res) => {
+    try {
+        const result = await dbHelpers.hardDeleteUser(req.params.id, req.adminUser.id);
+        res.json({ message: result.message, user: result.user });
+    } catch (error) {
+        console.error('Error hard deleting user:', error);
+        res.status(500).json({ error: 'Failed to permanently delete user' });
+    }
+});
+
+// Restore soft deleted user
+router.post('/users/:id/restore', async (req, res) => {
+    try {
+        const result = await dbHelpers.restoreUser(req.params.id, req.adminUser.id);
+        res.json({ message: result.message, user: result.user });
+    } catch (error) {
+        console.error('Error restoring user:', error);
+        res.status(500).json({ error: 'Failed to restore user' });
     }
 });
 
