@@ -823,7 +823,7 @@ class BackgroundRemoveApp {
                     <div style="font-size: 13px; color: #6b7280;">✓ Cancel anytime</div>
                 </div>
                 
-                <form id="signupForm" style="margin-bottom: 16px;">
+                <div id="signupForm" style="margin-bottom: 16px;">
                     <input type="text" id="signupFirstName" placeholder="First name" required style="
                         width: 100%;
                         padding: 12px 16px;
@@ -860,7 +860,7 @@ class BackgroundRemoveApp {
                         font-size: 16px;
                         box-sizing: border-box;
                     ">
-                    <button type="submit" id="signupSubmitBtn" style="
+                    <button type="button" id="signupSubmitBtn" style="
                         width: 100%;
                         background: #386594;
                         color: white;
@@ -872,7 +872,7 @@ class BackgroundRemoveApp {
                         cursor: pointer;
                         box-sizing: border-box;
                     ">Sign Up Free</button>
-                </form>
+                </div>
                 
                 <div style="
                     font-size: 13px;
@@ -898,49 +898,28 @@ class BackgroundRemoveApp {
         console.log('Modal HTML length:', modal.innerHTML.length);
         console.log('Modal contains form:', modal.innerHTML.includes('signupForm'));
 
-        // Handle form submission
-        const form = modal.querySelector('#signupForm');
+        // Handle signup
+        const signupContainer = modal.querySelector('#signupForm');
         const firstNameInput = modal.querySelector('#signupFirstName');
         const lastNameInput = modal.querySelector('#signupLastName');
         const emailInput = modal.querySelector('#signupEmail');
         const passwordInput = modal.querySelector('#signupPassword');
         const loginLink = modal.querySelector('#loginLink');
         const closeBtn = modal.querySelector('#closeModal');
+        const submitButton = modal.querySelector('#signupSubmitBtn');
         
-        console.log('Form elements found:', {
-            form: !!form,
+        console.log('Signup elements found:', {
+            container: !!signupContainer,
             firstNameInput: !!firstNameInput,
             lastNameInput: !!lastNameInput,
             emailInput: !!emailInput,
-            passwordInput: !!passwordInput
+            passwordInput: !!passwordInput,
+            submitButton: !!submitButton
         });
 
-        // Test basic button functionality
-        const submitButton = modal.querySelector('#signupSubmitBtn');
-        console.log('Submit button found:', !!submitButton);
-        console.log('Submit button type:', submitButton.type);
-        console.log('Submit button in form:', submitButton.form === form);
-        console.log('Form action:', form.action);
-        console.log('Form method:', form.method);
-        
-        // Add mousedown event for debugging (without preventing form submission)
-        submitButton.addEventListener('mousedown', (e) => {
-            console.log('Submit button mousedown');
-        });
-        
-        // Test manual form submission
-        submitButton.addEventListener('click', (e) => {
-            console.log('Submit button clicked - testing manual form submission');
-            // Don't prevent default, let it submit naturally
-        });
-        
-        // Add a simple test to see if the form submission works
-        console.log('About to add submit event listener to form');
-        
-        form.addEventListener('submit', async (e) => {
-            console.log('=== FORM SUBMIT EVENT FIRED ===');
-            e.preventDefault();
-            console.log('Signup form submitted (submit event)');
+        // Simple click handler for signup
+        submitButton.addEventListener('click', async (e) => {
+            console.log('Signup button clicked - starting registration');
             
             const firstName = firstNameInput.value;
             const lastName = lastNameInput.value;
