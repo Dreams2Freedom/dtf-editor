@@ -7,7 +7,7 @@ class PaywallModal {
         this.currentAction = null; // 'vectorize' or 'background-remove'
         
         try {
-            this.init();
+        this.init();
         } catch (error) {
             console.error('Error in PaywallModal constructor:', error);
             throw error;
@@ -17,8 +17,8 @@ class PaywallModal {
     init() {
         console.log('PaywallModal init called');
         try {
-            this.createModal();
-            this.setupEventListeners();
+        this.createModal();
+        this.setupEventListeners();
             console.log('PaywallModal initialization complete');
         } catch (error) {
             console.error('Error in PaywallModal init:', error);
@@ -29,9 +29,9 @@ class PaywallModal {
     createModal() {
         try {
             console.log('Creating paywall modal...');
-            // Create modal container
-            const modal = document.createElement('div');
-            modal.id = 'paywallModal';
+        // Create modal container
+        const modal = document.createElement('div');
+        modal.id = 'paywallModal';
             modal.style.cssText = `
                 position: fixed;
                 top: 0;
@@ -396,7 +396,7 @@ class PaywallModal {
                             grid-template-columns: repeat(3, 1fr);
                             gap: 24px;
                         ">
-                            <!-- Free Plan -->
+                        <!-- Free Plan -->
                             <div style="
                                 position: relative;
                                 background: white;
@@ -445,7 +445,7 @@ class PaywallModal {
                                             font-size: 14px;
                                             color: #374151;
                                         ">2 credits per month</span>
-                                    </li>
+                                </li>
                                     <li style="
                                         display: flex;
                                         align-items: start;
@@ -460,7 +460,7 @@ class PaywallModal {
                                             font-size: 14px;
                                             color: #374151;
                                         ">Basic vectorization</span>
-                                    </li>
+                                </li>
                                     <li style="
                                         display: flex;
                                         align-items: start;
@@ -475,8 +475,8 @@ class PaywallModal {
                                             font-size: 14px;
                                             color: #374151;
                                         ">Background removal</span>
-                                    </li>
-                                </ul>
+                                </li>
+                            </ul>
                                 
                                 <button id="signupFreeBtnDesktop" style="
                                     width: 100%;
@@ -544,7 +544,7 @@ class PaywallModal {
                                         color: white;
                                         text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
                                     ">For growing businesses</p>
-                                </div>
+                            </div>
                                 
                                 <ul style="
                                     list-style: none;
@@ -565,7 +565,7 @@ class PaywallModal {
                                             font-size: 14px;
                                             color: white;
                                         ">20 credits per month</span>
-                                    </li>
+                                </li>
                                     <li style="
                                         display: flex;
                                         align-items: start;
@@ -580,7 +580,7 @@ class PaywallModal {
                                             font-size: 14px;
                                             color: white;
                                         ">Professional vectorization</span>
-                                    </li>
+                                </li>
                                     <li style="
                                         display: flex;
                                         align-items: start;
@@ -595,7 +595,7 @@ class PaywallModal {
                                             font-size: 14px;
                                             color: white;
                                         ">Priority processing</span>
-                                    </li>
+                                </li>
                                     <li style="
                                         display: flex;
                                         align-items: start;
@@ -610,8 +610,8 @@ class PaywallModal {
                                             font-size: 14px;
                                             color: white;
                                         ">Email support</span>
-                                    </li>
-                                </ul>
+                                </li>
+                            </ul>
                                 
                                 <button id="signupBasicBtnDesktop" style="
                                     width: 100%;
@@ -626,9 +626,9 @@ class PaywallModal {
                                     cursor: pointer;
                                     box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
                                 ">Start Basic</button>
-                            </div>
+                        </div>
 
-                            <!-- Professional Plan -->
+                        <!-- Professional Plan -->
                             <div style="
                                 position: relative;
                                 background: white;
@@ -677,7 +677,7 @@ class PaywallModal {
                                             font-size: 14px;
                                             color: #374151;
                                         ">60 credits per month</span>
-                                    </li>
+                                </li>
                                     <li style="
                                         display: flex;
                                         align-items: start;
@@ -692,7 +692,7 @@ class PaywallModal {
                                             font-size: 14px;
                                             color: #374151;
                                         ">Advanced features</span>
-                                    </li>
+                                </li>
                                     <li style="
                                         display: flex;
                                         align-items: start;
@@ -707,7 +707,7 @@ class PaywallModal {
                                             font-size: 14px;
                                             color: #374151;
                                         ">Unlimited processing</span>
-                                    </li>
+                                </li>
                                     <li style="
                                         display: flex;
                                         align-items: start;
@@ -722,8 +722,8 @@ class PaywallModal {
                                             font-size: 14px;
                                             color: #374151;
                                         ">Priority support</span>
-                                    </li>
-                                </ul>
+                                </li>
+                            </ul>
                                 
                                 <button id="signupProBtnDesktop" style="
                                     width: 100%;
@@ -779,29 +779,29 @@ class PaywallModal {
 
     setupEventListeners() {
         try {
-            // Close button
+        // Close button
             const closeBtn = document.getElementById('paywallCloseBtn');
             if (closeBtn) {
                 closeBtn.addEventListener('click', () => {
-                    this.hide();
-                });
+            this.hide();
+        });
             }
 
-            // Close on backdrop click
+        // Close on backdrop click
             if (this.modal) {
-                this.modal.addEventListener('click', (e) => {
-                    if (e.target === this.modal) {
-                        this.hide();
-                    }
-                });
+        this.modal.addEventListener('click', (e) => {
+            if (e.target === this.modal) {
+                this.hide();
+            }
+        });
             }
 
-            // Close on escape key
-            document.addEventListener('keydown', (e) => {
-                if (e.key === 'Escape' && this.isVisible) {
-                    this.hide();
-                }
-            });
+        // Close on escape key
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && this.isVisible) {
+                this.hide();
+            }
+        });
 
             // Mobile slider functionality
             this.setupMobileSlider();
@@ -832,30 +832,30 @@ class PaywallModal {
             const signupFreeBtnDesktop = document.getElementById('signupFreeBtnDesktop');
             if (signupFreeBtnDesktop) {
                 signupFreeBtnDesktop.addEventListener('click', () => {
-                    this.handleSignup('free');
-                });
+            this.handleSignup('free');
+        });
             }
 
             const signupBasicBtnDesktop = document.getElementById('signupBasicBtnDesktop');
             if (signupBasicBtnDesktop) {
                 signupBasicBtnDesktop.addEventListener('click', () => {
-                    this.handleSignup('basic');
-                });
+            this.handleSignup('basic');
+        });
             }
 
             const signupProBtnDesktop = document.getElementById('signupProBtnDesktop');
             if (signupProBtnDesktop) {
                 signupProBtnDesktop.addEventListener('click', () => {
-                    this.handleSignup('professional');
-                });
+            this.handleSignup('professional');
+        });
             }
 
-            // Login button
+        // Login button
             const loginBtn = document.getElementById('loginBtn');
             if (loginBtn) {
                 loginBtn.addEventListener('click', () => {
-                    this.handleLogin();
-                });
+            this.handleLogin();
+        });
             }
 
             console.log('Paywall event listeners setup complete');
@@ -987,7 +987,7 @@ class PaywallModal {
             }
             
             this.modal.style.display = 'flex';
-            document.body.style.overflow = 'hidden';
+        document.body.style.overflow = 'hidden';
             console.log('Paywall modal should now be visible');
         } else {
             console.error('Paywall modal element not found!');
@@ -1067,7 +1067,7 @@ document.addEventListener('DOMContentLoaded', function() {
     try {
         if (!window.paywallModal) {
             console.log('Creating PaywallModal instance after DOM load...');
-            window.paywallModal = new PaywallModal();
+window.paywallModal = new PaywallModal();
         }
         console.log('Paywall modal initialized and available');
     } catch (error) {

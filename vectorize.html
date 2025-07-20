@@ -14,9 +14,11 @@
         <div class="nav-content">
             <div class="flex items-center">
                 <a href="index.html" class="nav-brand">DTF Editor</a>
-                <span class="ml-4 text-gray-500">/ Vector Graphics</span>
+                <span class="ml-4 text-gray-500 page-title">/ Vector Graphics</span>
             </div>
-            <div class="nav-links">
+            
+            <!-- Desktop Navigation -->
+            <div class="nav-links desktop-nav">
                 <a href="index.html" class="btn-nav">Home</a>
                 <a href="background-remove.html" class="btn-nav">Background Removal</a>
                 <a href="dashboard.html" class="btn-nav">Dashboard</a>
@@ -26,8 +28,32 @@
                     <!-- Auth buttons will be inserted here by JavaScript -->
                 </div>
             </div>
+
+            <!-- Mobile Hamburger Button -->
+            <button class="hamburger-btn" id="hamburgerBtn" aria-label="Toggle navigation menu">
+                <span class="hamburger-line"></span>
+                <span class="hamburger-line"></span>
+                <span class="hamburger-line"></span>
+            </button>
+        </div>
+
+        <!-- Mobile Navigation Menu -->
+        <div class="mobile-nav" id="mobileNav">
+            <div class="mobile-nav-content">
+                <a href="index.html" class="mobile-nav-link">Home</a>
+                <a href="background-remove.html" class="mobile-nav-link">Background Removal</a>
+                <a href="dashboard.html" class="mobile-nav-link">Dashboard</a>
+                <a href="faq.html" class="mobile-nav-link">FAQ</a>
+                <a href="admin.html" class="mobile-nav-link admin-link" style="display: none;">Admin</a>
+                <div id="mobileAuthContainer">
+                    <!-- Mobile auth buttons will be inserted here by JavaScript -->
+                </div>
+            </div>
         </div>
     </nav>
+
+    <!-- Mobile Overlay -->
+    <div class="mobile-overlay" id="mobileOverlay"></div>
 
     <!-- Main Content -->
     <div class="container py-12">
@@ -189,6 +215,7 @@
 
     <script src="script.js"></script>
     <script src="vectorize.js"></script>
+    <script src="mobile-nav.js"></script>
     <script>
         // Universal navigation system
         async function updateNavigation() {

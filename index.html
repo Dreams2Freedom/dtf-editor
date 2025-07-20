@@ -7,6 +7,7 @@
     <link rel="stylesheet" href="styles.css">
     <script src="auth-utils.js"></script>
     <script src="paywall.js"></script>
+    <script src="mobile-nav.js"></script>
     <script>
         // Update admin links visibility when page loads
         document.addEventListener('DOMContentLoaded', function() {
@@ -21,7 +22,9 @@
     <nav class="nav-container">
         <div class="nav-content">
             <a href="index.html" class="nav-brand">DTF Editor</a>
-            <div class="nav-links">
+            
+            <!-- Desktop Navigation -->
+            <div class="nav-links desktop-nav">
                 <a href="vectorize.html" class="btn-nav">Vectorize</a>
                 <a href="background-remove.html" class="btn-nav">Background Removal</a>
                 <a href="dashboard.html" class="btn-nav">Dashboard</a>
@@ -31,8 +34,32 @@
                     <!-- Auth buttons will be inserted here by JavaScript -->
                 </div>
             </div>
+
+            <!-- Mobile Hamburger Button -->
+            <button class="hamburger-btn" id="hamburgerBtn" aria-label="Toggle navigation menu">
+                <span class="hamburger-line"></span>
+                <span class="hamburger-line"></span>
+                <span class="hamburger-line"></span>
+            </button>
+        </div>
+
+        <!-- Mobile Navigation Menu -->
+        <div class="mobile-nav" id="mobileNav">
+            <div class="mobile-nav-content">
+                <a href="vectorize.html" class="mobile-nav-link">Vectorize</a>
+                <a href="background-remove.html" class="mobile-nav-link">Background Removal</a>
+                <a href="dashboard.html" class="mobile-nav-link">Dashboard</a>
+                <a href="faq.html" class="mobile-nav-link">FAQ</a>
+                <a href="admin.html" class="mobile-nav-link admin-link" style="display: none;">Admin</a>
+                <div id="mobileAuthContainer">
+                    <!-- Mobile auth buttons will be inserted here by JavaScript -->
+                </div>
+            </div>
         </div>
     </nav>
+
+    <!-- Mobile Overlay -->
+    <div class="mobile-overlay" id="mobileOverlay"></div>
 
     <!-- Hero Section -->
     <section class="hero-section">
