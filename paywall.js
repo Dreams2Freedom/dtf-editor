@@ -66,7 +66,168 @@ class PaywallModal {
 
                 <!-- Pricing Plans -->
                 <div class="p-6 md:p-8">
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8">
+                    <!-- Mobile Slider (hidden on desktop) -->
+                    <div class="md:hidden">
+                        <div class="relative overflow-hidden">
+                            <!-- Slider Container -->
+                            <div id="planSlider" class="flex transition-transform duration-300 ease-in-out" style="width: 300%;">
+                                <!-- Free Plan -->
+                                <div class="w-1/3 flex-shrink-0 px-2">
+                                    <div class="bg-white border border-gray-200 rounded-xl p-6 hover:border-primary/30 transition-all duration-300 hover:shadow-lg">
+                                        <div class="text-center mb-6">
+                                            <h3 class="text-xl font-bold text-gray-900 mb-2">Free</h3>
+                                            <div class="mb-3">
+                                                <span class="text-3xl font-bold text-gray-900">$0</span>
+                                                <span class="text-gray-600">/month</span>
+                                            </div>
+                                            <p class="text-sm text-gray-600">Perfect for getting started</p>
+                                        </div>
+                                        
+                                        <ul class="space-y-3 mb-8">
+                                            <li class="flex items-start">
+                                                <svg class="w-5 h-5 text-green-500 mr-3 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                                                    <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
+                                                </svg>
+                                                <span class="text-sm text-gray-700">2 credits per month</span>
+                                            </li>
+                                            <li class="flex items-start">
+                                                <svg class="w-5 h-5 text-green-500 mr-3 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                                                    <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
+                                                </svg>
+                                                <span class="text-sm text-gray-700">Basic vectorization</span>
+                                            </li>
+                                            <li class="flex items-start">
+                                                <svg class="w-5 h-5 text-green-500 mr-3 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                                                    <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
+                                                </svg>
+                                                <span class="text-sm text-gray-700">Background removal</span>
+                                            </li>
+                                        </ul>
+                                        
+                                        <button id="signupFreeBtn" class="w-full bg-white text-primary border-2 border-primary py-3 px-6 rounded-lg font-semibold hover:bg-primary hover:text-white transition-all duration-300 text-sm">
+                                            Start Free
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <!-- Basic Plan - Featured -->
+                                <div class="w-1/3 flex-shrink-0 px-2">
+                                    <div class="relative bg-gradient-to-br from-primary to-secondary border-2 border-primary rounded-xl p-6 shadow-xl">
+                                        <div class="absolute -top-3 left-1/2 transform -translate-x-1/2">
+                                            <span class="bg-accent text-white px-3 py-1 rounded-full text-xs font-bold shadow-lg">MOST POPULAR</span>
+                                        </div>
+                                        
+                                        <div class="text-center mb-6">
+                                            <h3 class="text-xl font-bold text-white mb-2">Basic</h3>
+                                            <div class="mb-3">
+                                                <span class="text-3xl font-bold text-white">$9.99</span>
+                                                <span class="text-white/80">/month</span>
+                                            </div>
+                                            <p class="text-sm text-white/80">For growing businesses</p>
+                                        </div>
+                                        
+                                        <ul class="space-y-3 mb-8">
+                                            <li class="flex items-start">
+                                                <svg class="w-5 h-5 text-white mr-3 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                                                    <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
+                                                </svg>
+                                                <span class="text-sm text-white">20 credits per month</span>
+                                            </li>
+                                            <li class="flex items-start">
+                                                <svg class="w-5 h-5 text-white mr-3 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                                                    <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
+                                                </svg>
+                                                <span class="text-sm text-white">Professional vectorization</span>
+                                            </li>
+                                            <li class="flex items-start">
+                                                <svg class="w-5 h-5 text-white mr-3 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                                                    <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
+                                                </svg>
+                                                <span class="text-sm text-white">Priority processing</span>
+                                            </li>
+                                            <li class="flex items-start">
+                                                <svg class="w-5 h-5 text-white mr-3 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                                                    <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
+                                                </svg>
+                                                <span class="text-sm text-white">Email support</span>
+                                            </li>
+                                        </ul>
+                                        
+                                        <button id="signupBasicBtn" class="w-full bg-white text-primary py-3 px-6 rounded-lg font-bold hover:bg-gray-50 transition-all duration-300 text-sm shadow-lg">
+                                            Start Basic
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <!-- Professional Plan -->
+                                <div class="w-1/3 flex-shrink-0 px-2">
+                                    <div class="bg-white border border-gray-200 rounded-xl p-6 hover:border-accent/30 transition-all duration-300 hover:shadow-lg">
+                                        <div class="text-center mb-6">
+                                            <h3 class="text-xl font-bold text-gray-900 mb-2">Professional</h3>
+                                            <div class="mb-3">
+                                                <span class="text-3xl font-bold text-accent">$24.99</span>
+                                                <span class="text-gray-600">/month</span>
+                                            </div>
+                                            <p class="text-sm text-gray-600">For power users</p>
+                                        </div>
+                                        
+                                        <ul class="space-y-3 mb-8">
+                                            <li class="flex items-start">
+                                                <svg class="w-5 h-5 text-green-500 mr-3 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                                                    <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
+                                                </svg>
+                                                <span class="text-sm text-gray-700">60 credits per month</span>
+                                            </li>
+                                            <li class="flex items-start">
+                                                <svg class="w-5 h-5 text-green-500 mr-3 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                                                    <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
+                                                </svg>
+                                                <span class="text-sm text-gray-700">Advanced features</span>
+                                            </li>
+                                            <li class="flex items-start">
+                                                <svg class="w-5 h-5 text-green-500 mr-3 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                                                    <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
+                                                </svg>
+                                                <span class="text-sm text-gray-700">Unlimited processing</span>
+                                            </li>
+                                            <li class="flex items-start">
+                                                <svg class="w-5 h-5 text-green-500 mr-3 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                                                    <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
+                                                </svg>
+                                                <span class="text-sm text-gray-700">Priority support</span>
+                                            </li>
+                                        </ul>
+                                        
+                                        <button id="signupProBtn" class="w-full bg-accent text-white py-3 px-6 rounded-lg font-semibold hover:bg-accent/90 transition-all duration-300 text-sm shadow-lg">
+                                            Start Professional
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Navigation Arrows -->
+                            <button id="prevPlan" class="absolute left-2 top-1/2 transform -translate-y-1/2 bg-white/90 backdrop-blur-sm text-gray-600 hover:text-primary p-2 rounded-full shadow-lg border border-gray-200 transition-all duration-300">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+                                </svg>
+                            </button>
+                            <button id="nextPlan" class="absolute right-2 top-1/2 transform -translate-y-1/2 bg-white/90 backdrop-blur-sm text-gray-600 hover:text-primary p-2 rounded-full shadow-lg border border-gray-200 transition-all duration-300">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                                </svg>
+                            </button>
+                        </div>
+
+                        <!-- Pagination Dots -->
+                        <div class="flex justify-center mt-6 space-x-2">
+                            <button class="planDot w-3 h-3 rounded-full bg-primary transition-all duration-300" data-plan="0"></button>
+                            <button class="planDot w-3 h-3 rounded-full bg-gray-300 transition-all duration-300" data-plan="1"></button>
+                            <button class="planDot w-3 h-3 rounded-full bg-gray-300 transition-all duration-300" data-plan="2"></button>
+                        </div>
+                    </div>
+
+                    <!-- Desktop Grid (hidden on mobile) -->
+                    <div class="hidden md:grid md:grid-cols-3 gap-6 md:gap-8">
                         <!-- Free Plan -->
                         <div class="relative bg-white border border-gray-200 rounded-xl p-6 md:p-8 hover:border-primary/30 transition-all duration-300 hover:shadow-lg">
                             <div class="text-center mb-6">
@@ -99,7 +260,7 @@ class PaywallModal {
                                 </li>
                             </ul>
                             
-                            <button id="signupFreeBtn" class="w-full bg-white text-primary border-2 border-primary py-3 px-6 rounded-lg font-semibold hover:bg-primary hover:text-white transition-all duration-300 text-sm">
+                            <button id="signupFreeBtnDesktop" class="w-full bg-white text-primary border-2 border-primary py-3 px-6 rounded-lg font-semibold hover:bg-primary hover:text-white transition-all duration-300 text-sm">
                                 Start Free
                             </button>
                         </div>
@@ -146,7 +307,7 @@ class PaywallModal {
                                 </li>
                             </ul>
                             
-                            <button id="signupBasicBtn" class="w-full bg-white text-primary py-3 px-6 rounded-lg font-bold hover:bg-gray-50 transition-all duration-300 text-sm shadow-lg">
+                            <button id="signupBasicBtnDesktop" class="w-full bg-white text-primary py-3 px-6 rounded-lg font-bold hover:bg-gray-50 transition-all duration-300 text-sm shadow-lg">
                                 Start Basic
                             </button>
                         </div>
@@ -189,7 +350,7 @@ class PaywallModal {
                                 </li>
                             </ul>
                             
-                            <button id="signupProBtn" class="w-full bg-accent text-white py-3 px-6 rounded-lg font-semibold hover:bg-accent/90 transition-all duration-300 text-sm shadow-lg">
+                            <button id="signupProBtnDesktop" class="w-full bg-accent text-white py-3 px-6 rounded-lg font-semibold hover:bg-accent/90 transition-all duration-300 text-sm shadow-lg">
                                 Start Professional
                             </button>
                         </div>
@@ -235,7 +396,10 @@ class PaywallModal {
             }
         });
 
-        // Signup buttons
+        // Mobile slider functionality
+        this.setupMobileSlider();
+
+        // Signup buttons (mobile)
         document.getElementById('signupFreeBtn').addEventListener('click', () => {
             this.handleSignup('free');
         });
@@ -248,10 +412,104 @@ class PaywallModal {
             this.handleSignup('professional');
         });
 
+        // Signup buttons (desktop)
+        document.getElementById('signupFreeBtnDesktop').addEventListener('click', () => {
+            this.handleSignup('free');
+        });
+
+        document.getElementById('signupBasicBtnDesktop').addEventListener('click', () => {
+            this.handleSignup('basic');
+        });
+
+        document.getElementById('signupProBtnDesktop').addEventListener('click', () => {
+            this.handleSignup('professional');
+        });
+
         // Login button
         document.getElementById('loginBtn').addEventListener('click', () => {
             this.handleLogin();
         });
+    }
+
+    setupMobileSlider() {
+        const slider = document.getElementById('planSlider');
+        const prevBtn = document.getElementById('prevPlan');
+        const nextBtn = document.getElementById('nextPlan');
+        const dots = document.querySelectorAll('.planDot');
+        
+        let currentPlan = 0;
+        const totalPlans = 3;
+
+        const updateSlider = () => {
+            const translateX = -(currentPlan * 33.333);
+            slider.style.transform = `translateX(${translateX}%)`;
+            
+            // Update dots
+            dots.forEach((dot, index) => {
+                if (index === currentPlan) {
+                    dot.classList.remove('bg-gray-300');
+                    dot.classList.add('bg-primary');
+                } else {
+                    dot.classList.remove('bg-primary');
+                    dot.classList.add('bg-gray-300');
+                }
+            });
+
+            // Update arrow visibility
+            prevBtn.style.opacity = currentPlan === 0 ? '0.5' : '1';
+            nextBtn.style.opacity = currentPlan === totalPlans - 1 ? '0.5' : '1';
+        };
+
+        // Navigation buttons
+        prevBtn.addEventListener('click', () => {
+            if (currentPlan > 0) {
+                currentPlan--;
+                updateSlider();
+            }
+        });
+
+        nextBtn.addEventListener('click', () => {
+            if (currentPlan < totalPlans - 1) {
+                currentPlan++;
+                updateSlider();
+            }
+        });
+
+        // Dot navigation
+        dots.forEach((dot, index) => {
+            dot.addEventListener('click', () => {
+                currentPlan = index;
+                updateSlider();
+            });
+        });
+
+        // Touch/swipe support
+        let startX = 0;
+        let endX = 0;
+
+        slider.addEventListener('touchstart', (e) => {
+            startX = e.touches[0].clientX;
+        });
+
+        slider.addEventListener('touchend', (e) => {
+            endX = e.changedTouches[0].clientX;
+            const diff = startX - endX;
+            const threshold = 50;
+
+            if (Math.abs(diff) > threshold) {
+                if (diff > 0 && currentPlan < totalPlans - 1) {
+                    // Swipe left - next plan
+                    currentPlan++;
+                } else if (diff < 0 && currentPlan > 0) {
+                    // Swipe right - previous plan
+                    currentPlan--;
+                }
+                updateSlider();
+            }
+        });
+
+        // Initialize slider
+        updateSlider();
     }
 
     show(action = null) {
