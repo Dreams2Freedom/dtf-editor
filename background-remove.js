@@ -743,6 +743,24 @@ class BackgroundRemoveApp {
         // Scroll to results
         this.result.scrollIntoView({ behavior: 'smooth', block: 'center' });
         console.log('Scrolled to results');
+
+        // NEW: auto-store image data for guest users so paywall signup works even if they don't press Download yet
+        if (!window.authUtils || !window.authUtils.isAuthenticated()) {
+            try {
+                const imageData = {
+                    original_url: this.currentOriginalUrl || null,
+                    processed_url: bgRemovedData.bgRemovedUrl,
+                    filename: 'background-removed.png',
+                    type: 'background-remove',
+                    timestamp: new Date().toISOString()
+                };
+                sessionStorage.setItem('processedImageData', JSON.stringify(imageData));
+                localStorage.setItem('processedImageData', JSON.stringify(imageData));
+                console.log('Auto-stored processed image data for guest user (showResults)');
+            } catch (e) {
+                console.error('Failed auto-store processed image data', e);
+            }
+        }
     }
 
     showError(message) {

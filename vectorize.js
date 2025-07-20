@@ -319,6 +319,24 @@ class VectorizeApp {
         this.result.scrollIntoView({ behavior: 'smooth', block: 'center' });
         
         console.log('Preview results displayed successfully');
+
+        // NEW: auto-store image data for guest users so paywall signup works if they hit Sign-Up before Download
+        if (!window.authUtils || !window.authUtils.isAuthenticated()) {
+            try {
+                const imageData = {
+                    original_url: previewData.originalUrl || null,
+                    processed_url: previewData.previewUrl,
+                    filename: 'vectorized-image.svg',
+                    type: 'vectorize',
+                    timestamp: new Date().toISOString()
+                };
+                sessionStorage.setItem('processedImageData', JSON.stringify(imageData));
+                localStorage.setItem('processedImageData', JSON.stringify(imageData));
+                console.log('Auto-stored processed image data for guest user (showPreviewResults)');
+            } catch (e) {
+                console.error('Failed auto-store processed image data', e);
+            }
+        }
     }
 
     showError(message) {
