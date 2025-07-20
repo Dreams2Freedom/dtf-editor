@@ -863,6 +863,75 @@ app.post('/api/add-test-credits', authenticateToken, async (req, res) => {
     }
 });
 
+// Clipping Magic White Label Smart Editor upload endpoint for guest users (value-first approach)
+app.post('/api/clipping-magic-upload-guest', upload.single('image'), async (req, res) => {
+    try {
+        console.log('Guest Clipping Magic upload request received');
+        req.startTime = Date.now(); // Initialize start time for processing duration
+        
+        if (!req.file) {
+            return res.status(400).json({ error: 'No image file provided' });
+        }
+
+        console.log(`Processing guest file: ${req.file.originalname} (${req.file.size} bytes)`);
+
+        // Create FormData for Clipping Magic API
+        const FormData = require('form-data');
+        const formData = new FormData();
+        formData.append('image', req.file.buffer, {
+            filename: req.file.originalname,
+            contentType: req.file.mimetype
+        });
+
+        // Track API cost start time
+        const apiStartTime = Date.now();
+        
+        // Make request to Clipping Magic API (using test mode for guest users)
+        const response = await fetch('https://clippingmagic.com/api/v1/images?test=true', {
+            method: 'POST',
+            headers: {
+                'Authorization': `Basic ${Buffer.from(`${CLIPPING_MAGIC_API_ID}:${CLIPPING_MAGIC_API_SECRET}`).toString('base64')}`,
+                ...formData.getHeaders()
+            },
+            body: formData
+        });
+
+        const responseTime = Date.now() - apiStartTime;
+
+        if (!response.ok) {
+            const errorText = await response.text();
+            console.error(`Clipping Magic API error: ${response.status} - ${errorText}`);
+            
+            return res.status(response.status).json({ 
+                error: 'Failed to upload image to Clipping Magic',
+                details: errorText
+            });
+        }
+
+        const result = await response.json();
+        console.log('Guest Clipping Magic upload successful:', result);
+        console.log('Result ID:', result.image?.id);
+        console.log('Result secret:', result.image?.secret);
+
+        // Return the id and secret needed for the White Label Smart Editor
+        res.json({
+            success: true,
+            id: result.image?.id,
+            secret: result.image?.secret,
+            apiId: CLIPPING_MAGIC_API_ID,
+            message: 'Image uploaded successfully. Ready to launch editor.',
+            isGuest: true
+        });
+
+    } catch (error) {
+        console.error('Guest Clipping Magic upload error:', error);
+        res.status(500).json({ 
+            error: 'Internal server error during Clipping Magic upload',
+            details: error.message 
+        });
+    }
+});
+
 // Clipping Magic White Label Smart Editor upload endpoint (with credit checking)
 app.post('/api/clipping-magic-upload', authenticateToken, checkCredits(1), upload.single('image'), async (req, res) => {
     try {

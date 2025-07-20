@@ -21,6 +21,7 @@ class BackgroundRemoveApp {
         
         // API configuration
         this.clippingMagicUploadEndpoint = '/api/clipping-magic-upload';
+        this.guestClippingMagicUploadEndpoint = '/api/clipping-magic-upload-guest';
         
         // Mobile detection
         this.isMobile = this.detectMobile();
@@ -83,13 +84,7 @@ class BackgroundRemoveApp {
             const file = e.target.files[0];
             if (file && !this.isProcessing) {
                 this.isProcessing = true;
-                // Check authentication before processing
-                if (window.paywallModal && window.paywallModal.showIfNotAuthenticated('background-remove')) {
-                    // Paywall was shown, don't process the file
-                    this.fileInput.value = ''; // Clear the file input
-                    this.isProcessing = false;
-                    return;
-                }
+                // Allow processing without authentication - value-first approach
                 console.log('File selected:', file.name, file.size, file.type);
                 this.currentFile = file; // Store for potential retry
                 this.handleBackgroundRemoval(file);
@@ -104,10 +99,7 @@ class BackgroundRemoveApp {
                 return;
             }
             
-            // Check authentication before opening file dialog
-            if (window.paywallModal && window.paywallModal.showIfNotAuthenticated('background-remove')) {
-                return; // Paywall was shown, don't open file dialog
-            }
+            // Allow file dialog without authentication - value-first approach
             this.fileInput.click();
         });
 
@@ -123,10 +115,7 @@ class BackgroundRemoveApp {
             e.preventDefault();
             e.stopPropagation();
             
-            // Check authentication before opening file dialog
-            if (window.paywallModal && window.paywallModal.showIfNotAuthenticated('background-remove')) {
-                return; // Paywall was shown, don't open file dialog
-            }
+            // Allow file dialog without authentication - value-first approach
             
             // Trigger file input click
             console.log('Triggering file input click from touch');
@@ -155,13 +144,10 @@ class BackgroundRemoveApp {
     }
 
     setupDragAndDrop() {
-        // Call the original setupDragAndDrop with authentication check
+        // Call the original setupDragAndDrop with value-first approach
         utils.setupDragAndDrop(this.uploadArea, this.fileInput, (file) => {
             console.log('Drag and drop callback triggered');
-            // Check authentication before processing
-            if (window.paywallModal && window.paywallModal.showIfNotAuthenticated('background-remove')) {
-                return; // Paywall was shown, don't process the file
-            }
+            // Allow processing without authentication - value-first approach
             this.handleBackgroundRemoval(file);
         });
         
@@ -196,21 +182,8 @@ class BackgroundRemoveApp {
             console.log('User agent:', navigator.userAgent);
             console.log('Current URL:', window.location.href);
             
-            // Check authentication first - show paywall instead of redirecting
-            if (!window.authUtils || !window.authUtils.isAuthenticated()) {
-                console.log('User not authenticated, showing paywall');
-                if (window.paywallModal && window.paywallModal.showIfNotAuthenticated('background-remove')) {
-                    this.isProcessing = false; // Reset processing flag
-                    return; // Paywall was shown, don't process the file
-                }
-                // Fallback if paywall is not available
-                this.showError('Please log in to use the background removal feature.');
-                setTimeout(() => {
-                    window.location.href = 'login.html';
-                }, 2000);
-                this.isProcessing = false; // Reset processing flag
-                return;
-            }
+            // Value-first approach: Allow processing without authentication
+            // Authentication will be required only for download
             
             console.log('User is authenticated, proceeding with file validation');
             
@@ -322,28 +295,29 @@ class BackgroundRemoveApp {
         try {
             console.log('Starting Clipping Magic upload for file:', file.name, 'Size:', file.size);
             
-            // Get authentication token
-            const token = window.authUtils ? window.authUtils.getAuthToken() : null;
-            if (!token) {
-                throw new Error('Authentication required. Please log in to use this feature.');
-            }
+            // Check if user is authenticated
+            const isAuthenticated = window.authUtils && window.authUtils.isAuthenticated();
+            const token = isAuthenticated ? window.authUtils.getAuthToken() : null;
             
             // Create FormData for the upload endpoint
             const formData = new FormData();
             formData.append('image', file);
             
-            console.log('Clipping Magic upload endpoint:', this.clippingMagicUploadEndpoint);
+            // Use different endpoints for authenticated vs guest users
+            const endpoint = isAuthenticated ? this.clippingMagicUploadEndpoint : this.guestClippingMagicUploadEndpoint;
+            console.log('Clipping Magic upload endpoint:', endpoint);
             
             // Update progress to show upload starting
             this.updateProgress(10);
             this.progressText.textContent = 'Uploading image to server...';
      
-            // Make API call to upload endpoint with authentication
-            const headers = {
-                'Authorization': `Bearer ${token}`
-            };
+            // Make API call to upload endpoint
+            const headers = {};
+            if (token) {
+                headers['Authorization'] = `Bearer ${token}`;
+            }
             
-            const response = await fetch(this.clippingMagicUploadEndpoint, {
+            const response = await fetch(endpoint, {
                 method: 'POST',
                 headers: headers,
                 body: formData
@@ -753,7 +727,196 @@ class BackgroundRemoveApp {
     }
 
     downloadBackgroundRemoved() {
+        // Check if user is authenticated
+        if (!window.authUtils || !window.authUtils.isAuthenticated()) {
+            // Show signup modal for non-authenticated users
+            this.showSignupModal();
+            return;
+        }
+        
+        // User is authenticated, proceed with download
         utils.downloadFile(this.resultImg.src, 'background-removed.png');
+    }
+
+    showSignupModal() {
+        // Create a simple signup modal
+        const modal = document.createElement('div');
+        modal.style.cssText = `
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 10000;
+            padding: 16px;
+            box-sizing: border-box;
+        `;
+
+        modal.innerHTML = `
+            <div style="
+                background: white;
+                border-radius: 16px;
+                width: 100%;
+                max-width: 400px;
+                padding: 24px 20px;
+                text-align: center;
+                box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+                max-height: 90vh;
+                overflow-y: auto;
+                position: relative;
+            ">
+                <h2 style="
+                    font-size: 20px;
+                    font-weight: bold;
+                    color: #111827;
+                    margin-bottom: 8px;
+                    line-height: 1.3;
+                ">Get Your Background-Removed Image</h2>
+                
+                <p style="
+                    font-size: 14px;
+                    color: #6b7280;
+                    margin-bottom: 20px;
+                    line-height: 1.4;
+                ">Sign up to download your result + 2 free credits</p>
+                
+                <div style="
+                    background: #f3f4f6;
+                    border-radius: 8px;
+                    padding: 12px;
+                    margin-bottom: 20px;
+                ">
+                    <div style="font-size: 13px; color: #6b7280; margin-bottom: 6px;">✓ Download your result now</div>
+                    <div style="font-size: 13px; color: #6b7280; margin-bottom: 6px;">✓ 2 free credits included</div>
+                    <div style="font-size: 13px; color: #6b7280; margin-bottom: 6px;">✓ No credit card required</div>
+                    <div style="font-size: 13px; color: #6b7280;">✓ Cancel anytime</div>
+                </div>
+                
+                <form id="signupForm" style="margin-bottom: 16px;">
+                    <input type="email" id="signupEmail" placeholder="Email address" required style="
+                        width: 100%;
+                        padding: 12px 16px;
+                        border: 1px solid #d1d5db;
+                        border-radius: 8px;
+                        margin-bottom: 12px;
+                        font-size: 16px;
+                        box-sizing: border-box;
+                    ">
+                    <input type="password" id="signupPassword" placeholder="Password" required style="
+                        width: 100%;
+                        padding: 12px 16px;
+                        border: 1px solid #d1d5db;
+                        border-radius: 8px;
+                        margin-bottom: 16px;
+                        font-size: 16px;
+                        box-sizing: border-box;
+                    ">
+                    <button type="submit" style="
+                        width: 100%;
+                        background: #386594;
+                        color: white;
+                        border: none;
+                        padding: 14px 20px;
+                        border-radius: 8px;
+                        font-weight: 600;
+                        font-size: 16px;
+                        cursor: pointer;
+                        box-sizing: border-box;
+                    ">Sign Up Free</button>
+                </form>
+                
+                <div style="
+                    font-size: 13px;
+                    color: #6b7280;
+                    margin-bottom: 16px;
+                ">Already have an account? <a href="#" id="loginLink" style="color: #386594; text-decoration: none;">Sign in</a></div>
+                
+                <button id="closeModal" style="
+                    background: none;
+                    border: none;
+                    color: #9ca3af;
+                    font-size: 20px;
+                    cursor: pointer;
+                    position: absolute;
+                    top: 16px;
+                    right: 16px;
+                ">×</button>
+            </div>
+        `;
+
+        document.body.appendChild(modal);
+
+        // Handle form submission
+        const form = modal.querySelector('#signupForm');
+        const emailInput = modal.querySelector('#signupEmail');
+        const passwordInput = modal.querySelector('#signupPassword');
+        const loginLink = modal.querySelector('#loginLink');
+        const closeBtn = modal.querySelector('#closeModal');
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const email = emailInput.value;
+            const password = passwordInput.value;
+            
+            try {
+                // Call registration API
+                const response = await fetch('/api/auth/register', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ email, password })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    // Store token and user info
+                    if (window.authUtils) {
+                        window.authUtils.setAuthToken(data.token);
+                        window.authUtils.setUserInfo(data.user);
+                    }
+                    
+                    // Close modal and download
+                    document.body.removeChild(modal);
+                    utils.showNotification('Account created successfully! Downloading your image...', 'success');
+                    
+                    // Download the image
+                    setTimeout(() => {
+                        utils.downloadFile(this.resultImg.src, 'background-removed.png');
+                    }, 1000);
+                } else {
+                    utils.showNotification(data.error || 'Registration failed', 'error');
+                }
+            } catch (error) {
+                console.error('Registration error:', error);
+                utils.showNotification('Registration failed. Please try again.', 'error');
+            }
+        });
+
+        // Handle login link
+        loginLink.addEventListener('click', (e) => {
+            e.preventDefault();
+            document.body.removeChild(modal);
+            window.location.href = 'login.html';
+        });
+
+        // Handle close button
+        closeBtn.addEventListener('click', () => {
+            document.body.removeChild(modal);
+        });
+
+        // Close modal when clicking outside
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) {
+                document.body.removeChild(modal);
+            }
+        });
     }
 
     resetBackgroundRemoval() {

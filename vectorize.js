@@ -340,42 +340,48 @@ class VectorizeApp {
             justify-content: center;
             align-items: center;
             z-index: 10000;
-            padding: 20px;
+            padding: 16px;
+            box-sizing: border-box;
         `;
 
         modal.innerHTML = `
             <div style="
                 background: white;
                 border-radius: 16px;
-                width: 90%;
+                width: 100%;
                 max-width: 400px;
-                padding: 32px 24px;
+                padding: 24px 20px;
                 text-align: center;
                 box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+                max-height: 90vh;
+                overflow-y: auto;
+                position: relative;
             ">
                 <h2 style="
-                    font-size: 24px;
+                    font-size: 20px;
                     font-weight: bold;
                     color: #111827;
                     margin-bottom: 8px;
+                    line-height: 1.3;
                 ">Get Your Vectorized Image</h2>
                 
                 <p style="
-                    font-size: 16px;
+                    font-size: 14px;
                     color: #6b7280;
-                    margin-bottom: 24px;
+                    margin-bottom: 20px;
+                    line-height: 1.4;
                 ">Sign up to download your result + 2 free credits</p>
                 
                 <div style="
                     background: #f3f4f6;
                     border-radius: 8px;
-                    padding: 16px;
-                    margin-bottom: 24px;
+                    padding: 12px;
+                    margin-bottom: 20px;
                 ">
-                    <div style="font-size: 14px; color: #6b7280; margin-bottom: 8px;">✓ Download your result now</div>
-                    <div style="font-size: 14px; color: #6b7280; margin-bottom: 8px;">✓ 2 free credits included</div>
-                    <div style="font-size: 14px; color: #6b7280; margin-bottom: 8px;">✓ No credit card required</div>
-                    <div style="font-size: 14px; color: #6b7280;">✓ Cancel anytime</div>
+                    <div style="font-size: 13px; color: #6b7280; margin-bottom: 6px;">✓ Download your result now</div>
+                    <div style="font-size: 13px; color: #6b7280; margin-bottom: 6px;">✓ 2 free credits included</div>
+                    <div style="font-size: 13px; color: #6b7280; margin-bottom: 6px;">✓ No credit card required</div>
+                    <div style="font-size: 13px; color: #6b7280;">✓ Cancel anytime</div>
                 </div>
                 
                 <form id="signupForm" style="margin-bottom: 16px;">
@@ -386,6 +392,7 @@ class VectorizeApp {
                         border-radius: 8px;
                         margin-bottom: 12px;
                         font-size: 16px;
+                        box-sizing: border-box;
                     ">
                     <input type="password" id="signupPassword" placeholder="Password" required style="
                         width: 100%;
@@ -394,6 +401,7 @@ class VectorizeApp {
                         border-radius: 8px;
                         margin-bottom: 16px;
                         font-size: 16px;
+                        box-sizing: border-box;
                     ">
                     <button type="submit" style="
                         width: 100%;
@@ -405,11 +413,12 @@ class VectorizeApp {
                         font-weight: 600;
                         font-size: 16px;
                         cursor: pointer;
+                        box-sizing: border-box;
                     ">Sign Up Free</button>
                 </form>
                 
                 <div style="
-                    font-size: 14px;
+                    font-size: 13px;
                     color: #6b7280;
                     margin-bottom: 16px;
                 ">Already have an account? <a href="#" id="loginLink" style="color: #386594; text-decoration: none;">Sign in</a></div>
