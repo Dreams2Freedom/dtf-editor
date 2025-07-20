@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Paywall Debug Test</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="custom-tailwind.css">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .test-container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .test-button {
+            background: #386594;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        .test-button:hover {
+            background: #25425f;
+        }
+        .debug-info {
+            background: #f0f0f0;
+            padding: 10px;
+            border-radius: 4px;
+            margin: 10px 0;
+            font-family: monospace;
+            font-size: 12px;
+        }
+        .error {
+            background: #fee;
+            color: #c33;
+            border: 1px solid #fcc;
+        }
+        .success {
+            background: #efe;
+            color: #363;
+            border: 1px solid #cfc;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <h1>Paywall Debug Test</h1>
+        
+        <div id="debugOutput"></div>
+        
+        <h2>Test Controls</h2>
+        <button class="test-button" onclick="testPaywallCreation()">Test Paywall Creation</button>
+        <button class="test-button" onclick="testPaywallShow()">Test Paywall Show</button>
+        <button class="test-button" onclick="testPaywallHide()">Test Paywall Hide</button>
+        <button class="test-button" onclick="testAuthentication()">Test Authentication Check</button>
+        <button class="test-button" onclick="clearDebug()">Clear Debug</button>
+        
+        <h2>Manual Modal Test</h2>
+        <button class="test-button" onclick="createSimpleModal()">Create Simple Modal</button>
+        <button class="test-button" onclick="createComplexModal()">Create Complex Modal</button>
+    </div>
+
+    <script src="auth-utils.js"></script>
+    <script src="paywall.js"></script>
+    <script>
+        function log(message, type = 'info') {
+            const debugOutput = document.getElementById('debugOutput');
+            const timestamp = new Date().toLocaleTimeString();
+            const logEntry = document.createElement('div');
+            logEntry.className = `debug-info ${type}`;
+            logEntry.innerHTML = `<strong>[${timestamp}]</strong> ${message}`;
+            debugOutput.appendChild(logEntry);
+            console.log(`[${timestamp}] ${message}`);
+        }
+
+        function clearDebug() {
+            document.getElementById('debugOutput').innerHTML = '';
+        }
+
+        function testPaywallCreation() {
+            log('Testing paywall creation...');
+            
+            try {
+                log(`window.paywallModal exists: ${!!window.paywallModal}`);
+                log(`window.paywallModal type: ${typeof window.paywallModal}`);
+                
+                if (window.paywallModal) {
+                    log(`PaywallModal constructor: ${window.paywallModal.constructor.name}`);
+                    log(`PaywallModal methods: ${Object.getOwnPropertyNames(Object.getPrototypeOf(window.paywallModal))}`);
+                    log('Paywall creation test: SUCCESS', 'success');
+                } else {
+                    log('Paywall creation test: FAILED - paywallModal not found', 'error');
+                }
+            } catch (error) {
+                log(`Paywall creation test: ERROR - ${error.message}`, 'error');
+            }
+        }
+
+        function testPaywallShow() {
+            log('Testing paywall show...');
+            
+            try {
+                if (window.paywallModal) {
+                    window.paywallModal.show('test');
+                    log('Paywall show test: SUCCESS', 'success');
+                } else {
+                    log('Paywall show test: FAILED - paywallModal not found', 'error');
+                }
+            } catch (error) {
+                log(`Paywall show test: ERROR - ${error.message}`, 'error');
+            }
+        }
+
+        function testPaywallHide() {
+            log('Testing paywall hide...');
+            
+            try {
+                if (window.paywallModal) {
+                    window.paywallModal.hide();
+                    log('Paywall hide test: SUCCESS', 'success');
+                } else {
+                    log('Paywall hide test: FAILED - paywallModal not found', 'error');
+                }
+            } catch (error) {
+                log(`Paywall hide test: ERROR - ${error.message}`, 'error');
+            }
+        }
+
+        function testAuthentication() {
+            log('Testing authentication check...');
+            
+            try {
+                if (window.paywallModal) {
+                    const result = window.paywallModal.showIfNotAuthenticated('test');
+                    log(`Authentication test result: ${result}`);
+                    log('Authentication test: SUCCESS', 'success');
+                } else {
+                    log('Authentication test: FAILED - paywallModal not found', 'error');
+                }
+            } catch (error) {
+                log(`Authentication test: ERROR - ${error.message}`, 'error');
+            }
+        }
+
+        function createSimpleModal() {
+            log('Creating simple modal...');
+            
+            try {
+                const modal = document.createElement('div');
+                modal.id = 'simpleModal';
+                modal.style.cssText = `
+                    position: fixed;
+                    top: 0;
+                    left: 0;
+                    width: 100%;
+                    height: 100%;
+                    background: rgba(0,0,0,0.5);
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    z-index: 1000;
+                `;
+                
+                modal.innerHTML = `
+                    <div style="
+                        background: white;
+                        padding: 20px;
+                        border-radius: 8px;
+                        max-width: 400px;
+                        text-align: center;
+                    ">
+                        <h3>Simple Modal Test</h3>
+                        <p>This is a simple modal to test basic functionality.</p>
+                        <button onclick="this.parentElement.parentElement.remove()" style="
+                            background: #386594;
+                            color: white;
+                            border: none;
+                            padding: 10px 20px;
+                            border-radius: 4px;
+                            cursor: pointer;
+                        ">Close</button>
+                    </div>
+                `;
+                
+                document.body.appendChild(modal);
+                log('Simple modal created successfully', 'success');
+            } catch (error) {
+                log(`Simple modal creation failed: ${error.message}`, 'error');
+            }
+        }
+
+        function createComplexModal() {
+            log('Creating complex modal with paywall-like structure...');
+            
+            try {
+                const modal = document.createElement('div');
+                modal.id = 'complexModal';
+                modal.style.cssText = `
+                    position: fixed;
+                    top: 0;
+                    left: 0;
+                    width: 100%;
+                    height: 100%;
+                    background: rgba(0,0,0,0.5);
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    z-index: 1000;
+                    padding: 20px;
+                `;
+                
+                modal.innerHTML = `
+                    <div style="
+                        background: white;
+                        border-radius: 16px;
+                        max-width: 500px;
+                        width: 100%;
+                        max-height: 85vh;
+                        overflow-y: auto;
+                        box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1);
+                    ">
+                        <div style="
+                            padding: 24px;
+                            border-bottom: 1px solid #e5e7eb;
+                            position: relative;
+                        ">
+                            <button onclick="this.parentElement.parentElement.parentElement.remove()" style="
+                                position: absolute;
+                                top: 16px;
+                                right: 16px;
+                                background: none;
+                                border: none;
+                                font-size: 20px;
+                                cursor: pointer;
+                                color: #9ca3af;
+                            ">×</button>
+                            
+                            <div style="text-align: center;">
+                                <h2 style="
+                                    font-size: 24px;
+                                    font-weight: bold;
+                                    color: #111827;
+                                    margin-bottom: 12px;
+                                ">Unlock Professional DTF Tools</h2>
+                                <p style="
+                                    color: #6b7280;
+                                    margin-bottom: 8px;
+                                ">Transform your images with AI-powered vectorization and background removal</p>
+                                <div style="
+                                    display: flex;
+                                    align-items: center;
+                                    justify-content: center;
+                                    gap: 24px;
+                                    font-size: 14px;
+                                    color: #6b7280;
+                                ">
+                                    <div style="display: flex; align-items: center;">
+                                        <span style="color: #386594; margin-right: 8px;">✓</span>
+                                        Vectorization
+                                    </div>
+                                    <div style="display: flex; align-items: center;">
+                                        <span style="color: #E88B4B; margin-right: 8px;">✓</span>
+                                        Background Removal
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div style="padding: 24px;">
+                            <div style="
+                                background: linear-gradient(135deg, #386594, #457BB9);
+                                border: 2px solid #386594;
+                                border-radius: 12px;
+                                padding: 24px;
+                                color: white;
+                                text-align: center;
+                                position: relative;
+                            ">
+                                <div style="
+                                    position: absolute;
+                                    top: -12px;
+                                    left: 50%;
+                                    transform: translateX(-50%);
+                                    background: #E88B4B;
+                                    color: white;
+                                    padding: 4px 12px;
+                                    border-radius: 9999px;
+                                    font-size: 12px;
+                                    font-weight: bold;
+                                ">MOST POPULAR</div>
+                                
+                                <h3 style="font-size: 20px; font-weight: bold; margin-bottom: 8px;">Basic</h3>
+                                <div style="margin-bottom: 12px;">
+                                    <span style="font-size: 32px; font-weight: bold;">$9.99</span>
+                                    <span>/month</span>
+                                </div>
+                                <p style="font-size: 14px; margin-bottom: 24px;">For growing businesses</p>
+                                
+                                <ul style="
+                                    list-style: none;
+                                    padding: 0;
+                                    margin: 0 0 32px 0;
+                                    text-align: left;
+                                ">
+                                    <li style="display: flex; align-items: start; margin-bottom: 12px;">
+                                        <span style="margin-right: 12px; margin-top: 2px;">✓</span>
+                                        <span style="font-size: 14px;">20 credits per month</span>
+                                    </li>
+                                    <li style="display: flex; align-items: start; margin-bottom: 12px;">
+                                        <span style="margin-right: 12px; margin-top: 2px;">✓</span>
+                                        <span style="font-size: 14px;">Professional vectorization</span>
+                                    </li>
+                                    <li style="display: flex; align-items: start; margin-bottom: 12px;">
+                                        <span style="margin-right: 12px; margin-top: 2px;">✓</span>
+                                        <span style="font-size: 14px;">Priority processing</span>
+                                    </li>
+                                </ul>
+                                
+                                <button style="
+                                    width: 100%;
+                                    background: white;
+                                    color: #386594;
+                                    border: none;
+                                    padding: 12px 24px;
+                                    border-radius: 8px;
+                                    font-weight: bold;
+                                    cursor: pointer;
+                                ">Start Basic</button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                
+                document.body.appendChild(modal);
+                log('Complex modal created successfully', 'success');
+            } catch (error) {
+                log(`Complex modal creation failed: ${error.message}`, 'error');
+            }
+        }
+
+        // Auto-run tests on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            log('Page loaded, running initial tests...');
+            setTimeout(() => {
+                testPaywallCreation();
+            }, 100);
+        });
+    </script>
+</body>
+</html> 

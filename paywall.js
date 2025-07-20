@@ -32,32 +32,77 @@ class PaywallModal {
             // Create modal container
             const modal = document.createElement('div');
             modal.id = 'paywallModal';
-            modal.className = 'fixed inset-0 bg-black bg-opacity-50 z-50 hidden flex items-center justify-center p-4 md:p-6 lg:p-8';
+            modal.style.cssText = `
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background-color: rgba(0, 0, 0, 0.5);
+                z-index: 9999;
+                display: none;
+                align-items: center;
+                justify-content: center;
+                padding: 16px;
+            `;
         
         modal.innerHTML = `
-            <div class="bg-white rounded-2xl shadow-2xl w-[85%] max-w-md mx-auto max-h-[85vh] overflow-y-auto border-0 md:max-w-4xl lg:max-w-5xl">
+            <div style="
+                background: white;
+                border-radius: 16px;
+                width: 85%;
+                max-width: 500px;
+                margin: 0 auto;
+                max-height: 85vh;
+                overflow-y: auto;
+                box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+                border: none;
+            ">
                 <!-- Header with Close Button -->
-                <div class="relative p-6 md:p-8 border-b border-gray-100">
-                    <button id="paywallCloseBtn" class="absolute top-4 right-4 md:top-6 md:right-6 text-gray-400 hover:text-gray-600 transition-colors p-2 rounded-lg hover:bg-gray-50">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-                        </svg>
-                    </button>
+                <div style="
+                    position: relative;
+                    padding: 24px;
+                    border-bottom: 1px solid #f3f4f6;
+                ">
+                    <button id="paywallCloseBtn" style="
+                        position: absolute;
+                        top: 16px;
+                        right: 16px;
+                        color: #9ca3af;
+                        background: none;
+                        border: none;
+                        padding: 8px;
+                        border-radius: 8px;
+                        cursor: pointer;
+                        font-size: 20px;
+                    ">×</button>
                     
-                    <div class="text-center max-w-2xl mx-auto">
-                        <h2 class="text-2xl md:text-3xl lg:text-4xl font-bold text-gray-900 mb-3">Unlock Professional DTF Tools</h2>
-                        <p class="text-base md:text-lg text-gray-600 mb-2">Transform your images with AI-powered vectorization and background removal</p>
-                        <div class="flex items-center justify-center space-x-6 text-sm text-gray-500">
-                            <div class="flex items-center">
-                                <svg class="w-4 h-4 mr-2" style="color: #386594;" fill="currentColor" viewBox="0 0 20 20">
-                                    <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
-                                </svg>
+                    <div style="text-align: center; max-width: 500px; margin: 0 auto;">
+                        <h2 style="
+                            font-size: 24px;
+                            font-weight: bold;
+                            color: #111827;
+                            margin-bottom: 12px;
+                        ">Unlock Professional DTF Tools</h2>
+                        <p style="
+                            font-size: 16px;
+                            color: #6b7280;
+                            margin-bottom: 8px;
+                        ">Transform your images with AI-powered vectorization and background removal</p>
+                        <div style="
+                            display: flex;
+                            align-items: center;
+                            justify-content: center;
+                            gap: 24px;
+                            font-size: 14px;
+                            color: #6b7280;
+                        ">
+                            <div style="display: flex; align-items: center;">
+                                <span style="color: #386594; margin-right: 8px;">✓</span>
                                 Vectorization
                             </div>
-                            <div class="flex items-center">
-                                <svg class="w-4 h-4 mr-2" style="color: #E88B4B;" fill="currentColor" viewBox="0 0 20 20">
-                                    <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
-                                </svg>
+                            <div style="display: flex; align-items: center;">
+                                <span style="color: #E88B4B; margin-right: 8px;">✓</span>
                                 Background Removal
                             </div>
                         </div>
@@ -65,307 +110,828 @@ class PaywallModal {
                 </div>
 
                 <!-- Pricing Plans -->
-                <div class="p-6 md:p-8">
+                <div style="padding: 24px;">
                     <!-- Mobile Slider (hidden on desktop) -->
-                    <div class="md:hidden">
-                        <div class="relative overflow-hidden">
+                    <div id="mobileSlider" style="display: block;">
+                        <div style="position: relative; overflow: hidden;">
                             <!-- Slider Container -->
-                            <div id="planSlider" class="flex transition-transform duration-300 ease-in-out" style="width: 300%;">
+                            <div id="planSlider" style="
+                                display: flex;
+                                transition: transform 0.3s ease-in-out;
+                                width: 300%;
+                            ">
                                 <!-- Free Plan -->
-                                <div class="w-1/3 flex-shrink-0 px-1">
-                                    <div class="bg-white border border-gray-200 rounded-xl p-6 hover:border-primary/30 transition-all duration-300 hover:shadow-lg">
-                                        <div class="text-center mb-6">
-                                            <h3 class="text-xl font-bold text-gray-900 mb-2">Free</h3>
-                                            <div class="mb-3">
-                                                <span class="text-3xl font-bold text-gray-900">$0</span>
-                                                <span class="text-gray-600">/month</span>
+                                <div style="width: 33.333%; flex-shrink: 0; padding: 0 4px;">
+                                    <div style="
+                                        background: white;
+                                        border: 1px solid #e5e7eb;
+                                        border-radius: 12px;
+                                        padding: 24px;
+                                        transition: all 0.3s;
+                                    ">
+                                        <div style="text-align: center; margin-bottom: 24px;">
+                                            <h3 style="
+                                                font-size: 20px;
+                                                font-weight: bold;
+                                                color: #111827;
+                                                margin-bottom: 8px;
+                                            ">Free</h3>
+                                            <div style="margin-bottom: 12px;">
+                                                <span style="
+                                                    font-size: 32px;
+                                                    font-weight: bold;
+                                                    color: #111827;
+                                                ">$0</span>
+                                                <span style="color: #6b7280;">/month</span>
                                             </div>
-                                            <p class="text-sm text-gray-600">Perfect for getting started</p>
+                                            <p style="
+                                                font-size: 14px;
+                                                color: #6b7280;
+                                            ">Perfect for getting started</p>
                                         </div>
                                         
-                                        <ul class="space-y-3 mb-8">
-                                            <li class="flex items-start">
-                                                <svg class="w-5 h-5 text-green-500 mr-3 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                                                    <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
-                                                </svg>
-                                                <span class="text-sm text-gray-700">2 credits per month</span>
+                                        <ul style="
+                                            list-style: none;
+                                            padding: 0;
+                                            margin: 0 0 32px 0;
+                                        ">
+                                            <li style="
+                                                display: flex;
+                                                align-items: start;
+                                                margin-bottom: 12px;
+                                            ">
+                                                <span style="
+                                                    color: #059669;
+                                                    margin-right: 12px;
+                                                    margin-top: 2px;
+                                                ">✓</span>
+                                                <span style="
+                                                    font-size: 14px;
+                                                    color: #374151;
+                                                ">2 credits per month</span>
                                             </li>
-                                            <li class="flex items-start">
-                                                <svg class="w-5 h-5 text-green-500 mr-3 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                                                    <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
-                                                </svg>
-                                                <span class="text-sm text-gray-700">Basic vectorization</span>
+                                            <li style="
+                                                display: flex;
+                                                align-items: start;
+                                                margin-bottom: 12px;
+                                            ">
+                                                <span style="
+                                                    color: #059669;
+                                                    margin-right: 12px;
+                                                    margin-top: 2px;
+                                                ">✓</span>
+                                                <span style="
+                                                    font-size: 14px;
+                                                    color: #374151;
+                                                ">Basic vectorization</span>
                                             </li>
-                                            <li class="flex items-start">
-                                                <svg class="w-5 h-5 text-green-500 mr-3 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                                                    <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
-                                                </svg>
-                                                <span class="text-sm text-gray-700">Background removal</span>
+                                            <li style="
+                                                display: flex;
+                                                align-items: start;
+                                                margin-bottom: 12px;
+                                            ">
+                                                <span style="
+                                                    color: #059669;
+                                                    margin-right: 12px;
+                                                    margin-top: 2px;
+                                                ">✓</span>
+                                                <span style="
+                                                    font-size: 14px;
+                                                    color: #374151;
+                                                ">Background removal</span>
                                             </li>
                                         </ul>
                                         
-                                        <button id="signupFreeBtn" class="w-full bg-white border-2 py-3 px-6 rounded-lg font-semibold transition-all duration-300 text-sm" style="color: #386594; border-color: #386594;">
-                                            Start Free
-                                        </button>
+                                        <button id="signupFreeBtn" style="
+                                            width: 100%;
+                                            background: white;
+                                            color: #386594;
+                                            border: 2px solid #386594;
+                                            padding: 12px 24px;
+                                            border-radius: 8px;
+                                            font-weight: 600;
+                                            transition: all 0.3s;
+                                            font-size: 14px;
+                                            cursor: pointer;
+                                        ">Start Free</button>
                                     </div>
                                 </div>
 
                                 <!-- Basic Plan - Featured -->
-                                <div class="w-1/3 flex-shrink-0 px-1">
-                                    <div class="relative border-2 rounded-xl p-6 shadow-xl overflow-hidden" style="background: linear-gradient(135deg, #386594, #457BB9); border-color: #386594;">
+                                <div style="width: 33.333%; flex-shrink: 0; padding: 0 4px;">
+                                    <div style="
+                                        position: relative;
+                                        background: linear-gradient(135deg, #386594, #457BB9);
+                                        border: 2px solid #386594;
+                                        border-radius: 12px;
+                                        padding: 24px;
+                                        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+                                        overflow: hidden;
+                                    ">
                                         <!-- Background overlay for better text readability -->
-                                        <div class="absolute inset-0" style="background-color: rgba(0, 0, 0, 0.1);"></div>
-                                        <div class="relative z-10">
-                                        <div class="absolute -top-3 left-1/2 transform -translate-x-1/2">
-                                            <span class="text-white px-3 py-1 rounded-full text-xs font-bold shadow-lg" style="background-color: #E88B4B;">MOST POPULAR</span>
-                                        </div>
-                                        
-                                        <div class="text-center mb-6">
-                                            <h3 class="text-xl font-bold text-white mb-2 drop-shadow-lg font-black">Basic</h3>
-                                            <div class="mb-3">
-                                                <span class="text-3xl font-black text-white drop-shadow-lg">$9.99</span>
-                                                <span class="text-white drop-shadow-lg font-semibold">/month</span>
+                                        <div style="
+                                            position: absolute;
+                                            top: 0;
+                                            left: 0;
+                                            right: 0;
+                                            bottom: 0;
+                                            background-color: rgba(0, 0, 0, 0.1);
+                                        "></div>
+                                        <div style="position: relative; z-index: 10;">
+                                            <div style="
+                                                position: absolute;
+                                                top: -12px;
+                                                left: 50%;
+                                                transform: translateX(-50%);
+                                            ">
+                                                <span style="
+                                                    background-color: #E88B4B;
+                                                    color: white;
+                                                    padding: 4px 12px;
+                                                    border-radius: 9999px;
+                                                    font-size: 12px;
+                                                    font-weight: bold;
+                                                    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+                                                ">MOST POPULAR</span>
                                             </div>
-                                            <p class="text-sm text-white drop-shadow-lg font-semibold">For growing businesses</p>
-                                        </div>
-                                        
-                                        <ul class="space-y-3 mb-8">
-                                            <li class="flex items-start">
-                                                <svg class="w-5 h-5 text-white mr-3 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                                                    <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
-                                                </svg>
-                                                <span class="text-sm text-white">20 credits per month</span>
-                                            </li>
-                                            <li class="flex items-start">
-                                                <svg class="w-5 h-5 text-white mr-3 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                                                    <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
-                                                </svg>
-                                                <span class="text-sm text-white">Professional vectorization</span>
-                                            </li>
-                                            <li class="flex items-start">
-                                                <svg class="w-5 h-5 text-white mr-3 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                                                    <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
-                                                </svg>
-                                                <span class="text-sm text-white">Priority processing</span>
-                                            </li>
-                                            <li class="flex items-start">
-                                                <svg class="w-5 h-5 text-white mr-3 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                                                    <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
-                                                </svg>
-                                                <span class="text-sm text-white">Email support</span>
-                                            </li>
-                                        </ul>
-                                        
-                                        <button id="signupBasicBtn" class="w-full bg-white py-3 px-6 rounded-lg font-bold transition-all duration-300 text-sm shadow-lg" style="color: #386594;">
-                                            Start Basic
-                                        </button>
+                                            
+                                            <div style="text-align: center; margin-bottom: 24px;">
+                                                <h3 style="
+                                                    font-size: 20px;
+                                                    font-weight: bold;
+                                                    color: white;
+                                                    margin-bottom: 8px;
+                                                    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+                                                ">Basic</h3>
+                                                <div style="margin-bottom: 12px;">
+                                                    <span style="
+                                                        font-size: 32px;
+                                                        font-weight: bold;
+                                                        color: white;
+                                                        text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+                                                    ">$9.99</span>
+                                                    <span style="
+                                                        color: white;
+                                                        text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+                                                    ">/month</span>
+                                                </div>
+                                                <p style="
+                                                    font-size: 14px;
+                                                    color: white;
+                                                    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+                                                ">For growing businesses</p>
+                                            </div>
+                                            
+                                            <ul style="
+                                                list-style: none;
+                                                padding: 0;
+                                                margin: 0 0 32px 0;
+                                            ">
+                                                <li style="
+                                                    display: flex;
+                                                    align-items: start;
+                                                    margin-bottom: 12px;
+                                                ">
+                                                    <span style="
+                                                        color: white;
+                                                        margin-right: 12px;
+                                                        margin-top: 2px;
+                                                    ">✓</span>
+                                                    <span style="
+                                                        font-size: 14px;
+                                                        color: white;
+                                                    ">20 credits per month</span>
+                                                </li>
+                                                <li style="
+                                                    display: flex;
+                                                    align-items: start;
+                                                    margin-bottom: 12px;
+                                                ">
+                                                    <span style="
+                                                        color: white;
+                                                        margin-right: 12px;
+                                                        margin-top: 2px;
+                                                    ">✓</span>
+                                                    <span style="
+                                                        font-size: 14px;
+                                                        color: white;
+                                                    ">Professional vectorization</span>
+                                                </li>
+                                                <li style="
+                                                    display: flex;
+                                                    align-items: start;
+                                                    margin-bottom: 12px;
+                                                ">
+                                                    <span style="
+                                                        color: white;
+                                                        margin-right: 12px;
+                                                        margin-top: 2px;
+                                                    ">✓</span>
+                                                    <span style="
+                                                        font-size: 14px;
+                                                        color: white;
+                                                    ">Priority processing</span>
+                                                </li>
+                                                <li style="
+                                                    display: flex;
+                                                    align-items: start;
+                                                    margin-bottom: 12px;
+                                                ">
+                                                    <span style="
+                                                        color: white;
+                                                        margin-right: 12px;
+                                                        margin-top: 2px;
+                                                    ">✓</span>
+                                                    <span style="
+                                                        font-size: 14px;
+                                                        color: white;
+                                                    ">Email support</span>
+                                                </li>
+                                            </ul>
+                                            
+                                            <button id="signupBasicBtn" style="
+                                                width: 100%;
+                                                background: white;
+                                                color: #386594;
+                                                border: none;
+                                                padding: 12px 24px;
+                                                border-radius: 8px;
+                                                font-weight: bold;
+                                                transition: all 0.3s;
+                                                font-size: 14px;
+                                                cursor: pointer;
+                                                box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+                                            ">Start Basic</button>
                                         </div>
                                     </div>
                                 </div>
 
                                 <!-- Professional Plan -->
-                                <div class="w-1/3 flex-shrink-0 px-1">
-                                    <div class="bg-white border border-gray-200 rounded-xl p-6 hover:border-accent/30 transition-all duration-300 hover:shadow-lg">
-                                        <div class="text-center mb-6">
-                                            <h3 class="text-xl font-bold text-gray-900 mb-2">Professional</h3>
-                                            <div class="mb-3">
-                                                <span class="text-3xl font-bold text-accent">$24.99</span>
-                                                <span class="text-gray-600">/month</span>
+                                <div style="width: 33.333%; flex-shrink: 0; padding: 0 4px;">
+                                    <div style="
+                                        background: white;
+                                        border: 1px solid #e5e7eb;
+                                        border-radius: 12px;
+                                        padding: 24px;
+                                        transition: all 0.3s;
+                                    ">
+                                        <div style="text-align: center; margin-bottom: 24px;">
+                                            <h3 style="
+                                                font-size: 20px;
+                                                font-weight: bold;
+                                                color: #111827;
+                                                margin-bottom: 8px;
+                                            ">Professional</h3>
+                                            <div style="margin-bottom: 12px;">
+                                                <span style="
+                                                    font-size: 32px;
+                                                    font-weight: bold;
+                                                    color: #E88B4B;
+                                                ">$24.99</span>
+                                                <span style="color: #6b7280;">/month</span>
                                             </div>
-                                            <p class="text-sm text-gray-600">For power users</p>
+                                            <p style="
+                                                font-size: 14px;
+                                                color: #6b7280;
+                                            ">For power users</p>
                                         </div>
                                         
-                                        <ul class="space-y-3 mb-8">
-                                            <li class="flex items-start">
-                                                <svg class="w-5 h-5 text-green-500 mr-3 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                                                    <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
-                                                </svg>
-                                                <span class="text-sm text-gray-700">60 credits per month</span>
+                                        <ul style="
+                                            list-style: none;
+                                            padding: 0;
+                                            margin: 0 0 32px 0;
+                                        ">
+                                            <li style="
+                                                display: flex;
+                                                align-items: start;
+                                                margin-bottom: 12px;
+                                            ">
+                                                <span style="
+                                                    color: #059669;
+                                                    margin-right: 12px;
+                                                    margin-top: 2px;
+                                                ">✓</span>
+                                                <span style="
+                                                    font-size: 14px;
+                                                    color: #374151;
+                                                ">60 credits per month</span>
                                             </li>
-                                            <li class="flex items-start">
-                                                <svg class="w-5 h-5 text-green-500 mr-3 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                                                    <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
-                                                </svg>
-                                                <span class="text-sm text-gray-700">Advanced features</span>
+                                            <li style="
+                                                display: flex;
+                                                align-items: start;
+                                                margin-bottom: 12px;
+                                            ">
+                                                <span style="
+                                                    color: #059669;
+                                                    margin-right: 12px;
+                                                    margin-top: 2px;
+                                                ">✓</span>
+                                                <span style="
+                                                    font-size: 14px;
+                                                    color: #374151;
+                                                ">Advanced features</span>
                                             </li>
-                                            <li class="flex items-start">
-                                                <svg class="w-5 h-5 text-green-500 mr-3 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                                                    <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
-                                                </svg>
-                                                <span class="text-sm text-gray-700">Unlimited processing</span>
+                                            <li style="
+                                                display: flex;
+                                                align-items: start;
+                                                margin-bottom: 12px;
+                                            ">
+                                                <span style="
+                                                    color: #059669;
+                                                    margin-right: 12px;
+                                                    margin-top: 2px;
+                                                ">✓</span>
+                                                <span style="
+                                                    font-size: 14px;
+                                                    color: #374151;
+                                                ">Unlimited processing</span>
                                             </li>
-                                            <li class="flex items-start">
-                                                <svg class="w-5 h-5 text-green-500 mr-3 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                                                    <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
-                                                </svg>
-                                                <span class="text-sm text-gray-700">Priority support</span>
+                                            <li style="
+                                                display: flex;
+                                                align-items: start;
+                                                margin-bottom: 12px;
+                                            ">
+                                                <span style="
+                                                    color: #059669;
+                                                    margin-right: 12px;
+                                                    margin-top: 2px;
+                                                ">✓</span>
+                                                <span style="
+                                                    font-size: 14px;
+                                                    color: #374151;
+                                                ">Priority support</span>
                                             </li>
                                         </ul>
                                         
-                                        <button id="signupProBtn" class="w-full text-white py-3 px-6 rounded-lg font-semibold transition-all duration-300 text-sm shadow-lg" style="background-color: #E88B4B;">
-                                            Start Professional
-                                        </button>
+                                        <button id="signupProBtn" style="
+                                            width: 100%;
+                                            background-color: #E88B4B;
+                                            color: white;
+                                            border: none;
+                                            padding: 12px 24px;
+                                            border-radius: 8px;
+                                            font-weight: 600;
+                                            transition: all 0.3s;
+                                            font-size: 14px;
+                                            cursor: pointer;
+                                            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+                                        ">Start Professional</button>
                                     </div>
                                 </div>
                             </div>
 
                             <!-- Navigation Arrows -->
-                            <button id="prevPlan" class="absolute left-2 top-1/2 transform -translate-y-1/2 bg-white/90 backdrop-blur-sm text-gray-600 hover:text-primary p-2 rounded-full shadow-lg border border-gray-200 transition-all duration-300">
-                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
-                                </svg>
-                            </button>
-                            <button id="nextPlan" class="absolute right-2 top-1/2 transform -translate-y-1/2 bg-white/90 backdrop-blur-sm text-gray-600 hover:text-primary p-2 rounded-full shadow-lg border border-gray-200 transition-all duration-300">
-                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
-                                </svg>
-                            </button>
+                            <button id="prevPlan" style="
+                                position: absolute;
+                                left: 8px;
+                                top: 50%;
+                                transform: translateY(-50%);
+                                background: rgba(255, 255, 255, 0.9);
+                                color: #6b7280;
+                                padding: 8px;
+                                border-radius: 50%;
+                                box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+                                border: 1px solid #e5e7eb;
+                                transition: all 0.3s;
+                                cursor: pointer;
+                                width: 40px;
+                                height: 40px;
+                                display: flex;
+                                align-items: center;
+                                justify-content: center;
+                            ">‹</button>
+                            <button id="nextPlan" style="
+                                position: absolute;
+                                right: 8px;
+                                top: 50%;
+                                transform: translateY(-50%);
+                                background: rgba(255, 255, 255, 0.9);
+                                color: #6b7280;
+                                padding: 8px;
+                                border-radius: 50%;
+                                box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+                                border: 1px solid #e5e7eb;
+                                transition: all 0.3s;
+                                cursor: pointer;
+                                width: 40px;
+                                height: 40px;
+                                display: flex;
+                                align-items: center;
+                                justify-content: center;
+                            ">›</button>
                         </div>
 
                         <!-- Pagination Dots -->
-                        <div class="flex justify-center mt-6 space-x-2">
-                            <button class="planDot w-3 h-3 rounded-full transition-all duration-300" data-plan="0" style="background-color: #386594;"></button>
-                            <button class="planDot w-3 h-3 rounded-full transition-all duration-300" data-plan="1" style="background-color: #d1d5db;"></button>
-                            <button class="planDot w-3 h-3 rounded-full transition-all duration-300" data-plan="2" style="background-color: #d1d5db;"></button>
+                        <div style="
+                            display: flex;
+                            justify-content: center;
+                            margin-top: 24px;
+                            gap: 8px;
+                        ">
+                            <button class="planDot" data-plan="0" style="
+                                width: 12px;
+                                height: 12px;
+                                border-radius: 50%;
+                                transition: all 0.3s;
+                                background-color: #386594;
+                                border: none;
+                                cursor: pointer;
+                            "></button>
+                            <button class="planDot" data-plan="1" style="
+                                width: 12px;
+                                height: 12px;
+                                border-radius: 50%;
+                                transition: all 0.3s;
+                                background-color: #d1d5db;
+                                border: none;
+                                cursor: pointer;
+                            "></button>
+                            <button class="planDot" data-plan="2" style="
+                                width: 12px;
+                                height: 12px;
+                                border-radius: 50%;
+                                transition: all 0.3s;
+                                background-color: #d1d5db;
+                                border: none;
+                                cursor: pointer;
+                            "></button>
                         </div>
                     </div>
 
                     <!-- Desktop Grid (hidden on mobile) -->
-                    <div class="hidden md:grid md:grid-cols-3 gap-6 md:gap-8">
-                        <!-- Free Plan -->
-                        <div class="relative bg-white border border-gray-200 rounded-xl p-6 md:p-8 hover:border-primary/30 transition-all duration-300 hover:shadow-lg">
-                            <div class="text-center mb-6">
-                                <h3 class="text-xl font-bold text-gray-900 mb-2">Free</h3>
-                                <div class="mb-3">
-                                    <span class="text-3xl font-bold text-gray-900">$0</span>
-                                    <span class="text-gray-600">/month</span>
+                    <div id="desktopGrid" style="display: none;">
+                        <div style="
+                            display: grid;
+                            grid-template-columns: repeat(3, 1fr);
+                            gap: 24px;
+                        ">
+                            <!-- Free Plan -->
+                            <div style="
+                                position: relative;
+                                background: white;
+                                border: 1px solid #e5e7eb;
+                                border-radius: 12px;
+                                padding: 24px;
+                                transition: all 0.3s;
+                            ">
+                                <div style="text-align: center; margin-bottom: 24px;">
+                                    <h3 style="
+                                        font-size: 20px;
+                                        font-weight: bold;
+                                        color: #111827;
+                                        margin-bottom: 8px;
+                                    ">Free</h3>
+                                    <div style="margin-bottom: 12px;">
+                                        <span style="
+                                            font-size: 32px;
+                                            font-weight: bold;
+                                            color: #111827;
+                                        ">$0</span>
+                                        <span style="color: #6b7280;">/month</span>
+                                    </div>
+                                    <p style="
+                                        font-size: 14px;
+                                        color: #6b7280;
+                                    ">Perfect for getting started</p>
                                 </div>
-                                <p class="text-sm text-gray-600">Perfect for getting started</p>
+                                
+                                <ul style="
+                                    list-style: none;
+                                    padding: 0;
+                                    margin: 0 0 32px 0;
+                                ">
+                                    <li style="
+                                        display: flex;
+                                        align-items: start;
+                                        margin-bottom: 12px;
+                                    ">
+                                        <span style="
+                                            color: #059669;
+                                            margin-right: 12px;
+                                            margin-top: 2px;
+                                        ">✓</span>
+                                        <span style="
+                                            font-size: 14px;
+                                            color: #374151;
+                                        ">2 credits per month</span>
+                                    </li>
+                                    <li style="
+                                        display: flex;
+                                        align-items: start;
+                                        margin-bottom: 12px;
+                                    ">
+                                        <span style="
+                                            color: #059669;
+                                            margin-right: 12px;
+                                            margin-top: 2px;
+                                        ">✓</span>
+                                        <span style="
+                                            font-size: 14px;
+                                            color: #374151;
+                                        ">Basic vectorization</span>
+                                    </li>
+                                    <li style="
+                                        display: flex;
+                                        align-items: start;
+                                        margin-bottom: 12px;
+                                    ">
+                                        <span style="
+                                            color: #059669;
+                                            margin-right: 12px;
+                                            margin-top: 2px;
+                                        ">✓</span>
+                                        <span style="
+                                            font-size: 14px;
+                                            color: #374151;
+                                        ">Background removal</span>
+                                    </li>
+                                </ul>
+                                
+                                <button id="signupFreeBtnDesktop" style="
+                                    width: 100%;
+                                    background: white;
+                                    color: #386594;
+                                    border: 2px solid #386594;
+                                    padding: 12px 24px;
+                                    border-radius: 8px;
+                                    font-weight: 600;
+                                    transition: all 0.3s;
+                                    font-size: 14px;
+                                    cursor: pointer;
+                                ">Start Free</button>
                             </div>
-                            
-                            <ul class="space-y-3 mb-8">
-                                <li class="flex items-start">
-                                    <svg class="w-5 h-5 text-green-500 mr-3 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                                        <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
-                                    </svg>
-                                    <span class="text-sm text-gray-700">2 credits per month</span>
-                                </li>
-                                <li class="flex items-start">
-                                    <svg class="w-5 h-5 text-green-500 mr-3 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                                        <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
-                                    </svg>
-                                    <span class="text-sm text-gray-700">Basic vectorization</span>
-                                </li>
-                                <li class="flex items-start">
-                                    <svg class="w-5 h-5 text-green-500 mr-3 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                                        <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
-                                    </svg>
-                                    <span class="text-sm text-gray-700">Background removal</span>
-                                </li>
-                            </ul>
-                            
-                            <button id="signupFreeBtnDesktop" class="w-full bg-white border-2 py-3 px-6 rounded-lg font-semibold transition-all duration-300 text-sm" style="color: #386594; border-color: #386594;">
-                                Start Free
-                            </button>
-                        </div>
 
-                        <!-- Basic Plan - Featured -->
-                        <div class="relative border-2 rounded-xl p-6 md:p-8 transform scale-105 shadow-xl" style="background: linear-gradient(135deg, #386594, #457BB9); border-color: #386594;">
-                            <div class="absolute -top-4 left-1/2 transform -translate-x-1/2">
-                                <span class="text-white px-4 py-2 rounded-full text-xs font-bold shadow-lg" style="background-color: #E88B4B;">MOST POPULAR</span>
-                            </div>
-                            
-                            <div class="text-center mb-6">
-                                <h3 class="text-xl font-bold text-white mb-2 drop-shadow-sm">Basic</h3>
-                                <div class="mb-3">
-                                    <span class="text-3xl font-bold text-white drop-shadow-sm">$9.99</span>
-                                    <span class="text-white drop-shadow-sm">/month</span>
+                            <!-- Basic Plan - Featured -->
+                            <div style="
+                                position: relative;
+                                background: linear-gradient(135deg, #386594, #457BB9);
+                                border: 2px solid #386594;
+                                border-radius: 12px;
+                                padding: 24px;
+                                transform: scale(1.05);
+                                box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+                            ">
+                                <div style="
+                                    position: absolute;
+                                    top: -16px;
+                                    left: 50%;
+                                    transform: translateX(-50%);
+                                ">
+                                    <span style="
+                                        background-color: #E88B4B;
+                                        color: white;
+                                        padding: 8px 16px;
+                                        border-radius: 9999px;
+                                        font-size: 12px;
+                                        font-weight: bold;
+                                        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+                                    ">MOST POPULAR</span>
                                 </div>
-                                <p class="text-sm text-white drop-shadow-sm">For growing businesses</p>
+                                
+                                <div style="text-align: center; margin-bottom: 24px;">
+                                    <h3 style="
+                                        font-size: 20px;
+                                        font-weight: bold;
+                                        color: white;
+                                        margin-bottom: 8px;
+                                        text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+                                    ">Basic</h3>
+                                    <div style="margin-bottom: 12px;">
+                                        <span style="
+                                            font-size: 32px;
+                                            font-weight: bold;
+                                            color: white;
+                                            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+                                        ">$9.99</span>
+                                        <span style="
+                                            color: white;
+                                            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+                                        ">/month</span>
+                                    </div>
+                                    <p style="
+                                        font-size: 14px;
+                                        color: white;
+                                        text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+                                    ">For growing businesses</p>
+                                </div>
+                                
+                                <ul style="
+                                    list-style: none;
+                                    padding: 0;
+                                    margin: 0 0 32px 0;
+                                ">
+                                    <li style="
+                                        display: flex;
+                                        align-items: start;
+                                        margin-bottom: 12px;
+                                    ">
+                                        <span style="
+                                            color: white;
+                                            margin-right: 12px;
+                                            margin-top: 2px;
+                                        ">✓</span>
+                                        <span style="
+                                            font-size: 14px;
+                                            color: white;
+                                        ">20 credits per month</span>
+                                    </li>
+                                    <li style="
+                                        display: flex;
+                                        align-items: start;
+                                        margin-bottom: 12px;
+                                    ">
+                                        <span style="
+                                            color: white;
+                                            margin-right: 12px;
+                                            margin-top: 2px;
+                                        ">✓</span>
+                                        <span style="
+                                            font-size: 14px;
+                                            color: white;
+                                        ">Professional vectorization</span>
+                                    </li>
+                                    <li style="
+                                        display: flex;
+                                        align-items: start;
+                                        margin-bottom: 12px;
+                                    ">
+                                        <span style="
+                                            color: white;
+                                            margin-right: 12px;
+                                            margin-top: 2px;
+                                        ">✓</span>
+                                        <span style="
+                                            font-size: 14px;
+                                            color: white;
+                                        ">Priority processing</span>
+                                    </li>
+                                    <li style="
+                                        display: flex;
+                                        align-items: start;
+                                        margin-bottom: 12px;
+                                    ">
+                                        <span style="
+                                            color: white;
+                                            margin-right: 12px;
+                                            margin-top: 2px;
+                                        ">✓</span>
+                                        <span style="
+                                            font-size: 14px;
+                                            color: white;
+                                        ">Email support</span>
+                                    </li>
+                                </ul>
+                                
+                                <button id="signupBasicBtnDesktop" style="
+                                    width: 100%;
+                                    background: white;
+                                    color: #386594;
+                                    border: none;
+                                    padding: 12px 24px;
+                                    border-radius: 8px;
+                                    font-weight: bold;
+                                    transition: all 0.3s;
+                                    font-size: 14px;
+                                    cursor: pointer;
+                                    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+                                ">Start Basic</button>
                             </div>
-                            
-                                                                        <ul class="space-y-3 mb-8">
-                                                <li class="flex items-start">
-                                                    <svg class="w-5 h-5 text-white mr-3 mt-0.5 flex-shrink-0 drop-shadow-lg" fill="currentColor" viewBox="0 0 20 20">
-                                                        <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
-                                                    </svg>
-                                                    <span class="text-sm text-white drop-shadow-lg font-semibold">20 credits per month</span>
-                                                </li>
-                                                <li class="flex items-start">
-                                                    <svg class="w-5 h-5 text-white mr-3 mt-0.5 flex-shrink-0 drop-shadow-lg" fill="currentColor" viewBox="0 0 20 20">
-                                                        <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
-                                                    </svg>
-                                                    <span class="text-sm text-white drop-shadow-lg font-semibold">Professional vectorization</span>
-                                                </li>
-                                                <li class="flex items-start">
-                                                    <svg class="w-5 h-5 text-white mr-3 mt-0.5 flex-shrink-0 drop-shadow-lg" fill="currentColor" viewBox="0 0 20 20">
-                                                        <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
-                                                    </svg>
-                                                    <span class="text-sm text-white drop-shadow-lg font-semibold">Priority processing</span>
-                                                </li>
-                                                <li class="flex items-start">
-                                                    <svg class="w-5 h-5 text-white mr-3 mt-0.5 flex-shrink-0 drop-shadow-lg" fill="currentColor" viewBox="0 0 20 20">
-                                                        <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
-                                                    </svg>
-                                                    <span class="text-sm text-white drop-shadow-lg font-semibold">Email support</span>
-                                                </li>
-                                            </ul>
-                            
-                            <button id="signupBasicBtnDesktop" class="w-full bg-white py-3 px-6 rounded-lg font-bold transition-all duration-300 text-sm shadow-lg" style="color: #386594;">
-                                Start Basic
-                            </button>
-                        </div>
 
-                        <!-- Professional Plan -->
-                        <div class="relative bg-white border border-gray-200 rounded-xl p-6 md:p-8 hover:border-accent/30 transition-all duration-300 hover:shadow-lg">
-                            <div class="text-center mb-6">
-                                <h3 class="text-xl font-bold text-gray-900 mb-2">Professional</h3>
-                                <div class="mb-3">
-                                    <span class="text-3xl font-bold text-accent">$24.99</span>
-                                    <span class="text-gray-600">/month</span>
+                            <!-- Professional Plan -->
+                            <div style="
+                                position: relative;
+                                background: white;
+                                border: 1px solid #e5e7eb;
+                                border-radius: 12px;
+                                padding: 24px;
+                                transition: all 0.3s;
+                            ">
+                                <div style="text-align: center; margin-bottom: 24px;">
+                                    <h3 style="
+                                        font-size: 20px;
+                                        font-weight: bold;
+                                        color: #111827;
+                                        margin-bottom: 8px;
+                                    ">Professional</h3>
+                                    <div style="margin-bottom: 12px;">
+                                        <span style="
+                                            font-size: 32px;
+                                            font-weight: bold;
+                                            color: #E88B4B;
+                                        ">$24.99</span>
+                                        <span style="color: #6b7280;">/month</span>
+                                    </div>
+                                    <p style="
+                                        font-size: 14px;
+                                        color: #6b7280;
+                                    ">For power users</p>
                                 </div>
-                                <p class="text-sm text-gray-600">For power users</p>
+                                
+                                <ul style="
+                                    list-style: none;
+                                    padding: 0;
+                                    margin: 0 0 32px 0;
+                                ">
+                                    <li style="
+                                        display: flex;
+                                        align-items: start;
+                                        margin-bottom: 12px;
+                                    ">
+                                        <span style="
+                                            color: #059669;
+                                            margin-right: 12px;
+                                            margin-top: 2px;
+                                        ">✓</span>
+                                        <span style="
+                                            font-size: 14px;
+                                            color: #374151;
+                                        ">60 credits per month</span>
+                                    </li>
+                                    <li style="
+                                        display: flex;
+                                        align-items: start;
+                                        margin-bottom: 12px;
+                                    ">
+                                        <span style="
+                                            color: #059669;
+                                            margin-right: 12px;
+                                            margin-top: 2px;
+                                        ">✓</span>
+                                        <span style="
+                                            font-size: 14px;
+                                            color: #374151;
+                                        ">Advanced features</span>
+                                    </li>
+                                    <li style="
+                                        display: flex;
+                                        align-items: start;
+                                        margin-bottom: 12px;
+                                    ">
+                                        <span style="
+                                            color: #059669;
+                                            margin-right: 12px;
+                                            margin-top: 2px;
+                                        ">✓</span>
+                                        <span style="
+                                            font-size: 14px;
+                                            color: #374151;
+                                        ">Unlimited processing</span>
+                                    </li>
+                                    <li style="
+                                        display: flex;
+                                        align-items: start;
+                                        margin-bottom: 12px;
+                                    ">
+                                        <span style="
+                                            color: #059669;
+                                            margin-right: 12px;
+                                            margin-top: 2px;
+                                        ">✓</span>
+                                        <span style="
+                                            font-size: 14px;
+                                            color: #374151;
+                                        ">Priority support</span>
+                                    </li>
+                                </ul>
+                                
+                                <button id="signupProBtnDesktop" style="
+                                    width: 100%;
+                                    background-color: #E88B4B;
+                                    color: white;
+                                    border: none;
+                                    padding: 12px 24px;
+                                    border-radius: 8px;
+                                    font-weight: 600;
+                                    transition: all 0.3s;
+                                    font-size: 14px;
+                                    cursor: pointer;
+                                    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+                                ">Start Professional</button>
                             </div>
-                            
-                            <ul class="space-y-3 mb-8">
-                                <li class="flex items-start">
-                                    <svg class="w-5 h-5 text-green-500 mr-3 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                                        <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
-                                    </svg>
-                                    <span class="text-sm text-gray-700">60 credits per month</span>
-                                </li>
-                                <li class="flex items-start">
-                                    <svg class="w-5 h-5 text-green-500 mr-3 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                                        <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
-                                    </svg>
-                                    <span class="text-sm text-gray-700">Advanced features</span>
-                                </li>
-                                <li class="flex items-start">
-                                    <svg class="w-5 h-5 text-green-500 mr-3 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                                        <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
-                                    </svg>
-                                    <span class="text-sm text-gray-700">Unlimited processing</span>
-                                </li>
-                                <li class="flex items-start">
-                                    <svg class="w-5 h-5 text-green-500 mr-3 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                                        <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
-                                    </svg>
-                                    <span class="text-sm text-gray-700">Priority support</span>
-                                </li>
-                            </ul>
-                            
-                            <button id="signupProBtnDesktop" class="w-full text-white py-3 px-6 rounded-lg font-semibold transition-all duration-300 text-sm shadow-lg" style="background-color: #E88B4B;">
-                                Start Professional
-                            </button>
                         </div>
                     </div>
 
                     <!-- Login Option -->
-                    <div class="text-center mt-8 pt-6 border-t border-gray-100">
-                        <p class="text-sm text-gray-600 mb-4">Already have an account?</p>
-                        <button id="loginBtn" class="font-semibold transition-colors text-sm" style="color: #386594;">
-                            Log In
-                        </button>
+                    <div style="
+                        text-align: center;
+                        margin-top: 32px;
+                        padding-top: 24px;
+                        border-top: 1px solid #f3f4f6;
+                    ">
+                        <p style="
+                            font-size: 14px;
+                            color: #6b7280;
+                            margin-bottom: 16px;
+                        ">Already have an account?</p>
+                        <button id="loginBtn" style="
+                            color: #386594;
+                            font-weight: 600;
+                            transition: color 0.2s;
+                            font-size: 14px;
+                            background: none;
+                            border: none;
+                            cursor: pointer;
+                        ">Log In</button>
                     </div>
                 </div>
             </div>
@@ -492,7 +1058,7 @@ class PaywallModal {
             container.style.justifyContent = 'flex-start';
             
             // Ensure the active plan is fully visible
-            const planCards = slider.querySelectorAll('.w-1/3');
+            const planCards = slider.querySelectorAll('[style*="width: 33.333%"]');
             planCards.forEach((card, index) => {
                 if (index === currentPlan) {
                     card.style.opacity = '1';
@@ -575,8 +1141,21 @@ class PaywallModal {
         this.isVisible = true;
         
         if (this.modal) {
-            this.modal.classList.remove('hidden');
-            this.modal.classList.add('flex');
+            // Set responsive display
+            const mobileSlider = document.getElementById('mobileSlider');
+            const desktopGrid = document.getElementById('desktopGrid');
+            
+            if (window.innerWidth < 768) {
+                // Mobile view
+                if (mobileSlider) mobileSlider.style.display = 'block';
+                if (desktopGrid) desktopGrid.style.display = 'none';
+            } else {
+                // Desktop view
+                if (mobileSlider) mobileSlider.style.display = 'none';
+                if (desktopGrid) desktopGrid.style.display = 'block';
+            }
+            
+            this.modal.style.display = 'flex';
             document.body.style.overflow = 'hidden';
             console.log('Paywall modal should now be visible');
         } else {
@@ -586,8 +1165,9 @@ class PaywallModal {
 
     hide() {
         this.isVisible = false;
-        this.modal.classList.add('hidden');
-        this.modal.classList.remove('flex');
+        if (this.modal) {
+            this.modal.style.display = 'none';
+        }
         document.body.style.overflow = '';
         this.currentAction = null;
     }
