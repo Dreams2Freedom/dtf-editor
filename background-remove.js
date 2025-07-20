@@ -960,7 +960,76 @@ class BackgroundRemoveApp {
                 const data = await response.json();
                 console.log('Registration response data:', data);
                 
-                if (data.token && data.user) {
+                if (response.status === 409) {
+                    console.log('User already exists, attempting login');
+                    
+                    // Try to log in with the provided credentials
+                    try {
+                        const loginResponse = await fetch('/api/auth/login', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify({ email, password })
+                        });
+                        
+                        const loginData = await loginResponse.json();
+                        
+                        if (loginData.success && loginData.token) {
+                            console.log('Login successful for existing user');
+                            
+                            // Store token and user info
+                            if (window.authUtils) {
+                                window.authUtils.setAuthToken(loginData.token);
+                                window.authUtils.setUserInfo(loginData.user);
+                            }
+                            
+                            // Close modal
+                            document.body.removeChild(modal);
+                            utils.showNotification('Welcome back! Logged in successfully.', 'success');
+                            
+                            // Handle pending download if exists
+                            if (this.pendingDownloadData) {
+                                try {
+                                    // Download the processed image from ClippingMagic API
+                                    const result = await this.downloadClippingMagicResult(
+                                        this.pendingDownloadData.imageId, 
+                                        this.pendingDownloadData.imageSecret
+                                    );
+                                    
+                                    // Show the result
+                                    this.showResults({
+                                        success: true,
+                                        bgRemovedUrl: result,
+                                        originalUrl: this.currentOriginalUrl
+                                    });
+                                    
+                                    // Download the file
+                                    setTimeout(() => {
+                                        utils.downloadFile(result, 'background-removed.png');
+                                    }, 1000);
+                                    
+                                    // Clear pending download data
+                                    this.pendingDownloadData = null;
+                                } catch (error) {
+                                    console.error('Failed to download result after login:', error);
+                                    utils.showNotification('Failed to download your image. Please try again.', 'error');
+                                }
+                            } else {
+                                // Fallback to current image if no pending download
+                                setTimeout(() => {
+                                    utils.downloadFile(this.resultImg.src, 'background-removed.png');
+                                }, 1000);
+                            }
+                        } else {
+                            console.error('Login failed:', loginData.error);
+                            utils.showNotification('Account exists but password is incorrect. Please try again.', 'error');
+                        }
+                    } catch (loginError) {
+                        console.error('Login attempt failed:', loginError);
+                        utils.showNotification('Account exists but login failed. Please try again.', 'error');
+                    }
+                } else if (data.token && data.user) {
                     // Store token and user info
                     if (window.authUtils) {
                         window.authUtils.setAuthToken(data.token);
