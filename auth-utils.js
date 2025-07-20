@@ -37,6 +37,16 @@ function getAuthToken() {
     return localStorage.getItem('authToken');
 }
 
+// Set auth token
+function setAuthToken(token) {
+    localStorage.setItem('authToken', token);
+}
+
+// Set user info
+function setUserInfo(user) {
+    localStorage.setItem('userData', JSON.stringify(user));
+}
+
 // Verify token with server
 async function verifyToken() {
     const token = getAuthToken();
@@ -148,6 +158,8 @@ window.authUtils = {
     isAuthenticated,
     getCurrentUser,
     getAuthToken,
+    setAuthToken,
+    setUserInfo,
     verifyToken,
     redirectBasedOnUserType,
     addLogoutButton,
