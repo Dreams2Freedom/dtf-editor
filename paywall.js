@@ -381,58 +381,90 @@ class PaywallModal {
     }
 
     setupEventListeners() {
-        // Close button
-        document.getElementById('paywallCloseBtn').addEventListener('click', () => {
-            this.hide();
-        });
-
-        // Close on backdrop click
-        this.modal.addEventListener('click', (e) => {
-            if (e.target === this.modal) {
-                this.hide();
+        try {
+            // Close button
+            const closeBtn = document.getElementById('paywallCloseBtn');
+            if (closeBtn) {
+                closeBtn.addEventListener('click', () => {
+                    this.hide();
+                });
             }
-        });
 
-        // Close on escape key
-        document.addEventListener('keydown', (e) => {
-            if (e.key === 'Escape' && this.isVisible) {
-                this.hide();
+            // Close on backdrop click
+            if (this.modal) {
+                this.modal.addEventListener('click', (e) => {
+                    if (e.target === this.modal) {
+                        this.hide();
+                    }
+                });
             }
-        });
 
-        // Mobile slider functionality
-        this.setupMobileSlider();
+            // Close on escape key
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape' && this.isVisible) {
+                    this.hide();
+                }
+            });
 
-        // Signup buttons (mobile)
-        document.getElementById('signupFreeBtn').addEventListener('click', () => {
-            this.handleSignup('free');
-        });
+            // Mobile slider functionality
+            this.setupMobileSlider();
 
-        document.getElementById('signupBasicBtn').addEventListener('click', () => {
-            this.handleSignup('basic');
-        });
+            // Signup buttons (mobile)
+            const signupFreeBtn = document.getElementById('signupFreeBtn');
+            if (signupFreeBtn) {
+                signupFreeBtn.addEventListener('click', () => {
+                    this.handleSignup('free');
+                });
+            }
 
-        document.getElementById('signupProBtn').addEventListener('click', () => {
-            this.handleSignup('professional');
-        });
+            const signupBasicBtn = document.getElementById('signupBasicBtn');
+            if (signupBasicBtn) {
+                signupBasicBtn.addEventListener('click', () => {
+                    this.handleSignup('basic');
+                });
+            }
 
-        // Signup buttons (desktop)
-        document.getElementById('signupFreeBtnDesktop').addEventListener('click', () => {
-            this.handleSignup('free');
-        });
+            const signupProBtn = document.getElementById('signupProBtn');
+            if (signupProBtn) {
+                signupProBtn.addEventListener('click', () => {
+                    this.handleSignup('professional');
+                });
+            }
 
-        document.getElementById('signupBasicBtnDesktop').addEventListener('click', () => {
-            this.handleSignup('basic');
-        });
+            // Signup buttons (desktop)
+            const signupFreeBtnDesktop = document.getElementById('signupFreeBtnDesktop');
+            if (signupFreeBtnDesktop) {
+                signupFreeBtnDesktop.addEventListener('click', () => {
+                    this.handleSignup('free');
+                });
+            }
 
-        document.getElementById('signupProBtnDesktop').addEventListener('click', () => {
-            this.handleSignup('professional');
-        });
+            const signupBasicBtnDesktop = document.getElementById('signupBasicBtnDesktop');
+            if (signupBasicBtnDesktop) {
+                signupBasicBtnDesktop.addEventListener('click', () => {
+                    this.handleSignup('basic');
+                });
+            }
 
-        // Login button
-        document.getElementById('loginBtn').addEventListener('click', () => {
-            this.handleLogin();
-        });
+            const signupProBtnDesktop = document.getElementById('signupProBtnDesktop');
+            if (signupProBtnDesktop) {
+                signupProBtnDesktop.addEventListener('click', () => {
+                    this.handleSignup('professional');
+                });
+            }
+
+            // Login button
+            const loginBtn = document.getElementById('loginBtn');
+            if (loginBtn) {
+                loginBtn.addEventListener('click', () => {
+                    this.handleLogin();
+                });
+            }
+
+            console.log('Paywall event listeners setup complete');
+        } catch (error) {
+            console.error('Error setting up paywall event listeners:', error);
+        }
     }
 
     setupMobileSlider() {
@@ -440,6 +472,12 @@ class PaywallModal {
         const prevBtn = document.getElementById('prevPlan');
         const nextBtn = document.getElementById('nextPlan');
         const dots = document.querySelectorAll('.planDot');
+        
+        // Check if mobile slider elements exist (only on mobile)
+        if (!slider || !prevBtn || !nextBtn || dots.length === 0) {
+            console.log('Mobile slider elements not found, skipping mobile slider setup');
+            return;
+        }
         
         let currentPlan = 0;
         const totalPlans = 3;
