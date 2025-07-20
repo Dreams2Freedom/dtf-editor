@@ -112,7 +112,7 @@ app.use(helmet({
             fontSrc: ["'self'", "https:", "data:"],
             imgSrc: ["'self'", "data:", "https:", "blob:"],
             connectSrc: ["'self'", "https://api.stripe.com", "https://vectorizer.ai", "https://api.clippingmagic.com", "https://clippingmagic.com"],
-            frameSrc: ["'self'", "https://js.stripe.com", "https://clippingmagic.com"],
+            frameSrc: ["'self'", "https://js.stripe.com", "https://clippingmagic.com", "blob:", "data:"],
             formAction: ["'self'", "https://clippingmagic.com"],
             objectSrc: ["'none'"],
             mediaSrc: ["'self'"],
