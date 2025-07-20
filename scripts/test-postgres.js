@@ -40,8 +40,10 @@ async function testPostgreSQL() {
         console.log('✅ Database initialized successfully');
         
         // Test user creation
+        const timestamp = Date.now();
+        const testEmail = `test-${timestamp}@example.com`;
         const testUser = {
-            email: 'test@example.com',
+            email: testEmail,
             password_hash: '$2b$10$test',
             first_name: 'Test',
             last_name: 'User',
@@ -57,11 +59,11 @@ async function testPostgreSQL() {
         console.log('✅ User created successfully, ID:', userId);
         
         // Test user retrieval
-        const user = await dbHelpers.getUserByEmail('test@example.com');
+        const user = await dbHelpers.getUserByEmail(testEmail);
         
         // Assertions for user retrieval
         assertNotNull(user, 'User should not be null');
-        assertEqual(user.email, 'test@example.com', 'User email should match');
+        assertEqual(user.email, testEmail, 'User email should match');
         assertEqual(user.first_name, 'Test', 'User first name should match');
         assertEqual(user.last_name, 'User', 'User last name should match');
         assertEqual(user.company, 'Test Company', 'User company should match');
@@ -71,7 +73,7 @@ async function testPostgreSQL() {
         // Test user retrieval by ID
         const userById = await dbHelpers.getUserById(userId);
         assertNotNull(userById, 'User by ID should not be null');
-        assertEqual(userById.email, 'test@example.com', 'User by ID email should match');
+        assertEqual(userById.email, testEmail, 'User by ID email should match');
         console.log('✅ User retrieved by ID successfully');
         
         // Test image saving
@@ -117,8 +119,8 @@ async function testPostgreSQL() {
         
         const lastTransaction = transactions[0]; // Most recent transaction
         assertEqual(lastTransaction.user_id, userId, 'Transaction user ID should match');
-        assertEqual(lastTransaction.type, 'purchase', 'Transaction type should match');
-        assertEqual(lastTransaction.amount, 10, 'Transaction amount should match');
+        assertEqual(lastTransaction.transaction_type, 'purchase', 'Transaction type should match');
+        assertEqual(lastTransaction.credits_amount, 10, 'Transaction amount should match');
         assertEqual(lastTransaction.description, 'Test credit purchase', 'Transaction description should match');
         console.log('✅ Credit transactions retrieved successfully');
         
@@ -126,14 +128,14 @@ async function testPostgreSQL() {
         const users = await dbHelpers.getAllUsers(5);
         assertNotNull(users, 'Users list should not be null');
         assertTrue(users.length > 0, 'Should have at least one user');
-        assertTrue(users.some(u => u.email === 'test@example.com'), 'Test user should be in users list');
+        assertTrue(users.some(u => u.email === testEmail), 'Test user should be in users list');
         console.log('✅ Retrieved users:', users.length);
         
         const stats = await dbHelpers.getStats();
         assertNotNull(stats, 'Stats should not be null');
-        assertTrue(typeof stats.total_users === 'number', 'Total users should be a number');
-        assertTrue(typeof stats.total_images === 'number', 'Total images should be a number');
-        assertTrue(typeof stats.total_credits_purchased === 'number', 'Total credits purchased should be a number');
+        assertTrue(typeof stats.totalUsers === 'number', 'Total users should be a number');
+        assertTrue(typeof stats.totalImages === 'number', 'Total images should be a number');
+        assertTrue(typeof stats.totalCreditsUsed === 'number', 'Total credits used should be a number');
         console.log('✅ Retrieved stats:', stats);
         
         // Test user update
@@ -143,7 +145,7 @@ async function testPostgreSQL() {
             company: 'Updated Company'
         });
         
-        const updatedUser = await dbHelpers.getUserByEmail('test@example.com');
+        const updatedUser = await dbHelpers.getUserByEmail(testEmail);
         assertEqual(updatedUser.first_name, 'Updated', 'Updated first name should match');
         assertEqual(updatedUser.last_name, 'Name', 'Updated last name should match');
         assertEqual(updatedUser.company, 'Updated Company', 'Updated company should match');
