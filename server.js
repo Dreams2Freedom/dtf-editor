@@ -1057,6 +1057,63 @@ app.post('/api/clipping-magic-upload', authenticateToken, checkCredits(1), uploa
     }
 });
 
+// Clipping Magic download endpoint for guest users (value-first approach)
+app.post('/api/clipping-magic-download-guest', async (req, res) => {
+    try {
+        console.log('Guest Clipping Magic download request received');
+        
+        const { imageId, imageSecret } = req.body;
+        
+        if (!imageId || !imageSecret) {
+            return res.status(400).json({ error: 'Image ID and secret are required' });
+        }
+
+        console.log(`Downloading guest image: ${imageId}`);
+
+        // Track API cost start time
+        const apiStartTime = Date.now();
+        
+        // Make request to Clipping Magic API to download the result
+        const response = await fetch(`https://clippingmagic.com/api/v1/images/${imageId}?format=result`, {
+            method: 'GET',
+            headers: {
+                'Authorization': `Basic ${Buffer.from(`${CLIPPING_MAGIC_API_ID}:${CLIPPING_MAGIC_API_SECRET}`).toString('base64')}`,
+                'X-Image-Secret': imageSecret
+            }
+        });
+
+        const responseTime = Date.now() - apiStartTime;
+
+        if (!response.ok) {
+            const errorText = await response.text();
+            console.error(`Guest Clipping Magic download API error: ${response.status} - ${errorText}`);
+            
+            return res.status(response.status).json({ 
+                error: 'Failed to download image from Clipping Magic',
+                details: errorText
+            });
+        }
+
+        // Get the image buffer
+        const imageBuffer = await response.buffer();
+        console.log('Guest Clipping Magic download successful, buffer size:', imageBuffer.length);
+
+        // Set response headers for image download
+        res.setHeader('Content-Type', 'image/png');
+        res.setHeader('Content-Disposition', `attachment; filename="background_removed_${Date.now()}.png"`);
+        
+        // Send the image buffer
+        res.send(imageBuffer);
+
+    } catch (error) {
+        console.error('Guest Clipping Magic download error:', error);
+        res.status(500).json({ 
+            error: 'Internal server error during Clipping Magic download',
+            details: error.message 
+        });
+    }
+});
+
 // Clipping Magic download endpoint
 app.post('/api/clipping-magic-download', authenticateToken, async (req, res) => {
     try {
