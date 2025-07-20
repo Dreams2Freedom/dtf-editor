@@ -903,7 +903,21 @@ class BackgroundRemoveApp {
         const passwordInput = modal.querySelector('#signupPassword');
         const loginLink = modal.querySelector('#loginLink');
         const closeBtn = modal.querySelector('#closeModal');
+        
+        console.log('Form elements found:', {
+            form: !!form,
+            firstNameInput: !!firstNameInput,
+            lastNameInput: !!lastNameInput,
+            emailInput: !!emailInput,
+            passwordInput: !!passwordInput
+        });
 
+        // Add click handler to button for debugging
+        const submitButton = form.querySelector('button[type="submit"]');
+        submitButton.addEventListener('click', (e) => {
+            console.log('Submit button clicked');
+        });
+        
         form.addEventListener('submit', async (e) => {
             e.preventDefault();
             console.log('Signup form submitted');
@@ -913,22 +927,34 @@ class BackgroundRemoveApp {
             const email = emailInput.value;
             const password = passwordInput.value;
             
+            console.log('Form values:', { firstName, lastName, email, password: '***' });
+            
+            // Validate required fields
+            if (!firstName || !lastName || !email || !password) {
+                console.error('Missing required fields');
+                utils.showNotification('Please fill in all required fields', 'error');
+                return;
+            }
+            
             console.log('Registration attempt with email:', email);
             
             try {
                 // Call registration API
                 console.log('Making registration API call...');
+                const requestBody = { 
+                    email, 
+                    password, 
+                    first_name: firstName, 
+                    last_name: lastName 
+                };
+                console.log('Request body:', requestBody);
+                
                 const response = await fetch('/api/auth/register', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
                     },
-                    body: JSON.stringify({ 
-                        email, 
-                        password, 
-                        first_name: firstName, 
-                        last_name: lastName 
-                    })
+                    body: JSON.stringify(requestBody)
                 });
                 
                 console.log('Registration response status:', response.status);
