@@ -112,18 +112,21 @@ class PaywallModal {
 
                                 <!-- Basic Plan - Featured -->
                                 <div class="w-1/3 flex-shrink-0 px-1">
-                                    <div class="relative bg-gradient-to-br from-primary to-secondary border-2 border-primary rounded-xl p-6 shadow-xl">
+                                    <div class="relative bg-gradient-to-br from-primary to-secondary border-2 border-primary rounded-xl p-6 shadow-xl overflow-hidden">
+                                        <!-- Background overlay for better text readability -->
+                                        <div class="absolute inset-0 bg-black/10"></div>
+                                        <div class="relative z-10">
                                         <div class="absolute -top-3 left-1/2 transform -translate-x-1/2">
                                             <span class="bg-accent text-white px-3 py-1 rounded-full text-xs font-bold shadow-lg">MOST POPULAR</span>
                                         </div>
                                         
                                         <div class="text-center mb-6">
-                                            <h3 class="text-xl font-bold text-white mb-2 drop-shadow-sm">Basic</h3>
+                                            <h3 class="text-xl font-bold text-white mb-2 drop-shadow-lg font-black">Basic</h3>
                                             <div class="mb-3">
-                                                <span class="text-3xl font-bold text-white drop-shadow-sm">$9.99</span>
-                                                <span class="text-white drop-shadow-sm">/month</span>
+                                                <span class="text-3xl font-black text-white drop-shadow-lg">$9.99</span>
+                                                <span class="text-white drop-shadow-lg font-semibold">/month</span>
                                             </div>
-                                            <p class="text-sm text-white drop-shadow-sm">For growing businesses</p>
+                                            <p class="text-sm text-white drop-shadow-lg font-semibold">For growing businesses</p>
                                         </div>
                                         
                                         <ul class="space-y-3 mb-8">
@@ -156,6 +159,7 @@ class PaywallModal {
                                         <button id="signupBasicBtn" class="w-full bg-white text-primary py-3 px-6 rounded-lg font-bold hover:bg-gray-50 transition-all duration-300 text-sm shadow-lg">
                                             Start Basic
                                         </button>
+                                        </div>
                                     </div>
                                 </div>
 
@@ -280,32 +284,32 @@ class PaywallModal {
                                 <p class="text-sm text-white drop-shadow-sm">For growing businesses</p>
                             </div>
                             
-                            <ul class="space-y-3 mb-8">
-                                <li class="flex items-start">
-                                    <svg class="w-5 h-5 text-white mr-3 mt-0.5 flex-shrink-0 drop-shadow-sm" fill="currentColor" viewBox="0 0 20 20">
-                                        <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
-                                    </svg>
-                                    <span class="text-sm text-white drop-shadow-sm">20 credits per month</span>
-                                </li>
-                                <li class="flex items-start">
-                                    <svg class="w-5 h-5 text-white mr-3 mt-0.5 flex-shrink-0 drop-shadow-sm" fill="currentColor" viewBox="0 0 20 20">
-                                        <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
-                                    </svg>
-                                    <span class="text-sm text-white drop-shadow-sm">Professional vectorization</span>
-                                </li>
-                                <li class="flex items-start">
-                                    <svg class="w-5 h-5 text-white mr-3 mt-0.5 flex-shrink-0 drop-shadow-sm" fill="currentColor" viewBox="0 0 20 20">
-                                        <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
-                                    </svg>
-                                    <span class="text-sm text-white drop-shadow-sm">Priority processing</span>
-                                </li>
-                                <li class="flex items-start">
-                                    <svg class="w-5 h-5 text-white mr-3 mt-0.5 flex-shrink-0 drop-shadow-sm" fill="currentColor" viewBox="0 0 20 20">
-                                        <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
-                                    </svg>
-                                    <span class="text-sm text-white drop-shadow-sm">Email support</span>
-                                </li>
-                            </ul>
+                                                                        <ul class="space-y-3 mb-8">
+                                                <li class="flex items-start">
+                                                    <svg class="w-5 h-5 text-white mr-3 mt-0.5 flex-shrink-0 drop-shadow-lg" fill="currentColor" viewBox="0 0 20 20">
+                                                        <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
+                                                    </svg>
+                                                    <span class="text-sm text-white drop-shadow-lg font-semibold">20 credits per month</span>
+                                                </li>
+                                                <li class="flex items-start">
+                                                    <svg class="w-5 h-5 text-white mr-3 mt-0.5 flex-shrink-0 drop-shadow-lg" fill="currentColor" viewBox="0 0 20 20">
+                                                        <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
+                                                    </svg>
+                                                    <span class="text-sm text-white drop-shadow-lg font-semibold">Professional vectorization</span>
+                                                </li>
+                                                <li class="flex items-start">
+                                                    <svg class="w-5 h-5 text-white mr-3 mt-0.5 flex-shrink-0 drop-shadow-lg" fill="currentColor" viewBox="0 0 20 20">
+                                                        <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
+                                                    </svg>
+                                                    <span class="text-sm text-white drop-shadow-lg font-semibold">Priority processing</span>
+                                                </li>
+                                                <li class="flex items-start">
+                                                    <svg class="w-5 h-5 text-white mr-3 mt-0.5 flex-shrink-0 drop-shadow-lg" fill="currentColor" viewBox="0 0 20 20">
+                                                        <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
+                                                    </svg>
+                                                    <span class="text-sm text-white drop-shadow-lg font-semibold">Email support</span>
+                                                </li>
+                                            </ul>
                             
                             <button id="signupBasicBtnDesktop" class="w-full bg-white text-primary py-3 px-6 rounded-lg font-bold hover:bg-gray-50 transition-all duration-300 text-sm shadow-lg">
                                 Start Basic
@@ -448,6 +452,18 @@ class PaywallModal {
             const container = slider.parentElement;
             container.style.display = 'flex';
             container.style.justifyContent = 'flex-start';
+            
+            // Ensure the active plan is fully visible
+            const planCards = slider.querySelectorAll('.w-1/3');
+            planCards.forEach((card, index) => {
+                if (index === currentPlan) {
+                    card.style.opacity = '1';
+                    card.style.transform = 'scale(1)';
+                } else {
+                    card.style.opacity = '0.7';
+                    card.style.transform = 'scale(0.95)';
+                }
+            });
             
             // Update dots
             dots.forEach((dot, index) => {
