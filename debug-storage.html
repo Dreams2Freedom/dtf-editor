@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Storage Debug</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        .debug-section { margin: 20px 0; padding: 15px; border: 1px solid #ccc; border-radius: 8px; }
+        .debug-title { font-weight: bold; margin-bottom: 10px; }
+        .debug-content { background: #f5f5f5; padding: 10px; border-radius: 4px; font-family: monospace; white-space: pre-wrap; }
+        .btn { padding: 10px 20px; margin: 5px; background: #386594; color: white; border: none; border-radius: 4px; cursor: pointer; }
+        .btn:hover { background: #25425f; }
+    </style>
+</head>
+<body>
+    <h1>Storage Debug Page</h1>
+    
+    <div class="debug-section">
+        <div class="debug-title">SessionStorage:</div>
+        <div class="debug-content" id="sessionStorageContent">Loading...</div>
+    </div>
+    
+    <div class="debug-section">
+        <div class="debug-title">LocalStorage:</div>
+        <div class="debug-content" id="localStorageContent">Loading...</div>
+    </div>
+    
+    <div class="debug-section">
+        <div class="debug-title">URL Parameters:</div>
+        <div class="debug-content" id="urlParamsContent">Loading...</div>
+    </div>
+    
+    <div class="debug-section">
+        <div class="debug-title">Actions:</div>
+        <button class="btn" onclick="clearAllStorage()">Clear All Storage</button>
+        <button class="btn" onclick="addTestData()">Add Test Image Data</button>
+        <button class="btn" onclick="refreshDebug()">Refresh Debug Info</button>
+        <button class="btn" onclick="testPaywallFlow()">Test Paywall Flow</button>
+    </div>
+
+    <script>
+        function refreshDebug() {
+            // SessionStorage
+            const sessionData = {};
+            for (let i = 0; i < sessionStorage.length; i++) {
+                const key = sessionStorage.key(i);
+                sessionData[key] = sessionStorage.getItem(key);
+            }
+            document.getElementById('sessionStorageContent').textContent = JSON.stringify(sessionData, null, 2);
+            
+            // LocalStorage
+            const localData = {};
+            for (let i = 0; i < localStorage.length; i++) {
+                const key = localStorage.key(i);
+                localData[key] = localStorage.getItem(key);
+            }
+            document.getElementById('localStorageContent').textContent = JSON.stringify(localData, null, 2);
+            
+            // URL Parameters
+            const urlParams = new URLSearchParams(window.location.search);
+            const urlData = {};
+            for (const [key, value] of urlParams) {
+                urlData[key] = value;
+            }
+            document.getElementById('urlParamsContent').textContent = JSON.stringify(urlData, null, 2);
+        }
+        
+        function clearAllStorage() {
+            sessionStorage.clear();
+            localStorage.clear();
+            refreshDebug();
+            alert('All storage cleared!');
+        }
+        
+        function addTestData() {
+            const testData = {
+                original_url: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==',
+                processed_url: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==',
+                filename: 'test-image.png',
+                type: 'background-remove',
+                timestamp: new Date().toISOString()
+            };
+            
+            sessionStorage.setItem('processedImageData', JSON.stringify(testData));
+            localStorage.setItem('processedImageData', JSON.stringify(testData));
+            
+            refreshDebug();
+            alert('Test image data added!');
+        }
+        
+        function testPaywallFlow() {
+            // Simulate the paywall flow
+            const testData = {
+                original_url: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==',
+                processed_url: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==',
+                filename: 'test-image.png',
+                type: 'background-remove',
+                timestamp: new Date().toISOString()
+            };
+            
+            // Store the data
+            sessionStorage.setItem('processedImageData', JSON.stringify(testData));
+            localStorage.setItem('processedImageData', JSON.stringify(testData));
+            
+            // Create a unique key for URL handoff
+            const imageKey = `img_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+            localStorage.setItem(imageKey, JSON.stringify(testData));
+            
+            // Redirect to register with image key
+            window.location.href = `register.html?imgKey=${encodeURIComponent(imageKey)}`;
+        }
+        
+        // Load debug info on page load
+        document.addEventListener('DOMContentLoaded', refreshDebug);
+    </script>
+</body>
+</html> 
