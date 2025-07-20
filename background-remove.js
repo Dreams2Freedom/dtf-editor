@@ -824,6 +824,24 @@ class BackgroundRemoveApp {
                 </div>
                 
                 <form id="signupForm" style="margin-bottom: 16px;">
+                    <input type="text" id="signupFirstName" placeholder="First name" required style="
+                        width: 100%;
+                        padding: 12px 16px;
+                        border: 1px solid #d1d5db;
+                        border-radius: 8px;
+                        margin-bottom: 12px;
+                        font-size: 16px;
+                        box-sizing: border-box;
+                    ">
+                    <input type="text" id="signupLastName" placeholder="Last name" required style="
+                        width: 100%;
+                        padding: 12px 16px;
+                        border: 1px solid #d1d5db;
+                        border-radius: 8px;
+                        margin-bottom: 12px;
+                        font-size: 16px;
+                        box-sizing: border-box;
+                    ">
                     <input type="email" id="signupEmail" placeholder="Email address" required style="
                         width: 100%;
                         padding: 12px 16px;
@@ -879,6 +897,8 @@ class BackgroundRemoveApp {
 
         // Handle form submission
         const form = modal.querySelector('#signupForm');
+        const firstNameInput = modal.querySelector('#signupFirstName');
+        const lastNameInput = modal.querySelector('#signupLastName');
         const emailInput = modal.querySelector('#signupEmail');
         const passwordInput = modal.querySelector('#signupPassword');
         const loginLink = modal.querySelector('#loginLink');
@@ -886,23 +906,36 @@ class BackgroundRemoveApp {
 
         form.addEventListener('submit', async (e) => {
             e.preventDefault();
+            console.log('Signup form submitted');
             
+            const firstName = firstNameInput.value;
+            const lastName = lastNameInput.value;
             const email = emailInput.value;
             const password = passwordInput.value;
             
+            console.log('Registration attempt with email:', email);
+            
             try {
                 // Call registration API
+                console.log('Making registration API call...');
                 const response = await fetch('/api/auth/register', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
                     },
-                    body: JSON.stringify({ email, password })
+                    body: JSON.stringify({ 
+                        email, 
+                        password, 
+                        first_name: firstName, 
+                        last_name: lastName 
+                    })
                 });
                 
+                console.log('Registration response status:', response.status);
                 const data = await response.json();
+                console.log('Registration response data:', data);
                 
-                if (data.success) {
+                if (data.token && data.user) {
                     // Store token and user info
                     if (window.authUtils) {
                         window.authUtils.setAuthToken(data.token);
