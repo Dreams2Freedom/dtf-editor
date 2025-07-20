@@ -69,8 +69,8 @@ class VectorizeApp {
             this.fileInput.click();
         });
 
-        this.downloadBtn.addEventListener('click', () => {
-            this.downloadVector();
+        this.downloadBtn.addEventListener('click', async () => {
+            await this.downloadVector();
         });
 
         this.newBtn.addEventListener('click', () => {
@@ -329,36 +329,120 @@ class VectorizeApp {
         utils.showNotification(message, 'error');
     }
 
-    downloadVector() {
+    async downloadVector() {
         // Check if user is authenticated
         if (!window.authUtils || !window.authUtils.isAuthenticated()) {
-            // Store the processed image data for post-signup page
-            const imageData = {
-                original_url: this.originalImg ? this.originalImg.src : null,
-                processed_url: this.resultImg ? this.resultImg.src : null,
-                filename: 'vectorized-image.svg',
-                type: 'vectorize',
-                timestamp: new Date().toISOString()
-            };
+            console.log('User not authenticated, preparing to store image data...');
             
-            // Store in both sessionStorage and localStorage for redundancy
-            sessionStorage.setItem('processedImageData', JSON.stringify(imageData));
-            localStorage.setItem('processedImageData', JSON.stringify(imageData));
+            // Convert blob URLs to data URLs to persist through redirects
+            let originalDataUrl = null;
+            let processedDataUrl = null;
             
-            console.log('Stored processed image data:', imageData);
-            
-            // Use paywall modal instead of custom signup modal
-            if (window.paywallModal) {
-                window.paywallModal.show('vectorize');
-            } else {
-                // Fallback to custom modal if paywall is not available
-                this.showSignupModal();
+            try {
+                // Convert original image to data URL
+                if (this.originalImg && this.originalImg.src) {
+                    console.log('Converting original image to data URL...');
+                    originalDataUrl = await this.convertBlobToDataUrl(this.originalImg.src);
+                    console.log('Original image converted to data URL');
+                }
+                
+                // Convert processed image to data URL
+                if (this.resultImg && this.resultImg.src) {
+                    console.log('Converting processed image to data URL...');
+                    processedDataUrl = await this.convertBlobToDataUrl(this.resultImg.src);
+                    console.log('Processed image converted to data URL');
+                }
+                
+                // Store the processed image data for post-signup page
+                const imageData = {
+                    original_url: originalDataUrl || (this.originalImg ? this.originalImg.src : null),
+                    processed_url: processedDataUrl || (this.resultImg ? this.resultImg.src : null),
+                    filename: 'vectorized-image.svg',
+                    type: 'vectorize',
+                    timestamp: new Date().toISOString()
+                };
+                
+                console.log('Prepared image data for storage:', {
+                    hasOriginal: !!imageData.original_url,
+                    hasProcessed: !!imageData.processed_url,
+                    originalType: imageData.original_url ? imageData.original_url.substring(0, 30) + '...' : 'null',
+                    processedType: imageData.processed_url ? imageData.processed_url.substring(0, 30) + '...' : 'null'
+                });
+                
+                // Store in both sessionStorage and localStorage for redundancy
+                sessionStorage.setItem('processedImageData', JSON.stringify(imageData));
+                localStorage.setItem('processedImageData', JSON.stringify(imageData));
+                
+                console.log('Successfully stored processed image data in both storages');
+                
+                // Use paywall modal instead of custom signup modal
+                if (window.paywallModal) {
+                    console.log('Using paywall modal for signup');
+                    window.paywallModal.show('vectorize');
+                } else {
+                    console.log('Paywall modal not available, using fallback');
+                    // Fallback to custom modal if paywall is not available
+                    this.showSignupModal();
+                }
+                return;
+            } catch (error) {
+                console.error('Error preparing image data for storage:', error);
+                // Fallback to original method without data URL conversion
+                const imageData = {
+                    original_url: this.originalImg ? this.originalImg.src : null,
+                    processed_url: this.resultImg ? this.resultImg.src : null,
+                    filename: 'vectorized-image.svg',
+                    type: 'vectorize',
+                    timestamp: new Date().toISOString()
+                };
+                
+                sessionStorage.setItem('processedImageData', JSON.stringify(imageData));
+                localStorage.setItem('processedImageData', JSON.stringify(imageData));
+                
+                if (window.paywallModal) {
+                    window.paywallModal.show('vectorize');
+                } else {
+                    this.showSignupModal();
+                }
+                return;
             }
-            return;
         }
         
         // User is authenticated, proceed with download
+        console.log('User authenticated, proceeding with download');
         utils.downloadFile(this.resultImg.src, 'vectorized-image.svg');
+    }
+
+    async convertBlobToDataUrl(blobUrl) {
+        try {
+            console.log('Converting blob URL to data URL:', blobUrl.substring(0, 50) + '...');
+            
+            // Fetch the blob data
+            const response = await fetch(blobUrl);
+            if (!response.ok) {
+                throw new Error(`Failed to fetch blob: ${response.status}`);
+            }
+            
+            const blob = await response.blob();
+            console.log('Blob fetched, size:', blob.size, 'type:', blob.type);
+            
+            // Convert to data URL
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = () => {
+                    console.log('Data URL created successfully');
+                    resolve(reader.result);
+                };
+                reader.onerror = () => {
+                    console.error('Error reading blob as data URL');
+                    reject(new Error('Failed to convert blob to data URL'));
+                };
+                reader.readAsDataURL(blob);
+            });
+        } catch (error) {
+            console.error('Error converting blob to data URL:', error);
+            throw error;
+        }
     }
 
     showSignupModal() {
