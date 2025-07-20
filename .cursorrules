@@ -26,7 +26,7 @@ DTF Editor is a web application for vectorizing images and removing backgrounds,
 - `auth-utils.js` - Authentication utilities and JWT handling
 - `script.js` - Main frontend JavaScript
 - `styles.css` - Main stylesheet with brand colors and components
-- `custom-tailwind.css` - Custom utility classes
+- `custom-css-system.css` - Custom CSS system with utility classes
 
 ### Feature-Specific Files
 - `vectorize.js` - Vectorization feature logic

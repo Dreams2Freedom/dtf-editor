@@ -113,15 +113,15 @@ class PaywallModal {
                 <div style="padding: 24px;">
                     <!-- Mobile Slider (hidden on desktop) -->
                     <div id="mobileSlider" style="display: block;">
-                        <div style="position: relative; overflow: hidden;">
+                        <div style="position: relative; overflow: hidden; padding: 0 8px;">
                             <!-- Slider Container -->
                             <div id="planSlider" style="
                                 display: flex;
                                 transition: transform 0.3s ease-in-out;
-                                width: 300%;
+                                width: 320%;
                             ">
                                 <!-- Free Plan -->
-                                <div style="width: 33.333%; flex-shrink: 0; padding: 0 4px;">
+                                <div style="width: 31.25%; flex-shrink: 0; padding: 0 8px;">
                                     <div style="
                                         background: white;
                                         border: 1px solid #e5e7eb;
@@ -218,7 +218,7 @@ class PaywallModal {
                                 </div>
 
                                 <!-- Basic Plan - Featured -->
-                                <div style="width: 33.333%; flex-shrink: 0; padding: 0 4px;">
+                                <div style="width: 31.25%; flex-shrink: 0; padding: 0 8px;">
                                     <div style="
                                         position: relative;
                                         background: linear-gradient(135deg, #386594, #457BB9);
@@ -367,7 +367,7 @@ class PaywallModal {
                                 </div>
 
                                 <!-- Professional Plan -->
-                                <div style="width: 33.333%; flex-shrink: 0; padding: 0 4px;">
+                                <div style="width: 31.25%; flex-shrink: 0; padding: 0 8px;">
                                     <div style="
                                         background: white;
                                         border: 1px solid #e5e7eb;
@@ -1049,7 +1049,7 @@ class PaywallModal {
         const totalPlans = 3;
 
         const updateSlider = () => {
-            const translateX = -(currentPlan * 33.333);
+            const translateX = -(currentPlan * 31.25);
             slider.style.transform = `translateX(${translateX}%)`;
             
             // Ensure proper alignment by adjusting container
@@ -1058,7 +1058,7 @@ class PaywallModal {
             container.style.justifyContent = 'flex-start';
             
             // Ensure the active plan is fully visible
-            const planCards = slider.querySelectorAll('[style*="width: 33.333%"]');
+            const planCards = slider.querySelectorAll('[style*="width: 31.25%"]');
             planCards.forEach((card, index) => {
                 if (index === currentPlan) {
                     card.style.opacity = '1';

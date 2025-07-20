@@ -1,6 +1,6 @@
 # DTF Editor
 
-A modern, responsive website for professional image editing with AI-powered vectorization and background removal. Built with HTML, CSS (Tailwind), and JavaScript.
+A modern, responsive website for professional image editing with AI-powered vectorization and background removal. Built with HTML, CSS (Custom CSS System), and JavaScript.
 
 ## Features
 
@@ -70,7 +70,7 @@ Both `vectorizeImage()` and `removeBackground()` methods now make real API calls
 ## Customization
 
 ### Branding & Colors
-The website uses Tailwind CSS with a customizable color scheme. To change colors:
+The website uses a custom CSS system with a customizable color scheme. To change colors:
 
 1. **Primary Colors**: Update the `primary` color palette in `index.html`:
    ```javascript
@@ -102,7 +102,7 @@ The website uses Tailwind CSS with a customizable color scheme. To change colors
 - **Lazy Loading**: Images are loaded only when needed
 - **Debounced Events**: Prevents excessive API calls
 - **Optimized Animations**: Uses CSS transforms for smooth performance
-- **Minimal Dependencies**: Only uses Tailwind CSS CDN
+- **Minimal Dependencies**: Uses custom CSS system with no external dependencies
 
 ## Security Considerations
 
@@ -142,7 +142,7 @@ The website can be deployed to any static hosting service:
    - Clear browser cache
 
 3. **Styling Issues**
-   - Ensure Tailwind CSS is loading properly
+   - Ensure custom CSS system is loading properly
    - Check for CSS conflicts
    - Verify responsive breakpoints
 

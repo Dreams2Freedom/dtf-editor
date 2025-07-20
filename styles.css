@@ -1,5 +1,5 @@
 /* Import our custom utility system */
-@import url('./custom-tailwind.css');
+@import url('./custom-css-system.css');
 
 :root {
   /* Brand Colors */

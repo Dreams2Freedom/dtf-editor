@@ -11,7 +11,7 @@ const CONFIG = {
         favicon: null // Add your favicon URL here
     },
 
-    // Colors (Tailwind CSS compatible)
+    // Colors (Custom CSS System)
     colors: {
         primary: {
             50: '#eff6ff',
