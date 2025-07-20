@@ -437,9 +437,26 @@ app.post('/api/vectorize', authenticateToken, upload.single('image'), async (req
                 metadata: { mode, file_size: req.file.size }
             });
             
+            // Handle specific error types
+            let userMessage = 'Failed to vectorize image';
+            let errorCode = 'VECTORIZATION_FAILED';
+            
+            if (errorText.includes('Too many requests') || errorText.includes('rate limit')) {
+                userMessage = 'Service temporarily unavailable due to high demand. Please try again in a few minutes.';
+                errorCode = 'RATE_LIMITED';
+            } else if (response.status === 429) {
+                userMessage = 'Too many requests. Please wait a moment before trying again.';
+                errorCode = 'RATE_LIMITED';
+            } else if (response.status === 503) {
+                userMessage = 'Service temporarily unavailable. Please try again later.';
+                errorCode = 'SERVICE_UNAVAILABLE';
+            }
+            
             return res.status(response.status).json({ 
-                error: 'Failed to vectorize image',
-                details: errorText
+                error: userMessage,
+                errorCode: errorCode,
+                details: errorText,
+                retryAfter: response.headers.get('retry-after') || '5 minutes'
             });
         }
 
@@ -568,9 +585,26 @@ app.post('/api/preview-guest', upload.single('image'), async (req, res) => {
             const errorText = await response.text();
             console.error(`Vectorizer.AI API error: ${response.status} - ${errorText}`);
             
+            // Handle specific error types for guest users
+            let userMessage = 'Failed to generate preview';
+            let errorCode = 'PREVIEW_FAILED';
+            
+            if (errorText.includes('Too many requests') || errorText.includes('rate limit')) {
+                userMessage = 'Service temporarily unavailable due to high demand. Please try again in a few minutes.';
+                errorCode = 'RATE_LIMITED';
+            } else if (response.status === 429) {
+                userMessage = 'Too many requests. Please wait a moment before trying again.';
+                errorCode = 'RATE_LIMITED';
+            } else if (response.status === 503) {
+                userMessage = 'Service temporarily unavailable. Please try again later.';
+                errorCode = 'SERVICE_UNAVAILABLE';
+            }
+            
             return res.status(response.status).json({ 
-                error: 'Failed to generate preview',
-                details: errorText
+                error: userMessage,
+                errorCode: errorCode,
+                details: errorText,
+                retryAfter: response.headers.get('retry-after') || '5 minutes'
             });
         }
 

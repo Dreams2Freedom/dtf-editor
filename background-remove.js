@@ -210,9 +210,11 @@ class BackgroundRemoveApp {
             this.showProgress();
             console.log('Progress shown');
             
-            // Upload to Clipping Magic and get credentials
+            // Upload to Clipping Magic and get credentials with retry mechanism
             console.log('Starting Clipping Magic upload...');
-            const uploadResult = await this.uploadToClippingMagic(file);
+            const uploadResult = await utils.retryWithBackoff(async () => {
+                return await this.uploadToClippingMagic(file);
+            }, 3, 2000); // 3 retries, 2 second base delay
             console.log('Upload completed:', uploadResult);
             
             // Complete progress
@@ -335,19 +337,32 @@ class BackgroundRemoveApp {
                 this.updateProgress(0);
                 this.progressText.textContent = 'Upload failed';
                 
+                let errorData;
+                try {
+                    errorData = JSON.parse(errorText);
+                } catch (e) {
+                    errorData = { error: errorText };
+                }
+                
                 if (response.status === 401) {
                     throw new Error('Authentication required. Please log in to use this feature.');
                 } else if (response.status === 402) {
-                    const errorData = JSON.parse(errorText);
                     throw new Error(`Insufficient credits. You have ${errorData.credits_remaining} credits remaining.`);
                 } else if (response.status === 413) {
                     throw new Error('File is too large for processing. Please use a smaller image.');
                 } else if (response.status === 400) {
                     throw new Error('Invalid file format. Please upload a valid image file (PNG, JPG, or GIF).');
+                } else if (response.status === 429 || errorData.errorCode === 'RATE_LIMITED') {
+                    const retryAfter = errorData.retryAfter || '5 minutes';
+                    throw new Error(`Service temporarily unavailable due to high demand. Please try again in ${retryAfter}.`);
+                } else if (response.status === 503 || errorData.errorCode === 'SERVICE_UNAVAILABLE') {
+                    throw new Error('Service temporarily unavailable. Please try again later.');
                 } else if (response.status >= 500) {
                     throw new Error('Server error. Please try again in a few moments.');
                 } else {
-                    throw new Error(`Upload failed: ${response.status} - ${response.statusText}`);
+                    // Use the user-friendly error message from the server if available
+                    const errorMessage = errorData.error || `Upload failed: ${response.status} - ${response.statusText}`;
+                    throw new Error(errorMessage);
                 }
             }
             

@@ -300,6 +300,48 @@ const utils = {
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
+    },
+
+    // Rate limiting utility with exponential backoff
+    async retryWithBackoff(operation, maxRetries = 3, baseDelay = 1000) {
+        for (let attempt = 1; attempt <= maxRetries; attempt++) {
+            try {
+                return await operation();
+            } catch (error) {
+                const isRateLimited = error.message.includes('rate limit') || 
+                                    error.message.includes('Too many requests') ||
+                                    error.message.includes('temporarily unavailable') ||
+                                    error.message.includes('high demand');
+                
+                if (isRateLimited && attempt < maxRetries) {
+                    const delay = baseDelay * Math.pow(2, attempt - 1); // Exponential backoff
+                    console.log(`Rate limited, retrying in ${delay}ms (attempt ${attempt}/${maxRetries})`);
+                    
+                    // Show user-friendly retry message
+                    utils.showNotification(`Service busy, retrying in ${Math.round(delay/1000)} seconds...`, 'info');
+                    
+                    await new Promise(resolve => setTimeout(resolve, delay));
+                    continue;
+                }
+                
+                throw error; // Re-throw if not rate limited or max retries reached
+            }
+        }
+    },
+
+    // Enhanced error handling for API calls
+    handleApiError(error, context = 'operation') {
+        console.error(`${context} error:`, error);
+        
+        if (error.message.includes('rate limit') || error.message.includes('Too many requests')) {
+            utils.showNotification('Service temporarily unavailable due to high demand. Please try again in a few minutes.', 'error');
+        } else if (error.message.includes('temporarily unavailable')) {
+            utils.showNotification('Service temporarily unavailable. Please try again later.', 'error');
+        } else if (error.message.includes('Network Error') || error.message.includes('Failed to fetch')) {
+            utils.showNotification('Network connection error. Please check your internet connection and try again.', 'error');
+        } else {
+            utils.showNotification(`Failed to ${context}. Please try again.`, 'error');
+        }
     }
 };
 

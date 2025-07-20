@@ -130,8 +130,10 @@ class VectorizeApp {
                 // Start progress simulation
                 const progressInterval = utils.simulateProgress(this.progressBar, this.progressText);
                 
-                // Generate preview first
-                const previewData = await this.generatePreview(file);
+                // Generate preview with retry mechanism
+                const previewData = await utils.retryWithBackoff(async () => {
+                    return await this.generatePreview(file);
+                }, 3, 2000); // 3 retries, 2 second base delay
                 
                 // Complete progress
                 this.updateProgress(100);
@@ -221,14 +223,27 @@ class VectorizeApp {
                 const errorText = await response.text();
                 console.error('Preview API error response:', errorText);
                 
+                let errorData;
+                try {
+                    errorData = JSON.parse(errorText);
+                } catch (e) {
+                    errorData = { error: errorText };
+                }
+                
                 if (response.status === 401) {
                     // For non-authenticated users, this shouldn't happen with our new approach
                     throw new Error('Authentication required. Please log in to use this feature.');
                 } else if (response.status === 402) {
-                    const errorData = JSON.parse(errorText);
                     throw new Error(`Insufficient credits. You have ${errorData.credits_remaining} credits remaining.`);
+                } else if (response.status === 429 || errorData.errorCode === 'RATE_LIMITED') {
+                    const retryAfter = errorData.retryAfter || '5 minutes';
+                    throw new Error(`Service temporarily unavailable due to high demand. Please try again in ${retryAfter}.`);
+                } else if (response.status === 503 || errorData.errorCode === 'SERVICE_UNAVAILABLE') {
+                    throw new Error('Service temporarily unavailable. Please try again later.');
                 } else {
-                    throw new Error(`Preview API call failed: ${response.status} - ${response.statusText} - ${errorText}`);
+                    // Use the user-friendly error message from the server if available
+                    const errorMessage = errorData.error || `Preview API call failed: ${response.status} - ${response.statusText}`;
+                    throw new Error(errorMessage);
                 }
             }
             
