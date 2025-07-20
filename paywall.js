@@ -79,33 +79,16 @@ class PaywallModal {
                     
                     <div style="text-align: center; max-width: 500px; margin: 0 auto;">
                         <h2 style="
-                            font-size: 24px;
+                            font-size: 28px;
                             font-weight: bold;
                             color: #111827;
-                            margin-bottom: 12px;
-                        ">Unlock Professional DTF Tools</h2>
+                            margin-bottom: 8px;
+                        ">Choose Your Plan</h2>
                         <p style="
                             font-size: 16px;
                             color: #6b7280;
-                            margin-bottom: 8px;
-                        ">Transform your images with AI-powered vectorization and background removal</p>
-                        <div style="
-                            display: flex;
-                            align-items: center;
-                            justify-content: center;
-                            gap: 24px;
-                            font-size: 14px;
-                            color: #6b7280;
-                        ">
-                            <div style="display: flex; align-items: center;">
-                                <span style="color: #386594; margin-right: 8px;">✓</span>
-                                Vectorization
-                            </div>
-                            <div style="display: flex; align-items: center;">
-                                <span style="color: #E88B4B; margin-right: 8px;">✓</span>
-                                Background Removal
-                            </div>
-                        </div>
+                            margin-bottom: 0;
+                        ">Start creating professional DTF transfers today</p>
                     </div>
                 </div>
 
@@ -125,93 +108,56 @@ class PaywallModal {
                                     <div style="
                                         background: white;
                                         border: 1px solid #e5e7eb;
-                                        border-radius: 12px;
-                                        padding: 24px;
+                                        border-radius: 16px;
+                                        padding: 32px 24px;
                                         transition: all 0.3s;
+                                        text-align: center;
                                     ">
-                                        <div style="text-align: center; margin-bottom: 24px;">
-                                            <h3 style="
-                                                font-size: 20px;
+                                        <h3 style="
+                                            font-size: 24px;
+                                            font-weight: bold;
+                                            color: #111827;
+                                            margin-bottom: 8px;
+                                        ">Free</h3>
+                                        <div style="margin-bottom: 16px;">
+                                            <span style="
+                                                font-size: 36px;
                                                 font-weight: bold;
                                                 color: #111827;
-                                                margin-bottom: 8px;
-                                            ">Free</h3>
-                                            <div style="margin-bottom: 12px;">
-                                                <span style="
-                                                    font-size: 32px;
-                                                    font-weight: bold;
-                                                    color: #111827;
-                                                ">$0</span>
-                                                <span style="color: #6b7280;">/month</span>
-                                            </div>
-                                            <p style="
-                                                font-size: 14px;
-                                                color: #6b7280;
-                                            ">Perfect for getting started</p>
+                                            ">$0</span>
+                                            <span style="color: #6b7280; font-size: 16px;">/month</span>
                                         </div>
+                                        <p style="
+                                            font-size: 14px;
+                                            color: #6b7280;
+                                            margin-bottom: 24px;
+                                        ">Perfect for getting started</p>
                                         
-                                        <ul style="
-                                            list-style: none;
-                                            padding: 0;
-                                            margin: 0 0 32px 0;
-                                        ">
-                                            <li style="
-                                                display: flex;
-                                                align-items: start;
+                                        <div style="margin-bottom: 32px;">
+                                            <div style="
+                                                background: #f3f4f6;
+                                                border-radius: 8px;
+                                                padding: 16px;
                                                 margin-bottom: 12px;
                                             ">
-                                                <span style="
-                                                    color: #059669;
-                                                    margin-right: 12px;
-                                                    margin-top: 2px;
-                                                ">✓</span>
-                                                <span style="
-                                                    font-size: 14px;
-                                                    color: #374151;
-                                                ">2 credits per month</span>
-                                            </li>
-                                            <li style="
-                                                display: flex;
-                                                align-items: start;
-                                                margin-bottom: 12px;
-                                            ">
-                                                <span style="
-                                                    color: #059669;
-                                                    margin-right: 12px;
-                                                    margin-top: 2px;
-                                                ">✓</span>
-                                                <span style="
-                                                    font-size: 14px;
-                                                    color: #374151;
-                                                ">Basic vectorization</span>
-                                            </li>
-                                            <li style="
-                                                display: flex;
-                                                align-items: start;
-                                                margin-bottom: 12px;
-                                            ">
-                                                <span style="
-                                                    color: #059669;
-                                                    margin-right: 12px;
-                                                    margin-top: 2px;
-                                                ">✓</span>
-                                                <span style="
-                                                    font-size: 14px;
-                                                    color: #374151;
-                                                ">Background removal</span>
-                                            </li>
-                                        </ul>
+                                                <div style="font-size: 18px; font-weight: bold; color: #111827; margin-bottom: 4px;">2 Credits</div>
+                                                <div style="font-size: 12px; color: #6b7280;">per month</div>
+                                            </div>
+                                            <div style="font-size: 14px; color: #6b7280;">
+                                                ✓ Vectorization & Background Removal
+                                            </div>
+                                        </div>
                                         
                                         <button id="signupFreeBtn" style="
                                             width: 100%;
                                             background: white;
                                             color: #386594;
                                             border: 2px solid #386594;
-                                            padding: 12px 24px;
-                                            border-radius: 8px;
+                                            padding: 16px 24px;
+                                            border-radius: 12px;
                                             font-weight: 600;
                                             transition: all 0.3s;
-                                            font-size: 14px;
+                                            font-size: 16px;
                                             cursor: pointer;
                                         ">Start Free</button>
                                     </div>
@@ -223,146 +169,83 @@ class PaywallModal {
                                         position: relative;
                                         background: linear-gradient(135deg, #386594, #457BB9);
                                         border: 2px solid #386594;
-                                        border-radius: 12px;
-                                        padding: 24px;
+                                        border-radius: 16px;
+                                        padding: 32px 24px;
                                         box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
-                                        overflow: hidden;
+                                        text-align: center;
                                     ">
-                                        <!-- Background overlay for better text readability -->
                                         <div style="
                                             position: absolute;
-                                            top: 0;
-                                            left: 0;
-                                            right: 0;
-                                            bottom: 0;
-                                            background-color: rgba(0, 0, 0, 0.1);
-                                        "></div>
-                                        <div style="position: relative; z-index: 10;">
-                                            <div style="
-                                                position: absolute;
-                                                top: -12px;
-                                                left: 50%;
-                                                transform: translateX(-50%);
-                                            ">
-                                                <span style="
-                                                    background-color: #E88B4B;
-                                                    color: white;
-                                                    padding: 4px 12px;
-                                                    border-radius: 9999px;
-                                                    font-size: 12px;
-                                                    font-weight: bold;
-                                                    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-                                                ">MOST POPULAR</span>
-                                            </div>
-                                            
-                                            <div style="text-align: center; margin-bottom: 24px;">
-                                                <h3 style="
-                                                    font-size: 20px;
-                                                    font-weight: bold;
-                                                    color: white;
-                                                    margin-bottom: 8px;
-                                                    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
-                                                ">Basic</h3>
-                                                <div style="margin-bottom: 12px;">
-                                                    <span style="
-                                                        font-size: 32px;
-                                                        font-weight: bold;
-                                                        color: white;
-                                                        text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
-                                                    ">$9.99</span>
-                                                    <span style="
-                                                        color: white;
-                                                        text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
-                                                    ">/month</span>
-                                                </div>
-                                                <p style="
-                                                    font-size: 14px;
-                                                    color: white;
-                                                    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
-                                                ">For growing businesses</p>
-                                            </div>
-                                            
-                                            <ul style="
-                                                list-style: none;
-                                                padding: 0;
-                                                margin: 0 0 32px 0;
-                                            ">
-                                                <li style="
-                                                    display: flex;
-                                                    align-items: start;
-                                                    margin-bottom: 12px;
-                                                ">
-                                                    <span style="
-                                                        color: white;
-                                                        margin-right: 12px;
-                                                        margin-top: 2px;
-                                                    ">✓</span>
-                                                    <span style="
-                                                        font-size: 14px;
-                                                        color: white;
-                                                    ">20 credits per month</span>
-                                                </li>
-                                                <li style="
-                                                    display: flex;
-                                                    align-items: start;
-                                                    margin-bottom: 12px;
-                                                ">
-                                                    <span style="
-                                                        color: white;
-                                                        margin-right: 12px;
-                                                        margin-top: 2px;
-                                                    ">✓</span>
-                                                    <span style="
-                                                        font-size: 14px;
-                                                        color: white;
-                                                    ">Professional vectorization</span>
-                                                </li>
-                                                <li style="
-                                                    display: flex;
-                                                    align-items: start;
-                                                    margin-bottom: 12px;
-                                                ">
-                                                    <span style="
-                                                        color: white;
-                                                        margin-right: 12px;
-                                                        margin-top: 2px;
-                                                    ">✓</span>
-                                                    <span style="
-                                                        font-size: 14px;
-                                                        color: white;
-                                                    ">Priority processing</span>
-                                                </li>
-                                                <li style="
-                                                    display: flex;
-                                                    align-items: start;
-                                                    margin-bottom: 12px;
-                                                ">
-                                                    <span style="
-                                                        color: white;
-                                                        margin-right: 12px;
-                                                        margin-top: 2px;
-                                                    ">✓</span>
-                                                    <span style="
-                                                        font-size: 14px;
-                                                        color: white;
-                                                    ">Email support</span>
-                                                </li>
-                                            </ul>
-                                            
-                                            <button id="signupBasicBtn" style="
-                                                width: 100%;
-                                                background: white;
-                                                color: #386594;
-                                                border: none;
-                                                padding: 12px 24px;
-                                                border-radius: 8px;
+                                            top: -12px;
+                                            left: 50%;
+                                            transform: translateX(-50%);
+                                        ">
+                                            <span style="
+                                                background-color: #E88B4B;
+                                                color: white;
+                                                padding: 6px 16px;
+                                                border-radius: 9999px;
+                                                font-size: 12px;
                                                 font-weight: bold;
-                                                transition: all 0.3s;
-                                                font-size: 14px;
-                                                cursor: pointer;
                                                 box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-                                            ">Start Basic</button>
+                                            ">MOST POPULAR</span>
                                         </div>
+                                        
+                                        <h3 style="
+                                            font-size: 24px;
+                                            font-weight: bold;
+                                            color: white;
+                                            margin-bottom: 8px;
+                                            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+                                        ">Basic</h3>
+                                        <div style="margin-bottom: 16px;">
+                                            <span style="
+                                                font-size: 36px;
+                                                font-weight: bold;
+                                                color: white;
+                                                text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+                                            ">$9.99</span>
+                                            <span style="
+                                                color: white;
+                                                text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+                                                font-size: 16px;
+                                            ">/month</span>
+                                        </div>
+                                        <p style="
+                                            font-size: 14px;
+                                            color: white;
+                                            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+                                            margin-bottom: 24px;
+                                        ">For growing businesses</p>
+                                        
+                                        <div style="margin-bottom: 32px;">
+                                            <div style="
+                                                background: rgba(255, 255, 255, 0.2);
+                                                border-radius: 8px;
+                                                padding: 16px;
+                                                margin-bottom: 12px;
+                                            ">
+                                                <div style="font-size: 18px; font-weight: bold; color: white; margin-bottom: 4px;">20 Credits</div>
+                                                <div style="font-size: 12px; color: rgba(255, 255, 255, 0.8);">per month</div>
+                                            </div>
+                                            <div style="font-size: 14px; color: rgba(255, 255, 255, 0.9);">
+                                                ✓ Priority Processing & Email Support
+                                            </div>
+                                        </div>
+                                        
+                                        <button id="signupBasicBtn" style="
+                                            width: 100%;
+                                            background: white;
+                                            color: #386594;
+                                            border: none;
+                                            padding: 16px 24px;
+                                            border-radius: 12px;
+                                            font-weight: bold;
+                                            transition: all 0.3s;
+                                            font-size: 16px;
+                                            cursor: pointer;
+                                            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+                                        ">Start Basic</button>
                                     </div>
                                 </div>
 
@@ -371,108 +254,56 @@ class PaywallModal {
                                     <div style="
                                         background: white;
                                         border: 1px solid #e5e7eb;
-                                        border-radius: 12px;
-                                        padding: 24px;
+                                        border-radius: 16px;
+                                        padding: 32px 24px;
                                         transition: all 0.3s;
+                                        text-align: center;
                                     ">
-                                        <div style="text-align: center; margin-bottom: 24px;">
-                                            <h3 style="
-                                                font-size: 20px;
+                                        <h3 style="
+                                            font-size: 24px;
+                                            font-weight: bold;
+                                            color: #111827;
+                                            margin-bottom: 8px;
+                                        ">Professional</h3>
+                                        <div style="margin-bottom: 16px;">
+                                            <span style="
+                                                font-size: 36px;
                                                 font-weight: bold;
-                                                color: #111827;
-                                                margin-bottom: 8px;
-                                            ">Professional</h3>
-                                            <div style="margin-bottom: 12px;">
-                                                <span style="
-                                                    font-size: 32px;
-                                                    font-weight: bold;
-                                                    color: #E88B4B;
-                                                ">$24.99</span>
-                                                <span style="color: #6b7280;">/month</span>
-                                            </div>
-                                            <p style="
-                                                font-size: 14px;
-                                                color: #6b7280;
-                                            ">For power users</p>
+                                                color: #E88B4B;
+                                            ">$24.99</span>
+                                            <span style="color: #6b7280; font-size: 16px;">/month</span>
                                         </div>
+                                        <p style="
+                                            font-size: 14px;
+                                            color: #6b7280;
+                                            margin-bottom: 24px;
+                                        ">For power users</p>
                                         
-                                        <ul style="
-                                            list-style: none;
-                                            padding: 0;
-                                            margin: 0 0 32px 0;
-                                        ">
-                                            <li style="
-                                                display: flex;
-                                                align-items: start;
+                                        <div style="margin-bottom: 32px;">
+                                            <div style="
+                                                background: #fef3c7;
+                                                border-radius: 8px;
+                                                padding: 16px;
                                                 margin-bottom: 12px;
                                             ">
-                                                <span style="
-                                                    color: #059669;
-                                                    margin-right: 12px;
-                                                    margin-top: 2px;
-                                                ">✓</span>
-                                                <span style="
-                                                    font-size: 14px;
-                                                    color: #374151;
-                                                ">60 credits per month</span>
-                                            </li>
-                                            <li style="
-                                                display: flex;
-                                                align-items: start;
-                                                margin-bottom: 12px;
-                                            ">
-                                                <span style="
-                                                    color: #059669;
-                                                    margin-right: 12px;
-                                                    margin-top: 2px;
-                                                ">✓</span>
-                                                <span style="
-                                                    font-size: 14px;
-                                                    color: #374151;
-                                                ">Advanced features</span>
-                                            </li>
-                                            <li style="
-                                                display: flex;
-                                                align-items: start;
-                                                margin-bottom: 12px;
-                                            ">
-                                                <span style="
-                                                    color: #059669;
-                                                    margin-right: 12px;
-                                                    margin-top: 2px;
-                                                ">✓</span>
-                                                <span style="
-                                                    font-size: 14px;
-                                                    color: #374151;
-                                                ">Unlimited processing</span>
-                                            </li>
-                                            <li style="
-                                                display: flex;
-                                                align-items: start;
-                                                margin-bottom: 12px;
-                                            ">
-                                                <span style="
-                                                    color: #059669;
-                                                    margin-right: 12px;
-                                                    margin-top: 2px;
-                                                ">✓</span>
-                                                <span style="
-                                                    font-size: 14px;
-                                                    color: #374151;
-                                                ">Priority support</span>
-                                            </li>
-                                        </ul>
+                                                <div style="font-size: 18px; font-weight: bold; color: #92400e; margin-bottom: 4px;">60 Credits</div>
+                                                <div style="font-size: 12px; color: #92400e;">per month</div>
+                                            </div>
+                                            <div style="font-size: 14px; color: #6b7280;">
+                                                ✓ Unlimited Processing & Priority Support
+                                            </div>
+                                        </div>
                                         
                                         <button id="signupProBtn" style="
                                             width: 100%;
                                             background-color: #E88B4B;
                                             color: white;
                                             border: none;
-                                            padding: 12px 24px;
-                                            border-radius: 8px;
+                                            padding: 16px 24px;
+                                            border-radius: 12px;
                                             font-weight: 600;
                                             transition: all 0.3s;
-                                            font-size: 14px;
+                                            font-size: 16px;
                                             cursor: pointer;
                                             box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
                                         ">Start Professional</button>
