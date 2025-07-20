@@ -1289,6 +1289,24 @@ a:hover {
   }
 }
 
+@media (min-width: 768px) {
+  .post-signup-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+  
+  .pricing-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+  
+  .value-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+  
+  .social-proof-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
 @media (max-width: 768px) {
   .tab-nav-list {
     flex-wrap: wrap;
