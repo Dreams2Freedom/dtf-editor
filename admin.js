@@ -128,72 +128,80 @@ class AdminDashboard {
 
     }
 
-    setupUserTableEvents() {
+    setupDropdownEvents() {
         const usersTableBody = document.getElementById('usersTableBody');
-        if (usersTableBody) {
-            usersTableBody.addEventListener('click', (e) => {
-                // Handle dropdown toggle
-                if (e.target.classList.contains('dropdown-toggle')) {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    
-                    // Close all other dropdowns
-                    document.querySelectorAll('.dropdown.active').forEach(dropdown => {
-                        if (dropdown !== e.target.closest('.dropdown')) {
-                            dropdown.classList.remove('active');
-                        }
-                    });
-                    
-                    // Toggle current dropdown
-                    const dropdown = e.target.closest('.dropdown');
-                    dropdown.classList.toggle('active');
-                    return;
-                }
+        if (!usersTableBody) return;
 
-                // Handle dropdown item clicks
-                const button = e.target.closest('button[data-action]');
-                if (!button) return;
+        // Remove any existing event listeners by cloning and replacing
+        const newTbody = usersTableBody.cloneNode(true);
+        usersTableBody.parentNode.replaceChild(newTbody, usersTableBody);
 
-                const action = button.dataset.action;
-                const userId = button.dataset.userId;
-
-                // Close dropdown after action
-                const dropdown = button.closest('.dropdown');
-                if (dropdown) {
-                    dropdown.classList.remove('active');
-                }
-
-                switch (action) {
-                    case 'view':
-                        this.viewUser(userId);
-                        break;
-                    case 'edit':
-                        this.editUser(userId);
-                        break;
-                    case 'toggle':
-                        this.toggleUserStatus(userId);
-                        break;
-                    case 'soft-delete':
-                        this.softDeleteUser(userId);
-                        break;
-                    case 'hard-delete':
-                        this.hardDeleteUser(userId);
-                        break;
-                    case 'restore':
-                        this.restoreUser(userId);
-                        break;
-                }
-            });
-
-            // Close dropdowns when clicking outside
-            document.addEventListener('click', (e) => {
-                if (!e.target.closest('.dropdown')) {
-                    document.querySelectorAll('.dropdown.active').forEach(dropdown => {
+        newTbody.addEventListener('click', (e) => {
+            // Handle dropdown toggle
+            if (e.target.classList.contains('dropdown-toggle')) {
+                e.preventDefault();
+                e.stopPropagation();
+                
+                // Close all other dropdowns
+                document.querySelectorAll('.dropdown.active').forEach(dropdown => {
+                    if (dropdown !== e.target.closest('.dropdown')) {
                         dropdown.classList.remove('active');
-                    });
-                }
-            });
-        }
+                    }
+                });
+                
+                // Toggle current dropdown
+                const dropdown = e.target.closest('.dropdown');
+                dropdown.classList.toggle('active');
+                return;
+            }
+
+            // Handle dropdown item clicks
+            const button = e.target.closest('button[data-action]');
+            if (!button) return;
+
+            const action = button.dataset.action;
+            const userId = button.dataset.userId;
+
+            // Close dropdown after action
+            const dropdown = button.closest('.dropdown');
+            if (dropdown) {
+                dropdown.classList.remove('active');
+            }
+
+            switch (action) {
+                case 'view':
+                    this.viewUser(userId);
+                    break;
+                case 'edit':
+                    this.editUser(userId);
+                    break;
+                case 'toggle':
+                    this.toggleUserStatus(userId);
+                    break;
+                case 'soft-delete':
+                    this.softDeleteUser(userId);
+                    break;
+                case 'hard-delete':
+                    this.hardDeleteUser(userId);
+                    break;
+                case 'restore':
+                    this.restoreUser(userId);
+                    break;
+            }
+        });
+
+        // Close dropdowns when clicking outside
+        const closeDropdowns = (e) => {
+            if (!e.target.closest('.dropdown')) {
+                document.querySelectorAll('.dropdown.active').forEach(dropdown => {
+                    dropdown.classList.remove('active');
+                });
+            }
+        };
+
+        // Remove existing listener and add new one
+        document.removeEventListener('click', closeDropdowns);
+        document.addEventListener('click', closeDropdowns);
     }
 
     async checkAuth() {
@@ -317,8 +325,7 @@ class AdminDashboard {
             `;
         }
 
-        // Set up user table event delegation after dashboard is shown
-        this.setupUserTableEvents();
+        // Dropdown events will be set up after users are loaded
     }
 
     switchTab(tabName) {
@@ -448,6 +455,9 @@ class AdminDashboard {
                 </td>
             </tr>
         `).join('');
+        
+        // Setup dropdown events after rendering
+        this.setupDropdownEvents();
     }
 
     filterUsers(searchTerm) {
@@ -527,6 +537,9 @@ class AdminDashboard {
                 </td>
             </tr>
         `).join('');
+        
+        // Setup dropdown events after rendering
+        this.setupDropdownEvents();
     }
 
     updateStats() {
