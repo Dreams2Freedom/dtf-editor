@@ -132,11 +132,36 @@ class AdminDashboard {
         const usersTableBody = document.getElementById('usersTableBody');
         if (usersTableBody) {
             usersTableBody.addEventListener('click', (e) => {
+                // Handle dropdown toggle
+                if (e.target.classList.contains('dropdown-toggle')) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    
+                    // Close all other dropdowns
+                    document.querySelectorAll('.dropdown.active').forEach(dropdown => {
+                        if (dropdown !== e.target.closest('.dropdown')) {
+                            dropdown.classList.remove('active');
+                        }
+                    });
+                    
+                    // Toggle current dropdown
+                    const dropdown = e.target.closest('.dropdown');
+                    dropdown.classList.toggle('active');
+                    return;
+                }
+
+                // Handle dropdown item clicks
                 const button = e.target.closest('button[data-action]');
                 if (!button) return;
 
                 const action = button.dataset.action;
                 const userId = button.dataset.userId;
+
+                // Close dropdown after action
+                const dropdown = button.closest('.dropdown');
+                if (dropdown) {
+                    dropdown.classList.remove('active');
+                }
 
                 switch (action) {
                     case 'view':
@@ -157,6 +182,15 @@ class AdminDashboard {
                     case 'restore':
                         this.restoreUser(userId);
                         break;
+                }
+            });
+
+            // Close dropdowns when clicking outside
+            document.addEventListener('click', (e) => {
+                if (!e.target.closest('.dropdown')) {
+                    document.querySelectorAll('.dropdown.active').forEach(dropdown => {
+                        dropdown.classList.remove('active');
+                    });
                 }
             });
         }
@@ -388,17 +422,29 @@ class AdminDashboard {
                     </span>
                 </td>
                 <td class="text-sm font-medium">
-                    <button data-action="view" data-user-id="${user.id}" class="action-btn view">View</button>
-                    <button data-action="edit" data-user-id="${user.id}" class="action-btn edit">Edit</button>
-                    <button data-action="toggle" data-user-id="${user.id}" class="action-btn ${user.is_active ? 'delete' : 'view'}">
-                        ${user.is_active ? 'Deactivate' : 'Activate'}
-                    </button>
-                    <button data-action="soft-delete" data-user-id="${user.id}" class="action-btn delete" title="Soft Delete (Preserve Data)">
-                        🗑️ Soft Delete
-                    </button>
-                    <button data-action="hard-delete" data-user-id="${user.id}" class="action-btn delete" title="Hard Delete (Permanent)">
-                        ⚠️ Hard Delete
-                    </button>
+                    <div class="dropdown">
+                        <button class="dropdown-toggle action-btn primary" data-user-id="${user.id}">
+                            Actions ▼
+                        </button>
+                        <div class="dropdown-menu">
+                            <button data-action="view" data-user-id="${user.id}" class="dropdown-item">
+                                👁️ View Details
+                            </button>
+                            <button data-action="edit" data-user-id="${user.id}" class="dropdown-item">
+                                ✏️ Edit User
+                            </button>
+                            <button data-action="toggle" data-user-id="${user.id}" class="dropdown-item ${user.is_active ? 'text-red-600' : 'text-green-600'}">
+                                ${user.is_active ? '🚫 Deactivate' : '✅ Activate'}
+                            </button>
+                            <div class="dropdown-divider"></div>
+                            <button data-action="soft-delete" data-user-id="${user.id}" class="dropdown-item text-orange-600">
+                                🗑️ Soft Delete
+                            </button>
+                            <button data-action="hard-delete" data-user-id="${user.id}" class="dropdown-item text-red-600">
+                                ⚠️ Hard Delete
+                            </button>
+                        </div>
+                    </div>
                 </td>
             </tr>
         `).join('');
@@ -455,17 +501,29 @@ class AdminDashboard {
                     </span>
                 </td>
                 <td class="text-sm font-medium">
-                    <button data-action="view" data-user-id="${user.id}" class="action-btn view">View</button>
-                    <button data-action="edit" data-user-id="${user.id}" class="action-btn edit">Edit</button>
-                    <button data-action="toggle" data-user-id="${user.id}" class="action-btn ${user.is_active ? 'delete' : 'view'}">
-                        ${user.is_active ? 'Deactivate' : 'Activate'}
-                    </button>
-                    <button data-action="soft-delete" data-user-id="${user.id}" class="action-btn delete" title="Soft Delete (Preserve Data)">
-                        🗑️ Soft Delete
-                    </button>
-                    <button data-action="hard-delete" data-user-id="${user.id}" class="action-btn delete" title="Hard Delete (Permanent)">
-                        ⚠️ Hard Delete
-                    </button>
+                    <div class="dropdown">
+                        <button class="dropdown-toggle action-btn primary" data-user-id="${user.id}">
+                            Actions ▼
+                        </button>
+                        <div class="dropdown-menu">
+                            <button data-action="view" data-user-id="${user.id}" class="dropdown-item">
+                                👁️ View Details
+                            </button>
+                            <button data-action="edit" data-user-id="${user.id}" class="dropdown-item">
+                                ✏️ Edit User
+                            </button>
+                            <button data-action="toggle" data-user-id="${user.id}" class="dropdown-item ${user.is_active ? 'text-red-600' : 'text-green-600'}">
+                                ${user.is_active ? '🚫 Deactivate' : '✅ Activate'}
+                            </button>
+                            <div class="dropdown-divider"></div>
+                            <button data-action="soft-delete" data-user-id="${user.id}" class="dropdown-item text-orange-600">
+                                🗑️ Soft Delete
+                            </button>
+                            <button data-action="hard-delete" data-user-id="${user.id}" class="dropdown-item text-red-600">
+                                ⚠️ Hard Delete
+                            </button>
+                        </div>
+                    </div>
                 </td>
             </tr>
         `).join('');
