@@ -2,8 +2,6 @@
 class PostSignupPage {
     constructor() {
         this.processedImageData = null;
-    constructor() {
-        this.processedImageData = null;
         this.init();
         this.refreshAuthToken(); // Add token refresh
     }
@@ -46,14 +44,11 @@ class PostSignupPage {
             console.error('Error refreshing auth token:', error);
         }
     }
-        this.init();
-    }
 
     init() {
         this.loadProcessedImage();
         this.setupEventListeners();
     }
-
 
     async loadProcessedImage() {
         try {
@@ -91,14 +86,6 @@ class PostSignupPage {
             } else {
                 console.log('No processed image data found in storage or URL params');
                 this.showNoImageMessage();
-            }
-        } catch (error) {
-            console.error('Error loading processed image:', error);
-            this.showNoImageMessage();
-        }
-    }
-                    this.showNoImageMessage();
-                }
             }
         } catch (error) {
             console.error('Error loading processed image:', error);
@@ -281,30 +268,32 @@ class PostSignupPage {
     }
 
     setupEventListeners() {
-        // Setup upgrade plan buttons
-        document.addEventListener('click', (e) => {
-            if (e.target.matches('[onclick*="upgradeToPlan"]')) {
-                e.preventDefault();
-                const plan = e.target.getAttribute('onclick').match(/upgradeToPlan\('(.+?)'\)/)[1];
-                this.handleUpgrade(plan);
-            }
-        });
+        // Setup any additional event listeners here
+        console.log('Post-signup page event listeners initialized');
     }
 
     async handleUpgrade(plan) {
         try {
-            // Check if user is logged in
-            const user = await authUtils.verifyToken();
-            
-            if (!user) {
-                // Redirect to login with upgrade intent
-                window.location.href = `login.html?upgrade=${plan}`;
-                return;
+            const response = await fetch('/api/user/upgrade', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+                },
+                body: JSON.stringify({ plan })
+            });
+
+            if (response.ok) {
+                const result = await response.json();
+                this.showNotification('Upgrade successful!', 'success');
+                // Redirect to dashboard or refresh page
+                setTimeout(() => {
+                    window.location.href = 'dashboard.html';
+                }, 2000);
+            } else {
+                const error = await response.json();
+                this.showNotification(error.message || 'Upgrade failed', 'error');
             }
-
-            // User is logged in, proceed with upgrade
-            await this.processUpgrade(plan);
-
         } catch (error) {
             console.error('Upgrade error:', error);
             this.showNotification('Upgrade failed. Please try again.', 'error');
@@ -313,38 +302,28 @@ class PostSignupPage {
 
     async processUpgrade(plan) {
         try {
-            const response = await fetch('/api/subscriptions/create', {
+            const response = await fetch('/api/user/upgrade', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${localStorage.getItem('token')}`
+                    'Authorization': `Bearer ${localStorage.getItem('authToken')}`
                 },
-                body: JSON.stringify({
-                    plan: plan,
-                    source: 'post_signup'
-                })
+                body: JSON.stringify({ plan })
             });
 
             if (response.ok) {
-                const data = await response.json();
-                
-                if (data.requires_payment) {
-                    // Redirect to Stripe checkout
-                    window.location.href = data.checkout_url;
-                } else {
-                    // Free trial or immediate activation
-                    this.showNotification('Plan upgraded successfully!', 'success');
-                    setTimeout(() => {
-                        window.location.href = 'dashboard.html';
-                    }, 2000);
-                }
+                const result = await response.json();
+                this.showNotification('Upgrade successful!', 'success');
+                // Redirect to dashboard or refresh page
+                setTimeout(() => {
+                    window.location.href = 'dashboard.html';
+                }, 2000);
             } else {
                 const error = await response.json();
                 this.showNotification(error.message || 'Upgrade failed', 'error');
             }
-
         } catch (error) {
-            console.error('Upgrade processing error:', error);
+            console.error('Upgrade error:', error);
             this.showNotification('Upgrade failed. Please try again.', 'error');
         }
     }
@@ -352,38 +331,32 @@ class PostSignupPage {
     showNotification(message, type = 'info') {
         // Create notification element
         const notification = document.createElement('div');
-        notification.className = `notification ${type}`;
-        notification.innerHTML = `
-            <div class="flex items-center">
-                <span>${message}</span>
-                <button class="ml-auto text-white opacity-70 hover:opacity-100" onclick="this.parentElement.parentElement.remove()">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-                    </svg>
-                </button>
-            </div>
-        `;
+        notification.className = `fixed top-4 right-4 p-4 rounded-lg shadow-lg z-50 ${
+            type === 'success' ? 'bg-green-500 text-white' :
+            type === 'error' ? 'bg-red-500 text-white' :
+            'bg-blue-500 text-white'
+        }`;
+        notification.textContent = message;
 
         // Add to page
         document.body.appendChild(notification);
 
-        // Auto-remove after 5 seconds
+        // Remove after 3 seconds
         setTimeout(() => {
-            if (notification.parentElement) {
-                notification.remove();
+            if (notification.parentNode) {
+                notification.parentNode.removeChild(notification);
             }
-        }, 5000);
+        }, 3000);
     }
 }
+
+// Initialize the page when DOM is loaded
+document.addEventListener('DOMContentLoaded', function() {
+    new PostSignupPage();
+});
 
 // Global function for upgrade buttons
 function upgradeToPlan(plan) {
-    if (window.postSignupPage) {
-        window.postSignupPage.handleUpgrade(plan);
-    }
-}
-
-// Initialize when DOM is loaded
-document.addEventListener('DOMContentLoaded', () => {
-    window.postSignupPage = new PostSignupPage();
-}); 
+    const page = new PostSignupPage();
+    page.handleUpgrade(plan);
+} 
