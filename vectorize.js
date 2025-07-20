@@ -33,6 +33,7 @@ class VectorizeApp {
         // API configuration
         this.vectorizerEndpoint = '/api/vectorize';
         this.previewEndpoint = '/api/preview';
+        this.guestPreviewEndpoint = '/api/preview-guest';
         
         this.init();
     }
@@ -52,13 +53,7 @@ class VectorizeApp {
             const file = e.target.files[0];
             if (file && !this.isProcessing) {
                 this.isProcessing = true;
-                // Check authentication before processing
-                if (window.paywallModal && window.paywallModal.showIfNotAuthenticated('vectorize')) {
-                    // Paywall was shown, don't process the file
-                    this.fileInput.value = ''; // Clear the file input
-                    this.isProcessing = false;
-                    return;
-                }
+                // Allow processing without authentication - value-first approach
                 this.handleVectorization(file);
             }
         });
@@ -70,10 +65,7 @@ class VectorizeApp {
                 return;
             }
             
-            // Check authentication before opening file dialog
-            if (window.paywallModal && window.paywallModal.showIfNotAuthenticated('vectorize')) {
-                return; // Paywall was shown, don't open file dialog
-            }
+            // Allow file dialog without authentication - value-first approach
             this.fileInput.click();
         });
 
@@ -109,10 +101,7 @@ class VectorizeApp {
             const files = dt.files;
             
             if (files.length > 0) {
-                // Check authentication before processing
-                if (window.paywallModal && window.paywallModal.showIfNotAuthenticated('vectorize')) {
-                    return; // Paywall was shown, don't process the file
-                }
+                // Allow processing without authentication - value-first approach
                 this.handleVectorization(files[0]);
             }
         }, false);
@@ -122,20 +111,8 @@ class VectorizeApp {
         try {
             console.log('handleVectorization called with file:', file);
             
-            // Check authentication first - show paywall instead of redirecting
-            if (!window.authUtils || !window.authUtils.isAuthenticated()) {
-                if (window.paywallModal && window.paywallModal.showIfNotAuthenticated('vectorize')) {
-                    this.isProcessing = false; // Reset processing flag
-                    return; // Paywall was shown, don't process the file
-                }
-                // Fallback if paywall is not available
-                this.showError('Please log in to use the vectorization feature.');
-                setTimeout(() => {
-                    window.location.href = 'login.html';
-                }, 2000);
-                this.isProcessing = false; // Reset processing flag
-                return;
-            }
+            // Value-first approach: Allow processing without authentication
+            // Authentication will be required only for download
             
             // Validate file
             if (!utils.validateFile(file)) {
@@ -214,24 +191,25 @@ class VectorizeApp {
         try {
             console.log('Starting preview generation for file:', file.name, 'Size:', file.size);
             
-            // Get authentication token
-            const token = window.authUtils ? window.authUtils.getAuthToken() : null;
-            if (!token) {
-                throw new Error('Authentication required. Please log in to use this feature.');
-            }
+            // Check if user is authenticated
+            const isAuthenticated = window.authUtils && window.authUtils.isAuthenticated();
+            const token = isAuthenticated ? window.authUtils.getAuthToken() : null;
             
             // Create FormData for the preview endpoint
             const formData = new FormData();
             formData.append('image', file);
             
-            console.log('Preview API endpoint:', this.previewEndpoint);
+            // Use different endpoints for authenticated vs guest users
+            const endpoint = isAuthenticated ? this.previewEndpoint : this.guestPreviewEndpoint;
+            console.log('Preview API endpoint:', endpoint);
             
-            // Make API call to preview endpoint with authentication
-            const headers = {
-                'Authorization': `Bearer ${token}`
-            };
+            // Make API call to preview endpoint
+            const headers = {};
+            if (token) {
+                headers['Authorization'] = `Bearer ${token}`;
+            }
             
-            const response = await fetch(this.previewEndpoint, {
+            const response = await fetch(endpoint, {
                 method: 'POST',
                 headers: headers,
                 body: formData
@@ -244,6 +222,7 @@ class VectorizeApp {
                 console.error('Preview API error response:', errorText);
                 
                 if (response.status === 401) {
+                    // For non-authenticated users, this shouldn't happen with our new approach
                     throw new Error('Authentication required. Please log in to use this feature.');
                 } else if (response.status === 402) {
                     const errorData = JSON.parse(errorText);
@@ -311,6 +290,16 @@ class VectorizeApp {
         this.result.classList.remove('hidden');
         this.result.classList.add('fade-in');
         
+        // Update download button text for guest users
+        const isGuest = previewData.isGuest || (!window.authUtils || !window.authUtils.isAuthenticated());
+        if (isGuest && this.downloadBtn) {
+            this.downloadBtn.textContent = 'Sign Up to Download';
+            this.downloadBtn.style.background = '#E88B4B';
+        } else if (this.downloadBtn) {
+            this.downloadBtn.textContent = 'Download SVG';
+            this.downloadBtn.style.background = '#386594';
+        }
+        
         // Scroll to results
         this.result.scrollIntoView({ behavior: 'smooth', block: 'center' });
         
@@ -326,7 +315,187 @@ class VectorizeApp {
     }
 
     downloadVector() {
+        // Check if user is authenticated
+        if (!window.authUtils || !window.authUtils.isAuthenticated()) {
+            // Show signup modal for non-authenticated users
+            this.showSignupModal();
+            return;
+        }
+        
+        // User is authenticated, proceed with download
         utils.downloadFile(this.resultImg.src, 'vectorized-image.svg');
+    }
+
+    showSignupModal() {
+        // Create a simple signup modal
+        const modal = document.createElement('div');
+        modal.style.cssText = `
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 10000;
+            padding: 20px;
+        `;
+
+        modal.innerHTML = `
+            <div style="
+                background: white;
+                border-radius: 16px;
+                width: 90%;
+                max-width: 400px;
+                padding: 32px 24px;
+                text-align: center;
+                box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+            ">
+                <h2 style="
+                    font-size: 24px;
+                    font-weight: bold;
+                    color: #111827;
+                    margin-bottom: 8px;
+                ">Get Your Vectorized Image</h2>
+                
+                <p style="
+                    font-size: 16px;
+                    color: #6b7280;
+                    margin-bottom: 24px;
+                ">Sign up to download your result + 2 free credits</p>
+                
+                <div style="
+                    background: #f3f4f6;
+                    border-radius: 8px;
+                    padding: 16px;
+                    margin-bottom: 24px;
+                ">
+                    <div style="font-size: 14px; color: #6b7280; margin-bottom: 8px;">✓ Download your result now</div>
+                    <div style="font-size: 14px; color: #6b7280; margin-bottom: 8px;">✓ 2 free credits included</div>
+                    <div style="font-size: 14px; color: #6b7280; margin-bottom: 8px;">✓ No credit card required</div>
+                    <div style="font-size: 14px; color: #6b7280;">✓ Cancel anytime</div>
+                </div>
+                
+                <form id="signupForm" style="margin-bottom: 16px;">
+                    <input type="email" id="signupEmail" placeholder="Email address" required style="
+                        width: 100%;
+                        padding: 12px 16px;
+                        border: 1px solid #d1d5db;
+                        border-radius: 8px;
+                        margin-bottom: 12px;
+                        font-size: 16px;
+                    ">
+                    <input type="password" id="signupPassword" placeholder="Password" required style="
+                        width: 100%;
+                        padding: 12px 16px;
+                        border: 1px solid #d1d5db;
+                        border-radius: 8px;
+                        margin-bottom: 16px;
+                        font-size: 16px;
+                    ">
+                    <button type="submit" style="
+                        width: 100%;
+                        background: #386594;
+                        color: white;
+                        border: none;
+                        padding: 14px 20px;
+                        border-radius: 8px;
+                        font-weight: 600;
+                        font-size: 16px;
+                        cursor: pointer;
+                    ">Sign Up Free</button>
+                </form>
+                
+                <div style="
+                    font-size: 14px;
+                    color: #6b7280;
+                    margin-bottom: 16px;
+                ">Already have an account? <a href="#" id="loginLink" style="color: #386594; text-decoration: none;">Sign in</a></div>
+                
+                <button id="closeModal" style="
+                    background: none;
+                    border: none;
+                    color: #9ca3af;
+                    font-size: 20px;
+                    cursor: pointer;
+                    position: absolute;
+                    top: 16px;
+                    right: 16px;
+                ">×</button>
+            </div>
+        `;
+
+        document.body.appendChild(modal);
+
+        // Handle form submission
+        const form = modal.querySelector('#signupForm');
+        const emailInput = modal.querySelector('#signupEmail');
+        const passwordInput = modal.querySelector('#signupPassword');
+        const loginLink = modal.querySelector('#loginLink');
+        const closeBtn = modal.querySelector('#closeModal');
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const email = emailInput.value;
+            const password = passwordInput.value;
+            
+            try {
+                // Call registration API
+                const response = await fetch('/api/auth/register', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ email, password })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    // Store token and user info
+                    if (window.authUtils) {
+                        window.authUtils.setAuthToken(data.token);
+                        window.authUtils.setUserInfo(data.user);
+                    }
+                    
+                    // Close modal and download
+                    document.body.removeChild(modal);
+                    utils.showNotification('Account created successfully! Downloading your image...', 'success');
+                    
+                    // Download the image
+                    setTimeout(() => {
+                        utils.downloadFile(this.resultImg.src, 'vectorized-image.svg');
+                    }, 1000);
+                } else {
+                    utils.showNotification(data.error || 'Registration failed', 'error');
+                }
+            } catch (error) {
+                console.error('Registration error:', error);
+                utils.showNotification('Registration failed. Please try again.', 'error');
+            }
+        });
+
+        // Handle login link
+        loginLink.addEventListener('click', (e) => {
+            e.preventDefault();
+            document.body.removeChild(modal);
+            window.location.href = 'login.html';
+        });
+
+        // Handle close button
+        closeBtn.addEventListener('click', () => {
+            document.body.removeChild(modal);
+        });
+
+        // Close modal when clicking outside
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) {
+                document.body.removeChild(modal);
+            }
+        });
     }
 
     resetVectorization() {

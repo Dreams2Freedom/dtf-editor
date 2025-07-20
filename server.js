@@ -522,6 +522,86 @@ app.post('/api/vectorize', authenticateToken, upload.single('image'), async (req
     }
 });
 
+// Vectorizer.AI preview endpoint for non-authenticated users (value-first approach)
+app.post('/api/preview-guest', upload.single('image'), async (req, res) => {
+    try {
+        console.log('Guest preview generation request received');
+        req.startTime = Date.now(); // Initialize start time for processing duration
+        
+        if (!req.file) {
+            return res.status(400).json({ error: 'No image file provided' });
+        }
+
+        console.log(`Processing guest file: ${req.file.originalname} (${req.file.size} bytes)`);
+
+        // Always use test mode for guest users (free, watermarked preview)
+        const mode = 'test';
+        console.log(`Using mode: ${mode} for guest user`);
+
+        // Create FormData for Vectorizer.AI
+        const FormData = require('form-data');
+        const formData = new FormData();
+        formData.append('image', req.file.buffer, {
+            filename: req.file.originalname,
+            contentType: req.file.mimetype
+        });
+        
+        // Add mode parameter to the request
+        formData.append('mode', mode);
+
+        // Track API cost start time
+        const apiStartTime = Date.now();
+        
+        // Make request to Vectorizer.AI
+        const response = await fetch(VECTORIZER_ENDPOINT, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Basic ${Buffer.from(`${VECTORIZER_API_ID}:${VECTORIZER_API_SECRET}`).toString('base64')}`,
+                ...formData.getHeaders()
+            },
+            body: formData
+        });
+
+        const responseTime = Date.now() - apiStartTime;
+
+        if (!response.ok) {
+            const errorText = await response.text();
+            console.error(`Vectorizer.AI API error: ${response.status} - ${errorText}`);
+            
+            return res.status(response.status).json({ 
+                error: 'Failed to generate preview',
+                details: errorText
+            });
+        }
+
+        // Get the response as buffer
+        const previewBuffer = await response.buffer();
+        console.log(`Guest preview generation successful: ${previewBuffer.length} bytes`);
+
+        // Convert SVG buffer to base64 for JSON response
+        const svgBase64 = previewBuffer.toString('base64');
+        const dataUrl = `data:image/svg+xml;base64,${svgBase64}`;
+
+        // Return JSON response with SVG data URL
+        res.json({
+            success: true,
+            previewUrl: dataUrl,
+            originalFilename: req.file.originalname,
+            processedFilename: `guest_preview_${Date.now()}.svg`,
+            fileSize: req.file.size,
+            processingTime: Date.now() - req.startTime,
+            isGuest: true
+        });
+
+    } catch (error) {
+        console.error('Guest preview generation error:', error);
+        res.status(500).json({ 
+            error: 'Internal server error',
+            details: error.message 
+        });
+    }
+});
+
 // Vectorizer.AI preview endpoint (with credit checking)
 app.post('/api/preview', authenticateToken, upload.single('image'), async (req, res) => {
     try {
