@@ -57,13 +57,13 @@ Both `vectorizeImage()` and `removeBackground()` methods now make real API calls
 
 **Vectorizer.AI:**
 - **Authentication**: HTTP Basic Authentication (API ID + Secret)
-- **File Formats**: PNG, JPG, GIF (up to 10MB)
+- **File Formats**: PNG, JPG, GIF (up to 30MB)
 - **Response Format**: SVG or other vector format
 - **Rate Limits**: Check Vectorizer.AI documentation for current limits
 
 **Clipping Magic:**
 - **Authentication**: HTTP Basic Authentication (API ID + Secret)
-- **File Formats**: PNG, JPG, GIF (up to 10MB)
+- **File Formats**: PNG, JPG, GIF (up to 30MB)
 - **Response Format**: PNG with transparent background
 - **Rate Limits**: Check Clipping Magic documentation for current limits
 
