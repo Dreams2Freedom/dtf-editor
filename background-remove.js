@@ -880,6 +880,20 @@ class BackgroundRemoveApp {
                     margin-bottom: 16px;
                 ">Already have an account? <a href="#" id="loginLink" style="color: #386594; text-decoration: none;">Sign in</a></div>
                 
+                <div id="loginInsteadSection" style="display: none; margin-top: 16px; padding: 12px; background: #f3f4f6; border-radius: 8px; text-align: center;">
+                    <p style="margin: 0 0 12px 0; color: #374151; font-size: 14px;">Account already exists with this email</p>
+                    <button id="loginInsteadBtn" style="
+                        background: #E88B4B;
+                        color: white;
+                        border: none;
+                        padding: 10px 20px;
+                        border-radius: 6px;
+                        font-weight: 500;
+                        font-size: 14px;
+                        cursor: pointer;
+                    ">Login Instead</button>
+                </div>
+                
                 <button id="closeModal" style="
                     background: none;
                     border: none;
@@ -907,6 +921,8 @@ class BackgroundRemoveApp {
         const loginLink = modal.querySelector('#loginLink');
         const closeBtn = modal.querySelector('#closeModal');
         const submitButton = modal.querySelector('#signupSubmitBtn');
+        const loginInsteadSection = modal.querySelector('#loginInsteadSection');
+        const loginInsteadBtn = modal.querySelector('#loginInsteadBtn');
         
         console.log('Signup elements found:', {
             container: !!signupContainer,
@@ -961,74 +977,11 @@ class BackgroundRemoveApp {
                 console.log('Registration response data:', data);
                 
                 if (response.status === 409) {
-                    console.log('User already exists, attempting login');
+                    console.log('User already exists - showing user-friendly message');
+                    utils.showNotification('An account with this email already exists. Please log in instead.', 'error');
                     
-                    // Try to log in with the provided credentials
-                    try {
-                        const loginResponse = await fetch('/api/auth/login', {
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json'
-                            },
-                            body: JSON.stringify({ email, password })
-                        });
-                        
-                        const loginData = await loginResponse.json();
-                        
-                        if (loginData.success && loginData.token) {
-                            console.log('Login successful for existing user');
-                            
-                            // Store token and user info
-                            if (window.authUtils) {
-                                window.authUtils.setAuthToken(loginData.token);
-                                window.authUtils.setUserInfo(loginData.user);
-                            }
-                            
-                            // Close modal
-                            document.body.removeChild(modal);
-                            utils.showNotification('Welcome back! Logged in successfully.', 'success');
-                            
-                            // Handle pending download if exists
-                            if (this.pendingDownloadData) {
-                                try {
-                                    // Download the processed image from ClippingMagic API
-                                    const result = await this.downloadClippingMagicResult(
-                                        this.pendingDownloadData.imageId, 
-                                        this.pendingDownloadData.imageSecret
-                                    );
-                                    
-                                    // Show the result
-                                    this.showResults({
-                                        success: true,
-                                        bgRemovedUrl: result,
-                                        originalUrl: this.currentOriginalUrl
-                                    });
-                                    
-                                    // Download the file
-                                    setTimeout(() => {
-                                        utils.downloadFile(result, 'background-removed.png');
-                                    }, 1000);
-                                    
-                                    // Clear pending download data
-                                    this.pendingDownloadData = null;
-                                } catch (error) {
-                                    console.error('Failed to download result after login:', error);
-                                    utils.showNotification('Failed to download your image. Please try again.', 'error');
-                                }
-                            } else {
-                                // Fallback to current image if no pending download
-                                setTimeout(() => {
-                                    utils.downloadFile(this.resultImg.src, 'background-removed.png');
-                                }, 1000);
-                            }
-                        } else {
-                            console.error('Login failed:', loginData.error);
-                            utils.showNotification('Account exists but password is incorrect. Please try again.', 'error');
-                        }
-                    } catch (loginError) {
-                        console.error('Login attempt failed:', loginError);
-                        utils.showNotification('Account exists but login failed. Please try again.', 'error');
-                    }
+                    // Show the login instead section
+                    loginInsteadSection.style.display = 'block';
                 } else if (data.token && data.user) {
                     // Store token and user info
                     if (window.authUtils) {
@@ -1084,6 +1037,13 @@ class BackgroundRemoveApp {
 
         // Handle login link
         loginLink.addEventListener('click', (e) => {
+            e.preventDefault();
+            document.body.removeChild(modal);
+            window.location.href = 'login.html';
+        });
+
+        // Handle login instead button
+        loginInsteadBtn.addEventListener('click', (e) => {
             e.preventDefault();
             document.body.removeChild(modal);
             window.location.href = 'login.html';
