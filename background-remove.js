@@ -860,7 +860,7 @@ class BackgroundRemoveApp {
                         font-size: 16px;
                         box-sizing: border-box;
                     ">
-                    <button type="submit" style="
+                    <button type="submit" id="signupSubmitBtn" style="
                         width: 100%;
                         background: #386594;
                         color: white;
@@ -894,6 +894,9 @@ class BackgroundRemoveApp {
         `;
 
         document.body.appendChild(modal);
+        console.log('Modal added to DOM');
+        console.log('Modal HTML length:', modal.innerHTML.length);
+        console.log('Modal contains form:', modal.innerHTML.includes('signupForm'));
 
         // Handle form submission
         const form = modal.querySelector('#signupForm');
@@ -912,15 +915,24 @@ class BackgroundRemoveApp {
             passwordInput: !!passwordInput
         });
 
-        // Add click handler to button for debugging
-        const submitButton = form.querySelector('button[type="submit"]');
+        // Test basic button functionality
+        const submitButton = modal.querySelector('#signupSubmitBtn');
+        console.log('Submit button found:', !!submitButton);
+        
+        // Add multiple event listeners to test
         submitButton.addEventListener('click', (e) => {
-            console.log('Submit button clicked');
+            console.log('Submit button clicked (click event)');
+            e.preventDefault();
+            e.stopPropagation();
+        });
+        
+        submitButton.addEventListener('mousedown', (e) => {
+            console.log('Submit button mousedown');
         });
         
         form.addEventListener('submit', async (e) => {
             e.preventDefault();
-            console.log('Signup form submitted');
+            console.log('Signup form submitted (submit event)');
             
             const firstName = firstNameInput.value;
             const lastName = lastNameInput.value;
