@@ -779,7 +779,12 @@ class BackgroundRemoveApp {
                 type: 'background-remove',
                 timestamp: new Date().toISOString()
             };
+            
+            // Store in both sessionStorage and localStorage for redundancy
             sessionStorage.setItem('processedImageData', JSON.stringify(imageData));
+            localStorage.setItem('processedImageData', JSON.stringify(imageData));
+            
+            console.log('Stored processed image data:', imageData);
             
             // Show signup modal for non-authenticated users
             this.showSignupModal();

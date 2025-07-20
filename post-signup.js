@@ -16,9 +16,14 @@ class PostSignupPage {
             const imageData = this.getImageDataFromStorage();
             
             if (imageData) {
-                console.log('Found processed image data in sessionStorage:', imageData);
+                console.log('Found processed image data in storage:', imageData);
                 this.processedImageData = imageData;
                 this.displayImages(imageData);
+                
+                // Clear the data after using it to prevent showing old data on subsequent visits
+                sessionStorage.removeItem('processedImageData');
+                localStorage.removeItem('processedImageData');
+                console.log('Cleared processed image data from storage');
             } else {
                 // Fallback: try to get from URL parameters
                 const urlParams = new URLSearchParams(window.location.search);
@@ -27,7 +32,7 @@ class PostSignupPage {
                 if (imageId) {
                     await this.loadImageFromServer(imageId);
                 } else {
-                    console.log('No processed image data found in sessionStorage or URL params');
+                    console.log('No processed image data found in storage or URL params');
                     this.showNoImageMessage();
                 }
             }
@@ -39,8 +44,23 @@ class PostSignupPage {
 
     getImageDataFromStorage() {
         try {
-            const imageData = sessionStorage.getItem('processedImageData');
-            return imageData ? JSON.parse(imageData) : null;
+            // Try sessionStorage first
+            let imageData = sessionStorage.getItem('processedImageData');
+            
+            // If not in sessionStorage, try localStorage
+            if (!imageData) {
+                console.log('No data in sessionStorage, checking localStorage...');
+                imageData = localStorage.getItem('processedImageData');
+            }
+            
+            if (imageData) {
+                const parsedData = JSON.parse(imageData);
+                console.log('Found image data in storage:', parsedData);
+                return parsedData;
+            }
+            
+            console.log('No image data found in either sessionStorage or localStorage');
+            return null;
         } catch (error) {
             console.error('Error parsing image data from storage:', error);
             return null;
