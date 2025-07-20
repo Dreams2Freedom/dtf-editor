@@ -176,7 +176,7 @@ app.get('/health', (req, res) => {
         version: '2.1.0',
         deployment: '2025-07-16T18:50:00Z',
         build: 'v2.4.0',
-        status: 'immediate-health-check'
+        type: 'immediate-health-check'
     });
 });
 
