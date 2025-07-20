@@ -53,7 +53,7 @@ class PaywallModal {
                 width: 90%;
                 max-width: 500px;
                 margin: 0 auto;
-                max-height: 90vh;
+                max-height: 95vh;
                 overflow-y: auto;
                 box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
                 border: none;
@@ -93,7 +93,7 @@ class PaywallModal {
                 </div>
 
                 <!-- Pricing Plans -->
-                <div style="padding: 24px;">
+                <div style="padding: 16px;">
                     <!-- Mobile Slider (hidden on desktop) -->
                     <div id="mobileSlider" style="display: block;">
                         <div style="position: relative; overflow: hidden; padding: 0 8px;">
@@ -109,7 +109,7 @@ class PaywallModal {
                                         background: white;
                                         border: 1px solid #e5e7eb;
                                         border-radius: 16px;
-                                        padding: 32px 24px;
+                                        padding: 24px 20px;
                                         transition: all 0.3s;
                                         text-align: center;
                                     ">
@@ -130,10 +130,10 @@ class PaywallModal {
                                         <p style="
                                             font-size: 14px;
                                             color: #6b7280;
-                                            margin-bottom: 24px;
+                                            margin-bottom: 20px;
                                         ">Perfect for getting started</p>
                                         
-                                        <div style="margin-bottom: 32px;">
+                                        <div style="margin-bottom: 24px;">
                                             <div style="
                                                 background: #f3f4f6;
                                                 border-radius: 8px;
@@ -153,7 +153,7 @@ class PaywallModal {
                                             background: white;
                                             color: #386594;
                                             border: 2px solid #386594;
-                                            padding: 16px 24px;
+                                            padding: 14px 20px;
                                             border-radius: 12px;
                                             font-weight: 600;
                                             transition: all 0.3s;
@@ -170,7 +170,7 @@ class PaywallModal {
                                         background: linear-gradient(135deg, #386594, #457BB9);
                                         border: 2px solid #386594;
                                         border-radius: 16px;
-                                        padding: 32px 24px;
+                                        padding: 24px 20px;
                                         box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
                                         text-align: center;
                                     ">
@@ -215,10 +215,10 @@ class PaywallModal {
                                             font-size: 14px;
                                             color: white;
                                             text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
-                                            margin-bottom: 24px;
+                                            margin-bottom: 20px;
                                         ">For growing businesses</p>
                                         
-                                        <div style="margin-bottom: 32px;">
+                                        <div style="margin-bottom: 24px;">
                                             <div style="
                                                 background: rgba(255, 255, 255, 0.2);
                                                 border-radius: 8px;
@@ -238,7 +238,7 @@ class PaywallModal {
                                             background: white;
                                             color: #386594;
                                             border: none;
-                                            padding: 16px 24px;
+                                            padding: 14px 20px;
                                             border-radius: 12px;
                                             font-weight: bold;
                                             transition: all 0.3s;
@@ -255,7 +255,7 @@ class PaywallModal {
                                         background: white;
                                         border: 1px solid #e5e7eb;
                                         border-radius: 16px;
-                                        padding: 32px 24px;
+                                        padding: 24px 20px;
                                         transition: all 0.3s;
                                         text-align: center;
                                     ">
@@ -276,10 +276,10 @@ class PaywallModal {
                                         <p style="
                                             font-size: 14px;
                                             color: #6b7280;
-                                            margin-bottom: 24px;
+                                            margin-bottom: 20px;
                                         ">For power users</p>
                                         
-                                        <div style="margin-bottom: 32px;">
+                                        <div style="margin-bottom: 24px;">
                                             <div style="
                                                 background: #fef3c7;
                                                 border-radius: 8px;
@@ -299,7 +299,7 @@ class PaywallModal {
                                             background-color: #E88B4B;
                                             color: white;
                                             border: none;
-                                            padding: 16px 24px;
+                                            padding: 14px 20px;
                                             border-radius: 12px;
                                             font-weight: 600;
                                             transition: all 0.3s;
