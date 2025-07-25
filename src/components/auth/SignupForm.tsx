@@ -1,60 +1,60 @@
-'use client'
+'use client';
 
-import React, { useState } from 'react'
-import { useForm } from 'react-hook-form'
-import { zodResolver } from '@hookform/resolvers/zod'
-import { z } from 'zod'
-import { Mail, Lock, Eye, EyeOff, User, Building } from 'lucide-react'
-import { Button } from '@/components/ui/Button'
-import { Input } from '@/components/ui/Input'
-import { useAuthContext } from '@/contexts/AuthContext'
-import Link from 'next/link'
+import React, { useState } from 'react';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
+import { Mail, Lock, Eye, EyeOff, User, Building } from 'lucide-react';
+import { Button } from '@/components/ui/Button';
+import { Input } from '@/components/ui/Input';
+import { useAuthContext } from '@/contexts/AuthContext';
+import Link from 'next/link';
 
 // Signup form schema
-const signupSchema = z.object({
-  firstName: z
-    .string()
-    .min(1, 'First name is required')
-    .max(50, 'First name must be less than 50 characters'),
-  lastName: z
-    .string()
-    .min(1, 'Last name is required')
-    .max(50, 'Last name must be less than 50 characters'),
-  email: z
-    .string()
-    .min(1, 'Email is required')
-    .email('Please enter a valid email address'),
-  company: z
-    .string()
-    .max(100, 'Company name must be less than 100 characters')
-    .optional(),
-  password: z
-    .string()
-    .min(1, 'Password is required')
-    .min(8, 'Password must be at least 8 characters')
-    .regex(
-      /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/,
-      'Password must contain at least one uppercase letter, one lowercase letter, and one number'
-    ),
-  confirmPassword: z
-    .string()
-    .min(1, 'Please confirm your password'),
-}).refine((data) => data.password === data.confirmPassword, {
-  message: "Passwords don't match",
-  path: ["confirmPassword"],
-})
+const signupSchema = z
+  .object({
+    firstName: z
+      .string()
+      .min(1, 'First name is required')
+      .max(50, 'First name must be less than 50 characters'),
+    lastName: z
+      .string()
+      .min(1, 'Last name is required')
+      .max(50, 'Last name must be less than 50 characters'),
+    email: z
+      .string()
+      .min(1, 'Email is required')
+      .email('Please enter a valid email address'),
+    company: z
+      .string()
+      .max(100, 'Company name must be less than 100 characters')
+      .optional(),
+    password: z
+      .string()
+      .min(1, 'Password is required')
+      .min(8, 'Password must be at least 8 characters')
+      .regex(
+        /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/,
+        'Password must contain at least one uppercase letter, one lowercase letter, and one number'
+      ),
+    confirmPassword: z.string().min(1, 'Please confirm your password'),
+  })
+  .refine(data => data.password === data.confirmPassword, {
+    message: "Passwords don't match",
+    path: ['confirmPassword'],
+  });
 
-type SignupFormData = z.infer<typeof signupSchema>
+type SignupFormData = z.infer<typeof signupSchema>;
 
 interface SignupFormProps {
-  onSuccess?: () => void
-  redirectTo?: string
+  onSuccess?: () => void;
+  redirectTo?: string;
 }
 
 export function SignupForm({ onSuccess, redirectTo }: SignupFormProps) {
-  const [showPassword, setShowPassword] = useState(false)
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false)
-  const { signUp, loading, error, clearError } = useAuthContext()
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const { signUp, loading, error, clearError } = useAuthContext();
 
   const {
     register,
@@ -63,31 +63,31 @@ export function SignupForm({ onSuccess, redirectTo }: SignupFormProps) {
     setError: setFormError,
   } = useForm<SignupFormData>({
     resolver: zodResolver(signupSchema),
-  })
+  });
 
   const onSubmit = async (data: SignupFormData) => {
-    clearError()
-    
+    clearError();
+
     const result = await signUp(data.email, data.password, {
       firstName: data.firstName,
       lastName: data.lastName,
       company: data.company,
-    })
-    
+    });
+
     if (result.success) {
-      onSuccess?.()
+      onSuccess?.();
       if (redirectTo) {
-        window.location.href = redirectTo
+        window.location.href = redirectTo;
       } else {
-        window.location.href = '/dashboard'
+        window.location.href = '/dashboard';
       }
     } else {
       setFormError('root', {
         type: 'manual',
         message: result.error || 'Sign up failed',
-      })
+      });
     }
-  }
+  };
 
   return (
     <div className="w-full max-w-md mx-auto">
@@ -95,9 +95,7 @@ export function SignupForm({ onSuccess, redirectTo }: SignupFormProps) {
         <h1 className="text-2xl font-bold text-gray-900 mb-2">
           Create your account
         </h1>
-        <p className="text-gray-600">
-          Get started with DTF Editor today
-        </p>
+        <p className="text-gray-600">Get started with DTF Editor today</p>
       </div>
 
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
@@ -225,12 +223,7 @@ export function SignupForm({ onSuccess, redirectTo }: SignupFormProps) {
         </div>
 
         {/* Submit Button */}
-        <Button
-          type="submit"
-          fullWidth
-          loading={loading}
-          disabled={loading}
-        >
+        <Button type="submit" fullWidth loading={loading} disabled={loading}>
           Create account
         </Button>
 
@@ -246,5 +239,5 @@ export function SignupForm({ onSuccess, redirectTo }: SignupFormProps) {
         </div>
       </form>
     </div>
-  )
-} 
+  );
+}

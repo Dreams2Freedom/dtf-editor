@@ -1,13 +1,13 @@
-'use client'
+'use client';
 
-import React from 'react'
-import Image from 'next/image'
-import Link from 'next/link'
+import React from 'react';
+import Image from 'next/image';
+import Link from 'next/link';
 
 interface AuthLayoutProps {
-  children: React.ReactNode
-  title: string
-  subtitle: string
+  children: React.ReactNode;
+  title: string;
+  subtitle: string;
 }
 
 export function AuthLayout({ children, title, subtitle }: AuthLayoutProps) {
@@ -57,11 +57,12 @@ export function AuthLayout({ children, title, subtitle }: AuthLayoutProps) {
               Transform Your Images with AI
             </h2>
             <p className="text-xl">
-              Create print-ready DTF files with powerful AI tools. Upscale, remove backgrounds, and vectorize images with ease.
+              Create print-ready DTF files with powerful AI tools. Upscale,
+              remove backgrounds, and vectorize images with ease.
             </p>
           </div>
         </div>
       </div>
     </div>
-  )
-} 
+  );
+}

@@ -1,14 +1,16 @@
-import type { Metadata } from 'next'
-import { Inter } from 'next/font/google'
-import './globals.css'
-import { AuthProvider } from '@/contexts/AuthContext'
+import type { Metadata } from 'next';
+import { Inter } from 'next/font/google';
+import './globals.css';
+import { AuthProvider } from '@/contexts/AuthContext';
 
-const inter = Inter({ subsets: ['latin'] })
+const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
   title: 'DTF Editor - AI-Powered Image Processing',
-  description: 'Create print-ready DTF files with AI-powered image processing tools. Upscale, remove backgrounds, vectorize, and generate images.',
-  keywords: 'DTF, direct to film, image processing, AI, upscaling, background removal, vectorization',
+  description:
+    'Create print-ready DTF files with AI-powered image processing tools. Upscale, remove backgrounds, vectorize, and generate images.',
+  keywords:
+    'DTF, direct to film, image processing, AI, upscaling, background removal, vectorization',
   authors: [{ name: 'DTF Editor Team' }],
   creator: 'DTF Editor',
   publisher: 'DTF Editor',
@@ -17,10 +19,13 @@ export const metadata: Metadata = {
     address: false,
     telephone: false,
   },
-  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'),
+  metadataBase: new URL(
+    process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
+  ),
   openGraph: {
     title: 'DTF Editor - AI-Powered Image Processing',
-    description: 'Create print-ready DTF files with AI-powered image processing tools.',
+    description:
+      'Create print-ready DTF files with AI-powered image processing tools.',
     url: '/',
     siteName: 'DTF Editor',
     images: [
@@ -37,7 +42,8 @@ export const metadata: Metadata = {
   twitter: {
     card: 'summary_large_image',
     title: 'DTF Editor - AI-Powered Image Processing',
-    description: 'Create print-ready DTF files with AI-powered image processing tools.',
+    description:
+      'Create print-ready DTF files with AI-powered image processing tools.',
     images: ['/og-image.png'],
   },
   robots: {
@@ -54,20 +60,18 @@ export const metadata: Metadata = {
   verification: {
     google: 'your-google-verification-code',
   },
-}
+};
 
 export default function RootLayout({
   children,
 }: {
-  children: React.ReactNode
+  children: React.ReactNode;
 }) {
   return (
     <html lang="en" className="h-full">
       <body className={`${inter.className} h-full`}>
-        <AuthProvider>
-          {children}
-        </AuthProvider>
+        <AuthProvider>{children}</AuthProvider>
       </body>
     </html>
-  )
+  );
 }

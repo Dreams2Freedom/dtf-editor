@@ -1,20 +1,21 @@
-'use client'
+'use client';
 
-import { useRequireAuth } from '@/contexts/AuthContext'
-import { useAuthContext } from '@/contexts/AuthContext'
-import { Button } from '@/components/ui/Button'
-import { LogOut, User, CreditCard, Settings } from 'lucide-react'
+import { useRequireAuth } from '@/contexts/AuthContext';
+import { useAuthContext } from '@/contexts/AuthContext';
+import { Button } from '@/components/ui/Button';
+import { LogOut, User, CreditCard, Settings } from 'lucide-react';
 
 export default function DashboardPage() {
-  const { loading } = useRequireAuth()
-  const { user, profile, creditsRemaining, subscriptionStatus, signOut } = useAuthContext()
+  const { loading } = useRequireAuth();
+  const { user, profile, creditsRemaining, subscriptionStatus, signOut } =
+    useAuthContext();
 
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-500"></div>
       </div>
-    )
+    );
   }
 
   return (
@@ -100,9 +101,7 @@ export default function DashboardPage() {
                     <h3 className="text-lg font-medium text-gray-900">
                       Settings
                     </h3>
-                    <p className="text-sm text-gray-500">
-                      Manage your account
-                    </p>
+                    <p className="text-sm text-gray-500">Manage your account</p>
                   </div>
                 </div>
               </div>
@@ -116,7 +115,8 @@ export default function DashboardPage() {
                 Welcome to DTF Editor!
               </h2>
               <p className="text-gray-600 mb-4">
-                You&apos;re now signed in and ready to start processing images. Your authentication system is working correctly.
+                You&apos;re now signed in and ready to start processing images.
+                Your authentication system is working correctly.
               </p>
               <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
                 <h3 className="text-sm font-medium text-blue-800 mb-2">
@@ -134,5 +134,5 @@ export default function DashboardPage() {
         </div>
       </main>
     </div>
-  )
-} 
+  );
+}

@@ -1,14 +1,14 @@
-'use client'
+'use client';
 
-import React, { useState } from 'react'
-import { useForm } from 'react-hook-form'
-import { zodResolver } from '@hookform/resolvers/zod'
-import { z } from 'zod'
-import { Mail, Lock, Eye, EyeOff } from 'lucide-react'
-import { Button } from '@/components/ui/Button'
-import { Input } from '@/components/ui/Input'
-import { useAuthContext } from '@/contexts/AuthContext'
-import Link from 'next/link'
+import React, { useState } from 'react';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
+import { Mail, Lock, Eye, EyeOff } from 'lucide-react';
+import { Button } from '@/components/ui/Button';
+import { Input } from '@/components/ui/Input';
+import { useAuthContext } from '@/contexts/AuthContext';
+import Link from 'next/link';
 
 // Login form schema
 const loginSchema = z.object({
@@ -20,18 +20,18 @@ const loginSchema = z.object({
     .string()
     .min(1, 'Password is required')
     .min(6, 'Password must be at least 6 characters'),
-})
+});
 
-type LoginFormData = z.infer<typeof loginSchema>
+type LoginFormData = z.infer<typeof loginSchema>;
 
 interface LoginFormProps {
-  onSuccess?: () => void
-  redirectTo?: string
+  onSuccess?: () => void;
+  redirectTo?: string;
 }
 
 export function LoginForm({ onSuccess, redirectTo }: LoginFormProps) {
-  const [showPassword, setShowPassword] = useState(false)
-  const { signIn, loading, error, clearError } = useAuthContext()
+  const [showPassword, setShowPassword] = useState(false);
+  const { signIn, loading, error, clearError } = useAuthContext();
 
   const {
     register,
@@ -40,37 +40,33 @@ export function LoginForm({ onSuccess, redirectTo }: LoginFormProps) {
     setError: setFormError,
   } = useForm<LoginFormData>({
     resolver: zodResolver(loginSchema),
-  })
+  });
 
   const onSubmit = async (data: LoginFormData) => {
-    clearError()
-    
-    const result = await signIn(data.email, data.password)
-    
+    clearError();
+
+    const result = await signIn(data.email, data.password);
+
     if (result.success) {
-      onSuccess?.()
+      onSuccess?.();
       if (redirectTo) {
-        window.location.href = redirectTo
+        window.location.href = redirectTo;
       } else {
-        window.location.href = '/dashboard'
+        window.location.href = '/dashboard';
       }
     } else {
       setFormError('root', {
         type: 'manual',
         message: result.error || 'Sign in failed',
-      })
+      });
     }
-  }
+  };
 
   return (
     <div className="w-full max-w-md mx-auto">
       <div className="text-center mb-8">
-        <h1 className="text-2xl font-bold text-gray-900 mb-2">
-          Welcome back
-        </h1>
-        <p className="text-gray-600">
-          Sign in to your account to continue
-        </p>
+        <h1 className="text-2xl font-bold text-gray-900 mb-2">Welcome back</h1>
+        <p className="text-gray-600">Sign in to your account to continue</p>
       </div>
 
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
@@ -123,11 +119,7 @@ export function LoginForm({ onSuccess, redirectTo }: LoginFormProps) {
         )}
 
         {/* Submit Button */}
-        <Button
-          type="submit"
-          className="w-full"
-          loading={loading}
-        >
+        <Button type="submit" className="w-full" loading={loading}>
           Sign in
         </Button>
 
@@ -151,5 +143,5 @@ export function LoginForm({ onSuccess, redirectTo }: LoginFormProps) {
         </div>
       </form>
     </div>
-  )
-} 
+  );
+}

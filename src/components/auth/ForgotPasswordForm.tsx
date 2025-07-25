@@ -1,14 +1,14 @@
-'use client'
+'use client';
 
-import React, { useState } from 'react'
-import { useForm } from 'react-hook-form'
-import { zodResolver } from '@hookform/resolvers/zod'
-import { z } from 'zod'
-import { Mail, ArrowLeft } from 'lucide-react'
-import { Button } from '@/components/ui/Button'
-import { Input } from '@/components/ui/Input'
-import { useAuthContext } from '@/contexts/AuthContext'
-import Link from 'next/link'
+import React, { useState } from 'react';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
+import { Mail, ArrowLeft } from 'lucide-react';
+import { Button } from '@/components/ui/Button';
+import { Input } from '@/components/ui/Input';
+import { useAuthContext } from '@/contexts/AuthContext';
+import Link from 'next/link';
 
 // Forgot password form schema
 const forgotPasswordSchema = z.object({
@@ -16,17 +16,17 @@ const forgotPasswordSchema = z.object({
     .string()
     .min(1, 'Email is required')
     .email('Please enter a valid email address'),
-})
+});
 
-type ForgotPasswordFormData = z.infer<typeof forgotPasswordSchema>
+type ForgotPasswordFormData = z.infer<typeof forgotPasswordSchema>;
 
 interface ForgotPasswordFormProps {
-  onSuccess?: () => void
+  onSuccess?: () => void;
 }
 
 export function ForgotPasswordForm({ onSuccess }: ForgotPasswordFormProps) {
-  const [isSubmitted, setIsSubmitted] = useState(false)
-  const { resetPassword, loading, clearError } = useAuthContext()
+  const [isSubmitted, setIsSubmitted] = useState(false);
+  const { resetPassword, loading, clearError } = useAuthContext();
 
   const {
     register,
@@ -35,23 +35,23 @@ export function ForgotPasswordForm({ onSuccess }: ForgotPasswordFormProps) {
     setError: setFormError,
   } = useForm<ForgotPasswordFormData>({
     resolver: zodResolver(forgotPasswordSchema),
-  })
+  });
 
   const onSubmit = async (data: ForgotPasswordFormData) => {
-    clearError()
-    
-    const result = await resetPassword(data.email)
-    
+    clearError();
+
+    const result = await resetPassword(data.email);
+
     if (result.success) {
-      setIsSubmitted(true)
-      onSuccess?.()
+      setIsSubmitted(true);
+      onSuccess?.();
     } else {
       setFormError('root', {
         type: 'manual',
         message: result.error || 'Failed to send reset email',
-      })
+      });
     }
-  }
+  };
 
   if (isSubmitted) {
     return (
@@ -64,10 +64,11 @@ export function ForgotPasswordForm({ onSuccess }: ForgotPasswordFormProps) {
             Check your email
           </h1>
           <p className="text-gray-600">
-            We&apos;ve sent you a password reset link. Please check your email and follow the instructions.
+            We&apos;ve sent you a password reset link. Please check your email
+            and follow the instructions.
           </p>
         </div>
-        
+
         <div className="text-center">
           <Link
             href="/auth/login"
@@ -78,7 +79,7 @@ export function ForgotPasswordForm({ onSuccess }: ForgotPasswordFormProps) {
           </Link>
         </div>
       </div>
-    )
+    );
   }
 
   return (
@@ -88,7 +89,8 @@ export function ForgotPasswordForm({ onSuccess }: ForgotPasswordFormProps) {
           Forgot your password?
         </h1>
         <p className="text-gray-600">
-          Enter your email address and we&apos;ll send you a link to reset your password.
+          Enter your email address and we&apos;ll send you a link to reset your
+          password.
         </p>
       </div>
 
@@ -104,11 +106,7 @@ export function ForgotPasswordForm({ onSuccess }: ForgotPasswordFormProps) {
         />
 
         {/* Submit Button */}
-        <Button
-          type="submit"
-          className="w-full"
-          loading={loading}
-        >
+        <Button type="submit" className="w-full" loading={loading}>
           Send reset link
         </Button>
 
@@ -124,5 +122,5 @@ export function ForgotPasswordForm({ onSuccess }: ForgotPasswordFormProps) {
         </div>
       </form>
     </div>
-  )
-} 
+  );
+}
