@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useContext, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useEffect, ReactNode, useMemo } from 'react';
 import {
   useAuthStore,
   useAuth,
@@ -103,8 +103,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const profile = useProfile();
   const actions = useAuthActions();
 
-  // Combine all auth data
-  const authContextValue: AuthContextType = {
+  // Memoize the context value to prevent infinite re-renders
+  const authContextValue: AuthContextType = useMemo(() => ({
     // Auth state
     user: auth.user,
     session: auth.session,
@@ -129,7 +129,27 @@ export function AuthProvider({ children }: AuthProviderProps) {
     checkCredits: actions.checkCredits,
     refreshCredits: actions.refreshCredits,
     clearError: actions.clearError,
-  };
+  }), [
+    auth.user,
+    auth.session,
+    auth.loading,
+    auth.error,
+    auth.isAuthenticated,
+    auth.isAdmin,
+    profile.profile,
+    profile.creditsRemaining,
+    profile.subscriptionStatus,
+    profile.subscriptionPlan,
+    actions.signIn,
+    actions.signUp,
+    actions.signOut,
+    actions.updateProfile,
+    actions.resetPassword,
+    actions.updatePassword,
+    actions.checkCredits,
+    actions.refreshCredits,
+    actions.clearError,
+  ]);
 
   return (
     <AuthContext.Provider value={authContextValue}>
