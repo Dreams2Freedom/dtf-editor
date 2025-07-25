@@ -103,13 +103,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const profile = useProfile();
   const actions = useAuthActions();
 
-  console.log('🔧 AuthProvider state:', {
-    user: auth.user ? '✅ User logged in' : '❌ No user',
-    loading: auth.loading,
-    error: auth.error,
-    isAuthenticated: auth.isAuthenticated
-  });
-
   // Combine all auth data
   const authContextValue: AuthContextType = {
     // Auth state

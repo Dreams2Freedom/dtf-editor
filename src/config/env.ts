@@ -42,28 +42,24 @@ export type Env = typeof env;
 // Validation function to ensure essential env vars are present
 export function validateEnv() {
   console.log('🔍 Validating environment variables...');
-  console.log('NEXT_PUBLIC_SUPABASE_URL:', process.env.NEXT_PUBLIC_SUPABASE_URL ? '✅ Set' : '❌ Missing');
-  console.log('NEXT_PUBLIC_SUPABASE_ANON_KEY:', process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ? '✅ Set' : '❌ Missing');
-  console.log('NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY:', process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY ? '✅ Set' : '❌ Missing');
-  console.log('NEXT_PUBLIC_APP_URL:', process.env.NEXT_PUBLIC_APP_URL ? '✅ Set' : '❌ Missing');
+  console.log('NEXT_PUBLIC_SUPABASE_URL:', env.SUPABASE_URL ? '✅ Set' : '❌ Missing');
+  console.log('NEXT_PUBLIC_SUPABASE_ANON_KEY:', env.SUPABASE_ANON_KEY ? '✅ Set' : '❌ Missing');
+  console.log('NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY:', env.STRIPE_PUBLISHABLE_KEY ? '✅ Set' : '❌ Missing');
+  console.log('NEXT_PUBLIC_APP_URL:', env.APP_URL ? '✅ Set' : '❌ Missing');
 
   // Essential variables required for basic functionality
   const essentialVars = [
-    'NEXT_PUBLIC_SUPABASE_URL',
-    'NEXT_PUBLIC_SUPABASE_ANON_KEY',
-    'NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY',
+    { name: 'NEXT_PUBLIC_SUPABASE_URL', value: env.SUPABASE_URL },
+    { name: 'NEXT_PUBLIC_SUPABASE_ANON_KEY', value: env.SUPABASE_ANON_KEY },
+    { name: 'NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY', value: env.STRIPE_PUBLISHABLE_KEY },
   ];
 
-  const missingVars = essentialVars.filter(varName => !process.env[varName]);
+  const missingVars = essentialVars.filter(varItem => !varItem.value);
 
   if (missingVars.length > 0) {
     console.warn(
-      `⚠️  Missing environment variables: ${missingVars.join(', ')}`
+      `⚠️  Missing environment variables: ${missingVars.map(v => v.name).join(', ')}`
     );
-    // Don't throw error for now - just warn
-    // throw new Error(
-    //   `Missing essential environment variables: ${missingVars.join(', ')}`
-    // );
   } else {
     console.log('✅ All essential environment variables are set');
   }
@@ -91,5 +87,7 @@ export function validateEnv() {
   }
 }
 
-// Always validate in both development and production
-validateEnv();
+// Only validate in development to prevent infinite loops
+if (process.env.NODE_ENV === 'development') {
+  validateEnv();
+}
