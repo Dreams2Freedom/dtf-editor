@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuthContext } from '@/contexts/AuthContext';
 import { Loader2 } from 'lucide-react';
@@ -8,16 +8,21 @@ import { Loader2 } from 'lucide-react';
 export default function HomePage() {
   const router = useRouter();
   const { isAuthenticated, loading } = useAuthContext();
+  const [isMounted, setIsMounted] = useState(false);
 
   useEffect(() => {
-    if (!loading) {
+    setIsMounted(true);
+  }, []);
+
+  useEffect(() => {
+    if (isMounted && !loading) {
       if (isAuthenticated) {
         router.push('/dashboard');
       } else {
         router.push('/auth/login');
       }
     }
-  }, [isAuthenticated, loading, router]);
+  }, [isAuthenticated, loading, router, isMounted]);
 
   return (
     <div className="min-h-screen flex items-center justify-center">
