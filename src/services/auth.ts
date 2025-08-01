@@ -1,7 +1,6 @@
 import { User, Session, AuthError } from '@supabase/supabase-js';
 import { createClientSupabaseClient } from '@/lib/supabase/client';
 import { env } from '@/config/env';
-import { emailService } from '@/services/email';
 
 // Create Supabase client
 export const supabase = typeof window !== 'undefined' ? createClientSupabaseClient() : null!;
@@ -97,19 +96,7 @@ export class AuthService {
 
       // Profile is created automatically by database trigger (handle_new_user function)
       
-      // Send welcome email
-      if (data.user) {
-        try {
-          await emailService.sendWelcomeEmail({
-            email: data.user.email || email,
-            firstName: metadata?.firstName,
-            planName: 'Free', // New users start with free plan
-          });
-        } catch (emailError) {
-          console.error('Failed to send welcome email:', emailError);
-          // Don't fail the signup if email fails
-        }
-      }
+      // Note: Welcome email is sent from the server-side auth callback
 
       return { user: data.user, error: null };
     } catch (error) {
