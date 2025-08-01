@@ -1,5 +1,6 @@
 [build]
 builder = "nixpacks"
+buildCommand = "npm run build"
 
 [deploy]
 startCommand = "npm start"
@@ -9,4 +10,5 @@ restartPolicyType = "on_failure"
 restartPolicyMaxRetries = 3
 
 [env]
-NODE_ENV = "production" 
+NODE_ENV = "production"
+NIXPACKS_NODE_VERSION = "18" 
