@@ -22,7 +22,7 @@ A mobile-first, user-friendly web application that helps hobbyists and small hom
 - **Payments:** Stripe
 - **AI Services:** OpenAI, Deep-Image.ai, ClippingMagic, Vectorizer.ai
 - **Testing:** Vitest + React Testing Library
-- **Deployment:** Railway
+- **Deployment:** Vercel
 
 ## 📋 Prerequisites
 

@@ -94,7 +94,7 @@ npm run db:setup         # Setup database (run scripts/setup-database.js)
 - **Payments**: Stripe (subscriptions + pay-as-you-go)
 - **AI Services**: OpenAI, Deep-Image.ai, ClippingMagic, Vectorizer.ai
 - **Testing**: Vitest + React Testing Library
-- **Deployment**: Railway
+- **Deployment**: Vercel
 
 ### Key Architectural Patterns
 

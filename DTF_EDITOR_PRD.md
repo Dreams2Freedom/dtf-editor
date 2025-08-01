@@ -93,7 +93,7 @@
 ### **5.3 Integrations**
 
 - **AI Services:** OpenAI, Vectorizer.ai, ClippingMagic.com, Deep-Image.ai
-- **Infrastructure:** Railway, Supabase
+- **Infrastructure:** Vercel, Supabase
 - **Payments:** Stripe
 - **Marketing:** GoHighLevel, SendGrid
 
@@ -654,7 +654,7 @@ src/
 
 - **AI Services:** OpenAI, Vectorizer.ai, ClippingMagic, Deep-Image.ai
 - **Payments:** Stripe (subscriptions + pay-as-you-go)
-- **Infrastructure:** Railway, Supabase
+- **Infrastructure:** Vercel, Supabase
 - **Marketing:** GoHighLevel, SendGrid
 
 ## 🔌 **15. API Integration Documentation**
@@ -950,7 +950,7 @@ const subscription = supabase
   .subscribe();
 ```
 
-#### **Railway API**
+#### **Vercel API**
 
 **Purpose:** Deployment and infrastructure management
 **Endpoints:** REST API for deployment management
@@ -960,15 +960,19 @@ const subscription = supabase
 
 ```javascript
 // Trigger deployment
-const response = await fetch('https://api.railway.app/v2/deployments', {
+const response = await fetch('https://api.vercel.com/v13/deployments', {
   method: 'POST',
   headers: {
-    Authorization: `Bearer ${RAILWAY_TOKEN}`,
+    Authorization: `Bearer ${VERCEL_TOKEN}`,
     'Content-Type': 'application/json',
   },
   body: JSON.stringify({
-    serviceId: SERVICE_ID,
-    environment: 'production',
+    name: 'dtf-editor',
+    gitSource: {
+      type: 'github',
+      repo: 'Dreams2Freedom/dtf-editor',
+      ref: 'main'
+    }
   }),
 });
 ```

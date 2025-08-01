@@ -1,0 +1,19 @@
+{
+  "buildCommand": "npm run build",
+  "outputDirectory": ".next",
+  "devCommand": "npm run dev",
+  "installCommand": "npm install",
+  "framework": "nextjs",
+  "regions": ["iad1"],
+  "functions": {
+    "src/app/api/webhooks/stripe/route.ts": {
+      "maxDuration": 60
+    },
+    "src/app/api/webhooks/sendgrid/route.ts": {
+      "maxDuration": 30
+    },
+    "src/app/api/generate/route.ts": {
+      "maxDuration": 300
+    }
+  }
+}
