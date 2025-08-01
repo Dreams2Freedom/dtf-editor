@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
-import { stripeService } from '@/services/stripe';
+import { StripeService } from '@/services/stripe';
+
+const stripeService = new StripeService();
 
 export async function GET(request: NextRequest) {
   try {
