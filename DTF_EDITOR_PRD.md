@@ -52,7 +52,7 @@
 
 - **API:** Deep-Image.ai
 - **Purpose:** Improve poor-quality images
-- **Input:** JPEG, PNG
+- **Input:** JPEG, PNG, WebP
 - **Output:** High-resolution image
 
 ### **4.2 Background Removal**
@@ -71,7 +71,7 @@
 
 ### **4.4 AI Image Generation**
 
-- **API:** OpenAI Image Generation
+- **API:** ChatGPT Image Generation (OpenAI)
 - **Purpose:** Create images from prompts or uploaded references
 - **Input:** Text prompts or reference images
 - **Output:** Generated images
@@ -87,7 +87,7 @@
 
 ### **5.2 File Support**
 
-- **Input:** JPEG, PNG, SVG, AI, PDF
+- **Input:** JPEG, PNG, WebP, SVG, AI, PDF
 - **Output:** PNG at 300 DPI with transparent background
 
 ### **5.3 Integrations**
@@ -203,7 +203,7 @@ User uploads image → Processing starts → API fails → Show user-friendly er
 
 - **Image too large:** "Image is too large. Please resize to under 10MB"
 - **API timeout:** "Processing is taking longer than expected. Please try again"
-- **Invalid file type:** "Please upload a JPEG, PNG, or SVG file"
+- **Invalid file type:** "Please upload a JPEG, PNG, WebP, or SVG file"
 - **Network issues:** "Connection lost. Please check your internet and try again"
 - **Credit exhaustion:** "You're out of credits. Upgrade your plan or purchase more"
 
@@ -238,47 +238,147 @@ My Images/
 
 ## 👨‍💼 **11. Admin Dashboard Requirements**
 
-### **11.1 User Management**
+### **11.1 Authentication & Authorization**
 
-- **View all users** with search/filter
-- **Edit user details** (name, email, subscription)
-- **Add/remove credits** manually
+#### **Admin Roles**
+- **Super Admin**: Full system access, can manage other admins
+- **Admin**: User management, financial viewing, no system settings
+- **Support**: View-only access, can add credits, view user data
+- **Analytics**: Read-only access to reports and metrics
+
+#### **Security Requirements**
+- Two-factor authentication (2FA) mandatory for all admin accounts
+- IP whitelist for admin access (configurable)
+- Session timeout after 30 minutes of inactivity
+- Audit log for all admin actions
+- Failed login attempt monitoring and blocking
+
+### **11.2 User Management**
+
+#### **Search & Filtering**
+- Search by: email, name, user ID
+- Filter by: account status, subscription plan, credit balance, registration date, last activity, total spend, country
+- Bulk selection for operations
+
+#### **User Actions**
+- **View detailed profile** and complete history
+- **Edit user information** (name, email, subscription)
+- **Add/remove credits** with reason tracking
+- **View all transactions** and processing history
+- **View all processed images** with metadata
+- **Download user data** (GDPR compliance)
+- **Delete user and all data** (GDPR right to be forgotten)
+- **Impersonate user** (with audit log)
 - **Suspend/activate** user accounts
-- **View user activity** and processing history
 
-### **11.2 Subscription Management**
+#### **Bulk Operations**
+- Add/remove credits to multiple users
+- Send email notifications to segments
+- Export user data (CSV, PDF)
+- Change subscription plans
+- Apply tags or labels
 
-- **Create/edit Stripe subscription plans**
-- **Create/edit pay-as-you-go credit packages**
-- **Manage plan pricing** and features
-- **View subscription analytics** (conversions, cancellations)
+### **11.3 Financial Management**
 
-### **11.3 Financial Tracking**
+#### **Transaction Management**
+- View all transactions with advanced filters
+- Process refunds with reason tracking
+- Void/cancel transactions
+- Add manual transactions
+- Export transactions (CSV, PDF, Excel)
 
-- **API cost tracking** per operation
-- **Credit usage analytics** by user/plan
-- **Revenue reporting** (monthly, quarterly, yearly)
-- **Profitability metrics** (revenue vs API costs)
-- **Churn analysis** and prediction
+#### **Coupon System**
+- Create discount codes (percentage or fixed amount)
+- Set usage limits and expiration dates
+- Apply plan restrictions
+- Track coupon usage analytics
+- Bulk generate unique codes
+- Deactivate codes instantly
 
-### **11.4 Business Intelligence**
+#### **Financial Reporting**
+- Revenue by period (daily, weekly, monthly, yearly)
+- Revenue by plan type and country
+- API costs breakdown by service:
+  - Deep-Image.ai: $0.08 per image
+  - ClippingMagic: $0.125 per image
+  - Vectorizer.ai: $0.20 per image
+  - OpenAI DALL-E 3: $0.04 per image (standard quality)
+- Real-time profitability tracking per processed image
+- Profit margins by user segment (70-90% depending on plan)
+- Tax reports by jurisdiction
+- Churn analysis with cohort tracking
+- LTV calculations and forecasting
 
-- **User segmentation** (free vs paid)
-- **Conversion funnel** analysis
-- **Feature usage** statistics
-- **KPI dashboard** with key metrics
-- **Export capabilities** for reporting
+### **11.4 Analytics & Business Intelligence**
 
-### **11.5 Key Performance Indicators (KPIs)**
+#### **Real-time Dashboard**
+- Active users (last 24h, 7d, 30d)
+- Current processed images status
+- API health and response times
+- Error rates and types
+- Credit usage patterns
+- Live profitability metrics per service
 
-- **Monthly Recurring Revenue (MRR)**
-- **Customer Acquisition Cost (CAC)**
-- **Customer Lifetime Value (CLV)**
-- **Churn Rate**
-- **Conversion Rate** (free to paid)
-- **Average Revenue Per User (ARPU)**
-- **API Cost per User**
-- **Profit Margin**
+#### **User Analytics**
+- User acquisition funnel visualization
+- Feature adoption rates
+- User engagement scoring
+- Retention curves by cohort
+- Behavioral segmentation
+
+#### **Custom Reports**
+- Drag-and-drop report builder
+- Saved report templates
+- Scheduled report generation
+- Email delivery of reports
+- Export formats: CSV, PDF, Excel
+
+#### **Key Performance Indicators (KPIs)**
+- **Financial**: MRR, ARR, ARPU, CAC, LTV, LTV:CAC ratio
+- **Operational**: DAU/MAU, processing success rate, avg processing time
+- **Growth**: User acquisition rate, conversion rates, referral metrics
+- **Support**: Ticket volume, resolution time, satisfaction score
+- **Profitability**: Gross margin per service, API cost per user, profit per processed image
+
+### **11.5 System Management**
+
+#### **Configuration**
+- Feature flags management
+- API rate limits per plan
+- Dynamic pricing configuration
+- Email template editor
+- System-wide announcements
+
+#### **Monitoring**
+- API health dashboard with uptime tracking
+- Service status for all integrations
+- Error log viewer with search
+- Performance metrics and alerts
+- Queue monitoring for processing jobs
+
+#### **Support Tools**
+- View user's current session
+- Access processing history
+- Simulate user's view
+- Add internal notes to profiles
+- Priority support queue management
+
+### **11.6 Compliance & Security**
+
+#### **GDPR Compliance**
+- User data export tool
+- Right to be forgotten implementation
+- Consent management tracking
+- Data retention policy enforcement
+- Privacy policy versioning
+
+#### **Audit & Security**
+- All admin actions logged with timestamps
+- User data access tracking
+- Financial transaction audit trail
+- System change logs
+- Security scan results dashboard
+- Suspicious activity alerts
 
 ## 🎯 **12. Success Criteria**
 
@@ -559,12 +659,14 @@ src/
 
 ## 🔌 **15. API Integration Documentation**
 
+**IMPORTANT**: See `API_CODE_EXAMPLES.md` for verified code examples and implementation patterns for all API integrations.
+
 ### **15.1 AI Service APIs**
 
-#### **OpenAI Image Generation API**
+#### **ChatGPT Image Generation API**
 
-**Purpose:** Generate images from text prompts or reference images
-**Endpoint:** `https://api.openai.com/v1/images/generations`
+**Purpose:** Generate images from text prompts using ChatGPT's image generation capabilities
+**Endpoint:** `https://api.openai.com/v1/chat/completions` (with image generation)
 **Authentication:** Bearer token
 **Rate Limits:** Varies by plan
 
@@ -572,12 +674,14 @@ src/
 
 ```json
 {
-  "model": "dall-e-3",
-  "prompt": "A professional logo design for a coffee shop",
-  "n": 1,
-  "size": "1024x1024",
-  "quality": "standard",
-  "response_format": "url"
+  "model": "gpt-4-vision-preview",
+  "messages": [
+    {
+      "role": "user",
+      "content": "Generate an image of a professional logo design for a coffee shop"
+    }
+  ],
+  "max_tokens": 300
 }
 ```
 
@@ -606,28 +710,58 @@ src/
 #### **Deep-Image.ai Upscaling API**
 
 **Purpose:** Upscale low-resolution images to high quality
-**Endpoint:** `https://api.deep-image.ai/rest_api`
-**Authentication:** API key in headers
+**Endpoint:** `https://deep-image.ai/rest_api/process_result`
+**Authentication:** `X-API-KEY` header (case-sensitive)
 **Rate Limits:** Based on subscription tier
 
 **Request Format:**
 
 ```json
 {
-  "image": "base64_encoded_image_data",
-  "scale": 2,
-  "face_enhance": false,
-  "type": "photo"
+  "url": "https://example.com/image.jpg",
+  "output_format": "jpeg",
+  "enhancements": ["denoise", "deblur", "light"],
+  "generative_upscale": true,
+  "width": 3840
 }
 ```
 
-**Response Format:**
+**Processing Modes:**
+- **Auto Enhance:** `enhancements: ["denoise", "deblur", "light"]`
+- **Generative Upscale:** `generative_upscale: true`
+- **Basic Upscale:** No additional parameters
+
+**Response Format (Immediate):**
 
 ```json
 {
-  "status": "success",
-  "url": "https://deep-image.ai/result/upscaled_image.jpg",
-  "processing_time": 15.2
+  "status": "complete",
+  "job": "job-id-here",
+  "queue": 0,
+  "result_url": "https://neuroapi-store.s3.eu-central-1.amazonaws.com/2025-07-25/result.jpg"
+}
+```
+
+**Response Format (Queued):**
+
+```json
+{
+  "status": "not_started",
+  "job": "job-id-here",
+  "processing_info": "Your request is being processed",
+  "queue": 0
+}
+```
+
+**Polling Endpoint:** `https://deep-image.ai/rest_api/result/{job_id}`
+
+**Polling Response:**
+
+```json
+{
+  "status": "complete",
+  "job": "job-id-here",
+  "result_url": "https://neuroapi-store.s3.eu-central-1.amazonaws.com/2025-07-25/result.jpg"
 }
 ```
 

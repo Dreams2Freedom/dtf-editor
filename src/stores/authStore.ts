@@ -93,7 +93,7 @@ export const useAuthStore = create<AuthStore>()(
             session: authState.session,
             profile,
             isAdmin: profile?.is_admin || false,
-            creditsRemaining: profile?.credits_remaining || 0,
+            creditsRemaining: profile?.credits ?? profile?.credits_remaining ?? 0,
             subscriptionStatus: profile?.subscription_status || 'free',
             subscriptionPlan: profile?.subscription_plan || 'free',
             loading: false,
@@ -113,7 +113,6 @@ export const useAuthStore = create<AuthStore>()(
           });
         }
       } catch (error) {
-        console.error('Error initializing auth:', error);
         set({
           user: null,
           session: null,
@@ -149,7 +148,7 @@ export const useAuthStore = create<AuthStore>()(
             session: result.user ? await authService.getSession() : null,
             profile,
             isAdmin: profile?.is_admin || false,
-            creditsRemaining: profile?.credits_remaining || 0,
+            creditsRemaining: profile?.credits ?? profile?.credits_remaining ?? 0,
             subscriptionStatus: profile?.subscription_status || 'free',
             subscriptionPlan: profile?.subscription_plan || 'free',
             loading: false,
@@ -198,7 +197,7 @@ export const useAuthStore = create<AuthStore>()(
             session: result.user ? await authService.getSession() : null,
             profile,
             isAdmin: profile?.is_admin || false,
-            creditsRemaining: profile?.credits_remaining || 0,
+            creditsRemaining: profile?.credits ?? profile?.credits_remaining ?? 0,
             subscriptionStatus: profile?.subscription_status || 'free',
             subscriptionPlan: profile?.subscription_plan || 'free',
             loading: false,
@@ -270,7 +269,7 @@ export const useAuthStore = create<AuthStore>()(
           set({
             profile,
             isAdmin: profile?.is_admin || false,
-            creditsRemaining: profile?.credits_remaining || 0,
+            creditsRemaining: profile?.credits ?? profile?.credits_remaining ?? 0,
             subscriptionStatus: profile?.subscription_status || 'free',
             subscriptionPlan: profile?.subscription_plan || 'free',
             loading: false,
@@ -283,6 +282,32 @@ export const useAuthStore = create<AuthStore>()(
         const errorMessage =
           error instanceof Error ? error.message : 'Profile update failed';
         set({ loading: false, error: errorMessage });
+        return { success: false, error: errorMessage };
+      }
+    },
+
+    // Update profile
+    updateProfile: async (profileData: Partial<Profile>) => {
+      const user = get().user;
+      if (!user) {
+        return { success: false, error: 'No user logged in' };
+      }
+
+      try {
+        const profile = get().profile;
+        if (profile) {
+          // Update local state immediately for optimistic UI
+          set({
+            profile: {
+              ...profile,
+              ...profileData,
+            },
+          });
+        }
+        return { success: true };
+      } catch (error) {
+        const errorMessage =
+          error instanceof Error ? error.message : 'Profile update failed';
         return { success: false, error: errorMessage };
       }
     },
@@ -339,7 +364,6 @@ export const useAuthStore = create<AuthStore>()(
       try {
         return await authService.checkCredits(user.id, requiredCredits);
       } catch (error) {
-        console.error('Error checking credits:', error);
         return false;
       }
     },
@@ -359,7 +383,6 @@ export const useAuthStore = create<AuthStore>()(
           });
         }
       } catch (error) {
-        console.error('Error refreshing credits:', error);
       }
     },
 
@@ -374,34 +397,27 @@ export const useAuthStore = create<AuthStore>()(
   }))
 );
 
-// Selector hooks
-export const useAuth = () =>
-  useAuthStore(state => ({
-    user: state.user,
-    session: state.session,
-    loading: state.loading,
-    error: state.error,
-    isAuthenticated: !!state.user,
-    isAdmin: state.isAdmin,
-  }));
+// Individual selector hooks to avoid infinite loops
+export const useUser = () => useAuthStore(state => state.user);
+export const useSession = () => useAuthStore(state => state.session);
+export const useLoading = () => useAuthStore(state => state.loading);
+export const useError = () => useAuthStore(state => state.error);
+export const useIsAuthenticated = () => useAuthStore(state => !!state.user);
+export const useIsAdmin = () => useAuthStore(state => state.isAdmin);
 
-export const useProfile = () =>
-  useAuthStore(state => ({
-    profile: state.profile,
-    creditsRemaining: state.creditsRemaining,
-    subscriptionStatus: state.subscriptionStatus,
-    subscriptionPlan: state.subscriptionPlan,
-  }));
+export const useProfile = () => useAuthStore(state => state.profile);
+export const useCreditsRemaining = () => useAuthStore(state => state.creditsRemaining);
+export const useSubscriptionStatus = () => useAuthStore(state => state.subscriptionStatus);
+export const useSubscriptionPlan = () => useAuthStore(state => state.subscriptionPlan);
 
-export const useAuthActions = () =>
-  useAuthStore(state => ({
-    signIn: state.signIn,
-    signUp: state.signUp,
-    signOut: state.signOut,
-    updateProfile: state.updateProfile,
-    resetPassword: state.resetPassword,
-    updatePassword: state.updatePassword,
-    checkCredits: state.checkCredits,
-    refreshCredits: state.refreshCredits,
-    clearError: state.clearError,
-  }));
+// Action hooks
+export const useSignIn = () => useAuthStore(state => state.signIn);
+export const useSignUp = () => useAuthStore(state => state.signUp);
+export const useSignOut = () => useAuthStore(state => state.signOut);
+export const useUpdateProfile = () => useAuthStore(state => state.updateProfile);
+export const useResetPassword = () => useAuthStore(state => state.resetPassword);
+export const useUpdatePassword = () => useAuthStore(state => state.updatePassword);
+export const useCheckCredits = () => useAuthStore(state => state.checkCredits);
+export const useRefreshCredits = () => useAuthStore(state => state.refreshCredits);
+export const useClearError = () => useAuthStore(state => state.clearError);
+export const useInitialize = () => useAuthStore(state => state.initialize);

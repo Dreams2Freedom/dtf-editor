@@ -1,6 +1,8 @@
+"use client";
+
 import React from 'react';
 import { cva, type VariantProps } from 'class-variance-authority';
-import { cn } from '@/utils/cn';
+import { cn } from '@/lib/utils';
 
 const buttonVariants = cva(
   'inline-flex items-center justify-center rounded-lg font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50',
@@ -8,18 +10,18 @@ const buttonVariants = cva(
     variants: {
       variant: {
         default:
-          'bg-primary-500 text-white hover:bg-primary-600 focus-visible:ring-primary-500',
+          'bg-blue-600 text-white hover:bg-blue-700 focus-visible:ring-blue-500',
         secondary:
           'bg-gray-100 text-gray-900 hover:bg-gray-200 focus-visible:ring-gray-500',
         outline:
           'border border-gray-300 bg-white text-gray-700 hover:bg-gray-50 focus-visible:ring-gray-500',
         ghost: 'text-gray-700 hover:bg-gray-100 focus-visible:ring-gray-500',
         accent:
-          'bg-accent-500 text-white hover:bg-accent-600 focus-visible:ring-accent-500',
+          'bg-orange-500 text-white hover:bg-orange-600 focus-visible:ring-orange-500',
         destructive:
-          'bg-error-500 text-white hover:bg-error-600 focus-visible:ring-error-500',
+          'bg-red-500 text-white hover:bg-red-600 focus-visible:ring-red-500',
         success:
-          'bg-success-500 text-white hover:bg-success-600 focus-visible:ring-success-500',
+          'bg-green-500 text-white hover:bg-green-600 focus-visible:ring-green-500',
       },
       size: {
         sm: 'h-8 px-3 text-sm',

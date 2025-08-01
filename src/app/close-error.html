@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Close Error Modal</title>
+</head>
+<body>
+    <h1>Closing Error Modal...</h1>
+    <script>
+        // This will run in the console to close the error modal
+        console.log('Attempting to close error modal...');
+        
+        // Try to find and close the modal
+        setTimeout(() => {
+            // Method 1: Click any close button
+            const closeButtons = document.querySelectorAll('button');
+            closeButtons.forEach(btn => {
+                if (btn.textContent.includes('Close') || btn.textContent.includes('X') || btn.textContent.includes('Dismiss')) {
+                    console.log('Found close button, clicking...');
+                    btn.click();
+                }
+            });
+            
+            // Method 2: Remove error overlay
+            const overlays = document.querySelectorAll('[role="dialog"], .error-overlay, .modal-overlay');
+            overlays.forEach(overlay => {
+                console.log('Removing overlay...');
+                overlay.remove();
+            });
+            
+            // Method 3: Navigate away
+            setTimeout(() => {
+                console.log('Navigating to admin...');
+                window.location.href = '/admin';
+            }, 500);
+        }, 100);
+    </script>
+    
+    <p>If the error modal doesn't close automatically, copy and paste this into your browser console:</p>
+    <pre style="background: #f5f5f5; padding: 20px; border-radius: 5px;">
+// Close error modal
+document.querySelectorAll('[role="dialog"], .error-overlay, .modal-overlay').forEach(el => el.remove());
+document.querySelectorAll('body > div').forEach(div => { if (div.style.position === 'fixed') div.remove(); });
+// Navigate to admin
+window.location.href = '/admin';
+    </pre>
+</body>
+</html>

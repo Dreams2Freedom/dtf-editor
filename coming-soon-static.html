@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DTF Editor - Coming Soon</title>
+    <meta name="description" content="The ultimate AI-powered platform for creating professional DTF transfers. Transform your designs with one-click background removal, AI upscaling, and instant vectorization.">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @keyframes blob {
+            0% {
+                transform: translate(0px, 0px) scale(1);
+            }
+            33% {
+                transform: translate(30px, -50px) scale(1.1);
+            }
+            66% {
+                transform: translate(-20px, 20px) scale(0.9);
+            }
+            100% {
+                transform: translate(0px, 0px) scale(1);
+            }
+        }
+        .animate-blob {
+            animation: blob 7s infinite;
+        }
+        .animation-delay-2000 {
+            animation-delay: 2s;
+        }
+        .animation-delay-4000 {
+            animation-delay: 4s;
+        }
+    </style>
+</head>
+<body>
+    <div class="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 relative overflow-hidden">
+        <!-- Background decoration -->
+        <div class="absolute inset-0 overflow-hidden">
+            <div class="absolute -top-40 -right-32 w-80 h-80 bg-blue-300 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-blob"></div>
+            <div class="absolute -bottom-40 -left-32 w-80 h-80 bg-purple-300 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-blob animation-delay-2000"></div>
+            <div class="absolute top-40 left-20 w-72 h-72 bg-pink-300 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-blob animation-delay-4000"></div>
+        </div>
+
+        <div class="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+            <!-- Logo -->
+            <div class="flex justify-center mb-12">
+                <div class="flex items-center space-x-2">
+                    <i class="fas fa-crown text-4xl text-blue-600"></i>
+                    <span class="text-2xl font-bold text-gray-900">DTF Editor</span>
+                </div>
+            </div>
+
+            <!-- Main content -->
+            <div class="text-center max-w-3xl mx-auto">
+                <h1 class="text-5xl sm:text-6xl font-bold text-gray-900 mb-6">
+                    Something Amazing is
+                    <span class="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-purple-600"> Coming Soon</span>
+                </h1>
+                
+                <p class="text-xl text-gray-600 mb-12">
+                    The ultimate AI-powered platform for creating professional DTF transfers. 
+                    Transform your designs with one-click background removal, AI upscaling, and instant vectorization.
+                </p>
+
+                <!-- Features -->
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-6 mb-12">
+                    <div class="bg-white/80 backdrop-blur-sm rounded-xl p-6 shadow-lg">
+                        <i class="fas fa-upload text-4xl text-blue-600 mb-4 block"></i>
+                        <h3 class="font-semibold text-gray-900 mb-2">AI Upscaling</h3>
+                        <p class="text-gray-600 text-sm">
+                            Enhance image quality up to 4x with AI-powered upscaling
+                        </p>
+                    </div>
+                    
+                    <div class="bg-white/80 backdrop-blur-sm rounded-xl p-6 shadow-lg">
+                        <i class="fas fa-cut text-4xl text-purple-600 mb-4 block"></i>
+                        <h3 class="font-semibold text-gray-900 mb-2">Background Removal</h3>
+                        <p class="text-gray-600 text-sm">
+                            Professional background removal in seconds
+                        </p>
+                    </div>
+                    
+                    <div class="bg-white/80 backdrop-blur-sm rounded-xl p-6 shadow-lg">
+                        <i class="fas fa-bolt text-4xl text-orange-600 mb-4 block"></i>
+                        <h3 class="font-semibold text-gray-900 mb-2">Instant Vectorization</h3>
+                        <p class="text-gray-600 text-sm">
+                            Convert images to scalable vectors instantly
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Countdown -->
+                <div class="mb-12">
+                    <h2 class="text-2xl font-semibold text-gray-900 mb-6">Launching In</h2>
+                    <div class="flex justify-center space-x-4" id="countdown">
+                        <div class="bg-white rounded-lg shadow-lg p-4 min-w-[80px]">
+                            <div class="text-3xl font-bold text-blue-600" id="days">00</div>
+                            <div class="text-sm text-gray-600">Days</div>
+                        </div>
+                        <div class="bg-white rounded-lg shadow-lg p-4 min-w-[80px]">
+                            <div class="text-3xl font-bold text-blue-600" id="hours">00</div>
+                            <div class="text-sm text-gray-600">Hours</div>
+                        </div>
+                        <div class="bg-white rounded-lg shadow-lg p-4 min-w-[80px]">
+                            <div class="text-3xl font-bold text-blue-600" id="minutes">00</div>
+                            <div class="text-sm text-gray-600">Minutes</div>
+                        </div>
+                        <div class="bg-white rounded-lg shadow-lg p-4 min-w-[80px]">
+                            <div class="text-3xl font-bold text-blue-600" id="seconds">00</div>
+                            <div class="text-sm text-gray-600">Seconds</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Email signup -->
+                <div class="bg-white/90 backdrop-blur-sm rounded-2xl p-8 shadow-xl max-w-md mx-auto">
+                    <div id="signup-form">
+                        <h3 class="text-xl font-semibold text-gray-900 mb-2">
+                            Get Early Access
+                        </h3>
+                        <p class="text-gray-600 mb-6">
+                            Be the first to know when we launch and get exclusive early bird pricing!
+                        </p>
+
+                        <form onsubmit="handleSubmit(event)" class="space-y-4">
+                            <div class="relative">
+                                <i class="fas fa-envelope absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
+                                <input
+                                    type="email"
+                                    id="email"
+                                    placeholder="Enter your email"
+                                    class="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                    required
+                                />
+                            </div>
+                            <button
+                                type="submit"
+                                id="submit-btn"
+                                class="w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white font-semibold py-3 px-6 rounded-lg hover:shadow-lg transform hover:scale-105 transition-all duration-200"
+                            >
+                                <span class="flex items-center justify-center">
+                                    <i class="fas fa-sparkles mr-2"></i>
+                                    Get Early Access
+                                </span>
+                            </button>
+                        </form>
+                    </div>
+
+                    <div id="success-message" class="hidden text-center py-8">
+                        <div class="inline-flex items-center justify-center w-16 h-16 bg-green-100 rounded-full mb-4">
+                            <i class="fas fa-check text-3xl text-green-600"></i>
+                        </div>
+                        <h4 class="text-lg font-semibold text-gray-900 mb-2">You're on the list!</h4>
+                        <p class="text-gray-600">We'll notify you as soon as we launch.</p>
+                    </div>
+                </div>
+
+                <!-- Footer -->
+                <div class="mt-12 text-center text-gray-600 text-sm">
+                    <p>&copy; 2025 DTF Editor. All rights reserved.</p>
+                    <div class="mt-4 space-x-6">
+                        <a href="#" class="hover:text-gray-900 transition-colors">Privacy Policy</a>
+                        <a href="#" class="hover:text-gray-900 transition-colors">Terms of Service</a>
+                        <a href="mailto:support@dtfeditor.com" class="hover:text-gray-900 transition-colors">Contact</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Countdown timer
+        const launchDate = new Date('2025-09-01T00:00:00').getTime();
+
+        const countdown = setInterval(() => {
+            const now = new Date().getTime();
+            const distance = launchDate - now;
+
+            const days = Math.floor(distance / (1000 * 60 * 60 * 24));
+            const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+            const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+            const seconds = Math.floor((distance % (1000 * 60)) / 1000);
+
+            document.getElementById('days').innerText = days.toString().padStart(2, '0');
+            document.getElementById('hours').innerText = hours.toString().padStart(2, '0');
+            document.getElementById('minutes').innerText = minutes.toString().padStart(2, '0');
+            document.getElementById('seconds').innerText = seconds.toString().padStart(2, '0');
+
+            if (distance < 0) {
+                clearInterval(countdown);
+                document.getElementById('countdown').innerHTML = '<h2 class="text-3xl font-bold text-blue-600">We are LIVE!</h2>';
+            }
+        }, 1000);
+
+        // Form submission
+        function handleSubmit(event) {
+            event.preventDefault();
+            
+            const email = document.getElementById('email').value;
+            const submitBtn = document.getElementById('submit-btn');
+            
+            // Show loading state
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Subscribing...';
+            
+            // Simulate API call (replace with actual endpoint)
+            setTimeout(() => {
+                // Show success message
+                document.getElementById('signup-form').classList.add('hidden');
+                document.getElementById('success-message').classList.remove('hidden');
+                
+                // Store email in localStorage for now
+                const subscribers = JSON.parse(localStorage.getItem('dtf_waitlist') || '[]');
+                subscribers.push({ email, date: new Date().toISOString() });
+                localStorage.setItem('dtf_waitlist', JSON.stringify(subscribers));
+                
+                console.log('Waitlist subscribers:', subscribers);
+            }, 1000);
+        }
+    </script>
+</body>
+</html>

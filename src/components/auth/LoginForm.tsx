@@ -119,9 +119,13 @@ export function LoginForm({ onSuccess, redirectTo }: LoginFormProps) {
         )}
 
         {/* Submit Button */}
-        <Button type="submit" className="w-full" loading={loading}>
-          Sign in
-        </Button>
+        <button 
+          type="submit" 
+          className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-4 rounded-lg shadow-sm border-2 border-blue-500"
+          disabled={loading}
+        >
+          {loading ? 'Signing in...' : 'Sign in'}
+        </button>
 
         {/* Links */}
         <div className="flex items-center justify-between text-sm">

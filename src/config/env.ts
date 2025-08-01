@@ -1,105 +1,130 @@
+// Debug environment loading
+if (process.env.NODE_ENV === 'development') {
+  console.log('Loading env.ts - ClippingMagic vars:', {
+    CLIPPINGMAGIC_API_KEY: process.env.CLIPPINGMAGIC_API_KEY ? 'SET' : 'NOT SET',
+    CLIPPINGMAGIC_API_SECRET: process.env.CLIPPINGMAGIC_API_SECRET ? 'SET' : 'NOT SET',
+  });
+  console.log('Loading env.ts - Deep-Image vars:', {
+    DEEP_IMAGE_API_KEY: process.env.DEEP_IMAGE_API_KEY ? 'SET' : 'NOT SET',
+  });
+}
+
 export const env = {
-  // Supabase Configuration
+  // Supabase Configuration (required)
   SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL || '',
   SUPABASE_ANON_KEY: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '',
   SUPABASE_SERVICE_ROLE_KEY: process.env.SUPABASE_SERVICE_ROLE_KEY || '',
 
-  // AI Service APIs (optional in development)
+  // AI Service APIs (server-side only for security)
   OPENAI_API_KEY: process.env.OPENAI_API_KEY || '',
   DEEP_IMAGE_API_KEY: process.env.DEEP_IMAGE_API_KEY || '',
   CLIPPINGMAGIC_API_KEY: process.env.CLIPPINGMAGIC_API_KEY || '',
+  CLIPPINGMAGIC_API_SECRET: process.env.CLIPPINGMAGIC_API_SECRET || '',
   VECTORIZER_API_KEY: process.env.VECTORIZER_API_KEY || '',
+  VECTORIZER_API_SECRET: process.env.VECTORIZER_API_SECRET || '',
 
-  // Stripe Configuration
+  // Stripe Configuration (required for payments)
   STRIPE_PUBLISHABLE_KEY: process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || '',
   STRIPE_SECRET_KEY: process.env.STRIPE_SECRET_KEY || '',
   STRIPE_WEBHOOK_SECRET: process.env.STRIPE_WEBHOOK_SECRET || '',
+  
+  // Stripe Product IDs (required for payment plans)
+  STRIPE_BASIC_PLAN_PRICE_ID: process.env.STRIPE_BASIC_PLAN_PRICE_ID || '',
+  STRIPE_STARTER_PLAN_PRICE_ID: process.env.STRIPE_STARTER_PLAN_PRICE_ID || '',
+  STRIPE_PAYG_10_CREDITS_PRICE_ID: process.env.STRIPE_PAYG_10_CREDITS_PRICE_ID || '',
+  STRIPE_PAYG_20_CREDITS_PRICE_ID: process.env.STRIPE_PAYG_20_CREDITS_PRICE_ID || '',
+  STRIPE_PAYG_50_CREDITS_PRICE_ID: process.env.STRIPE_PAYG_50_CREDITS_PRICE_ID || '',
 
-  // Email Configuration (optional in development)
+  // Email Configuration (optional)
   SENDGRID_API_KEY: process.env.SENDGRID_API_KEY || '',
-
-  // Marketing Configuration (optional in development)
-  GOHIGHLEVEL_API_KEY: process.env.GOHIGHLEVEL_API_KEY || '',
-  GOHIGHLEVEL_LOCATION_ID: process.env.GOHIGHLEVEL_LOCATION_ID || '',
-
-  // Application Configuration
-  NODE_ENV: process.env.NODE_ENV || 'development',
-  JWT_SECRET: process.env.JWT_SECRET || '',
-  SESSION_SECRET: process.env.SESSION_SECRET || '',
-  COOKIE_SECRET: process.env.COOKIE_SECRET || '',
+  SENDGRID_FROM_EMAIL: process.env.SENDGRID_FROM_EMAIL || 'noreply@dtfeditor.com',
+  SENDGRID_FROM_NAME: process.env.SENDGRID_FROM_NAME || 'DTF Editor',
+  SENDGRID_WEBHOOK_PUBLIC_KEY: process.env.SENDGRID_WEBHOOK_PUBLIC_KEY || '',
+  
+  // SendGrid Template IDs
+  SENDGRID_WELCOME_TEMPLATE_ID: process.env.SENDGRID_WELCOME_TEMPLATE_ID || '',
+  SENDGRID_PURCHASE_TEMPLATE_ID: process.env.SENDGRID_PURCHASE_TEMPLATE_ID || '',
+  SENDGRID_CREDIT_WARNING_TEMPLATE_ID: process.env.SENDGRID_CREDIT_WARNING_TEMPLATE_ID || '',
+  SENDGRID_SUBSCRIPTION_TEMPLATE_ID: process.env.SENDGRID_SUBSCRIPTION_TEMPLATE_ID || '',
 
   // URLs
   APP_URL: process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000',
+  
+  // Admin/Cron
+  CRON_SECRET: process.env.CRON_SECRET || '',
 
   // Feature Flags
   ENABLE_ANALYTICS: process.env.NEXT_PUBLIC_ENABLE_ANALYTICS === 'true',
-  ENABLE_DEBUG: process.env.NEXT_PUBLIC_ENABLE_DEBUG === 'true',
+  ENABLE_DEBUG: process.env.NODE_ENV === 'development',
 } as const;
 
 // Type for environment variables
 export type Env = typeof env;
 
 // Validation function to ensure essential env vars are present
-export function validateEnv() {
-  console.log('🔍 Validating environment variables...');
-  console.log(
-    'NEXT_PUBLIC_SUPABASE_URL:',
-    env.SUPABASE_URL ? '✅ Set' : '❌ Missing'
-  );
-  console.log(
-    'NEXT_PUBLIC_SUPABASE_ANON_KEY:',
-    env.SUPABASE_ANON_KEY ? '✅ Set' : '❌ Missing'
-  );
-  console.log(
-    'NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY:',
-    env.STRIPE_PUBLISHABLE_KEY ? '✅ Set' : '❌ Missing'
-  );
-  console.log('NEXT_PUBLIC_APP_URL:', env.APP_URL ? '✅ Set' : '❌ Missing');
+export function validateEnv(): { valid: boolean; errors: string[]; warnings: string[] } {
+  const errors: string[] = [];
+  const warnings: string[] = [];
 
   // Essential variables required for basic functionality
   const essentialVars = [
     { name: 'NEXT_PUBLIC_SUPABASE_URL', value: env.SUPABASE_URL },
     { name: 'NEXT_PUBLIC_SUPABASE_ANON_KEY', value: env.SUPABASE_ANON_KEY },
-    {
-      name: 'NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY',
-      value: env.STRIPE_PUBLISHABLE_KEY,
-    },
   ];
 
-  const missingVars = essentialVars.filter(varItem => !varItem.value);
-
-  if (missingVars.length > 0) {
-    console.warn(
-      `⚠️  Missing environment variables: ${missingVars.map(v => v.name).join(', ')}`
-    );
-  } else {
-    console.log('✅ All essential environment variables are set');
-  }
-
-  // Optional variables for development (warn if missing)
-  const optionalVars = [
-    'OPENAI_API_KEY',
-    'DEEP_IMAGE_API_KEY',
-    'CLIPPINGMAGIC_API_KEY',
-    'VECTORIZER_API_KEY',
-    'SENDGRID_API_KEY',
-  ];
-
-  const missingOptionalVars = optionalVars.filter(
-    varName => !process.env[varName]
-  );
-
-  if (
-    missingOptionalVars.length > 0 &&
-    process.env.NODE_ENV === 'development'
-  ) {
-    console.warn(
-      `⚠️  Missing optional environment variables (features will be disabled): ${missingOptionalVars.join(', ')}`
+  // Check essential variables
+  const missingEssential = essentialVars.filter(varItem => !varItem.value);
+  if (missingEssential.length > 0) {
+    errors.push(
+      `Missing essential environment variables: ${missingEssential.map(v => v.name).join(', ')}`
     );
   }
+
+  // Check Stripe configuration (required for payments)
+  if (!env.STRIPE_PUBLISHABLE_KEY) {
+    warnings.push('NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY is missing - payment features will not work');
+  }
+  if (!env.STRIPE_SECRET_KEY) {
+    warnings.push('STRIPE_SECRET_KEY is missing - payment processing will not work');
+  }
+
+  // Check AI service keys (optional but important for core features)
+  if (!env.DEEP_IMAGE_API_KEY) {
+    warnings.push('DEEP_IMAGE_API_KEY is missing - image upscaling will not work');
+  }
+  if (!env.CLIPPINGMAGIC_API_KEY || !env.CLIPPINGMAGIC_API_SECRET) {
+    warnings.push('CLIPPINGMAGIC_API_KEY or CLIPPINGMAGIC_API_SECRET is missing - background removal will not work');
+  }
+  if (!env.VECTORIZER_API_KEY || !env.VECTORIZER_API_SECRET) {
+    warnings.push('VECTORIZER_API_KEY or VECTORIZER_API_SECRET is missing - vectorization will not work');
+  }
+  if (!env.OPENAI_API_KEY) {
+    warnings.push('OPENAI_API_KEY is missing - AI image generation will not work');
+  }
+
+  return {
+    valid: errors.length === 0,
+    errors,
+    warnings
+  };
 }
 
-// Only validate in development to prevent infinite loops
-if (process.env.NODE_ENV === 'development') {
-  validateEnv();
+// Helper function to check if a specific feature is available
+export function isFeatureAvailable(feature: 'upscaling' | 'background-removal' | 'vectorization' | 'ai-generation' | 'payments' | 'email'): boolean {
+  switch (feature) {
+    case 'upscaling':
+      return !!env.DEEP_IMAGE_API_KEY;
+    case 'background-removal':
+      return !!env.CLIPPINGMAGIC_API_KEY && !!env.CLIPPINGMAGIC_API_SECRET;
+    case 'vectorization':
+      return !!env.VECTORIZER_API_KEY && !!env.VECTORIZER_API_SECRET;
+    case 'ai-generation':
+      return !!env.OPENAI_API_KEY;
+    case 'payments':
+      return !!(env.STRIPE_PUBLISHABLE_KEY && env.STRIPE_SECRET_KEY);
+    case 'email':
+      return !!env.SENDGRID_API_KEY;
+    default:
+      return false;
+  }
 }

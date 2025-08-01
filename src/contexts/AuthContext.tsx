@@ -7,12 +7,7 @@ import React, {
   ReactNode,
   useMemo,
 } from 'react';
-import {
-  useAuthStore,
-  useAuth,
-  useProfile,
-  useAuthActions,
-} from '@/stores/authStore';
+import { useAuthStore } from '@/stores/authStore';
 import { User, Session } from '@supabase/supabase-js';
 
 // Profile type
@@ -91,73 +86,47 @@ interface AuthProviderProps {
 
 // Auth provider component
 export function AuthProvider({ children }: AuthProviderProps) {
-  const { initialize } = useAuthStore();
-
+  // Get all state and actions from the store at once
+  const authStore = useAuthStore();
+  
   // Initialize auth state on mount
   useEffect(() => {
-    console.log('🔧 Initializing AuthProvider...');
     try {
-      initialize();
-      console.log('✅ AuthProvider initialized successfully');
+      authStore.initialize();
     } catch (error) {
-      console.error('❌ Error initializing AuthProvider:', error);
+      // Error is handled by the auth store
     }
-  }, [initialize]);
-
-  // Get auth state and actions
-  const auth = useAuth();
-  const profile = useProfile();
-  const actions = useAuthActions();
+  }, []); // Empty dependency array - only run once on mount
 
   // Memoize the context value to prevent infinite re-renders
   const authContextValue: AuthContextType = useMemo(
     () => ({
       // Auth state
-      user: auth.user,
-      session: auth.session,
-      loading: auth.loading,
-      error: auth.error,
-      isAuthenticated: auth.isAuthenticated,
-      isAdmin: auth.isAdmin,
+      user: authStore.user,
+      session: authStore.session,
+      loading: authStore.loading,
+      error: authStore.error,
+      isAuthenticated: !!authStore.user,
+      isAdmin: authStore.isAdmin,
 
       // Profile state
-      profile: profile.profile,
-      creditsRemaining: profile.creditsRemaining,
-      subscriptionStatus: profile.subscriptionStatus,
-      subscriptionPlan: profile.subscriptionPlan,
+      profile: authStore.profile,
+      creditsRemaining: authStore.creditsRemaining,
+      subscriptionStatus: authStore.subscriptionStatus,
+      subscriptionPlan: authStore.subscriptionPlan,
 
       // Auth actions
-      signIn: actions.signIn,
-      signUp: actions.signUp,
-      signOut: actions.signOut,
-      updateProfile: actions.updateProfile,
-      resetPassword: actions.resetPassword,
-      updatePassword: actions.updatePassword,
-      checkCredits: actions.checkCredits,
-      refreshCredits: actions.refreshCredits,
-      clearError: actions.clearError,
+      signIn: authStore.signIn,
+      signUp: authStore.signUp,
+      signOut: authStore.signOut,
+      updateProfile: authStore.updateProfile,
+      resetPassword: authStore.resetPassword,
+      updatePassword: authStore.updatePassword,
+      checkCredits: authStore.checkCredits,
+      refreshCredits: authStore.refreshCredits,
+      clearError: authStore.clearError,
     }),
-    [
-      auth.user,
-      auth.session,
-      auth.loading,
-      auth.error,
-      auth.isAuthenticated,
-      auth.isAdmin,
-      profile.profile,
-      profile.creditsRemaining,
-      profile.subscriptionStatus,
-      profile.subscriptionPlan,
-      actions.signIn,
-      actions.signUp,
-      actions.signOut,
-      actions.updateProfile,
-      actions.resetPassword,
-      actions.updatePassword,
-      actions.checkCredits,
-      actions.refreshCredits,
-      actions.clearError,
-    ]
+    [authStore]
   );
 
   return (

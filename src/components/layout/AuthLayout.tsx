@@ -21,7 +21,7 @@ export function AuthLayout({ children, title, subtitle }: AuthLayoutProps) {
             <Link href="/" className="inline-block">
               <div className="flex items-center justify-center">
                 <Image
-                  src="/logo.png"
+                  src="/logo.svg"
                   alt="DTF Editor Logo"
                   width={48}
                   height={48}
@@ -43,7 +43,7 @@ export function AuthLayout({ children, title, subtitle }: AuthLayoutProps) {
       <div className="hidden lg:block relative w-0 flex-1">
         <div className="absolute inset-0 h-full w-full">
           <Image
-            src="/auth-hero.jpg"
+            src="/auth-hero.svg"
             alt="DTF Editor Hero"
             fill
             className="object-cover"

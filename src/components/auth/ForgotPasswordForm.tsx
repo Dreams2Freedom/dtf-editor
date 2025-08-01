@@ -106,9 +106,13 @@ export function ForgotPasswordForm({ onSuccess }: ForgotPasswordFormProps) {
         />
 
         {/* Submit Button */}
-        <Button type="submit" className="w-full" loading={loading}>
-          Send reset link
-        </Button>
+        <button 
+          type="submit" 
+          className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-4 rounded-lg shadow-sm border-2 border-blue-500"
+          disabled={loading}
+        >
+          {loading ? 'Sending...' : 'Send reset link'}
+        </button>
 
         {/* Back to Login */}
         <div className="text-center">

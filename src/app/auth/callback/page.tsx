@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { supabase } from '@/services/auth';
+import { createClientSupabaseClient } from '@/lib/supabase/client';
 import { AuthLayout } from '@/components/layout/AuthLayout';
 import { CheckCircle, XCircle, Loader2 } from 'lucide-react';
 
@@ -16,6 +16,7 @@ export default function AuthCallbackPage() {
   useEffect(() => {
     const handleAuthCallback = async () => {
       try {
+        const supabase = createClientSupabaseClient();
         const { data, error } = await supabase.auth.getSession();
 
         if (error) {

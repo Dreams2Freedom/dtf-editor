@@ -1,9 +1,10 @@
-import { createClient } from '@supabase/supabase-js';
 import { User, Session, AuthError } from '@supabase/supabase-js';
+import { createClientSupabaseClient } from '@/lib/supabase/client';
 import { env } from '@/config/env';
+import { emailService } from '@/services/email';
 
 // Create Supabase client
-export const supabase = createClient(env.SUPABASE_URL, env.SUPABASE_ANON_KEY);
+export const supabase = typeof window !== 'undefined' ? createClientSupabaseClient() : null!;
 
 // Auth state types
 export interface AuthState {
@@ -26,6 +27,7 @@ export interface UserProfile {
   subscription_status: string;
   subscription_plan: string;
   is_admin: boolean;
+  last_credit_purchase_at?: string;
   created_at: string;
   updated_at: string;
 }
@@ -41,7 +43,7 @@ export interface ActivityLog {
 
 // Auth service class
 export class AuthService {
-  private supabase = supabase;
+  private supabase = supabase || (typeof window !== 'undefined' ? createClientSupabaseClient() : null!);
 
   // Get current session
   async getSession(): Promise<Session | null> {
@@ -53,7 +55,6 @@ export class AuthService {
       if (error) throw error;
       return session;
     } catch (error) {
-      console.error('Error getting session:', error);
       return null;
     }
   }
@@ -68,7 +69,6 @@ export class AuthService {
       if (error) throw error;
       return user;
     } catch (error) {
-      console.error('Error getting current user:', error);
       return null;
     }
   }
@@ -95,14 +95,24 @@ export class AuthService {
 
       if (error) throw error;
 
-      // If user is created, create profile
+      // Profile is created automatically by database trigger (handle_new_user function)
+      
+      // Send welcome email
       if (data.user) {
-        await this.createUserProfile(data.user, metadata);
+        try {
+          await emailService.sendWelcomeEmail({
+            email: data.user.email || email,
+            firstName: metadata?.firstName,
+            planName: 'Free', // New users start with free plan
+          });
+        } catch (emailError) {
+          console.error('Failed to send welcome email:', emailError);
+          // Don't fail the signup if email fails
+        }
       }
 
       return { user: data.user, error: null };
     } catch (error) {
-      console.error('Error signing up:', error);
       return { user: null, error: error as AuthError };
     }
   }
@@ -122,7 +132,6 @@ export class AuthService {
 
       return { user: data.user, error: null };
     } catch (error) {
-      console.error('Error signing in:', error);
       return { user: null, error: error as AuthError };
     }
   }
@@ -134,7 +143,6 @@ export class AuthService {
       if (error) throw error;
       return { error: null };
     } catch (error) {
-      console.error('Error signing out:', error);
       return { error: error as AuthError };
     }
   }
@@ -148,7 +156,6 @@ export class AuthService {
       if (error) throw error;
       return { error: null };
     } catch (error) {
-      console.error('Error resetting password:', error);
       return { error: error as AuthError };
     }
   }
@@ -162,7 +169,6 @@ export class AuthService {
       if (error) throw error;
       return { error: null };
     } catch (error) {
-      console.error('Error updating password:', error);
       return { error: error as AuthError };
     }
   }
@@ -184,46 +190,12 @@ export class AuthService {
       await this.updateUserProfile(user.id, updates);
       return { error: null };
     } catch (error) {
-      console.error('Error updating profile:', error);
       return { error: error as AuthError };
     }
   }
 
-  // Create user profile
-  private async createUserProfile(
-    user: User,
-    metadata?: {
-      firstName?: string;
-      lastName?: string;
-      company?: string;
-    }
-  ): Promise<void> {
-    try {
-      const { error } = await this.supabase.from('profiles').insert({
-        id: user.id,
-        email: user.email,
-        first_name: metadata?.firstName,
-        last_name: metadata?.lastName,
-        company: metadata?.company,
-        credits_remaining: 2, // Free tier credits
-        subscription_status: 'free',
-        subscription_plan: 'free',
-        is_admin: false,
-      });
-
-      if (error) throw error;
-
-      // Log user creation activity
-      await this.logActivity(user.id, 'user_created', {
-        email: user.email,
-        firstName: metadata?.firstName,
-        lastName: metadata?.lastName,
-      });
-    } catch (error) {
-      console.error('Error creating user profile:', error);
-      throw error;
-    }
-  }
+  // Note: Profile creation is now handled automatically by database trigger
+  // No manual profile creation needed
 
   // Update user profile
   private async updateUserProfile(
@@ -258,7 +230,6 @@ export class AuthService {
       // Log profile update activity
       await this.logActivity(userId, 'profile_updated', updateData);
     } catch (error) {
-      console.error('Error updating user profile:', error);
       throw error;
     }
   }
@@ -275,7 +246,6 @@ export class AuthService {
       if (error) throw error;
       return data;
     } catch (error) {
-      console.error('Error getting user profile:', error);
       return null;
     }
   }
@@ -289,7 +259,6 @@ export class AuthService {
       const profile = await this.getUserProfile(userId);
       return profile ? profile.credits_remaining >= requiredCredits : false;
     } catch (error) {
-      console.error('Error checking credits:', error);
       return false;
     }
   }
@@ -309,7 +278,6 @@ export class AuthService {
 
       if (error) throw error;
     } catch (error) {
-      console.error('Error logging activity:', error);
       // Don't throw error for activity logging failures
     }
   }
@@ -334,7 +302,6 @@ export class AuthService {
         error: null,
       };
     } catch (error) {
-      console.error('Error getting auth state:', error);
       return {
         user: null,
         session: null,
