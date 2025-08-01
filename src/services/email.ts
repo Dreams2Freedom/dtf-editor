@@ -1,10 +1,6 @@
-import sgMail from '@sendgrid/mail';
+import nodemailer from 'nodemailer';
+import mg from 'nodemailer-mailgun-transport';
 import { env, isFeatureAvailable } from '@/config/env';
-
-// Initialize SendGrid
-if (env.SENDGRID_API_KEY) {
-  sgMail.setApiKey(env.SENDGRID_API_KEY);
-}
 
 // Email template types
 export type EmailTemplate = 
@@ -51,11 +47,23 @@ export interface SubscriptionEmailData {
 export class EmailService {
   private static instance: EmailService;
   private enabled: boolean;
+  private transporter: nodemailer.Transporter | null = null;
 
   constructor() {
-    this.enabled = isFeatureAvailable('email');
-    if (!this.enabled) {
-      console.warn('EmailService: SendGrid API key not configured. Emails will not be sent.');
+    this.enabled = isFeatureAvailable('mailgun');
+    if (this.enabled && env.MAILGUN_API_KEY && env.MAILGUN_DOMAIN) {
+      // Initialize Mailgun transport
+      const auth = {
+        auth: {
+          api_key: env.MAILGUN_API_KEY,
+          domain: env.MAILGUN_DOMAIN,
+        },
+      };
+      
+      this.transporter = nodemailer.createTransport(mg(auth));
+      console.log('EmailService: Mailgun configured successfully');
+    } else {
+      console.warn('EmailService: Mailgun not configured. Emails will not be sent.');
     }
   }
 
@@ -70,39 +78,22 @@ export class EmailService {
    * Send welcome email to new users
    */
   async sendWelcomeEmail(data: WelcomeEmailData): Promise<boolean> {
-    if (!this.enabled) {
+    if (!this.enabled || !this.transporter) {
       console.log('EmailService: Would send welcome email to', data.email);
       return true;
     }
 
     try {
-      const msg = {
+      const mailOptions = {
+        from: `${env.MAILGUN_FROM_NAME} <${env.MAILGUN_FROM_EMAIL}>`,
         to: data.email,
-        from: {
-          email: env.SENDGRID_FROM_EMAIL,
-          name: env.SENDGRID_FROM_NAME,
-        },
-        templateId: env.SENDGRID_WELCOME_TEMPLATE_ID,
-        dynamicTemplateData: {
-          firstName: data.firstName || 'there',
-          email: data.email,
-          planName: data.planName || 'Free',
-          appUrl: env.APP_URL,
-          currentYear: new Date().getFullYear(),
-        },
+        subject: 'Welcome to DTF Editor!',
+        html: this.getWelcomeEmailHTML(data),
+        text: this.getWelcomeEmailText(data),
       };
 
-      if (!msg.templateId) {
-        // Fallback to plain email if template not configured
-        return this.sendPlainEmail(
-          data.email,
-          'Welcome to DTF Editor!',
-          `Welcome ${data.firstName || 'there'}! Thank you for joining DTF Editor. Get started at ${env.APP_URL}/dashboard`
-        );
-      }
-
-      await sgMail.send(msg);
-      console.log('Welcome email sent to', data.email);
+      const info = await this.transporter.sendMail(mailOptions);
+      console.log('Welcome email sent:', info.messageId);
       return true;
     } catch (error) {
       console.error('Error sending welcome email:', error);
@@ -114,44 +105,26 @@ export class EmailService {
    * Send purchase confirmation email
    */
   async sendPurchaseEmail(data: PurchaseEmailData): Promise<boolean> {
-    if (!this.enabled) {
+    if (!this.enabled || !this.transporter) {
       console.log('EmailService: Would send purchase email to', data.email);
       return true;
     }
 
     try {
-      const msg = {
+      const subject = data.purchaseType === 'subscription' 
+        ? `Subscription to ${data.planName} Plan Confirmed`
+        : `Purchase of ${data.credits} Credits Confirmed`;
+
+      const mailOptions = {
+        from: `${env.MAILGUN_FROM_NAME} <${env.MAILGUN_FROM_EMAIL}>`,
         to: data.email,
-        from: {
-          email: env.SENDGRID_FROM_EMAIL,
-          name: env.SENDGRID_FROM_NAME,
-        },
-        templateId: env.SENDGRID_PURCHASE_TEMPLATE_ID,
-        dynamicTemplateData: {
-          firstName: data.firstName || 'there',
-          purchaseType: data.purchaseType,
-          amount: (data.amount / 100).toFixed(2), // Convert cents to dollars
-          credits: data.credits,
-          planName: data.planName,
-          invoiceUrl: data.invoiceUrl,
-          appUrl: env.APP_URL,
-          currentYear: new Date().getFullYear(),
-        },
+        subject,
+        html: this.getPurchaseEmailHTML(data),
+        text: this.getPurchaseEmailText(data),
       };
 
-      if (!msg.templateId) {
-        // Fallback to plain email
-        const subject = data.purchaseType === 'subscription' 
-          ? `Subscription to ${data.planName} Plan Confirmed`
-          : `Purchase of ${data.credits} Credits Confirmed`;
-        
-        const body = `Thank you for your purchase! Amount: $${(data.amount / 100).toFixed(2)}. View your dashboard at ${env.APP_URL}/dashboard`;
-        
-        return this.sendPlainEmail(data.email, subject, body);
-      }
-
-      await sgMail.send(msg);
-      console.log('Purchase email sent to', data.email);
+      const info = await this.transporter.sendMail(mailOptions);
+      console.log('Purchase email sent:', info.messageId);
       return true;
     } catch (error) {
       console.error('Error sending purchase email:', error);
@@ -163,41 +136,25 @@ export class EmailService {
    * Send credit expiration warning email
    */
   async sendCreditWarningEmail(data: CreditWarningEmailData): Promise<boolean> {
-    if (!this.enabled) {
+    if (!this.enabled || !this.transporter) {
       console.log('EmailService: Would send credit warning email to', data.email);
       return true;
     }
 
     try {
-      const msg = {
+      const urgencyText = data.urgencyLevel === 'critical' ? 'URGENT: ' : '';
+      const subject = `${urgencyText}Your DTF Editor Credits are Expiring Soon`;
+
+      const mailOptions = {
+        from: `${env.MAILGUN_FROM_NAME} <${env.MAILGUN_FROM_EMAIL}>`,
         to: data.email,
-        from: {
-          email: env.SENDGRID_FROM_EMAIL,
-          name: env.SENDGRID_FROM_NAME,
-        },
-        templateId: env.SENDGRID_CREDIT_WARNING_TEMPLATE_ID,
-        dynamicTemplateData: {
-          firstName: data.firstName || 'there',
-          creditsRemaining: data.creditsRemaining,
-          expiryDate: data.expiryDate?.toLocaleDateString(),
-          urgencyLevel: data.urgencyLevel,
-          urgencyColor: data.urgencyLevel === 'critical' ? '#dc2626' : data.urgencyLevel === 'warning' ? '#d97706' : '#2563eb',
-          appUrl: env.APP_URL,
-          currentYear: new Date().getFullYear(),
-        },
+        subject,
+        html: this.getCreditWarningEmailHTML(data),
+        text: this.getCreditWarningEmailText(data),
       };
 
-      if (!msg.templateId) {
-        // Fallback to plain email
-        const urgencyText = data.urgencyLevel === 'critical' ? 'URGENT: ' : '';
-        const subject = `${urgencyText}Your DTF Editor Credits are Expiring Soon`;
-        const body = `You have ${data.creditsRemaining} credits expiring on ${data.expiryDate?.toLocaleDateString()}. Use them at ${env.APP_URL}/process`;
-        
-        return this.sendPlainEmail(data.email, subject, body);
-      }
-
-      await sgMail.send(msg);
-      console.log('Credit warning email sent to', data.email);
+      const info = await this.transporter.sendMail(mailOptions);
+      console.log('Credit warning email sent:', info.messageId);
       return true;
     } catch (error) {
       console.error('Error sending credit warning email:', error);
@@ -209,7 +166,7 @@ export class EmailService {
    * Send subscription notification email
    */
   async sendSubscriptionEmail(data: SubscriptionEmailData): Promise<boolean> {
-    if (!this.enabled) {
+    if (!this.enabled || !this.transporter) {
       console.log('EmailService: Would send subscription email to', data.email);
       return true;
     }
@@ -223,42 +180,18 @@ export class EmailService {
         resumed: 'resumed',
       };
 
-      const msg = {
+      const subject = `Subscription ${actionText[data.action]}: ${data.planName} Plan`;
+
+      const mailOptions = {
+        from: `${env.MAILGUN_FROM_NAME} <${env.MAILGUN_FROM_EMAIL}>`,
         to: data.email,
-        from: {
-          email: env.SENDGRID_FROM_EMAIL,
-          name: env.SENDGRID_FROM_NAME,
-        },
-        templateId: env.SENDGRID_SUBSCRIPTION_TEMPLATE_ID,
-        dynamicTemplateData: {
-          firstName: data.firstName || 'there',
-          action: data.action,
-          actionText: actionText[data.action],
-          planName: data.planName,
-          nextBillingDate: data.nextBillingDate?.toLocaleDateString(),
-          pauseUntil: data.pauseUntil?.toLocaleDateString(),
-          appUrl: env.APP_URL,
-          currentYear: new Date().getFullYear(),
-        },
+        subject,
+        html: this.getSubscriptionEmailHTML(data),
+        text: this.getSubscriptionEmailText(data),
       };
 
-      if (!msg.templateId) {
-        // Fallback to plain email
-        const subject = `Subscription ${actionText[data.action]}: ${data.planName} Plan`;
-        let body = `Your ${data.planName} subscription has been ${actionText[data.action]}.`;
-        
-        if (data.nextBillingDate) {
-          body += ` Next billing date: ${data.nextBillingDate.toLocaleDateString()}.`;
-        }
-        if (data.pauseUntil) {
-          body += ` Paused until: ${data.pauseUntil.toLocaleDateString()}.`;
-        }
-        
-        return this.sendPlainEmail(data.email, subject, body);
-      }
-
-      await sgMail.send(msg);
-      console.log('Subscription email sent to', data.email);
+      const info = await this.transporter.sendMail(mailOptions);
+      console.log('Subscription email sent:', info.messageId);
       return true;
     } catch (error) {
       console.error('Error sending subscription email:', error);
@@ -275,18 +208,15 @@ export class EmailService {
     content: string,
     firstName?: string
   ): Promise<boolean> {
-    if (!this.enabled) {
+    if (!this.enabled || !this.transporter) {
       console.log('EmailService: Would send admin notification to', to);
       return true;
     }
 
     try {
-      const msg = {
+      const mailOptions = {
+        from: `${env.MAILGUN_FROM_NAME} <${env.MAILGUN_FROM_EMAIL}>`,
         to,
-        from: {
-          email: env.SENDGRID_FROM_EMAIL,
-          name: env.SENDGRID_FROM_NAME,
-        },
         subject,
         html: `
           <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
@@ -304,36 +234,11 @@ export class EmailService {
         text: content.replace(/<[^>]*>/g, ''), // Strip HTML for text version
       };
 
-      await sgMail.send(msg);
-      console.log('Admin notification sent to', to);
+      const info = await this.transporter.sendMail(mailOptions);
+      console.log('Admin notification sent:', info.messageId);
       return true;
     } catch (error) {
       console.error('Error sending admin notification:', error);
-      return false;
-    }
-  }
-
-  /**
-   * Send plain text email (fallback when templates not configured)
-   */
-  private async sendPlainEmail(to: string, subject: string, text: string): Promise<boolean> {
-    try {
-      const msg = {
-        to,
-        from: {
-          email: env.SENDGRID_FROM_EMAIL,
-          name: env.SENDGRID_FROM_NAME,
-        },
-        subject,
-        text,
-        html: `<p>${text}</p>`,
-      };
-
-      await sgMail.send(msg);
-      console.log('Plain email sent to', to);
-      return true;
-    } catch (error) {
-      console.error('Error sending plain email:', error);
       return false;
     }
   }
@@ -346,7 +251,7 @@ export class EmailService {
     subject: string,
     content: string
   ): Promise<{ sent: number; failed: number }> {
-    if (!this.enabled) {
+    if (!this.enabled || !this.transporter) {
       console.log('EmailService: Would send batch emails to', recipients.length, 'recipients');
       return { sent: recipients.length, failed: 0 };
     }
@@ -354,33 +259,292 @@ export class EmailService {
     let sent = 0;
     let failed = 0;
 
-    // SendGrid allows up to 1000 recipients per request
-    const batchSize = 1000;
-    for (let i = 0; i < recipients.length; i += batchSize) {
-      const batch = recipients.slice(i, i + batchSize);
-      
+    // Send emails individually for Mailgun
+    for (const recipient of recipients) {
       try {
-        const msg = {
-          to: batch,
-          from: {
-            email: env.SENDGRID_FROM_EMAIL,
-            name: env.SENDGRID_FROM_NAME,
-          },
+        const mailOptions = {
+          from: `${env.MAILGUN_FROM_NAME} <${env.MAILGUN_FROM_EMAIL}>`,
+          to: recipient,
           subject,
           html: content,
           text: content.replace(/<[^>]*>/g, ''),
-          isMultiple: true,
         };
 
-        await sgMail.sendMultiple(msg);
-        sent += batch.length;
+        await this.transporter.sendMail(mailOptions);
+        sent++;
       } catch (error) {
-        console.error('Error sending batch emails:', error);
-        failed += batch.length;
+        console.error(`Error sending email to ${recipient}:`, error);
+        failed++;
       }
     }
 
     return { sent, failed };
+  }
+
+  // Email template HTML generators
+  private getWelcomeEmailHTML(data: WelcomeEmailData): string {
+    return `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Welcome to DTF Editor</title>
+      </head>
+      <body style="margin: 0; padding: 0; font-family: Arial, sans-serif; background-color: #f5f5f5;">
+        <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff;">
+          <div style="background-color: #366494; padding: 30px; text-align: center;">
+            <h1 style="color: #ffffff; margin: 0;">Welcome to DTF Editor!</h1>
+          </div>
+          <div style="padding: 40px 30px;">
+            <h2 style="color: #333; margin-bottom: 20px;">Hi ${data.firstName || 'there'}!</h2>
+            <p style="color: #666; line-height: 1.6; margin-bottom: 20px;">
+              Thank you for joining DTF Editor. We're excited to have you on board!
+            </p>
+            <p style="color: #666; line-height: 1.6; margin-bottom: 20px;">
+              You're currently on the <strong>${data.planName || 'Free'}</strong> plan. 
+              ${data.planName === 'Free' ? 'You have 2 free credits per month to try our tools.' : ''}
+            </p>
+            <div style="text-align: center; margin: 30px 0;">
+              <a href="${env.APP_URL}/dashboard" style="display: inline-block; background-color: #E88B4B; color: #ffffff; padding: 15px 30px; text-decoration: none; border-radius: 5px; font-weight: bold;">
+                Get Started
+              </a>
+            </div>
+            <p style="color: #666; line-height: 1.6;">
+              Need help? Check out our <a href="${env.APP_URL}/help" style="color: #366494;">help center</a> or reply to this email.
+            </p>
+          </div>
+          <div style="background-color: #f5f5f5; padding: 20px; text-align: center;">
+            <p style="color: #999; font-size: 14px; margin: 0;">
+              © ${new Date().getFullYear()} DTF Editor. All rights reserved.
+            </p>
+          </div>
+        </div>
+      </body>
+      </html>
+    `;
+  }
+
+  private getWelcomeEmailText(data: WelcomeEmailData): string {
+    return `
+Welcome to DTF Editor!
+
+Hi ${data.firstName || 'there'}!
+
+Thank you for joining DTF Editor. We're excited to have you on board!
+
+You're currently on the ${data.planName || 'Free'} plan. ${data.planName === 'Free' ? 'You have 2 free credits per month to try our tools.' : ''}
+
+Get started at: ${env.APP_URL}/dashboard
+
+Need help? Visit ${env.APP_URL}/help or reply to this email.
+
+© ${new Date().getFullYear()} DTF Editor. All rights reserved.
+    `.trim();
+  }
+
+  private getPurchaseEmailHTML(data: PurchaseEmailData): string {
+    const amount = (data.amount / 100).toFixed(2);
+    
+    return `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Purchase Confirmation</title>
+      </head>
+      <body style="margin: 0; padding: 0; font-family: Arial, sans-serif; background-color: #f5f5f5;">
+        <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff;">
+          <div style="background-color: #366494; padding: 30px; text-align: center;">
+            <h1 style="color: #ffffff; margin: 0;">Purchase Confirmed!</h1>
+          </div>
+          <div style="padding: 40px 30px;">
+            <h2 style="color: #333; margin-bottom: 20px;">Thank you for your purchase!</h2>
+            <div style="background-color: #f5f5f5; padding: 20px; border-radius: 5px; margin-bottom: 20px;">
+              <p style="margin: 5px 0;"><strong>Type:</strong> ${data.purchaseType === 'subscription' ? 'Subscription' : 'Credit Package'}</p>
+              ${data.planName ? `<p style="margin: 5px 0;"><strong>Plan:</strong> ${data.planName}</p>` : ''}
+              ${data.credits ? `<p style="margin: 5px 0;"><strong>Credits:</strong> ${data.credits}</p>` : ''}
+              <p style="margin: 5px 0;"><strong>Amount:</strong> $${amount}</p>
+            </div>
+            ${data.invoiceUrl ? `
+              <div style="text-align: center; margin: 30px 0;">
+                <a href="${data.invoiceUrl}" style="display: inline-block; background-color: #E88B4B; color: #ffffff; padding: 15px 30px; text-decoration: none; border-radius: 5px; font-weight: bold;">
+                  View Invoice
+                </a>
+              </div>
+            ` : ''}
+            <p style="color: #666; line-height: 1.6;">
+              Your credits are now available in your account. Start creating at <a href="${env.APP_URL}/process" style="color: #366494;">DTF Editor</a>.
+            </p>
+          </div>
+          <div style="background-color: #f5f5f5; padding: 20px; text-align: center;">
+            <p style="color: #999; font-size: 14px; margin: 0;">
+              © ${new Date().getFullYear()} DTF Editor. All rights reserved.
+            </p>
+          </div>
+        </div>
+      </body>
+      </html>
+    `;
+  }
+
+  private getPurchaseEmailText(data: PurchaseEmailData): string {
+    const amount = (data.amount / 100).toFixed(2);
+    
+    return `
+Purchase Confirmed!
+
+Thank you for your purchase!
+
+Type: ${data.purchaseType === 'subscription' ? 'Subscription' : 'Credit Package'}
+${data.planName ? `Plan: ${data.planName}` : ''}
+${data.credits ? `Credits: ${data.credits}` : ''}
+Amount: $${amount}
+
+${data.invoiceUrl ? `View your invoice: ${data.invoiceUrl}` : ''}
+
+Your credits are now available in your account. Start creating at ${env.APP_URL}/process
+
+© ${new Date().getFullYear()} DTF Editor. All rights reserved.
+    `.trim();
+  }
+
+  private getCreditWarningEmailHTML(data: CreditWarningEmailData): string {
+    const urgencyColor = data.urgencyLevel === 'critical' ? '#dc2626' : data.urgencyLevel === 'warning' ? '#d97706' : '#2563eb';
+    
+    return `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Credit Expiration Warning</title>
+      </head>
+      <body style="margin: 0; padding: 0; font-family: Arial, sans-serif; background-color: #f5f5f5;">
+        <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff;">
+          <div style="background-color: ${urgencyColor}; padding: 30px; text-align: center;">
+            <h1 style="color: #ffffff; margin: 0;">Credits Expiring Soon!</h1>
+          </div>
+          <div style="padding: 40px 30px;">
+            <h2 style="color: #333; margin-bottom: 20px;">Hi ${data.firstName || 'there'}!</h2>
+            <p style="color: #666; line-height: 1.6; margin-bottom: 20px;">
+              You have <strong style="color: ${urgencyColor};">${data.creditsRemaining} credits</strong> that will expire 
+              ${data.expiryDate ? `on <strong>${data.expiryDate.toLocaleDateString()}</strong>` : 'soon'}.
+            </p>
+            <p style="color: #666; line-height: 1.6; margin-bottom: 20px;">
+              Don't let your credits go to waste! Use them to create amazing DTF designs.
+            </p>
+            <div style="text-align: center; margin: 30px 0;">
+              <a href="${env.APP_URL}/process" style="display: inline-block; background-color: #E88B4B; color: #ffffff; padding: 15px 30px; text-decoration: none; border-radius: 5px; font-weight: bold;">
+                Use Credits Now
+              </a>
+            </div>
+          </div>
+          <div style="background-color: #f5f5f5; padding: 20px; text-align: center;">
+            <p style="color: #999; font-size: 14px; margin: 0;">
+              © ${new Date().getFullYear()} DTF Editor. All rights reserved.
+            </p>
+          </div>
+        </div>
+      </body>
+      </html>
+    `;
+  }
+
+  private getCreditWarningEmailText(data: CreditWarningEmailData): string {
+    return `
+Credits Expiring Soon!
+
+Hi ${data.firstName || 'there'}!
+
+You have ${data.creditsRemaining} credits that will expire ${data.expiryDate ? `on ${data.expiryDate.toLocaleDateString()}` : 'soon'}.
+
+Don't let your credits go to waste! Use them to create amazing DTF designs.
+
+Use your credits now: ${env.APP_URL}/process
+
+© ${new Date().getFullYear()} DTF Editor. All rights reserved.
+    `.trim();
+  }
+
+  private getSubscriptionEmailHTML(data: SubscriptionEmailData): string {
+    const actionText = {
+      created: 'created',
+      updated: 'updated',
+      cancelled: 'cancelled',
+      paused: 'paused',
+      resumed: 'resumed',
+    };
+    
+    return `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Subscription ${actionText[data.action]}</title>
+      </head>
+      <body style="margin: 0; padding: 0; font-family: Arial, sans-serif; background-color: #f5f5f5;">
+        <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff;">
+          <div style="background-color: #366494; padding: 30px; text-align: center;">
+            <h1 style="color: #ffffff; margin: 0;">Subscription ${actionText[data.action]}!</h1>
+          </div>
+          <div style="padding: 40px 30px;">
+            <h2 style="color: #333; margin-bottom: 20px;">Hi ${data.firstName || 'there'}!</h2>
+            <p style="color: #666; line-height: 1.6; margin-bottom: 20px;">
+              Your <strong>${data.planName}</strong> subscription has been ${actionText[data.action]}.
+            </p>
+            ${data.nextBillingDate ? `
+              <p style="color: #666; line-height: 1.6; margin-bottom: 20px;">
+                Next billing date: <strong>${data.nextBillingDate.toLocaleDateString()}</strong>
+              </p>
+            ` : ''}
+            ${data.pauseUntil ? `
+              <p style="color: #666; line-height: 1.6; margin-bottom: 20px;">
+                Your subscription is paused until: <strong>${data.pauseUntil.toLocaleDateString()}</strong>
+              </p>
+            ` : ''}
+            <div style="text-align: center; margin: 30px 0;">
+              <a href="${env.APP_URL}/settings" style="display: inline-block; background-color: #E88B4B; color: #ffffff; padding: 15px 30px; text-decoration: none; border-radius: 5px; font-weight: bold;">
+                Manage Subscription
+              </a>
+            </div>
+          </div>
+          <div style="background-color: #f5f5f5; padding: 20px; text-align: center;">
+            <p style="color: #999; font-size: 14px; margin: 0;">
+              © ${new Date().getFullYear()} DTF Editor. All rights reserved.
+            </p>
+          </div>
+        </div>
+      </body>
+      </html>
+    `;
+  }
+
+  private getSubscriptionEmailText(data: SubscriptionEmailData): string {
+    const actionText = {
+      created: 'created',
+      updated: 'updated',
+      cancelled: 'cancelled',
+      paused: 'paused',
+      resumed: 'resumed',
+    };
+    
+    return `
+Subscription ${actionText[data.action]}!
+
+Hi ${data.firstName || 'there'}!
+
+Your ${data.planName} subscription has been ${actionText[data.action]}.
+
+${data.nextBillingDate ? `Next billing date: ${data.nextBillingDate.toLocaleDateString()}` : ''}
+${data.pauseUntil ? `Your subscription is paused until: ${data.pauseUntil.toLocaleDateString()}` : ''}
+
+Manage your subscription: ${env.APP_URL}/settings
+
+© ${new Date().getFullYear()} DTF Editor. All rights reserved.
+    `.trim();
   }
 }
 

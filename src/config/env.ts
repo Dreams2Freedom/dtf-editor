@@ -46,6 +46,13 @@ export const env = {
   SENDGRID_PURCHASE_TEMPLATE_ID: process.env.SENDGRID_PURCHASE_TEMPLATE_ID || '',
   SENDGRID_CREDIT_WARNING_TEMPLATE_ID: process.env.SENDGRID_CREDIT_WARNING_TEMPLATE_ID || '',
   SENDGRID_SUBSCRIPTION_TEMPLATE_ID: process.env.SENDGRID_SUBSCRIPTION_TEMPLATE_ID || '',
+  
+  // Mailgun Configuration
+  MAILGUN_API_KEY: process.env.MAILGUN_API_KEY || '',
+  MAILGUN_DOMAIN: process.env.MAILGUN_DOMAIN || '',
+  MAILGUN_FROM_EMAIL: process.env.MAILGUN_FROM_EMAIL || 'noreply@dtfeditor.com',
+  MAILGUN_FROM_NAME: process.env.MAILGUN_FROM_NAME || 'DTF Editor',
+  MAILGUN_WEBHOOK_SIGNING_KEY: process.env.MAILGUN_WEBHOOK_SIGNING_KEY || ''
 
   // URLs
   APP_URL: process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000',
@@ -110,7 +117,7 @@ export function validateEnv(): { valid: boolean; errors: string[]; warnings: str
 }
 
 // Helper function to check if a specific feature is available
-export function isFeatureAvailable(feature: 'upscaling' | 'background-removal' | 'vectorization' | 'ai-generation' | 'payments' | 'email'): boolean {
+export function isFeatureAvailable(feature: 'upscaling' | 'background-removal' | 'vectorization' | 'ai-generation' | 'payments' | 'email' | 'mailgun'): boolean {
   switch (feature) {
     case 'upscaling':
       return !!env.DEEP_IMAGE_API_KEY;
@@ -124,6 +131,8 @@ export function isFeatureAvailable(feature: 'upscaling' | 'background-removal' |
       return !!(env.STRIPE_PUBLISHABLE_KEY && env.STRIPE_SECRET_KEY);
     case 'email':
       return !!env.SENDGRID_API_KEY;
+    case 'mailgun':
+      return !!env.MAILGUN_API_KEY && !!env.MAILGUN_DOMAIN;
     default:
       return false;
   }
