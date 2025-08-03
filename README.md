@@ -1,4 +1,4 @@
-# DTF Editor
+# DTF Editor 🎨
 
 A mobile-first, user-friendly web application that helps hobbyists and small home businesses create print-ready DTF files through AI-powered image processing tools.
 
