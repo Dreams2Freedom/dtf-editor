@@ -4,6 +4,7 @@ import { Header } from './Header';
 import { Footer } from './Footer';
 import { usePathname } from 'next/navigation';
 import { ImpersonationBanner } from '@/components/admin/ImpersonationBannerWrapper';
+import TestModeBanner from '@/components/ui/TestModeBanner';
 
 interface AppLayoutProps {
   children: React.ReactNode;
@@ -25,6 +26,7 @@ export function AppLayout({ children, showFooter = true }: AppLayoutProps) {
 
   return (
     <>
+      <TestModeBanner />
       <ImpersonationBanner />
       <div className="min-h-screen flex flex-col">
         <Header />
