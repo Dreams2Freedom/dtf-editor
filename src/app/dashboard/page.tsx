@@ -29,6 +29,7 @@ import {
   HardDrive
 } from 'lucide-react';
 import Link from 'next/link';
+import { CreditHistory } from '@/components/dashboard/CreditHistory';
 
 export default function DashboardPage() {
   const { user, profile, loading, signOut, initialize, refreshCredits } = useAuthStore();
@@ -402,10 +403,7 @@ export default function DashboardPage() {
                 <CardTitle>Credit History & Purchases</CardTitle>
               </CardHeader>
               <CardContent>
-                {/* <CreditHistory /> */}
-                <div className="text-center py-8 text-gray-500">
-                  Credit history will be available once you make purchases
-                </div>
+                <CreditHistory />
               </CardContent>
             </Card>
           </div>

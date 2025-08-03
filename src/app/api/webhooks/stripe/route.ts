@@ -210,21 +210,35 @@ async function handlePaymentIntentSucceeded(paymentIntent: any) {
     
     // Send purchase confirmation email
     try {
-      // Get user profile for email
+      console.log('📧 Attempting to send payment intent purchase email...');
+      
+      // Get user email from auth
+      const { data: { user }, error: userError } = await supabase.auth.admin.getUserById(userId);
+      
+      if (userError) {
+        console.error('❌ Error fetching user:', userError);
+      }
+      
+      // Get first name from profile
       const { data: profile } = await supabase
         .from('profiles')
-        .select('email, first_name')
+        .select('first_name')
         .eq('id', userId)
         .single();
       
-      if (profile) {
-        await emailService.sendPurchaseEmail({
-          email: profile.email,
-          firstName: profile.first_name,
+      if (user?.email) {
+        console.log('📧 Sending purchase email to:', user.email);
+        const emailSent = await emailService.sendPurchaseEmail({
+          email: user.email,
+          firstName: profile?.first_name || '',
           purchaseType: 'credits',
           amount: paymentIntent.amount,
           credits: credits,
+          invoiceUrl: `${process.env.NEXT_PUBLIC_APP_URL}/dashboard`,
         });
+        console.log('📧 Email sent result:', emailSent);
+      } else {
+        console.error('❌ No user email found');
       }
     } catch (emailError) {
       console.error('Failed to send purchase email:', emailError);
@@ -308,17 +322,27 @@ async function handleCheckoutSessionCompleted(session: any) {
         
         // Send subscription confirmation email
         try {
-          // Get user profile for email
+          console.log('📧 Attempting to send subscription email...');
+          
+          // Get user email from auth
+          const { data: { user }, error: userError } = await supabase.auth.admin.getUserById(userId);
+          
+          if (userError) {
+            console.error('❌ Error fetching user:', userError);
+          }
+          
+          // Get first name from profile
           const { data: profile } = await supabase
             .from('profiles')
-            .select('email, first_name')
+            .select('first_name')
             .eq('id', userId)
             .single();
           
-          if (profile) {
+          if (user?.email) {
+            console.log('📧 Sending subscription email to:', user.email);
             await emailService.sendSubscriptionEmail({
-              email: profile.email,
-              firstName: profile.first_name,
+              email: user.email,
+              firstName: profile?.first_name || '',
               action: 'created',
               planName: plan.name,
               nextBillingDate: new Date(subscription.current_period_end * 1000),
@@ -326,8 +350,8 @@ async function handleCheckoutSessionCompleted(session: any) {
             
             // Also send purchase confirmation
             await emailService.sendPurchaseEmail({
-              email: profile.email,
-              firstName: profile.first_name,
+              email: user.email,
+              firstName: profile?.first_name || '',
               purchaseType: 'subscription',
               amount: session.amount_total || 0,
               planName: plan.name,
@@ -341,7 +365,85 @@ async function handleCheckoutSessionCompleted(session: any) {
       }
     }
   }
-  // For one-time payments, the payment_intent.succeeded will handle credit addition
+  
+  // Handle one-time payment (pay-as-you-go credits)
+  if (session.mode === 'payment') {
+    console.log('🎯 Processing pay-as-you-go payment from checkout session');
+    
+    const credits = parseInt(session.metadata?.credits || '0');
+    const customerId = session.customer;
+    
+    if (credits > 0) {
+      try {
+        // Update customer ID if not already set
+        if (customerId) {
+          await supabase
+            .from('profiles')
+            .update({ stripe_customer_id: customerId })
+            .eq('id', userId);
+        }
+        
+        // Add credits
+        const { error: creditError } = await supabase.rpc('add_user_credits', {
+          p_user_id: userId,
+          p_amount: credits,
+          p_transaction_type: 'purchase',
+          p_description: `${credits} credits purchase`,
+          p_metadata: {
+            stripe_session_id: session.id,
+            price_paid: session.amount_total || 0
+          }
+        });
+        
+        if (creditError) {
+          console.error('❌ Credit addition error:', creditError);
+          throw creditError;
+        }
+        
+        console.log('✅ Credits added successfully from checkout session!');
+        
+        // Send purchase confirmation email
+        try {
+          console.log('📧 Attempting to fetch user for email...');
+          
+          // Get user email from auth
+          const { data: { user }, error: userError } = await supabase.auth.admin.getUserById(userId);
+          
+          if (userError) {
+            console.error('❌ Error fetching user:', userError);
+          }
+          
+          // Get first name from profile
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('first_name')
+            .eq('id', userId)
+            .single();
+          
+          if (user?.email) {
+            console.log('📧 Sending purchase email to:', user.email);
+            const emailSent = await emailService.sendPurchaseEmail({
+              email: user.email,
+              firstName: profile?.first_name || '',
+              purchaseType: 'credits',
+              amount: session.amount_total || 0,
+              credits: credits,
+              invoiceUrl: `${process.env.NEXT_PUBLIC_APP_URL}/dashboard`,
+            });
+            console.log('📧 Email sent result:', emailSent);
+          } else {
+            console.error('❌ No user email found for user:', userId);
+          }
+        } catch (emailError) {
+          console.error('❌ Failed to send purchase email:', emailError);
+          // Don't fail the webhook if email fails
+        }
+      } catch (error) {
+        console.error('Error processing pay-as-you-go payment:', error);
+        throw error;
+      }
+    }
+  }
 }
 
 async function handleTrialWillEnd(subscription: any) {

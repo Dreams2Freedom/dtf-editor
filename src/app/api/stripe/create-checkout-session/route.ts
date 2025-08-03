@@ -103,6 +103,9 @@ export async function POST(request: NextRequest) {
         credits = 50;
       }
 
+      // Add credits to session metadata too
+      sessionConfig.metadata.credits = credits.toString();
+
       sessionConfig.line_items = [{
         price: priceId,
         quantity: 1,

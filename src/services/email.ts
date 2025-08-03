@@ -1,5 +1,3 @@
-import nodemailer from 'nodemailer';
-import mg from 'nodemailer-mailgun-transport';
 import { env, isFeatureAvailable } from '@/config/env';
 
 // Email template types
@@ -7,7 +5,10 @@ export type EmailTemplate =
   | 'welcome'
   | 'purchase'
   | 'creditWarning'
-  | 'subscription';
+  | 'subscription'
+  | 'passwordReset'
+  | 'emailConfirmation'
+  | 'magicLink';
 
 // Email data types for each template
 export interface WelcomeEmailData {
@@ -43,24 +44,41 @@ export interface SubscriptionEmailData {
   pauseUntil?: Date;
 }
 
+export interface PasswordResetEmailData {
+  firstName?: string;
+  email: string;
+  resetLink: string;
+  expiresIn?: string; // e.g., "1 hour"
+}
+
+export interface EmailConfirmationData {
+  firstName?: string;
+  email: string;
+  confirmationLink: string;
+}
+
+export interface MagicLinkEmailData {
+  firstName?: string;
+  email: string;
+  magicLink: string;
+  expiresIn?: string; // e.g., "10 minutes"
+}
+
 // Email service class
 export class EmailService {
   private static instance: EmailService;
   private enabled: boolean;
-  private transporter: nodemailer.Transporter | null = null;
+  private mailgunApiKey: string;
+  private mailgunDomain: string;
+  private mailgunUrl: string;
 
   constructor() {
     this.enabled = isFeatureAvailable('mailgun');
-    if (this.enabled && env.MAILGUN_API_KEY && env.MAILGUN_DOMAIN) {
-      // Initialize Mailgun transport
-      const auth = {
-        auth: {
-          api_key: env.MAILGUN_API_KEY,
-          domain: env.MAILGUN_DOMAIN,
-        },
-      };
-      
-      this.transporter = nodemailer.createTransport(mg(auth));
+    this.mailgunApiKey = env.MAILGUN_API_KEY;
+    this.mailgunDomain = env.MAILGUN_DOMAIN;
+    this.mailgunUrl = `https://api.mailgun.net/v3/${this.mailgunDomain}/messages`;
+    
+    if (this.enabled && this.mailgunApiKey && this.mailgunDomain) {
       console.log('EmailService: Mailgun configured successfully');
     } else {
       console.warn('EmailService: Mailgun not configured. Emails will not be sent.');
@@ -75,10 +93,78 @@ export class EmailService {
   }
 
   /**
+   * Send email via Mailgun API
+   */
+  private async sendMailgunEmail(mailData: any): Promise<boolean> {
+    try {
+      const formData = new URLSearchParams();
+      
+      // Add basic fields
+      formData.append('from', mailData.from);
+      formData.append('to', mailData.to);
+      formData.append('subject', mailData.subject);
+      formData.append('html', mailData.html);
+      formData.append('text', mailData.text);
+      
+      // Add Mailgun-specific options
+      if (mailData['o:tag']) {
+        mailData['o:tag'].forEach((tag: string) => {
+          formData.append('o:tag', tag);
+        });
+      }
+      if (mailData['o:tracking'] !== undefined) {
+        formData.append('o:tracking', mailData['o:tracking'].toString());
+      }
+      if (mailData['o:tracking-clicks'] !== undefined) {
+        formData.append('o:tracking-clicks', mailData['o:tracking-clicks'].toString());
+      }
+      if (mailData['o:tracking-opens'] !== undefined) {
+        formData.append('o:tracking-opens', mailData['o:tracking-opens'].toString());
+      }
+      
+      // Add custom variables
+      Object.keys(mailData).forEach(key => {
+        if (key.startsWith('v:')) {
+          formData.append(key, mailData[key]);
+        }
+      });
+
+      console.log('Sending email via Mailgun:', {
+        to: mailData.to,
+        subject: mailData.subject,
+      });
+
+      const auth = Buffer.from(`api:${this.mailgunApiKey}`).toString('base64');
+      const response = await fetch(this.mailgunUrl, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Basic ${auth}`,
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: formData.toString(),
+      });
+
+      const responseText = await response.text();
+      
+      if (response.ok) {
+        const result = JSON.parse(responseText);
+        console.log('Email sent successfully:', result.id);
+        return true;
+      } else {
+        console.error('Mailgun API error:', response.status, responseText);
+        return false;
+      }
+    } catch (error) {
+      console.error('Error sending email:', error);
+      return false;
+    }
+  }
+
+  /**
    * Send welcome email to new users
    */
   async sendWelcomeEmail(data: WelcomeEmailData): Promise<boolean> {
-    if (!this.enabled || !this.transporter) {
+    if (!this.enabled || !this.mailgunApiKey) {
       console.log('EmailService: Would send welcome email to', data.email);
       return true;
     }
@@ -90,11 +176,15 @@ export class EmailService {
         subject: 'Welcome to DTF Editor!',
         html: this.getWelcomeEmailHTML(data),
         text: this.getWelcomeEmailText(data),
+        'o:tag': ['welcome', 'onboarding'],
+        'o:tracking': true,
+        'o:tracking-clicks': true,
+        'o:tracking-opens': true,
+        'v:user_email': data.email,
+        'v:user_name': data.firstName || 'User',
       };
 
-      const info = await this.transporter.sendMail(mailOptions);
-      console.log('Welcome email sent:', info.messageId);
-      return true;
+      return await this.sendMailgunEmail(mailOptions);
     } catch (error) {
       console.error('Error sending welcome email:', error);
       return false;
@@ -105,7 +195,7 @@ export class EmailService {
    * Send purchase confirmation email
    */
   async sendPurchaseEmail(data: PurchaseEmailData): Promise<boolean> {
-    if (!this.enabled || !this.transporter) {
+    if (!this.enabled || !this.mailgunApiKey) {
       console.log('EmailService: Would send purchase email to', data.email);
       return true;
     }
@@ -121,11 +211,16 @@ export class EmailService {
         subject,
         html: this.getPurchaseEmailHTML(data),
         text: this.getPurchaseEmailText(data),
+        'o:tag': [data.purchaseType === 'subscription' ? 'subscription-purchase' : 'credit-purchase', 'transaction'],
+        'o:tracking': true,
+        'o:tracking-clicks': true,
+        'o:tracking-opens': true,
+        'v:user_email': data.email,
+        'v:user_name': data.firstName || 'User',
+        'v:purchase_amount': (data.amount / 100).toFixed(2),
       };
 
-      const info = await this.transporter.sendMail(mailOptions);
-      console.log('Purchase email sent:', info.messageId);
-      return true;
+      return await this.sendMailgunEmail(mailOptions);
     } catch (error) {
       console.error('Error sending purchase email:', error);
       return false;
@@ -136,7 +231,7 @@ export class EmailService {
    * Send credit expiration warning email
    */
   async sendCreditWarningEmail(data: CreditWarningEmailData): Promise<boolean> {
-    if (!this.enabled || !this.transporter) {
+    if (!this.enabled || !this.mailgunApiKey) {
       console.log('EmailService: Would send credit warning email to', data.email);
       return true;
     }
@@ -151,11 +246,16 @@ export class EmailService {
         subject,
         html: this.getCreditWarningEmailHTML(data),
         text: this.getCreditWarningEmailText(data),
+        'o:tag': ['credit-warning', `urgency-${data.urgencyLevel}`],
+        'o:tracking': true,
+        'o:tracking-clicks': true,
+        'o:tracking-opens': true,
+        'v:user_email': data.email,
+        'v:user_name': data.firstName || 'User',
+        'v:credits_remaining': data.creditsRemaining.toString(),
       };
 
-      const info = await this.transporter.sendMail(mailOptions);
-      console.log('Credit warning email sent:', info.messageId);
-      return true;
+      return await this.sendMailgunEmail(mailOptions);
     } catch (error) {
       console.error('Error sending credit warning email:', error);
       return false;
@@ -166,7 +266,7 @@ export class EmailService {
    * Send subscription notification email
    */
   async sendSubscriptionEmail(data: SubscriptionEmailData): Promise<boolean> {
-    if (!this.enabled || !this.transporter) {
+    if (!this.enabled || !this.mailgunApiKey) {
       console.log('EmailService: Would send subscription email to', data.email);
       return true;
     }
@@ -188,11 +288,16 @@ export class EmailService {
         subject,
         html: this.getSubscriptionEmailHTML(data),
         text: this.getSubscriptionEmailText(data),
+        'o:tag': ['subscription', `subscription-${data.action}`],
+        'o:tracking': true,
+        'o:tracking-clicks': true,
+        'o:tracking-opens': true,
+        'v:user_email': data.email,
+        'v:user_name': data.firstName || 'User',
+        'v:plan_name': data.planName,
       };
 
-      const info = await this.transporter.sendMail(mailOptions);
-      console.log('Subscription email sent:', info.messageId);
-      return true;
+      return await this.sendMailgunEmail(mailOptions);
     } catch (error) {
       console.error('Error sending subscription email:', error);
       return false;
@@ -208,7 +313,7 @@ export class EmailService {
     content: string,
     firstName?: string
   ): Promise<boolean> {
-    if (!this.enabled || !this.transporter) {
+    if (!this.enabled || !this.mailgunApiKey) {
       console.log('EmailService: Would send admin notification to', to);
       return true;
     }
@@ -232,11 +337,15 @@ export class EmailService {
           </div>
         `,
         text: content.replace(/<[^>]*>/g, ''), // Strip HTML for text version
+        'o:tag': ['admin-notification', 'manual'],
+        'o:tracking': true,
+        'o:tracking-clicks': true,
+        'o:tracking-opens': true,
+        'v:user_email': to,
+        'v:user_name': firstName || 'User',
       };
 
-      const info = await this.transporter.sendMail(mailOptions);
-      console.log('Admin notification sent:', info.messageId);
-      return true;
+      return await this.sendMailgunEmail(mailOptions);
     } catch (error) {
       console.error('Error sending admin notification:', error);
       return false;
@@ -251,7 +360,7 @@ export class EmailService {
     subject: string,
     content: string
   ): Promise<{ sent: number; failed: number }> {
-    if (!this.enabled || !this.transporter) {
+    if (!this.enabled || !this.mailgunApiKey) {
       console.log('EmailService: Would send batch emails to', recipients.length, 'recipients');
       return { sent: recipients.length, failed: 0 };
     }
@@ -268,10 +377,18 @@ export class EmailService {
           subject,
           html: content,
           text: content.replace(/<[^>]*>/g, ''),
+          'o:tag': ['batch-email', 'campaign'],
+          'o:tracking': true,
+          'o:tracking-clicks': true,
+          'o:tracking-opens': true,
         };
 
-        await this.transporter.sendMail(mailOptions);
-        sent++;
+        const success = await this.sendMailgunEmail(mailOptions);
+        if (success) {
+          sent++;
+        } else {
+          failed++;
+        }
       } catch (error) {
         console.error(`Error sending email to ${recipient}:`, error);
         failed++;
@@ -279,6 +396,99 @@ export class EmailService {
     }
 
     return { sent, failed };
+  }
+
+  /**
+   * Send password reset email
+   */
+  async sendPasswordResetEmail(data: PasswordResetEmailData): Promise<boolean> {
+    if (!this.enabled || !this.mailgunApiKey) {
+      console.log('EmailService: Would send password reset email to', data.email);
+      return true;
+    }
+
+    try {
+      const mailOptions = {
+        from: `${env.MAILGUN_FROM_NAME} <${env.MAILGUN_FROM_EMAIL}>`,
+        to: data.email,
+        subject: 'Reset Your DTF Editor Password',
+        html: this.getPasswordResetEmailHTML(data),
+        text: this.getPasswordResetEmailText(data),
+        'o:tag': ['auth', 'password-reset'],
+        'o:tracking': false, // Disable tracking for security emails
+        'o:tracking-clicks': false,
+        'o:tracking-opens': false,
+        'v:user_email': data.email,
+        'v:user_name': data.firstName || 'User',
+      };
+
+      return await this.sendMailgunEmail(mailOptions);
+    } catch (error) {
+      console.error('Error sending password reset email:', error);
+      return false;
+    }
+  }
+
+  /**
+   * Send email confirmation
+   */
+  async sendEmailConfirmation(data: EmailConfirmationData): Promise<boolean> {
+    if (!this.enabled || !this.mailgunApiKey) {
+      console.log('EmailService: Would send email confirmation to', data.email);
+      return true;
+    }
+
+    try {
+      const mailOptions = {
+        from: `${env.MAILGUN_FROM_NAME} <${env.MAILGUN_FROM_EMAIL}>`,
+        to: data.email,
+        subject: 'Confirm Your DTF Editor Email',
+        html: this.getEmailConfirmationHTML(data),
+        text: this.getEmailConfirmationText(data),
+        'o:tag': ['auth', 'email-confirmation'],
+        'o:tracking': false, // Disable tracking for security emails
+        'o:tracking-clicks': false,
+        'o:tracking-opens': false,
+        'v:user_email': data.email,
+        'v:user_name': data.firstName || 'User',
+      };
+
+      return await this.sendMailgunEmail(mailOptions);
+    } catch (error) {
+      console.error('Error sending email confirmation:', error);
+      return false;
+    }
+  }
+
+  /**
+   * Send magic link email
+   */
+  async sendMagicLinkEmail(data: MagicLinkEmailData): Promise<boolean> {
+    if (!this.enabled || !this.mailgunApiKey) {
+      console.log('EmailService: Would send magic link email to', data.email);
+      return true;
+    }
+
+    try {
+      const mailOptions = {
+        from: `${env.MAILGUN_FROM_NAME} <${env.MAILGUN_FROM_EMAIL}>`,
+        to: data.email,
+        subject: 'Your DTF Editor Login Link',
+        html: this.getMagicLinkEmailHTML(data),
+        text: this.getMagicLinkEmailText(data),
+        'o:tag': ['auth', 'magic-link'],
+        'o:tracking': false, // Disable tracking for security emails
+        'o:tracking-clicks': false,
+        'o:tracking-opens': false,
+        'v:user_email': data.email,
+        'v:user_name': data.firstName || 'User',
+      };
+
+      return await this.sendMailgunEmail(mailOptions);
+    } catch (error) {
+      console.error('Error sending magic link email:', error);
+      return false;
+    }
   }
 
   // Email template HTML generators
@@ -542,6 +752,185 @@ ${data.nextBillingDate ? `Next billing date: ${data.nextBillingDate.toLocaleDate
 ${data.pauseUntil ? `Your subscription is paused until: ${data.pauseUntil.toLocaleDateString()}` : ''}
 
 Manage your subscription: ${env.APP_URL}/settings
+
+© ${new Date().getFullYear()} DTF Editor. All rights reserved.
+    `.trim();
+  }
+
+  // Auth Email Templates
+  private getPasswordResetEmailHTML(data: PasswordResetEmailData): string {
+    return `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Reset Your Password</title>
+      </head>
+      <body style="margin: 0; padding: 0; font-family: Arial, sans-serif; background-color: #f5f5f5;">
+        <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff;">
+          <div style="background-color: #366494; padding: 30px; text-align: center;">
+            <h1 style="color: #ffffff; margin: 0;">Password Reset Request</h1>
+          </div>
+          <div style="padding: 40px 30px;">
+            <h2 style="color: #333; margin-bottom: 20px;">Hi ${data.firstName || 'there'}!</h2>
+            <p style="color: #666; line-height: 1.6; margin-bottom: 20px;">
+              We received a request to reset your password for your DTF Editor account.
+            </p>
+            <p style="color: #666; line-height: 1.6; margin-bottom: 20px;">
+              Click the button below to reset your password. This link will expire in ${data.expiresIn || '1 hour'}.
+            </p>
+            <div style="text-align: center; margin: 30px 0;">
+              <a href="${data.resetLink}" style="display: inline-block; background-color: #E88B4B; color: #ffffff; padding: 15px 30px; text-decoration: none; border-radius: 5px; font-weight: bold;">
+                Reset Password
+              </a>
+            </div>
+            <p style="color: #666; line-height: 1.6; margin-bottom: 20px;">
+              If you didn't request this password reset, you can safely ignore this email.
+            </p>
+            <p style="color: #999; font-size: 14px; line-height: 1.6;">
+              If the button doesn't work, copy and paste this link into your browser:<br>
+              <span style="color: #366494; word-break: break-all;">${data.resetLink}</span>
+            </p>
+          </div>
+          <div style="background-color: #f5f5f5; padding: 20px; text-align: center;">
+            <p style="color: #999; font-size: 14px; margin: 0;">
+              © ${new Date().getFullYear()} DTF Editor. All rights reserved.
+            </p>
+          </div>
+        </div>
+      </body>
+      </html>
+    `;
+  }
+
+  private getPasswordResetEmailText(data: PasswordResetEmailData): string {
+    return `
+Password Reset Request
+
+Hi ${data.firstName || 'there'}!
+
+We received a request to reset your password for your DTF Editor account.
+
+To reset your password, visit this link:
+${data.resetLink}
+
+This link will expire in ${data.expiresIn || '1 hour'}.
+
+If you didn't request this password reset, you can safely ignore this email.
+
+© ${new Date().getFullYear()} DTF Editor. All rights reserved.
+    `.trim();
+  }
+
+  private getEmailConfirmationHTML(data: EmailConfirmationData): string {
+    return `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Confirm Your Email</title>
+      </head>
+      <body style="margin: 0; padding: 0; font-family: Arial, sans-serif; background-color: #f5f5f5;">
+        <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff;">
+          <div style="background-color: #366494; padding: 30px; text-align: center;">
+            <h1 style="color: #ffffff; margin: 0;">Confirm Your Email Address</h1>
+          </div>
+          <div style="padding: 40px 30px;">
+            <h2 style="color: #333; margin-bottom: 20px;">Welcome to DTF Editor!</h2>
+            <p style="color: #666; line-height: 1.6; margin-bottom: 20px;">
+              Thanks for signing up! Please confirm your email address to complete your registration.
+            </p>
+            <div style="text-align: center; margin: 30px 0;">
+              <a href="${data.confirmationLink}" style="display: inline-block; background-color: #E88B4B; color: #ffffff; padding: 15px 30px; text-decoration: none; border-radius: 5px; font-weight: bold;">
+                Confirm Email
+              </a>
+            </div>
+            <p style="color: #999; font-size: 14px; line-height: 1.6;">
+              If the button doesn't work, copy and paste this link into your browser:<br>
+              <span style="color: #366494; word-break: break-all;">${data.confirmationLink}</span>
+            </p>
+          </div>
+          <div style="background-color: #f5f5f5; padding: 20px; text-align: center;">
+            <p style="color: #999; font-size: 14px; margin: 0;">
+              © ${new Date().getFullYear()} DTF Editor. All rights reserved.
+            </p>
+          </div>
+        </div>
+      </body>
+      </html>
+    `;
+  }
+
+  private getEmailConfirmationText(data: EmailConfirmationData): string {
+    return `
+Welcome to DTF Editor!
+
+Thanks for signing up! Please confirm your email address to complete your registration.
+
+Confirm your email by visiting this link:
+${data.confirmationLink}
+
+© ${new Date().getFullYear()} DTF Editor. All rights reserved.
+    `.trim();
+  }
+
+  private getMagicLinkEmailHTML(data: MagicLinkEmailData): string {
+    return `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Your Login Link</title>
+      </head>
+      <body style="margin: 0; padding: 0; font-family: Arial, sans-serif; background-color: #f5f5f5;">
+        <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff;">
+          <div style="background-color: #366494; padding: 30px; text-align: center;">
+            <h1 style="color: #ffffff; margin: 0;">Your Login Link</h1>
+          </div>
+          <div style="padding: 40px 30px;">
+            <h2 style="color: #333; margin-bottom: 20px;">Hi ${data.firstName || 'there'}!</h2>
+            <p style="color: #666; line-height: 1.6; margin-bottom: 20px;">
+              Here's your secure login link for DTF Editor.
+            </p>
+            <p style="color: #666; line-height: 1.6; margin-bottom: 20px;">
+              This link will expire in ${data.expiresIn || '10 minutes'}.
+            </p>
+            <div style="text-align: center; margin: 30px 0;">
+              <a href="${data.magicLink}" style="display: inline-block; background-color: #E88B4B; color: #ffffff; padding: 15px 30px; text-decoration: none; border-radius: 5px; font-weight: bold;">
+                Sign In
+              </a>
+            </div>
+            <p style="color: #999; font-size: 14px; line-height: 1.6;">
+              If the button doesn't work, copy and paste this link into your browser:<br>
+              <span style="color: #366494; word-break: break-all;">${data.magicLink}</span>
+            </p>
+          </div>
+          <div style="background-color: #f5f5f5; padding: 20px; text-align: center;">
+            <p style="color: #999; font-size: 14px; margin: 0;">
+              © ${new Date().getFullYear()} DTF Editor. All rights reserved.
+            </p>
+          </div>
+        </div>
+      </body>
+      </html>
+    `;
+  }
+
+  private getMagicLinkEmailText(data: MagicLinkEmailData): string {
+    return `
+Your Login Link
+
+Hi ${data.firstName || 'there'}!
+
+Here's your secure login link for DTF Editor.
+
+Sign in by visiting this link:
+${data.magicLink}
+
+This link will expire in ${data.expiresIn || '10 minutes'}.
 
 © ${new Date().getFullYear()} DTF Editor. All rights reserved.
     `.trim();

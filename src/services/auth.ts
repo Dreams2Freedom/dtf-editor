@@ -140,7 +140,10 @@ export class AuthService {
       const { error } = await this.supabase.auth.resetPasswordForEmail(email, {
         redirectTo: `${env.APP_URL}/auth/reset-password`,
       });
+      
       if (error) throw error;
+      
+      // Supabase will send the email via the configured SMTP (Mailgun)
       return { error: null };
     } catch (error) {
       return { error: error as AuthError };

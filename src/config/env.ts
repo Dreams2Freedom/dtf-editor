@@ -48,11 +48,11 @@ export const env = {
   SENDGRID_SUBSCRIPTION_TEMPLATE_ID: process.env.SENDGRID_SUBSCRIPTION_TEMPLATE_ID || '',
   
   // Mailgun Configuration
-  MAILGUN_API_KEY: process.env.MAILGUN_API_KEY || '',
-  MAILGUN_DOMAIN: process.env.MAILGUN_DOMAIN || '',
-  MAILGUN_FROM_EMAIL: process.env.MAILGUN_FROM_EMAIL || 'noreply@dtfeditor.com',
-  MAILGUN_FROM_NAME: process.env.MAILGUN_FROM_NAME || 'DTF Editor',
-  MAILGUN_WEBHOOK_SIGNING_KEY: process.env.MAILGUN_WEBHOOK_SIGNING_KEY || ''
+  MAILGUN_API_KEY: (process.env.MAILGUN_API_KEY || '').trim(),
+  MAILGUN_DOMAIN: (process.env.MAILGUN_DOMAIN || '').trim(),
+  MAILGUN_FROM_EMAIL: (process.env.MAILGUN_FROM_EMAIL || 'noreply@mg.dtfeditor.com').trim(),
+  MAILGUN_FROM_NAME: (process.env.MAILGUN_FROM_NAME || 'DTF Editor').trim(),
+  MAILGUN_WEBHOOK_SIGNING_KEY: (process.env.MAILGUN_WEBHOOK_SIGNING_KEY || '').trim(),
 
   // URLs
   APP_URL: process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000',
