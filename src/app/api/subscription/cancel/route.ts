@@ -1,11 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
-import Stripe from 'stripe';
+import { getStripe } from '@/lib/stripe';
 import { emailService } from '@/services/email';
-
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: '2024-11-20.acacia' as any,
-});
 
 export async function POST(request: NextRequest) {
   try {
@@ -37,7 +33,7 @@ export async function POST(request: NextRequest) {
 
     try {
       // Cancel at period end (user keeps access until billing period ends)
-      const subscription = await stripe.subscriptions.update(
+      const subscription = await getStripe().subscriptions.update(
         profile.stripe_subscription_id,
         {
           cancel_at_period_end: true

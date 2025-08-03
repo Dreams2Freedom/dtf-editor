@@ -1,11 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
-import Stripe from 'stripe';
+import { getStripe } from '@/lib/stripe';
 import { env } from '@/config/env';
-
-const stripe = new Stripe(env.STRIPE_SECRET_KEY, {
-  apiVersion: '2024-11-20.acacia' as any,
-});
 
 // Plan price mapping
 const PLAN_PRICES: Record<string, { priceId: string; monthlyPrice: number; credits: number }> = {
@@ -65,7 +61,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Get current subscription from Stripe
-    const subscription = await stripe.subscriptions.retrieve(profile.stripe_subscription_id);
+    const subscription = await getStripe().subscriptions.retrieve(profile.stripe_subscription_id);
     
     if (!subscription || subscription.status !== 'active') {
       return NextResponse.json(

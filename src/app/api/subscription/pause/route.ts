@@ -2,11 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { stripeService } from '@/services/stripe';
 import { emailService } from '@/services/email';
-import Stripe from 'stripe';
-
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: '2024-11-20.acacia' as any,
-});
+import { getStripe } from '@/lib/stripe';
 
 export async function POST(request: NextRequest) {
   try {
@@ -57,7 +53,7 @@ export async function POST(request: NextRequest) {
     // Get current subscription to find billing period end
     let subscription;
     try {
-      subscription = await stripe.subscriptions.retrieve(profile.stripe_subscription_id);
+      subscription = await getStripe().subscriptions.retrieve(profile.stripe_subscription_id);
     } catch (err) {
       return NextResponse.json(
         { error: 'Failed to retrieve subscription details' },
@@ -86,7 +82,7 @@ export async function POST(request: NextRequest) {
 
     // Pause subscription in Stripe
     try {
-      const updatedSubscription = await stripe.subscriptions.update(
+      const updatedSubscription = await getStripe().subscriptions.update(
         profile.stripe_subscription_id,
         {
           pause_collection: {

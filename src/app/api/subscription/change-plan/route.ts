@@ -1,11 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
-import Stripe from 'stripe';
+import { getStripe } from '@/lib/stripe';
 import { env } from '@/config/env';
-
-const stripe = new Stripe(env.STRIPE_SECRET_KEY, {
-  apiVersion: '2024-11-20.acacia' as any,
-});
 
 // Plan price mapping
 const PLAN_PRICES: Record<string, { priceId: string; monthlyPrice: number; credits: number }> = {
@@ -76,7 +72,7 @@ export async function POST(request: NextRequest) {
 
     try {
       // Get current subscription from Stripe
-      const subscription = await stripe.subscriptions.retrieve(profile.stripe_subscription_id);
+      const subscription = await getStripe().subscriptions.retrieve(profile.stripe_subscription_id);
       
       if (!subscription || subscription.status !== 'active') {
         return NextResponse.json(
@@ -96,7 +92,7 @@ export async function POST(request: NextRequest) {
       }
 
       // Update the subscription with new plan
-      const updatedSubscription = await stripe.subscriptions.update(
+      const updatedSubscription = await getStripe().subscriptions.update(
         subscription.id,
         {
           items: [{
@@ -168,17 +164,17 @@ export async function POST(request: NextRequest) {
       let paymentUrl = null;
       if (prorationBehavior === 'always_invoice') {
         // Create invoice and get payment URL
-        const invoice = await stripe.invoices.create({
+        const invoice = await getStripe().invoices.create({
           customer: profile.stripe_customer_id,
           auto_advance: true
         });
 
-        await stripe.invoices.finalizeInvoice(invoice.id);
+        await getStripe().invoices.finalizeInvoice(invoice.id);
         
         // Get the payment intent
-        const finalizedInvoice = await stripe.invoices.retrieve(invoice.id);
+        const finalizedInvoice = await getStripe().invoices.retrieve(invoice.id);
         if (finalizedInvoice.payment_intent && typeof finalizedInvoice.payment_intent === 'string') {
-          const paymentIntent = await stripe.paymentIntents.retrieve(finalizedInvoice.payment_intent);
+          const paymentIntent = await getStripe().paymentIntents.retrieve(finalizedInvoice.payment_intent);
           paymentUrl = paymentIntent.next_action?.redirect_to_url?.url || null;
         }
 
