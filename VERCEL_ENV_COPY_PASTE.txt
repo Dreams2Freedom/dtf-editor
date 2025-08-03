@@ -1,0 +1,35 @@
+# Copy and paste these into Vercel Environment Variables
+# IMPORTANT: Get the actual secret values from your .env.local file
+
+# Supabase (Production + Preview)
+NEXT_PUBLIC_SUPABASE_URL=https://xysuxhdqukjtqgzetwps.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh5c3V4aGRxdWtqdHFnemV0d3BzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI1ODczNDgsImV4cCI6MjA2ODE2MzM0OH0.6RyKRNtisph9JeBOhcllQZvFmSxLzsnG2kYl7D-wKnw
+SUPABASE_SERVICE_ROLE_KEY=[GET FROM .env.local]
+
+# AI Services (Production only)
+DEEP_IMAGE_API_KEY=[GET FROM .env.local]
+CLIPPINGMAGIC_API_KEY=[GET FROM .env.local]
+CLIPPINGMAGIC_API_SECRET=[GET FROM .env.local]
+VECTORIZER_API_KEY=[GET FROM .env.local]
+VECTORIZER_API_SECRET=[GET FROM .env.local]
+OPENAI_API_KEY=[GET FROM .env.local]
+
+# Stripe TEST Mode (Production + Preview for PUBLIC key)
+NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_test_51Rl8bgPHFzf1GpIrGtRWiO99fFOaVQZ1PDc4vlR90STU2EuRi6sZK2pHbhNphsv7zwJWhLITBExCdXGdQNti2FQX00jHL7NnCV
+STRIPE_SECRET_KEY=[GET FROM .env.local - make sure it's the TEST key starting with sk_test_]
+STRIPE_WEBHOOK_SECRET=whsec_test_placeholder
+STRIPE_BASIC_PLAN_PRICE_ID=price_1RleoYPHFzf1GpIrfy9RVk9m
+STRIPE_STARTER_PLAN_PRICE_ID=price_1RlepVPHFzf1GpIrjRiKHtvb
+STRIPE_PAYG_10_CREDITS_PRICE_ID=price_1RqCymPHFzf1GpIr6L0Ec4cH
+STRIPE_PAYG_20_CREDITS_PRICE_ID=price_1RqCzZPHFzf1GpIrF2EBwBnm
+STRIPE_PAYG_50_CREDITS_PRICE_ID=price_1RqD0QPHFzf1GpIrcAqSHy0u
+
+# Mailgun (Production only)
+MAILGUN_API_KEY=[GET FROM .env.local]
+MAILGUN_DOMAIN=mg.dtfeditor.com
+MAILGUN_FROM_EMAIL=noreply@mg.dtfeditor.com
+MAILGUN_FROM_NAME=DTF Editor
+
+# App Configuration (Production + Preview for APP_URL)
+NEXT_PUBLIC_APP_URL=https://dtfeditor.com
+CRON_SECRET=ggtBAoBFnAj6dMr2lFe6rPgzJ90OKy1pALIDm0xHfxs=
