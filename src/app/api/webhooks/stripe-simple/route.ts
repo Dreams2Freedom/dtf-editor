@@ -1,12 +1,23 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getStripe } from '@/lib/stripe';
-
-// Initialize Supabase
 import { createClient } from '@supabase/supabase-js';
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
+
+// Lazy initialize Supabase to avoid build-time errors
+let supabase: ReturnType<typeof createClient> | null = null;
+
+function getSupabase() {
+  if (!supabase) {
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    
+    if (!supabaseUrl || !supabaseKey) {
+      throw new Error('Supabase environment variables are required');
+    }
+    
+    supabase = createClient(supabaseUrl, supabaseKey);
+  }
+  return supabase;
+}
 
 export async function POST(request: NextRequest) {
   console.log('🎯 Simple webhook handler called');
@@ -89,7 +100,7 @@ export async function POST(request: NextRequest) {
           }
 
           // Add subscription credits
-          const { error: creditError } = await supabase.rpc('add_user_credits', {
+          const { error: creditError } = await getSupabase().rpc('add_user_credits', {
             p_user_id: userId,
             p_amount: planInfo.credits,
             p_transaction_type: 'subscription',
@@ -124,7 +135,7 @@ export async function POST(request: NextRequest) {
       console.log(`Adding ${credits} credits to user ${userId}`);
       
       try {
-        const { error } = await supabase.rpc('add_user_credits', {
+        const { error } = await getSupabase().rpc('add_user_credits', {
           p_user_id: userId,
           p_amount: credits,
           p_transaction_type: 'purchase',
@@ -203,7 +214,7 @@ export async function POST(request: NextRequest) {
             const additionalCredits = planInfo.credits - currentPlanInfo.credits;
             console.log(`Adding ${additionalCredits} credits for upgrade from ${currentPlanInfo.plan} to ${planInfo.plan}`);
             
-            const { error: creditError } = await supabase.rpc('add_user_credits', {
+            const { error: creditError } = await getSupabase().rpc('add_user_credits', {
               p_user_id: profile.id,
               p_amount: additionalCredits,
               p_transaction_type: 'subscription_upgrade',

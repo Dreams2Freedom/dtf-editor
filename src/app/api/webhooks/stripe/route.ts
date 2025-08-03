@@ -1,12 +1,24 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { StripeService } from '@/services/stripe';
+import { getStripeService } from '@/services/stripe';
 import { emailService } from '@/services/email';
-
-const stripeService = new StripeService();
 import { createClient } from '@supabase/supabase-js';
-import { env } from '@/config/env';
 
-const supabase = createClient(env.NEXT_PUBLIC_SUPABASE_URL, env.SUPABASE_SERVICE_ROLE_KEY);
+// Lazy initialize Supabase to avoid build-time errors
+let supabase: ReturnType<typeof createClient> | null = null;
+
+function getSupabase() {
+  if (!supabase) {
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    
+    if (!supabaseUrl || !supabaseKey) {
+      throw new Error('Supabase environment variables are required');
+    }
+    
+    supabase = createClient(supabaseUrl, supabaseKey);
+  }
+  return supabase;
+}
 
 export async function POST(request: NextRequest) {
   console.log('\n🔔 STRIPE WEBHOOK RECEIVED');
@@ -22,7 +34,7 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const event = stripeService.constructWebhookEvent(body, signature);
+    const event = getStripeService().constructWebhookEvent(body, signature);
     console.log('📨 Event type:', event.type);
     console.log('📨 Event ID:', event.id);
 
@@ -190,7 +202,7 @@ async function handlePaymentIntentSucceeded(paymentIntent: any) {
   try {
     // Use the credit addition function for pay-as-you-go purchases
     console.log('📝 Calling add_user_credits RPC...');
-    const { error } = await supabase.rpc('add_user_credits', {
+    const { error } = await getSupabase().rpc('add_user_credits', {
       p_user_id: userId,
       p_amount: credits,
       p_transaction_type: 'purchase',
@@ -213,7 +225,7 @@ async function handlePaymentIntentSucceeded(paymentIntent: any) {
       console.log('📧 Attempting to send payment intent purchase email...');
       
       // Get user email from auth
-      const { data: { user }, error: userError } = await supabase.auth.admin.getUserById(userId);
+      const { data: { user }, error: userError } = await getSupabase().auth.admin.getUserById(userId);
       
       if (userError) {
         console.error('❌ Error fetching user:', userError);
@@ -303,7 +315,7 @@ async function handleCheckoutSessionCompleted(session: any) {
 
         // Add initial credits
         if (plan.creditsPerMonth) {
-          const { error: creditError } = await supabase.rpc('add_user_credits', {
+          const { error: creditError } = await getSupabase().rpc('add_user_credits', {
             p_user_id: userId,
             p_amount: plan.creditsPerMonth,
             p_transaction_type: 'subscription',
@@ -325,7 +337,7 @@ async function handleCheckoutSessionCompleted(session: any) {
           console.log('📧 Attempting to send subscription email...');
           
           // Get user email from auth
-          const { data: { user }, error: userError } = await supabase.auth.admin.getUserById(userId);
+          const { data: { user }, error: userError } = await getSupabase().auth.admin.getUserById(userId);
           
           if (userError) {
             console.error('❌ Error fetching user:', userError);
@@ -384,7 +396,7 @@ async function handleCheckoutSessionCompleted(session: any) {
         }
         
         // Add credits
-        const { error: creditError } = await supabase.rpc('add_user_credits', {
+        const { error: creditError } = await getSupabase().rpc('add_user_credits', {
           p_user_id: userId,
           p_amount: credits,
           p_transaction_type: 'purchase',
@@ -407,7 +419,7 @@ async function handleCheckoutSessionCompleted(session: any) {
           console.log('📧 Attempting to fetch user for email...');
           
           // Get user email from auth
-          const { data: { user }, error: userError } = await supabase.auth.admin.getUserById(userId);
+          const { data: { user }, error: userError } = await getSupabase().auth.admin.getUserById(userId);
           
           if (userError) {
             console.error('❌ Error fetching user:', userError);

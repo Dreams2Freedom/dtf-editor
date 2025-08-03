@@ -1,8 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
-import { StripeService } from '@/services/stripe';
-
-const stripeService = new StripeService();
+import { getStripeService } from '@/services/stripe';
 
 export async function GET(request: NextRequest) {
   try {
@@ -88,7 +86,7 @@ export async function GET(request: NextRequest) {
     let currentPeriodEnd = new Date();
     if (profile.stripe_subscription_id) {
       try {
-        const subscription = await stripeService.retrieveSubscription(profile.stripe_subscription_id);
+        const subscription = await getStripeService().getSubscription(profile.stripe_subscription_id);
         currentPeriodEnd = new Date(subscription.current_period_end * 1000);
       } catch (err) {
         console.error('Failed to get subscription period:', err);
