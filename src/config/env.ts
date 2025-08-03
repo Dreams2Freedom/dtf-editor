@@ -24,7 +24,7 @@ export const env = {
   VECTORIZER_API_SECRET: process.env.VECTORIZER_API_SECRET || '',
 
   // Stripe Configuration (required for payments)
-  STRIPE_PUBLISHABLE_KEY: process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || '',
+  STRIPE_PUBLISHABLE_KEY: process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || process.env.STRIPE_PUBLISHABLE_KEY || '',
   STRIPE_SECRET_KEY: process.env.STRIPE_SECRET_KEY || '',
   STRIPE_WEBHOOK_SECRET: process.env.STRIPE_WEBHOOK_SECRET || '',
   
@@ -55,7 +55,7 @@ export const env = {
   MAILGUN_WEBHOOK_SIGNING_KEY: (process.env.MAILGUN_WEBHOOK_SIGNING_KEY || '').trim(),
 
   // URLs
-  APP_URL: process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000',
+  APP_URL: process.env.NEXT_PUBLIC_APP_URL || process.env.APP_URL || 'http://localhost:3000',
   
   // Admin/Cron
   CRON_SECRET: process.env.CRON_SECRET || '',
