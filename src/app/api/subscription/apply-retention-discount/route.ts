@@ -2,14 +2,21 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 import Stripe from 'stripe';
 
-const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
-if (!stripeSecretKey) {
-  throw new Error('STRIPE_SECRET_KEY is not configured');
-}
+// Initialize Stripe only when the function is called, not at module level
+let stripe: Stripe | null = null;
 
-const stripe = new Stripe(stripeSecretKey, {
-  apiVersion: '2024-11-20.acacia' as any,
-});
+function getStripe() {
+  if (!stripe) {
+    const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
+    if (!stripeSecretKey) {
+      throw new Error('STRIPE_SECRET_KEY is not configured');
+    }
+    stripe = new Stripe(stripeSecretKey, {
+      apiVersion: '2024-11-20.acacia' as any,
+    });
+  }
+  return stripe;
+}
 
 export async function POST(request: NextRequest) {
   try {
@@ -57,7 +64,7 @@ export async function POST(request: NextRequest) {
 
     try {
       // Create a one-time 50% off coupon
-      const coupon = await stripe.coupons.create({
+      const coupon = await getStripe().coupons.create({
         percent_off: 50,
         duration: 'once',
         max_redemptions: 1,
@@ -69,7 +76,7 @@ export async function POST(request: NextRequest) {
       });
 
       // Apply coupon to subscription
-      const subscription = await stripe.subscriptions.update(
+      const subscription = await getStripe().subscriptions.update(
         profile.stripe_subscription_id,
         {
           discounts: [{

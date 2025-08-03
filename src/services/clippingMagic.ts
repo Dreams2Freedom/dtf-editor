@@ -28,25 +28,25 @@ export class ClippingMagicService {
     this.apiId = env.CLIPPINGMAGIC_API_KEY;
     this.apiSecret = env.CLIPPINGMAGIC_API_SECRET || '';
     
-    // Debug environment variables
-    console.log('Raw env values:', {
-      CLIPPINGMAGIC_API_KEY: process.env.CLIPPINGMAGIC_API_KEY,
-      CLIPPINGMAGIC_API_SECRET: process.env.CLIPPINGMAGIC_API_SECRET ? 'EXISTS' : 'MISSING',
-      secretLength: process.env.CLIPPINGMAGIC_API_SECRET?.length || 0
-    });
+    // Debug environment variables - commented out for production
+    // console.log('Raw env values:', {
+    //   CLIPPINGMAGIC_API_KEY: process.env.CLIPPINGMAGIC_API_KEY,
+    //   CLIPPINGMAGIC_API_SECRET: process.env.CLIPPINGMAGIC_API_SECRET ? 'EXISTS' : 'MISSING',
+    //   secretLength: process.env.CLIPPINGMAGIC_API_SECRET?.length || 0
+    // });
     
-    console.log('ClippingMagic Service Init:', {
-      hasApiId: !!this.apiId,
-      hasApiSecret: !!this.apiSecret,
-      apiIdLength: this.apiId?.length,
-      apiSecretLength: this.apiSecret?.length,
-      envValue: env.CLIPPINGMAGIC_API_SECRET ? 'EXISTS' : 'MISSING',
-      directEnvValue: process.env.CLIPPINGMAGIC_API_SECRET || 'NOT_FOUND'
-    });
+    // console.log('ClippingMagic Service Init:', {
+    //   hasApiId: !!this.apiId,
+    //   hasApiSecret: !!this.apiSecret,
+    //   apiIdLength: this.apiId?.length,
+    //   apiSecretLength: this.apiSecret?.length,
+    //   envValue: env.CLIPPINGMAGIC_API_SECRET ? 'EXISTS' : 'MISSING',
+    //   directEnvValue: process.env.CLIPPINGMAGIC_API_SECRET || 'NOT_FOUND'
+    // });
     
     // Force use of process.env directly as a workaround
     if (!this.apiSecret && process.env.CLIPPINGMAGIC_API_SECRET) {
-      console.log('Using direct env value as workaround');
+      // console.log('Using direct env value as workaround');
       this.apiSecret = process.env.CLIPPINGMAGIC_API_SECRET;
     }
     
