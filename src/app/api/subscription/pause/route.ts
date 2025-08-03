@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
-import { stripeService } from '@/services/stripe';
 import { emailService } from '@/services/email';
 import { getStripe } from '@/lib/stripe';
 

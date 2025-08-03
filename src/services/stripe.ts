@@ -46,15 +46,22 @@ export interface BillingHistoryItem {
 }
 
 export class StripeService {
-  private stripe: Stripe;
+  private stripe: Stripe | null = null;
 
   constructor() {
-    if (!env.STRIPE_SECRET_KEY) {
-      throw new Error('STRIPE_SECRET_KEY is required');
+    // Lazy initialization - don't create Stripe client until needed
+  }
+
+  private getStripeClient(): Stripe {
+    if (!this.stripe) {
+      if (!env.STRIPE_SECRET_KEY) {
+        throw new Error('STRIPE_SECRET_KEY is required');
+      }
+      this.stripe = new Stripe(env.STRIPE_SECRET_KEY, {
+        apiVersion: '2025-06-30.basil',
+      });
     }
-    this.stripe = new Stripe(env.STRIPE_SECRET_KEY, {
-      apiVersion: '2025-06-30.basil',
-    });
+    return this.stripe;
   }
 
   // Subscription Plans
@@ -125,7 +132,7 @@ export class StripeService {
 
   // Customer Management
   public async createCustomer(email: string, name?: string): Promise<Stripe.Customer> {
-    return this.stripe.customers.create({
+    return this.getStripeClient().customers.create({
       email,
       name,
       metadata: {
@@ -136,19 +143,19 @@ export class StripeService {
 
   public async getCustomer(customerId: string): Promise<Stripe.Customer | null> {
     try {
-      return await this.stripe.customers.retrieve(customerId) as Stripe.Customer;
+      return await this.getStripeClient().customers.retrieve(customerId) as Stripe.Customer;
     } catch (error) {
       return null;
     }
   }
 
   public async updateCustomer(customerId: string, data: Partial<Stripe.CustomerUpdateParams>): Promise<Stripe.Customer> {
-    return this.stripe.customers.update(customerId, data);
+    return this.getStripeClient().customers.update(customerId, data);
   }
 
   // Subscription Management
   public async createSubscription(params: CreateSubscriptionParams): Promise<Stripe.Subscription> {
-    return this.stripe.subscriptions.create({
+    return this.getStripeClient().subscriptions.create({
       customer: params.customerId,
       items: [{ price: params.priceId }],
       metadata: params.metadata,
@@ -160,31 +167,31 @@ export class StripeService {
 
   public async getSubscription(subscriptionId: string): Promise<Stripe.Subscription | null> {
     try {
-      return await this.stripe.subscriptions.retrieve(subscriptionId);
+      return await this.getStripeClient().subscriptions.retrieve(subscriptionId);
     } catch (error) {
       return null;
     }
   }
 
   public async updateSubscription(subscriptionId: string, params: Stripe.SubscriptionUpdateParams): Promise<Stripe.Subscription> {
-    return this.stripe.subscriptions.update(subscriptionId, params);
+    return this.getStripeClient().subscriptions.update(subscriptionId, params);
   }
 
   public async cancelSubscription(subscriptionId: string, cancelAtPeriodEnd: boolean = true): Promise<Stripe.Subscription> {
-    return this.stripe.subscriptions.update(subscriptionId, {
+    return this.getStripeClient().subscriptions.update(subscriptionId, {
       cancel_at_period_end: cancelAtPeriodEnd,
     });
   }
 
   public async reactivateSubscription(subscriptionId: string): Promise<Stripe.Subscription> {
-    return this.stripe.subscriptions.update(subscriptionId, {
+    return this.getStripeClient().subscriptions.update(subscriptionId, {
       cancel_at_period_end: false,
     });
   }
 
   // Pay-as-You-Go Purchases
   public async createPaymentIntent(params: CreatePaymentIntentParams): Promise<Stripe.PaymentIntent> {
-    return this.stripe.paymentIntents.create({
+    return this.getStripeClient().paymentIntents.create({
       amount: params.amount,
       currency: params.currency,
       customer: params.customerId,
@@ -197,7 +204,7 @@ export class StripeService {
 
   public async getPaymentIntent(paymentIntentId: string): Promise<Stripe.PaymentIntent | null> {
     try {
-      return await this.stripe.paymentIntents.retrieve(paymentIntentId);
+      return await this.getStripeClient().paymentIntents.retrieve(paymentIntentId);
     } catch (error) {
       return null;
     }
@@ -205,7 +212,7 @@ export class StripeService {
 
   // Payment Methods
   public async getPaymentMethods(customerId: string): Promise<Stripe.PaymentMethod[]> {
-    const paymentMethods = await this.stripe.paymentMethods.list({
+    const paymentMethods = await this.getStripeClient().paymentMethods.list({
       customer: customerId,
       type: 'card',
     });
@@ -213,17 +220,17 @@ export class StripeService {
   }
 
   public async attachPaymentMethod(paymentMethodId: string, customerId: string): Promise<Stripe.PaymentMethod> {
-    return this.stripe.paymentMethods.attach(paymentMethodId, {
+    return this.getStripeClient().paymentMethods.attach(paymentMethodId, {
       customer: customerId,
     });
   }
 
   public async detachPaymentMethod(paymentMethodId: string): Promise<Stripe.PaymentMethod> {
-    return this.stripe.paymentMethods.detach(paymentMethodId);
+    return this.getStripeClient().paymentMethods.detach(paymentMethodId);
   }
 
   public async setDefaultPaymentMethod(customerId: string, paymentMethodId: string): Promise<Stripe.Customer> {
-    return this.stripe.customers.update(customerId, {
+    return this.getStripeClient().customers.update(customerId, {
       invoice_settings: {
         default_payment_method: paymentMethodId,
       },
@@ -233,12 +240,12 @@ export class StripeService {
   // Billing History
   public async getBillingHistory(customerId: string, limit: number = 50): Promise<BillingHistoryItem[]> {
     const [invoices, paymentIntents] = await Promise.all([
-      this.stripe.invoices.list({
+      this.getStripeClient().invoices.list({
         customer: customerId,
         limit,
         status: 'paid',
       }),
-      this.stripe.paymentIntents.list({
+      this.getStripeClient().paymentIntents.list({
         customer: customerId,
         limit,
       }),
@@ -283,12 +290,12 @@ export class StripeService {
 
   // Checkout Sessions
   public async createCheckoutSession(params: any): Promise<Stripe.Checkout.Session> {
-    return this.stripe.checkout.sessions.create(params);
+    return this.getStripeClient().checkout.sessions.create(params);
   }
 
   public async getCheckoutSession(sessionId: string): Promise<Stripe.Checkout.Session | null> {
     try {
-      return await this.stripe.checkout.sessions.retrieve(sessionId);
+      return await this.getStripeClient().checkout.sessions.retrieve(sessionId);
     } catch (error) {
       return null;
     }
@@ -296,7 +303,7 @@ export class StripeService {
 
   // Customer Portal
   public async createPortalSession(customerId: string, returnUrl: string): Promise<Stripe.BillingPortal.Session> {
-    return this.stripe.billingPortal.sessions.create({
+    return this.getStripeClient().billingPortal.sessions.create({
       customer: customerId,
       return_url: returnUrl,
     });
@@ -305,7 +312,7 @@ export class StripeService {
   // Price Management
   public async getPrice(priceId: string): Promise<Stripe.Price | null> {
     try {
-      return await this.stripe.prices.retrieve(priceId);
+      return await this.getStripeClient().prices.retrieve(priceId);
     } catch (error) {
       return null;
     }
@@ -317,7 +324,7 @@ export class StripeService {
       throw new Error('STRIPE_WEBHOOK_SECRET is required for webhook verification');
     }
 
-    return this.stripe.webhooks.constructEvent(
+    return this.getStripeClient().webhooks.constructEvent(
       payload,
       signature,
       env.STRIPE_WEBHOOK_SECRET
