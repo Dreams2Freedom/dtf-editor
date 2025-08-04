@@ -1,13 +1,15 @@
-import { Suspense } from 'react';
-import TestCMEditorClient from './client';
+'use client';
 
-export default function TestCMEditorPage() {
-  return (
-    <Suspense fallback={<div className="flex items-center justify-center min-h-screen">Loading...</div>}>
-      <TestCMEditorClient />
-    </Suspense>
-  );
+import { useEffect, useState } from 'react';
+import { useSearchParams } from 'next/navigation';
+
+declare global {
+  interface Window {
+    ClippingMagic: any;
+  }
 }
+
+export default function TestCMEditorClient() {
   const searchParams = useSearchParams();
   const imageId = searchParams.get('id');
   const imageSecret = searchParams.get('secret');
@@ -28,28 +30,24 @@ export default function TestCMEditorPage() {
       
       // Initialize ClippingMagic
       if (window.ClippingMagic) {
-        // Use the numeric API ID (24469 based on your test page)
-        const errors = window.ClippingMagic.initialize({ apiId: 24469 });
-        
-        if (errors.length === 0) {
-          console.log('ClippingMagic initialized successfully');
-          setInitialized(true);
+        try {
+          const clippingMagic = new window.ClippingMagic({
+            apiId: parseInt(process.env.NEXT_PUBLIC_CLIPPING_MAGIC_API_ID || '12345'),
+            locale: 'en-US'
+          });
           
-          // Auto-open editor if we have image data
-          if (imageId && imageSecret) {
-            setTimeout(() => {
-              openEditor();
-            }, 500);
-          }
-        } else {
-          console.error('ClippingMagic initialization errors:', errors);
-          setError('Failed to initialize: ' + errors.join(', '));
+          console.log('ClippingMagic initialized');
+          setInitialized(true);
+        } catch (err) {
+          console.error('Failed to initialize ClippingMagic:', err);
+          setError('Failed to initialize editor');
         }
       }
     };
     
     script.onerror = () => {
-      setError('Failed to load ClippingMagic script');
+      console.error('Failed to load ClippingMagic script');
+      setError('Failed to load ClippingMagic SDK');
     };
     
     document.body.appendChild(script);
@@ -61,91 +59,51 @@ export default function TestCMEditorPage() {
     };
   }, []);
 
-  const openEditor = () => {
-    if (!initialized || !imageId || !imageSecret) {
-      console.error('Cannot open editor:', { initialized, imageId, imageSecret });
-      return;
-    }
-
-    console.log('Opening ClippingMagic editor with:', { id: imageId, secret: imageSecret });
-    
-    try {
-      window.ClippingMagic.edit({
-        image: {
-          id: parseInt(imageId),
-          secret: imageSecret
-        },
-        useStickySettings: true,
-        hideBottomToolbar: false,
-        locale: 'en-US'
-      }, (opts: any) => {
-        console.log('ClippingMagic callback:', opts);
-        
-        switch (opts.event) {
-          case 'error':
-            console.error('ClippingMagic error:', opts.error);
-            setError(`Error: ${opts.error.message || 'Unknown error'}`);
-            break;
-            
-          case 'result-generated':
-            console.log('Result generated:', opts.image);
-            // Here you could download the result or notify the parent window
-            alert('Background removed successfully! Image ID: ' + opts.image.id);
-            break;
-            
-          case 'editor-exit':
-            console.log('Editor closed');
-            // Could close this window or redirect
-            break;
-        }
-      });
-    } catch (err) {
-      console.error('Failed to open editor:', err);
-      setError('Failed to open editor: ' + (err as Error).message);
-    }
-  };
-
   return (
-    <div className="p-8 max-w-2xl mx-auto">
-      <h1 className="text-2xl font-bold mb-4">ClippingMagic Editor</h1>
-      
-      <div className="space-y-4">
-        {/* Status */}
-        <div className="border rounded p-4">
-          <h2 className="font-semibold mb-2">Status</h2>
-          <p>Script loaded: {scriptLoaded ? '✓ Yes' : '✗ No'}</p>
-          <p>Initialized: {initialized ? '✓ Yes' : '✗ No'}</p>
-          <p>Image ID: {imageId || 'None'}</p>
-          <p>Image Secret: {imageSecret ? imageSecret.substring(0, 10) + '...' : 'None'}</p>
+    <div className="min-h-screen bg-gray-100 p-8">
+      <div className="max-w-4xl mx-auto">
+        <h1 className="text-3xl font-bold mb-8">ClippingMagic Editor Test</h1>
+        
+        <div className="bg-white rounded-lg shadow p-6 mb-6">
+          <h2 className="text-xl font-semibold mb-4">Status</h2>
+          <div className="space-y-2">
+            <div className="flex items-center">
+              <span className="w-32">Script Loaded:</span>
+              <span className={scriptLoaded ? 'text-green-600' : 'text-gray-400'}>
+                {scriptLoaded ? '✓ Loaded' : 'Loading...'}
+              </span>
+            </div>
+            <div className="flex items-center">
+              <span className="w-32">Initialized:</span>
+              <span className={initialized ? 'text-green-600' : 'text-gray-400'}>
+                {initialized ? '✓ Ready' : 'Not initialized'}
+              </span>
+            </div>
+            {error && (
+              <div className="text-red-600 mt-2">
+                Error: {error}
+              </div>
+            )}
+          </div>
         </div>
 
-        {/* Manual Open Button */}
-        {imageId && imageSecret && (
-          <button
-            onClick={openEditor}
-            disabled={!initialized}
-            className="px-4 py-2 bg-blue-500 text-white rounded disabled:bg-gray-300"
-          >
-            Open Editor Manually
-          </button>
-        )}
-
-        {/* Error Display */}
-        {error && (
-          <div className="p-4 bg-red-100 text-red-700 rounded">
-            {error}
+        <div className="bg-white rounded-lg shadow p-6 mb-6">
+          <h2 className="text-xl font-semibold mb-4">Parameters</h2>
+          <div className="space-y-2">
+            <div>Image ID: {imageId || 'Not provided'}</div>
+            <div>Image Secret: {imageSecret || 'Not provided'}</div>
           </div>
-        )}
+        </div>
 
-        {/* Instructions */}
-        <div className="border rounded p-4 bg-yellow-50">
-          <h2 className="font-semibold mb-2">Note</h2>
-          <p className="text-sm">
-            The ClippingMagic editor opens in a popup window. Make sure popups are allowed for this site.
-          </p>
-          <p className="text-sm mt-2">
-            If nothing happens, check your browser console for errors and ensure popups are not blocked.
-          </p>
+        <div className="bg-white rounded-lg shadow p-6">
+          <h2 className="text-xl font-semibold mb-4">Editor Container</h2>
+          <div id="clippingmagic-editor" className="min-h-[400px] border border-gray-200 rounded">
+            {!initialized && (
+              <div className="flex items-center justify-center h-[400px] text-gray-500">
+                {error ? error : 'Initializing editor...'}
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </div>
