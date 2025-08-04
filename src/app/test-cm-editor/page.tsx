@@ -8,4 +8,3 @@ export default function TestCMEditorPage() {
     </Suspense>
   );
 }
-EOF < /dev/null

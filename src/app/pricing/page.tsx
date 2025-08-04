@@ -8,4 +8,3 @@ export default function PricingPage() {
     </Suspense>
   );
 }
-EOF < /dev/null
