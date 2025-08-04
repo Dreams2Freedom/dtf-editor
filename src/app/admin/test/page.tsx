@@ -4,17 +4,23 @@ import { useState, useEffect } from 'react';
 import { adminAuthService } from '@/services/adminAuth';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
+import dynamic from 'next/dynamic';
 
-export default function AdminTestPage() {
+// Disable SSR for this component
+const AdminTestPage = () => {
   const [sessionInfo, setSessionInfo] = useState<any>(null);
   const [cookieInfo, setCookieInfo] = useState<any>(null);
+  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
+    setMounted(true);
     checkSession();
     checkCookies();
   }, []);
 
   const checkSession = () => {
+    if (typeof window === 'undefined') return;
+    
     const session = adminAuthService.getSession();
     const localStorageSession = localStorage.getItem('admin_session');
     const sessionStorageSession = sessionStorage.getItem('admin_session');
@@ -49,6 +55,10 @@ export default function AdminTestPage() {
       alert('Failed to set test cookie');
     }
   };
+
+  if (!mounted) {
+    return <div className="min-h-screen bg-gray-50 p-8">Loading...</div>;
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 p-8">
@@ -103,4 +113,9 @@ export default function AdminTestPage() {
       </div>
     </div>
   );
-}
+};
+
+// Export with SSR disabled
+export default dynamic(() => Promise.resolve(AdminTestPage), {
+  ssr: false
+});

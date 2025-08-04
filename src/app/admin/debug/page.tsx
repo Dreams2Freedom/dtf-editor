@@ -1,160 +1,147 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
+import dynamic from 'next/dynamic';
 
-export default function AdminDebugPage() {
+const AdminDebugPage = () => {
+  const router = useRouter();
   const [cookies, setCookies] = useState<string>('');
-  const [sessionData, setSessionData] = useState<any>(null);
-  const [networkLogs, setNetworkLogs] = useState<string[]>([]);
+  const [sessionInfo, setSessionInfo] = useState<any>(null);
+  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
-    // Check cookies
-    setCookies(document.cookie);
-
-    // Try to parse admin_session cookie
-    const adminSessionCookie = document.cookie
-      .split('; ')
-      .find(row => row.startsWith('admin_session='));
-    
-    if (adminSessionCookie) {
-      try {
-        const value = decodeURIComponent(adminSessionCookie.split('=')[1]);
-        setSessionData(JSON.parse(value));
-      } catch (e) {
-        setSessionData({ error: 'Failed to parse session', details: e });
-      }
+    setMounted(true);
+    if (typeof window !== 'undefined' && typeof document !== 'undefined') {
+      setCookies(document.cookie);
+      
+      // Check for admin session
+      const adminSessionCookie = document.cookie
+        .split('; ')
+        .find(row => row.startsWith('admin_session='));
+      
+      setSessionInfo({
+        hasCookie: !!adminSessionCookie,
+        cookieValue: adminSessionCookie || 'Not found',
+        allCookies: document.cookie || 'No cookies'
+      });
     }
+  }, []);
 
-    // Log current state
-    console.log('Debug Page Loaded');
+  const testNavigation = (method: string) => {
+    if (typeof window === 'undefined') return;
+    
+    console.log(`Testing navigation with: ${method}`);
     console.log('Cookies:', document.cookie);
     console.log('Location:', window.location.href);
     console.log('User Agent:', navigator.userAgent);
-  }, []);
-
-  const testRedirect = async (method: string) => {
-    const log = `Testing ${method} redirect...`;
-    setNetworkLogs(prev => [...prev, log]);
-    console.log(log);
-
+    
     switch (method) {
-      case 'router.push':
-        // Would need to import router - skipping for now
-        setNetworkLogs(prev => [...prev, 'router.push not available in this context']);
+      case 'router':
+        router.push('/admin');
         break;
-      case 'window.location.href':
+      case 'location':
         window.location.href = '/admin';
         break;
-      case 'window.location.replace':
+      case 'replace':
         window.location.replace('/admin');
         break;
-      case 'window.location.assign':
+      case 'assign':
         window.location.assign('/admin');
         break;
-      case 'meta refresh':
-        const meta = document.createElement('meta');
-        meta.httpEquiv = 'refresh';
-        meta.content = '0; url=/admin';
-        document.head.appendChild(meta);
-        setNetworkLogs(prev => [...prev, 'Meta refresh tag added']);
+      case 'meta':
+        if (typeof document !== 'undefined') {
+          const meta = document.createElement('meta');
+          meta.httpEquiv = 'refresh';
+          meta.content = '0; url=/admin';
+          document.head.appendChild(meta);
+        }
         break;
     }
   };
 
-  const testCookieSet = () => {
-    // Test setting a simple cookie
+  const setCookieTest = () => {
+    if (typeof document === 'undefined') return;
     document.cookie = 'test_cookie=test_value; path=/';
     setCookies(document.cookie);
-    setNetworkLogs(prev => [...prev, 'Set test_cookie']);
   };
 
-  const testApiCall = async () => {
-    setNetworkLogs(prev => [...prev, 'Testing API call...']);
-    
-    try {
-      const response = await fetch('/api/admin/auth/verify', {
-        method: 'GET',
-        credentials: 'include',
-      });
-      
-      const data = await response.json();
-      setNetworkLogs(prev => [...prev, `API Response: ${JSON.stringify(data)}`]);
-    } catch (error) {
-      setNetworkLogs(prev => [...prev, `API Error: ${error}`]);
-    }
-  };
+  if (!mounted) {
+    return <div className="min-h-screen bg-gray-50 p-8">Loading...</div>;
+  }
 
   return (
-    <div className="container mx-auto p-8 max-w-4xl">
-      <h1 className="text-3xl font-bold mb-8">Admin Debug Page</h1>
-
-      <Card className="mb-6">
-        <CardHeader>
-          <CardTitle>Cookie Information</CardTitle>
-        </CardHeader>
-        <CardContent>
+    <div className="min-h-screen bg-gray-50 p-8">
+      <div className="max-w-4xl mx-auto space-y-6">
+        <h1 className="text-2xl font-bold">Admin Debug Page</h1>
+        
+        <Card className="p-6">
+          <h2 className="text-lg font-semibold mb-4">Cookie Information</h2>
           <div className="space-y-2">
-            <p className="font-semibold">All Cookies:</p>
-            <pre className="bg-gray-100 p-2 rounded text-sm overflow-auto">
+            <p className="text-sm font-mono bg-gray-100 p-2 rounded break-all">
               {cookies || 'No cookies found'}
-            </pre>
-            
-            <p className="font-semibold mt-4">Admin Session Data:</p>
-            <pre className="bg-gray-100 p-2 rounded text-sm overflow-auto">
-              {sessionData ? JSON.stringify(sessionData, null, 2) : 'No admin_session cookie found'}
-            </pre>
+            </p>
+            <Button onClick={() => {
+              if (typeof document !== 'undefined') {
+                setCookies(document.cookie);
+              }
+            }} size="sm">
+              Refresh Cookies
+            </Button>
+            <Button onClick={setCookieTest} size="sm" className="ml-2">
+              Set Test Cookie
+            </Button>
           </div>
-        </CardContent>
-      </Card>
+        </Card>
 
-      <Card className="mb-6">
-        <CardHeader>
-          <CardTitle>Redirect Tests</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-2 gap-2">
-            <Button onClick={() => testRedirect('window.location.href')}>
-              window.location.href
-            </Button>
-            <Button onClick={() => testRedirect('window.location.replace')}>
-              window.location.replace
-            </Button>
-            <Button onClick={() => testRedirect('window.location.assign')}>
-              window.location.assign
-            </Button>
-            <Button onClick={() => testRedirect('meta refresh')}>
-              Meta Refresh
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
+        <Card className="p-6">
+          <h2 className="text-lg font-semibold mb-4">Session Debug Info</h2>
+          <pre className="bg-gray-100 p-4 rounded overflow-auto text-sm">
+            {JSON.stringify(sessionInfo, null, 2)}
+          </pre>
+        </Card>
 
-      <Card className="mb-6">
-        <CardHeader>
-          <CardTitle>Cookie Tests</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-2">
-            <Button onClick={testCookieSet}>Test Cookie Set</Button>
-            <Button onClick={testApiCall}>Test API Call</Button>
+        <Card className="p-6">
+          <h2 className="text-lg font-semibold mb-4">Navigation Tests</h2>
+          <div className="grid grid-cols-2 gap-4">
+            <Button onClick={() => testNavigation('router')}>
+              Test Router.push
+            </Button>
+            <Button onClick={() => testNavigation('location')}>
+              Test location.href
+            </Button>
+            <Button onClick={() => testNavigation('replace')}>
+              Test location.replace
+            </Button>
+            <Button onClick={() => testNavigation('assign')}>
+              Test location.assign
+            </Button>
+            <Button onClick={() => testNavigation('meta')}>
+              Test Meta Refresh
+            </Button>
           </div>
-        </CardContent>
-      </Card>
+        </Card>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Network Logs</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="bg-gray-100 p-2 rounded h-48 overflow-auto">
-            {networkLogs.map((log, i) => (
-              <div key={i} className="text-sm font-mono">{log}</div>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
+        <Card className="p-6">
+          <h2 className="text-lg font-semibold mb-4">Browser Info</h2>
+          <pre className="bg-gray-100 p-4 rounded overflow-auto text-sm">
+            {JSON.stringify({
+              userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : 'N/A',
+              href: typeof window !== 'undefined' ? window.location.href : 'N/A',
+              protocol: typeof window !== 'undefined' ? window.location.protocol : 'N/A',
+              host: typeof window !== 'undefined' ? window.location.host : 'N/A',
+              pathname: typeof window !== 'undefined' ? window.location.pathname : 'N/A'
+            }, null, 2)}
+          </pre>
+        </Card>
+      </div>
     </div>
   );
-}
+};
+
+// Export with SSR disabled
+export default dynamic(() => Promise.resolve(AdminDebugPage), {
+  ssr: false
+});
