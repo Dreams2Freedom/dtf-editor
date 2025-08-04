@@ -151,15 +151,26 @@ export class AuthService {
     password: string
   ): Promise<{ user: User | null; error: AuthError | null }> {
     try {
+      console.log('[AuthService] Attempting sign in for:', email);
+      
       const { data, error } = await this.getSupabase().auth.signInWithPassword({
         email,
         password,
       });
 
-      if (error) throw error;
+      if (error) {
+        console.error('[AuthService] Sign in error:', {
+          message: error.message,
+          status: error.status,
+          code: error.code,
+        });
+        throw error;
+      }
 
+      console.log('[AuthService] Sign in successful:', data.user?.email);
       return { user: data.user, error: null };
     } catch (error) {
+      console.error('[AuthService] Sign in exception:', error);
       return { user: null, error: error as AuthError };
     }
   }
