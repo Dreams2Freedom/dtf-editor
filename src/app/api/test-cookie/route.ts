@@ -12,7 +12,7 @@ export async function GET(request: NextRequest) {
   // Set test cookie using response.cookies
   response.cookies.set('test_cookie', 'test_value_' + Date.now(), {
     httpOnly: true,
-    secure: false, // false for localhost
+    secure: process.env.NODE_ENV === 'production',
     sameSite: 'lax',
     path: '/',
     maxAge: 60 * 60 // 1 hour
@@ -22,7 +22,7 @@ export async function GET(request: NextRequest) {
   const cookieStore = await cookies();
   cookieStore.set('test_cookie_2', 'test_value_2_' + Date.now(), {
     httpOnly: true,
-    secure: false,
+    secure: process.env.NODE_ENV === 'production',
     sameSite: 'lax',
     path: '/',
     maxAge: 60 * 60

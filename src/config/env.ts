@@ -55,7 +55,7 @@ export const env = {
   MAILGUN_WEBHOOK_SIGNING_KEY: (process.env.MAILGUN_WEBHOOK_SIGNING_KEY || '').trim(),
 
   // URLs
-  APP_URL: process.env.NEXT_PUBLIC_APP_URL || process.env.APP_URL || 'http://localhost:3000',
+  APP_URL: process.env.NEXT_PUBLIC_APP_URL || process.env.APP_URL || '',
   
   // Admin/Cron
   CRON_SECRET: process.env.CRON_SECRET || '',
