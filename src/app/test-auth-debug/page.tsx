@@ -37,13 +37,15 @@ export default function TestAuthDebugPage() {
         error: error?.message || null,
         errorCode: error?.code || null,
         errorStatus: error?.status || null,
+        errorDetails: error ? JSON.stringify(error) : null,
         data: data ? 'User data received' : null
       });
     } catch (err: any) {
       setAuthResult({
         success: false,
         error: err.message || 'Unknown error',
-        errorType: 'Exception'
+        errorType: 'Exception',
+        stack: err.stack
       });
     } finally {
       setLoading(false);
@@ -68,6 +70,26 @@ export default function TestAuthDebugPage() {
       setAuthResult({
         connectionTest: false,
         error: err.message || 'Failed to connect to Supabase'
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const checkDatabase = async () => {
+    setLoading(true);
+    try {
+      const response = await fetch('/api/test-db-connection');
+      const data = await response.json();
+      
+      setAuthResult({
+        databaseTest: true,
+        ...data
+      });
+    } catch (err: any) {
+      setAuthResult({
+        databaseTest: false,
+        error: err.message || 'Failed to test database'
       });
     } finally {
       setLoading(false);
@@ -104,6 +126,15 @@ export default function TestAuthDebugPage() {
               className="w-full"
             >
               Test Authentication (with dummy credentials)
+            </Button>
+            
+            <Button 
+              onClick={checkDatabase} 
+              disabled={loading}
+              variant="outline"
+              className="w-full"
+            >
+              Test Database Connection
             </Button>
           </div>
         </Card>
