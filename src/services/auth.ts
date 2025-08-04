@@ -1,9 +1,5 @@
 import { User, Session, AuthError } from '@supabase/supabase-js';
 import { createClientSupabaseClient } from '@/lib/supabase/client';
-import { env } from '@/config/env';
-
-// Create Supabase client
-export const supabase = typeof window !== 'undefined' ? createClientSupabaseClient() : null!;
 
 // Auth state types
 export interface AuthState {
@@ -42,37 +38,64 @@ export interface ActivityLog {
 
 // Auth service class
 export class AuthService {
-  private supabase = supabase || (typeof window !== 'undefined' ? createClientSupabaseClient() : null!);
+  private getSupabase() {
+    // Always create client on demand to ensure proper initialization
+    return createClientSupabaseClient();
+  }
 
   // Get current session
   async getSession(): Promise<Session | null> {
     try {
       const {
         data: { session },
-        error,
-      } = await this.supabase.auth.getSession();
-      if (error) throw error;
+      } = await this.getSupabase().auth.getSession();
       return session;
     } catch (error) {
+      console.error('Error getting session:', error);
       return null;
     }
   }
 
   // Get current user
-  async getCurrentUser(): Promise<User | null> {
+  async getUser(): Promise<User | null> {
     try {
       const {
         data: { user },
-        error,
-      } = await this.supabase.auth.getUser();
-      if (error) throw error;
+      } = await this.getSupabase().auth.getUser();
       return user;
     } catch (error) {
+      console.error('Error getting user:', error);
       return null;
     }
   }
 
-  // Sign up with email and password
+  // Get user profile
+  async getUserProfile(userId?: string): Promise<UserProfile | null> {
+    try {
+      const user = userId ? { id: userId } : await this.getUser();
+      if (!user) return null;
+
+      const { data, error } = await this.getSupabase()
+        .from('profiles')
+        .select('*')
+        .eq('id', user.id)
+        .single();
+
+      if (error) throw error;
+      
+      // Map credits field for backward compatibility
+      if (data && 'credits' in data && !('credits_remaining' in data)) {
+        data.credits_remaining = data.credits;
+      }
+      
+      return data;
+    } catch (error) {
+      console.error('Error getting user profile:', error);
+      return null;
+    }
+  }
+
+  // Sign up
   async signUp(
     email: string,
     password: string,
@@ -83,20 +106,15 @@ export class AuthService {
     }
   ): Promise<{ user: User | null; error: AuthError | null }> {
     try {
-      const { data, error } = await this.supabase.auth.signUp({
+      const { data, error } = await this.getSupabase().auth.signUp({
         email,
         password,
         options: {
           data: metadata,
-          emailRedirectTo: `${env.APP_URL}/auth/callback`,
         },
       });
 
       if (error) throw error;
-
-      // Profile is created automatically by database trigger (handle_new_user function)
-      
-      // Note: Welcome email is sent from the server-side auth callback
 
       return { user: data.user, error: null };
     } catch (error) {
@@ -104,13 +122,13 @@ export class AuthService {
     }
   }
 
-  // Sign in with email and password
+  // Sign in
   async signIn(
     email: string,
     password: string
   ): Promise<{ user: User | null; error: AuthError | null }> {
     try {
-      const { data, error } = await this.supabase.auth.signInWithPassword({
+      const { data, error } = await this.getSupabase().auth.signInWithPassword({
         email,
         password,
       });
@@ -126,7 +144,7 @@ export class AuthService {
   // Sign out
   async signOut(): Promise<{ error: AuthError | null }> {
     try {
-      const { error } = await this.supabase.auth.signOut();
+      const { error } = await this.getSupabase().auth.signOut();
       if (error) throw error;
       return { error: null };
     } catch (error) {
@@ -137,13 +155,12 @@ export class AuthService {
   // Reset password
   async resetPassword(email: string): Promise<{ error: AuthError | null }> {
     try {
-      const { error } = await this.supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${env.APP_URL}/auth/reset-password`,
+      const { error } = await this.getSupabase().auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/auth/reset-password`,
       });
-      
+
       if (error) throw error;
-      
-      // Supabase will send the email via the configured SMTP (Mailgun)
+
       return { error: null };
     } catch (error) {
       return { error: error as AuthError };
@@ -153,10 +170,10 @@ export class AuthService {
   // Update password
   async updatePassword(password: string): Promise<{ error: AuthError | null }> {
     try {
-      const { error } = await this.supabase.auth.updateUser({
-        password,
-      });
+      const { error } = await this.getSupabase().auth.updateUser({ password });
+
       if (error) throw error;
+
       return { error: null };
     } catch (error) {
       return { error: error as AuthError };
@@ -164,31 +181,7 @@ export class AuthService {
   }
 
   // Update profile
-  async updateProfile(updates: {
-    firstName?: string;
-    lastName?: string;
-    company?: string;
-    phone?: string;
-    avatarUrl?: string;
-  }): Promise<{ error: AuthError | null }> {
-    try {
-      const user = await this.getCurrentUser();
-      if (!user) {
-        throw new Error('No authenticated user');
-      }
-
-      await this.updateUserProfile(user.id, updates);
-      return { error: null };
-    } catch (error) {
-      return { error: error as AuthError };
-    }
-  }
-
-  // Note: Profile creation is now handled automatically by database trigger
-  // No manual profile creation needed
-
-  // Update user profile
-  private async updateUserProfile(
+  async updateProfile(
     userId: string,
     updates: {
       firstName?: string;
@@ -197,108 +190,106 @@ export class AuthService {
       phone?: string;
       avatarUrl?: string;
     }
-  ): Promise<void> {
+  ): Promise<{ error: Error | null }> {
     try {
-      const updateData: Record<string, unknown> = {};
-
-      if (updates.firstName !== undefined)
-        updateData.first_name = updates.firstName;
-      if (updates.lastName !== undefined)
-        updateData.last_name = updates.lastName;
-      if (updates.company !== undefined) updateData.company = updates.company;
-      if (updates.phone !== undefined) updateData.phone = updates.phone;
-      if (updates.avatarUrl !== undefined)
-        updateData.avatar_url = updates.avatarUrl;
-
-      const { error } = await this.supabase
+      const { error } = await this.getSupabase()
         .from('profiles')
-        .update(updateData)
+        .update({
+          first_name: updates.firstName,
+          last_name: updates.lastName,
+          company: updates.company,
+          phone: updates.phone,
+          avatar_url: updates.avatarUrl,
+          updated_at: new Date().toISOString(),
+        })
         .eq('id', userId);
 
       if (error) throw error;
 
-      // Log profile update activity
-      await this.logActivity(userId, 'profile_updated', updateData);
+      return { error: null };
     } catch (error) {
-      throw error;
+      return { error: error as Error };
     }
   }
 
-  // Get user profile
-  async getUserProfile(userId: string): Promise<UserProfile | null> {
+  // Update user email
+  async updateEmail(email: string): Promise<{ error: AuthError | null }> {
     try {
-      const { data, error } = await this.supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', userId)
-        .single();
+      const { error } = await this.getSupabase().auth.updateUser({ email });
 
       if (error) throw error;
-      return data;
+
+      return { error: null };
     } catch (error) {
-      return null;
+      return { error: error as AuthError };
     }
   }
 
-  // Check if user has enough credits
-  async checkCredits(
-    userId: string,
-    requiredCredits: number
-  ): Promise<boolean> {
+  // Verify email with OTP
+  async verifyOtp(
+    email: string,
+    token: string,
+    type: 'signup' | 'recovery' | 'email_change' | 'email'
+  ): Promise<{ user: User | null; error: AuthError | null }> {
     try {
-      const profile = await this.getUserProfile(userId);
-      return profile ? profile.credits_remaining >= requiredCredits : false;
+      const { data, error } = await this.getSupabase().auth.verifyOtp({
+        email,
+        token,
+        type,
+      });
+
+      if (error) throw error;
+
+      return { user: data.user, error: null };
     } catch (error) {
-      return false;
+      return { user: null, error: error as AuthError };
     }
   }
 
-  // Log user activity
+  // Log activity
   async logActivity(
     userId: string,
     activityType: string,
     activityData?: Record<string, unknown>
   ): Promise<void> {
     try {
-      const { error } = await this.supabase.from('user_activity_logs').insert({
+      await this.getSupabase().from('activity_logs').insert({
         user_id: userId,
         activity_type: activityType,
         activity_data: activityData,
       });
+    } catch (error) {
+      console.error('Error logging activity:', error);
+    }
+  }
+
+  // Get activity logs
+  async getActivityLogs(
+    userId: string,
+    limit: number = 10
+  ): Promise<ActivityLog[]> {
+    try {
+      const { data, error } = await this.getSupabase()
+        .from('activity_logs')
+        .select('*')
+        .eq('user_id', userId)
+        .order('created_at', { ascending: false })
+        .limit(limit);
 
       if (error) throw error;
+
+      return data || [];
     } catch (error) {
-      // Don't throw error for activity logging failures
+      console.error('Error getting activity logs:', error);
+      return [];
     }
   }
 
-  // Listen to auth state changes
-  onAuthStateChange(
-    callback: (event: string, session: Session | null) => void
-  ) {
-    return this.supabase.auth.onAuthStateChange(callback);
-  }
-
-  // Get current auth state
-  async getAuthState(): Promise<AuthState> {
-    try {
-      const session = await this.getSession();
-      const user = session?.user || null;
-
-      return {
-        user,
-        session,
-        loading: false,
-        error: null,
-      };
-    } catch (error) {
-      return {
-        user: null,
-        session: null,
-        loading: false,
-        error: error instanceof Error ? error.message : 'Unknown error',
-      };
-    }
+  // Subscribe to auth state changes
+  onAuthStateChange(callback: (user: User | null) => void) {
+    return this.getSupabase().auth.onAuthStateChange((event, session) => {
+      callback(session?.user || null);
+    });
   }
 }
 
