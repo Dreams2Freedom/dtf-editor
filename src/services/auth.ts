@@ -43,6 +43,29 @@ export class AuthService {
     return createClientSupabaseClient();
   }
 
+  // Get auth state (combines session and user)
+  async getAuthState(): Promise<AuthState> {
+    try {
+      const session = await this.getSession();
+      const user = session?.user || null;
+      
+      return {
+        user,
+        session,
+        loading: false,
+        error: null
+      };
+    } catch (error) {
+      console.error('Error getting auth state:', error);
+      return {
+        user: null,
+        session: null,
+        loading: false,
+        error: error instanceof Error ? error.message : 'Unknown error'
+      };
+    }
+  }
+
   // Get current session
   async getSession(): Promise<Session | null> {
     try {
