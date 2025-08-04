@@ -1,13 +1,18 @@
-import { SuspenseWrapper } from '@/components/SuspenseWrapper';
-import ProcessClient from './client';
+'use client';
+
+import { useState, useCallback, useEffect } from 'react';
+import { useDropzone } from 'react-dropzone';
+import { Upload, Wand2, Scissors, Zap, ArrowRight } from 'lucide-react';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { Button } from '@/components/ui/Button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
+import { OptimizedImage } from '@/components/ui/OptimizedImage';
+import Link from 'next/link';
+import { useAuthStore } from '@/stores/authStore';
+import { formatFileSize } from '@/lib/utils';
+import { Breadcrumb } from '@/components/ui/Breadcrumb';
 
 export default function ProcessClient() {
-  return (
-    <SuspenseWrapper>
-      <ProcessClient />
-    </SuspenseWrapper>
-  );
-}
   const router = useRouter();
   const searchParams = useSearchParams();
   const { user, profile, refreshCredits } = useAuthStore();
