@@ -3,6 +3,7 @@ import { storageService } from '@/services/storage';
 import { imageProcessingService } from '@/services/imageProcessing';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { ProcessingMode } from '@/services/deepImage';
+import { saveProcessedImageToGallery } from '@/utils/saveProcessedImage';
 
 export async function POST(request: NextRequest) {
   try {
@@ -60,6 +61,22 @@ export async function POST(request: NextRequest) {
 
     // 5. Return result
     if (result.success) {
+      // Save to gallery
+      if (result.processedUrl) {
+        await saveProcessedImageToGallery({
+          userId: user.id,
+          processedUrl: result.processedUrl,
+          operationType: 'upscale',
+          originalFilename: imageFile?.name || 'upscaled_image',
+          metadata: {
+            scale,
+            processingMode,
+            creditsUsed: result.metadata?.creditsUsed || 1,
+            processingTime: result.metadata?.processingTime
+          }
+        });
+      }
+      
       return NextResponse.json({
         success: true,
         url: result.processedUrl,

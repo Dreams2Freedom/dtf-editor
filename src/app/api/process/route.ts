@@ -2,31 +2,15 @@ import { NextRequest, NextResponse } from 'next/server';
 import { imageProcessingService, ProcessingOptions, ProcessingOperation } from '@/services/imageProcessing';
 import { storageService } from '@/services/storage';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
+import { saveProcessedImageToGallery } from '@/utils/saveProcessedImage';
 
 export async function POST(request: NextRequest) {
   try {
-    // Debug: Check if middleware set the session header
-    const hasSessionHeader = request.headers.get('x-has-session');
-    console.log('Middleware session header:', hasSessionHeader);
-    
     // 1. Get authenticated user
     const supabase = await createServerSupabaseClient();
-    
-    // First try to get the session
-    const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-    console.log('Session check:', { hasSession: !!session, sessionError });
-    
-    // Then get the user
     const { data: { user }, error: authError } = await supabase.auth.getUser();
-    console.log('User check:', { hasUser: !!user, userId: user?.id, authError });
     
     if (authError || !user) {
-      console.error('Auth error details:', { 
-        authError, 
-        sessionError, 
-        hasSession: !!session,
-        sessionUser: session?.user?.email 
-      });
       return NextResponse.json(
         { error: 'Authentication required' },
         { status: 401 }
@@ -84,10 +68,8 @@ export async function POST(request: NextRequest) {
     };
 
     // 8. Validate operation-specific options
-    console.log('Processing options:', processingOptions);
     const validationError = validateProcessingOptions(processingOptions);
     if (validationError) {
-      console.error('Validation error:', validationError);
       // Clean up uploaded file on validation error
       await storageService.deleteImage(uploadResult.path!);
       return NextResponse.json(
@@ -106,11 +88,28 @@ export async function POST(request: NextRequest) {
     // 10. Clean up original upload if processing succeeded
     if (result.success && uploadResult.path) {
       // Don't await cleanup to speed up response
-      storageService.deleteImage(uploadResult.path).catch(console.error);
+      storageService.deleteImage(uploadResult.path).catch(() => {
+        // Silently ignore cleanup errors
+      });
     }
 
     // 11. Return result
     if (result.success) {
+      // Save to gallery
+      if (result.processedUrl) {
+        await saveProcessedImageToGallery({
+          userId: user.id,
+          processedUrl: result.processedUrl,
+          operationType: operation as ProcessingOperation,
+          originalFilename: imageFile.name,
+          fileSize: imageFile.size,
+          metadata: {
+            ...result.metadata,
+            format: processingOptions.vectorFormat || 'png'
+          }
+        });
+      }
+      
       return NextResponse.json({
         success: true,
         processedUrl: result.processedUrl,
@@ -128,8 +127,6 @@ export async function POST(request: NextRequest) {
     }
 
   } catch (error) {
-    console.error('Process API Error:', error);
-    console.error('Error stack:', error instanceof Error ? error.stack : 'No stack trace');
     return NextResponse.json(
       { error: error instanceof Error ? error.message : 'Internal server error' },
       { status: 500 }
