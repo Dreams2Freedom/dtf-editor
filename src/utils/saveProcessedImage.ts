@@ -27,15 +27,31 @@ export async function saveProcessedImageToGallery({
     const serviceClient = createServiceRoleClient();
     
     // Download the processed image
+    console.log('[SaveProcessedImage] Downloading from:', processedUrl);
     const response = await fetch(processedUrl);
+    console.log('[SaveProcessedImage] Response status:', response.status);
+    console.log('[SaveProcessedImage] Response headers:', Object.fromEntries(response.headers.entries()));
+    
     if (!response.ok) {
-      console.error('Failed to download processed image:', response.statusText);
+      console.error('[SaveProcessedImage] Failed to download:', {
+        status: response.status,
+        statusText: response.statusText,
+        url: processedUrl
+      });
       return null;
     }
     
     const imageBuffer = await response.arrayBuffer();
+    console.log('[SaveProcessedImage] Downloaded buffer size:', imageBuffer.byteLength);
+    
+    if (imageBuffer.byteLength === 0) {
+      console.error('[SaveProcessedImage] Downloaded empty buffer!');
+      return null;
+    }
+    
     const contentType = response.headers.get('Content-Type') || 'image/png';
     const actualFileSize = fileSize || imageBuffer.byteLength;
+    console.log('[SaveProcessedImage] Content type:', contentType, 'File size:', actualFileSize);
     
     // Generate filename
     const extension = contentType.split('/')[1] || 'png';
@@ -44,19 +60,35 @@ export async function saveProcessedImageToGallery({
     const storagePath = `${userId}/processed/${processedFilename}`;
     
     // Upload to Supabase Storage (use 'images' bucket which is public)
+    console.log('[SaveProcessedImage] Uploading to storage:', {
+      path: storagePath,
+      size: actualFileSize,
+      contentType
+    });
+    
+    // Convert ArrayBuffer to Buffer for upload
+    const buffer = Buffer.from(imageBuffer);
+    console.log('[SaveProcessedImage] Buffer size for upload:', buffer.length);
+    
     const { data: uploadData, error: uploadError } = await serviceClient
       .storage
       .from('images')
-      .upload(storagePath, imageBuffer, {
+      .upload(storagePath, buffer, {
         contentType,
         cacheControl: '3600',
         upsert: false
       });
     
     if (uploadError) {
-      console.error('Failed to upload to storage:', uploadError);
+      console.error('[SaveProcessedImage] Upload failed:', {
+        error: uploadError,
+        message: uploadError.message,
+        statusCode: uploadError.statusCode
+      });
       return null;
     }
+    
+    console.log('[SaveProcessedImage] Upload successful:', uploadData);
     
     // Get public URL
     const { data: { publicUrl } } = serviceClient

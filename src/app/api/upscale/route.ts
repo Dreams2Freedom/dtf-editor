@@ -3,7 +3,11 @@ import { storageService } from '@/services/storage';
 import { imageProcessingService } from '@/services/imageProcessing';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { ProcessingMode } from '@/services/deepImage';
+// Import save function - ensure it's included in build
 import { saveProcessedImageToGallery } from '@/utils/saveProcessedImage';
+
+// Force the function to be included
+const _ = saveProcessedImageToGallery;
 
 export async function POST(request: NextRequest) {
   console.log('[Upscale] Handler started - v2 with gallery save');
