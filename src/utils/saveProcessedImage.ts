@@ -50,6 +50,12 @@ export async function saveProcessedImageToGallery({
       contentType = matches[1];
       const base64Data = matches[2];
       
+      console.log('[SaveProcessedImage] Data URL details:', {
+        contentType,
+        base64Length: base64Data.length,
+        isSvg: contentType === 'image/svg+xml'
+      });
+      
       // Convert base64 to buffer
       const buffer = Buffer.from(base64Data, 'base64');
       imageBuffer = buffer.buffer.slice(buffer.byteOffset, buffer.byteOffset + buffer.byteLength);
@@ -106,21 +112,29 @@ export async function saveProcessedImageToGallery({
     console.log('[SaveProcessedImage] Uploading to storage:', {
       path: storagePath,
       size: actualFileSize,
-      contentType
+      contentType,
+      extension
     });
     
     // Convert ArrayBuffer to Buffer for upload
     const buffer = Buffer.from(imageBuffer);
     console.log('[SaveProcessedImage] Buffer size for upload:', buffer.length);
     
+    // For SVG files, ensure we're uploading with the correct content type
+    const uploadOptions = {
+      contentType,
+      cacheControl: '3600',
+      upsert: false
+    };
+    
+    if (contentType === 'image/svg+xml') {
+      console.log('[SaveProcessedImage] Uploading SVG file with special handling');
+    }
+    
     const { data: uploadData, error: uploadError } = await serviceClient
       .storage
       .from('images')
-      .upload(storagePath, buffer, {
-        contentType,
-        cacheControl: '3600',
-        upsert: false
-      });
+      .upload(storagePath, buffer, uploadOptions);
     
     if (uploadError) {
       console.error('[SaveProcessedImage] Upload failed:', {
@@ -170,7 +184,13 @@ export async function saveProcessedImageToGallery({
     return savedImageId;
     
   } catch (error) {
-    console.error('Error saving to gallery:', error);
+    console.error('[SaveProcessedImage] Error saving to gallery:', {
+      error,
+      message: error instanceof Error ? error.message : 'Unknown error',
+      stack: error instanceof Error ? error.stack : undefined,
+      operationType,
+      userId
+    });
     return null;
   }
 }
