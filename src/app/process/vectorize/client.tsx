@@ -107,6 +107,13 @@ export default function VectorizeClient() {
 
       const result = await response.json();
       console.log('Vectorize API response:', result);
+      if (result.metadata) {
+        console.log('Save details:', {
+          saveAttempted: result.metadata.saveAttempted,
+          savedId: result.metadata.savedId,
+          saveError: result.metadata.saveError
+        });
+      }
 
       if (!response.ok) {
         // If it's an insufficient credits error, refresh the profile
