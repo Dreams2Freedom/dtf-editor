@@ -55,12 +55,10 @@ export function StorageManager({ onStorageUpdate }: StorageManagerProps) {
       setLoading(true);
       const supabase = createClientSupabaseClient();
       
-      const { data, error } = await supabase
-        .from('processed_images')
-        .select('*')
-        .eq('user_id', user.id)
-        .eq('processing_status', 'completed')
-        .order('created_at', { ascending: false });
+      // Use RPC function to fetch images
+      const { data, error } = await supabase.rpc('get_user_images', {
+        p_user_id: user.id
+      });
 
       if (error) throw error;
       setImages(data || []);
@@ -141,12 +139,13 @@ export function StorageManager({ onStorageUpdate }: StorageManagerProps) {
       }
 
       // Delete from database
-      const { error } = await supabase
-        .from('processed_images')
-        .delete()
-        .in('id', imagesToDelete);
-
-      if (error) throw error;
+      // Use RPC function to delete images
+      for (const imageId of imagesToDelete) {
+        await supabase.rpc('delete_processed_image', {
+          p_image_id: imageId,
+          p_user_id: user.id
+        });
+      }
 
       // Update local state
       setImages(prev => prev.filter(img => !imagesToDelete.includes(img.id)));

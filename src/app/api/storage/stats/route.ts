@@ -49,14 +49,14 @@ export async function GET(request: NextRequest) {
     const userPlan = profile?.subscription_plan || 'free';
     const storageLimit = STORAGE_LIMITS[userPlan as keyof typeof STORAGE_LIMITS] || STORAGE_LIMITS.free;
 
-    // Get all user's images
+    // Get all user's images using RPC
     const { data: images, error: imagesError } = await supabase
-      .from('processed_images')
-      .select('*')
-      .eq('user_id', user.id)
-      .eq('processing_status', 'completed');
+      .rpc('get_user_images', {
+        p_user_id: user.id
+      });
 
     if (imagesError) {
+      console.error('Error fetching images:', imagesError);
       throw imagesError;
     }
 

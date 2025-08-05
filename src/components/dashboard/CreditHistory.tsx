@@ -43,12 +43,12 @@ export function CreditHistory() {
 
   const fetchTransactions = async () => {
     try {
+      // Use RPC function to fetch transactions
       const { data, error } = await supabase
-        .from('credit_transactions')
-        .select('*')
-        .eq('user_id', user?.id)
-        .order('created_at', { ascending: false })
-        .limit(50);
+        .rpc('get_user_credit_transactions', {
+          p_user_id: user?.id,
+          p_limit: 50
+        });
 
       if (error) throw error;
       setTransactions(data || []);

@@ -17,16 +17,10 @@ export async function GET(request: NextRequest) {
     const fourteenDaysFromNow = new Date();
     fourteenDaysFromNow.setDate(fourteenDaysFromNow.getDate() + 14);
 
-    const { data: expiringCredits, error } = await supabase
-      .from('credit_transactions')
-      .select('amount, expires_at')
-      .eq('user_id', user.id)
-      .eq('operation', 'purchase')
-      .not('expires_at', 'is', null)
-      .lte('expires_at', fourteenDaysFromNow.toISOString())
-      .gte('expires_at', new Date().toISOString())
-      .gt('amount', 0)
-      .order('expires_at', { ascending: true });
+    // TODO: Create RPC for expiring credits
+    // For now, return empty array
+    const expiringCredits: any[] = [];
+    const error = null;
 
     if (error) {
       console.error('Error fetching expiring credits:', error);

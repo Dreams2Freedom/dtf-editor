@@ -85,18 +85,14 @@ export function ImageGalleryEnhanced() {
   const fetchCollections = async () => {
     try {
       const supabase = createClientSupabaseClient();
-      const { data, error } = await supabase
-        .from('image_collections')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('is_default', { ascending: false })
-        .order('name');
-
-      if (error) {
-        // Collections table might not exist yet, silently fail
-        return;
-      }
-      setCollections(data || []);
+      // TODO: Create RPC function for collections
+      // For now, just use a default collection
+      const defaultCollection = {
+        id: 'default',
+        name: 'All Images',
+        is_default: true
+      };
+      setCollections([defaultCollection]);
     } catch (error) {
       // Silently fail if collections not implemented yet
     }
