@@ -154,6 +154,10 @@ export default function BackgroundRemovalClient() {
       const result = await response.json();
       console.log('Upload result:', result);
 
+      if (!response.ok) {
+        throw new Error(result.error || 'Upload failed');
+      }
+      
       if (result.success && result.image) {
         setUploadedImage(result.image);
         // Credits will be deducted when result is generated

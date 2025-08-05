@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { env } from '@/config/env';
 import { ImageProcessingService } from '@/services/imageProcessing';
+import sharp from 'sharp';
 
 export async function POST(request: NextRequest) {
   try {
@@ -55,9 +56,38 @@ export async function POST(request: NextRequest) {
       env.CLIPPINGMAGIC_API_KEY + ':' + env.CLIPPINGMAGIC_API_SECRET
     ).toString('base64');
 
+    // Convert WebP to PNG if necessary (ClippingMagic doesn't support WebP input)
+    let fileToUpload = file;
+    if (file.type === 'image/webp') {
+      console.log('Converting WebP to PNG for ClippingMagic...');
+      
+      try {
+        // Read the file as array buffer
+        const buffer = await file.arrayBuffer();
+        
+        // Convert WebP to PNG using Sharp
+        const pngBuffer = await sharp(Buffer.from(buffer))
+          .png()
+          .toBuffer();
+        
+        // Create a new File object with PNG type
+        fileToUpload = new File([pngBuffer], file.name.replace('.webp', '.png'), {
+          type: 'image/png'
+        });
+        
+        console.log('WebP successfully converted to PNG');
+      } catch (conversionError) {
+        console.error('Failed to convert WebP to PNG:', conversionError);
+        return NextResponse.json(
+          { error: 'Failed to convert WebP image. Please try uploading a PNG or JPEG instead.' },
+          { status: 400 }
+        );
+      }
+    }
+    
     // Prepare form data for ClippingMagic
     const cmFormData = new FormData();
-    cmFormData.append('image', file);
+    cmFormData.append('image', fileToUpload);
     cmFormData.append('format', 'json');
     
     // Add test parameter in development
