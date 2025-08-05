@@ -377,12 +377,14 @@ export const useAuthStore = create<AuthStore>()(
         const profile = await authService.getUserProfile(user.id);
         if (profile) {
           set({
+            profile, // Update the entire profile object
             creditsRemaining: profile.credits_remaining,
             subscriptionStatus: profile.subscription_status,
             subscriptionPlan: profile.subscription_plan,
           });
         }
       } catch (error) {
+        console.error('Error refreshing credits:', error);
       }
     },
 

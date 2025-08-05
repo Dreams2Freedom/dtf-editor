@@ -5,6 +5,88 @@
 
 ---
 
+## 📅 August 2025 - Production Bug Fixes
+
+### **Date: 2025-08-05 - Critical Production Issues Fixed**
+
+#### **Task: Fix Authentication, Image Gallery, and Vectorization Save Issues**
+
+**Duration:** 2.5 hours
+
+**What Was Fixed:**
+
+1. **Authentication Issues**
+   - Fixed "Invalid login credentials" error
+   - Added missing redirect URLs to Supabase configuration
+   - Implemented missing `getAuthState()` method in AuthService
+   - Reset user passwords to enable access
+
+2. **Dashboard 403 Errors**
+   - Discovered duplicate RLS policies for both {public} and {authenticated} roles
+   - Created SQL script to clean up duplicate policies
+   - Updated components to use RPC functions instead of direct table access
+   - Fixed database trigger calling non-existent `calculate_image_expiration` function
+
+3. **Image Gallery Display Issues**
+   - **Problem**: Images saved with 0 bytes and broken links
+   - **Root Cause**: Deep-Image API returns temporary URLs that expire quickly
+   - **Solution**: 
+     - Modified Deep-Image service to download images immediately after processing
+     - Convert to base64 data URLs to preserve image data
+     - Handle data URLs in saveProcessedImage function
+     - Implement signed URL generation (1-hour expiry) for private storage
+
+4. **Vectorization Save Failure**
+   - **Problem**: Vectorized images never saved (0 records in database)
+   - **Root Cause**: Database constraint only allowed 'upscale' and 'background-removal'
+   - **Solution**: Updated constraint to include 'vectorization' as valid operation_type
+   - **SQL Applied**: 
+     ```sql
+     ALTER TABLE processed_images 
+     ADD CONSTRAINT processed_images_operation_type_check 
+     CHECK (operation_type IN ('upscale', 'background-removal', 'vectorization'));
+     ```
+
+**Technical Implementation Details:**
+
+1. **Deep-Image URL Handling**:
+   - URLs format: `https://deep-image.ai/api/downloadTemporary/{id}/{filename}`
+   - Implemented immediate download in `deepImage.ts` service
+   - Convert ArrayBuffer to base64 data URL for preservation
+   - Return data URL instead of temporary URL
+
+2. **Storage Architecture Decision**:
+   - Kept storage bucket private for security (per previous decision in line 506)
+   - Generate signed URLs on demand instead of storing them
+   - Store only the storage path in database
+   - Generate fresh signed URLs in ImageGalleryEnhanced component
+
+3. **SVG File Handling**:
+   - Fixed content type handling (image/svg+xml → svg extension)
+   - Added proper MIME type support
+   - Verified storage bucket accepts all MIME types (allowed_mime_types: null)
+
+**Lessons Learned:**
+- External API temporary URLs must be downloaded immediately
+- Database constraints must match all possible enum values
+- Storing signed URLs is problematic - store paths and generate on demand
+- Always check existing RLS policies before adding new ones
+
+**Files Modified:**
+- `/src/services/auth.ts` - Added getAuthState() method
+- `/src/services/deepImage.ts` - Added immediate download logic
+- `/src/utils/saveProcessedImage.ts` - Handle data URLs and generate signed URLs
+- `/src/components/image/ImageGalleryEnhanced.tsx` - Generate signed URLs on demand
+- `/scripts/fix-operation-type-constraint.sql` - Fix database constraint
+
+**Verification:**
+- All three image processing types now save correctly
+- Images display properly with correct file sizes
+- Vectorization records successfully saved to database
+- No more 403 or 404 errors in gallery
+
+---
+
 ## 📅 July 2025 - Email System Implementation
 
 ### **Date: 2025-07-31 - Phase 8 Email System Implementation**

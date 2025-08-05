@@ -1,9 +1,40 @@
 # DTF Editor - Bug Tracker
 
-**Last Updated:** July 2025  
+**Last Updated:** August 5, 2025  
 **Status:** Active Bug Tracking
 
 ## 🐛 **Critical Bugs (P0)**
+
+### **BUG-039: Image Gallery and Vectorization Save Issues**
+- **Status:** 🟢 FIXED
+- **Severity:** Critical
+- **Component:** Image Gallery / Storage / Database
+- **Description:** Multiple cascading issues preventing images from displaying and vectorization from saving
+- **Symptoms:**
+  - "Invalid login credentials" error preventing access
+  - Dashboard showed "Failed to load images" with 403 errors
+  - Images saved with 0 bytes and broken links
+  - Vectorized images never saved to gallery (0 records in DB)
+  - Deep-Image temporary URLs expiring before save
+- **Root Causes Found:**
+  1. **Authentication**: Missing redirect URLs in Supabase, missing getAuthState() method
+  2. **403 Errors**: Duplicate RLS policies for both {public} and {authenticated} roles
+  3. **Image Storage**: Deep-Image URLs expire quickly, needed immediate download
+  4. **Signed URLs**: Storing signed URLs that expire instead of storage paths
+  5. **Vectorization**: Database constraint only allowed 'upscale' and 'background-removal', not 'vectorization'
+- **Solution Applied:**
+  1. Fixed authentication by adding redirect URLs and implementing getAuthState()
+  2. Cleaned duplicate RLS policies, kept only {authenticated} role policies
+  3. Modified Deep-Image service to download images immediately and convert to data URLs
+  4. Changed storage approach to save paths and generate signed URLs on demand
+  5. Updated database constraint to include 'vectorization' as valid operation_type
+- **Technical Details:**
+  - Deep-Image returns temporary URLs at `/api/downloadTemporary/` that expire quickly
+  - Implemented immediate download and base64 conversion in deepImage.ts
+  - Storage bucket remains private with signed URL generation (1-hour expiry)
+  - Fixed SVG handling for proper content type (image/svg+xml → svg)
+- **Date Reported:** August 5, 2025
+- **Date Fixed:** August 5, 2025
 
 ### **BUG-038: Bulk Credit Adjustment Not Working**
 - **Status:** 🟢 FIXED
@@ -701,11 +732,11 @@
 
 | Priority | Total | Open | In Progress | Fixed | Fix Rate |
 |----------|-------|------|-------------|-------|----------|
-| P0 Critical | 38 | 0 | 1 | 37 | 97% |
+| P0 Critical | 39 | 0 | 1 | 38 | 97% |
 | P1 High | 3 | 1 | 0 | 2 | 67% |
 | P2 Medium | 3 | 1 | 0 | 2 | 67% |
 | P3 Low | 2 | 2 | 0 | 0 | 0% |
-| **Total** | **46** | **4** | **1** | **41** | **89%** |
+| **Total** | **47** | **4** | **1** | **42** | **89%** |
 
 ---
 
