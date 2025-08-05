@@ -25,6 +25,11 @@ export async function saveProcessedImageToGallery({
     urlLength: processedUrl?.length
   });
   
+  if (!processedUrl) {
+    console.error('[SaveProcessedImage] No URL provided');
+    return null;
+  }
+  
   try {
     const serviceClient = createServiceRoleClient();
     
