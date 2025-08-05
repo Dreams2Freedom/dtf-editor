@@ -6,6 +6,7 @@ import { ProcessingMode } from '@/services/deepImage';
 import { saveProcessedImageToGallery } from '@/utils/saveProcessedImage';
 
 export async function POST(request: NextRequest) {
+  console.log('[Upscale] Handler started - v2 with gallery save');
   try {
     // 1. Get current user using server-side Supabase client
     const supabase = await createServerSupabaseClient();
