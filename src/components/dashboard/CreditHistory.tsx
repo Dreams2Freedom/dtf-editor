@@ -15,13 +15,12 @@ import { ClientOnly } from '@/components/auth/ClientOnly';
 
 interface CreditTransaction {
   id: string;
-  type: 'purchase' | 'subscription' | 'usage' | 'refund' | 'bonus';  // Changed from transaction_type to type
+  type: 'purchase' | 'subscription' | 'usage' | 'refund' | 'bonus';
   amount: number;
-  balance_before: number;
-  balance_after: number;
   description: string;
   metadata: any;
   created_at: string;
+  // Note: balance_before and balance_after don't exist in the table
 }
 
 export function CreditHistory() {
@@ -142,7 +141,7 @@ export function CreditHistory() {
               {formatAmount(transaction.amount, transaction.type)} credits
             </p>
             <p className="text-sm text-gray-500">
-              Balance: {transaction.balance_after}
+              {/* Balance tracking not available */}
             </p>
           </div>
         </div>
