@@ -12,6 +12,7 @@ export interface UpscaleOptions {
 export interface UpscaleResponse {
   status: 'success' | 'error';
   url?: string;
+  originalUrl?: string;
   processingTime?: number;
   error?: string;
 }
@@ -152,11 +153,45 @@ export class DeepImageService {
 
       // Handle immediate result
       if (result.status === 'complete' && result.result_url) {
-        return { 
-          status: 'success', 
-          url: result.result_url, 
-          processingTime: result.processing_time 
-        };
+        console.log('[DeepImage] Processing complete, URL:', result.result_url);
+        
+        // Download the image immediately since Deep-Image URLs expire quickly
+        try {
+          console.log('[DeepImage] Downloading processed image immediately...');
+          const downloadResponse = await fetch(result.result_url);
+          
+          if (!downloadResponse.ok) {
+            console.error('[DeepImage] Failed to download processed image:', downloadResponse.status);
+            return { 
+              status: 'success', 
+              url: result.result_url, 
+              processingTime: result.processing_time 
+            };
+          }
+          
+          // Convert to base64 data URL to preserve the image
+          const buffer = await downloadResponse.arrayBuffer();
+          const base64 = Buffer.from(buffer).toString('base64');
+          const contentType = downloadResponse.headers.get('content-type') || 'image/png';
+          const dataUrl = `data:${contentType};base64,${base64}`;
+          
+          console.log('[DeepImage] Successfully converted to data URL, size:', base64.length);
+          
+          return { 
+            status: 'success', 
+            url: dataUrl,  // Return data URL instead of temporary URL
+            originalUrl: result.result_url,  // Keep original for reference
+            processingTime: result.processing_time 
+          };
+        } catch (downloadError) {
+          console.error('[DeepImage] Error downloading image:', downloadError);
+          // Fallback to returning the original URL
+          return { 
+            status: 'success', 
+            url: result.result_url, 
+            processingTime: result.processing_time 
+          };
+        }
       } 
       
       // Handle job that needs polling
@@ -212,11 +247,45 @@ export class DeepImageService {
         const result = await response.json();
         // Job completed successfully
         if (result.status === 'complete' && result.result_url) {
-          return { 
-            status: 'success', 
-            url: result.result_url, 
-            processingTime: result.processing_time 
-          };
+          console.log('[DeepImage] Polling complete, URL:', result.result_url);
+          
+          // Download the image immediately since Deep-Image URLs expire quickly
+          try {
+            console.log('[DeepImage] Downloading polled image immediately...');
+            const downloadResponse = await fetch(result.result_url);
+            
+            if (!downloadResponse.ok) {
+              console.error('[DeepImage] Failed to download polled image:', downloadResponse.status);
+              return { 
+                status: 'success', 
+                url: result.result_url, 
+                processingTime: result.processing_time 
+              };
+            }
+            
+            // Convert to base64 data URL to preserve the image
+            const buffer = await downloadResponse.arrayBuffer();
+            const base64 = Buffer.from(buffer).toString('base64');
+            const contentType = downloadResponse.headers.get('content-type') || 'image/png';
+            const dataUrl = `data:${contentType};base64,${base64}`;
+            
+            console.log('[DeepImage] Successfully converted polled image to data URL, size:', base64.length);
+            
+            return { 
+              status: 'success', 
+              url: dataUrl,  // Return data URL instead of temporary URL
+              originalUrl: result.result_url,  // Keep original for reference
+              processingTime: result.processing_time 
+            };
+          } catch (downloadError) {
+            console.error('[DeepImage] Error downloading polled image:', downloadError);
+            // Fallback to returning the original URL
+            return { 
+              status: 'success', 
+              url: result.result_url, 
+              processingTime: result.processing_time 
+            };
+          }
         } 
         
         // Job still processing
