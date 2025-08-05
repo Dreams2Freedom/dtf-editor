@@ -536,6 +536,13 @@ export class ImageProcessingService {
         console.error('Error calculating expiration:', expirationError);
       }
       
+      // DISABLED: Image saving is now handled by the API endpoints
+      // The API endpoints (upscale/route.ts, process/route.ts) download the image
+      // and re-upload to Supabase storage before saving to prevent duplicate entries
+      
+      console.log('Image processing completed. Gallery saving will be handled by API endpoint.');
+      
+      /*
       // Map operation types
       const operationType = result.operation === 'background-removal' ? 'background-removal' : 
                            result.operation === 'vectorization' ? 'vectorize' :
@@ -575,6 +582,7 @@ export class ImageProcessingService {
       }
       
       console.log('Successfully saved image to gallery. Image ID:', imageId);
+      */
     } catch (error) {
       // Log error but don't throw - we don't want to fail the entire operation
       console.error('Failed to save to image gallery:', error);
