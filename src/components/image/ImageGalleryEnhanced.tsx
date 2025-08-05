@@ -119,15 +119,41 @@ export function ImageGalleryEnhanced() {
       // Generate signed URLs for each image
       const supabaseClient = createClientSupabaseClient();
       for (const image of images) {
-        if (image.storage_url && !image.storage_url.startsWith('http')) {
-          // It's a storage path, generate a signed URL
-          const { data: signedUrlData } = await supabaseClient.storage
-            .from('images')
-            .createSignedUrl(image.storage_url, 3600); // 1 hour expiry
-          
-          if (signedUrlData?.signedUrl) {
-            image.storage_url = signedUrlData.signedUrl;
-            image.thumbnail_url = signedUrlData.signedUrl;
+        // Check if we need to generate a signed URL
+        if (image.storage_url) {
+          // If it's already a full URL (including signed URLs), extract the path
+          if (image.storage_url.startsWith('http')) {
+            try {
+              const url = new URL(image.storage_url);
+              // Extract path from URL if it's a Supabase storage URL
+              if (url.pathname.includes('/storage/v1/object/public/images/')) {
+                const path = url.pathname.replace('/storage/v1/object/public/images/', '');
+                const cleanPath = path.split('?')[0]; // Remove query params
+                
+                // Generate a fresh signed URL
+                const { data: signedUrlData } = await supabaseClient.storage
+                  .from('images')
+                  .createSignedUrl(cleanPath, 3600); // 1 hour expiry
+                
+                if (signedUrlData?.signedUrl) {
+                  image.storage_url = signedUrlData.signedUrl;
+                  image.thumbnail_url = signedUrlData.signedUrl;
+                }
+              }
+              // If it's some other URL, leave it as is
+            } catch (e) {
+              console.error('Error parsing URL:', e);
+            }
+          } else {
+            // It's just a storage path, generate a signed URL
+            const { data: signedUrlData } = await supabaseClient.storage
+              .from('images')
+              .createSignedUrl(image.storage_url, 3600); // 1 hour expiry
+            
+            if (signedUrlData?.signedUrl) {
+              image.storage_url = signedUrlData.signedUrl;
+              image.thumbnail_url = signedUrlData.signedUrl;
+            }
           }
         }
       }
