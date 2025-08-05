@@ -61,6 +61,12 @@ export async function POST(request: NextRequest) {
     );
 
     // 5. Return result
+    console.log('[Upscale] Processing result:', {
+      success: result.success,
+      hasUrl: !!result.processedUrl,
+      url: result.processedUrl?.substring(0, 50) + '...'
+    });
+    
     if (result.success) {
       // Save to gallery
       if (result.processedUrl) {

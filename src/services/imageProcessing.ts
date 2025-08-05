@@ -536,53 +536,11 @@ export class ImageProcessingService {
         console.error('Error calculating expiration:', expirationError);
       }
       
-      // DISABLED: Image saving is now handled by the API endpoints
-      // The API endpoints (upscale/route.ts, process/route.ts) download the image
-      // and re-upload to Supabase storage before saving to prevent duplicate entries
+      // Image saving is disabled here to prevent duplicates
+      // The API endpoints (upscale/route.ts, process/route.ts) handle the saving
+      // by downloading the image and re-uploading to Supabase storage
       
-      console.log('Image processing completed. Gallery saving will be handled by API endpoint.');
-      
-      /*
-      // Map operation types
-      const operationType = result.operation === 'background-removal' ? 'background-removal' : 
-                           result.operation === 'vectorization' ? 'vectorize' :
-                           result.operation === 'ai-generation' ? 'generate' :
-                           result.operation;
-      
-      console.log('Calling insert_processed_image with:', {
-        p_user_id: userId,
-        p_operation_type: operationType,
-        p_original_filename: originalFilename,
-        p_processed_filename: processedFilename
-      });
-      
-      // Save to processed_images table using RPC function
-      const { data: imageId, error: insertError } = await this.supabase.rpc('insert_processed_image', {
-        p_user_id: userId,
-        p_original_filename: originalFilename,
-        p_processed_filename: processedFilename,
-        p_operation_type: operationType,
-        p_file_size: 0, // TODO: Get actual file size
-        p_processing_status: 'completed',
-        p_storage_url: result.processedUrl,
-        p_thumbnail_url: result.processedUrl, // For now, use same URL
-        p_metadata: {
-          credits_used: result.creditsUsed,
-          processing_time_ms: result.processingTime,
-          api_used: this.getApiProviderForOperation(result.operation),
-          original_url: result.originalUrl,
-          width: dimensions.width,
-          height: dimensions.height
-        }
-      });
-      
-      if (insertError) {
-        console.error('Insert error details:', insertError);
-        throw insertError;
-      }
-      
-      console.log('Successfully saved image to gallery. Image ID:', imageId);
-      */
+      console.log('Image processing completed. Gallery saving handled by API endpoint.');
     } catch (error) {
       // Log error but don't throw - we don't want to fail the entire operation
       console.error('Failed to save to image gallery:', error);
