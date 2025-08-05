@@ -114,13 +114,18 @@ export async function saveProcessedImageToGallery({
     
     console.log('[SaveProcessedImage] Upload successful:', uploadData);
     
-    // Get public URL
-    const { data: { publicUrl } } = serviceClient
+    // Generate a signed URL that expires in 1 year (31536000 seconds)
+    const { data: signedUrlData, error: signedUrlError } = await serviceClient
       .storage
       .from('images')
-      .getPublicUrl(storagePath);
+      .createSignedUrl(storagePath, 31536000); // 1 year expiry
     
-    console.log('[SaveProcessedImage] Generated public URL:', publicUrl);
+    if (signedUrlError || !signedUrlData?.signedUrl) {
+      console.error('[SaveProcessedImage] Failed to create signed URL:', signedUrlError);
+      return null;
+    }
+    
+    console.log('[SaveProcessedImage] Generated signed URL');
     console.log('[SaveProcessedImage] Storage path:', storagePath);
     
     // Save to processed_images table using RPC function
@@ -131,8 +136,8 @@ export async function saveProcessedImageToGallery({
       p_operation_type: operationType,
       p_file_size: actualFileSize,
       p_processing_status: 'completed',
-      p_storage_url: publicUrl,
-      p_thumbnail_url: publicUrl,
+      p_storage_url: signedUrlData.signedUrl,
+      p_thumbnail_url: signedUrlData.signedUrl,
       p_metadata: {
         ...metadata,
         original_url: processedUrl,
