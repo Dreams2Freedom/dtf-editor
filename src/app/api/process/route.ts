@@ -97,17 +97,30 @@ export async function POST(request: NextRequest) {
     if (result.success) {
       // Save to gallery
       if (result.processedUrl) {
-        await saveProcessedImageToGallery({
-          userId: user.id,
-          processedUrl: result.processedUrl,
-          operationType: operation as ProcessingOperation,
-          originalFilename: imageFile.name,
-          fileSize: imageFile.size,
-          metadata: {
-            ...result.metadata,
-            format: processingOptions.vectorFormat || 'png'
-          }
-        });
+        try {
+          console.log('[Process API] Attempting to save to gallery:', {
+            operation,
+            format: processingOptions.vectorFormat || 'png',
+            urlType: result.processedUrl.startsWith('data:') ? 'data' : 'url'
+          });
+          
+          const savedId = await saveProcessedImageToGallery({
+            userId: user.id,
+            processedUrl: result.processedUrl,
+            operationType: operation as ProcessingOperation,
+            originalFilename: imageFile.name,
+            fileSize: imageFile.size,
+            metadata: {
+              ...result.metadata,
+              format: processingOptions.vectorFormat || 'png'
+            }
+          });
+          
+          console.log('[Process API] Save result:', savedId ? 'Success' : 'Failed');
+        } catch (saveError) {
+          console.error('[Process API] Error saving to gallery:', saveError);
+          // Don't fail the entire request if saving fails
+        }
       }
       
       return NextResponse.json({
