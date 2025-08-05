@@ -20,7 +20,9 @@ export async function saveProcessedImageToGallery({
   console.log('[SaveProcessedImage] Starting save:', {
     userId,
     processedUrl: processedUrl?.substring(0, 50) + '...',
-    operationType
+    operationType,
+    isDataUrl: processedUrl?.startsWith('data:'),
+    urlLength: processedUrl?.length
   });
   
   try {
@@ -48,6 +50,12 @@ export async function saveProcessedImageToGallery({
       imageBuffer = buffer.buffer.slice(buffer.byteOffset, buffer.byteOffset + buffer.byteLength);
       
       console.log('[SaveProcessedImage] Converted data URL to buffer, size:', imageBuffer.byteLength);
+      
+      // Check for extremely large files
+      if (imageBuffer.byteLength > 50 * 1024 * 1024) { // 50MB limit
+        console.error('[SaveProcessedImage] File too large:', imageBuffer.byteLength);
+        return null;
+      }
     } else {
       // Download from URL
       console.log('[SaveProcessedImage] Downloading from:', processedUrl);
@@ -78,7 +86,13 @@ export async function saveProcessedImageToGallery({
     console.log('[SaveProcessedImage] Content type:', contentType, 'File size:', actualFileSize);
     
     // Generate filename
-    const extension = contentType.split('/')[1] || 'png';
+    let extension = contentType.split('/')[1] || 'png';
+    // Handle special cases
+    if (extension === 'svg+xml') {
+      extension = 'svg';
+    } else if (extension === 'jpeg') {
+      extension = 'jpg';
+    }
     const timestamp = Date.now();
     const processedFilename = `${operationType}_${timestamp}.${extension}`;
     const storagePath = `${userId}/processed/${processedFilename}`;
