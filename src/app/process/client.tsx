@@ -31,9 +31,9 @@ export default function ProcessClient() {
       return 'Please upload a JPEG, PNG, or WebP image file.';
     }
 
-    const maxSize = 10 * 1024 * 1024; // 10MB
+    const maxSize = 50 * 1024 * 1024; // 50MB (Vercel Pro)
     if (file.size > maxSize) {
-      return 'File size must be less than 10MB.';
+      return 'File size must be less than 50MB.';
     }
 
     return null;

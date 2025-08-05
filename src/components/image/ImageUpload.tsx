@@ -32,7 +32,7 @@ export interface ImageUploadProps {
 }
 
 const DEFAULT_MAX_FILES = 10;
-const DEFAULT_MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+const DEFAULT_MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MB (Vercel Pro)
 const DEFAULT_ACCEPTED_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/svg+xml'];
 
 export function ImageUpload({

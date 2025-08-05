@@ -152,10 +152,10 @@ export function ImageProcessor() {
       return 'Please upload a JPEG, PNG, or WebP image file.';
     }
 
-    // Check file size (10MB limit)
-    const maxSize = 10 * 1024 * 1024; // 10MB in bytes
+    // Check file size (50MB limit - Vercel Pro)
+    const maxSize = 50 * 1024 * 1024; // 50MB in bytes
     if (file.size > maxSize) {
-      return 'File size must be less than 10MB.';
+      return 'File size must be less than 50MB.';
     }
 
     return null;

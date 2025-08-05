@@ -2,6 +2,10 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { StorageService } from '@/services/storage';
 
+// Configure size limit for this route (50MB)
+export const maxDuration = 60; // 60 seconds timeout
+export const dynamic = 'force-dynamic';
+
 // This version works WITHOUT the uploads database table
 export async function POST(request: NextRequest) {
   try {
