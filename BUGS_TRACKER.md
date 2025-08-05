@@ -732,11 +732,11 @@
 
 | Priority | Total | Open | In Progress | Fixed | Fix Rate |
 |----------|-------|------|-------------|-------|----------|
-| P0 Critical | 39 | 0 | 1 | 38 | 97% |
+| P0 Critical | 41 | 0 | 1 | 40 | 98% |
 | P1 High | 3 | 1 | 0 | 2 | 67% |
 | P2 Medium | 3 | 1 | 0 | 2 | 67% |
 | P3 Low | 2 | 2 | 0 | 0 | 0% |
-| **Total** | **47** | **4** | **1** | **42** | **89%** |
+| **Total** | **49** | **4** | **1** | **44** | **90%** |
 
 ---
 
@@ -759,6 +759,62 @@
 - **Date Reported:** January 29, 2025
 - **Date Fixed:** January 29, 2025
 - **Verification:** Ready to test payment flows
+
+### **BUG-040: File Size Limit Preventing Large Uploads After Vercel Pro Upgrade**
+- **Status:** 🟢 FIXED
+- **Severity:** Critical
+- **Component:** File Upload / File Size Validation
+- **Description:** After upgrading to Vercel Pro (50MB limit), users still getting "413 Payload Too Large" errors for files over 10MB
+- **Symptoms:**
+  - User upgraded to Vercel Pro specifically to handle larger files
+  - Still getting 413 errors when uploading files over 10MB
+  - Error persisted even after redeployment
+- **Root Cause:** 
+  - Hard-coded 10MB (10 * 1024 * 1024) limits throughout the codebase
+  - Multiple components had their own file size validation
+  - Limits were not using a centralized configuration
+- **Files with Hard-coded Limits Found:**
+  - `/src/services/storage.ts` - Line 21: `const maxFileSize = 10 * 1024 * 1024;`
+  - `/src/app/api/process/route.ts` - Line 33: `const MAX_FILE_SIZE = 10 * 1024 * 1024;`
+  - `/src/app/process/client.tsx` - Line 34: `const maxSize = 10 * 1024 * 1024;`
+  - `/src/components/image/ImageProcessor.tsx` - Line 156: `const maxSize = 10 * 1024 * 1024;`
+  - `/src/components/image/ImageUpload.tsx` - Line 35: `const DEFAULT_MAX_FILE_SIZE = 10 * 1024 * 1024;`
+- **Solution Applied:**
+  - Updated all hard-coded 10MB limits to 50MB (50 * 1024 * 1024)
+  - Changed DEFAULT_MAX_FILE_SIZE constant in ImageUpload.tsx to 50MB
+  - All file size validation now supports Vercel Pro's 50MB limit
+- **Technical Details:**
+  - Vercel Hobby plan: 4.5MB body size limit
+  - Vercel Pro plan: 50MB body size limit
+  - No configuration needed in vercel.json for Pro limits
+- **Date Reported:** August 5, 2025
+- **Date Fixed:** August 5, 2025
+
+### **BUG-041: ClippingMagic Upload 413 Error for Files Over 4MB**
+- **Status:** 🟢 FIXED
+- **Severity:** Critical
+- **Component:** Background Removal / API Routes
+- **Description:** Background removal failing with 413 "Payload Too Large" for 4.46MB file despite 50MB limit fix
+- **Symptoms:**
+  - 413 errors in console for files over 4MB
+  - "Unexpected token 'R', 'Request En'... is not valid JSON" error
+  - Works fine for smaller files under 4MB
+- **Root Cause:** 
+  - Next.js App Router has default 4MB body parser limit
+  - Previous fix only updated application-level validation (50MB)
+  - Platform-level limit not configured in vercel.json
+- **Solution Applied:**
+  - Added `maxBodySize: "50mb"` to all file upload routes in vercel.json:
+    - `/api/upload/route.ts`
+    - `/api/process/route.ts`
+    - `/api/upscale/route.ts`
+    - `/api/clippingmagic/upload/route.ts`
+- **Technical Details:**
+  - Next.js bodyParser limit is separate from Vercel deployment limits
+  - Must be configured per API route in vercel.json
+  - Error message was truncated "Request Entity Too Large" being parsed as JSON
+- **Date Reported:** August 5, 2025
+- **Date Fixed:** August 5, 2025
 
 ## 🔧 **Recently Fixed Bugs**
 
