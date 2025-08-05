@@ -17,6 +17,12 @@ export async function saveProcessedImageToGallery({
   fileSize = 0,
   metadata = {}
 }: SaveImageParams) {
+  console.log('[SaveProcessedImage] Starting save:', {
+    userId,
+    processedUrl: processedUrl?.substring(0, 50) + '...',
+    operationType
+  });
+  
   try {
     const serviceClient = createServiceRoleClient();
     
@@ -77,7 +83,12 @@ export async function saveProcessedImageToGallery({
     });
     
     if (saveError) {
-      console.error('Failed to save to gallery:', saveError);
+      console.error('[SaveProcessedImage] Failed to save to gallery:', {
+        error: saveError,
+        message: saveError.message,
+        code: saveError.code,
+        details: saveError.details
+      });
       return null;
     }
     
