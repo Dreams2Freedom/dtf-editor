@@ -120,6 +120,9 @@ export async function saveProcessedImageToGallery({
       .from('images')
       .getPublicUrl(storagePath);
     
+    console.log('[SaveProcessedImage] Generated public URL:', publicUrl);
+    console.log('[SaveProcessedImage] Storage path:', storagePath);
+    
     // Save to processed_images table using RPC function
     const { data: savedImageId, error: saveError } = await serviceClient.rpc('insert_processed_image', {
       p_user_id: userId,
