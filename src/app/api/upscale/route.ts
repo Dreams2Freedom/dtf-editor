@@ -63,18 +63,25 @@ export async function POST(request: NextRequest) {
     if (result.success) {
       // Save to gallery
       if (result.processedUrl) {
-        await saveProcessedImageToGallery({
-          userId: user.id,
-          processedUrl: result.processedUrl,
-          operationType: 'upscale',
-          originalFilename: imageFile?.name || 'upscaled_image',
-          metadata: {
-            scale,
-            processingMode,
-            creditsUsed: result.metadata?.creditsUsed || 1,
-            processingTime: result.metadata?.processingTime
-          }
-        });
+        try {
+          console.log('[Upscale] Attempting to save to gallery...');
+          const savedId = await saveProcessedImageToGallery({
+            userId: user.id,
+            processedUrl: result.processedUrl,
+            operationType: 'upscale',
+            originalFilename: imageFile?.name || 'upscaled_image',
+            metadata: {
+              scale,
+              processingMode,
+              creditsUsed: result.metadata?.creditsUsed || 1,
+              processingTime: result.metadata?.processingTime
+            }
+          });
+          console.log('[Upscale] Save result:', savedId ? 'Success' : 'Failed');
+        } catch (saveError) {
+          console.error('[Upscale] Error saving to gallery:', saveError);
+          // Don't fail the request if saving fails
+        }
       }
       
       return NextResponse.json({
