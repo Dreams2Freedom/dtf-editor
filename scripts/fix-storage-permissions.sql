@@ -1,13 +1,19 @@
 -- Fix storage bucket permissions for the 'images' bucket
 
--- First, check if the bucket exists
+-- First, check if the bucket exists and its current settings
 SELECT id, name, public, file_size_limit, allowed_mime_types
 FROM storage.buckets
 WHERE name = 'images';
 
--- Make the images bucket public if it isn't already
+-- IMPORTANT: Make the images bucket public if it isn't already
+-- This is required for the images to be accessible via public URLs
 UPDATE storage.buckets
 SET public = true
+WHERE name = 'images' AND public = false;
+
+-- Verify the bucket is now public
+SELECT id, name, public 
+FROM storage.buckets 
 WHERE name = 'images';
 
 -- Drop existing policies
