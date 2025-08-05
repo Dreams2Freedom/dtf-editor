@@ -15,7 +15,7 @@ import { ClientOnly } from '@/components/auth/ClientOnly';
 
 interface CreditTransaction {
   id: string;
-  transaction_type: 'purchase' | 'subscription' | 'usage' | 'refund' | 'bonus';
+  type: 'purchase' | 'subscription' | 'usage' | 'refund' | 'bonus';  // Changed from transaction_type to type
   amount: number;
   balance_before: number;
   balance_after: number;
@@ -120,12 +120,12 @@ export function CreditHistory() {
           className="flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
         >
           <div className="flex items-center space-x-3">
-            <div className={`p-2 rounded-full bg-white ${getTransactionColor(transaction.transaction_type)}`}>
-              {getTransactionIcon(transaction.transaction_type)}
+            <div className={`p-2 rounded-full bg-white ${getTransactionColor(transaction.type)}`}>
+              {getTransactionIcon(transaction.type)}
             </div>
             <div>
               <p className="font-medium text-gray-900">
-                {transaction.description || `${transaction.transaction_type} transaction`}
+                {transaction.description || `${transaction.type} transaction`}
               </p>
               <p className="text-sm text-gray-500">
                 {format(new Date(transaction.created_at), 'MMM d, yyyy h:mm a')}
@@ -138,8 +138,8 @@ export function CreditHistory() {
             </div>
           </div>
           <div className="text-right">
-            <p className={`font-semibold ${getTransactionColor(transaction.transaction_type)}`}>
-              {formatAmount(transaction.amount, transaction.transaction_type)} credits
+            <p className={`font-semibold ${getTransactionColor(transaction.type)}`}>
+              {formatAmount(transaction.amount, transaction.type)} credits
             </p>
             <p className="text-sm text-gray-500">
               Balance: {transaction.balance_after}
