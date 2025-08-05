@@ -116,6 +116,22 @@ export function ImageGalleryEnhanced() {
 
       let images: ProcessedImage[] = data || [];
       
+      // Generate signed URLs for each image
+      const supabaseClient = createClientSupabaseClient();
+      for (const image of images) {
+        if (image.storage_url && !image.storage_url.startsWith('http')) {
+          // It's a storage path, generate a signed URL
+          const { data: signedUrlData } = await supabaseClient.storage
+            .from('images')
+            .createSignedUrl(image.storage_url, 3600); // 1 hour expiry
+          
+          if (signedUrlData?.signedUrl) {
+            image.storage_url = signedUrlData.signedUrl;
+            image.thumbnail_url = signedUrlData.signedUrl;
+          }
+        }
+      }
+      
       // Apply date filtering
       if (dateFilter !== 'all') {
         const now = new Date();
