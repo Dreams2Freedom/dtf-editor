@@ -26,30 +26,54 @@ export async function saveProcessedImageToGallery({
   try {
     const serviceClient = createServiceRoleClient();
     
-    // Download the processed image
-    console.log('[SaveProcessedImage] Downloading from:', processedUrl);
-    const response = await fetch(processedUrl);
-    console.log('[SaveProcessedImage] Response status:', response.status);
-    console.log('[SaveProcessedImage] Response headers:', Object.fromEntries(response.headers.entries()));
+    // Check if it's a data URL
+    let imageBuffer: ArrayBuffer;
+    let contentType: string;
     
-    if (!response.ok) {
-      console.error('[SaveProcessedImage] Failed to download:', {
-        status: response.status,
-        statusText: response.statusText,
-        url: processedUrl
-      });
-      return null;
+    if (processedUrl.startsWith('data:')) {
+      console.log('[SaveProcessedImage] Processing data URL...');
+      
+      // Extract content type and base64 data
+      const matches = processedUrl.match(/^data:([^;]+);base64,(.+)$/);
+      if (!matches) {
+        console.error('[SaveProcessedImage] Invalid data URL format');
+        return null;
+      }
+      
+      contentType = matches[1];
+      const base64Data = matches[2];
+      
+      // Convert base64 to buffer
+      const buffer = Buffer.from(base64Data, 'base64');
+      imageBuffer = buffer.buffer.slice(buffer.byteOffset, buffer.byteOffset + buffer.byteLength);
+      
+      console.log('[SaveProcessedImage] Converted data URL to buffer, size:', imageBuffer.byteLength);
+    } else {
+      // Download from URL
+      console.log('[SaveProcessedImage] Downloading from:', processedUrl);
+      const response = await fetch(processedUrl);
+      console.log('[SaveProcessedImage] Response status:', response.status);
+      console.log('[SaveProcessedImage] Response headers:', Object.fromEntries(response.headers.entries()));
+      
+      if (!response.ok) {
+        console.error('[SaveProcessedImage] Failed to download:', {
+          status: response.status,
+          statusText: response.statusText,
+          url: processedUrl
+        });
+        return null;
+      }
+      
+      imageBuffer = await response.arrayBuffer();
+      contentType = response.headers.get('Content-Type') || 'image/png';
+      console.log('[SaveProcessedImage] Downloaded buffer size:', imageBuffer.byteLength);
     }
-    
-    const imageBuffer = await response.arrayBuffer();
-    console.log('[SaveProcessedImage] Downloaded buffer size:', imageBuffer.byteLength);
     
     if (imageBuffer.byteLength === 0) {
-      console.error('[SaveProcessedImage] Downloaded empty buffer!');
+      console.error('[SaveProcessedImage] Empty buffer!');
       return null;
     }
     
-    const contentType = response.headers.get('Content-Type') || 'image/png';
     const actualFileSize = fileSize || imageBuffer.byteLength;
     console.log('[SaveProcessedImage] Content type:', contentType, 'File size:', actualFileSize);
     
