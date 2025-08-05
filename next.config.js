@@ -100,6 +100,23 @@ const nextConfig = {
   
   // Generate ETags for better caching
   generateEtags: true,
+  
+  // API configuration
+  serverRuntimeConfig: {
+    // Will only be available on the server-side
+    bodySizeLimit: '50mb',
+  },
+  
+  // Experimental features for API routes
+  experimental: {
+    // ... existing experimental config ...
+    optimizePackageImports: [
+      'lucide-react',
+      '@radix-ui/react-dialog',
+      '@radix-ui/react-dropdown-menu',
+      '@radix-ui/react-toast'
+    ],
+  },
 };
 
 module.exports = nextConfig;

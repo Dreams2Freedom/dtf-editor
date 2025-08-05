@@ -16,20 +16,16 @@
       "maxDuration": 300
     },
     "src/app/api/upload/route.ts": {
-      "maxDuration": 60,
-      "maxBodySize": "50mb"
+      "maxDuration": 60
     },
     "src/app/api/process/route.ts": {
-      "maxDuration": 60,
-      "maxBodySize": "50mb"
+      "maxDuration": 60
     },
     "src/app/api/upscale/route.ts": {
-      "maxDuration": 60,
-      "maxBodySize": "50mb"
+      "maxDuration": 60
     },
     "src/app/api/clippingmagic/upload/route.ts": {
-      "maxDuration": 60,
-      "maxBodySize": "50mb"
+      "maxDuration": 60
     }
   }
 }

@@ -7,7 +7,6 @@ import sharp from 'sharp';
 export const runtime = 'nodejs';
 export const maxDuration = 60;
 
-// Configure body parser to accept 50MB files (Vercel Pro limit)
 export async function POST(request: NextRequest) {
   try {
     // Check authentication
