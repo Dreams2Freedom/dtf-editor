@@ -53,7 +53,13 @@ export default function BackgroundRemovalClient() {
           // Convert data URL to File object for upload
           const res = await fetch(data.publicUrl);
           const blob = await res.blob();
-          const file = new File([blob], 'image.jpg', { type: blob.type });
+          // Use appropriate file extension based on MIME type
+          let extension = 'jpg';
+          if (blob.type === 'image/png') extension = 'png';
+          else if (blob.type === 'image/webp') extension = 'webp';
+          else if (blob.type === 'image/gif') extension = 'gif';
+          
+          const file = new File([blob], `image.${extension}`, { type: blob.type });
           setImageFile(file);
         } else {
           throw new Error(data.error || 'Failed to load image');
