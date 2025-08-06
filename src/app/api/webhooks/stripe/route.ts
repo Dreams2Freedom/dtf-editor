@@ -22,6 +22,7 @@ function getSupabase() {
 
 export async function POST(request: NextRequest) {
   console.log('\n🔔 STRIPE WEBHOOK RECEIVED');
+  console.log('📍 Webhook URL:', request.url);
   const body = await request.text();
   const signature = request.headers.get('stripe-signature');
 
@@ -35,8 +36,10 @@ export async function POST(request: NextRequest) {
 
   try {
     const event = getStripeService().constructWebhookEvent(body, signature);
+    console.log('✅ Webhook signature verified');
     console.log('📨 Event type:', event.type);
     console.log('📨 Event ID:', event.id);
+    console.log('📨 Event data:', JSON.stringify(event.data.object, null, 2));
 
     switch (event.type) {
       case 'checkout.session.completed':
@@ -76,10 +79,13 @@ export async function POST(request: NextRequest) {
         // Unhandled event type
     }
 
+    console.log('✅ Webhook processed successfully');
     return NextResponse.json({ received: true });
   } catch (error: any) {
+    console.error('❌ Webhook error:', error);
+    console.error('Error details:', error.message);
     return NextResponse.json(
-      { error: 'Webhook signature verification failed' },
+      { error: 'Webhook signature verification failed', details: error.message },
       { status: 400 }
     );
   }
@@ -271,8 +277,18 @@ async function handlePaymentIntentFailed(paymentIntent: any) {
 }
 
 async function handleCheckoutSessionCompleted(session: any) {
+  console.log('🎯 handleCheckoutSessionCompleted called');
+  console.log('Session ID:', session.id);
+  console.log('Session metadata:', session.metadata);
+  console.log('Session mode:', session.mode);
+  
   const userId = session.metadata?.userId;
-  if (!userId) return;
+  if (!userId) {
+    console.error('❌ No userId in session metadata');
+    return;
+  }
+  
+  console.log('👤 Processing for user:', userId);
 
   // Handle subscription checkout
   if (session.mode === 'subscription') {
