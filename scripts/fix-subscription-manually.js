@@ -15,19 +15,45 @@ async function fixSubscription(email) {
   try {
     console.log(`\n🔧 Fixing subscription for: ${email}`);
     
-    // Get user by email
-    const { data: { users }, error: userError } = await supabase.auth.admin.listUsers();
-    if (userError) throw userError;
+    // First try to find the user in profiles by email
+    const { data: profiles, error: profileError } = await supabase
+      .from('profiles')
+      .select('*')
+      .ilike('email', email);
     
-    const user = users.find(u => u.email === email);
-    if (!user) {
-      console.error('❌ User not found');
-      return;
+    if (profileError) throw profileError;
+    
+    let userId;
+    let profile;
+    
+    if (profiles && profiles.length > 0) {
+      profile = profiles[0];
+      userId = profile.id;
+      console.log(`✅ Found user in profiles: ${userId}`);
+    } else {
+      // If not found in profiles, try auth
+      const { data: { users }, error: userError } = await supabase.auth.admin.listUsers();
+      if (userError) throw userError;
+      
+      const user = users.find(u => u.email?.toLowerCase() === email.toLowerCase());
+      if (!user) {
+        console.error('❌ User not found');
+        return;
+      }
+      userId = user.id;
+      console.log(`✅ Found user in auth: ${userId}`);
+      
+      // Get profile
+      const { data: userProfile, error: getProfileError } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', userId)
+        .single();
+        
+      if (getProfileError) throw getProfileError;
+      profile = userProfile;
     }
     
-    console.log(`✅ Found user: ${user.id}`);
-    
-    // Get current profile
     const { data: profile, error: profileError } = await supabase
       .from('profiles')
       .select('*')

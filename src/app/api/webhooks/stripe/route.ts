@@ -93,13 +93,36 @@ export async function POST(request: NextRequest) {
 }
 
 async function handleSubscriptionEvent(subscription: any) {
-  const userId = subscription.metadata?.userId;
-  if (!userId) return;
+  console.log('📊 Handling subscription event');
+  console.log('Event type:', subscription.status);
+  console.log('Customer ID:', subscription.customer);
+  
+  let userId = subscription.metadata?.userId;
+  
+  // If no userId in metadata, try to find it by customer ID
+  if (!userId && subscription.customer) {
+    const { data: profile } = await getSupabase()
+      .from('profiles')
+      .select('id')
+      .eq('stripe_customer_id', subscription.customer)
+      .single();
+    
+    if (profile) {
+      userId = profile.id;
+      console.log('Found userId from customer ID:', userId);
+    }
+  }
+  
+  if (!userId) {
+    console.error('❌ Could not find userId for subscription event');
+    return;
+  }
 
   // Get the price ID from the subscription
   const priceId = subscription.items?.data?.[0]?.price?.id;
   
   // Determine the plan based on the price ID
+  const stripeService = getStripeService();
   const plans = stripeService.getSubscriptionPlans();
   const plan = plans.find((p: any) => p.stripePriceId === priceId);
   
@@ -117,33 +140,63 @@ async function handleSubscriptionEvent(subscription: any) {
   // Handle cancelled subscriptions
   if (subscription.status === 'canceled' || subscription.cancel_at_period_end) {
     updateData.subscription_status = 'cancelled';
+    updateData.subscription_plan = 'free';
   }
 
-  const { error } = await supabase
+  const { error } = await getSupabase()
     .from('profiles')
     .update(updateData)
     .eq('id', userId);
 
   if (error) {
+    console.error('❌ Error updating subscription:', error);
     throw error;
   }
+  
+  console.log('✅ Subscription updated for user:', userId);
 }
 
 async function handleSubscriptionCancellation(subscription: any) {
-  const userId = subscription.metadata?.userId;
-  if (!userId) return;
+  console.log('🚫 Handling subscription cancellation');
+  console.log('Subscription ID:', subscription.id);
+  console.log('Customer ID:', subscription.customer);
+  
+  let userId = subscription.metadata?.userId;
+  
+  // If no userId in metadata, try to find it by customer ID
+  if (!userId && subscription.customer) {
+    const { data: profile } = await getSupabase()
+      .from('profiles')
+      .select('id')
+      .eq('stripe_customer_id', subscription.customer)
+      .single();
+    
+    if (profile) {
+      userId = profile.id;
+      console.log('Found userId from customer ID:', userId);
+    }
+  }
+  
+  if (!userId) {
+    console.error('❌ Could not find userId for subscription cancellation');
+    return;
+  }
 
-  const { error } = await supabase
+  const { error } = await getSupabase()
     .from('profiles')
     .update({
       subscription_status: 'canceled',
+      subscription_plan: 'free', // Reset to free plan
       subscription_canceled_at: new Date().toISOString(),
     })
     .eq('id', userId);
 
   if (error) {
+    console.error('❌ Error updating subscription status:', error);
     throw error;
   }
+  
+  console.log('✅ Subscription cancelled for user:', userId);
 }
 
 async function handleInvoicePaymentSucceeded(invoice: any) {
