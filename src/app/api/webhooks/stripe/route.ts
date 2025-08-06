@@ -128,8 +128,12 @@ async function handleSubscriptionEvent(subscription: any) {
   
   const updateData: any = {
     stripe_subscription_id: subscription.id,
-    subscription_current_period_end: new Date(subscription.current_period_end * 1000).toISOString(),
   };
+  
+  // Only add period end if it exists
+  if (subscription.current_period_end) {
+    updateData.subscription_current_period_end = new Date(subscription.current_period_end * 1000).toISOString();
+  }
 
   // If we found a matching plan, update both status and plan
   if (plan) {
@@ -206,16 +210,23 @@ async function handleInvoicePaymentSucceeded(invoice: any) {
   // Handle subscription renewal
   if (invoice.subscription && invoice.billing_reason === 'subscription_cycle') {
     // Update subscription billing period dates
-    const subscription = await stripeService.getSubscription(invoice.subscription);
+    const subscription = await getStripeService().getSubscription(invoice.subscription);
     if (subscription) {
       // Update the billing period in profiles
-      const { error: updateError } = await supabase
+      const updateData: any = {
+        updated_at: new Date().toISOString()
+      };
+      
+      if (subscription.current_period_start) {
+        updateData.stripe_current_period_start = new Date(subscription.current_period_start * 1000).toISOString();
+      }
+      if (subscription.current_period_end) {
+        updateData.stripe_current_period_end = new Date(subscription.current_period_end * 1000).toISOString();
+      }
+      
+      const { error: updateError } = await getSupabase()
         .from('profiles')
-        .update({
-          stripe_current_period_start: new Date(subscription.current_period_start * 1000).toISOString(),
-          stripe_current_period_end: new Date(subscription.current_period_end * 1000).toISOString(),
-          updated_at: new Date().toISOString()
-        })
+        .update(updateData)
         .eq('id', userId);
 
       if (updateError) {
@@ -292,7 +303,7 @@ async function handlePaymentIntentSucceeded(paymentIntent: any) {
       }
       
       // Get first name from profile
-      const { data: profile } = await supabase
+      const { data: profile } = await getSupabase()
         .from('profiles')
         .select('first_name')
         .eq('id', userId)
@@ -350,7 +361,7 @@ async function handleCheckoutSessionCompleted(session: any) {
     const customerId = session.customer;
 
     // Update user profile with Stripe customer ID and subscription
-    const { error: updateError } = await supabase
+    const { error: updateError } = await getSupabase()
       .from('profiles')
       .update({
         stripe_customer_id: customerId,
@@ -363,10 +374,10 @@ async function handleCheckoutSessionCompleted(session: any) {
     }
 
     // Get subscription details to update plan
-    const subscription = await stripeService.getSubscription(subscriptionId);
+    const subscription = await getStripeService().getSubscription(subscriptionId);
     if (subscription) {
       const priceId = subscription.items.data[0]?.price.id;
-      const plans = stripeService.getSubscriptionPlans();
+      const plans = getStripeService().getSubscriptionPlans();
       const plan = plans.find((p: any) => p.stripePriceId === priceId);
       
       if (plan) {
@@ -414,7 +425,7 @@ async function handleCheckoutSessionCompleted(session: any) {
           }
           
           // Get first name from profile
-          const { data: profile } = await supabase
+          const { data: profile } = await getSupabase()
             .from('profiles')
             .select('first_name')
             .eq('id', userId)
@@ -459,7 +470,7 @@ async function handleCheckoutSessionCompleted(session: any) {
       try {
         // Update customer ID if not already set
         if (customerId) {
-          await supabase
+          await getSupabase()
             .from('profiles')
             .update({ stripe_customer_id: customerId })
             .eq('id', userId);
@@ -496,7 +507,7 @@ async function handleCheckoutSessionCompleted(session: any) {
           }
           
           // Get first name from profile
-          const { data: profile } = await supabase
+          const { data: profile } = await getSupabase()
             .from('profiles')
             .select('first_name')
             .eq('id', userId)
@@ -542,7 +553,7 @@ async function handleInvoicePaymentFailed(invoice: any) {
 
   // Subscription payment failed
   // TODO: Send email notification and update subscription status
-  const { error } = await supabase
+  const { error } = await getSupabase()
     .from('profiles')
     .update({
       subscription_status: 'past_due',
