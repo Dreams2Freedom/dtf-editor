@@ -23,6 +23,7 @@ function getSupabase() {
 export async function POST(request: NextRequest) {
   console.log('\n🔔 STRIPE WEBHOOK RECEIVED');
   console.log('📍 Webhook URL:', request.url);
+  console.log('🕐 Timestamp:', new Date().toISOString());
   const body = await request.text();
   const signature = request.headers.get('stripe-signature');
 
