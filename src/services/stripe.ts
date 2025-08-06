@@ -55,7 +55,11 @@ export class StripeService {
   private getStripeClient(): Stripe {
     if (!this.stripe) {
       if (!env.STRIPE_SECRET_KEY) {
-        throw new Error('STRIPE_SECRET_KEY is required');
+        console.error('Environment check:', {
+          hasSecretKey: !!process.env.STRIPE_SECRET_KEY,
+          envValue: !!env.STRIPE_SECRET_KEY,
+        });
+        throw new Error('STRIPE_SECRET_KEY is required - please ensure environment variables are loaded');
       }
       this.stripe = new Stripe(env.STRIPE_SECRET_KEY, {
         apiVersion: '2025-06-30.basil',
