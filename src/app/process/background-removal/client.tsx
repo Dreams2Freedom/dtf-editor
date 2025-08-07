@@ -177,6 +177,80 @@ export default function BackgroundRemovalClient() {
     };
   }, []);
 
+  // Compress image if it's too large
+  const compressImage = async (file: File, maxSizeMB: number = 8): Promise<File> => {
+    const maxSizeBytes = maxSizeMB * 1024 * 1024;
+    
+    // If file is already small enough, return it
+    if (file.size <= maxSizeBytes) {
+      console.log('[Background Removal] Image size OK:', (file.size / 1024 / 1024).toFixed(2), 'MB');
+      return file;
+    }
+    
+    console.log('[Background Removal] Compressing large image:', (file.size / 1024 / 1024).toFixed(2), 'MB');
+    
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const img = new Image();
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          const ctx = canvas.getContext('2d');
+          
+          // Calculate new dimensions (max 4096px on longest side)
+          let width = img.width;
+          let height = img.height;
+          const maxDimension = 4096;
+          
+          if (width > maxDimension || height > maxDimension) {
+            if (width > height) {
+              height = (maxDimension / width) * height;
+              width = maxDimension;
+            } else {
+              width = (maxDimension / height) * width;
+              height = maxDimension;
+            }
+          }
+          
+          canvas.width = width;
+          canvas.height = height;
+          
+          // Draw and compress
+          ctx?.drawImage(img, 0, 0, width, height);
+          
+          // Start with high quality and reduce if needed
+          let quality = 0.9;
+          const tryCompress = () => {
+            canvas.toBlob(
+              (blob) => {
+                if (blob) {
+                  if (blob.size > maxSizeBytes && quality > 0.3) {
+                    quality -= 0.1;
+                    tryCompress();
+                  } else {
+                    const compressedFile = new File([blob], file.name, {
+                      type: blob.type || 'image/jpeg',
+                    });
+                    console.log('[Background Removal] Compressed to:', (compressedFile.size / 1024 / 1024).toFixed(2), 'MB');
+                    resolve(compressedFile);
+                  }
+                } else {
+                  resolve(file); // Fallback to original
+                }
+              },
+              'image/jpeg',
+              quality
+            );
+          };
+          
+          tryCompress();
+        };
+        img.src = e.target?.result as string;
+      };
+      reader.readAsDataURL(file);
+    });
+  };
+
   // Upload image to ClippingMagic
   const uploadToClippingMagic = async () => {
     if (!imageFile) return;
@@ -185,8 +259,11 @@ export default function BackgroundRemovalClient() {
     setError(null);
 
     try {
+      // Compress image if needed (max 8MB)
+      const fileToUpload = await compressImage(imageFile, 8);
+      
       const formData = new FormData();
-      formData.append('image', imageFile);
+      formData.append('image', fileToUpload);
 
       const response = await fetch('/api/clippingmagic/upload', {
         method: 'POST',

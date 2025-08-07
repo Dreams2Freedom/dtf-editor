@@ -20,8 +20,30 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Check content length to prevent 413 errors
+    const contentLength = request.headers.get('content-length');
+    const maxSize = 10 * 1024 * 1024; // 10MB
+    
+    if (contentLength && parseInt(contentLength) > maxSize) {
+      console.error('[ClippingMagic Upload] File too large:', contentLength);
+      return NextResponse.json(
+        { error: 'File too large. Maximum size is 10MB. Please try with a smaller image.' },
+        { status: 413 }
+      );
+    }
+
     // Get the uploaded file
-    const formData = await request.formData();
+    let formData;
+    try {
+      formData = await request.formData();
+    } catch (formError) {
+      console.error('[ClippingMagic Upload] Error parsing form data:', formError);
+      return NextResponse.json(
+        { error: 'File too large or invalid. Maximum size is 10MB.' },
+        { status: 413 }
+      );
+    }
+    
     const file = formData.get('image') as File;
 
     if (!file) {
