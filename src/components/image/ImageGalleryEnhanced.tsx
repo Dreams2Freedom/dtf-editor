@@ -103,14 +103,18 @@ export function ImageGalleryEnhanced() {
       setLoading(true);
       const supabase = createClientSupabaseClient();
       
-      // Use RPC function to fetch images
-      const { data, error } = await supabase.rpc('get_user_images', {
-        p_user_id: user.id
-      });
+      // Fetch images directly from processed_images table
+      const { data, error } = await supabase
+        .from('processed_images')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false });
 
       if (error) {
         console.error('Error fetching images:', error);
-        toast.error('Failed to load images');
+        // Don't show toast for this, just return empty array
+        setImages([]);
+        setLoading(false);
         return;
       }
 
@@ -412,7 +416,7 @@ export function ImageGalleryEnhanced() {
   // Apply collection filter
   const filteredImages = selectedCollection === 'all' 
     ? searchFilteredImages
-    : searchFilteredImages.filter(img => 
+    : searchFilteredImages.filter((img: any) => 
         // For now, filter by primary_collection_id
         // TODO: Update when collection_items junction table is integrated
         img.primary_collection_id === selectedCollection

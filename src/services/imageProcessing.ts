@@ -99,15 +99,26 @@ export class ImageProcessingService {
         throw new Error(`${options.operation} is not available - missing API configuration`);
       }
 
-      // 2. Check user credits before processing
-      const requiredCredits = this.getOperationCost(options.operation);
-      const hasCredits = await this.checkUserCredits(userId, requiredCredits);
-      if (!hasCredits) {
-        throw new Error('Insufficient credits for this operation');
-      }
+      // Check if user is admin
+      const { data: adminProfile } = await this.supabase
+        .from('profiles')
+        .select('is_admin')
+        .eq('id', userId)
+        .single();
+      
+      const isAdmin = adminProfile?.is_admin === true;
 
-      // 3. Deduct credits before processing
-      await this.deductCredits(userId, requiredCredits, options.operation);
+      // 2. Check user credits before processing (skip for admins)
+      const requiredCredits = this.getOperationCost(options.operation);
+      if (!isAdmin) {
+        const hasCredits = await this.checkUserCredits(userId, requiredCredits);
+        if (!hasCredits) {
+          throw new Error('Insufficient credits for this operation');
+        }
+
+        // 3. Deduct credits before processing (skip for admins)
+        await this.deductCredits(userId, requiredCredits, options.operation);
+      }
 
       // 4. Process the image based on operation type
       let processedUrl: string;
@@ -133,12 +144,12 @@ export class ImageProcessingService {
           throw new Error(`Unsupported operation: ${options.operation}`);
       }
 
-      // 5. Save processing result to database
+      // 5. Save processing result to database (0 credits for admins)
       await this.saveProcessingResult(userId, {
         operation: options.operation,
         originalUrl: imageUrl,
         processedUrl,
-        creditsUsed: requiredCredits,
+        creditsUsed: isAdmin ? 0 : requiredCredits,
         processingTime: Date.now() - startTime
       });
 
@@ -152,14 +163,14 @@ export class ImageProcessingService {
       const userPlan = profile?.subscription_plan || 'free';
       const processingTime = Date.now() - startTime;
 
-      // 7. Track API costs
+      // 7. Track API costs (0 credits for admins)
       const { provider, apiOperation } = this.mapOperationToProvider(options.operation);
       await this.costTrackingService.logApiUsage(
         userId,
         provider,
         apiOperation,
         'success',
-        requiredCredits,
+        isAdmin ? 0 : requiredCredits,
         userPlan,
         {
           processingTimeMs: processingTime,
@@ -167,8 +178,8 @@ export class ImageProcessingService {
         }
       );
 
-      // 8. Log successful operation
-      await this.logOperation(userId, options.operation, requiredCredits, 'success', processingTime);
+      // 8. Log successful operation (0 credits for admins)
+      await this.logOperation(userId, options.operation, isAdmin ? 0 : requiredCredits, 'success', processingTime);
 
       return {
         success: true,
@@ -184,8 +195,8 @@ export class ImageProcessingService {
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Processing failed';
       
-      // Only refund credits if the error is NOT due to insufficient credits
-      if (!errorMessage.toLowerCase().includes('insufficient credits')) {
+      // Only refund credits if the error is NOT due to insufficient credits (skip for admins)
+      if (!errorMessage.toLowerCase().includes('insufficient credits') && !isAdmin) {
         const requiredCredits = this.getOperationCost(options.operation);
         await this.refundCredits(userId, requiredCredits, options.operation);
       }

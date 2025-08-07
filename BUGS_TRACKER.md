@@ -5,6 +5,33 @@
 
 ## 🐛 **Critical Bugs (P0)**
 
+### **BUG-044: OpenAI Client-Side Initialization Error**
+- **Status:** 🟢 FIXED
+- **Severity:** Critical
+- **Component:** AI Image Generation / ChatGPT Service
+- **Description:** OpenAI SDK was being initialized on client-side causing security errors
+- **Symptoms:**
+  - Error when clicking "AI" checkbox: "It looks like you're running in a browser-like environment"
+  - OpenAI SDK refusing to run without `dangerouslyAllowBrowser: true`
+  - AI generation feature completely broken in production
+- **Root Cause:** 
+  - OpenAI client was being initialized at module level in chatgpt.ts
+  - PromptBuilder component importing the service on client-side
+  - OpenAI SDK designed for server-side use only
+- **Solution Applied:**
+  - Moved OpenAI initialization to only happen inside server-side methods
+  - Added runtime check: `if (typeof window !== 'undefined')` to prevent client execution
+  - Dynamically import OpenAI only when needed in API routes
+  - Extracted client-safe prompt helpers to separate utility file
+  - Updated PromptBuilder to use client-safe helpers instead of service
+- **Files Modified:**
+  - `/src/services/chatgpt.ts` - Dynamic import, server-side only
+  - `/src/utils/promptHelpers.ts` - Created client-safe prompt utilities
+  - `/src/components/ai/PromptBuilder.tsx` - Use client helpers
+  - `/src/app/api/generate/image/route.ts` - Import prompt helpers
+- **Date Reported:** August 7, 2025
+- **Date Fixed:** August 7, 2025
+
 ### **BUG-042: Stripe Webhook Integration Issues**
 - **Status:** 🟢 FIXED
 - **Severity:** Critical

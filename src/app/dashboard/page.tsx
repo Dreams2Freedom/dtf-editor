@@ -26,7 +26,8 @@ import {
   Crown,
   PauseCircle,
   Images,
-  HardDrive
+  HardDrive,
+  Sparkles
 } from 'lucide-react';
 import Link from 'next/link';
 import { CreditHistory } from '@/components/dashboard/CreditHistory';
@@ -187,6 +188,20 @@ export default function DashboardPage() {
                   </h3>
                   <p className="text-gray-600 text-sm">
                     Convert to scalable vectors
+                  </p>
+                </CardContent>
+              </Link>
+            </Card>
+
+            <Card className="cursor-pointer hover:shadow-md transition-shadow">
+              <Link href="/generate">
+                <CardContent className="p-6 text-center">
+                  <Sparkles className="w-12 h-12 text-purple-600 mx-auto mb-4" />
+                  <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                    AI Generate
+                  </h3>
+                  <p className="text-gray-600 text-sm">
+                    Create images with AI
                   </p>
                 </CardContent>
               </Link>

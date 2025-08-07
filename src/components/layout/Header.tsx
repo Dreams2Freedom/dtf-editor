@@ -17,7 +17,8 @@ import {
   User,
   DollarSign,
   Crown,
-  HardDrive
+  HardDrive,
+  Sparkles
 } from 'lucide-react';
 import { CreditDisplay } from '@/components/ui/CreditDisplay';
 import { NotificationBell } from '@/components/notifications/NotificationBell';
@@ -35,6 +36,7 @@ export function Header() {
   const navigation = user ? [
     { name: 'Dashboard', href: '/dashboard', icon: Home },
     { name: 'Process Image', href: '/process', icon: Upload },
+    { name: 'AI Generate', href: '/generate', icon: Sparkles },
     { name: 'My Images', href: '/dashboard#my-images', icon: Images },
     { name: 'Storage', href: '/storage', icon: HardDrive },
     { name: 'Pricing', href: '/pricing', icon: DollarSign },

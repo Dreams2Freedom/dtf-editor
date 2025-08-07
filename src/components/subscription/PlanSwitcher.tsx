@@ -68,8 +68,61 @@ export function PlanSwitcher({ currentPlan, nextBillingDate, onPlanChange }: Pla
     
     setSelectedPlan(planId);
     setError(null);
-    setLoadingPreview(true);
+    
+    // If user doesn't have a real subscription (just a plan in DB), redirect to checkout
+    if (currentPlan === 'basic' || currentPlan === 'free') {
+      try {
+        setLoading(true);
+        const targetPlan = plans.find(p => p.id === planId);
+        if (!targetPlan) {
+          throw new Error('Plan not found');
+        }
 
+        // First, fetch the pricing info from the API
+        const pricingResponse = await fetch('/api/stripe/pricing');
+        if (!pricingResponse.ok) {
+          throw new Error('Failed to fetch pricing information');
+        }
+        const pricingData = await pricingResponse.json();
+        
+        // Find the price ID from the pricing data
+        const plan = pricingData.subscriptionPlans?.find((p: any) => p.id === planId);
+        if (!plan || !plan.stripePriceId) {
+          throw new Error('Pricing not configured. Please contact support.');
+        }
+
+        // Create checkout session for new subscription
+        const response = await fetch('/api/stripe/create-checkout-session', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            priceId: plan.stripePriceId,
+            mode: 'subscription',
+          })
+        });
+
+        if (!response.ok) {
+          const error = await response.json();
+          throw new Error(error.error || 'Failed to create checkout session');
+        }
+
+        const { url } = await response.json();
+        if (url) {
+          window.location.href = url;
+        } else {
+          throw new Error('No checkout URL received');
+        }
+      } catch (err: any) {
+        setError(err.message || 'Failed to start subscription. Please try again.');
+        setSelectedPlan(null);
+      } finally {
+        setLoading(false);
+      }
+      return;
+    }
+    
+    // Existing logic for plan changes
+    setLoadingPreview(true);
     try {
       // Get proration preview
       const response = await fetch('/api/subscription/preview-change', {

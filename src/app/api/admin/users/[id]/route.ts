@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabaseClient, createServiceRoleClient } from '@/lib/supabase/server';
+import { logAdminAction, getClientIp, getUserAgent } from '@/utils/adminLogger';
 
 export async function GET(
   request: NextRequest,
@@ -89,6 +90,18 @@ export async function GET(
       created_at: t.created_at
     }));
 
+    // Log the admin action
+    await logAdminAction({
+      adminId: user.id,
+      adminEmail: user.email,
+      action: 'user.view',
+      resourceType: 'user',
+      resourceId: params.id,
+      details: { viewed_user_email: userDetails.email },
+      ipAddress: getClientIp(request),
+      userAgent: getUserAgent(request),
+    });
+
     return NextResponse.json({
       user: {
         id: userDetails.id,
@@ -173,6 +186,23 @@ export async function PATCH(
       console.error('Error updating user:', error);
       return NextResponse.json({ error: 'Failed to update user' }, { status: 500 });
     }
+
+    // Log the admin action
+    await logAdminAction({
+      adminId: user.id,
+      adminEmail: user.email,
+      action: body.is_active !== undefined ? 
+        (body.is_active ? 'user.activate' : 'user.suspend') : 
+        'user.update',
+      resourceType: 'user',
+      resourceId: params.id,
+      details: {
+        updated_fields: Object.keys(body),
+        changes: body
+      },
+      ipAddress: getClientIp(request),
+      userAgent: getUserAgent(request),
+    });
 
     return NextResponse.json({ 
       user: {

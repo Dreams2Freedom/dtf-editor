@@ -231,7 +231,7 @@ export default function VectorizeClient() {
                         <p className="font-medium text-yellow-800">⚠️ This operation uses 2 credits</p>
                       </div>
 
-                      {profile && profile.credits_remaining < 2 && (
+                      {profile && !profile.is_admin && profile.credits_remaining < 2 && (
                         <div className="bg-red-50 border border-red-200 text-red-600 p-3 rounded-lg text-sm">
                           <p className="font-medium">Insufficient Credits</p>
                           <p className="text-xs mt-1">You need at least 2 credits to vectorize an image. Please purchase more credits or upgrade your plan.</p>
@@ -240,7 +240,7 @@ export default function VectorizeClient() {
 
                       <Button
                         onClick={processImage}
-                        disabled={isProcessing || !profile || profile.credits_remaining < 2}
+                        disabled={isProcessing || !profile || (!profile.is_admin && profile.credits_remaining < 2)}
                         className="w-full"
                         size="lg"
                       >

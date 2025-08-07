@@ -370,7 +370,7 @@ export default function BackgroundRemovalClient() {
                   {/* Action Button */}
                   {!uploadedImage && (
                     <>
-                      {profile && profile.credits_remaining < 1 && (
+                      {profile && !profile.is_admin && profile.credits_remaining < 1 && (
                         <div className="bg-red-50 border border-red-200 text-red-600 p-3 rounded-lg text-sm">
                           <p className="font-medium">Insufficient Credits</p>
                           <p className="text-xs mt-1">You need at least 1 credit to remove backgrounds. Please purchase more credits or upgrade your plan.</p>
@@ -378,7 +378,7 @@ export default function BackgroundRemovalClient() {
                       )}
                       <Button
                         onClick={uploadToClippingMagic}
-                        disabled={isLoading || !initialized || isUploading || !imageFile || (profile && profile.credits_remaining < 1)}
+                        disabled={isLoading || !initialized || isUploading || !imageFile || (profile && !profile.is_admin && profile.credits_remaining < 1)}
                         className="w-full"
                         size="lg"
                       >

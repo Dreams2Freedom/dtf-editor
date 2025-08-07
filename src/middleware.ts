@@ -73,5 +73,6 @@ export const config = {
     '/api/process/:path*',
     '/api/stripe/:path*',
     '/api/users/:path*',
+    '/api/generate/:path*',
   ],
 };

@@ -41,6 +41,7 @@ interface AuthStoreActions {
     phone?: string;
     avatarUrl?: string;
   }) => Promise<{ success: boolean; error?: string }>;
+  refreshProfile: () => Promise<void>;
 
   // Password operations
   resetPassword: (
@@ -286,29 +287,24 @@ export const useAuthStore = create<AuthStore>()(
       }
     },
 
-    // Update profile
-    updateProfile: async (profileData: Partial<Profile>) => {
+    // Refresh profile
+    refreshProfile: async () => {
       const user = get().user;
-      if (!user) {
-        return { success: false, error: 'No user logged in' };
-      }
+      if (!user) return;
 
       try {
-        const profile = get().profile;
+        const profile = await authService.getUserProfile(user.id);
         if (profile) {
-          // Update local state immediately for optimistic UI
           set({
-            profile: {
-              ...profile,
-              ...profileData,
-            },
+            profile,
+            isAdmin: profile?.is_admin || false,
+            creditsRemaining: profile?.credits ?? profile?.credits_remaining ?? 0,
+            subscriptionStatus: profile?.subscription_status || 'free',
+            subscriptionPlan: profile?.subscription_plan || 'free',
           });
         }
-        return { success: true };
       } catch (error) {
-        const errorMessage =
-          error instanceof Error ? error.message : 'Profile update failed';
-        return { success: false, error: errorMessage };
+        console.error('Error refreshing profile:', error);
       }
     },
 

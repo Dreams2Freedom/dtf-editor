@@ -82,8 +82,9 @@ export default function UpscaleClient() {
       return;
     }
 
-    // Check credits
-    if (profile.credits_remaining < 1) {
+    // Check credits (skip for admins)
+    const isAdmin = profile.is_admin === true;
+    if (!isAdmin && profile.credits_remaining < 1) {
       setError('Insufficient credits. Please purchase more credits.');
       return;
     }
@@ -221,7 +222,7 @@ export default function UpscaleClient() {
                         </label>
                       </div>
 
-                      {profile && profile.credits_remaining < 1 && (
+                      {profile && !profile.is_admin && profile.credits_remaining < 1 && (
                         <div className="bg-red-50 border border-red-200 text-red-600 p-3 rounded-lg text-sm">
                           <p className="font-medium">Insufficient Credits</p>
                           <p className="text-xs mt-1">You need at least 1 credit to upscale an image. Please purchase more credits or upgrade your plan.</p>
@@ -230,7 +231,7 @@ export default function UpscaleClient() {
 
                       <Button
                         onClick={processImage}
-                        disabled={isProcessing || !profile || profile.credits_remaining < 1}
+                        disabled={isProcessing || !profile || (!profile.is_admin && profile.credits_remaining < 1)}
                         className="w-full"
                         size="lg"
                       >

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { cookies } from 'next/headers';
+import { logAdminAction, logSecurityAction, getClientIp, getUserAgent } from '@/utils/adminLogger';
 
 export async function POST(
   request: NextRequest,
@@ -66,21 +67,33 @@ export async function POST(
       path: '/'
     });
 
-    // Log the impersonation action
-    await supabase
-      .from('admin_audit_logs')
-      .insert({
-        admin_id: user.id,
-        action: 'user_impersonation_started',
-        resource_type: 'user',
-        resource_id: params.id,
-        details: {
-          target_user_email: targetUser.email,
-          target_user_name: targetUser.full_name
-        },
-        ip_address: request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip'),
-        user_agent: request.headers.get('user-agent')
-      });
+    // Log the impersonation action with security priority
+    await logSecurityAction(
+      user.id,
+      'user_impersonation_started',
+      {
+        target_user_id: params.id,
+        target_user_email: targetUser.email,
+        target_user_name: targetUser.full_name,
+        admin_email: adminProfile.email
+      },
+      getClientIp(request)
+    );
+    
+    // Also log as regular admin action
+    await logAdminAction({
+      adminId: user.id,
+      adminEmail: user.email,
+      action: 'user.impersonate',
+      resourceType: 'user',
+      resourceId: params.id,
+      details: {
+        target_user_email: targetUser.email,
+        session_duration: '2 hours max'
+      },
+      ipAddress: getClientIp(request),
+      userAgent: getUserAgent(request),
+    });
 
     return NextResponse.json({
       success: true,

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
+import { logAdminAction, getClientIp, getUserAgent } from '@/utils/adminLogger';
 
 export async function POST(
   request: NextRequest,
@@ -83,18 +84,21 @@ export async function POST(
       console.error('Failed to log credit transaction:', transactionError);
     }
 
-    // Log admin action (audit logs table will be added later)
-    console.log('Admin credit adjustment:', {
-      admin_id: user.id,
-      action: amount > 0 ? 'user.add_credits' : 'user.remove_credits',
-      resource_type: 'user',
-      resource_id: id,
+    // Log admin action
+    await logAdminAction({
+      adminId: user.id,
+      adminEmail: user.email,
+      action: amount > 0 ? 'credits.add' : 'credits.remove',
+      resourceType: 'credits',
+      resourceId: id,
       details: {
-        amount: amount,
+        amount: Math.abs(amount),
         reason: reason,
         previous_balance: currentCredits,
         new_balance: newBalance
-      }
+      },
+      ipAddress: getClientIp(request),
+      userAgent: getUserAgent(request),
     });
 
     return NextResponse.json({
