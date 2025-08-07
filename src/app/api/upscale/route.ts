@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { storageService } from '@/services/storage';
 import { imageProcessingService } from '@/services/imageProcessing';
-import { createServerSupabaseClient } from '@/lib/supabase/server';
+import { createServerSupabaseClient, createServiceRoleClient } from '@/lib/supabase/server';
 import { ProcessingMode } from '@/services/deepImage';
 // Import save function - ensure it's included in build
 import { saveProcessedImageToGallery } from '@/utils/saveProcessedImage';
@@ -11,6 +11,12 @@ const _ = saveProcessedImageToGallery;
 
 export async function POST(request: NextRequest) {
   console.log('[Upscale] Handler started - v2 with gallery save');
+  
+  // Set a timeout for the entire request (50 seconds, leaving 10s buffer for Vercel's 60s limit)
+  const timeoutPromise = new Promise((_, reject) => {
+    setTimeout(() => reject(new Error('Request timeout after 50 seconds')), 50000);
+  });
+  
   try {
     // 1. Get current user using server-side Supabase client
     const supabase = await createServerSupabaseClient();
@@ -52,8 +58,9 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'No image file or URL provided' }, { status: 400 });
     }
 
-    // 4. Process image using centralized service
-    const result = await imageProcessingService.processImage(
+    // 4. Process image using centralized service with timeout
+    console.log('[Upscale] Starting image processing with Deep-Image...');
+    const processingPromise = imageProcessingService.processImage(
       user.id,
       finalImageUrl,
       {
@@ -63,6 +70,14 @@ export async function POST(request: NextRequest) {
         faceEnhance: false
       }
     );
+    
+    // Race between processing and timeout
+    const result = await Promise.race([
+      processingPromise,
+      timeoutPromise.then(() => {
+        throw new Error('Image processing timed out after 50 seconds');
+      })
+    ]) as Awaited<typeof processingPromise>;
 
     // 5. Return result
     console.log('[Upscale] Processing result:', {
@@ -72,7 +87,16 @@ export async function POST(request: NextRequest) {
     });
     
     if (result.success) {
-      // Save to gallery
+      let finalUrl = result.processedUrl;
+      
+      console.log('[Upscale] Initial processedUrl type:', {
+        isDataUrl: result.processedUrl?.startsWith('data:'),
+        isHttpUrl: result.processedUrl?.startsWith('http'),
+        length: result.processedUrl?.length,
+        prefix: result.processedUrl?.substring(0, 100)
+      });
+      
+      // Save to gallery and get public URL (for both data URLs and Deep-Image URLs)
       if (result.processedUrl) {
         try {
           console.log('[Upscale] Attempting to save to gallery...');
@@ -88,16 +112,98 @@ export async function POST(request: NextRequest) {
               processingTime: result.metadata?.processingTime
             }
           });
-          console.log('[Upscale] Save result:', savedId ? 'Success' : 'Failed');
+          console.log('[Upscale] Save result:', {
+            savedId,
+            success: !!savedId
+          });
+          
+          // If saved successfully, get the public URL (for both data URLs and HTTP URLs)
+          // Deep-Image URLs expire quickly, so we always need to use our stored version
+          if (savedId) {
+            console.log('[Upscale] Converting data URL to storage URL...');
+            // Get the public URL for the saved image
+            const serviceClient = createServiceRoleClient();
+            
+            // Get the image from the database to get the correct path
+            const { data: imageData, error: dbError } = await serviceClient
+              .from('processed_images')
+              .select('storage_url')
+              .eq('id', savedId)
+              .single();
+              
+            console.log('[Upscale] Database query result:', {
+              hasData: !!imageData,
+              storageUrl: imageData?.storage_url,
+              error: dbError
+            });
+              
+            if (imageData?.storage_url) {
+              // The storage_url is just the path, not a full URL
+              // We need to get the public URL from Supabase storage
+              const { data: urlData } = serviceClient.storage
+                .from('images')
+                .getPublicUrl(imageData.storage_url);
+              
+              console.log('[Upscale] Public URL generation:', {
+                storagePath: imageData.storage_url,
+                hasUrl: !!urlData?.publicUrl,
+                generatedUrl: urlData?.publicUrl,
+                supabaseUrl: env.SUPABASE_URL
+              });
+              
+              if (urlData?.publicUrl) {
+                console.log('[Upscale] Successfully converted to storage URL');
+                finalUrl = urlData.publicUrl;
+                
+                // Verify the URL is valid
+                if (!finalUrl.startsWith('http')) {
+                  console.error('[Upscale] Generated URL is invalid:', finalUrl);
+                  // Construct the URL manually as a fallback
+                  finalUrl = `${env.SUPABASE_URL}/storage/v1/object/public/images/${imageData.storage_url}`;
+                  console.log('[Upscale] Manually constructed URL:', finalUrl);
+                }
+              } else {
+                console.log('[Upscale] Failed to get public URL from storage');
+                // Construct the URL manually as a fallback
+                finalUrl = `${env.SUPABASE_URL}/storage/v1/object/public/images/${imageData.storage_url}`;
+                console.log('[Upscale] Manually constructed fallback URL:', finalUrl);
+              }
+            } else {
+              console.log('[Upscale] No storage_url found in database');
+            }
+          }
         } catch (saveError) {
           console.error('[Upscale] Error saving to gallery:', saveError);
           // Don't fail the request if saving fails
         }
       }
       
+      console.log('[Upscale] Final URL type:', {
+        isDataUrl: finalUrl?.startsWith('data:'),
+        length: finalUrl?.length,
+        prefix: finalUrl?.substring(0, 100)
+      });
+      
+      // CRITICAL FIX: Never return data URLs to the client
+      // They cause navigation issues and "about:blank#blocked" errors
+      if (finalUrl?.startsWith('data:')) {
+        console.error('[Upscale] WARNING: Still have data URL after processing, this will cause navigation issues!');
+        return NextResponse.json(
+          { error: 'Failed to convert image to storage URL. Please try again.' },
+          { status: 500 }
+        );
+      }
+      
+      // If we still have a Deep-Image URL, it means the save to storage failed
+      // We can still return it, but it will expire soon
+      if (finalUrl?.includes('deep-image.ai')) {
+        console.warn('[Upscale] WARNING: Returning Deep-Image URL. This URL will expire soon:', finalUrl?.substring(0, 100));
+        // Continue and return the URL - it will work temporarily
+      }
+      
       return NextResponse.json({
         success: true,
-        url: result.processedUrl,
+        url: finalUrl,
         processingTime: result.metadata?.processingTime,
         creditsUsed: result.metadata?.creditsUsed
       });
@@ -109,8 +215,34 @@ export async function POST(request: NextRequest) {
     }
 
   } catch (error) {
+    console.error('[Upscale] Error in handler:', error);
+    
+    // Ensure we always return valid JSON
+    const errorMessage = error instanceof Error ? error.message : 'Upscaling failed';
+    
+    // Check for specific error types
+    if (errorMessage.includes('timeout')) {
+      return NextResponse.json(
+        { 
+          error: 'The image processing is taking longer than expected. Please try again with a smaller image or simpler processing options.',
+          details: errorMessage 
+        },
+        { status: 504 }
+      );
+    }
+    
+    if (errorMessage.includes('Insufficient credits')) {
+      return NextResponse.json(
+        { error: errorMessage },
+        { status: 402 } // Payment Required
+      );
+    }
+    
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Upscaling failed' },
+      { 
+        error: errorMessage,
+        success: false 
+      },
       { status: 500 }
     );
   }

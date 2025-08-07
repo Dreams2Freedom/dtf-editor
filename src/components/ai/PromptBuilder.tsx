@@ -132,14 +132,26 @@ export function PromptBuilder({ onPromptChange, initialPrompt = '' }: PromptBuil
         </Card>
       )}
 
+      {/* DTF Transparency Notice */}
+      <div className="bg-green-50 border border-green-200 rounded-lg p-3 mb-3">
+        <h4 className="text-sm font-medium text-green-900 mb-1 flex items-center">
+          ✅ Automatic DTF Optimization
+        </h4>
+        <p className="text-xs text-green-700">
+          All images are automatically generated with <strong>transparent backgrounds</strong> and optimized for DTF printing.
+          No need to specify transparency - we handle it for you!
+        </p>
+      </div>
+
       {/* Prompt Tips */}
       <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
         <h4 className="text-sm font-medium text-blue-900 mb-1">Tips for Better Results:</h4>
         <ul className="text-xs text-blue-700 space-y-1">
           <li>• Be specific about colors, style, and composition</li>
           <li>• Mention if you want vector, realistic, or cartoon style</li>
-          <li>• Include details about the background (or specify "white background")</li>
-          <li>• For DTF printing, mention "high contrast" and "clean edges"</li>
+          <li>• <strong>Transparent backgrounds are automatic</strong> - focus on the subject</li>
+          <li>• For best DTF results, use "high contrast" and "vibrant colors"</li>
+          <li>• Avoid complex backgrounds - the subject will be isolated</li>
         </ul>
       </div>
     </div>

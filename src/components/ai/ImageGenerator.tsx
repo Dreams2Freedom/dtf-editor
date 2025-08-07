@@ -4,11 +4,13 @@ import React, { useState } from 'react';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { PromptBuilder } from './PromptBuilder';
+import { ImageToImageDirect } from './ImageToImageDirect';
 import { useAuthStore } from '@/stores/authStore';
 import { toast } from 'react-hot-toast';
 import Image from 'next/image';
-import { Download, Loader2, Sparkles, Image as ImageIcon } from 'lucide-react';
+import { Download, Loader2, Sparkles, Image as ImageIcon, Type, Upload, Scissors } from 'lucide-react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 
 interface GenerationOptions {
   size: '1024x1024' | '1792x1024' | '1024x1792';
@@ -25,6 +27,8 @@ interface GeneratedImage {
 
 export function ImageGenerator() {
   const { user, profile } = useAuthStore();
+  const router = useRouter();
+  const [mode, setMode] = useState<'text-to-image' | 'image-to-image'>('text-to-image');
   const [prompt, setPrompt] = useState('');
   const [options, setOptions] = useState<GenerationOptions>({
     size: '1024x1024',
@@ -34,7 +38,8 @@ export function ImageGenerator() {
   });
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatedImages, setGeneratedImages] = useState<GeneratedImage[]>([]);
-  const [enhanceForDTF, setEnhanceForDTF] = useState(true);
+  // Always enhance for DTF - transparent backgrounds are critical
+  const enhanceForDTF = true;
 
   // Check if user has access (admins always have access)
   const isAdmin = profile?.is_admin === true;
@@ -170,12 +175,51 @@ export function ImageGenerator() {
       <div className="grid lg:grid-cols-2 gap-6">
         {/* Left Column - Controls */}
         <div className="space-y-6">
-          {/* Prompt Builder */}
+          {/* Mode Toggle */}
+          <Card className="p-4">
+            <div className="flex gap-2">
+              <button
+                onClick={() => setMode('text-to-image')}
+                className={`flex-1 flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors ${
+                  mode === 'text-to-image'
+                    ? 'bg-purple-600 text-white'
+                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                }`}
+              >
+                <Type className="w-4 h-4" />
+                Text to Image
+              </button>
+              <button
+                onClick={() => setMode('image-to-image')}
+                className={`flex-1 flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors ${
+                  mode === 'image-to-image'
+                    ? 'bg-purple-600 text-white'
+                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                }`}
+              >
+                <Upload className="w-4 h-4" />
+                Image to Image
+              </button>
+            </div>
+          </Card>
+
+          {/* Prompt Builder or Image Upload */}
           <Card className="p-6">
-            <PromptBuilder
-              onPromptChange={setPrompt}
-              initialPrompt={prompt}
-            />
+            {mode === 'text-to-image' ? (
+              <PromptBuilder
+                onPromptChange={setPrompt}
+                initialPrompt={prompt}
+              />
+            ) : (
+              <ImageToImageDirect
+                onImagesGenerated={(images) => {
+                  setGeneratedImages(images);
+                  // Clear any prompt since we're using direct generation
+                  setPrompt('');
+                }}
+                generationOptions={options}
+              />
+            )}
           </Card>
 
           {/* Generation Options */}
@@ -295,17 +339,17 @@ export function ImageGenerator() {
               </div>
             </div>
 
-            {/* DTF Enhancement */}
-            <div className="mb-4">
-              <label className="flex items-center gap-2">
-                <input
-                  type="checkbox"
-                  checked={enhanceForDTF}
-                  onChange={(e) => setEnhanceForDTF(e.target.checked)}
-                  className="rounded"
-                />
-                <span className="text-sm">Auto-enhance for DTF printing</span>
-              </label>
+            {/* DTF Enhancement Notice */}
+            <div className="mb-4 bg-purple-50 border border-purple-200 rounded-lg p-3">
+              <div className="flex items-center gap-2">
+                <span className="text-purple-600">✓</span>
+                <span className="text-sm text-purple-700 font-medium">
+                  DTF Optimization Active
+                </span>
+              </div>
+              <p className="text-xs text-purple-600 mt-1">
+                Transparent background & print-ready formatting enabled
+              </p>
             </div>
 
             {/* Cost Summary */}
@@ -322,26 +366,28 @@ export function ImageGenerator() {
               </div>
             </div>
 
-            {/* Generate Button */}
-            <Button
-              variant="primary"
-              size="lg"
-              className="w-full mt-4"
-              onClick={handleGenerate}
-              disabled={!canGenerate || isGenerating || !prompt}
-            >
-              {isGenerating ? (
-                <>
-                  <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                  Generating...
-                </>
-              ) : (
-                <>
-                  <Sparkles className="w-5 h-5 mr-2" />
-                  Generate Image{options.count > 1 ? 's' : ''}
-                </>
-              )}
-            </Button>
+            {/* Generate Button - Only show in Text to Image mode */}
+            {mode === 'text-to-image' && (
+              <Button
+                variant="primary"
+                size="lg"
+                className="w-full mt-4"
+                onClick={handleGenerate}
+                disabled={!canGenerate || isGenerating || !prompt}
+              >
+                {isGenerating ? (
+                  <>
+                    <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                    Generating...
+                  </>
+                ) : (
+                  <>
+                    <Sparkles className="w-5 h-5 mr-2" />
+                    Generate Image{options.count > 1 ? 's' : ''}
+                  </>
+                )}
+              </Button>
+            )}
           </Card>
         </div>
 
@@ -388,19 +434,27 @@ export function ImageGenerator() {
                       <Button
                         variant="secondary"
                         size="sm"
-                        className="flex-1"
                         onClick={() => downloadImage(image.url, index)}
                       >
                         <Download className="w-4 h-4 mr-1" />
                         Download
                       </Button>
-                      <Link href={`/process?image=${encodeURIComponent(image.url)}`} className="flex-1">
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        onClick={() => {
+                          router.push(`/process/background-removal?imageUrl=${encodeURIComponent(image.url)}`);
+                        }}
+                      >
+                        <Scissors className="w-4 h-4 mr-1" />
+                        Remove BG
+                      </Button>
+                      <Link href={`/process?image=${encodeURIComponent(image.url)}`}>
                         <Button
                           variant="primary"
                           size="sm"
-                          className="w-full"
                         >
-                          Process Further
+                          Process
                         </Button>
                       </Link>
                     </div>

@@ -112,13 +112,72 @@ export default function ProcessClient() {
     multiple: false
   });
 
-  // Check for preselected operation from URL
+  // Check for preselected operation and image from URL
   useEffect(() => {
     const operation = searchParams.get('operation');
     if (operation) {
       setPreselectedOperation(operation);
     }
-  }, [searchParams]);
+    
+    // Handle incoming image URL (e.g., from AI generation "Process Further" button)
+    const imageUrlParam = searchParams.get('image');
+    if (imageUrlParam && !selectedFile) {
+      // Fetch and load the image from URL
+      const loadImageFromUrl = async () => {
+        try {
+          setIsUploading(true);
+          const response = await fetch(imageUrlParam);
+          if (!response.ok) {
+            throw new Error('Failed to fetch image from URL');
+          }
+          
+          const blob = await response.blob();
+          
+          // Validate that it's an image
+          if (!blob.type.startsWith('image/')) {
+            throw new Error('URL does not point to a valid image');
+          }
+          
+          // Create file from blob
+          let extension = 'jpg';
+          if (blob.type === 'image/png') extension = 'png';
+          else if (blob.type === 'image/webp') extension = 'webp';
+          else if (blob.type === 'image/gif') extension = 'gif';
+          
+          const file = new File([blob], `image.${extension}`, { type: blob.type });
+          
+          // Validate the file
+          const validationError = validateFile(file);
+          if (validationError) {
+            setUploadError(validationError);
+            setIsUploading(false);
+            return;
+          }
+          
+          setSelectedFile(file);
+          setUploadError(null);
+          
+          // Create preview
+          const reader = new FileReader();
+          reader.onload = (e) => {
+            setImagePreview(e.target?.result as string);
+          };
+          reader.readAsDataURL(file);
+          
+          // Auto-upload if user is logged in
+          if (user) {
+            await uploadImage(file);
+          }
+        } catch (error) {
+          setUploadError(error instanceof Error ? error.message : 'Failed to load image from URL');
+        } finally {
+          setIsUploading(false);
+        }
+      };
+      
+      loadImageFromUrl();
+    }
+  }, [searchParams, selectedFile, user, uploadImage, validateFile]);
 
   // Auto-navigate when image is uploaded and operation is preselected
   useEffect(() => {

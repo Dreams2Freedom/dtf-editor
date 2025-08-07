@@ -20,6 +20,8 @@ export default function BackgroundRemovalClient() {
   const router = useRouter();
   const { profile, refreshCredits, user } = useAuthStore();
   const imageId = searchParams.get('imageId');
+  const imageUrlParam = searchParams.get('imageUrl'); // New parameter for direct URL access
+  const tempImageKey = searchParams.get('tempImage'); // For images stored in sessionStorage
   
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [imageFile, setImageFile] = useState<File | null>(null);
@@ -35,44 +37,85 @@ export default function BackgroundRemovalClient() {
   const [creditsDeducted, setCreditsDeducted] = useState(false);
   const [resultGenerated, setResultGenerated] = useState(false);
 
-  // Load image data
+  // Load image data from either imageId, imageUrl, or tempImage
   useEffect(() => {
-    if (!imageId) {
-      router.push('/process');
-      return;
-    }
-
-    // Fetch image URL from database
-    const fetchImage = async () => {
+    const fetchImageFromUrl = async (url: string) => {
       try {
-        const response = await fetch(`/api/uploads/${imageId}`);
-        const data = await response.json();
-        
-        if (data.success) {
-          setImageUrl(data.publicUrl);
-          // Convert data URL to File object for upload
-          const res = await fetch(data.publicUrl);
-          const blob = await res.blob();
-          // Use appropriate file extension based on MIME type
-          let extension = 'jpg';
-          if (blob.type === 'image/png') extension = 'png';
-          else if (blob.type === 'image/webp') extension = 'webp';
-          else if (blob.type === 'image/gif') extension = 'gif';
-          
-          const file = new File([blob], `image.${extension}`, { type: blob.type });
-          setImageFile(file);
-        } else {
-          throw new Error(data.error || 'Failed to load image');
+        setImageUrl(url);
+        // Fetch and convert URL to File object for upload
+        const res = await fetch(url);
+        if (!res.ok) {
+          throw new Error('Failed to fetch image from URL');
         }
+        const blob = await res.blob();
+        
+        // Validate that it's an image
+        if (!blob.type.startsWith('image/')) {
+          throw new Error('URL does not point to a valid image');
+        }
+        
+        // Use appropriate file extension based on MIME type
+        let extension = 'jpg';
+        if (blob.type === 'image/png') extension = 'png';
+        else if (blob.type === 'image/webp') extension = 'webp';
+        else if (blob.type === 'image/gif') extension = 'gif';
+        
+        const file = new File([blob], `image.${extension}`, { type: blob.type });
+        setImageFile(file);
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to load image');
+        setError(err instanceof Error ? err.message : 'Failed to load image from URL');
       } finally {
         setIsLoading(false);
       }
     };
 
-    fetchImage();
-  }, [imageId, router]);
+    // Fetch image from database using imageId
+    const fetchImageFromDatabase = async () => {
+      try {
+        const response = await fetch(`/api/uploads/${imageId}`);
+        const data = await response.json();
+        
+        if (data.success) {
+          await fetchImageFromUrl(data.publicUrl);
+        } else {
+          throw new Error(data.error || 'Failed to load image');
+        }
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Failed to load image');
+        setIsLoading(false);
+      }
+    };
+
+    // Check if we have any parameter
+    if (!imageId && !imageUrlParam && !tempImageKey) {
+      router.push('/process');
+      return;
+    }
+    
+    // Handle sessionStorage image first
+    if (tempImageKey) {
+      try {
+        const storedImage = sessionStorage.getItem(tempImageKey);
+        if (storedImage) {
+          console.log('[Background Removal] Retrieved image from sessionStorage');
+          // Clean up sessionStorage
+          sessionStorage.removeItem(tempImageKey);
+          // Process as if it was a URL parameter
+          fetchImageFromUrl(storedImage);
+          return;
+        }
+      } catch (err) {
+        console.error('[Background Removal] Failed to retrieve from sessionStorage:', err);
+      }
+    }
+    
+    // Priority: use imageUrl if provided, otherwise use imageId
+    if (imageUrlParam) {
+      fetchImageFromUrl(imageUrlParam);
+    } else if (imageId) {
+      fetchImageFromDatabase();
+    }
+  }, [imageId, imageUrlParam, tempImageKey, router]);
 
   // Refresh credits when page loads or regains focus
   useEffect(() => {

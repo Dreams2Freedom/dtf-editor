@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
-import { Wand2, Download, Loader2, ArrowLeft } from 'lucide-react';
+import { Wand2, Download, Loader2, ArrowLeft, Scissors } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import Link from 'next/link';
@@ -101,20 +101,38 @@ export default function UpscaleClient() {
       const actualScale = selectedScale === '3' ? '4' : selectedScale;
       formData.append('scale', actualScale);
 
+      // Create an AbortController for timeout
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 55000); // 55 second timeout
+      
       const response = await fetch('/api/upscale', {
         method: 'POST',
         body: formData,
-        credentials: 'include'
+        credentials: 'include',
+        signal: controller.signal
+      }).finally(() => {
+        clearTimeout(timeoutId);
       });
 
-      const result = await response.json();
+      // Check content type before parsing
+      const contentType = response.headers.get('content-type');
+      let result;
+      
+      if (contentType && contentType.includes('application/json')) {
+        result = await response.json();
+      } else {
+        // If not JSON, try to read as text
+        const text = await response.text();
+        console.error('[Upscale] Non-JSON response:', text);
+        throw new Error(`Server error: ${text.substring(0, 100)}`);
+      }
 
       if (!response.ok) {
-        throw new Error(result.error || 'Processing failed');
+        throw new Error(result.error || `Processing failed with status ${response.status}`);
       }
 
       if (!result.success || !result.url) {
-        throw new Error('No result URL received');
+        throw new Error(result.error || 'No result URL received');
       }
 
       setProcessedUrl(result.url);
@@ -123,7 +141,15 @@ export default function UpscaleClient() {
       await refreshCredits();
 
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Processing failed');
+      if (err instanceof Error) {
+        if (err.name === 'AbortError') {
+          setError('Request timed out. The image processing is taking too long. Please try with a smaller image or simpler settings.');
+        } else {
+          setError(err.message);
+        }
+      } else {
+        setError('Processing failed');
+      }
     } finally {
       setIsProcessing(false);
     }
@@ -260,13 +286,66 @@ export default function UpscaleClient() {
                         className="max-w-full h-auto rounded-lg border"
                         style={{ maxHeight: '600px' }}
                       />
-                      <div className="flex gap-4">
+                      <div className="flex gap-2">
                         <Button
                           onClick={downloadImage}
                           className="flex items-center gap-2"
                         >
                           <Download className="w-4 h-4" />
                           Download Result
+                        </Button>
+                        <Button
+                          onClick={async () => {
+                            console.log('Remove Background clicked');
+                            console.log('processedUrl:', processedUrl);
+                            console.log('processedUrl type:', typeof processedUrl);
+                            console.log('processedUrl length:', processedUrl?.length);
+                            console.log('Is data URL?', processedUrl?.startsWith('data:'));
+                            
+                            // Check if processedUrl is valid
+                            if (!processedUrl) {
+                              alert('No processed image URL available. Please wait for the image to finish processing.');
+                              return;
+                            }
+                            
+                            // If it's a data URL and too large, handle differently
+                            if (processedUrl.startsWith('data:') && processedUrl.length > 2000) {
+                              console.log('Data URL is too large for URL parameter');
+                              
+                              // Store in sessionStorage and navigate with a key
+                              const storageKey = `temp_image_${Date.now()}`;
+                              try {
+                                sessionStorage.setItem(storageKey, processedUrl);
+                                console.log('Stored image in sessionStorage with key:', storageKey);
+                                
+                                // Navigate with the storage key instead
+                                const targetUrl = `/process/background-removal?tempImage=${storageKey}`;
+                                router.push(targetUrl);
+                              } catch (storageError) {
+                                console.error('Failed to store in sessionStorage:', storageError);
+                                alert('The image is too large to process directly. Please download it first and then upload it to the background removal tool.');
+                              }
+                              return;
+                            }
+                            
+                            // For regular URLs or small data URLs
+                            const targetUrl = `/process/background-removal?imageUrl=${encodeURIComponent(processedUrl)}`;
+                            console.log('Target URL:', targetUrl);
+                            console.log('Target URL length:', targetUrl.length);
+                            
+                            try {
+                              console.log('Attempting navigation...');
+                              router.push(targetUrl);
+                            } catch (error) {
+                              console.error('Navigation failed:', error);
+                              alert('Unable to navigate. Please check the browser console for details.');
+                            }
+                          }}
+                          variant="secondary"
+                          className="flex items-center gap-2"
+                        >
+                          <Scissors className="w-4 h-4" />
+                          Remove Background
                         </Button>
                         <Button
                           onClick={() => {

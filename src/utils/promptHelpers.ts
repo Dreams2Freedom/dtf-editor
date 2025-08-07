@@ -5,33 +5,52 @@
 
 /**
  * Get suggested prompt enhancements for DTF printing
+ * CRITICAL: Always adds transparent background requirement for DTF
  */
 export function enhancePromptForDTF(basePrompt: string): string {
+  // CRITICAL DTF Requirements - ALWAYS ADDED
+  const criticalDTFRequirements = [
+    'transparent background',
+    'isolated subject on transparent background', 
+    'no background elements',
+    'PNG format with transparency',
+    'clean edges for printing',
+  ];
+
+  // Additional quality enhancements
   const dtfEnhancements = [
     'high resolution',
     'detailed',
-    'clean edges',
-    'suitable for printing',
-    'vibrant colors',
+    'sharp edges',
+    'suitable for DTF transfer printing',
+    'vibrant colors optimized for fabric',
     'professional design',
   ];
 
-  // Add DTF-specific enhancements if not already present
+  // Start with the base prompt
   let enhancedPrompt = basePrompt;
   
+  // ALWAYS add transparent background requirement - this is critical for DTF
+  if (!/transparent|no background|isolated/i.test(basePrompt)) {
+    enhancedPrompt += ', on a completely transparent background with no background elements';
+  }
+  
   // Check if the prompt already mentions printing/DTF
-  const hasPrintingContext = /print|dtf|transfer|shirt|apparel/i.test(basePrompt);
+  const hasPrintingContext = /print|dtf|transfer|shirt|apparel|fabric|garment/i.test(basePrompt);
   
   if (!hasPrintingContext) {
-    enhancedPrompt += ', suitable for DTF printing on apparel';
+    enhancedPrompt += ', optimized for DTF (Direct to Film) transfer printing on fabric';
   }
 
   // Add quality modifiers if not present
-  const hasQualityModifiers = /high resolution|detailed|quality|professional/i.test(basePrompt);
+  const hasQualityModifiers = /high resolution|detailed|quality|professional|sharp|clear/i.test(basePrompt);
   
   if (!hasQualityModifiers) {
-    enhancedPrompt += ', high resolution, professional quality';
+    enhancedPrompt += ', ultra high resolution, sharp details, professional quality';
   }
+
+  // Always end with explicit transparency instruction
+  enhancedPrompt += '. IMPORTANT: Generate with completely transparent background (no background color or elements), isolated subject only, PNG format with full transparency support for DTF printing.';
 
   return enhancedPrompt;
 }
@@ -42,11 +61,11 @@ export function enhancePromptForDTF(basePrompt: string): string {
 export function getPromptSuggestions(category: 'general' | 'fashion' | 'sports' | 'nature' | 'abstract' | 'vintage'): string[] {
   const suggestions = {
     general: [
-      'A cute cartoon cat wearing sunglasses, vibrant colors, sticker style',
-      'Retro 80s neon geometric pattern, synthwave aesthetic',
-      'Minimalist mountain landscape with sunset, clean vector style',
-      'Graffiti art style text saying "DREAMS", urban street art',
-      'Cute kawaii food characters having a party, pastel colors',
+      'A cute cartoon cat wearing sunglasses, vibrant colors, sticker style, isolated on transparent background',
+      'Retro 80s neon geometric pattern, synthwave aesthetic, no background',
+      'Minimalist mountain landscape silhouette, clean vector style, transparent background',
+      'Graffiti art style text saying "DREAMS", urban street art, isolated design',
+      'Cute kawaii food characters having a party, pastel colors, transparent PNG',
     ],
     fashion: [
       'Elegant floral pattern with roses and gold accents, vintage botanical',

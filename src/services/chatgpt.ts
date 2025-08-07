@@ -85,13 +85,15 @@ export class ChatGPTService {
       console.log('[ChatGPT Service] Calling OpenAI API...');
       let response;
       try {
-        response = await openai.images.generate({
-          model: 'dall-e-3', // Using DALL-E 3 for best quality
-          prompt,
+        // Always use DALL-E 3 for image generation
+      // GPT-4o can analyze images but doesn't generate them
+      response = await openai.images.generate({
+          model: 'dall-e-3',
+          prompt: prompt.replace('[IMAGE-TO-IMAGE]', ''), // Remove marker if present
           size,
           quality,
           style,
-          n: 1, // DALL-E 3 only supports 1 image at a time
+          n: 1,
           response_format: 'url', // Get URLs instead of base64
         });
         console.log('[ChatGPT Service] OpenAI API call successful');

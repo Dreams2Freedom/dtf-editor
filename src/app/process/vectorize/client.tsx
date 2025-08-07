@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
-import { Zap, Download, Loader2, ArrowLeft } from 'lucide-react';
+import { Zap, Download, Loader2, ArrowLeft, Scissors } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import Link from 'next/link';
@@ -278,13 +278,67 @@ export default function VectorizeClient() {
                           <p className="text-gray-600">PDF file ready for download</p>
                         </div>
                       )}
-                      <div className="flex gap-4">
+                      <div className="flex gap-2">
                         <Button
                           onClick={downloadImage}
                           className="flex items-center gap-2"
                         >
                           <Download className="w-4 h-4" />
                           Download {selectedFormat.toUpperCase()}
+                        </Button>
+                        <Button
+                          onClick={() => {
+                            console.log('[Vectorize] Remove Background clicked');
+                            console.log('[Vectorize] processedUrl:', processedUrl);
+                            console.log('[Vectorize] processedUrl type:', typeof processedUrl);
+                            console.log('[Vectorize] processedUrl length:', processedUrl?.length);
+                            console.log('[Vectorize] Is data URL?', processedUrl?.startsWith('data:'));
+                            
+                            // Check if processedUrl is valid
+                            if (!processedUrl) {
+                              alert('No processed image URL available. Please wait for the image to finish processing.');
+                              return;
+                            }
+                            
+                            // SVG files are typically data URLs and can be very large
+                            // For vectorized images, we should handle them specially
+                            if (processedUrl.startsWith('data:') && processedUrl.length > 2000) {
+                              console.log('[Vectorize] Data URL is too large for URL parameter');
+                              
+                              // Store in sessionStorage and navigate with a key
+                              const storageKey = `temp_image_${Date.now()}`;
+                              try {
+                                sessionStorage.setItem(storageKey, processedUrl);
+                                console.log('[Vectorize] Stored image in sessionStorage with key:', storageKey);
+                                
+                                // Navigate with the storage key instead
+                                const targetUrl = `/process/background-removal?tempImage=${storageKey}`;
+                                router.push(targetUrl);
+                              } catch (storageError) {
+                                console.error('[Vectorize] Failed to store in sessionStorage:', storageError);
+                                alert('The vectorized image is too large to process directly. Please download it first and then upload it to the background removal tool.');
+                              }
+                              return;
+                            }
+                            
+                            // For regular URLs or small data URLs
+                            const targetUrl = `/process/background-removal?imageUrl=${encodeURIComponent(processedUrl)}`;
+                            console.log('[Vectorize] Target URL:', targetUrl);
+                            console.log('[Vectorize] Target URL length:', targetUrl.length);
+                            
+                            try {
+                              console.log('[Vectorize] Attempting navigation...');
+                              router.push(targetUrl);
+                            } catch (error) {
+                              console.error('[Vectorize] Navigation failed:', error);
+                              alert('Unable to navigate. Please check the browser console for details.');
+                            }
+                          }}
+                          variant="secondary"
+                          className="flex items-center gap-2"
+                        >
+                          <Scissors className="w-4 h-4" />
+                          Remove Background
                         </Button>
                         <Button
                           onClick={() => {

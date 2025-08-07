@@ -3,6 +3,8 @@
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/Button';
 import { ProcessingMode } from '@/services/deepImage';
+import { useRouter } from 'next/navigation';
+import { Scissors } from 'lucide-react';
 
 interface UpscaleToolProps {
   imageFile: File;
@@ -11,6 +13,7 @@ interface UpscaleToolProps {
 }
 
 export const UpscaleTool: React.FC<UpscaleToolProps> = ({ imageFile, imagePreview, onUpscaleComplete }) => {
+  const router = useRouter();
   const [isUpscaling, setIsUpscaling] = useState(false);
   const [progress, setProgress] = useState(0);
   const [error, setError] = useState<string | null>(null);
@@ -214,13 +217,26 @@ export const UpscaleTool: React.FC<UpscaleToolProps> = ({ imageFile, imagePrevie
                 alt="Upscaled"
                 className="max-w-full h-auto rounded-md border border-gray-200"
               />
-              <a
-                href={upscaledUrl}
-                download="upscaled-image.png"
-                className="inline-block text-sm text-blue-600 hover:text-blue-800 underline"
-              >
-                Download upscaled image
-              </a>
+              <div className="flex gap-2 mt-3">
+                <a
+                  href={upscaledUrl}
+                  download="upscaled-image.png"
+                  className="flex-1 inline-flex items-center justify-center px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors"
+                >
+                  Download upscaled image
+                </a>
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  className="flex-1"
+                  onClick={() => {
+                    router.push(`/process/background-removal?imageUrl=${encodeURIComponent(upscaledUrl)}`);
+                  }}
+                >
+                  <Scissors className="w-4 h-4 mr-1" />
+                  Remove Background
+                </Button>
+              </div>
             </div>
           </div>
         )}

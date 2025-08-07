@@ -155,6 +155,17 @@ export class DeepImageService {
       if (result.status === 'complete' && result.result_url) {
         console.log('[DeepImage] Processing complete, URL:', result.result_url);
         
+        // TEMPORARY FIX: Return the original URL directly
+        // Converting to data URLs causes navigation issues with "about:blank#blocked"
+        // The upscale API endpoint will handle downloading and saving to storage
+        return { 
+          status: 'success', 
+          url: result.result_url,  // Return the original URL from Deep-Image
+          processingTime: result.processing_time 
+        };
+        
+        // OLD CODE: Downloaded and converted to data URL (caused navigation issues)
+        /*
         // Download the image immediately since Deep-Image URLs expire quickly
         try {
           console.log('[DeepImage] Downloading processed image immediately...');
@@ -192,6 +203,7 @@ export class DeepImageService {
             processingTime: result.processing_time 
           };
         }
+        */
       } 
       
       // Handle job that needs polling
@@ -249,6 +261,15 @@ export class DeepImageService {
         if (result.status === 'complete' && result.result_url) {
           console.log('[DeepImage] Polling complete, URL:', result.result_url);
           
+          // TEMPORARY FIX: Return the original URL directly (same as immediate results)
+          return { 
+            status: 'success', 
+            url: result.result_url,  // Return the original URL from Deep-Image
+            processingTime: result.processing_time 
+          };
+          
+          // OLD CODE: Downloaded and converted to data URL (caused navigation issues)
+          /*
           // Download the image immediately since Deep-Image URLs expire quickly
           try {
             console.log('[DeepImage] Downloading polled image immediately...');
@@ -286,6 +307,7 @@ export class DeepImageService {
               processingTime: result.processing_time 
             };
           }
+          */
         } 
         
         // Job still processing
