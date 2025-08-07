@@ -7,6 +7,85 @@
 
 ## 📅 August 2025 - Production Bug Fixes
 
+### **Date: 2025-08-06 - Stripe Webhook Integration & Notification System**
+
+#### **Task: Fix Stripe Payment Processing & Add Admin Notification System**
+
+**Duration:** 4 hours
+
+**What Was Accomplished:**
+1. **Fixed Stripe Webhook Integration Issues**
+   - Webhook signature verification failing (400 errors)
+   - Webhook URL pointing to preview deployment instead of production
+   - Runtime errors: `Cannot read properties of null` and `Invalid time value`
+   - Subscription cancellations from Stripe dashboard not updating user status
+
+2. **Built Complete Notification System**
+   - Admin can send targeted notifications to users
+   - Support for targeting by subscription plan (all, free, basic, starter)
+   - Notification types: info, success, warning, error, announcement
+   - Read/dismiss functionality with unread count badge
+   - Optional action URLs and expiration dates
+   - Real-time notification bell in user header
+
+**Problems Solved:**
+
+1. **Webhook Not Receiving Events:**
+   - Root cause: Webhook URL was `dtfeditor.vercel.app` instead of `dtfeditor.com`
+   - Fixed by updating webhook URL in Stripe dashboard
+
+2. **Webhook Signature Verification Failed:**
+   - Root cause: Test mode vs Live mode confusion
+   - Each mode has different signing secrets
+   - Fixed by using test mode secret to match test API keys
+
+3. **Webhook Runtime Errors:**
+   - `supabase` variable was null - fixed by using `getSupabase()` consistently
+   - Date conversion errors - added null checks for subscription date fields
+
+4. **Subscription Updates Not Reflecting:**
+   - Stripe dashboard actions don't include userId in metadata
+   - Fixed by looking up user by Stripe customer ID as fallback
+
+**Technical Implementation:**
+
+1. **Database Migration (`011_create_notifications_system.sql`):**
+   - `notifications` table for storing notifications
+   - `user_notifications` junction table for read/dismissed status
+   - RLS policies for secure access
+   - Functions for marking read, dismissing, and sending to audiences
+
+2. **API Endpoints:**
+   - `/api/admin/notifications/send` - Admin endpoint to create notifications
+   - `/api/notifications` - User endpoints to fetch and update status
+
+3. **UI Components:**
+   - `NotificationBell` component with dropdown panel
+   - Admin notification sender at `/admin/notifications`
+   - Integration with existing header
+
+**Manual Fixes Applied:**
+- Created scripts for manual subscription management:
+  - `fix-subscription-manually.js` - Update subscription status
+  - `cancel-subscription-manual.js` - Cancel subscriptions
+  - `update-user-credits.js` - Adjust user credits
+  - `reset-stripe-customer.js` - Clear Stripe data for fresh start
+  - `resubscribe-user.js` - Manually activate subscriptions
+
+**Key Learnings:**
+- Stripe test mode and live mode are completely separate environments
+- Webhook secrets must match the mode of your API keys
+- Always implement fallbacks for webhook data (customer ID lookup)
+- Build errors can be misleading - check imports carefully
+- Manual intervention scripts are valuable for production issues
+
+**User Management Updates:**
+- Added 100 credits to tami@s2transfers.com
+- Made shannon@s2transfers.com a super admin
+- Reset password for shannon@s2transfers.com
+
+---
+
 ### **Date: 2025-08-05 - ClippingMagic Upload Fix for Next.js Body Parser Limit**
 
 #### **Task: Fix 413 Error for Background Removal Upload**

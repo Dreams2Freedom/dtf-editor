@@ -1,9 +1,59 @@
 # DTF Editor - Bug Tracker
 
-**Last Updated:** August 5, 2025  
+**Last Updated:** August 6, 2025  
 **Status:** Active Bug Tracking
 
 ## 🐛 **Critical Bugs (P0)**
+
+### **BUG-042: Stripe Webhook Integration Issues**
+- **Status:** 🟢 FIXED
+- **Severity:** Critical
+- **Component:** Stripe Webhooks / Payment Processing
+- **Description:** Multiple issues preventing Stripe webhooks from processing payments and subscriptions
+- **Symptoms:**
+  - Webhook returning 400 "Signature verification failed" errors
+  - Webhook URL pointing to preview deployment instead of production
+  - Runtime errors: "Cannot read properties of null" and "Invalid time value"
+  - Subscription cancellations from Stripe dashboard not updating user status
+  - Payments successful but credits/subscriptions not updating
+- **Root Causes Found:**
+  1. **Wrong Webhook URL**: Was `dtfeditor.vercel.app` instead of `dtfeditor.com`
+  2. **Mode Mismatch**: Test mode webhook secret with test API keys required
+  3. **Code Errors**: `supabase` variable null, missing date field checks
+  4. **Missing Metadata**: Stripe dashboard actions don't include userId
+- **Solution Applied:**
+  1. Updated webhook URL in Stripe dashboard to production domain
+  2. Used correct test mode webhook signing secret
+  3. Fixed code to use `getSupabase()` consistently
+  4. Added null checks for subscription date fields
+  5. Implemented fallback to lookup userId by customer ID
+- **Manual Scripts Created:**
+  - `fix-subscription-manually.js` - Update subscription status
+  - `cancel-subscription-manual.js` - Cancel subscriptions
+  - `update-user-credits.js` - Adjust user credits
+  - `reset-stripe-customer.js` - Clear Stripe data
+  - `resubscribe-user.js` - Manually activate subscriptions
+- **Verification:** All payment types now working (subscriptions, pay-as-you-go, cancellations)
+- **Date Reported:** August 6, 2025
+- **Date Fixed:** August 6, 2025
+
+### **BUG-043: Notification System Build Errors**
+- **Status:** 🟢 FIXED
+- **Severity:** High
+- **Component:** Notification System
+- **Description:** Build failing due to non-existent `useAuth` hook import
+- **Symptoms:**
+  - "Module not found: Can't resolve '@/hooks/useAuth'"
+  - Build failure preventing deployment
+- **Root Cause:** 
+  - Imported non-existent `useAuth` hook instead of `useAuthStore`
+  - Wrong authentication pattern for getting session tokens
+- **Solution Applied:**
+  - Replaced `useAuth` with `useAuthStore` imports
+  - Used `createClientSupabaseClient` to get session tokens
+  - Fixed all authentication calls in notification components
+- **Date Reported:** August 6, 2025
+- **Date Fixed:** August 6, 2025
 
 ### **BUG-039: Image Gallery and Vectorization Save Issues**
 - **Status:** 🟢 FIXED
@@ -732,11 +782,11 @@
 
 | Priority | Total | Open | In Progress | Fixed | Fix Rate |
 |----------|-------|------|-------------|-------|----------|
-| P0 Critical | 41 | 0 | 1 | 40 | 98% |
-| P1 High | 3 | 1 | 0 | 2 | 67% |
+| P0 Critical | 43 | 0 | 1 | 42 | 98% |
+| P1 High | 4 | 1 | 0 | 3 | 75% |
 | P2 Medium | 3 | 1 | 0 | 2 | 67% |
 | P3 Low | 2 | 2 | 0 | 0 | 0% |
-| **Total** | **49** | **4** | **1** | **44** | **90%** |
+| **Total** | **52** | **4** | **1** | **47** | **90%** |
 
 ---
 
