@@ -7,14 +7,15 @@ import { Input } from '@/components/ui/Input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { toast } from '@/lib/toast';
 import { Bell, Send, Users, DollarSign, Gift, AlertCircle } from 'lucide-react';
-import { useAuth } from '@/hooks/useAuth';
+import { useAuthStore } from '@/stores/authStore';
+import { createClientSupabaseClient } from '@/lib/supabase/client';
 
 type NotificationType = 'info' | 'warning' | 'success' | 'error' | 'announcement';
 type TargetAudience = 'all' | 'free' | 'basic' | 'starter' | 'custom';
 type Priority = 'low' | 'normal' | 'high' | 'urgent';
 
 export default function AdminNotificationsPage() {
-  const { getToken } = useAuth();
+  const { user } = useAuthStore();
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     title: '',
@@ -37,7 +38,13 @@ export default function AdminNotificationsPage() {
 
     setLoading(true);
     try {
-      const token = await getToken();
+      const supabase = createClientSupabaseClient();
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (!session) {
+        toast.error('Authentication required');
+        return;
+      }
       
       // Calculate expiration if set
       let expiresAt = null;
@@ -50,7 +57,7 @@ export default function AdminNotificationsPage() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
+          'Authorization': `Bearer ${session.access_token}`,
         },
         body: JSON.stringify({
           ...formData,

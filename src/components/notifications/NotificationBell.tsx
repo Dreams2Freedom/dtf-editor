@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import { Bell, X, ExternalLink, Check } from 'lucide-react';
-import { useAuth } from '@/hooks/useAuth';
+import { useAuthStore } from '@/stores/authStore';
+import { createClientSupabaseClient } from '@/lib/supabase/client';
 import { formatDistanceToNow } from 'date-fns';
 
 interface Notification {
@@ -19,7 +20,7 @@ interface Notification {
 }
 
 export function NotificationBell() {
-  const { getToken, user } = useAuth();
+  const { user } = useAuthStore();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [showDropdown, setShowDropdown] = useState(false);
@@ -34,11 +35,14 @@ export function NotificationBell() {
   const fetchNotifications = async () => {
     try {
       setLoading(true);
-      const token = await getToken();
+      const supabase = createClientSupabaseClient();
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (!session) return;
       
       const response = await fetch('/api/notifications', {
         headers: {
-          'Authorization': `Bearer ${token}`,
+          'Authorization': `Bearer ${session.access_token}`,
         },
       });
 
@@ -56,13 +60,16 @@ export function NotificationBell() {
 
   const markAsRead = async (notificationId: string) => {
     try {
-      const token = await getToken();
+      const supabase = createClientSupabaseClient();
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (!session) return;
       
       await fetch('/api/notifications', {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
+          'Authorization': `Bearer ${session.access_token}`,
         },
         body: JSON.stringify({
           notificationId,
@@ -82,13 +89,16 @@ export function NotificationBell() {
 
   const dismissNotification = async (notificationId: string) => {
     try {
-      const token = await getToken();
+      const supabase = createClientSupabaseClient();
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (!session) return;
       
       await fetch('/api/notifications', {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
+          'Authorization': `Bearer ${session.access_token}`,
         },
         body: JSON.stringify({
           notificationId,
