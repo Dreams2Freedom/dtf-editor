@@ -20,6 +20,7 @@ import {
   HardDrive
 } from 'lucide-react';
 import { CreditDisplay } from '@/components/ui/CreditDisplay';
+import { NotificationBell } from '@/components/notifications/NotificationBell';
 
 export function Header() {
   const { user, profile, signOut } = useAuthStore();
@@ -79,6 +80,7 @@ export function Header() {
             {user ? (
               <>
                 <CreditDisplay />
+                <NotificationBell />
                 <div className="relative ml-3">
                   <div className="flex items-center space-x-3">
                     {userNavigation.map((item) => (

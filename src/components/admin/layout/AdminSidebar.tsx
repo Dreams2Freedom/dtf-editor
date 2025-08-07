@@ -13,7 +13,8 @@ import {
   FileText,
   X,
   ChevronDown,
-  ChevronRight
+  ChevronRight,
+  Bell
 } from 'lucide-react';
 import { useState } from 'react';
 interface AdminSidebarProps {
@@ -67,6 +68,12 @@ const menuItems: MenuItem[] = [
     href: '/admin/support',
     icon: HeadphonesIcon,
     permission: ['support', 'view'],
+  },
+  {
+    name: 'Notifications',
+    href: '/admin/notifications',
+    icon: Bell,
+    permission: ['notifications', 'send'],
   },
   {
     name: 'System',
