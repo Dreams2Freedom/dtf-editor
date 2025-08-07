@@ -3,18 +3,17 @@ import { storageService } from '@/services/storage';
 import { imageProcessingService } from '@/services/imageProcessing';
 import { createServerSupabaseClient, createServiceRoleClient } from '@/lib/supabase/server';
 import { ProcessingMode } from '@/services/deepImage';
-// Import save function - ensure it's included in build
+import { env } from '@/config/env';
+// Import save function
 import { saveProcessedImageToGallery } from '@/utils/saveProcessedImage';
-
-// Force the function to be included
-const _ = saveProcessedImageToGallery;
 
 export async function POST(request: NextRequest) {
   console.log('[Upscale] Handler started - v2 with gallery save');
   
-  // Set a timeout for the entire request (50 seconds, leaving 10s buffer for Vercel's 60s limit)
+  // Set a timeout for the entire request (45 seconds, leaving 15s buffer for Vercel's 60s limit)
+  // This ensures we return a proper JSON error before Vercel times out
   const timeoutPromise = new Promise((_, reject) => {
-    setTimeout(() => reject(new Error('Request timeout after 50 seconds')), 50000);
+    setTimeout(() => reject(new Error('Request timeout after 45 seconds')), 45000);
   });
   
   try {
@@ -75,7 +74,7 @@ export async function POST(request: NextRequest) {
     const result = await Promise.race([
       processingPromise,
       timeoutPromise.then(() => {
-        throw new Error('Image processing timed out after 50 seconds');
+        throw new Error('Image processing timed out after 45 seconds');
       })
     ]) as Awaited<typeof processingPromise>;
 

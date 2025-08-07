@@ -101,9 +101,9 @@ export default function UpscaleClient() {
       const actualScale = selectedScale === '3' ? '4' : selectedScale;
       formData.append('scale', actualScale);
 
-      // Create an AbortController for timeout
+      // Create an AbortController for timeout (40 seconds to be safe)
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 55000); // 55 second timeout
+      const timeoutId = setTimeout(() => controller.abort(), 40000); // 40 second timeout
       
       const response = await fetch('/api/upscale', {
         method: 'POST',
@@ -118,13 +118,33 @@ export default function UpscaleClient() {
       const contentType = response.headers.get('content-type');
       let result;
       
+      // Handle different response statuses first
+      if (response.status === 504) {
+        throw new Error('The server took too long to process your image. Please try again with a smaller image or simpler settings.');
+      }
+      
+      if (response.status === 502 || response.status === 503) {
+        throw new Error('The image processing service is temporarily unavailable. Please try again in a few moments.');
+      }
+      
       if (contentType && contentType.includes('application/json')) {
-        result = await response.json();
+        try {
+          result = await response.json();
+        } catch (jsonError) {
+          console.error('[Upscale] Failed to parse JSON response:', jsonError);
+          throw new Error('Invalid response from server. Please try again.');
+        }
       } else {
-        // If not JSON, try to read as text
+        // If not JSON (likely an error page), provide a better error message
         const text = await response.text();
-        console.error('[Upscale] Non-JSON response:', text);
-        throw new Error(`Server error: ${text.substring(0, 100)}`);
+        console.error('[Upscale] Non-JSON response:', text.substring(0, 200));
+        
+        // Check for common error patterns
+        if (response.status === 504 || text.includes('Gateway Timeout')) {
+          throw new Error('The server took too long to process your image. Please try again with a smaller image.');
+        }
+        
+        throw new Error(`Server error (${response.status}). Please try again.`);
       }
 
       if (!response.ok) {
