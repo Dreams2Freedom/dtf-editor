@@ -136,8 +136,15 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Calculate required credits
-    const creditsPerImage = quality === 'hd' ? 4 : 2;
+    // Calculate required credits based on size
+    const sizeMap = {
+      '256x256': 1,
+      '512x512': 1,
+      '1024x1024': 2,
+      '1024x1792': 2,
+      '1792x1024': 2
+    };
+    const creditsPerImage = sizeMap[size] || 2;
     const totalCreditsRequired = creditsPerImage * count;
 
     // Check if user has enough credits (skip for admins)
@@ -235,11 +242,20 @@ export async function POST(request: NextRequest) {
     const storedImages = [];
     for (const image of result.images) {
       try {
-        // Fetch the image from OpenAI's URL
-        const imageResponse = await fetch(image.url);
-        const imageBlob = await imageResponse.blob();
-        const arrayBuffer = await imageBlob.arrayBuffer();
-        const buffer = Buffer.from(arrayBuffer);
+        let buffer: Buffer;
+        
+        // Check if the image is a base64 data URL or a regular URL
+        if (image.url.startsWith('data:')) {
+          // Extract base64 data from data URL
+          const base64Data = image.url.split(',')[1];
+          buffer = Buffer.from(base64Data, 'base64');
+        } else {
+          // Fetch from URL (fallback for URL response format)
+          const imageResponse = await fetch(image.url);
+          const imageBlob = await imageResponse.blob();
+          const arrayBuffer = await imageBlob.arrayBuffer();
+          buffer = Buffer.from(arrayBuffer);
+        }
 
         // Generate a unique filename
         const filename = `ai-generated/${user.id}/${uuidv4()}.png`;
@@ -281,7 +297,7 @@ export async function POST(request: NextRequest) {
               revised_prompt: image.revised_prompt,
               quality,
               style,
-              model: 'dall-e-3',
+              model: 'gpt-image-1',
             },
           })
           .select()

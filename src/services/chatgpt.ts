@@ -2,15 +2,15 @@ import { env } from '@/config/env';
 
 export interface ImageGenerationOptions {
   prompt: string;
-  size?: '1024x1024' | '1792x1024' | '1024x1792';
-  quality?: 'standard' | 'hd';
-  style?: 'vivid' | 'natural';
-  n?: number; // Number of images to generate (1-10 for DALL-E 2, only 1 for DALL-E 3)
+  size?: '256x256' | '512x512' | '1024x1024'; // GPT-Image-1 sizes
+  quality?: 'standard' | 'hd'; // Keep for backwards compatibility
+  style?: 'vivid' | 'natural'; // Keep for backwards compatibility
+  n?: number; // Number of images to generate
 }
 
 export interface GeneratedImage {
-  url: string;
-  revised_prompt?: string; // DALL-E 3 may revise the prompt
+  url: string; // Can be a data URL or regular URL
+  revised_prompt?: string; // GPT-Image-1 doesn't revise prompts, but keeping for compatibility
 }
 
 export interface ImageGenerationResult {
@@ -20,16 +20,16 @@ export interface ImageGenerationResult {
   creditsUsed?: number;
 }
 
-// Credit costs for different quality levels
+// Credit costs for GPT-Image-1 (based on size)
 const CREDIT_COSTS = {
-  standard: 2, // Standard quality uses 2 credits
-  hd: 4, // HD quality uses 4 credits
+  '256x256': 1,   // Small size uses 1 credit
+  '512x512': 1,   // Medium size uses 1 credit  
+  '1024x1024': 2, // Large size uses 2 credits
 };
 
 export class ChatGPTService {
   /**
-   * Generate images using OpenAI's DALL-E 3 model
-   * Note: DALL-E 3 can only generate 1 image at a time
+   * Generate images using OpenAI's GPT-Image-1 model
    * This method should only be called from server-side code (API routes)
    */
   async generateImage(options: ImageGenerationOptions): Promise<ImageGenerationResult> {
@@ -64,37 +64,29 @@ export class ChatGPTService {
       const {
         prompt,
         size = '1024x1024',
-        quality = 'standard',
-        style = 'vivid',
         n = 1,
       } = options;
 
-      // DALL-E 3 only supports n=1
-      if (n > 1) {
-        console.warn('DALL-E 3 only supports generating 1 image at a time. Setting n=1.');
-      }
+      // GPT-Image-1 image count
+      const imageCount = Math.min(Math.max(n, 1), 10);
 
-      console.log('[ChatGPT Service] Generating image with DALL-E 3:', {
+      console.log('[ChatGPT Service] Generating image with GPT-Image-1:', {
         prompt: prompt.substring(0, 100) + '...',
         size,
-        quality,
-        style,
+        n: imageCount,
       });
 
       // Make the API call to generate image
       console.log('[ChatGPT Service] Calling OpenAI API...');
       let response;
       try {
-        // Always use DALL-E 3 for image generation
-      // GPT-4o can analyze images but doesn't generate them
-      response = await openai.images.generate({
-          model: 'dall-e-3',
+        // Use GPT-Image-1 for image generation
+        response = await openai.images.generate({
+          model: 'gpt-image-1',
           prompt: prompt.replace('[IMAGE-TO-IMAGE]', ''), // Remove marker if present
           size,
-          quality,
-          style,
-          n: 1,
-          response_format: 'url', // Get URLs instead of base64
+          n: imageCount,
+          response_format: 'b64_json', // Get base64 encoded images
         });
         console.log('[ChatGPT Service] OpenAI API call successful');
         console.log('[ChatGPT Service] Response data:', JSON.stringify(response, null, 2));
@@ -108,19 +100,22 @@ export class ChatGPTService {
       // Extract the generated images
       console.log('[ChatGPT Service] Extracting images from response...');
       console.log('[ChatGPT Service] response.data:', response.data);
+      
+      // Convert base64 images to data URLs
       const images: GeneratedImage[] = response.data?.map(image => ({
-        url: image.url!,
-        revised_prompt: image.revised_prompt,
+        url: image.b64_json ? `data:image/png;base64,${image.b64_json}` : image.url!,
+        revised_prompt: undefined, // GPT-Image-1 doesn't revise prompts
       })) || [];
       console.log('[ChatGPT Service] Extracted images:', images);
 
-      // Calculate credits used
-      const creditsUsed = CREDIT_COSTS[quality];
+      // Calculate credits used based on size and count
+      const creditsPerImage = CREDIT_COSTS[size] || 2;
+      const creditsUsed = creditsPerImage * imageCount;
 
       console.log('Image generation successful:', {
         count: images.length,
         creditsUsed,
-        revisedPrompt: images[0]?.revised_prompt,
+        size,
       });
 
       return {
@@ -176,25 +171,31 @@ export class ChatGPTService {
   }
 
   /**
-   * Generate multiple images by making multiple API calls
-   * Since DALL-E 3 only supports n=1, we need to make multiple requests
+   * Generate multiple images using GPT-Image-1's batch capability
    */
   async generateMultipleImages(
     options: ImageGenerationOptions,
     count: number = 1
   ): Promise<ImageGenerationResult> {
     try {
-      if (count === 1) {
-        return this.generateImage(options);
+      // GPT-Image-1 can handle multiple images in one request
+      if (count <= 10) {
+        return this.generateImage({ ...options, n: count });
       }
 
+      // For more than 10 images, we need multiple requests
       console.log(`Generating ${count} images with multiple API calls...`);
       
-      const promises = Array(count).fill(null).map(() => 
-        this.generateImage({ ...options, n: 1 })
-      );
+      const batches = [];
+      let remaining = count;
+      
+      while (remaining > 0) {
+        const batchSize = Math.min(remaining, 10);
+        batches.push(this.generateImage({ ...options, n: batchSize }));
+        remaining -= batchSize;
+      }
 
-      const results = await Promise.all(promises);
+      const results = await Promise.all(batches);
       
       // Combine all successful results
       const allImages: GeneratedImage[] = [];

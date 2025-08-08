@@ -47,7 +47,13 @@ export function ImageGenerator() {
   const hasCredits = (profile?.credits || 0) > 0;
 
   // Calculate credit cost
-  const creditCost = options.quality === 'hd' ? 4 : 2;
+  // Credit cost based on size for GPT-Image-1
+  const sizeCredits = {
+    '256x256': 1,
+    '512x512': 1,
+    '1024x1024': 2,
+  };
+  const creditCost = sizeCredits[options.size] || 2;
   const totalCost = creditCost * options.count;
   const canGenerate = isAdmin || (isPaidUser && hasCredits && (profile?.credits || 0) >= totalCost);
 
@@ -231,6 +237,26 @@ export function ImageGenerator() {
               <label className="block text-sm font-medium mb-2">Image Size</label>
               <div className="grid grid-cols-3 gap-2">
                 <button
+                  onClick={() => setOptions({ ...options, size: '256x256' })}
+                  className={`p-2 rounded-lg border text-sm ${
+                    options.size === '256x256'
+                      ? 'border-purple-600 bg-purple-50 text-purple-700'
+                      : 'border-gray-300 hover:border-gray-400'
+                  }`}
+                >
+                  Small<br />256×256
+                </button>
+                <button
+                  onClick={() => setOptions({ ...options, size: '512x512' })}
+                  className={`p-2 rounded-lg border text-sm ${
+                    options.size === '512x512'
+                      ? 'border-purple-600 bg-purple-50 text-purple-700'
+                      : 'border-gray-300 hover:border-gray-400'
+                  }`}
+                >
+                  Medium<br />512×512
+                </button>
+                <button
                   onClick={() => setOptions({ ...options, size: '1024x1024' })}
                   className={`p-2 rounded-lg border text-sm ${
                     options.size === '1024x1024'
@@ -238,27 +264,7 @@ export function ImageGenerator() {
                       : 'border-gray-300 hover:border-gray-400'
                   }`}
                 >
-                  Square<br />1024×1024
-                </button>
-                <button
-                  onClick={() => setOptions({ ...options, size: '1792x1024' })}
-                  className={`p-2 rounded-lg border text-sm ${
-                    options.size === '1792x1024'
-                      ? 'border-purple-600 bg-purple-50 text-purple-700'
-                      : 'border-gray-300 hover:border-gray-400'
-                  }`}
-                >
-                  Landscape<br />1792×1024
-                </button>
-                <button
-                  onClick={() => setOptions({ ...options, size: '1024x1792' })}
-                  className={`p-2 rounded-lg border text-sm ${
-                    options.size === '1024x1792'
-                      ? 'border-purple-600 bg-purple-50 text-purple-700'
-                      : 'border-gray-300 hover:border-gray-400'
-                  }`}
-                >
-                  Portrait<br />1024×1792
+                  Large<br />1024×1024
                 </button>
               </div>
             </div>
