@@ -103,12 +103,11 @@ export function ImageGalleryEnhanced() {
       setLoading(true);
       const supabase = createClientSupabaseClient();
       
-      // Fetch images directly from processed_images table
-      // RLS policies will automatically filter to only show user's own images
-      const { data, error } = await supabase
-        .from('processed_images')
-        .select('*')
-        .order('created_at', { ascending: false });
+      // Use RPC function to fetch images (same as StorageManager)
+      // This bypasses RLS issues and ensures consistency
+      const { data, error } = await supabase.rpc('get_user_images', {
+        p_user_id: user.id
+      });
 
       if (error) {
         console.error('Error fetching images:', error);
