@@ -8,7 +8,7 @@ import { ImageToImageDirect } from './ImageToImageDirect';
 import { useAuthStore } from '@/stores/authStore';
 import { toast } from 'react-hot-toast';
 import Image from 'next/image';
-import { Download, Loader2, Sparkles, Image as ImageIcon, Type, Upload, Scissors } from 'lucide-react';
+import { Download, Loader2, Sparkles, Image as ImageIcon, Type, Upload, Scissors, Edit3 } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 

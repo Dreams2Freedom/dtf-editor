@@ -18,14 +18,28 @@ import {
   DollarSign,
   Crown,
   HardDrive,
-  Sparkles
+  Sparkles,
+  Edit3,
+  ChevronDown
 } from 'lucide-react';
 import { CreditDisplay } from '@/components/ui/CreditDisplay';
 import { NotificationBell } from '@/components/notifications/NotificationBell';
 
+interface NavItem {
+  name: string;
+  href?: string;
+  icon: React.ComponentType<{ className?: string }>;
+  submenu?: {
+    name: string;
+    href: string;
+    icon: React.ComponentType<{ className?: string }>;
+  }[];
+}
+
 export function Header() {
   const { user, profile, signOut } = useAuthStore();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [aiMenuOpen, setAiMenuOpen] = useState(false);
   const router = useRouter();
 
   const handleSignOut = async () => {
@@ -33,10 +47,17 @@ export function Header() {
     router.push('/');
   };
 
-  const navigation = user ? [
+  const navigation: NavItem[] = user ? [
     { name: 'Dashboard', href: '/dashboard', icon: Home },
     { name: 'Process Image', href: '/process', icon: Upload },
-    { name: 'AI Generate', href: '/generate', icon: Sparkles },
+    { 
+      name: 'AI Tools', 
+      icon: Sparkles,
+      submenu: [
+        { name: 'Generate Image', href: '/generate', icon: Sparkles },
+        { name: 'Edit Image', href: '/generate/edit', icon: Edit3 },
+      ]
+    },
     { name: 'My Images', href: '/dashboard#my-images', icon: Images },
     { name: 'Storage', href: '/storage', icon: HardDrive },
     { name: 'Pricing', href: '/pricing', icon: DollarSign },
@@ -65,14 +86,48 @@ export function Header() {
             </div>
             <div className="hidden sm:ml-6 sm:flex sm:space-x-8">
               {navigation.map((item) => (
-                <Link
-                  key={item.name}
-                  href={item.href}
-                  className="inline-flex items-center border-b-2 border-transparent px-1 pt-1 text-sm font-medium text-gray-500 hover:border-gray-300 hover:text-gray-700"
-                >
-                  <item.icon className="w-4 h-4 mr-1" />
-                  {item.name}
-                </Link>
+                item.submenu ? (
+                  <div key={item.name} className="relative">
+                    <button
+                      className="inline-flex items-center border-b-2 border-transparent px-1 pt-1 text-sm font-medium text-gray-500 hover:border-gray-300 hover:text-gray-700"
+                      onClick={() => setAiMenuOpen(!aiMenuOpen)}
+                      onMouseEnter={() => setAiMenuOpen(true)}
+                    >
+                      <item.icon className="w-4 h-4 mr-1" />
+                      {item.name}
+                      <ChevronDown className="w-3 h-3 ml-1" />
+                    </button>
+                    {aiMenuOpen && (
+                      <div 
+                        className="absolute left-0 mt-2 w-48 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5"
+                        onMouseLeave={() => setAiMenuOpen(false)}
+                      >
+                        <div className="py-1">
+                          {item.submenu.map((subitem) => (
+                            <Link
+                              key={subitem.name}
+                              href={subitem.href}
+                              className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                              onClick={() => setAiMenuOpen(false)}
+                            >
+                              <subitem.icon className="w-4 h-4 mr-2" />
+                              {subitem.name}
+                            </Link>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                ) : item.href ? (
+                  <Link
+                    key={item.name}
+                    href={item.href}
+                    className="inline-flex items-center border-b-2 border-transparent px-1 pt-1 text-sm font-medium text-gray-500 hover:border-gray-300 hover:text-gray-700"
+                  >
+                    <item.icon className="w-4 h-4 mr-1" />
+                    {item.name}
+                  </Link>
+                ) : null
               ))}
             </div>
           </div>
@@ -144,17 +199,41 @@ export function Header() {
       <div className={`sm:hidden ${mobileMenuOpen ? 'block' : 'hidden'}`}>
         <div className="space-y-1 pb-3 pt-2">
           {navigation.map((item) => (
-            <Link
-              key={item.name}
-              href={item.href}
-              className="block border-l-4 border-transparent py-2 pl-3 pr-4 text-base font-medium text-gray-500 hover:border-gray-300 hover:bg-gray-50 hover:text-gray-700"
-              onClick={() => setMobileMenuOpen(false)}
-            >
-              <div className="flex items-center">
-                <item.icon className="w-5 h-5 mr-3" />
-                {item.name}
+            item.submenu ? (
+              <div key={item.name}>
+                <div className="block border-l-4 border-transparent py-2 pl-3 pr-4 text-base font-medium text-gray-700 bg-gray-50">
+                  <div className="flex items-center">
+                    <item.icon className="w-5 h-5 mr-3" />
+                    {item.name}
+                  </div>
+                </div>
+                {item.submenu.map((subitem) => (
+                  <Link
+                    key={subitem.name}
+                    href={subitem.href}
+                    className="block border-l-4 border-transparent py-2 pl-8 pr-4 text-base font-medium text-gray-500 hover:border-gray-300 hover:bg-gray-50 hover:text-gray-700"
+                    onClick={() => setMobileMenuOpen(false)}
+                  >
+                    <div className="flex items-center">
+                      <subitem.icon className="w-4 h-4 mr-3" />
+                      {subitem.name}
+                    </div>
+                  </Link>
+                ))}
               </div>
-            </Link>
+            ) : item.href ? (
+              <Link
+                key={item.name}
+                href={item.href}
+                className="block border-l-4 border-transparent py-2 pl-3 pr-4 text-base font-medium text-gray-500 hover:border-gray-300 hover:bg-gray-50 hover:text-gray-700"
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                <div className="flex items-center">
+                  <item.icon className="w-5 h-5 mr-3" />
+                  {item.name}
+                </div>
+              </Link>
+            ) : null
           ))}
         </div>
         {user && (

@@ -8,6 +8,14 @@ export interface ImageGenerationOptions {
   n?: number; // Number of images to generate
 }
 
+export interface ImageEditOptions {
+  prompt: string;
+  image: Buffer | string; // Base64 string or Buffer of the image to edit
+  mask?: Buffer | string; // Optional mask for selective editing
+  size?: '256x256' | '512x512' | '1024x1024';
+  n?: number;
+}
+
 export interface GeneratedImage {
   url: string; // Can be a data URL or regular URL
   revised_prompt?: string; // GPT-Image-1 doesn't revise prompts, but keeping for compatibility
@@ -19,6 +27,8 @@ export interface ImageGenerationResult {
   error?: string;
   creditsUsed?: number;
 }
+
+export type ImageEditResult = ImageGenerationResult;
 
 // Credit costs for GPT-Image-1 (based on size)
 const CREDIT_COSTS = {
@@ -93,7 +103,7 @@ export class ChatGPTService {
       } catch (apiError: unknown) {
         console.error('[ChatGPT Service] OpenAI API error:', apiError);
         const err = apiError as Error;
-        console.error('[ChatGPT Service] Error details:', (err as any).response?.data || err.message);
+        console.error('[ChatGPT Service] Error details:', (err as Error & {response?: {data?: unknown}}).response?.data || err.message);
         throw new Error(`OpenAI API error: ${(apiError as Error).message || 'Failed to generate image'}`);
       }
 
@@ -231,6 +241,170 @@ export class ChatGPTService {
       return {
         success: false,
         error: (error as Error).message || 'Failed to generate images',
+      };
+    }
+  }
+
+  /**
+   * Edit images using OpenAI's GPT-Image-1 model
+   * This method should only be called from server-side code (API routes)
+   */
+  async editImage(options: ImageEditOptions): Promise<ImageEditResult> {
+    try {
+      console.log('[ChatGPT Service] Starting image editing...');
+      
+      // Only import and initialize OpenAI on the server
+      if (typeof window !== 'undefined') {
+        throw new Error('ChatGPT service can only be used server-side');
+      }
+      
+      // Dynamically import OpenAI to prevent client-side loading
+      console.log('[ChatGPT Service] Importing OpenAI library...');
+      const { default: OpenAI, toFile } = await import('openai');
+      
+      // Validate API key
+      const apiKey = process.env.OPENAI_API_KEY || env.OPENAI_API_KEY;
+      console.log('[ChatGPT Service] API key status:', apiKey ? 'Found' : 'Missing');
+      
+      if (!apiKey) {
+        console.error('[ChatGPT Service] OpenAI API key is not configured in environment');
+        throw new Error('OpenAI API key is not configured. Please set OPENAI_API_KEY in environment variables.');
+      }
+      
+      // Initialize OpenAI client (server-side only)
+      console.log('[ChatGPT Service] Initializing OpenAI client...');
+      const openai = new OpenAI({
+        apiKey: apiKey,
+      });
+
+      // Default options
+      const {
+        prompt,
+        image,
+        mask,
+        size = '1024x1024',
+        n = 1,
+      } = options;
+
+      const imageCount = Math.min(Math.max(n, 1), 10);
+
+      console.log('[ChatGPT Service] Editing image with GPT-Image-1:', {
+        prompt: prompt.substring(0, 100) + '...',
+        size,
+        n: imageCount,
+        hasMask: !!mask,
+      });
+
+      // Convert image to File object if it's a Buffer or base64 string
+      let imageFile;
+      if (Buffer.isBuffer(image)) {
+        imageFile = await toFile(image, 'image.png', { type: 'image/png' });
+      } else if (typeof image === 'string') {
+        // If it's a base64 string, convert to Buffer first
+        const buffer = Buffer.from(image.replace(/^data:image\/\w+;base64,/, ''), 'base64');
+        imageFile = await toFile(buffer, 'image.png', { type: 'image/png' });
+      } else {
+        throw new Error('Invalid image format. Expected Buffer or base64 string.');
+      }
+
+      // Convert mask to File object if provided
+      let maskFile;
+      if (mask) {
+        if (Buffer.isBuffer(mask)) {
+          maskFile = await toFile(mask, 'mask.png', { type: 'image/png' });
+        } else if (typeof mask === 'string') {
+          const buffer = Buffer.from(mask.replace(/^data:image\/\w+;base64,/, ''), 'base64');
+          maskFile = await toFile(buffer, 'mask.png', { type: 'image/png' });
+        }
+      }
+
+      // Make the API call to edit image
+      console.log('[ChatGPT Service] Calling OpenAI API for image edit...');
+      let response;
+      try {
+        const editParams: Parameters<typeof openai.images.edit>[0] = {
+          model: 'gpt-image-1',
+          image: imageFile,
+          prompt,
+          size,
+          n: imageCount,
+          response_format: 'b64_json',
+        };
+
+        if (maskFile) {
+          editParams.mask = maskFile;
+        }
+
+        response = await openai.images.edit(editParams);
+        console.log('[ChatGPT Service] OpenAI API call successful');
+      } catch (apiError: unknown) {
+        console.error('[ChatGPT Service] OpenAI API error:', apiError);
+        const err = apiError as Error;
+        console.error('[ChatGPT Service] Error details:', (err as Error & {response?: {data?: unknown}}).response?.data || err.message);
+        throw new Error(`OpenAI API error: ${(apiError as Error).message || 'Failed to edit image'}`);
+      }
+
+      // Extract the edited images
+      console.log('[ChatGPT Service] Extracting edited images from response...');
+      
+      // Convert base64 images to data URLs
+      const images: GeneratedImage[] = response.data?.map(img => ({
+        url: img.b64_json ? `data:image/png;base64,${img.b64_json}` : img.url!,
+        revised_prompt: undefined,
+      })) || [];
+
+      // Calculate credits used based on size and count
+      const creditsPerImage = CREDIT_COSTS[size] || 2;
+      const creditsUsed = creditsPerImage * imageCount;
+
+      console.log('Image editing successful:', {
+        count: images.length,
+        creditsUsed,
+        size,
+      });
+
+      return {
+        success: true,
+        images,
+        creditsUsed,
+      };
+    } catch (error: unknown) {
+      console.error('[ChatGPT Service] Image editing error:', error);
+      
+      // Handle specific OpenAI errors
+      const errorWithResponse = error as Error & {response?: {status: number; data?: {error?: {message?: string}}}};
+      if (errorWithResponse.response) {
+        const statusCode = errorWithResponse.response.status;
+        const errorMessage = errorWithResponse.response.data?.error?.message || (error as Error).message;
+
+        if (statusCode === 401) {
+          return {
+            success: false,
+            error: 'Invalid API key. Please check your OpenAI configuration.',
+          };
+        } else if (statusCode === 429) {
+          return {
+            success: false,
+            error: 'Rate limit exceeded. Please try again later.',
+          };
+        } else if (statusCode === 400) {
+          if (errorMessage.includes('content policy')) {
+            return {
+              success: false,
+              error: 'Your prompt violates OpenAI content policy. Please modify your prompt.',
+            };
+          }
+          return {
+            success: false,
+            error: `Invalid request: ${errorMessage}`,
+          };
+        }
+      }
+
+      // Generic error
+      return {
+        success: false,
+        error: (error as Error).message || 'Failed to edit image. Please try again.',
       };
     }
   }
