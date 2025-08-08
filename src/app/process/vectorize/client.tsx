@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import Link from 'next/link';
 import { useAuthStore } from '@/stores/authStore';
 import { Breadcrumb } from '@/components/ui/Breadcrumb';
+import { SignupModal } from '@/components/auth/SignupModal';
 
 export default function VectorizeClient() {
   const searchParams = useSearchParams();
@@ -21,6 +22,7 @@ export default function VectorizeClient() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [processedUrl, setProcessedUrl] = useState<string | null>(null);
   const [selectedFormat, setSelectedFormat] = useState('svg');
+  const [showSignupModal, setShowSignupModal] = useState(false);
 
   // Load image data
   useEffect(() => {
@@ -76,7 +78,12 @@ export default function VectorizeClient() {
 
   // Process image with Vectorizer.ai
   const processImage = async () => {
-    if (!imageUrl || !profile) return;
+    if (!imageUrl) return;
+    
+    if (!user || !profile) {
+      setShowSignupModal(true);
+      return;
+    }
 
     // Skip client-side credit check - let server handle it
     // This avoids sync issues between client and server
@@ -373,6 +380,13 @@ export default function VectorizeClient() {
           </Card>
         </div>
       </main>
+      
+      {/* Signup Modal */}
+      <SignupModal 
+        isOpen={showSignupModal} 
+        onClose={() => setShowSignupModal(false)}
+        feature="AI image vectorization"
+      />
     </div>
   );
 }

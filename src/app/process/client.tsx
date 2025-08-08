@@ -11,6 +11,7 @@ import Link from 'next/link';
 import { useAuthStore } from '@/stores/authStore';
 import { formatFileSize } from '@/lib/utils';
 import { Breadcrumb } from '@/components/ui/Breadcrumb';
+import { SignupModal } from '@/components/auth/SignupModal';
 
 export default function ProcessClient() {
   const router = useRouter();
@@ -23,6 +24,8 @@ export default function ProcessClient() {
   const [uploadedImageId, setUploadedImageId] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [preselectedOperation, setPreselectedOperation] = useState<string | null>(null);
+  const [showSignupModal, setShowSignupModal] = useState(false);
+  const [pendingTool, setPendingTool] = useState<string | null>(null);
 
   // File validation
   const validateFile = useCallback((file: File): string | null => {
@@ -42,7 +45,7 @@ export default function ProcessClient() {
   // Upload image automatically
   const uploadImage = useCallback(async (file: File) => {
     if (!user) {
-      setUploadError('Please log in to process images');
+      setShowSignupModal(true);
       return null;
     }
 
@@ -215,11 +218,18 @@ export default function ProcessClient() {
   const navigateToTool = async (tool: string) => {
     if (isProcessing) return;
     
+    // If not logged in, show signup modal and save tool for later
+    if (!user) {
+      setPendingTool(tool);
+      setShowSignupModal(true);
+      return;
+    }
+    
     setIsProcessing(true);
     let imageId = uploadedImageId;
 
     // If not uploaded yet, upload now
-    if (!imageId && selectedFile && user) {
+    if (!imageId && selectedFile) {
       imageId = await uploadImage(selectedFile);
     }
 
@@ -232,6 +242,25 @@ export default function ProcessClient() {
     // Navigate to the tool
     router.push(`/process/${tool}?imageId=${imageId}`);
   };
+
+  // Handle signup modal close
+  const handleSignupModalClose = () => {
+    setShowSignupModal(false);
+    
+    // If user signed up and there's a pending tool, navigate to it
+    if (user && pendingTool && selectedFile) {
+      navigateToTool(pendingTool);
+      setPendingTool(null);
+    }
+  };
+
+  // Watch for user changes to handle pending navigation
+  useEffect(() => {
+    if (user && pendingTool && selectedFile) {
+      navigateToTool(pendingTool);
+      setPendingTool(null);
+    }
+  }, [user]);
 
 
   return (
@@ -339,7 +368,7 @@ export default function ProcessClient() {
                       
                       {!user && (
                         <p className="text-xs text-amber-600 text-center">
-                          Please log in to process
+                          Sign up free to process images
                         </p>
                       )}
                     </div>
@@ -452,6 +481,13 @@ export default function ProcessClient() {
           )}
         </div>
       </main>
+      
+      {/* Signup Modal */}
+      <SignupModal 
+        isOpen={showSignupModal} 
+        onClose={handleSignupModalClose}
+        feature="AI image processing"
+      />
     </div>
   );
 }

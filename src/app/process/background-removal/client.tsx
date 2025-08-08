@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import Link from 'next/link';
 import { useAuthStore } from '@/stores/authStore';
 import { Breadcrumb } from '@/components/ui/Breadcrumb';
+import { SignupModal } from '@/components/auth/SignupModal';
 
 declare global {
   interface Window {
@@ -36,6 +37,7 @@ export default function BackgroundRemovalClient() {
   const [processedImageId, setProcessedImageId] = useState<string | null>(null);
   const [creditsDeducted, setCreditsDeducted] = useState(false);
   const [resultGenerated, setResultGenerated] = useState(false);
+  const [showSignupModal, setShowSignupModal] = useState(false);
 
   // Load image data from either imageId, imageUrl, or tempImage
   useEffect(() => {
@@ -254,6 +256,11 @@ export default function BackgroundRemovalClient() {
   // Upload image to ClippingMagic
   const uploadToClippingMagic = async () => {
     if (!imageFile) return;
+    
+    if (!user || !profile) {
+      setShowSignupModal(true);
+      return;
+    }
 
     setIsUploading(true);
     setError(null);
@@ -605,7 +612,13 @@ export default function BackgroundRemovalClient() {
           </Card>
         </div>
       </main>
-
+      
+      {/* Signup Modal */}
+      <SignupModal 
+        isOpen={showSignupModal} 
+        onClose={() => setShowSignupModal(false)}
+        feature="AI background removal"
+      />
     </div>
   );
 }

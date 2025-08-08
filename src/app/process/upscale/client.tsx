@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import Link from 'next/link';
 import { useAuthStore } from '@/stores/authStore';
 import { Breadcrumb } from '@/components/ui/Breadcrumb';
+import { SignupModal } from '@/components/auth/SignupModal';
 
 export default function UpscaleClient() {
   const searchParams = useSearchParams();
@@ -22,6 +23,7 @@ export default function UpscaleClient() {
   const [processedUrl, setProcessedUrl] = useState<string | null>(null);
   const [selectedScale, setSelectedScale] = useState('2');
   const [showEnhancements, setShowEnhancements] = useState(false);
+  const [showSignupModal, setShowSignupModal] = useState(false);
 
   // Load image data
   useEffect(() => {
@@ -77,8 +79,13 @@ export default function UpscaleClient() {
 
   // Process image with Deep-Image.ai
   const processImage = async () => {
-    if (!imageUrl || !profile) {
-      setError('Please wait for image to load and ensure you are logged in.');
+    if (!imageUrl) {
+      setError('Please wait for image to load.');
+      return;
+    }
+    
+    if (!user || !profile) {
+      setShowSignupModal(true);
       return;
     }
 
@@ -401,6 +408,13 @@ export default function UpscaleClient() {
           </Card>
         </div>
       </main>
+      
+      {/* Signup Modal */}
+      <SignupModal 
+        isOpen={showSignupModal} 
+        onClose={() => setShowSignupModal(false)}
+        feature="AI image upscaling"
+      />
     </div>
   );
 }
