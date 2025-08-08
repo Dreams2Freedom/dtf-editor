@@ -277,26 +277,28 @@ export async function POST(request: NextRequest) {
           .from('user-uploads')
           .getPublicUrl(filename);
 
-        // Save to uploads table
+        // Save to processed_images table so it appears in My Images
         const { data: uploadRecord, error: recordError } = await serviceClient
-          .from('uploads')
+          .from('processed_images')
           .insert({
             user_id: user.id,
-            original_url: urlData.publicUrl,
-            processed_url: urlData.publicUrl, // Same as original for generated images
-            filename: filename.split('/').pop(),
+            original_filename: `ai-generated-${Date.now()}.png`,
+            processed_filename: filename.split('/').pop(),
+            operation_type: 'generate',
             file_size: buffer.length,
-            mime_type: 'image/png',
             width: size?.split('x')[0] ? parseInt(size.split('x')[0]) : 1024,
             height: size?.split('x')[1] ? parseInt(size.split('x')[1]) : 1024,
-            processing_type: 'ai_generation',
-            status: 'completed',
+            processing_status: 'completed',
+            storage_url: urlData.publicUrl,
+            thumbnail_url: urlData.publicUrl,
+            storage_path: filename,
             metadata: {
               prompt: enhancedPrompt,
               revised_prompt: image.revised_prompt,
               quality,
               style,
               model: 'gpt-image-1',
+              credits_used: creditsPerImage,
             },
           })
           .select()
