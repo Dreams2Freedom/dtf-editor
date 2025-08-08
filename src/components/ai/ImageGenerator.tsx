@@ -13,8 +13,8 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 
 interface GenerationOptions {
-  size: '1024x1024' | '1792x1024' | '1024x1792';
-  quality: 'standard' | 'hd';
+  size: '1024x1024' | '1024x1536' | '1536x1024';
+  quality: 'low' | 'standard' | 'high';
   style: 'vivid' | 'natural';
   count: number;
 }
@@ -46,14 +46,13 @@ export function ImageGenerator() {
   const isPaidUser = profile?.subscription_tier && profile.subscription_tier !== 'free';
   const hasCredits = (profile?.credits || 0) > 0;
 
-  // Calculate credit cost
-  // Credit cost based on size for GPT-Image-1
-  const sizeCredits = {
-    '256x256': 1,
-    '512x512': 1,
-    '1024x1024': 2,
+  // Calculate credit cost based on quality for GPT-Image-1
+  const qualityCredits = {
+    'low': 1,
+    'standard': 2,
+    'high': 3,
   };
-  const creditCost = sizeCredits[options.size] || 2;
+  const creditCost = qualityCredits[options.quality] || 2;
   const totalCost = creditCost * options.count;
   const canGenerate = isAdmin || (isPaidUser && hasCredits && (profile?.credits || 0) >= totalCost);
 
@@ -237,26 +236,6 @@ export function ImageGenerator() {
               <label className="block text-sm font-medium mb-2">Image Size</label>
               <div className="grid grid-cols-3 gap-2">
                 <button
-                  onClick={() => setOptions({ ...options, size: '256x256' })}
-                  className={`p-2 rounded-lg border text-sm ${
-                    options.size === '256x256'
-                      ? 'border-purple-600 bg-purple-50 text-purple-700'
-                      : 'border-gray-300 hover:border-gray-400'
-                  }`}
-                >
-                  Small<br />256×256
-                </button>
-                <button
-                  onClick={() => setOptions({ ...options, size: '512x512' })}
-                  className={`p-2 rounded-lg border text-sm ${
-                    options.size === '512x512'
-                      ? 'border-purple-600 bg-purple-50 text-purple-700'
-                      : 'border-gray-300 hover:border-gray-400'
-                  }`}
-                >
-                  Medium<br />512×512
-                </button>
-                <button
                   onClick={() => setOptions({ ...options, size: '1024x1024' })}
                   className={`p-2 rounded-lg border text-sm ${
                     options.size === '1024x1024'
@@ -264,7 +243,27 @@ export function ImageGenerator() {
                       : 'border-gray-300 hover:border-gray-400'
                   }`}
                 >
-                  Large<br />1024×1024
+                  Square<br />1024×1024
+                </button>
+                <button
+                  onClick={() => setOptions({ ...options, size: '1024x1536' })}
+                  className={`p-2 rounded-lg border text-sm ${
+                    options.size === '1024x1536'
+                      ? 'border-purple-600 bg-purple-50 text-purple-700'
+                      : 'border-gray-300 hover:border-gray-400'
+                  }`}
+                >
+                  Portrait<br />1024×1536
+                </button>
+                <button
+                  onClick={() => setOptions({ ...options, size: '1536x1024' })}
+                  className={`p-2 rounded-lg border text-sm ${
+                    options.size === '1536x1024'
+                      ? 'border-purple-600 bg-purple-50 text-purple-700'
+                      : 'border-gray-300 hover:border-gray-400'
+                  }`}
+                >
+                  Landscape<br />1536×1024
                 </button>
               </div>
             </div>
@@ -272,7 +271,18 @@ export function ImageGenerator() {
             {/* Quality Selection */}
             <div className="mb-4">
               <label className="block text-sm font-medium mb-2">Quality</label>
-              <div className="grid grid-cols-2 gap-2">
+              <div className="grid grid-cols-3 gap-2">
+                <button
+                  onClick={() => setOptions({ ...options, quality: 'low' })}
+                  className={`p-3 rounded-lg border ${
+                    options.quality === 'low'
+                      ? 'border-purple-600 bg-purple-50 text-purple-700'
+                      : 'border-gray-300 hover:border-gray-400'
+                  }`}
+                >
+                  <div className="font-medium">Low</div>
+                  <div className="text-xs text-gray-600">1 credit</div>
+                </button>
                 <button
                   onClick={() => setOptions({ ...options, quality: 'standard' })}
                   className={`p-3 rounded-lg border ${
@@ -285,15 +295,15 @@ export function ImageGenerator() {
                   <div className="text-xs text-gray-600">2 credits</div>
                 </button>
                 <button
-                  onClick={() => setOptions({ ...options, quality: 'hd' })}
+                  onClick={() => setOptions({ ...options, quality: 'high' })}
                   className={`p-3 rounded-lg border ${
-                    options.quality === 'hd'
+                    options.quality === 'high'
                       ? 'border-purple-600 bg-purple-50 text-purple-700'
                       : 'border-gray-300 hover:border-gray-400'
                   }`}
                 >
-                  <div className="font-medium">HD</div>
-                  <div className="text-xs text-gray-600">4 credits</div>
+                  <div className="font-medium">High</div>
+                  <div className="text-xs text-gray-600">3 credits</div>
                 </button>
               </div>
             </div>

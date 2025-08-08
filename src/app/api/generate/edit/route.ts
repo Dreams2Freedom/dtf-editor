@@ -106,13 +106,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Calculate required credits based on size
-    const sizeMap = {
-      '256x256': 1,
-      '512x512': 1,
-      '1024x1024': 2,
-    };
-    const creditsPerImage = sizeMap[size] || 2;
+    // Calculate required credits for editing (fixed at 2 credits per edit)
+    const creditsPerImage = 2;
     const totalCreditsRequired = creditsPerImage * count;
 
     // Check if user has enough credits (skip for admins)

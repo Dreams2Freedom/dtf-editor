@@ -91,13 +91,19 @@ export class ChatGPTService {
       let response;
       try {
         // Use GPT-Image-1 for image generation
-        response = await openai.images.generate({
+        const generateParams: any = {
           model: 'gpt-image-1',
           prompt: prompt.replace('[IMAGE-TO-IMAGE]', ''), // Remove marker if present
           size,
           n: imageCount,
-          response_format: 'b64_json', // Get base64 encoded images
-        });
+        };
+        
+        // Add quality parameter if specified
+        if (options.quality) {
+          generateParams.quality = options.quality === 'hd' ? 'high' : 'low';
+        }
+        
+        response = await openai.images.generate(generateParams);
         console.log('[ChatGPT Service] OpenAI API call successful');
         console.log('[ChatGPT Service] Response data:', JSON.stringify(response, null, 2));
       } catch (apiError: unknown) {
@@ -111,9 +117,9 @@ export class ChatGPTService {
       console.log('[ChatGPT Service] Extracting images from response...');
       console.log('[ChatGPT Service] response.data:', response.data);
       
-      // Convert base64 images to data URLs
+      // Extract images - gpt-image-1 returns b64_json directly
       const images: GeneratedImage[] = response.data?.map(image => ({
-        url: image.b64_json ? `data:image/png;base64,${image.b64_json}` : image.url!,
+        url: image.b64_json ? `data:image/png;base64,${image.b64_json}` : image.url || '',
         revised_prompt: undefined, // GPT-Image-1 doesn't revise prompts
       })) || [];
       console.log('[ChatGPT Service] Extracted images:', images);
@@ -322,13 +328,12 @@ export class ChatGPTService {
       console.log('[ChatGPT Service] Calling OpenAI API for image edit...');
       let response;
       try {
-        const editParams: Parameters<typeof openai.images.edit>[0] = {
+        const editParams: any = {
           model: 'gpt-image-1',
           image: imageFile,
           prompt,
           size,
           n: imageCount,
-          response_format: 'b64_json',
         };
 
         if (maskFile) {
