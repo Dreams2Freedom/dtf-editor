@@ -104,10 +104,10 @@ export function ImageGalleryEnhanced() {
       const supabase = createClientSupabaseClient();
       
       // Fetch images directly from processed_images table
+      // RLS policies will automatically filter to only show user's own images
       const { data, error } = await supabase
         .from('processed_images')
         .select('*')
-        .eq('user_id', user.id)
         .order('created_at', { ascending: false });
 
       if (error) {
