@@ -53,6 +53,14 @@ export default function HomePage() {
 
   const features = [
     {
+      id: 'generate',
+      title: 'AI Design Generation',
+      description: 'Create unique shirt designs from text prompts or reference images',
+      icon: Sparkles,
+      color: 'purple',
+      benefits: ['Custom designs from text', 'Upload & reimagine', 'Endless creativity']
+    },
+    {
       id: 'upscale',
       title: 'AI Upscaling',
       description: 'Transform low-resolution images into crystal-clear, print-ready artwork',
@@ -73,7 +81,7 @@ export default function HomePage() {
       title: 'Smart Vectorization',
       description: 'Convert any image to scalable vectors for unlimited sizing',
       icon: Zap,
-      color: 'purple',
+      color: 'orange',
       benefits: ['SVG format', 'Infinite scaling', 'Perfect for vinyl']
     }
   ];
@@ -88,48 +96,19 @@ export default function HomePage() {
   return (
     <ClientOnly fallback={<LoadingPage message="Initializing..." />}>
       <div className="min-h-screen bg-white">
-        {/* Navigation */}
-        <nav className="fixed top-0 w-full bg-white/80 backdrop-blur-lg border-b border-gray-100 z-50">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="flex justify-between items-center h-16">
-              <div className="flex items-center space-x-8">
-                <div className="flex items-center space-x-2">
-                  <div className="w-8 h-8 bg-gradient-to-br from-blue-600 to-purple-600 rounded-lg"></div>
-                  <span className="font-bold text-xl">DTF Editor</span>
-                </div>
-                <div className="hidden md:flex space-x-6">
-                  <a href="#features" className="text-gray-600 hover:text-gray-900 text-sm font-medium">Features</a>
-                  <a href="#how-it-works" className="text-gray-600 hover:text-gray-900 text-sm font-medium">How it Works</a>
-                  <a href="#pricing" className="text-gray-600 hover:text-gray-900 text-sm font-medium">Pricing</a>
-                </div>
-              </div>
-              <div className="flex items-center space-x-4">
-                <Link href="/auth/login">
-                  <Button variant="ghost" size="sm">Login</Button>
-                </Link>
-                <Link href="/auth/signup">
-                  <Button size="sm" className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700">
-                    Start Free Trial
-                  </Button>
-                </Link>
-              </div>
-            </div>
-          </div>
-        </nav>
-
         {/* Hero Section */}
-        <section className="pt-32 pb-20 px-4 sm:px-6 lg:px-8">
+        <section className="pt-20 pb-20 px-4 sm:px-6 lg:px-8">
           <div className="max-w-7xl mx-auto">
             <div className="text-center max-w-4xl mx-auto">
-              <div className="inline-flex items-center px-3 py-1 rounded-full bg-purple-50 text-purple-700 text-sm font-medium mb-6">
+              <div className="inline-flex items-center px-3 py-1 rounded-full bg-[#E88B4B]/10 text-[#E88B4B] text-sm font-medium mb-6">
                 <Sparkles className="w-4 h-4 mr-2" />
-                New Launch: AI Editor - Edit your images with AI magic by simply typing a prompt!
-                <a href="#" className="ml-2 text-purple-600 font-semibold">Try it now →</a>
+                NEW: Create custom DTF designs with AI - from text or upload reference images!
+                <a href="#generate" className="ml-2 text-[#E88B4B] font-semibold">Learn more →</a>
               </div>
               
               <h1 className="text-5xl md:text-7xl font-bold text-gray-900 mb-6 leading-tight">
                 AI Studio for 
-                <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-purple-600"> DTF Printing</span>
+                <span className="text-[#366494]"> DTF Printing</span>
               </h1>
               
               <p className="text-xl text-gray-600 mb-10 max-w-3xl mx-auto leading-relaxed">
@@ -140,7 +119,7 @@ export default function HomePage() {
               
               <div className="flex flex-col sm:flex-row gap-4 justify-center mb-8">
                 <Link href="/auth/signup">
-                  <Button size="lg" className="text-lg px-8 py-6 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700">
+                  <Button size="lg" className="text-lg px-8 py-6 bg-[#366494] hover:bg-[#233E5C] text-white">
                     Start Creating Now
                     <ArrowRight className="ml-2 w-5 h-5" />
                   </Button>
@@ -365,7 +344,7 @@ export default function HomePage() {
                 </div>
               </div>
 
-              <div className="bg-gradient-to-br from-blue-50 to-purple-50 rounded-2xl p-8">
+              <div className="bg-gradient-to-br from-[#366494]/10 to-[#E88B4B]/10 rounded-2xl p-8">
                 <h3 className="text-2xl font-bold text-gray-900 mb-6">
                   DTF Editor Solves Everything
                 </h3>
@@ -388,7 +367,7 @@ export default function HomePage() {
                   </div>
                 </div>
                 <Link href="/auth/signup">
-                  <Button className="w-full mt-8 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700">
+                  <Button className="w-full mt-8 bg-[#366494] hover:bg-[#233E5C] text-white">
                     Fix Your Images Now
                     <ArrowRight className="ml-2 w-5 h-5" />
                   </Button>
@@ -418,8 +397,8 @@ export default function HomePage() {
                   ))}
                 </div>
                 <p className="text-gray-700 mb-6">
-                  "DTF Editor saved my business. I can now accept any logo, no matter the quality, 
-                  and deliver perfect prints. My customers are amazed!"
+                  &quot;DTF Editor saved my business. I can now accept any logo, no matter the quality, 
+                  and deliver perfect prints. My customers are amazed!&quot;
                 </p>
                 <div className="flex items-center">
                   <div className="w-12 h-12 bg-gray-200 rounded-full mr-4"></div>
@@ -437,8 +416,8 @@ export default function HomePage() {
                   ))}
                 </div>
                 <p className="text-gray-700 mb-6">
-                  "The background removal is incredible. What used to take me 30 minutes 
-                  now takes 30 seconds. I've tripled my output!"
+                  &quot;The background removal is incredible. What used to take me 30 minutes 
+                  now takes 30 seconds. I&apos;ve tripled my output!&quot;
                 </p>
                 <div className="flex items-center">
                   <div className="w-12 h-12 bg-gray-200 rounded-full mr-4"></div>
@@ -456,8 +435,8 @@ export default function HomePage() {
                   ))}
                 </div>
                 <p className="text-gray-700 mb-6">
-                  "The AI upscaling is magic. I can take phone photos and turn them into 
-                  billboard-quality prints. Game changer!"
+                  &quot;The AI upscaling is magic. I can take phone photos and turn them into 
+                  billboard-quality prints. Game changer!&quot;
                 </p>
                 <div className="flex items-center">
                   <div className="w-12 h-12 bg-gray-200 rounded-full mr-4"></div>
@@ -510,159 +489,126 @@ export default function HomePage() {
                 </Link>
               </div>
 
-              {/* Popular Plan */}
-              <div className="bg-gradient-to-br from-blue-50 to-purple-50 rounded-xl p-8 border-2 border-blue-500 relative">
+              {/* Basic Plan */}
+              <div className="bg-white rounded-xl p-8 border-2 border-gray-200">
+                <h3 className="text-2xl font-bold text-gray-900 mb-2">Basic</h3>
+                <p className="text-gray-600 mb-6">For hobbyists</p>
+                <div className="text-4xl font-bold text-gray-900 mb-6">
+                  $9.99<span className="text-lg font-normal text-gray-600">/month</span>
+                </div>
+                <ul className="space-y-3 mb-8">
+                  <li className="flex items-center">
+                    <Check className="w-5 h-5 text-green-500 mr-3" />
+                    <span className="text-gray-700">20 credits per month</span>
+                  </li>
+                  <li className="flex items-center">
+                    <Check className="w-5 h-5 text-green-500 mr-3" />
+                    <span className="text-gray-700">All AI tools including generation</span>
+                  </li>
+                  <li className="flex items-center">
+                    <Check className="w-5 h-5 text-green-500 mr-3" />
+                    <span className="text-gray-700">Permanent storage</span>
+                  </li>
+                  <li className="flex items-center">
+                    <Check className="w-5 h-5 text-green-500 mr-3" />
+                    <span className="text-gray-700">Standard support</span>
+                  </li>
+                </ul>
+                <Link href="/auth/signup">
+                  <Button variant="outline" className="w-full">Get Started</Button>
+                </Link>
+              </div>
+
+              {/* Starter Plan - Most Popular */}
+              <div className="bg-gradient-to-br from-[#366494]/5 to-[#E88B4B]/5 rounded-xl p-8 border-2 border-[#366494] relative">
                 <div className="absolute -top-4 left-1/2 transform -translate-x-1/2">
-                  <span className="bg-blue-500 text-white px-4 py-1 rounded-full text-sm font-medium">
+                  <span className="bg-[#366494] text-white px-4 py-1 rounded-full text-sm font-medium">
                     Most Popular
                   </span>
                 </div>
                 <h3 className="text-2xl font-bold text-gray-900 mb-2">Starter</h3>
                 <p className="text-gray-600 mb-6">For growing businesses</p>
                 <div className="text-4xl font-bold text-gray-900 mb-6">
-                  $29<span className="text-lg font-normal text-gray-600">/month</span>
+                  $24.99<span className="text-lg font-normal text-gray-600">/month</span>
                 </div>
                 <ul className="space-y-3 mb-8">
                   <li className="flex items-center">
                     <Check className="w-5 h-5 text-green-500 mr-3" />
-                    <span className="text-gray-700">100 credits per month</span>
+                    <span className="text-gray-700">60 credits per month</span>
                   </li>
                   <li className="flex items-center">
                     <Check className="w-5 h-5 text-green-500 mr-3" />
-                    <span className="text-gray-700">Unlimited storage</span>
+                    <span className="text-gray-700">All tools + Professional features</span>
                   </li>
                   <li className="flex items-center">
                     <Check className="w-5 h-5 text-green-500 mr-3" />
-                    <span className="text-gray-700">Priority processing</span>
-                  </li>
-                  <li className="flex items-center">
-                    <Check className="w-5 h-5 text-green-500 mr-3" />
-                    <span className="text-gray-700">Email support</span>
-                  </li>
-                </ul>
-                <Link href="/auth/signup">
-                  <Button className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700">
-                    Start Free Trial
-                  </Button>
-                </Link>
-              </div>
-
-              {/* Pro Plan */}
-              <div className="bg-white rounded-xl p-8 border-2 border-gray-200">
-                <h3 className="text-2xl font-bold text-gray-900 mb-2">Professional</h3>
-                <p className="text-gray-600 mb-6">For print shops</p>
-                <div className="text-4xl font-bold text-gray-900 mb-6">
-                  $79<span className="text-lg font-normal text-gray-600">/month</span>
-                </div>
-                <ul className="space-y-3 mb-8">
-                  <li className="flex items-center">
-                    <Check className="w-5 h-5 text-green-500 mr-3" />
-                    <span className="text-gray-700">500 credits per month</span>
-                  </li>
-                  <li className="flex items-center">
-                    <Check className="w-5 h-5 text-green-500 mr-3" />
-                    <span className="text-gray-700">Unlimited storage</span>
-                  </li>
-                  <li className="flex items-center">
-                    <Check className="w-5 h-5 text-green-500 mr-3" />
-                    <span className="text-gray-700">Batch processing</span>
+                    <span className="text-gray-700">Permanent storage</span>
                   </li>
                   <li className="flex items-center">
                     <Check className="w-5 h-5 text-green-500 mr-3" />
                     <span className="text-gray-700">Priority support</span>
                   </li>
+                  <li className="flex items-center">
+                    <Check className="w-5 h-5 text-green-500 mr-3" />
+                    <span className="text-gray-700">Batch processing</span>
+                  </li>
                 </ul>
                 <Link href="/auth/signup">
-                  <Button variant="outline" className="w-full">Contact Sales</Button>
+                  <Button className="w-full bg-[#366494] hover:bg-[#233E5C] text-white">
+                    Start Free Trial
+                  </Button>
                 </Link>
               </div>
             </div>
 
+            {/* Pay-as-you-go Options */}
             <div className="text-center mt-12">
-              <p className="text-gray-600">
-                Need more credits? 
-                <Link href="/pricing" className="text-blue-600 font-medium ml-2">
-                  See pay-as-you-go options →
-                </Link>
-              </p>
+              <h3 className="text-2xl font-bold text-gray-900 mb-6">Pay-As-You-Go Options</h3>
+              <div className="flex justify-center gap-6 mb-8">
+                <div className="bg-gray-50 rounded-lg px-6 py-4">
+                  <span className="font-bold text-xl">10 Credits</span>
+                  <span className="text-gray-600 ml-2">$7.99</span>
+                </div>
+                <div className="bg-gray-50 rounded-lg px-6 py-4">
+                  <span className="font-bold text-xl">20 Credits</span>
+                  <span className="text-gray-600 ml-2">$14.99</span>
+                </div>
+                <div className="bg-gray-50 rounded-lg px-6 py-4">
+                  <span className="font-bold text-xl">50 Credits</span>
+                  <span className="text-gray-600 ml-2">$29.99</span>
+                </div>
+              </div>
+              <p className="text-sm text-gray-500">Credits valid for 1 year • 2-month rollover • 90-day image storage</p>
             </div>
           </div>
         </section>
 
         {/* Final CTA */}
-        <section className="py-20 bg-gradient-to-r from-blue-600 to-purple-600">
+        <section className="py-20 bg-[#366494]">
           <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
             <h2 className="text-3xl md:text-4xl font-bold text-white mb-6">
               Ready to Transform Your DTF Printing Business?
             </h2>
-            <p className="text-xl text-blue-100 mb-8">
+            <p className="text-xl text-white/90 mb-8">
               Join thousands of print shops delivering perfect quality every time
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Link href="/auth/signup">
-                <Button size="lg" className="bg-white text-blue-600 hover:bg-gray-100 px-8 py-3">
-                  Start Your Free Trial
+                <Button size="lg" className="bg-white text-[#366494] hover:bg-gray-100 px-8 py-3">
+                  Get Started Free
                   <ArrowRight className="ml-2 w-5 h-5" />
                 </Button>
               </Link>
-              <Button size="lg" variant="outline" className="text-white border-white hover:bg-white/10 px-8 py-3">
+              <Button size="lg" variant="outline" className="text-white border-white hover:bg-[#E88B4B] hover:border-[#E88B4B] px-8 py-3">
                 <Play className="mr-2 w-5 h-5" />
                 Watch 2-Min Demo
               </Button>
             </div>
-            <p className="text-blue-100 mt-6 text-sm">
+            <p className="text-white/80 mt-6 text-sm">
               No credit card required • Cancel anytime • 2 free credits to start
             </p>
           </div>
         </section>
-
-        {/* Footer */}
-        <footer className="bg-gray-900 text-gray-400 py-12">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="grid md:grid-cols-4 gap-8">
-              <div>
-                <div className="flex items-center space-x-2 mb-4">
-                  <div className="w-8 h-8 bg-gradient-to-br from-blue-600 to-purple-600 rounded-lg"></div>
-                  <span className="font-bold text-xl text-white">DTF Editor</span>
-                </div>
-                <p className="text-sm">
-                  Professional AI tools for DTF printing businesses.
-                </p>
-              </div>
-              
-              <div>
-                <h4 className="font-semibold text-white mb-4">Product</h4>
-                <ul className="space-y-2 text-sm">
-                  <li><a href="#" className="hover:text-white">Features</a></li>
-                  <li><a href="#" className="hover:text-white">Pricing</a></li>
-                  <li><a href="#" className="hover:text-white">API</a></li>
-                </ul>
-              </div>
-              
-              <div>
-                <h4 className="font-semibold text-white mb-4">Company</h4>
-                <ul className="space-y-2 text-sm">
-                  <li><a href="#" className="hover:text-white">About</a></li>
-                  <li><a href="#" className="hover:text-white">Blog</a></li>
-                  <li><a href="#" className="hover:text-white">Contact</a></li>
-                </ul>
-              </div>
-              
-              <div>
-                <h4 className="font-semibold text-white mb-4">Legal</h4>
-                <ul className="space-y-2 text-sm">
-                  <li><Link href="/privacy" className="hover:text-white">Privacy</Link></li>
-                  <li><Link href="/terms" className="hover:text-white">Terms</Link></li>
-                  <li><a href="#" className="hover:text-white">Security</a></li>
-                </ul>
-              </div>
-            </div>
-            
-            <div className="border-t border-gray-800 mt-12 pt-8 text-center text-sm">
-              <p>&copy; 2024 DTF Editor. All rights reserved.</p>
-            </div>
-          </div>
-        </footer>
       </div>
     </ClientOnly>
   );
