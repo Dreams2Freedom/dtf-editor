@@ -277,32 +277,33 @@ export async function POST(request: NextRequest) {
           .from('user-uploads')
           .getPublicUrl(filename);
 
-        // Save to processed_images table so it appears in My Images
-        const { data: uploadRecord, error: recordError } = await serviceClient
-          .from('processed_images')
-          .insert({
-            user_id: user.id,
-            original_filename: `ai-generated-${Date.now()}.png`,
-            processed_filename: filename.split('/').pop(),
-            operation_type: 'generate',
-            file_size: buffer.length,
-            width: size?.split('x')[0] ? parseInt(size.split('x')[0]) : 1024,
-            height: size?.split('x')[1] ? parseInt(size.split('x')[1]) : 1024,
-            processing_status: 'completed',
-            storage_url: urlData.publicUrl,
-            thumbnail_url: urlData.publicUrl,
-            storage_path: filename,
-            metadata: {
+        // Save to processed_images via RPC so it appears in My Images (bypasses RLS/grant issues)
+        const widthVal = size?.split('x')[0] ? parseInt(size.split('x')[0]) : 1024;
+        const heightVal = size?.split('x')[1] ? parseInt(size.split('x')[1]) : 1024;
+        const { data: insertedId, error: recordError } = await serviceClient.rpc(
+          'insert_processed_image',
+          {
+            p_user_id: user.id,
+            p_original_filename: `ai-generated-${Date.now()}.png`,
+            p_processed_filename: filename.split('/').pop() || filename,
+            p_operation_type: 'generate',
+            p_file_size: buffer.length,
+            p_processing_status: 'completed',
+            p_storage_url: urlData.publicUrl,
+            p_thumbnail_url: urlData.publicUrl,
+            p_metadata: {
               prompt: enhancedPrompt,
               revised_prompt: image.revised_prompt,
               quality,
               style,
               model: 'gpt-image-1',
               credits_used: creditsPerImage,
-            },
-          })
-          .select()
-          .single();
+              width: widthVal,
+              height: heightVal,
+              storage_path: filename
+            }
+          }
+        );
 
         if (recordError) {
           console.error('Error saving upload record:', recordError);
@@ -310,7 +311,7 @@ export async function POST(request: NextRequest) {
 
         storedImages.push({
           url: urlData.publicUrl,
-          id: uploadRecord?.id,
+          id: insertedId || undefined,
           revised_prompt: image.revised_prompt,
         });
       } catch (error) {
