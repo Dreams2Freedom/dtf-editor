@@ -4,6 +4,10 @@ import { chatGPTService } from '@/services/chatgpt';
 import { validatePrompt, enhancePromptForDTF } from '@/utils/promptHelpers';
 import { v4 as uuidv4 } from 'uuid';
 
+// Configure body size limit for Vercel
+export const maxDuration = 60;
+export const runtime = 'nodejs';
+
 export async function POST(request: NextRequest) {
   console.log('[Edit Image API] Request received at:', new Date().toISOString());
   
