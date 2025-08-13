@@ -99,20 +99,29 @@ export function ImageToImageDirect({
 
     setIsGenerating(true);
     try {
+      // Use FormData to send the image file instead of base64 in JSON
+      const formData = new FormData();
+      
+      // Convert base64 to blob if we have a data URL
+      if (uploadedImage.startsWith('data:')) {
+        const response = await fetch(uploadedImage);
+        const blob = await response.blob();
+        formData.append('image', blob, uploadedFile?.name || 'image.png');
+      } else if (uploadedFile) {
+        formData.append('image', uploadedFile);
+      }
+      
+      // Add other parameters
+      formData.append('modifications', modificationInstructions || '');
+      formData.append('size', generationOptions.size);
+      formData.append('quality', generationOptions.quality);
+      formData.append('style', generationOptions.style);
+      formData.append('count', generationOptions.count.toString());
+
       const response = await fetch('/api/generate/from-image', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
         credentials: 'include',
-        body: JSON.stringify({
-          imageUrl: uploadedImage,
-          modifications: modificationInstructions || undefined,
-          size: generationOptions.size,
-          quality: generationOptions.quality,
-          style: generationOptions.style,
-          count: generationOptions.count,
-        }),
+        body: formData,
       });
 
       const data = await response.json();

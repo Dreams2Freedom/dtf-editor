@@ -4,7 +4,7 @@ import { chatGPTService } from '@/services/chatgpt';
 import { enhancePromptForDTF } from '@/utils/promptHelpers';
 import { v4 as uuidv4 } from 'uuid';
 
-// Configure body size limit for Vercel
+// Configure for Vercel
 export const maxDuration = 60;
 export const runtime = 'nodejs';
 
@@ -45,23 +45,28 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Parse request body
-    const body = await request.json();
-    const { 
-      imageUrl, 
-      modifications, 
-      size = '1024x1024', 
-      quality = 'standard', 
-      style = 'vivid',
-      count = 1 
-    } = body;
+    // Parse FormData instead of JSON
+    const formData = await request.formData();
+    const imageFile = formData.get('image') as File;
+    const modifications = formData.get('modifications') as string || undefined;
+    const size = formData.get('size') as string || '1024x1024';
+    const quality = formData.get('quality') as string || 'standard';
+    const style = formData.get('style') as string || 'vivid';
+    const count = parseInt(formData.get('count') as string || '1');
 
-    if (!imageUrl) {
+    if (!imageFile) {
       return NextResponse.json(
-        { error: 'Image URL is required' },
+        { error: 'Image file is required' },
         { status: 400 }
       );
     }
+
+    // Convert image file to base64 data URL for GPT-4o vision
+    const arrayBuffer = await imageFile.arrayBuffer();
+    const buffer = Buffer.from(arrayBuffer);
+    const base64 = buffer.toString('base64');
+    const mimeType = imageFile.type || 'image/png';
+    const imageUrl = `data:${mimeType};base64,${base64}`;
 
     console.log('[Generate From Image API] Step 1: Analyzing image with GPT-4o Vision...');
 
