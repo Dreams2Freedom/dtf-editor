@@ -165,7 +165,7 @@ export function ImageGenerator() {
             AI Image Generator
           </h2>
           <p className="text-gray-600 mt-1">
-            Create unique images using ChatGPT/DALL-E 3
+            Create unique images using GPT-Image-1
           </p>
         </div>
         <div className="text-right">

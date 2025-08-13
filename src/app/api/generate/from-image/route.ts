@@ -70,7 +70,7 @@ export async function POST(request: NextRequest) {
 
     // Create a comprehensive prompt for analysis
     let analysisPrompt = `You are an expert at analyzing images for AI recreation. 
-      Provide a detailed DALL-E 3 prompt that will recreate this image as closely as possible.
+      Provide a detailed GPT-Image-1 prompt that will recreate this image as closely as possible.
       Focus on: exact text content and styling, colors, composition, art style, and all visual elements.
       The recreation must have a transparent background for DTF printing.`;
 
@@ -90,7 +90,7 @@ export async function POST(request: NextRequest) {
       messages: [
         {
           role: "system",
-          content: "You are an expert at creating detailed DALL-E 3 prompts from images. Your prompts should be specific and comprehensive to ensure accurate recreation."
+          content: "You are an expert at creating detailed GPT-Image-1 prompts from images. Your prompts should be specific and comprehensive to ensure accurate recreation."
         },
         {
           role: "user",
@@ -114,10 +114,10 @@ export async function POST(request: NextRequest) {
     // Enhance for DTF
     const enhancedPrompt = enhancePromptForDTF(generatedPrompt);
 
-    console.log('[Generate From Image API] Step 2: Generating image with DALL-E 3...');
+    console.log('[Generate From Image API] Step 2: Generating image with GPT-Image-1...');
 
-    // Step 2: Generate the image with DALL-E 3 (the only OpenAI model that generates images)
-    // Note: GPT-4o can analyze images but cannot generate them - only DALL-E models generate images
+    // Step 2: Generate the image with GPT-Image-1 (OpenAI's image generation model)
+    // Note: GPT-4o can analyze images but cannot generate them - only GPT-Image-1 generates images
     const result = await chatGPTService.generateImage({
       prompt: enhancedPrompt,
       size,
@@ -182,33 +182,44 @@ export async function POST(request: NextRequest) {
             .from('user-uploads')
             .getPublicUrl(filename);
 
-          // Save to database
-          const { data: uploadRecord } = await serviceClient
-            .from('uploads')
-            .insert({
-              user_id: user.id,
-              original_url: urlData.publicUrl,
-              processed_url: urlData.publicUrl,
-              filename: filename.split('/').pop(),
-              file_size: buffer.length,
-              mime_type: 'image/png',
-              processing_type: 'ai_generation_from_image',
-              status: 'completed',
-              metadata: {
+          // Save to processed_images via RPC so it appears in My Images (bypasses RLS/grant issues)
+          const widthVal = parseInt(size.split('x')[0]);
+          const heightVal = parseInt(size.split('x')[1]);
+          const { data: insertedId, error: recordError } = await serviceClient.rpc(
+            'insert_processed_image',
+            {
+              p_user_id: user.id,
+              p_original_filename: `ai-generated-${Date.now()}.png`,
+              p_processed_filename: filename.split('/').pop() || filename,
+              p_operation_type: 'generate',
+              p_file_size: buffer.length,
+              p_processing_status: 'completed',
+              p_storage_url: urlData.publicUrl,
+              p_thumbnail_url: urlData.publicUrl,
+              p_metadata: {
                 source: 'image-to-image',
                 modifications,
                 prompt: enhancedPrompt,
                 revised_prompt: image.revised_prompt,
                 quality,
                 style,
-              },
-            })
-            .select()
-            .single();
+                model: 'gpt-image-1',
+                operation: 'from-image',
+                credits_used: creditsPerImage,
+                width: widthVal,
+                height: heightVal,
+                storage_path: filename
+              }
+            }
+          );
+
+          if (recordError) {
+            console.error('Error saving to processed_images:', recordError);
+          }
 
           storedImages.push({
             url: urlData.publicUrl,
-            id: uploadRecord?.id,
+            id: insertedId || undefined,
             revised_prompt: image.revised_prompt,
           });
         }

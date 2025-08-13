@@ -61,8 +61,8 @@ export function ImageToImageUpload({
   };
 
   const handleImageFile = (file: File) => {
-    if (file.size > 10 * 1024 * 1024) { // 10MB limit
-      toast.error('Image must be less than 10MB');
+    if (file.size > 50 * 1024 * 1024) { // 50MB limit
+      toast.error('Image must be less than 50MB');
       return;
     }
 

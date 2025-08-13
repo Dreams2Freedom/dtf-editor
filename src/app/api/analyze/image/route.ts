@@ -49,7 +49,7 @@ export async function POST(request: NextRequest) {
           5. Layout and positioning
           
           IMPORTANT: For DTF printing, note if the image has a transparent background or if the subject is isolated.
-          Format your response as a clear, detailed prompt that can be used with DALL-E 3.`;
+          Format your response as a clear, detailed prompt that can be used with GPT-Image-1.`;
         
         userPrompt = `Analyze this image and provide a detailed description that can be used to recreate it with AI image generation. 
           ${customInstructions ? `Additional instructions: ${customInstructions}` : ''}

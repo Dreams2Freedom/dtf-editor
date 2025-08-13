@@ -1,9 +1,32 @@
 # DTF Editor - Bug Tracker
 
-**Last Updated:** August 6, 2025  
+**Last Updated:** August 11, 2025  
 **Status:** Active Bug Tracking
 
 ## 🐛 **Critical Bugs (P0)**
+
+### **BUG-045: AI Image-to-Image Generation Not Saving to My Images**
+- **Status:** 🟢 FIXED
+- **Severity:** Critical
+- **Component:** AI Image Generation / Image Gallery
+- **Description:** AI-generated images from image-to-image generation were not appearing in My Images gallery
+- **Symptoms:**
+  - User creates images using image-to-image AI generation
+  - Images generated successfully but don't show in My Images gallery
+  - Images were saved to `uploads` table but not `processed_images` table
+- **Root Cause:** 
+  - `/api/generate/from-image/route.ts` was saving to `uploads` table only
+  - Missing call to `insert_processed_image` RPC function
+  - My Images gallery only shows items from `processed_images` table
+- **Solution Applied:**
+  - Updated `/api/generate/from-image/route.ts` to use `insert_processed_image` RPC
+  - Changed from saving to `uploads` table to `processed_images` table
+  - Ensured consistent with other AI generation endpoints
+  - Fixed model name to use 'gpt-image-1' instead of 'dall-e-3'
+- **Files Modified:**
+  - `/src/app/api/generate/from-image/route.ts` - Added RPC call to save to gallery
+- **Date Reported:** August 11, 2025
+- **Date Fixed:** August 11, 2025
 
 ### **BUG-044: OpenAI Client-Side Initialization Error**
 - **Status:** 🟢 FIXED
@@ -809,11 +832,11 @@
 
 | Priority | Total | Open | In Progress | Fixed | Fix Rate |
 |----------|-------|------|-------------|-------|----------|
-| P0 Critical | 43 | 0 | 1 | 42 | 98% |
+| P0 Critical | 44 | 0 | 0 | 44 | 100% |
 | P1 High | 4 | 1 | 0 | 3 | 75% |
 | P2 Medium | 3 | 1 | 0 | 2 | 67% |
 | P3 Low | 2 | 2 | 0 | 0 | 0% |
-| **Total** | **52** | **4** | **1** | **47** | **90%** |
+| **Total** | **53** | **4** | **0** | **49** | **92%** |
 
 ---
 

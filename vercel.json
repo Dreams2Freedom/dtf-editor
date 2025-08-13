@@ -15,17 +15,33 @@
     "src/app/api/generate/route.ts": {
       "maxDuration": 300
     },
+    "src/app/api/generate/from-image/route.ts": {
+      "maxDuration": 60,
+      "maxBodySize": "50mb"
+    },
+    "src/app/api/generate/image/route.ts": {
+      "maxDuration": 60,
+      "maxBodySize": "50mb"
+    },
+    "src/app/api/generate/edit/route.ts": {
+      "maxDuration": 60,
+      "maxBodySize": "50mb"
+    },
     "src/app/api/upload/route.ts": {
-      "maxDuration": 60
+      "maxDuration": 60,
+      "maxBodySize": "50mb"
     },
     "src/app/api/process/route.ts": {
-      "maxDuration": 60
+      "maxDuration": 60,
+      "maxBodySize": "50mb"
     },
     "src/app/api/upscale/route.ts": {
-      "maxDuration": 60
+      "maxDuration": 60,
+      "maxBodySize": "50mb"
     },
     "src/app/api/clippingmagic/upload/route.ts": {
-      "maxDuration": 60
+      "maxDuration": 60,
+      "maxBodySize": "50mb"
     }
   }
 }
