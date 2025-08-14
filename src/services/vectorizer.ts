@@ -1,7 +1,7 @@
 import { env } from '@/config/env';
 
 export interface VectorizerOptions {
-  format?: 'svg' | 'pdf';
+  format?: 'svg' | 'pdf' | 'png';
   mode?: 'test' | 'production';
   processing_options?: {
     curve_fitting?: 'low' | 'medium' | 'high';
@@ -69,6 +69,11 @@ export class VectorizerService {
       // Add options
       if (options.format) {
         formData.append('output.file_format', options.format);
+        
+        // Add PNG-specific options for transparency and quality
+        if (options.format === 'png') {
+          formData.append('output.bitmap.anti_aliasing_mode', 'anti_aliased');
+        }
       }
 
       if (options.mode) {
