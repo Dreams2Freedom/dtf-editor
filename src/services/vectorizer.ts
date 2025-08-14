@@ -1,7 +1,7 @@
 import { env } from '@/config/env';
 
 export interface VectorizerOptions {
-  format?: 'svg' | 'pdf';
+  format?: 'svg' | 'pdf' | 'png';
   mode?: 'test' | 'production';
   processing_options?: {
     curve_fitting?: 'low' | 'medium' | 'high';
@@ -66,9 +66,10 @@ export class VectorizerService {
       const formData = new FormData();
       formData.append('image', imageBlob, 'image.jpg');
       
-      // Add options
-      if (options.format) {
-        formData.append('output.file_format', options.format);
+      // Add options - for PNG, we request SVG and convert later
+      const requestFormat = options.format === 'png' ? 'svg' : options.format;
+      if (requestFormat) {
+        formData.append('output.file_format', requestFormat);
       }
 
       if (options.mode) {
@@ -109,9 +110,61 @@ export class VectorizerService {
 
       // For Vectorizer.ai, the response is the processed vector file directly
       const resultBuffer = await response.arrayBuffer();
-      const resultBase64 = Buffer.from(resultBuffer).toString('base64');
       
-      // Determine MIME type based on format
+      // If PNG was requested, convert SVG to PNG
+      if (options.format === 'png') {
+        try {
+          // Import sharp dynamically to avoid client-side issues
+          const sharp = require('sharp');
+          
+          // Convert SVG to PNG with 4x scaling and transparency
+          const svgBuffer = Buffer.from(resultBuffer);
+          
+          // First, we need to get the dimensions from the SVG
+          // Sharp will handle the 4x scaling automatically based on density
+          const pngBuffer = await sharp(svgBuffer, { density: 288 }) // 72 * 4 = 288 DPI for 4x scaling
+            .png({ 
+              compressionLevel: 9,
+              quality: 100,
+              force: true 
+            })
+            .toBuffer();
+          
+          const pngBase64 = pngBuffer.toString('base64');
+          const pngUrl = `data:image/png;base64,${pngBase64}`;
+          
+          return {
+            status: 'success',
+            url: pngUrl,
+            metadata: {
+              originalSize,
+              processedSize: pngBuffer.length,
+              processingTime,
+              format: 'png',
+            },
+          };
+        } catch (conversionError) {
+          console.error('Failed to convert SVG to PNG:', conversionError);
+          // Fallback to returning the SVG if conversion fails
+          const resultBase64 = Buffer.from(resultBuffer).toString('base64');
+          const resultUrl = `data:image/svg+xml;base64,${resultBase64}`;
+          
+          return {
+            status: 'error',
+            error: 'Failed to convert to PNG, returning SVG instead',
+            url: resultUrl,
+            metadata: {
+              originalSize,
+              processedSize: resultBuffer.byteLength,
+              processingTime,
+              format: 'svg',
+            },
+          };
+        }
+      }
+      
+      // For SVG and PDF, return as before
+      const resultBase64 = Buffer.from(resultBuffer).toString('base64');
       const mimeType = options.format === 'pdf' ? 'application/pdf' : 'image/svg+xml';
       const resultUrl = `data:${mimeType};base64,${resultBase64}`;
 
