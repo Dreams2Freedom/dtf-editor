@@ -224,7 +224,7 @@ export default function VectorizeClient() {
                         <label className="block text-sm font-medium mb-2">
                           Output Format
                         </label>
-                        <div className="grid grid-cols-3 gap-2">
+                        <div className="grid grid-cols-2 gap-2">
                           <button
                             onClick={() => setSelectedFormat('svg')}
                             className={`p-3 border rounded-lg transition-colors ${
@@ -234,7 +234,7 @@ export default function VectorizeClient() {
                             }`}
                           >
                             <div className="font-medium">SVG</div>
-                            <div className="text-xs mt-1">Scalable Vector</div>
+                            <div className="text-xs mt-1">Scalable Vector Graphics</div>
                           </button>
                           <button
                             onClick={() => setSelectedFormat('pdf')}
@@ -245,18 +245,7 @@ export default function VectorizeClient() {
                             }`}
                           >
                             <div className="font-medium">PDF</div>
-                            <div className="text-xs mt-1">Document Format</div>
-                          </button>
-                          <button
-                            onClick={() => setSelectedFormat('png')}
-                            className={`p-3 border rounded-lg transition-colors ${
-                              selectedFormat === 'png'
-                                ? 'border-purple-500 bg-purple-50 text-purple-700'
-                                : 'border-gray-300 hover:border-gray-400'
-                            }`}
-                          >
-                            <div className="font-medium">PNG</div>
-                            <div className="text-xs mt-1">4x Transparent</div>
+                            <div className="text-xs mt-1">Portable Document Format</div>
                           </button>
                         </div>
                       </div>
@@ -297,20 +286,13 @@ export default function VectorizeClient() {
                   {processedUrl && (
                     <div className="space-y-4">
                       <h3 className="font-medium mb-2">Vectorized Result</h3>
-                      {selectedFormat === 'svg' || selectedFormat === 'png' ? (
+                      {selectedFormat === 'svg' ? (
                         <div className="border rounded-lg p-4 bg-gray-50">
                           <img 
                             src={processedUrl} 
                             alt="Vectorized" 
                             className="max-w-full h-auto"
-                            style={{ 
-                              maxHeight: '400px',
-                              ...(selectedFormat === 'png' ? {
-                                backgroundColor: '#f0f0f0',
-                                backgroundImage: 'repeating-conic-gradient(#808080 0% 25%, transparent 0% 50%)',
-                                backgroundSize: '20px 20px'
-                              } : {})
-                            }}
+                            style={{ maxHeight: '400px' }}
                           />
                         </div>
                       ) : (
