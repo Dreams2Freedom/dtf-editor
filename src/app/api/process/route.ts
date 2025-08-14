@@ -64,7 +64,7 @@ export async function POST(request: NextRequest) {
       processingMode: formData.get('processingMode') as 'auto_enhance' | 'generative_upscale' | 'basic_upscale' | undefined,
       faceEnhance: formData.get('faceEnhance') === 'true',
       backgroundColor: formData.get('backgroundColor') as string | undefined,
-      vectorFormat: formData.get('vectorFormat') as 'svg' | 'pdf' | undefined,
+      vectorFormat: formData.get('vectorFormat') as 'svg' | 'pdf' | 'png' | undefined,
     };
 
     // 8. Validate operation-specific options
@@ -181,8 +181,8 @@ function validateProcessingOptions(options: ProcessingOptions): string | null {
       break;
 
     case 'vectorization':
-      if (options.vectorFormat && !['svg', 'pdf'].includes(options.vectorFormat)) {
-        return 'Vector format must be svg or pdf';
+      if (options.vectorFormat && !['svg', 'pdf', 'png'].includes(options.vectorFormat)) {
+        return 'Vector format must be svg, pdf, or png';
       }
       break;
 
