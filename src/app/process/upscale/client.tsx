@@ -182,13 +182,29 @@ export default function UpscaleClient() {
     }
   };
 
-  const downloadImage = () => {
+  const downloadImage = async () => {
     if (!processedUrl) return;
     
-    const link = document.createElement('a');
-    link.href = processedUrl;
-    link.download = `upscaled-${selectedScale}x.jpg`;
-    link.click();
+    try {
+      // Fetch the image and create a blob URL for proper downloading
+      const response = await fetch(processedUrl);
+      const blob = await response.blob();
+      const blobUrl = URL.createObjectURL(blob);
+      
+      const link = document.createElement('a');
+      link.href = blobUrl;
+      link.download = `upscaled-${selectedScale}x.jpg`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      // Clean up the blob URL after a short delay
+      setTimeout(() => URL.revokeObjectURL(blobUrl), 100);
+    } catch (error) {
+      console.error('Download failed:', error);
+      // Fallback to opening in new tab if fetch fails
+      window.open(processedUrl, '_blank');
+    }
   };
 
   return (
