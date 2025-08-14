@@ -70,7 +70,7 @@ export async function POST(request: NextRequest) {
     }
 
     let affected = 0;
-    let errors: string[] = [];
+    const errors: string[] = [];
 
     console.log(`[Bulk Credits] Starting ${operation} operation for ${userIds.length} users with amount: ${amount}`);
 

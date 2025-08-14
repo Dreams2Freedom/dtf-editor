@@ -40,7 +40,7 @@ export async function POST(request: NextRequest) {
     }
 
     let affected = 0;
-    let errors: string[] = [];
+    const errors: string[] = [];
 
     switch (action) {
       case 'activate':

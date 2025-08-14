@@ -537,7 +537,7 @@ export class ImageProcessingService {
       const processedFilename = `${originalFilename.split('.')[0]}_${result.operation}_${Date.now()}.${originalFilename.split('.').pop()}`;
       
       // Get image dimensions if available (this is a placeholder - actual implementation would fetch from processed image)
-      let dimensions = { width: null, height: null };
+      const dimensions = { width: null, height: null };
       
       // Calculate expiration date based on user's plan
       const { data: expirationData, error: expirationError } = await this.supabase

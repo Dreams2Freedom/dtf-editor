@@ -27,7 +27,7 @@ export async function GET(
     console.log('Current user:', user.id);
     
     // The ID might be the full filename without extension, so let's try different approaches
-    let fileName = id;
+    const fileName = id;
     
     // If ID doesn't have an extension, try common image extensions
     const possibleExtensions = ['.png', '.jpg', '.jpeg', '.webp'];

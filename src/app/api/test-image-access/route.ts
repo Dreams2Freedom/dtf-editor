@@ -25,7 +25,7 @@ export async function GET() {
     const imagesBucket = buckets?.find(b => b.name === 'images');
     
     // Try to access an image directly
-    let testResults = [];
+    const testResults = [];
     
     if (images && images.length > 0) {
       for (const img of images) {
