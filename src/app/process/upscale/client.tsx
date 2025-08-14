@@ -15,6 +15,7 @@ export default function UpscaleClient() {
   const router = useRouter();
   const { profile, refreshCredits, user } = useAuthStore();
   const imageId = searchParams.get('imageId');
+  const imageUrlParam = searchParams.get('imageUrl');
   
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -27,6 +28,20 @@ export default function UpscaleClient() {
 
   // Load image data
   useEffect(() => {
+    // Handle imageUrl parameter (from background removal or other tools)
+    if (imageUrlParam) {
+      try {
+        const decodedUrl = decodeURIComponent(imageUrlParam);
+        setImageUrl(decodedUrl);
+        setIsLoading(false);
+      } catch (err) {
+        setError('Invalid image URL provided');
+        setIsLoading(false);
+      }
+      return;
+    }
+    
+    // Handle imageId parameter (from upload flow)
     if (!imageId) {
       router.push('/process');
       return;
@@ -51,7 +66,7 @@ export default function UpscaleClient() {
     };
 
     fetchImage();
-  }, [imageId, router]);
+  }, [imageId, imageUrlParam, router]);
 
   // Refresh credits when page loads or regains focus
   useEffect(() => {

@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
-import { Scissors, Download, Loader2, ArrowLeft } from 'lucide-react';
+import { Scissors, Download, Loader2, ArrowLeft, Wand2 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import Link from 'next/link';
@@ -576,6 +576,24 @@ export default function BackgroundRemovalClient() {
                         >
                           <Download className="w-4 h-4" />
                           Download Image
+                        </Button>
+                        <Button
+                          onClick={() => {
+                            // Navigate to upscale page with the processed image URL
+                            if (!processedUrl) {
+                              alert('No processed image available');
+                              return;
+                            }
+                            
+                            // For data URLs or regular URLs
+                            const targetUrl = `/process/upscale?imageUrl=${encodeURIComponent(processedUrl)}`;
+                            router.push(targetUrl);
+                          }}
+                          variant="secondary"
+                          className="flex items-center gap-2"
+                        >
+                          <Wand2 className="w-4 h-4" />
+                          Upscale Image
                         </Button>
                         <Button
                           onClick={() => openEditor(uploadedImage!)}
