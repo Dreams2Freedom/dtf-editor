@@ -27,7 +27,8 @@ import {
   PauseCircle,
   Images,
   HardDrive,
-  Sparkles
+  Sparkles,
+  Calculator
 } from 'lucide-react';
 import Link from 'next/link';
 import { CreditHistory } from '@/components/dashboard/CreditHistory';
@@ -244,6 +245,20 @@ export default function DashboardPage() {
                   </h3>
                   <p className="text-gray-600 text-sm">
                     Manage your storage
+                  </p>
+                </CardContent>
+              </Link>
+            </Card>
+
+            <Card className="cursor-pointer hover:shadow-md transition-shadow">
+              <Link href="/tools/dpi-checker">
+                <CardContent className="p-6 text-center">
+                  <Calculator className="w-12 h-12 text-teal-600 mx-auto mb-4" />
+                  <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                    DPI Checker
+                  </h3>
+                  <p className="text-gray-600 text-sm">
+                    Check image resolution
                   </p>
                 </CardContent>
               </Link>

@@ -1,0 +1,86 @@
+import { NextRequest, NextResponse } from 'next/server';
+import { createServerSupabaseClient } from '@/lib/supabase/server';
+import { goHighLevelService } from '@/services/goHighLevel';
+
+export async function POST(request: NextRequest) {
+  try {
+    const body = await request.json();
+    const { email, password, firstName, lastName, phone } = body;
+
+    // Validate required fields
+    if (!email || !password || !firstName) {
+      return NextResponse.json(
+        { error: 'Email, password, and first name are required' },
+        { status: 400 }
+      );
+    }
+
+    // Create Supabase client
+    const supabase = await createServerSupabaseClient();
+
+    // Sign up the user in Supabase
+    const { data: authData, error: authError } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        data: {
+          first_name: firstName,
+          last_name: lastName,
+          phone: phone,
+          signup_source: 'dpi-tool'
+        }
+      }
+    });
+
+    if (authError) {
+      console.error('Supabase signup error:', authError);
+      
+      // Check if user already exists
+      if (authError.message?.includes('already registered')) {
+        return NextResponse.json(
+          { error: 'An account with this email already exists. Please sign in instead.' },
+          { status: 400 }
+        );
+      }
+      
+      return NextResponse.json(
+        { error: authError.message || 'Failed to create account' },
+        { status: 400 }
+      );
+    }
+
+    // Create contact in GoHighLevel (non-blocking)
+    goHighLevelService.createContact({
+      firstName,
+      lastName,
+      email,
+      phone,
+      source: 'DPI Tool Signup',
+      tags: ['dpi-tool', 'free-account', 'website-signup'],
+      customFields: {
+        signupTool: 'DPI Checker',
+        accountType: 'free'
+      }
+    }).then(result => {
+      if (!result.success) {
+        console.error('Failed to create GoHighLevel contact:', result.error);
+      }
+    }).catch(error => {
+      console.error('Error creating GoHighLevel contact:', error);
+    });
+
+    // Return success with user data
+    return NextResponse.json({
+      success: true,
+      user: authData.user,
+      message: 'Account created successfully! Check your email to verify your account.'
+    });
+
+  } catch (error) {
+    console.error('DPI tool signup error:', error);
+    return NextResponse.json(
+      { error: 'An unexpected error occurred. Please try again.' },
+      { status: 500 }
+    );
+  }
+}
