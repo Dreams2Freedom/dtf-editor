@@ -98,38 +98,51 @@ export class SupportService {
       // Get ticket
       const { data: ticket, error: ticketError } = await supabase
         .from('support_tickets')
-        .select()
+        .select('*')
         .eq('id', ticketId)
         .single();
 
       if (ticketError) throw ticketError;
 
-      // Get messages
+      // Get messages without join for now to avoid errors
       const { data: messages, error: messagesError } = await supabase
         .from('support_messages')
-        .select(`
-          *,
-          profiles:user_id (
-            first_name,
-            last_name,
-            email
-          )
-        `)
+        .select('*')
         .eq('ticket_id', ticketId)
         .order('created_at', { ascending: true });
 
       if (messagesError) throw messagesError;
 
-      // Format messages with author info
-      const formattedMessages = (messages || []).map(msg => ({
-        ...msg,
-        author: msg.profiles ? {
-          name: `${msg.profiles.first_name || ''} ${msg.profiles.last_name || ''}`.trim() || 'User',
-          email: msg.profiles.email
-        } : msg.is_admin ? {
-          name: 'Support Team',
-          email: 'support@dtfeditor.com'
-        } : undefined
+      // For each message, get the user profile separately if needed
+      const formattedMessages = await Promise.all((messages || []).map(async (msg) => {
+        if (msg.user_id && !msg.is_admin) {
+          // Try to get user profile
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('first_name, last_name, email')
+            .eq('id', msg.user_id)
+            .single();
+          
+          return {
+            ...msg,
+            author: profile ? {
+              name: `${profile.first_name || ''} ${profile.last_name || ''}`.trim() || 'User',
+              email: profile.email
+            } : {
+              name: 'User',
+              email: null
+            }
+          };
+        } else if (msg.is_admin) {
+          return {
+            ...msg,
+            author: {
+              name: 'Support Team',
+              email: 'support@dtfeditor.com'
+            }
+          };
+        }
+        return msg;
       }));
 
       return {

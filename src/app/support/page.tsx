@@ -252,7 +252,13 @@ export default function SupportPage() {
               <Card
                 key={ticket.id}
                 className="p-6 hover:shadow-lg transition-shadow cursor-pointer"
-                onClick={() => router.push(`/support/${ticket.id}`)}
+                onClick={(e) => {
+                  // Prevent navigation if clicking on the button
+                  if ((e.target as HTMLElement).closest('button')) {
+                    return;
+                  }
+                  router.push(`/support/${ticket.id}`);
+                }}
               >
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
@@ -295,7 +301,11 @@ export default function SupportPage() {
                   </div>
                   
                   <div className="ml-4">
-                    <Button variant="outline" size="sm">
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => router.push(`/support/${ticket.id}`)}
+                    >
                       View
                     </Button>
                   </div>
