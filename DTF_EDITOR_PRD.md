@@ -1170,8 +1170,42 @@ class CreditManager {
 - **User behavior** patterns
 - **Peak usage** identification
 
+## 🚀 **16. Future Features (Built but Deferred)**
+
+### **16.1 AI Image Editing (GPT-Image-1)**
+
+**Status:** Built and functional, deferred for refinement
+
+**Description:** Advanced AI-powered image editing using ChatGPT's GPT-Image-1 model to modify existing images based on text prompts.
+
+**Features Implemented:**
+- Upload existing image for AI modification
+- Text prompt-based editing (e.g., "add a blue hat", "change background to sunset")
+- Mask-based selective editing
+- Style transfer capabilities
+- Color and lighting adjustments via prompts
+
+**Why Deferred:**
+- Needs UI/UX refinement for better user experience
+- Requires more comprehensive prompt templates
+- Credit cost optimization needed
+- User testing required to refine editing workflow
+
+**Location:** `/generate/edit` route (currently disabled in navigation)
+
+**Components:**
+- `ImageEditor.tsx` - Main editing interface
+- `/api/generate/edit/route.ts` - API endpoint
+
+**To Re-enable:**
+1. Add back to navigation menu in `Header.tsx`
+2. Review and refine UI/UX
+3. Add prompt templates library
+4. Implement better error handling
+5. Add tutorial/onboarding flow
+
 ---
 
-**Document Version:** 1.0  
+**Document Version:** 1.1  
 **Last Updated:** January 2025  
 **Status:** Approved for Development

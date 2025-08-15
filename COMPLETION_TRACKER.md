@@ -449,6 +449,40 @@
 
 ---
 
+## 🔧 **BUILT BUT DEFERRED FEATURES**
+
+### **AI Image Editing (GPT-Image-1)**
+**Status:** 100% Functional - Deferred for Refinement  
+**Built:** January 2025  
+**Location:** `/generate/edit` (disabled in navigation)
+
+**What's Built:**
+- [x] Full GPT-Image-1 API integration
+- [x] Image upload and editing interface
+- [x] Text prompt-based editing functionality
+- [x] Mask-based selective editing
+- [x] Style transfer capabilities
+- [x] Credit deduction system
+- [x] Error handling
+- [x] API endpoint (`/api/generate/edit`)
+- [x] Component architecture (`ImageEditor.tsx`)
+
+**Why Deferred:**
+- Needs UI/UX polish for better user experience
+- Requires comprehensive prompt templates library
+- Credit cost optimization needed (currently expensive)
+- User testing required to refine workflow
+- Tutorial/onboarding flow needed
+
+**To Re-enable:**
+1. Uncomment in `Header.tsx` navigation
+2. Add to navigation as submenu under AI Tools
+3. Review and refine the UI
+4. Add prompt templates
+5. Create user tutorial
+
+---
+
 ## 📝 **Notes**
 
 - **Critical Issue:** No actual image processing despite being core product

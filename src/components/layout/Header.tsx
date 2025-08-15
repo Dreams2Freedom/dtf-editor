@@ -50,14 +50,7 @@ export function Header() {
   const navigation: NavItem[] = user ? [
     { name: 'Dashboard', href: '/dashboard', icon: Home },
     { name: 'Process Image', href: '/process', icon: Upload },
-    { 
-      name: 'AI Tools', 
-      icon: Sparkles,
-      submenu: [
-        { name: 'Generate Image', href: '/generate', icon: Sparkles },
-        { name: 'Edit Image', href: '/generate/edit', icon: Edit3 },
-      ]
-    },
+    { name: 'Generate Image', href: '/generate', icon: Sparkles },
     { name: 'My Images', href: '/dashboard#my-images', icon: Images },
     { name: 'Storage', href: '/storage', icon: HardDrive },
     { name: 'Pricing', href: '/pricing', icon: DollarSign },
