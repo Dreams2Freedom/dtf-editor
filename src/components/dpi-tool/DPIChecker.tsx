@@ -225,18 +225,20 @@ export function DPIChecker({ showSignupForm = true, onSignupComplete }: DPICheck
               className="hidden"
               id="image-upload"
             />
-            <label htmlFor="image-upload" className="cursor-pointer">
-              {imagePreview ? (
-                <div>
-                  <img src={imagePreview} alt="Preview" className="max-h-48 mx-auto mb-4 rounded" />
-                  <p className="text-sm text-gray-600">
-                    Dimensions: {imageDimensions?.width} × {imageDimensions?.height} pixels
-                  </p>
-                  <Button variant="outline" size="sm" className="mt-2">
+            {imagePreview ? (
+              <div>
+                <img src={imagePreview} alt="Preview" className="max-h-48 mx-auto mb-4 rounded" />
+                <p className="text-sm text-gray-600">
+                  Dimensions: {imageDimensions?.width} × {imageDimensions?.height} pixels
+                </p>
+                <label htmlFor="image-upload">
+                  <span className="inline-block mt-2 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 cursor-pointer transition-colors">
                     Change Image
-                  </Button>
-                </div>
-              ) : (
+                  </span>
+                </label>
+              </div>
+            ) : (
+              <label htmlFor="image-upload" className="cursor-pointer">
                 <div>
                   <Upload className="w-12 h-12 mx-auto mb-4 text-gray-400" />
                   <p className="text-lg font-medium text-gray-700">Click to upload image</p>
