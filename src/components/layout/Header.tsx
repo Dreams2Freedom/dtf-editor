@@ -23,7 +23,8 @@ import {
   Edit3,
   ChevronDown,
   HelpCircle,
-  Shield
+  Shield,
+  Ruler
 } from 'lucide-react';
 import { CreditDisplay } from '@/components/ui/CreditDisplay';
 import { NotificationBell } from '@/components/notifications/NotificationBell';
@@ -71,9 +72,11 @@ export function Header() {
         { name: 'Storage', href: '/storage', icon: HardDrive },
       ]
     },
+    { name: 'DPI Checker', href: '/free-dpi-checker', icon: Ruler },
     { name: 'Support', href: isAdmin ? '/admin/support' : '/support', icon: HelpCircle },
   ] : [
     { name: 'Home', href: '/', icon: Home },
+    { name: 'DPI Checker', href: '/free-dpi-checker', icon: Ruler },
     { name: 'Pricing', href: '/pricing', icon: DollarSign },
     { name: 'Process', href: '/process', icon: Upload },
   ];

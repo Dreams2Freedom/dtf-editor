@@ -25,7 +25,8 @@ import {
   Layers,
   Shield,
   Clock,
-  CreditCard
+  CreditCard,
+  Ruler
 } from 'lucide-react';
 
 export default function HomePage() {
@@ -117,17 +118,24 @@ export default function HomePage() {
               </p>
               
               <div className="flex flex-col sm:flex-row gap-4 justify-center mb-8">
+                <Link href="/free-dpi-checker">
+                  <Button size="lg" className="text-lg px-8 py-6 bg-[#E88B4B] hover:bg-[#D67A3A] text-white">
+                    <Ruler className="mr-2 w-5 h-5" />
+                    Check Your Image Resolution
+                  </Button>
+                </Link>
                 <Link href="/auth/signup">
-                  <Button size="lg" className="text-lg px-8 py-6 bg-[#366494] hover:bg-[#233E5C] text-white">
+                  <Button size="lg" variant="outline" className="text-lg px-8 py-6 border-[#366494] text-[#366494] hover:bg-[#366494] hover:text-white">
                     Sign Up & Get 2 Free Credits
                     <ArrowRight className="ml-2 w-5 h-5" />
                   </Button>
                 </Link>
-                <Link href="#pricing">
-                  <Button variant="outline" size="lg" className="text-lg px-8 py-6 group">
-                    See Plans & Pricing
-                    <ChevronRight className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform" />
-                  </Button>
+              </div>
+              
+              <div className="mb-8">
+                <Link href="#pricing" className="text-[#366494] hover:text-[#233E5C] font-medium inline-flex items-center">
+                  See Plans & Pricing
+                  <ChevronRight className="ml-1 w-4 h-4" />
                 </Link>
               </div>
               
