@@ -14,6 +14,7 @@ export interface ModalProps {
   size?: 'sm' | 'md' | 'lg' | 'xl' | 'full';
   showCloseButton?: boolean;
   closeOnOverlayClick?: boolean;
+  ariaLabel?: string;
 }
 
 const sizeClasses = {
@@ -33,6 +34,7 @@ export function Modal({
   size = 'md',
   showCloseButton = true,
   closeOnOverlayClick = true,
+  ariaLabel,
 }: ModalProps) {
   return (
     <Dialog.Root open={open} onOpenChange={onOpenChange}>
@@ -46,6 +48,8 @@ export function Modal({
           onClick={closeOnOverlayClick ? () => onOpenChange(false) : undefined}
         />
         <Dialog.Content
+          aria-label={ariaLabel || title || 'Modal dialog'}
+          aria-describedby={description ? 'modal-description' : undefined}
           className={cn(
             'fixed left-[50%] top-[50%] z-50 w-full translate-x-[-50%] translate-y-[-50%]',
             'bg-white rounded-lg shadow-xl',
@@ -67,7 +71,7 @@ export function Modal({
                   </Dialog.Title>
                 )}
                 {description && (
-                  <Dialog.Description className="mt-1 text-sm text-gray-500">
+                  <Dialog.Description id="modal-description" className="mt-1 text-sm text-gray-500">
                     {description}
                   </Dialog.Description>
                 )}
