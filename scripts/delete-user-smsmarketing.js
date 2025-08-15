@@ -22,8 +22,8 @@ async function deleteUserCompletely() {
       .eq('email', USER_EMAIL)
       .single();
     
-    if (profileError || \!profile) {
-      console.log('✅ User not found in database. Clear to sign up\!');
+    if (profileError || !profile) {
+      console.log('✅ User not found in database. Clear to sign up!');
       return;
     }
     
@@ -38,7 +38,8 @@ async function deleteUserCompletely() {
     
     const userId = profile.id;
     
-    console.log('🗑️  Deleting all user records...\n');
+    console.log('🗑️  Deleting all user records...');
+    console.log('');
     
     // Delete from all related tables
     const deletions = [
@@ -53,25 +54,25 @@ async function deleteUserCompletely() {
       { table: 'audit_logs', field: 'admin_id' },
     ];
     
-    for (const { table, field } of deletions) {
+    for (const deletion of deletions) {
       try {
         const { data, error, count } = await supabase
-          .from(table)
+          .from(deletion.table)
           .delete()
-          .eq(field, userId)
+          .eq(deletion.field, userId)
           .select('id', { count: 'exact', head: true });
         
         if (error) {
           if (error.code === '42P01') {
-            console.log(`   ⏭️  Table '${table}' doesn't exist, skipping`);
+            console.log(`   ⏭️  Table '${deletion.table}' doesn't exist, skipping`);
           } else {
-            console.log(`   ⚠️  Error deleting from ${table}:`, error.message);
+            console.log(`   ⚠️  Error deleting from ${deletion.table}:`, error.message);
           }
         } else {
-          console.log(`   ✅ Deleted ${count || 0} records from ${table}`);
+          console.log(`   ✅ Deleted ${count || 0} records from ${deletion.table}`);
         }
       } catch (e) {
-        console.log(`   ⏭️  Skipped ${table}`);
+        console.log(`   ⏭️  Skipped ${deletion.table}`);
       }
     }
     
@@ -101,18 +102,19 @@ async function deleteUserCompletely() {
       console.log('✅ Deleted from Supabase Auth');
     }
     
-    console.log('\n✨ User completely deleted\!');
+    console.log('');
+    console.log('✨ User completely deleted!');
     console.log('   Email', USER_EMAIL, 'is now available for signup.');
     
   } catch (error) {
     console.error('❌ Unexpected error:', error.message);
   }
   
-  console.log('\n📝 You can now test signup at:');
+  console.log('');
+  console.log('📝 You can now test signup at:');
   console.log('   https://dtfeditor.com/auth/signup');
   console.log('   Email:', USER_EMAIL);
 }
 
 // Run the deletion
 deleteUserCompletely().catch(console.error);
-EOF < /dev/null

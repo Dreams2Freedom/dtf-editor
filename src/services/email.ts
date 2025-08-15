@@ -336,17 +336,29 @@ export class EmailService {
         to,
         subject,
         html: `
-          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-            <h2>Hello ${firstName || 'there'},</h2>
-            <div style="margin: 20px 0;">
-              ${content}
+          <!DOCTYPE html>
+          <html>
+          <head>
+            <meta charset="utf-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          </head>
+          <body style="margin: 0; padding: 0; font-family: Arial, sans-serif; background-color: #f5f5f5;">
+            <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff;">
+              ${this.getEmailLogoHeader()}
+              <div style="padding: 40px 30px;">
+                <h2 style="color: #333; margin-bottom: 20px;">Hello ${firstName || 'there'},</h2>
+                <div style="margin: 20px 0;">
+                  ${content}
+                </div>
+                <hr style="margin: 30px 0; border: none; border-top: 1px solid #eee;">
+                <p style="color: #666; font-size: 14px;">
+                  This message was sent from DTF Editor admin team.<br>
+                  If you have any questions, please contact support.
+                </p>
+              </div>
             </div>
-            <hr style="margin: 30px 0; border: none; border-top: 1px solid #eee;">
-            <p style="color: #666; font-size: 14px;">
-              This message was sent from DTF Editor admin team.<br>
-              If you have any questions, please contact support.
-            </p>
-          </div>
+          </body>
+          </html>
         `,
         text: content.replace(/<[^>]*>/g, ''), // Strip HTML for text version
         'o:tag': ['admin-notification', 'manual'],
@@ -539,6 +551,15 @@ export class EmailService {
     }
   }
 
+  // Logo header for emails
+  private getEmailLogoHeader(): string {
+    return `
+      <div style="background-color: #ffffff; padding: 20px; text-align: center; border-bottom: 2px solid #366494;">
+        <img src="${env.APP_URL}/logo-horizontal.png" alt="DTF Editor" style="height: 60px; max-width: 250px; width: auto;">
+      </div>
+    `;
+  }
+
   // Email template HTML generators
   private getWelcomeEmailHTML(data: WelcomeEmailData): string {
     return `
@@ -551,8 +572,9 @@ export class EmailService {
       </head>
       <body style="margin: 0; padding: 0; font-family: Arial, sans-serif; background-color: #f5f5f5;">
         <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff;">
+          ${this.getEmailLogoHeader()}
           <div style="background-color: #366494; padding: 30px; text-align: center;">
-            <h1 style="color: #ffffff; margin: 0;">Welcome to DTF Editor!</h1>
+            <h1 style="color: #ffffff; margin: 0;">Welcome!</h1>
           </div>
           <div style="padding: 40px 30px;">
             <h2 style="color: #333; margin-bottom: 20px;">Hi ${data.firstName || 'there'}!</h2>
@@ -614,6 +636,7 @@ Need help? Visit ${env.APP_URL}/help or reply to this email.
       </head>
       <body style="margin: 0; padding: 0; font-family: Arial, sans-serif; background-color: #f5f5f5;">
         <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff;">
+          ${this.getEmailLogoHeader()}
           <div style="background-color: #366494; padding: 30px; text-align: center;">
             <h1 style="color: #ffffff; margin: 0;">Purchase Confirmed!</h1>
           </div>
@@ -681,6 +704,7 @@ Your credits are now available in your account. Start creating at ${env.APP_URL}
       </head>
       <body style="margin: 0; padding: 0; font-family: Arial, sans-serif; background-color: #f5f5f5;">
         <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff;">
+          ${this.getEmailLogoHeader()}
           <div style="background-color: ${urgencyColor}; padding: 30px; text-align: center;">
             <h1 style="color: #ffffff; margin: 0;">Credits Expiring Soon!</h1>
           </div>
@@ -745,6 +769,7 @@ Use your credits now: ${env.APP_URL}/process
       </head>
       <body style="margin: 0; padding: 0; font-family: Arial, sans-serif; background-color: #f5f5f5;">
         <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff;">
+          ${this.getEmailLogoHeader()}
           <div style="background-color: #366494; padding: 30px; text-align: center;">
             <h1 style="color: #ffffff; margin: 0;">Subscription ${actionText[data.action]}!</h1>
           </div>
@@ -817,6 +842,7 @@ Manage your subscription: ${env.APP_URL}/settings
       </head>
       <body style="margin: 0; padding: 0; font-family: Arial, sans-serif; background-color: #f5f5f5;">
         <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff;">
+          ${this.getEmailLogoHeader()}
           <div style="background-color: #366494; padding: 30px; text-align: center;">
             <h1 style="color: #ffffff; margin: 0;">Password Reset Request</h1>
           </div>
@@ -882,6 +908,7 @@ If you didn't request this password reset, you can safely ignore this email.
       </head>
       <body style="margin: 0; padding: 0; font-family: Arial, sans-serif; background-color: #f5f5f5;">
         <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff;">
+          ${this.getEmailLogoHeader()}
           <div style="background-color: #366494; padding: 30px; text-align: center;">
             <h1 style="color: #ffffff; margin: 0;">Confirm Your Email Address</h1>
           </div>
@@ -935,6 +962,7 @@ ${data.confirmationLink}
       </head>
       <body style="margin: 0; padding: 0; font-family: Arial, sans-serif; background-color: #f5f5f5;">
         <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff;">
+          ${this.getEmailLogoHeader()}
           <div style="background-color: #366494; padding: 30px; text-align: center;">
             <h1 style="color: #ffffff; margin: 0;">Your Login Link</h1>
           </div>
@@ -1000,6 +1028,7 @@ This link will expire in ${data.expiresIn || '10 minutes'}.
       <body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background-color: #f3f4f6;">
         <div style="max-width: 600px; margin: 0 auto; padding: 20px;">
           <div style="background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+            ${this.getEmailLogoHeader()}
             <div style="background: #366494; padding: 20px; text-align: center;">
               <h1 style="color: white; margin: 0; font-size: 24px;">New Support Ticket</h1>
             </div>

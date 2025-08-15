@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/stores/authStore';
 import { Button } from '@/components/ui/Button';
@@ -91,8 +92,14 @@ export function Header() {
           <div className="flex">
             <div className="flex flex-shrink-0 items-center">
               <Link href={user ? '/dashboard' : '/'} className="flex items-center">
-                <Crown className="h-8 w-8 text-primary-blue" />
-                <span className="ml-2 text-xl font-bold text-gray-900">DTF Editor</span>
+                <Image 
+                  src="/logo-horizontal.png" 
+                  alt="DTF Editor" 
+                  width={150} 
+                  height={40}
+                  className="h-10 w-auto"
+                  priority
+                />
               </Link>
             </div>
             <div className="hidden sm:ml-6 sm:flex sm:space-x-8">
