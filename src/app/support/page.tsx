@@ -48,6 +48,7 @@ export default function SupportPage() {
 
   useEffect(() => {
     filterTickets();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tickets, searchQuery, statusFilter]);
 
   const fetchTickets = async () => {
@@ -56,10 +57,12 @@ export default function SupportPage() {
     try {
       setLoading(true);
       const data = await supportService.getUserTickets(user.id);
-      setTickets(data);
-      setFilteredTickets(data);
+      setTickets(data || []);
+      setFilteredTickets(data || []);
     } catch (error) {
       console.error('Error fetching tickets:', error);
+      setTickets([]);
+      setFilteredTickets([]);
     } finally {
       setLoading(false);
     }

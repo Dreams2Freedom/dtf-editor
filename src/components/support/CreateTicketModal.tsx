@@ -71,15 +71,19 @@ export function CreateTicketModal({ isOpen, onClose, onSuccess }: CreateTicketMo
 
     setLoading(true);
     try {
-      await supportService.createTicket(user.id, formData);
-      onSuccess();
-      // Reset form
+      const ticket = await supportService.createTicket(user.id, formData);
+      console.log('Ticket created successfully:', ticket);
+      
+      // Reset form first
       setFormData({
         subject: '',
         category: 'technical',
         priority: 'medium',
         message: ''
       });
+      
+      // Then call success callback which should close modal and refresh
+      onSuccess();
     } catch (error) {
       console.error('Error creating ticket:', error);
       alert('Failed to create ticket. Please try again.');

@@ -22,7 +22,7 @@ import type { SupportTicket, SupportMessage, TicketStatus } from '@/types/suppor
 export default function TicketDetailPage() {
   const params = useParams();
   const router = useRouter();
-  const { user } = useAuthStore();
+  const { user, loading: authLoading } = useAuthStore();
   const messagesEndRef = useRef<HTMLDivElement>(null);
   
   const [ticket, setTicket] = useState<SupportTicket | null>(null);
@@ -32,12 +32,14 @@ export default function TicketDetailPage() {
   const [sending, setSending] = useState(false);
 
   useEffect(() => {
-    if (!user) {
-      router.push('/auth/signin');
+    if (!authLoading && !user) {
+      router.push('/auth/login');
       return;
     }
-    fetchTicketData();
-  }, [user, router, params.id]);
+    if (user && params.id) {
+      fetchTicketData();
+    }
+  }, [user, authLoading, router, params.id]);
 
   useEffect(() => {
     scrollToBottom();
@@ -149,6 +151,18 @@ export default function TicketDetailPage() {
       minute: '2-digit'
     });
   };
+
+  // Show loading state while auth is being checked
+  if (authLoading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#366494] mx-auto"></div>
+          <p className="mt-4 text-gray-600">Loading...</p>
+        </div>
+      </div>
+    );
+  }
 
   if (loading) {
     return (
