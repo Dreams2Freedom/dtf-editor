@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useCallback } from 'react';
-import { Upload, Calculator, AlertCircle, CheckCircle, XCircle, Info, Loader2, Lock, Unlock } from 'lucide-react';
+import { Upload, Calculator, AlertCircle, CheckCircle, XCircle, Info, Loader2, Lock, Unlock, Wand2 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Card } from '@/components/ui/Card';
@@ -24,7 +24,6 @@ export function DPIChecker({ showSignupForm = true, onSignupComplete }: DPICheck
   const [printHeight, setPrintHeight] = useState<string>('');
   const [aspectRatio, setAspectRatio] = useState<number | null>(null);
   const [maintainAspectRatio, setMaintainAspectRatio] = useState(true);
-  const [isCalculating, setIsCalculating] = useState(false);
   const [showResult, setShowResult] = useState(false);
   const [dpiResult, setDpiResult] = useState<DPICalculationResult | null>(null);
   const [showSignup, setShowSignup] = useState(false);
@@ -108,42 +107,36 @@ export function DPIChecker({ showSignupForm = true, onSignupComplete }: DPICheck
     }
   }, []);
 
-  const calculateDPIResult = useCallback(() => {
-    if (!imageDimensions || !printWidth || !printHeight) {
-      alert('Please upload an image and enter print dimensions');
-      return;
-    }
-
+  // Calculate DPI in real-time for display (no longer needed for a button)
+  const calculateCurrentDPI = useCallback(() => {
+    if (!imageDimensions || !printWidth || !printHeight) return null;
+    
     const width = parseFloat(printWidth);
     const height = parseFloat(printHeight);
+    
+    if (isNaN(width) || isNaN(height) || width <= 0 || height <= 0) return null;
+    
+    return calculateDPI({
+      imageWidth: imageDimensions.width,
+      imageHeight: imageDimensions.height,
+      printWidth: width,
+      printHeight: height
+    });
+  }, [imageDimensions, printWidth, printHeight]);
 
-    if (isNaN(width) || isNaN(height) || width <= 0 || height <= 0) {
-      alert('Please enter valid print dimensions');
-      return;
+  const handleUpscaleClick = () => {
+    // If user is logged in, go directly to upscaler
+    if (user) {
+      const params = new URLSearchParams();
+      params.append('imageUrl', encodeURIComponent(imagePreview));
+      params.append('printWidth', printWidth);
+      params.append('printHeight', printHeight);
+      router.push(`/process/upscale?${params.toString()}`);
+    } else {
+      // Show signup form for non-logged-in users
+      setShowSignup(true);
     }
-
-    setIsCalculating(true);
-
-    // Simulate calculation delay for effect
-    setTimeout(() => {
-      const result = calculateDPI({
-        imageWidth: imageDimensions.width,
-        imageHeight: imageDimensions.height,
-        printWidth: width,
-        printHeight: height
-      });
-
-      setDpiResult(result);
-      setIsCalculating(false);
-
-      // If user is not logged in and signup is enabled, show signup form
-      if (!user && showSignupForm) {
-        setShowSignup(true);
-      } else {
-        setShowResult(true);
-      }
-    }, 1500);
-  }, [imageDimensions, printWidth, printHeight, user, showSignupForm]);
+  };
 
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -163,17 +156,19 @@ export function DPIChecker({ showSignupForm = true, onSignupComplete }: DPICheck
         throw new Error(data.error || 'Signup failed');
       }
 
-      // Show success and reveal DPI result
+      // After successful signup, redirect to upscaler with the image
       setShowSignup(false);
-      setShowResult(true);
       
-      if (onSignupComplete) {
-        onSignupComplete();
-      }
-
+      // Redirect to upscaler after successful signup
+      const params = new URLSearchParams();
+      params.append('imageUrl', encodeURIComponent(imagePreview));
+      params.append('printWidth', printWidth);
+      params.append('printHeight', printHeight);
+      
       // Show success message
       setTimeout(() => {
         alert('Account created successfully! Check your email to verify your account.');
+        router.push(`/process/upscale?${params.toString()}`);
       }, 500);
 
     } catch (error) {
@@ -402,39 +397,64 @@ export function DPIChecker({ showSignupForm = true, onSignupComplete }: DPICheck
             </div>
           )}
 
-          {/* Calculate Button */}
-          {imageDimensions && printWidth && printHeight && (
-            <Button
-              onClick={calculateDPIResult}
-              disabled={isCalculating}
-              className="w-full bg-[#366494] hover:bg-[#233E5C]"
-            >
-              {isCalculating ? (
-                <>
-                  <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                  Calculating DPI...
-                </>
-              ) : (
-                <>
-                  <Calculator className="w-5 h-5 mr-2" />
-                  Calculate DPI
-                </>
-              )}
-            </Button>
-          )}
+          {/* Upscale Button with Quality Message */}
+          {imageDimensions && printWidth && printHeight && (() => {
+            const currentDPI = Math.round(Math.min(
+              imageDimensions.width / parseFloat(printWidth), 
+              imageDimensions.height / parseFloat(printHeight)
+            ));
+            const quality = currentDPI >= 300 ? 'excellent' : 
+                          currentDPI >= 200 ? 'good' : 
+                          currentDPI >= 150 ? 'fair' : 'poor';
+            
+            return (
+              <div className="space-y-3">
+                {currentDPI < 300 && (
+                  <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 text-sm">
+                    <p className="text-yellow-800">
+                      <AlertCircle className="w-4 h-4 inline mr-1" />
+                      Your image is currently {currentDPI} DPI. We recommend upscaling to achieve 300 DPI for professional print quality.
+                    </p>
+                  </div>
+                )}
+                {currentDPI >= 300 && (
+                  <div className="bg-green-50 border border-green-200 rounded-lg p-3 text-sm">
+                    <p className="text-green-800">
+                      <CheckCircle className="w-4 h-4 inline mr-1" />
+                      Your image already meets 300 DPI quality! Upscaling is optional.
+                    </p>
+                  </div>
+                )}
+                <Button
+                  onClick={handleUpscaleClick}
+                  className={`w-full ${currentDPI >= 300 ? 'bg-green-600 hover:bg-green-700' : 'bg-[#366494] hover:bg-[#233E5C]'}`}
+                >
+                  <Wand2 className="w-5 h-5 mr-2" />
+                  {currentDPI >= 300 ? 'Process Image Anyway' : 'Upscale to 300 DPI'}
+                </Button>
+              </div>
+            );
+          })()}
         </div>
       </Card>
 
       {/* Signup Form Modal */}
-      {showSignup && dpiResult && (
+      {showSignup && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <Card className="max-w-md w-full p-8 relative">
+            <button
+              onClick={() => setShowSignup(false)}
+              className="absolute top-4 right-4 text-gray-400 hover:text-gray-600"
+            >
+              <XCircle className="w-6 h-6" />
+            </button>
+            
             <div className="text-center mb-6">
               <h3 className="text-2xl font-bold text-gray-900 mb-2">
                 Create Your Free Account
               </h3>
               <p className="text-gray-600">
-                Sign up to see your DPI results and get 2 free credits for our AI tools
+                Sign up to upscale your image and get 2 free credits for our AI tools
               </p>
             </div>
 
@@ -494,7 +514,7 @@ export function DPIChecker({ showSignupForm = true, onSignupComplete }: DPICheck
                     Creating Account...
                   </>
                 ) : (
-                  'Create Free Account & See Results'
+                  'Create Free Account & Continue'
                 )}
               </Button>
 
