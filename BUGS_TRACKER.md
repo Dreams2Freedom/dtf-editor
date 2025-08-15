@@ -1,9 +1,202 @@
 # DTF Editor - Bug Tracker
 
-**Last Updated:** August 11, 2025  
+**Last Updated:** August 15, 2025  
 **Status:** Active Bug Tracking
 
 ## 🐛 **Critical Bugs (P0)**
+
+### **BUG-017: Subscription Updates Create New Subscriptions**
+- **Status:** 🟢 FIXED
+- **Severity:** Critical
+- **Component:** Stripe Webhooks / Billing
+- **Description:** Subscription updates were creating duplicate subscriptions instead of updating existing ones
+- **Root Cause:** Webhook handler not checking for existing subscriptions before creating new ones
+- **Solution Applied:**
+  - Added duplicate detection in webhook handler
+  - Automatically cancel old subscription when new one detected
+  - Added listSubscriptions method to Stripe service
+- **Files Modified:**
+  - `/src/app/api/webhooks/stripe/route.ts`
+  - `/src/services/stripe.ts`
+  - Created `/scripts/fix-subscription-duplicate.js`
+- **Date Reported:** July 2025
+- **Date Fixed:** August 15, 2025
+
+### **BUG-005: Database Column Inconsistency (credits vs credits_remaining)**
+- **Status:** 🟢 FIXED
+- **Severity:** High
+- **Component:** Database / Credit System
+- **Description:** Code referenced both 'credits' and 'credits_remaining' columns inconsistently
+- **Root Cause:** Old 'credits' column deprecated but code still had fallback references
+- **Solution Applied:**
+  - Removed all fallback references to deprecated 'credits' column
+  - Standardized on 'credits_remaining' throughout codebase
+  - Created migration script to verify column consistency
+- **Files Modified:**
+  - `/src/stores/authStore.ts`
+  - Created `/scripts/fix-credits-column.js`
+- **Date Reported:** July 2025
+- **Date Fixed:** August 15, 2025
+
+### **BUG-008: Missing Error Boundaries Causing App Crashes**
+- **Status:** 🟢 FIXED
+- **Severity:** Critical
+- **Component:** Error Handling / UX
+- **Description:** Errors in components would crash entire application with white screen
+- **Root Cause:** No error boundaries to catch and handle component errors gracefully
+- **Solution Applied:**
+  - Added global ErrorBoundary component wrapping entire app
+  - Created page-specific error.tsx files for better error handling
+  - Implemented user-friendly error messages with recovery options
+- **Files Modified:**
+  - `/src/app/layout.tsx` - Added ErrorBoundary wrapper
+  - Created `/src/app/error.tsx` - Global error handler
+  - Created `/src/app/process/error.tsx`
+  - Created `/src/app/pricing/error.tsx`
+  - Created `/src/app/dashboard/error.tsx`
+  - Created `/src/app/admin/error.tsx`
+- **Date Reported:** August 2025
+- **Date Fixed:** August 15, 2025
+
+### **BUG-009: TypeScript Build Errors Ignored**
+- **Status:** 🟢 FIXED
+- **Severity:** High
+- **Component:** Build Configuration
+- **Description:** Build process was ignoring TypeScript errors, allowing broken code to deploy
+- **Root Cause:** next.config.js had typescript.ignoreBuildErrors set to true
+- **Solution Applied:**
+  - Changed ignoreBuildErrors from true to false
+  - Also fixed ESLint ignoreDuringBuilds setting
+  - Identified 40+ TypeScript errors that need cleanup
+- **Files Modified:**
+  - `/next.config.js`
+- **Date Reported:** August 15, 2025
+- **Date Fixed:** August 15, 2025
+
+### **BUG-050: Support Ticket Creation Visual Feedback Issues**
+- **Status:** 🟢 FIXED
+- **Severity:** High
+- **Component:** Support System / User Experience
+- **Description:** No visual indicators for admin replies on user support page and vice versa
+- **Symptoms:**
+  - Users couldn't see when support had replied to their tickets
+  - Admin couldn't see when users had replied to tickets
+  - No indication of message count or activity on ticket lists
+  - Confusing UX as users didn't know there were responses
+- **Root Cause:** 
+  - Missing visual indicators in both user and admin ticket lists
+  - No message count or reply status tracking in UI
+  - Database queries not fetching message metadata
+- **Solution Applied:**
+  - Added blue border and "New Reply" badges for admin replies on user page
+  - Added yellow highlighting and "Awaiting Reply" badges for user replies on admin page
+  - Implemented message count display on both views
+  - Added "Support replied" and "User replied" indicators
+  - Visual distinction with colors: blue for admin activity, yellow for user activity
+- **Files Modified:**
+  - `/src/app/support/page.tsx` - Added visual indicators for admin replies
+  - `/src/app/admin/support/page.tsx` - Added visual indicators for user replies
+  - `/src/services/support.ts` - Added message count and reply detection logic
+- **Date Reported:** August 14, 2025
+- **Date Fixed:** August 14, 2025
+
+### **BUG-049: Admin Support Dashboard 404 Error**
+- **Status:** 🟢 FIXED
+- **Severity:** Critical
+- **Component:** Admin Dashboard / Support System
+- **Description:** Admin support page returned 404 when clicking on Support in admin dashboard
+- **Symptoms:**
+  - Clicking "Support" in admin sidebar led to 404 page
+  - No way for admins to view and manage support tickets
+  - Support tickets created but not viewable by admins
+- **Root Cause:** 
+  - Admin support page didn't exist at /admin/support
+  - Route not implemented despite navigation link being present
+- **Solution Applied:**
+  - Created comprehensive admin support dashboard at /admin/support
+  - Implemented ticket list with all system tickets
+  - Added filtering by status and priority
+  - Added search functionality
+  - Created stats cards showing ticket metrics
+  - Visual indicators for tickets needing attention
+- **Files Modified:**
+  - Created `/src/app/admin/support/page.tsx` - Admin support dashboard
+- **Date Reported:** August 14, 2025
+- **Date Fixed:** August 14, 2025
+
+### **BUG-048: Support Ticket Detail View Not Working**
+- **Status:** 🟢 FIXED
+- **Severity:** Critical
+- **Component:** Support System
+- **Description:** Clicking on support tickets just refreshed the page instead of showing details
+- **Symptoms:**
+  - Ticket list displayed correctly but clicking tickets did nothing
+  - Page refresh instead of navigation to ticket detail
+  - Unable to view or reply to tickets
+- **Root Cause:** 
+  - Database query error when joining support_messages with profiles
+  - Complex join causing 400 Bad Request errors
+  - Missing ticket detail page implementation
+- **Solution Applied:**
+  - Simplified getTicket query to avoid complex joins
+  - Fetch profiles separately in parallel using Promise.all
+  - Created ticket detail view page at /support/[id]
+  - Implemented message thread display and reply functionality
+- **Files Modified:**
+  - `/src/services/support.ts` - Simplified getTicket query
+  - Created `/src/app/support/[id]/page.tsx` - Ticket detail view
+- **Date Reported:** August 14, 2025
+- **Date Fixed:** August 14, 2025
+
+### **BUG-047: Support Page Logout on Refresh**
+- **Status:** 🟢 FIXED
+- **Severity:** Critical
+- **Component:** Authentication / Support System
+- **Description:** Refreshing the support page automatically logged users out
+- **Symptoms:**
+  - Navigate to /support page works initially
+  - Refresh the page → automatically logged out
+  - Redirect to login page on every refresh
+  - Session not persisting properly
+- **Root Cause:** 
+  - Supabase client singleton being recreated in dev mode
+  - Lost authentication session when client was recreated
+  - Dev mode check causing client recreation on each request
+- **Solution Applied:**
+  - Fixed Supabase client singleton pattern
+  - Removed dev mode client recreation
+  - Maintain single client instance for session persistence
+  - Added proper auth loading states
+- **Files Modified:**
+  - `/src/lib/supabase/client.ts` - Fixed singleton pattern
+  - `/src/app/support/page.tsx` - Added auth loading state
+- **Date Reported:** August 14, 2025
+- **Date Fixed:** August 14, 2025
+
+### **BUG-046: Support Ticket Creation 403 Forbidden Error**
+- **Status:** 🟢 FIXED
+- **Severity:** Critical
+- **Component:** Support System / Database
+- **Description:** Creating support tickets failed with 403 Forbidden error
+- **Symptoms:**
+  - Clicking "Create new ticket" button showed error
+  - 403 Forbidden when inserting into support_tickets table
+  - Error: "new row violates row-level security policy"
+  - Ticket creation completely blocked
+- **Root Cause:** 
+  - Missing ticket_number field (UNIQUE NOT NULL constraint)
+  - RLS policies not properly configured
+  - Service not generating ticket number before insert
+- **Solution Applied:**
+  - Added explicit ticket number generation (TKT-YYYYMM-XXXX format)
+  - Created SQL script to enable RLS and set proper policies
+  - Fixed authentication flow to use getSupabase() consistently
+  - Added proper error handling with detailed messages
+- **Files Modified:**
+  - `/src/services/support.ts` - Added ticket number generation
+  - Created `/scripts/fix-support-rls.sql` - RLS policy fixes
+- **Date Reported:** August 14, 2025
+- **Date Fixed:** August 14, 2025
 
 ### **BUG-045: AI Image-to-Image Generation Not Saving to My Images**
 - **Status:** 🟢 FIXED
@@ -832,11 +1025,11 @@
 
 | Priority | Total | Open | In Progress | Fixed | Fix Rate |
 |----------|-------|------|-------------|-------|----------|
-| P0 Critical | 44 | 0 | 0 | 44 | 100% |
+| P0 Critical | 49 | 0 | 0 | 49 | 100% |
 | P1 High | 4 | 1 | 0 | 3 | 75% |
 | P2 Medium | 3 | 1 | 0 | 2 | 67% |
 | P3 Low | 2 | 2 | 0 | 0 | 0% |
-| **Total** | **53** | **4** | **0** | **49** | **92%** |
+| **Total** | **58** | **4** | **0** | **54** | **93%** |
 
 ---
 

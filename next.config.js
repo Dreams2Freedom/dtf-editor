@@ -3,12 +3,14 @@ const nextConfig = {
   // Disable error overlay in development
   reactStrictMode: false,
   
-  // Allow builds with ESLint warnings
+  // Temporarily allow build with ESLint warnings for testing
+  // TODO: Set to false once all ESLint errors are fixed
   eslint: {
     ignoreDuringBuilds: true,
   },
   
-  // Allow builds with TypeScript errors
+  // Temporarily allow build with TypeScript errors for testing
+  // TODO: Set to false once all TypeScript errors are fixed
   typescript: {
     ignoreBuildErrors: true,
   },

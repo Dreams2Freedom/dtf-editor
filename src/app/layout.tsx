@@ -73,12 +73,14 @@ export default function RootLayout({
   return (
     <html lang="en" className="h-full" suppressHydrationWarning>
       <body className={`${inter.className} h-full`} suppressHydrationWarning>
-        <AuthProvider>
-          <AppLayout>
-            {children}
-          </AppLayout>
-          <ToastContainer />
-        </AuthProvider>
+        <ErrorBoundary>
+          <AuthProvider>
+            <AppLayout>
+              {children}
+            </AppLayout>
+            <ToastContainer />
+          </AuthProvider>
+        </ErrorBoundary>
       </body>
     </html>
   );

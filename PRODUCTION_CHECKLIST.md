@@ -1,7 +1,62 @@
 # DTF Editor - Production Deployment Checklist
 
-**Last Updated:** August 7, 2025  
-**Status:** Ready for Production
+**Last Updated:** August 14, 2025  
+**Status:** 🔴 NOT READY FOR PRODUCTION  
+**Completion:** ~90% (Critical blockers remain)
+
+---
+
+## 🚨 **CRITICAL BLOCKERS - MUST FIX BEFORE LAUNCH**
+
+### **1. Payment System Bugs** 🔴
+- [ ] **BUG-017**: Fix subscription updates creating new subscriptions (causes double-billing)
+  - Implement subscription lookup by customer ID as fallback
+  - **Priority:** CRITICAL - Revenue impact
+  - **Time:** 3-4 hours
+
+- [ ] **BUG-005**: Standardize database column naming (credits vs credits_remaining)
+  - Could cause credit tracking failures
+  - **Priority:** HIGH
+  - **Time:** 2 hours
+
+### **2. Application Stability** 🔴
+- [ ] **BUG-008**: Add error boundaries to prevent app crashes
+  - Single component error crashes entire app
+  - Need boundaries at: layouts, pages, payment flows
+  - **Priority:** CRITICAL
+  - **Time:** 2-3 hours
+
+### **3. Email System (Mailgun)** 🔴
+**Note: Changed from SendGrid to Mailgun**
+- [ ] Configure Mailgun API key and domain
+- [ ] Test transactional emails:
+  - [ ] Welcome email for new users
+  - [ ] Purchase confirmation emails
+  - [ ] Credit expiration warnings (3, 7, 14 days)
+  - [ ] Subscription change notifications
+  - [ ] Support ticket notifications (✅ Already working)
+- **Time:** 4 hours
+
+### **4. Admin Logging** 🟡
+- [ ] Complete audit logging for ALL admin endpoints
+- [ ] Log: user management, credit adjustments, system changes
+- **Priority:** HIGH - Compliance requirement
+- **Time:** 2-3 hours
+
+### **5. Security Audit** 🔴
+- [ ] Audit all API endpoints for authentication
+- [ ] Configure rate limiting
+- [ ] Set up CORS for production domain
+- [ ] Remove any remaining console.log statements
+- **Priority:** CRITICAL
+- **Time:** 1 day
+
+### **6. Legal Documents** 🔴
+- [ ] Create Terms of Service
+- [ ] Create Privacy Policy
+- [ ] Add links in footer
+- **Priority:** CRITICAL - Legal requirement
+- **Time:** 4-5 hours
 
 ---
 
@@ -32,14 +87,11 @@
 - [ ] `VECTORIZER_API_KEY` - For vectorization
 - [ ] `VECTORIZER_API_SECRET` - Vectorizer secret
 
-#### **Email Service (Optional but Recommended)**
-- [ ] `SENDGRID_API_KEY` - SendGrid API key
-- [ ] `SENDGRID_FROM_EMAIL` - Sender email address
-- [ ] `SENDGRID_FROM_NAME` - Sender name
-- [ ] `SENDGRID_WELCOME_TEMPLATE_ID` - Welcome email template
-- [ ] `SENDGRID_PURCHASE_TEMPLATE_ID` - Purchase confirmation template
-- [ ] `SENDGRID_CREDIT_WARNING_TEMPLATE_ID` - Low credit warning template
-- [ ] `SENDGRID_SUBSCRIPTION_TEMPLATE_ID` - Subscription notification template
+#### **Email Service (CRITICAL - Using Mailgun)**
+- [ ] `MAILGUN_API_KEY` - Mailgun API key
+- [ ] `MAILGUN_DOMAIN` - Mailgun domain (e.g., mg.dtfeditor.com)
+- [ ] `MAILGUN_FROM_EMAIL` - Sender email address
+- [ ] `MAILGUN_FROM_NAME` - Sender name (DTF Editor)
 
 #### **Other Settings**
 - [ ] `APP_URL` - Your production domain (e.g., https://dtfeditor.com)
@@ -119,18 +171,20 @@ Products to create:
 
 ---
 
-## 📧 **SendGrid Configuration (Optional)**
+## 📧 **Mailgun Configuration (CRITICAL)**
 
 ### **1. Account Setup**
-- [ ] Verify sender domain
+- [ ] Create Mailgun account
+- [ ] Verify sender domain (add DNS records)
 - [ ] Create API key with full access
-- [ ] Set up IP whitelisting if needed
+- [ ] Configure domain settings
 
-### **2. Email Templates**
-- [ ] Create welcome email template
-- [ ] Create purchase confirmation template
-- [ ] Create credit warning template
-- [ ] Create subscription notification template
+### **2. Email Implementation**
+- [ ] Test welcome email for new users
+- [ ] Test purchase confirmation emails
+- [ ] Test credit expiration warnings
+- [ ] Test subscription change notifications
+- [ ] Verify support ticket emails (already working)
 
 ---
 
@@ -265,6 +319,60 @@ vercel --prod
 
 ---
 
-**Ready for Production!** 🎉
+## 🎯 **RECOMMENDED IMPLEMENTATION ORDER**
 
-Your DTF Editor is feature-complete and ready to launch. Follow this checklist to ensure a smooth deployment.
+### **Day 1: Critical Bugs & Stability** (8 hours)
+1. Fix BUG-017 (subscription double-billing) - 3-4 hours
+2. Fix BUG-005 (database column standardization) - 2 hours
+3. Add error boundaries (BUG-008) - 2-3 hours
+
+### **Day 2: Email & Admin** (6-7 hours)
+1. Configure Mailgun API - 1 hour
+2. Test all email flows - 3 hours
+3. Complete admin audit logging - 2-3 hours
+
+### **Day 3: Security & Legal** (8 hours)
+1. Security audit of all endpoints - 4 hours
+2. Create Terms of Service & Privacy Policy - 4 hours
+
+### **Day 4: Production Setup** (7 hours)
+1. Verify all API keys - 2 hours
+2. Set up monitoring (Sentry) - 3 hours
+3. Configure database backups - 2 hours
+
+### **Day 5: Testing & Launch** (8 hours)
+1. Load testing - 3 hours
+2. End-to-end testing - 3 hours
+3. Final verification - 2 hours
+4. **LAUNCH** 🚀
+
+---
+
+## 📊 **Progress Tracking**
+
+| Category | Items | Completed | Status |
+|----------|-------|-----------|--------|
+| Critical Bugs | 3 | 0 | 🔴 0% |
+| Email System | 5 | 1 | 🟡 20% |
+| Security | 5 | 0 | 🔴 0% |
+| Legal | 3 | 0 | 🔴 0% |
+| Admin Logging | 3 | 0 | 🔴 0% |
+| Production Setup | 8 | 0 | 🔴 0% |
+| **TOTAL** | **27** | **1** | **🔴 4%** |
+
+---
+
+## ⚠️ **LAUNCH READINESS STATUS**
+
+**Current Status:** 🔴 **NOT READY FOR PRODUCTION**
+
+**Critical Blockers:**
+1. Payment system bug causing double-billing (BUG-017)
+2. No error boundaries (app crashes on component errors)
+3. Email system not configured (Mailgun)
+4. No Terms of Service or Privacy Policy
+5. Security audit not performed
+
+**Estimated Time to Production:** 4-5 days of focused work
+
+**Note:** The application is feature-complete (~90%) but has critical production blockers that MUST be resolved before launch to ensure stability, security, and legal compliance.

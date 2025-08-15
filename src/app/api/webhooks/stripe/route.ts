@@ -96,6 +96,7 @@ async function handleSubscriptionEvent(subscription: any) {
   console.log('📊 Handling subscription event');
   console.log('Event type:', subscription.status);
   console.log('Customer ID:', subscription.customer);
+  console.log('Subscription ID:', subscription.id);
   
   let userId = subscription.metadata?.userId;
   
@@ -103,13 +104,32 @@ async function handleSubscriptionEvent(subscription: any) {
   if (!userId && subscription.customer) {
     const { data: profile } = await getSupabase()
       .from('profiles')
-      .select('id')
+      .select('id, stripe_subscription_id')
       .eq('stripe_customer_id', subscription.customer)
       .single();
     
     if (profile) {
       userId = profile.id;
       console.log('Found userId from customer ID:', userId);
+      
+      // Check if this is a different subscription than what we have on file
+      if (profile.stripe_subscription_id && profile.stripe_subscription_id !== subscription.id) {
+        console.log('⚠️ New subscription detected, different from stored:', profile.stripe_subscription_id);
+        
+        // Check if the old subscription should be cancelled
+        try {
+          const stripeService = getStripeService();
+          const oldSub = await stripeService.getSubscription(profile.stripe_subscription_id);
+          
+          if (oldSub && (oldSub.status === 'active' || oldSub.status === 'trialing')) {
+            console.log('🔄 Cancelling old subscription:', profile.stripe_subscription_id);
+            await stripeService.cancelSubscription(profile.stripe_subscription_id);
+          }
+        } catch (error) {
+          console.error('Error checking old subscription:', error);
+          // Continue anyway - the old subscription might already be cancelled
+        }
+      }
     }
   }
   

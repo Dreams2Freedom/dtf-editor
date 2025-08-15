@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 import { env } from '@/config/env';
+import { logAdminAction, getClientIp, getUserAgent } from '@/utils/adminLogger';
 
 export async function POST(request: NextRequest) {
   try {
@@ -44,6 +45,22 @@ export async function POST(request: NextRequest) {
     });
 
     if (authError || !authData.user) {
+      // Log failed login attempt
+      await logAdminAction({
+        adminId: email,
+        action: 'user.view' as any,
+        resourceType: 'user',
+        resourceId: email,
+        details: { 
+          action: 'login_failed',
+          reason: authError?.message || 'Invalid credentials'
+        },
+        ipAddress: getClientIp(request),
+        userAgent: getUserAgent(request),
+        success: false,
+        errorMessage: 'Invalid email or password'
+      });
+      
       return NextResponse.json(
         { success: false, error: 'Invalid email or password' },
         { status: 401 }
@@ -99,6 +116,23 @@ export async function POST(request: NextRequest) {
       .from('profiles')
       .update({ last_activity_at: new Date().toISOString() })
       .eq('id', authData.user.id);
+    
+    // Log successful login
+    await logAdminAction({
+      adminId: authData.user.id,
+      adminEmail: profile.email,
+      action: 'user.view' as any,
+      resourceType: 'user',
+      resourceId: authData.user.id,
+      details: {
+        action: 'login_success',
+        remember_me: remember,
+        ip: getClientIp(request)
+      },
+      ipAddress: getClientIp(request),
+      userAgent: getUserAgent(request),
+      success: true
+    });
 
     // Set admin session cookie first
     const cookieOptions = {

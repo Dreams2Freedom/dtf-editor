@@ -173,6 +173,10 @@ export class StripeService {
     }
   }
 
+  public async listSubscriptions(params: Stripe.SubscriptionListParams): Promise<Stripe.ApiList<Stripe.Subscription>> {
+    return this.getStripeClient().subscriptions.list(params);
+  }
+
   public async updateSubscription(subscriptionId: string, params: Stripe.SubscriptionUpdateParams): Promise<Stripe.Subscription> {
     return this.getStripeClient().subscriptions.update(subscriptionId, params);
   }
