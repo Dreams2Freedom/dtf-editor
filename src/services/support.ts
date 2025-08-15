@@ -62,20 +62,15 @@ export class SupportService {
       const supabase = this.getSupabase();
       const { data, error } = await supabase
         .from('support_tickets')
-        .select(`
-          *,
-          support_messages!inner(count)
-        `)
+        .select('*')
         .eq('user_id', userId)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
 
-      // Process the data to include message count
-      return (data || []).map(ticket => ({
-        ...ticket,
-        message_count: ticket.support_messages?.[0]?.count || 0
-      }));
+      // For now, return tickets without message count
+      // We can add message count in a separate query if needed
+      return data || [];
     } catch (error) {
       console.error('Error fetching user tickets:', error);
       throw error;

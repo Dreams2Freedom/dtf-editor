@@ -36,7 +36,7 @@ export default function SupportPage() {
 
   useEffect(() => {
     if (!user) {
-      router.push('/auth/signin');
+      router.push('/auth/login');
       return;
     }
     fetchTickets();
