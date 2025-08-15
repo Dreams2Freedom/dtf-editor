@@ -245,8 +245,8 @@ export function DPIChecker({ showSignupForm = true, onSignupComplete }: DPICheck
                   <p className="text-sm text-gray-500 mt-1">or drag and drop</p>
                   <p className="text-xs text-gray-400 mt-2">PNG, JPG, GIF up to 10MB</p>
                 </div>
-              )}
-            </label>
+              </label>
+            )}
           </div>
 
           {/* Print Size Inputs */}
