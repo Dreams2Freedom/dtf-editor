@@ -15,7 +15,7 @@ export interface UserProfile {
   first_name?: string;
   last_name?: string;
   email?: string;
-  company?: string;
+  company_name?: string;  // Changed from company to company_name to match database
   phone?: string;
   avatar_url?: string;
   credits_remaining: number;

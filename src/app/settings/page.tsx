@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/Button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/Card';
 import { Input } from '@/components/ui/Input';
 import { toast } from '@/lib/toast';
+import { formatPhoneNumber, cleanPhoneNumber, displayPhoneNumber } from '@/utils/phoneFormatter';
 import { 
   ArrowLeft,
   User,
@@ -113,7 +114,7 @@ export default function SettingsPage() {
 
 // Profile Settings Component
 function ProfileSettings() {
-  const { profile, updateProfile } = useAuthStore();
+  const { profile, updateProfile, refreshProfile } = useAuthStore();
   const [formData, setFormData] = useState({
     first_name: profile?.first_name || '',
     last_name: profile?.last_name || '',
@@ -121,6 +122,18 @@ function ProfileSettings() {
     phone: profile?.phone || '',
   });
   const [loading, setLoading] = useState(false);
+
+  // Update form when profile changes
+  useEffect(() => {
+    if (profile) {
+      setFormData({
+        first_name: profile.first_name || '',
+        last_name: profile.last_name || '',
+        company_name: profile.company_name || '',
+        phone: displayPhoneNumber(profile.phone) || '',
+      });
+    }
+  }, [profile]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -130,14 +143,18 @@ function ProfileSettings() {
       const response = await fetch('/api/user/profile', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData),
+        body: JSON.stringify({
+          ...formData,
+          phone: cleanPhoneNumber(formData.phone) // Store clean number in database
+        }),
       });
 
       if (!response.ok) {
         throw new Error('Failed to update profile');
       }
 
-      await updateProfile(formData);
+      // Refresh the profile from the server to ensure state is synced
+      await refreshProfile();
       toast.success('Profile updated successfully');
     } catch (error) {
       toast.error('Failed to update profile');
@@ -200,8 +217,12 @@ function ProfileSettings() {
             <Input
               type="tel"
               value={formData.phone}
-              onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-              placeholder="+1 (555) 123-4567"
+              onChange={(e) => {
+                const formatted = formatPhoneNumber(e.target.value);
+                setFormData({ ...formData, phone: formatted });
+              }}
+              placeholder="(555) 123-4567"
+              maxLength={14} // "(xxx) xxx-xxxx"
             />
           </div>
 
