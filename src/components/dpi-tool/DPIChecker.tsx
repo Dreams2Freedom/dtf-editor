@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useCallback } from 'react';
-import { Upload, Calculator, AlertCircle, CheckCircle, XCircle, Info, Loader2 } from 'lucide-react';
+import { Upload, Calculator, AlertCircle, CheckCircle, XCircle, Info, Loader2, Lock, Unlock } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Card } from '@/components/ui/Card';
@@ -22,6 +22,8 @@ export function DPIChecker({ showSignupForm = true, onSignupComplete }: DPICheck
   const [imageDimensions, setImageDimensions] = useState<{ width: number; height: number } | null>(null);
   const [printWidth, setPrintWidth] = useState<string>('');
   const [printHeight, setPrintHeight] = useState<string>('');
+  const [aspectRatio, setAspectRatio] = useState<number | null>(null);
+  const [maintainAspectRatio, setMaintainAspectRatio] = useState(true);
   const [isCalculating, setIsCalculating] = useState(false);
   const [showResult, setShowResult] = useState(false);
   const [dpiResult, setDpiResult] = useState<DPICalculationResult | null>(null);
@@ -37,6 +39,32 @@ export function DPIChecker({ showSignupForm = true, onSignupComplete }: DPICheck
   });
   const [signupLoading, setSignupLoading] = useState(false);
   const [signupError, setSignupError] = useState('');
+
+  // Handle width change and auto-calculate height if maintaining aspect ratio
+  const handleWidthChange = useCallback((value: string) => {
+    setPrintWidth(value);
+    
+    if (maintainAspectRatio && aspectRatio && value) {
+      const width = parseFloat(value);
+      if (!isNaN(width) && width > 0) {
+        const calculatedHeight = width / aspectRatio;
+        setPrintHeight(calculatedHeight.toFixed(2));
+      }
+    }
+  }, [maintainAspectRatio, aspectRatio]);
+
+  // Handle height change and auto-calculate width if maintaining aspect ratio
+  const handleHeightChange = useCallback((value: string) => {
+    setPrintHeight(value);
+    
+    if (maintainAspectRatio && aspectRatio && value) {
+      const height = parseFloat(value);
+      if (!isNaN(height) && height > 0) {
+        const calculatedWidth = height * aspectRatio;
+        setPrintWidth(calculatedWidth.toFixed(2));
+      }
+    }
+  }, [maintainAspectRatio, aspectRatio]);
 
   const handleImageUpload = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -58,6 +86,22 @@ export function DPIChecker({ showSignupForm = true, onSignupComplete }: DPICheck
     try {
       const dimensions = await getImageDimensions(file);
       setImageDimensions(dimensions);
+      
+      // Calculate aspect ratio
+      const ratio = dimensions.width / dimensions.height;
+      setAspectRatio(ratio);
+      
+      // Set default print dimensions based on 300 DPI
+      const defaultWidth = dimensions.width / 300;
+      const defaultHeight = dimensions.height / 300;
+      
+      // Round to 2 decimal places
+      setPrintWidth(defaultWidth.toFixed(2));
+      setPrintHeight(defaultHeight.toFixed(2));
+      
+      // Clear previous results when new image is uploaded
+      setShowResult(false);
+      setDpiResult(null);
     } catch (error) {
       console.error('Error getting image dimensions:', error);
       alert('Error reading image. Please try another file.');
@@ -205,30 +249,95 @@ export function DPIChecker({ showSignupForm = true, onSignupComplete }: DPICheck
 
           {/* Print Size Inputs */}
           {imageDimensions && (
-            <div className="grid md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Print Width (inches)
-                </label>
-                <Input
-                  type="number"
-                  step="0.1"
-                  placeholder="e.g., 11"
-                  value={printWidth}
-                  onChange={(e) => setPrintWidth(e.target.value)}
-                />
+            <div>
+              {/* Current DPI Display */}
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-blue-700 font-medium">Image Information:</p>
+                    <p className="text-xs text-blue-600 mt-1">
+                      {imageDimensions.width} × {imageDimensions.height} pixels
+                    </p>
+                    <p className="text-xs text-blue-600">
+                      Optimal print size: {(imageDimensions.width / 300).toFixed(2)}" × {(imageDimensions.height / 300).toFixed(2)}" at 300 DPI
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    {(() => {
+                      const currentDPI = printWidth && printHeight 
+                        ? Math.round(Math.min(imageDimensions.width / parseFloat(printWidth), imageDimensions.height / parseFloat(printHeight)))
+                        : 300;
+                      const quality = currentDPI >= 300 ? 'excellent' : currentDPI >= 200 ? 'good' : currentDPI >= 150 ? 'fair' : 'poor';
+                      const colors = {
+                        excellent: 'text-green-700',
+                        good: 'text-blue-700',
+                        fair: 'text-yellow-700',
+                        poor: 'text-red-700'
+                      };
+                      
+                      return (
+                        <>
+                          <p className={`text-3xl font-bold ${colors[quality]}`}>
+                            {currentDPI} DPI
+                          </p>
+                          <p className={`text-xs ${colors[quality]} capitalize`}>
+                            {quality} Quality
+                          </p>
+                        </>
+                      );
+                    })()}
+                  </div>
+                </div>
               </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Print Height (inches)
+
+              {/* Aspect Ratio Lock */}
+              <div className="flex items-center justify-between mb-3">
+                <label className="text-sm font-medium text-gray-700 flex items-center gap-2">
+                  {maintainAspectRatio ? <Lock className="w-4 h-4" /> : <Unlock className="w-4 h-4" />}
+                  Maintain Aspect Ratio
                 </label>
-                <Input
-                  type="number"
-                  step="0.1"
-                  placeholder="e.g., 14"
-                  value={printHeight}
-                  onChange={(e) => setPrintHeight(e.target.value)}
-                />
+                <button
+                  type="button"
+                  onClick={() => setMaintainAspectRatio(!maintainAspectRatio)}
+                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                    maintainAspectRatio ? 'bg-[#366494]' : 'bg-gray-200'
+                  }`}
+                >
+                  <span
+                    className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                      maintainAspectRatio ? 'translate-x-6' : 'translate-x-1'
+                    }`}
+                  />
+                </button>
+              </div>
+
+              <div className="grid md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Print Width (inches)
+                  </label>
+                  <Input
+                    type="number"
+                    step="0.01"
+                    min="0.1"
+                    placeholder="e.g., 11"
+                    value={printWidth}
+                    onChange={(e) => handleWidthChange(e.target.value)}
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Print Height (inches)
+                  </label>
+                  <Input
+                    type="number"
+                    step="0.01"
+                    min="0.1"
+                    placeholder="e.g., 14"
+                    value={printHeight}
+                    onChange={(e) => handleHeightChange(e.target.value)}
+                  />
+                </div>
               </div>
             </div>
           )}
@@ -236,26 +345,57 @@ export function DPIChecker({ showSignupForm = true, onSignupComplete }: DPICheck
           {/* Common Print Sizes */}
           {imageDimensions && (
             <div>
-              <p className="text-sm text-gray-600 mb-2">Common DTF print sizes:</p>
+              <p className="text-sm text-gray-600 mb-2">Quick size presets:</p>
               <div className="flex flex-wrap gap-2">
                 {[
+                  { label: 'Optimal (300 DPI)', width: imageDimensions.width / 300, height: imageDimensions.height / 300 },
                   { label: '8" × 10"', width: 8, height: 10 },
                   { label: '11" × 14"', width: 11, height: 14 },
                   { label: '12" × 15"', width: 12, height: 15 },
                   { label: '12" × 16"', width: 12, height: 16 }
-                ].map(size => (
-                  <Button
-                    key={size.label}
-                    variant="outline"
-                    size="sm"
-                    onClick={() => {
-                      setPrintWidth(size.width.toString());
-                      setPrintHeight(size.height.toString());
-                    }}
-                  >
-                    {size.label}
-                  </Button>
-                ))}
+                ].map(size => {
+                  // Calculate what the DPI would be for this size
+                  const wouldBeDPI = Math.round(Math.min(
+                    imageDimensions.width / size.width,
+                    imageDimensions.height / size.height
+                  ));
+                  
+                  return (
+                    <Button
+                      key={size.label}
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        if (size.label === 'Optimal (300 DPI)') {
+                          setPrintWidth(size.width.toFixed(2));
+                          setPrintHeight(size.height.toFixed(2));
+                        } else if (maintainAspectRatio) {
+                          // Fit to size while maintaining aspect ratio
+                          const widthRatio = size.width / (imageDimensions.width / 300);
+                          const heightRatio = size.height / (imageDimensions.height / 300);
+                          const ratio = Math.min(widthRatio, heightRatio);
+                          
+                          const newWidth = (imageDimensions.width / 300) * ratio;
+                          const newHeight = (imageDimensions.height / 300) * ratio;
+                          
+                          setPrintWidth(newWidth.toFixed(2));
+                          setPrintHeight(newHeight.toFixed(2));
+                        } else {
+                          setPrintWidth(size.width.toString());
+                          setPrintHeight(size.height.toString());
+                        }
+                      }}
+                      className={`${wouldBeDPI < 150 ? 'border-red-300 hover:border-red-400' : wouldBeDPI < 300 ? 'border-yellow-300 hover:border-yellow-400' : ''}`}
+                    >
+                      {size.label}
+                      {size.label !== 'Optimal (300 DPI)' && (
+                        <span className={`ml-1 text-xs ${wouldBeDPI < 150 ? 'text-red-600' : wouldBeDPI < 300 ? 'text-yellow-600' : 'text-green-600'}`}>
+                          ({wouldBeDPI} DPI)
+                        </span>
+                      )}
+                    </Button>
+                  );
+                })}
               </div>
             </div>
           )}
