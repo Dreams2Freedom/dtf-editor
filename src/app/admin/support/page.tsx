@@ -50,17 +50,44 @@ export default function AdminSupportPage() {
   const fetchAllTickets = async () => {
     try {
       setLoading(true);
-      // For admin, we need to fetch ALL tickets, not just user's tickets
-      // This requires a different query or admin-specific service method
       const supabase = (await import('@/lib/supabase/client')).createClientSupabaseClient();
-      const { data, error } = await supabase
+      const { data: tickets, error } = await supabase
         .from('support_tickets')
         .select('*')
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      setTickets(data || []);
-      setFilteredTickets(data || []);
+
+      // Get message information for each ticket
+      const ticketsWithInfo = await Promise.all((tickets || []).map(async (ticket) => {
+        // Get all messages for this ticket
+        const { data: messages } = await supabase
+          .from('support_messages')
+          .select('id, is_admin, created_at')
+          .eq('ticket_id', ticket.id)
+          .order('created_at', { ascending: false });
+
+        const messageCount = messages?.length || 0;
+        const lastMessage = messages?.[0];
+        const hasUserReply = messages?.some(msg => !msg.is_admin) || false;
+        const lastReplyIsFromUser = lastMessage && !lastMessage.is_admin;
+        
+        // Check if waiting for admin response (last message is from user and ticket is open)
+        const waitingForAdmin = lastReplyIsFromUser && 
+                                (ticket.status === 'open' || ticket.status === 'in_progress');
+
+        return {
+          ...ticket,
+          message_count: messageCount,
+          has_user_reply: hasUserReply,
+          last_reply_from_user: lastReplyIsFromUser,
+          waiting_for_admin: waitingForAdmin,
+          last_message_at: lastMessage?.created_at
+        };
+      }));
+
+      setTickets(ticketsWithInfo);
+      setFilteredTickets(ticketsWithInfo);
     } catch (error) {
       console.error('Error fetching tickets:', error);
       setTickets([]);
@@ -170,11 +197,11 @@ export default function AdminSupportPage() {
   // Stats calculation
   const stats = {
     total: tickets.length,
+    waitingForAdmin: tickets.filter(t => t.waiting_for_admin).length,
     open: tickets.filter(t => t.status === 'open').length,
     inProgress: tickets.filter(t => t.status === 'in_progress').length,
     resolved: tickets.filter(t => t.status === 'resolved' || t.status === 'closed').length,
-    urgent: tickets.filter(t => t.priority === 'urgent').length,
-    high: tickets.filter(t => t.priority === 'high').length
+    urgent: tickets.filter(t => t.priority === 'urgent').length
   };
 
   return (
@@ -191,6 +218,10 @@ export default function AdminSupportPage() {
           <div className="text-2xl font-bold text-gray-900">{stats.total}</div>
           <div className="text-sm text-gray-600">Total Tickets</div>
         </Card>
+        <Card className="p-4 bg-yellow-50 border-yellow-200">
+          <div className="text-2xl font-bold text-yellow-700">{stats.waitingForAdmin}</div>
+          <div className="text-sm text-gray-600">Awaiting Reply</div>
+        </Card>
         <Card className="p-4">
           <div className="text-2xl font-bold text-red-600">{stats.open}</div>
           <div className="text-sm text-gray-600">Open</div>
@@ -206,10 +237,6 @@ export default function AdminSupportPage() {
         <Card className="p-4">
           <div className="text-2xl font-bold text-red-600">{stats.urgent}</div>
           <div className="text-sm text-gray-600">Urgent</div>
-        </Card>
-        <Card className="p-4">
-          <div className="text-2xl font-bold text-orange-600">{stats.high}</div>
-          <div className="text-sm text-gray-600">High Priority</div>
         </Card>
       </div>
 
@@ -314,12 +341,32 @@ export default function AdminSupportPage() {
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
                 {filteredTickets.map(ticket => (
-                  <tr key={ticket.id} className="hover:bg-gray-50">
+                  <tr key={ticket.id} className={`hover:bg-gray-50 ${
+                    ticket.waiting_for_admin ? 'bg-yellow-50 border-l-4 border-l-yellow-500' : ''
+                  }`}>
                     <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900">
-                      {ticket.ticket_number}
+                      <div className="flex items-center gap-2">
+                        {ticket.ticket_number}
+                        {ticket.waiting_for_admin && (
+                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                            Awaiting Reply
+                          </span>
+                        )}
+                      </div>
                     </td>
                     <td className="px-4 py-3 text-sm text-gray-900">
-                      <div className="max-w-xs truncate">{ticket.subject}</div>
+                      <div className="max-w-xs">
+                        <div className="truncate">{ticket.subject}</div>
+                        {ticket.message_count > 0 && (
+                          <div className="flex items-center gap-2 mt-1 text-xs text-gray-500">
+                            <MessageSquare className="w-3 h-3" />
+                            {ticket.message_count} {ticket.message_count === 1 ? 'message' : 'messages'}
+                            {ticket.last_reply_from_user && (
+                              <span className="text-orange-600 font-medium">• User replied</span>
+                            )}
+                          </div>
+                        )}
+                      </div>
                     </td>
                     <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">
                       <div className="flex items-center">
@@ -347,16 +394,24 @@ export default function AdminSupportPage() {
                       </Badge>
                     </td>
                     <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">
-                      <div className="flex items-center">
-                        <Calendar className="w-4 h-4 mr-1" />
-                        {formatDate(ticket.created_at)}
+                      <div>
+                        <div className="flex items-center">
+                          <Calendar className="w-4 h-4 mr-1" />
+                          {formatDate(ticket.created_at)}
+                        </div>
+                        {ticket.last_message_at && ticket.last_message_at !== ticket.created_at && (
+                          <div className="text-xs mt-1 text-gray-400">
+                            Last: {formatDate(ticket.last_message_at)}
+                          </div>
+                        )}
                       </div>
                     </td>
                     <td className="px-4 py-3 whitespace-nowrap text-sm">
                       <Button
-                        variant="outline"
+                        variant={ticket.waiting_for_admin ? "default" : "outline"}
                         size="sm"
                         onClick={() => router.push(`/support/${ticket.id}`)}
+                        className={ticket.waiting_for_admin ? "bg-yellow-600 hover:bg-yellow-700" : ""}
                       >
                         <ChevronRight className="w-4 h-4" />
                         View
