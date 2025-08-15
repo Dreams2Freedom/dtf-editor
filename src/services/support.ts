@@ -1,5 +1,4 @@
-import { createClient } from '@supabase/supabase-js';
-import { env } from '@/config/env';
+import { createClientSupabaseClient } from '@/lib/supabase/client';
 import type { 
   SupportTicket, 
   SupportMessage, 
@@ -10,10 +9,9 @@ import type {
 } from '@/types/support';
 
 export class SupportService {
-  private supabase;
-
-  constructor() {
-    this.supabase = createClient(env.SUPABASE_URL, env.SUPABASE_ANON_KEY);
+  private getSupabase() {
+    // Use the same client creation as auth service for consistency
+    return createClientSupabaseClient();
   }
 
   /**
@@ -21,8 +19,10 @@ export class SupportService {
    */
   async createTicket(userId: string, data: CreateTicketData): Promise<SupportTicket> {
     try {
+      const supabase = this.getSupabase();
+      
       // Create the ticket
-      const { data: ticket, error: ticketError } = await this.supabase
+      const { data: ticket, error: ticketError } = await supabase
         .from('support_tickets')
         .insert({
           user_id: userId,
@@ -36,7 +36,7 @@ export class SupportService {
       if (ticketError) throw ticketError;
 
       // Add the initial message
-      const { error: messageError } = await this.supabase
+      const { error: messageError } = await supabase
         .from('support_messages')
         .insert({
           ticket_id: ticket.id,
@@ -59,7 +59,8 @@ export class SupportService {
    */
   async getUserTickets(userId: string): Promise<SupportTicket[]> {
     try {
-      const { data, error } = await this.supabase
+      const supabase = this.getSupabase();
+      const { data, error } = await supabase
         .from('support_tickets')
         .select(`
           *,
@@ -89,8 +90,10 @@ export class SupportService {
     messages: SupportMessage[];
   }> {
     try {
+      const supabase = this.getSupabase();
+      
       // Get ticket
-      const { data: ticket, error: ticketError } = await this.supabase
+      const { data: ticket, error: ticketError } = await supabase
         .from('support_tickets')
         .select()
         .eq('id', ticketId)
@@ -99,7 +102,7 @@ export class SupportService {
       if (ticketError) throw ticketError;
 
       // Get messages
-      const { data: messages, error: messagesError } = await this.supabase
+      const { data: messages, error: messagesError } = await supabase
         .from('support_messages')
         .select(`
           *,
@@ -141,7 +144,9 @@ export class SupportService {
    */
   async addMessage(data: CreateMessageData, userId: string): Promise<SupportMessage> {
     try {
-      const { data: message, error } = await this.supabase
+      const supabase = this.getSupabase();
+      
+      const { data: message, error } = await supabase
         .from('support_messages')
         .insert({
           ticket_id: data.ticket_id,
@@ -156,7 +161,7 @@ export class SupportService {
       if (error) throw error;
 
       // Update ticket status if it was waiting on user
-      await this.supabase
+      await supabase
         .from('support_tickets')
         .update({ 
           status: 'open',
@@ -177,7 +182,8 @@ export class SupportService {
    */
   async updateTicketStatus(ticketId: string, status: TicketStatus): Promise<void> {
     try {
-      const updateData: any = { status };
+      const supabase = this.getSupabase();
+      const updateData: Record<string, unknown> = { status };
       
       if (status === 'resolved') {
         updateData.resolved_at = new Date().toISOString();
@@ -185,7 +191,7 @@ export class SupportService {
         updateData.closed_at = new Date().toISOString();
       }
 
-      const { error } = await this.supabase
+      const { error } = await supabase
         .from('support_tickets')
         .update(updateData)
         .eq('id', ticketId);
@@ -202,7 +208,8 @@ export class SupportService {
    */
   async getUnreadNotifications(userId: string): Promise<SupportNotification[]> {
     try {
-      const { data, error } = await this.supabase
+      const supabase = this.getSupabase();
+      const { data, error } = await supabase
         .from('support_notifications')
         .select(`
           *,
@@ -232,7 +239,8 @@ export class SupportService {
    */
   async markNotificationsRead(notificationIds: string[]): Promise<void> {
     try {
-      const { error } = await this.supabase
+      const supabase = this.getSupabase();
+      const { error } = await supabase
         .from('support_notifications')
         .update({ is_read: true })
         .in('id', notificationIds);
@@ -249,7 +257,8 @@ export class SupportService {
    */
   async searchTickets(userId: string, query: string): Promise<SupportTicket[]> {
     try {
-      const { data, error } = await this.supabase
+      const supabase = this.getSupabase();
+      const { data, error } = await supabase
         .from('support_tickets')
         .select()
         .eq('user_id', userId)

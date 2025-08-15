@@ -40,7 +40,7 @@ interface NavItem {
 export function Header() {
   const { user, profile, signOut } = useAuthStore();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [aiMenuOpen, setAiMenuOpen] = useState(false);
+  const [openDropdown, setOpenDropdown] = useState<string | null>(null);
   const router = useRouter();
 
   const handleSignOut = async () => {
@@ -50,12 +50,23 @@ export function Header() {
 
   const navigation: NavItem[] = user ? [
     { name: 'Dashboard', href: '/dashboard', icon: Home },
-    { name: 'Process Image', href: '/process', icon: Upload },
-    { name: 'Generate Image', href: '/generate', icon: Sparkles },
-    { name: 'My Images', href: '/dashboard#my-images', icon: Images },
-    { name: 'Storage', href: '/storage', icon: HardDrive },
+    { 
+      name: 'Create', 
+      icon: Sparkles,
+      submenu: [
+        { name: 'Process Image', href: '/process', icon: Upload },
+        { name: 'Generate Image', href: '/generate', icon: Sparkles },
+      ]
+    },
+    { 
+      name: 'Library', 
+      icon: Images,
+      submenu: [
+        { name: 'My Images', href: '/dashboard#my-images', icon: Images },
+        { name: 'Storage', href: '/storage', icon: HardDrive },
+      ]
+    },
     { name: 'Support', href: '/support', icon: HelpCircle },
-    { name: 'Pricing', href: '/pricing', icon: DollarSign },
   ] : [
     { name: 'Home', href: '/', icon: Home },
     { name: 'Pricing', href: '/pricing', icon: DollarSign },
@@ -63,8 +74,8 @@ export function Header() {
   ];
 
   const userNavigation = [
+    { name: 'Pricing', href: '/pricing', icon: DollarSign },
     { name: 'Settings', href: '/settings', icon: Settings },
-    { name: 'Billing', href: '/settings?tab=billing', icon: CreditCard },
   ];
 
   return (
@@ -84,18 +95,18 @@ export function Header() {
                 item.submenu ? (
                   <div key={item.name} className="relative">
                     <button
-                      className="inline-flex items-center border-b-2 border-transparent px-1 pt-1 text-sm font-medium text-gray-500 hover:border-gray-300 hover:text-gray-700"
-                      onClick={() => setAiMenuOpen(!aiMenuOpen)}
-                      onMouseEnter={() => setAiMenuOpen(true)}
+                      className="inline-flex items-center border-b-2 border-transparent px-1 pt-1 text-sm font-medium text-gray-500 hover:border-gray-300 hover:text-gray-700 h-full"
+                      onClick={() => setOpenDropdown(openDropdown === item.name ? null : item.name)}
+                      onMouseEnter={() => setOpenDropdown(item.name)}
                     >
                       <item.icon className="w-4 h-4 mr-1" />
                       {item.name}
                       <ChevronDown className="w-3 h-3 ml-1" />
                     </button>
-                    {aiMenuOpen && (
+                    {openDropdown === item.name && (
                       <div 
-                        className="absolute left-0 mt-2 w-48 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5"
-                        onMouseLeave={() => setAiMenuOpen(false)}
+                        className="absolute left-0 mt-2 w-48 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 z-50"
+                        onMouseLeave={() => setOpenDropdown(null)}
                       >
                         <div className="py-1">
                           {item.submenu.map((subitem) => (
@@ -103,7 +114,7 @@ export function Header() {
                               key={subitem.name}
                               href={subitem.href}
                               className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                              onClick={() => setAiMenuOpen(false)}
+                              onClick={() => setOpenDropdown(null)}
                             >
                               <subitem.icon className="w-4 h-4 mr-2" />
                               {subitem.name}
@@ -117,7 +128,7 @@ export function Header() {
                   <Link
                     key={item.name}
                     href={item.href}
-                    className="inline-flex items-center border-b-2 border-transparent px-1 pt-1 text-sm font-medium text-gray-500 hover:border-gray-300 hover:text-gray-700"
+                    className="inline-flex items-center border-b-2 border-transparent px-1 pt-1 text-sm font-medium text-gray-500 hover:border-gray-300 hover:text-gray-700 h-full"
                   >
                     <item.icon className="w-4 h-4 mr-1" />
                     {item.name}

@@ -89,7 +89,12 @@ export function CreateTicketModal({ isOpen, onClose, onSuccess }: CreateTicketMo
   };
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title="Create Support Ticket">
+    <Modal 
+      open={isOpen} 
+      onOpenChange={(open) => !open && onClose()} 
+      title="Create Support Ticket"
+      size="lg"
+    >
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* Subject */}
         <div>
