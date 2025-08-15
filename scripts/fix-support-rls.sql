@@ -76,6 +76,19 @@ CREATE POLICY "Users can update own notifications" ON support_notifications
 GRANT ALL ON support_tickets TO authenticated;
 GRANT ALL ON support_messages TO authenticated;
 GRANT ALL ON support_notifications TO authenticated;
-GRANT USAGE ON SEQUENCE support_tickets_id_seq TO authenticated;
-GRANT USAGE ON SEQUENCE support_messages_id_seq TO authenticated;
-GRANT USAGE ON SEQUENCE support_notifications_id_seq TO authenticated;
+
+-- Grant sequence permissions only if they exist
+DO $$ 
+BEGIN
+  IF EXISTS (SELECT 1 FROM pg_sequences WHERE schemaname = 'public' AND sequencename = 'support_tickets_id_seq') THEN
+    GRANT USAGE ON SEQUENCE support_tickets_id_seq TO authenticated;
+  END IF;
+  
+  IF EXISTS (SELECT 1 FROM pg_sequences WHERE schemaname = 'public' AND sequencename = 'support_messages_id_seq') THEN
+    GRANT USAGE ON SEQUENCE support_messages_id_seq TO authenticated;
+  END IF;
+  
+  IF EXISTS (SELECT 1 FROM pg_sequences WHERE schemaname = 'public' AND sequencename = 'support_notifications_id_seq') THEN
+    GRANT USAGE ON SEQUENCE support_notifications_id_seq TO authenticated;
+  END IF;
+END $$;
