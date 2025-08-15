@@ -20,7 +20,8 @@ import {
   HardDrive,
   Sparkles,
   Edit3,
-  ChevronDown
+  ChevronDown,
+  HelpCircle
 } from 'lucide-react';
 import { CreditDisplay } from '@/components/ui/CreditDisplay';
 import { NotificationBell } from '@/components/notifications/NotificationBell';
@@ -53,6 +54,7 @@ export function Header() {
     { name: 'Generate Image', href: '/generate', icon: Sparkles },
     { name: 'My Images', href: '/dashboard#my-images', icon: Images },
     { name: 'Storage', href: '/storage', icon: HardDrive },
+    { name: 'Support', href: '/support', icon: HelpCircle },
     { name: 'Pricing', href: '/pricing', icon: DollarSign },
   ] : [
     { name: 'Home', href: '/', icon: Home },
