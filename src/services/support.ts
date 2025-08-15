@@ -55,6 +55,31 @@ export class SupportService {
 
       if (messageError) throw messageError;
 
+      // Get user profile for email notification
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('email, first_name, last_name')
+        .eq('id', userId)
+        .single();
+
+      // Send email notification to admin
+      try {
+        const { emailService } = await import('@/services/email');
+        await emailService.sendSupportTicketNotification({
+          ticketNumber: ticket.ticket_number,
+          subject: ticket.subject,
+          category: ticket.category,
+          priority: ticket.priority,
+          message: data.message,
+          userEmail: profile?.email || 'unknown',
+          userName: profile ? `${profile.first_name || ''} ${profile.last_name || ''}`.trim() : undefined,
+          createdAt: ticket.created_at
+        });
+      } catch (emailError) {
+        // Don't fail ticket creation if email fails
+        console.error('Failed to send support ticket notification email:', emailError);
+      }
+
       return ticket;
     } catch (error) {
       console.error('Error creating support ticket:', error);

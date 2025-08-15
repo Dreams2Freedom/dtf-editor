@@ -8,7 +8,8 @@ export type EmailTemplate =
   | 'subscription'
   | 'passwordReset'
   | 'emailConfirmation'
-  | 'magicLink';
+  | 'magicLink'
+  | 'supportTicket';
 
 // Email data types for each template
 export interface WelcomeEmailData {
@@ -62,6 +63,17 @@ export interface MagicLinkEmailData {
   email: string;
   magicLink: string;
   expiresIn?: string; // e.g., "10 minutes"
+}
+
+export interface SupportTicketEmailData {
+  ticketNumber: string;
+  subject: string;
+  category: string;
+  priority: string;
+  message: string;
+  userEmail: string;
+  userName?: string;
+  createdAt: string;
 }
 
 // Email service class
@@ -487,6 +499,42 @@ export class EmailService {
       return await this.sendMailgunEmail(mailOptions);
     } catch (error) {
       console.error('Error sending magic link email:', error);
+      return false;
+    }
+  }
+
+  /**
+   * Send support ticket notification to admin
+   */
+  async sendSupportTicketNotification(data: SupportTicketEmailData): Promise<boolean> {
+    // Always send to Shannon at s2transfers
+    const adminEmail = 's2transfers@gmail.com';
+    
+    if (!this.enabled || !this.mailgunApiKey) {
+      console.log('EmailService: Would send support ticket notification to', adminEmail);
+      console.log('Ticket details:', data);
+      return true;
+    }
+
+    try {
+      const mailOptions = {
+        from: `${env.MAILGUN_FROM_NAME} <${env.MAILGUN_FROM_EMAIL}>`,
+        to: adminEmail,
+        subject: `[${data.priority.toUpperCase()}] New Support Ticket: ${data.ticketNumber}`,
+        html: this.getSupportTicketNotificationHTML(data),
+        text: this.getSupportTicketNotificationText(data),
+        'o:tag': ['support', 'ticket-notification'],
+        'o:tracking': true,
+        'o:tracking-clicks': true,
+        'o:tracking-opens': true,
+        'v:ticket_number': data.ticketNumber,
+        'v:user_email': data.userEmail,
+        'h:Reply-To': data.userEmail,
+      };
+
+      return await this.sendMailgunEmail(mailOptions);
+    } catch (error) {
+      console.error('Error sending support ticket notification:', error);
       return false;
     }
   }
@@ -933,6 +981,122 @@ ${data.magicLink}
 This link will expire in ${data.expiresIn || '10 minutes'}.
 
 © ${new Date().getFullYear()} DTF Editor. All rights reserved.
+    `.trim();
+  }
+
+  private getSupportTicketNotificationHTML(data: SupportTicketEmailData): string {
+    const priorityColor = data.priority === 'urgent' ? '#ef4444' : 
+                          data.priority === 'high' ? '#f97316' : 
+                          data.priority === 'medium' ? '#eab308' : '#22c55e';
+    
+    return `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>New Support Ticket</title>
+      </head>
+      <body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background-color: #f3f4f6;">
+        <div style="max-width: 600px; margin: 0 auto; padding: 20px;">
+          <div style="background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+            <div style="background: #366494; padding: 20px; text-align: center;">
+              <h1 style="color: white; margin: 0; font-size: 24px;">New Support Ticket</h1>
+            </div>
+            
+            <div style="padding: 30px;">
+              <div style="background: #fef3c7; border-left: 4px solid #f59e0b; padding: 12px; margin-bottom: 20px;">
+                <p style="margin: 0; color: #92400e; font-weight: bold;">Action Required</p>
+                <p style="margin: 4px 0 0 0; color: #78350f;">A new support ticket has been created and requires your attention.</p>
+              </div>
+
+              <div style="margin-bottom: 24px;">
+                <h2 style="color: #1f2937; font-size: 18px; margin-bottom: 16px;">Ticket Details</h2>
+                
+                <table style="width: 100%; border-collapse: collapse;">
+                  <tr>
+                    <td style="padding: 8px 0; color: #6b7280; font-size: 14px;">Ticket Number:</td>
+                    <td style="padding: 8px 0; color: #1f2937; font-weight: bold;">${data.ticketNumber}</td>
+                  </tr>
+                  <tr>
+                    <td style="padding: 8px 0; color: #6b7280; font-size: 14px;">Priority:</td>
+                    <td style="padding: 8px 0;">
+                      <span style="display: inline-block; padding: 4px 12px; background: ${priorityColor}; color: white; border-radius: 4px; font-size: 12px; font-weight: bold; text-transform: uppercase;">
+                        ${data.priority}
+                      </span>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style="padding: 8px 0; color: #6b7280; font-size: 14px;">Category:</td>
+                    <td style="padding: 8px 0; color: #1f2937;">${data.category.replace('_', ' ')}</td>
+                  </tr>
+                  <tr>
+                    <td style="padding: 8px 0; color: #6b7280; font-size: 14px;">Subject:</td>
+                    <td style="padding: 8px 0; color: #1f2937; font-weight: 500;">${data.subject}</td>
+                  </tr>
+                  <tr>
+                    <td style="padding: 8px 0; color: #6b7280; font-size: 14px;">From:</td>
+                    <td style="padding: 8px 0; color: #1f2937;">
+                      ${data.userName || 'User'}<br>
+                      <a href="mailto:${data.userEmail}" style="color: #366494; text-decoration: none;">${data.userEmail}</a>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style="padding: 8px 0; color: #6b7280; font-size: 14px;">Created:</td>
+                    <td style="padding: 8px 0; color: #1f2937;">${new Date(data.createdAt).toLocaleString()}</td>
+                  </tr>
+                </table>
+              </div>
+
+              <div style="margin-bottom: 24px;">
+                <h3 style="color: #1f2937; font-size: 16px; margin-bottom: 12px;">Message</h3>
+                <div style="background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 6px; padding: 16px;">
+                  <p style="margin: 0; color: #374151; line-height: 1.6; white-space: pre-wrap;">${data.message}</p>
+                </div>
+              </div>
+
+              <div style="text-align: center; padding-top: 20px; border-top: 1px solid #e5e7eb;">
+                <a href="${process.env.NEXT_PUBLIC_APP_URL || 'https://dtfeditor.com'}/admin/support" 
+                   style="display: inline-block; background: #366494; color: white; padding: 12px 24px; border-radius: 6px; text-decoration: none; font-weight: 500;">
+                  View Ticket in Admin Panel
+                </a>
+              </div>
+            </div>
+            
+            <div style="background: #f9fafb; padding: 20px; text-align: center; border-top: 1px solid #e5e7eb;">
+              <p style="margin: 0; color: #6b7280; font-size: 12px;">
+                © ${new Date().getFullYear()} DTF Editor. This is an automated notification.
+              </p>
+            </div>
+          </div>
+        </div>
+      </body>
+      </html>
+    `.trim();
+  }
+
+  private getSupportTicketNotificationText(data: SupportTicketEmailData): string {
+    return `
+NEW SUPPORT TICKET
+
+Ticket Number: ${data.ticketNumber}
+Priority: ${data.priority.toUpperCase()}
+Category: ${data.category.replace('_', ' ')}
+
+Subject: ${data.subject}
+
+From: ${data.userName || 'User'} (${data.userEmail})
+Created: ${new Date(data.createdAt).toLocaleString()}
+
+Message:
+${data.message}
+
+---
+
+View ticket in admin panel:
+${process.env.NEXT_PUBLIC_APP_URL || 'https://dtfeditor.com'}/admin/support
+
+© ${new Date().getFullYear()} DTF Editor
     `.trim();
   }
 }
