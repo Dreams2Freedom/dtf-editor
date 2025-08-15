@@ -21,7 +21,8 @@ import {
   Sparkles,
   Edit3,
   ChevronDown,
-  HelpCircle
+  HelpCircle,
+  Shield
 } from 'lucide-react';
 import { CreditDisplay } from '@/components/ui/CreditDisplay';
 import { NotificationBell } from '@/components/notifications/NotificationBell';
@@ -48,6 +49,9 @@ export function Header() {
     router.push('/');
   };
 
+  // Check if user is admin
+  const isAdmin = profile?.is_admin === true;
+
   const navigation: NavItem[] = user ? [
     { name: 'Dashboard', href: '/dashboard', icon: Home },
     { 
@@ -66,7 +70,7 @@ export function Header() {
         { name: 'Storage', href: '/storage', icon: HardDrive },
       ]
     },
-    { name: 'Support', href: '/support', icon: HelpCircle },
+    { name: 'Support', href: isAdmin ? '/admin/support' : '/support', icon: HelpCircle },
   ] : [
     { name: 'Home', href: '/', icon: Home },
     { name: 'Pricing', href: '/pricing', icon: DollarSign },
@@ -74,6 +78,7 @@ export function Header() {
   ];
 
   const userNavigation = [
+    ...(isAdmin ? [{ name: 'Admin Dashboard', href: '/admin', icon: Shield }] : []),
     { name: 'Pricing', href: '/pricing', icon: DollarSign },
     { name: 'Settings', href: '/settings', icon: Settings },
   ];

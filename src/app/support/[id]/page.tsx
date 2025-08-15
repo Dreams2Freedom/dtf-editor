@@ -22,8 +22,11 @@ import type { SupportTicket, SupportMessage, TicketStatus } from '@/types/suppor
 export default function TicketDetailPage() {
   const params = useParams();
   const router = useRouter();
-  const { user, loading: authLoading } = useAuthStore();
+  const { user, profile, loading: authLoading } = useAuthStore();
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  
+  // Check if user is admin
+  const isAdmin = profile?.is_admin === true;
   
   const [ticket, setTicket] = useState<SupportTicket | null>(null);
   const [messages, setMessages] = useState<SupportMessage[]>([]);
@@ -195,7 +198,7 @@ export default function TicketDetailPage() {
         <div className="mb-6">
           <Button
             variant="ghost"
-            onClick={() => router.push('/support')}
+            onClick={() => router.push(isAdmin ? '/admin/support' : '/support')}
             className="mb-4"
           >
             <ArrowLeft className="w-4 h-4 mr-2" />
