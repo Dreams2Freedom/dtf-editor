@@ -558,19 +558,40 @@ export function DPIChecker({ showSignupForm = true, onSignupComplete }: DPICheck
               </div>
             </div>
 
-            {dpiResult.qualityLevel !== 'excellent' && (
-              <div className="bg-[#E88B4B]/10 rounded-lg p-4 text-center">
-                <p className="text-gray-700 mb-3">
-                  Need to improve your image quality?
-                </p>
+            <div className={`${dpiResult.qualityLevel === 'excellent' ? 'bg-green-50' : 'bg-[#E88B4B]/10'} rounded-lg p-4 text-center`}>
+              <p className="text-gray-700 mb-3">
+                {dpiResult.qualityLevel === 'excellent' 
+                  ? `Your image already meets 300 DPI for ${printWidth}" × ${printHeight}" printing!`
+                  : `Need to improve your image quality for ${printWidth}" × ${printHeight}" printing?`
+                }
+              </p>
+              <div className="flex gap-2 justify-center">
                 <Button
-                  onClick={() => router.push('/process/upscale')}
-                  className="bg-[#E88B4B] hover:bg-[#d67a3a]"
+                  onClick={() => {
+                    // Send image and print dimensions to upscaler
+                    const params = new URLSearchParams();
+                    params.append('imageUrl', encodeURIComponent(imagePreview));
+                    params.append('printWidth', printWidth);
+                    params.append('printHeight', printHeight);
+                    router.push(`/process/upscale?${params.toString()}`);
+                  }}
+                  className={dpiResult.qualityLevel === 'excellent' ? 'bg-green-600 hover:bg-green-700' : 'bg-[#E88B4B] hover:bg-[#d67a3a]'}
                 >
-                  Try Our AI Upscaler
+                  {dpiResult.qualityLevel === 'excellent' ? 'Process Anyway' : 'Upscale to 300 DPI'}
                 </Button>
+                {imagePreview && (
+                  <Button
+                    onClick={() => {
+                      // Just send the image without dimensions to background removal
+                      router.push(`/process/background-removal?imageUrl=${encodeURIComponent(imagePreview)}`);
+                    }}
+                    variant="outline"
+                  >
+                    Remove Background
+                  </Button>
+                )}
               </div>
-            )}
+            </div>
           </div>
         </Card>
       )}

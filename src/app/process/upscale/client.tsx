@@ -18,6 +18,8 @@ export default function UpscaleClient() {
   const { profile, refreshCredits, user } = useAuthStore();
   const imageId = searchParams.get('imageId');
   const imageUrlParam = searchParams.get('imageUrl');
+  const printWidthParam = searchParams.get('printWidth');
+  const printHeightParam = searchParams.get('printHeight');
   
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -28,8 +30,8 @@ export default function UpscaleClient() {
   const [showEnhancements, setShowEnhancements] = useState(false);
   const [showSignupModal, setShowSignupModal] = useState(false);
   
-  // DPI Mode states
-  const [mode, setMode] = useState<'simple' | 'dpi'>('simple');
+  // DPI Mode states - Smart DPI mode is now default
+  const [mode, setMode] = useState<'simple' | 'dpi'>('dpi');
   const [imageDimensions, setImageDimensions] = useState<{ width: number; height: number } | null>(null);
   const [printWidth, setPrintWidth] = useState<string>('');
   const [printHeight, setPrintHeight] = useState<string>('');
@@ -133,7 +135,15 @@ export default function UpscaleClient() {
       try {
         const decodedUrl = decodeURIComponent(imageUrlParam);
         setImageUrl(decodedUrl);
-        detectImageDimensions(decodedUrl);
+        detectImageDimensions(decodedUrl).then(() => {
+          // If print dimensions are provided in URL params, use them
+          if (printWidthParam) {
+            setPrintWidth(printWidthParam);
+          }
+          if (printHeightParam) {
+            setPrintHeight(printHeightParam);
+          }
+        });
         setIsLoading(false);
       } catch (err) {
         setError('Invalid image URL provided');
@@ -168,7 +178,7 @@ export default function UpscaleClient() {
     };
 
     fetchImage();
-  }, [imageId, imageUrlParam, router, detectImageDimensions]);
+  }, [imageId, imageUrlParam, router, detectImageDimensions, printWidthParam, printHeightParam]);
 
   // Refresh credits when page loads or regains focus
   useEffect(() => {
