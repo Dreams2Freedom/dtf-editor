@@ -21,11 +21,19 @@ export class SupportService {
     try {
       const supabase = this.getSupabase();
       
-      // Create the ticket
+      // Generate a temporary ticket number if the trigger doesn't work
+      // Format: TKT-YYYYMM-XXXX
+      const now = new Date();
+      const yearMonth = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}`;
+      const randomNum = Math.floor(Math.random() * 10000).toString().padStart(4, '0');
+      const ticketNumber = `TKT-${yearMonth}-${randomNum}`;
+      
+      // Create the ticket with explicit ticket_number
       const { data: ticket, error: ticketError } = await supabase
         .from('support_tickets')
         .insert({
           user_id: userId,
+          ticket_number: ticketNumber,  // Provide ticket_number explicitly
           subject: data.subject,
           category: data.category,
           priority: data.priority || 'medium'
