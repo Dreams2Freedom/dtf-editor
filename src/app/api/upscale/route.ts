@@ -33,7 +33,9 @@ export async function POST(request: NextRequest) {
     const imageFile = formData.get('image') as File;
     const imageUrl = formData.get('imageUrl') as string;
     const processingMode = (formData.get('processingMode') as ProcessingMode) || 'auto_enhance';
-    const scale = parseInt(formData.get('scale') as string) || 4;
+    const scale = formData.get('scale') ? parseInt(formData.get('scale') as string) : undefined;
+    const targetWidth = formData.get('targetWidth') ? parseInt(formData.get('targetWidth') as string) : undefined;
+    const targetHeight = formData.get('targetHeight') ? parseInt(formData.get('targetHeight') as string) : undefined;
 
     let finalImageUrl: string;
 
@@ -59,15 +61,26 @@ export async function POST(request: NextRequest) {
 
     // 4. Process image using centralized service with timeout
     console.log('[Upscale] Starting image processing with Deep-Image...');
+    const processingOptions: any = {
+      operation: 'upscale',
+      processingMode,
+      faceEnhance: false
+    };
+    
+    // Add either scale or target dimensions
+    if (targetWidth && targetHeight) {
+      processingOptions.targetWidth = targetWidth;
+      processingOptions.targetHeight = targetHeight;
+      console.log('[Upscale] Using target dimensions:', { targetWidth, targetHeight });
+    } else {
+      processingOptions.scale = (scale || 4) as 2 | 4;
+      console.log('[Upscale] Using scale factor:', processingOptions.scale);
+    }
+    
     const processingPromise = imageProcessingService.processImage(
       user.id,
       finalImageUrl,
-      {
-        operation: 'upscale',
-        scale: scale as 2 | 4,
-        processingMode,
-        faceEnhance: false
-      }
+      processingOptions
     );
     
     // Race between processing and timeout

@@ -14,6 +14,8 @@ export interface ProcessingOptions {
   scale?: 2 | 4;
   processingMode?: 'auto_enhance' | 'generative_upscale' | 'basic_upscale';
   faceEnhance?: boolean;
+  targetWidth?: number;  // For DPI-aware upscaling
+  targetHeight?: number; // For DPI-aware upscaling
   // Background removal options
   backgroundColor?: string;
   // Vectorization options
@@ -92,6 +94,7 @@ export class ImageProcessingService {
     options: ProcessingOptions
   ): Promise<ProcessingResult> {
     const startTime = Date.now();
+    let isAdmin = false; // Declare at function scope
 
     try {
       // 1. Check if the feature is available
@@ -106,7 +109,7 @@ export class ImageProcessingService {
         .eq('id', userId)
         .single();
       
-      const isAdmin = adminProfile?.is_admin === true;
+      isAdmin = adminProfile?.is_admin === true;
 
       // 2. Check user credits before processing (skip for admins)
       const requiredCredits = this.getOperationCost(options.operation);
@@ -246,14 +249,21 @@ export class ImageProcessingService {
    * Handle image upscaling using Deep-Image.ai
    */
   private async handleUpscaling(imageUrl: string, options: ProcessingOptions): Promise<string> {
-    if (!options.scale || !options.processingMode) {
-      throw new Error('Scale and processing mode are required for upscaling');
+    // Check if we have target dimensions (DPI mode) or scale factor (simple mode)
+    if (!options.targetWidth && !options.targetHeight && !options.scale) {
+      throw new Error('Either target dimensions or scale factor is required for upscaling');
+    }
+    
+    if (!options.processingMode) {
+      throw new Error('Processing mode is required for upscaling');
     }
 
     const result = await this.deepImageService.upscaleImage(imageUrl, {
       scale: options.scale,
       processingMode: options.processingMode,
       faceEnhance: options.faceEnhance,
+      targetWidth: options.targetWidth,
+      targetHeight: options.targetHeight,
       type: 'photo' // Default to photo for now
     });
 

@@ -3,10 +3,13 @@ import { env } from '@/config/env';
 export type ProcessingMode = 'auto_enhance' | 'generative_upscale' | 'basic_upscale';
 
 export interface UpscaleOptions {
-  scale: 2 | 4;
+  scale?: 2 | 4;  // Made optional for when we use exact dimensions
   processingMode: ProcessingMode;
   faceEnhance?: boolean;
   type?: 'photo' | 'artwork';
+  // New options for exact dimensions (for DPI-aware upscaling)
+  targetWidth?: number;
+  targetHeight?: number;
 }
 
 export interface UpscaleResponse {
@@ -40,14 +43,25 @@ export class DeepImageService {
         output_format: 'png' // Use PNG for better quality
       };
 
-      // Set dimensions based on scale using percentage format
-      // According to the docs, use "200%" for 2x scale, "400%" for 4x scale
-      if (options.scale === 2) {
+      // Set dimensions based on either exact pixels or scale percentage
+      if (options.targetWidth && options.targetHeight) {
+        // Use exact pixel dimensions for DPI-aware upscaling
+        requestBody.width = options.targetWidth;
+        requestBody.height = options.targetHeight;
+      } else if (options.scale) {
+        // Use percentage format for traditional scaling
+        // According to the docs, use "200%" for 2x scale, "400%" for 4x scale
+        if (options.scale === 2) {
+          requestBody.width = "200%";
+          requestBody.height = "200%";
+        } else if (options.scale === 4) {
+          requestBody.width = "400%";
+          requestBody.height = "400%";
+        }
+      } else {
+        // Default to 2x if no dimensions specified
         requestBody.width = "200%";
         requestBody.height = "200%";
-      } else if (options.scale === 4) {
-        requestBody.width = "400%";
-        requestBody.height = "400%";
       }
 
       // Apply processing mode specific settings using enhancements array
