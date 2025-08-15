@@ -26,7 +26,7 @@ import { CreateTicketModal } from '@/components/support/CreateTicketModal';
 
 export default function SupportPage() {
   const router = useRouter();
-  const { user } = useAuthStore();
+  const { user, loading: authLoading } = useAuthStore();
   const [tickets, setTickets] = useState<SupportTicket[]>([]);
   const [filteredTickets, setFilteredTickets] = useState<SupportTicket[]>([]);
   const [loading, setLoading] = useState(true);
@@ -35,12 +35,16 @@ export default function SupportPage() {
   const [showCreateModal, setShowCreateModal] = useState(false);
 
   useEffect(() => {
-    if (!user) {
+    // Only redirect if we're not loading and there's no user
+    if (!authLoading && !user) {
       router.push('/auth/login');
       return;
     }
-    fetchTickets();
-  }, [user, router]);
+    // Only fetch tickets if we have a user
+    if (user) {
+      fetchTickets();
+    }
+  }, [user, authLoading, router]);
 
   useEffect(() => {
     filterTickets();
@@ -156,6 +160,18 @@ export default function SupportPage() {
       year: date.getFullYear() !== now.getFullYear() ? 'numeric' : undefined
     });
   };
+
+  // Show loading state while auth is being checked
+  if (authLoading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#366494] mx-auto"></div>
+          <p className="mt-4 text-gray-600">Loading...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 py-8">

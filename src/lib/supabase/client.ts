@@ -14,8 +14,9 @@ export const createClientSupabaseClient = () => {
     );
   }
 
-  // Create new client if not exists or if environment changed
-  if (!supabaseClient || process.env.NODE_ENV === 'development') {
+  // Create new client only if it doesn't exist
+  // Reusing the same client maintains auth session continuity
+  if (!supabaseClient) {
     supabaseClient = createBrowserClient(supabaseUrl, supabaseAnonKey, {
       cookies: {
         getAll() {
