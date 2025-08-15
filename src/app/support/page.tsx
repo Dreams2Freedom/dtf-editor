@@ -251,7 +251,9 @@ export default function SupportPage() {
             {filteredTickets.map(ticket => (
               <Card
                 key={ticket.id}
-                className="p-6 hover:shadow-lg transition-shadow cursor-pointer"
+                className={`p-6 hover:shadow-lg transition-shadow cursor-pointer relative ${
+                  ticket.has_admin_reply ? 'border-l-4 border-l-blue-500' : ''
+                }`}
                 onClick={(e) => {
                   // Prevent navigation if clicking on the button
                   if ((e.target as HTMLElement).closest('button')) {
@@ -260,6 +262,14 @@ export default function SupportPage() {
                   router.push(`/support/${ticket.id}`);
                 }}
               >
+                {ticket.has_admin_reply && (
+                  <div className="absolute top-4 right-4">
+                    <div className="bg-blue-100 text-blue-700 px-2 py-1 rounded-full text-xs font-medium flex items-center gap-1">
+                      <MessageSquare className="w-3 h-3" />
+                      New Reply
+                    </div>
+                  </div>
+                )}
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
                     <div className="flex items-center gap-3 mb-2">
@@ -290,6 +300,12 @@ export default function SupportPage() {
                         <span className="flex items-center gap-1">
                           <MessageSquare className="w-3 h-3" />
                           {ticket.message_count} {ticket.message_count === 1 ? 'message' : 'messages'}
+                        </span>
+                      )}
+                      {ticket.has_admin_reply && (
+                        <span className="flex items-center gap-1 text-blue-600 font-medium">
+                          <CheckCircle className="w-3 h-3" />
+                          Support replied
                         </span>
                       )}
                       {ticket.resolved_at && (

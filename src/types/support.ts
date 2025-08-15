@@ -15,6 +15,7 @@ export interface SupportTicket {
   resolved_at?: string;
   closed_at?: string;
   message_count?: number;
+  has_admin_reply?: boolean;
   last_message_at?: string;
   last_message_by?: 'user' | 'admin';
 }

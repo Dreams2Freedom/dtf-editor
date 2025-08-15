@@ -93,7 +93,7 @@ export class SupportService {
   async getUserTickets(userId: string): Promise<SupportTicket[]> {
     try {
       const supabase = this.getSupabase();
-      const { data, error } = await supabase
+      const { data: tickets, error } = await supabase
         .from('support_tickets')
         .select('*')
         .eq('user_id', userId)
@@ -101,9 +101,34 @@ export class SupportService {
 
       if (error) throw error;
 
-      // For now, return tickets without message count
-      // We can add message count in a separate query if needed
-      return data || [];
+      // Get message counts and check for admin replies for each ticket
+      const ticketsWithCounts = await Promise.all((tickets || []).map(async (ticket) => {
+        // Get all messages for this ticket
+        const { data: messages, error: msgError } = await supabase
+          .from('support_messages')
+          .select('id, is_admin')
+          .eq('ticket_id', ticket.id);
+
+        if (msgError) {
+          console.error('Error fetching messages for ticket:', msgError);
+          return {
+            ...ticket,
+            message_count: 0,
+            has_admin_reply: false
+          };
+        }
+
+        const messageCount = messages?.length || 0;
+        const hasAdminReply = messages?.some(msg => msg.is_admin) || false;
+
+        return {
+          ...ticket,
+          message_count: messageCount,
+          has_admin_reply: hasAdminReply
+        };
+      }));
+
+      return ticketsWithCounts;
     } catch (error) {
       console.error('Error fetching user tickets:', error);
       throw error;
