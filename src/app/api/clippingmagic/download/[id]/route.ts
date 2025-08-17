@@ -2,9 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { createServiceRoleClient } from '@/lib/supabase/server';
 import { env } from '@/config/env';
-import { withRateLimit } from '@/lib/rate-limit';
 
-async function handleGet(
+export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
@@ -21,17 +20,20 @@ async function handleGet(
     }
 
     const { id: imageId } = await params;
+    
+    console.log('ClippingMagic download request:', {
+      imageId,
+      userId: user.id,
+      hasApiKey: !!env.CLIPPINGMAGIC_API_KEY,
+      hasApiSecret: !!env.CLIPPINGMAGIC_API_SECRET
+    });
+    
     if (!imageId) {
       return NextResponse.json(
         { error: 'Image ID required' },
         { status: 400 }
       );
     }
-
-    // Create Basic Auth header
-    console.log('ClippingMagic download - Image ID:', imageId);
-    console.log('API Key present:', !!env.CLIPPINGMAGIC_API_KEY);
-    console.log('API Secret present:', !!env.CLIPPINGMAGIC_API_SECRET);
     
     const authHeader = 'Basic ' + Buffer.from(
       env.CLIPPINGMAGIC_API_KEY + ':' + env.CLIPPINGMAGIC_API_SECRET
@@ -140,6 +142,3 @@ async function handleGet(
     );
   }
 }
-
-// Apply rate limiting
-export const GET = withRateLimit(handleGet, 'api');
