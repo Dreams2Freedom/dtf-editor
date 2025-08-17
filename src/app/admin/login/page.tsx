@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/Input';
 import { Card } from '@/components/ui/Card';
 import { toast } from '@/lib/toast';
 import { Shield, Lock, Mail, AlertCircle } from 'lucide-react';
+import Image from 'next/image';
 
 export default function AdminLoginPage() {
   const router = useRouter();
@@ -92,11 +93,19 @@ export default function AdminLoginPage() {
       <div className="max-w-md w-full">
         {/* Logo and Title */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-primary-blue text-white rounded-lg mb-4">
-            <Shield className="w-8 h-8" />
+          <Image
+            src="/logo-horizontal.png"
+            alt="DTF Editor"
+            width={180}
+            height={50}
+            className="h-14 w-auto mx-auto mb-6"
+            priority
+          />
+          <div className="inline-flex items-center justify-center space-x-2 mb-4">
+            <Shield className="w-6 h-6 text-primary-blue" />
+            <h1 className="text-2xl font-bold text-gray-900">Admin Portal</h1>
           </div>
-          <h1 className="text-2xl font-bold text-gray-900">Admin Portal</h1>
-          <p className="text-gray-600 mt-2">Sign in to access the admin dashboard</p>
+          <p className="text-gray-600">Sign in to access the admin dashboard</p>
         </div>
 
         {/* Login Form */}

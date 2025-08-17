@@ -73,11 +73,13 @@ export function Header() {
       ]
     },
     { name: 'DPI Checker', href: '/free-dpi-checker', icon: Ruler },
+    { name: 'FAQ', href: '/faq', icon: HelpCircle },
     { name: 'Support', href: isAdmin ? '/admin/support' : '/support', icon: HelpCircle },
   ] : [
     { name: 'Home', href: '/', icon: Home },
     { name: 'DPI Checker', href: '/free-dpi-checker', icon: Ruler },
     { name: 'Pricing', href: '/pricing', icon: DollarSign },
+    { name: 'FAQ', href: '/faq', icon: HelpCircle },
     { name: 'Process', href: '/process', icon: Upload },
   ];
 

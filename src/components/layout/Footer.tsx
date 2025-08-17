@@ -12,10 +12,12 @@ const navigation = {
     { name: 'Background Removal', href: '/process/background-removal' },
     { name: 'Vectorization', href: '/process/vectorize' },
   ],
-  company: [
-    { name: 'About', href: '/about' },
+  support: [
+    { name: 'FAQ', href: '/faq' },
+    { name: 'Contact Us', href: '/contact' },
+    { name: 'Support Center', href: '/support' },
+    { name: 'About Us', href: '/about' },
     { name: 'Blog', href: '/blog' },
-    { name: 'Contact', href: '/contact' },
   ],
   legal: [
     { name: 'Privacy Policy', href: '/privacy' },
@@ -69,9 +71,9 @@ export function Footer() {
             </div>
             <div className="md:grid md:grid-cols-2 md:gap-8">
               <div>
-                <h3 className="text-sm font-semibold leading-6 text-white">Company</h3>
+                <h3 className="text-sm font-semibold leading-6 text-white">Support</h3>
                 <ul role="list" className="mt-6 space-y-4">
-                  {navigation.company.map((item) => (
+                  {navigation.support.map((item) => (
                     <li key={item.name}>
                       <Link href={item.href} className="text-sm leading-6 text-gray-300 hover:text-white">
                         {item.name}

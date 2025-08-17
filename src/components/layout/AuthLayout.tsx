@@ -19,18 +19,14 @@ export function AuthLayout({ children, title, subtitle }: AuthLayoutProps) {
           {/* Logo */}
           <div className="text-center">
             <Link href="/" className="inline-block">
-              <div className="flex items-center justify-center">
-                <Image
-                  src="/logo.svg"
-                  alt="DTF Editor Logo"
-                  width={48}
-                  height={48}
-                  className="h-12 w-auto"
-                />
-                <span className="ml-3 text-2xl font-bold text-gray-900">
-                  DTF Editor
-                </span>
-              </div>
+              <Image
+                src="/logo-horizontal.png"
+                alt="DTF Editor"
+                width={200}
+                height={60}
+                className="h-16 w-auto mx-auto"
+                priority
+              />
             </Link>
           </div>
 
