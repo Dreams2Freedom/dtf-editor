@@ -73,6 +73,33 @@
 - **Date Reported:** August 15, 2025
 - **Date Fixed:** August 15, 2025
 
+### **BUG-052: ClippingMagic White Label Editor Opens Blank Page**
+- **Status:** 🟢 FIXED
+- **Severity:** Critical
+- **Component:** Background Removal / ClippingMagic Integration
+- **Description:** ClippingMagic white label editor opened but showed blank/white page
+- **Symptoms:**
+  - Upload worked successfully
+  - Editor popup opened
+  - Editor content was completely blank/white
+  - No error messages displayed
+- **Root Cause:** 
+  - Test mode (`test: 'true'`) was enabled in development environment
+  - Test mode returns test image IDs that don't work with the white label editor
+  - ClippingMagic's test images are only for API testing, not for the visual editor
+- **Solution Applied:**
+  - Disabled test mode in both upload endpoints (commented out)
+  - Now uses real API calls even in development
+  - Added better logging to debug image ID/secret values
+  - Improved callback function setup
+- **Files Modified:**
+  - `/src/app/api/clippingmagic/upload/route.ts` - Disabled test mode
+  - `/src/app/api/clippingmagic/upload-large/route.ts` - Disabled test mode
+  - `/src/app/process/background-removal/client.tsx` - Improved debugging
+- **Important Note:** Development now uses real API credits for testing
+- **Date Reported:** August 17, 2025
+- **Date Fixed:** August 17, 2025
+
 ### **BUG-051: Background Removal 413 Error After Security Updates**
 - **Status:** 🟢 FIXED
 - **Severity:** Critical
