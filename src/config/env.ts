@@ -59,6 +59,10 @@ export const env = {
   
   // Admin/Cron
   CRON_SECRET: process.env.CRON_SECRET || '',
+  
+  // Upstash Redis (optional but highly recommended for production)
+  UPSTASH_REDIS_REST_URL: process.env.UPSTASH_REDIS_REST_URL || '',
+  UPSTASH_REDIS_REST_TOKEN: process.env.UPSTASH_REDIS_REST_TOKEN || '',
 
   // Feature Flags
   ENABLE_ANALYTICS: process.env.NEXT_PUBLIC_ENABLE_ANALYTICS === 'true',
@@ -107,6 +111,11 @@ export function validateEnv(): { valid: boolean; errors: string[]; warnings: str
   }
   if (!env.OPENAI_API_KEY) {
     warnings.push('OPENAI_API_KEY is missing - AI image generation will not work');
+  }
+  
+  // Check Upstash Redis (critical for production)
+  if (!env.UPSTASH_REDIS_REST_URL || !env.UPSTASH_REDIS_REST_TOKEN) {
+    warnings.push('⚠️  UPSTASH_REDIS not configured - Rate limiting using in-memory fallback (will not work properly with multiple servers!)');
   }
 
   return {

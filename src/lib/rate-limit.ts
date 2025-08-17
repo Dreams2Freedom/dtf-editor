@@ -1,6 +1,7 @@
 import { Ratelimit } from '@upstash/ratelimit';
 import { Redis } from '@upstash/redis';
 import { NextRequest, NextResponse } from 'next/server';
+import { env } from '@/config/env';
 
 // Rate limit configurations for different endpoint types
 // Designed for production with 1000+ concurrent users
@@ -101,10 +102,10 @@ let rateLimiter: Ratelimit | InMemoryRateLimiter | null = null;
 function getRateLimiter() {
   if (!rateLimiter) {
     // Check if we have Upstash credentials
-    if (process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN) {
+    if (env.UPSTASH_REDIS_REST_URL && env.UPSTASH_REDIS_REST_TOKEN) {
       redis = new Redis({
-        url: process.env.UPSTASH_REDIS_REST_URL,
-        token: process.env.UPSTASH_REDIS_REST_TOKEN,
+        url: env.UPSTASH_REDIS_REST_URL,
+        token: env.UPSTASH_REDIS_REST_TOKEN,
       });
       
       rateLimiter = new Ratelimit({
@@ -113,9 +114,12 @@ function getRateLimiter() {
         analytics: true,
         prefix: 'dtf-editor',
       });
+      
+      console.log('✅ Using Upstash Redis for rate limiting');
     } else {
       // Use in-memory rate limiter for development
       console.warn('⚠️ Using in-memory rate limiter. Configure Upstash Redis for production.');
+      console.warn('Add UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN to your environment variables.');
       rateLimiter = new InMemoryRateLimiter();
     }
   }
