@@ -1,26 +1,27 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
-import { withRateLimit } from '@/lib/rate-limit';
 
-// This version works WITHOUT the uploads database table
-async function handleGet(
+// Based on Next.js 15 documentation for dynamic route handlers
+export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    // Get the dynamic parameter
+    const { id } = await params;
+    
+    // Get Supabase client
     const supabase = await createServerSupabaseClient();
     
     // Check authentication
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    
+    if (authError || !user) {
       return NextResponse.json(
         { success: false, error: 'Unauthorized' },
         { status: 401 }
       );
     }
-
-    // Await params before accessing
-    const { id } = await params;
     
     console.log('Looking for upload with ID:', id);
     console.log('Current user:', user.id);
@@ -40,9 +41,9 @@ async function handleGet(
     const fileName = path.split('/').pop() || path;
     
     // Try to get the public URL directly
-    const publicUrl = supabase.storage
+    const { data: publicUrlData } = supabase.storage
       .from('user-uploads')
-      .getPublicUrl(`users/${user.id}/${fileName}`).data.publicUrl;
+      .getPublicUrl(`users/${user.id}/${fileName}`);
     
     // Verify the file exists by trying to download it
     const { data: fileData, error: downloadError } = await supabase.storage
@@ -51,6 +52,7 @@ async function handleGet(
     
     if (downloadError || !fileData) {
       console.error('File not found:', downloadError);
+      
       // If direct approach fails, list files and find it
       const { data: files, error: listError } = await supabase.storage
         .from('user-uploads')
@@ -82,37 +84,40 @@ async function handleGet(
       }
       
       // Get the public URL for the matched file
-      const matchedUrl = supabase.storage
+      const { data: matchedUrlData } = supabase.storage
         .from('user-uploads')
-        .getPublicUrl(`users/${user.id}/${matchedFile.name}`).data.publicUrl;
+        .getPublicUrl(`users/${user.id}/${matchedFile.name}`);
       
       console.log('Found file via listing:', matchedFile.name);
-      console.log('Public URL:', matchedUrl);
+      console.log('Public URL:', matchedUrlData.publicUrl);
       
       return NextResponse.json({
         success: true,
         id: id,
-        publicUrl: matchedUrl
+        publicUrl: matchedUrlData.publicUrl
       });
     }
     
     console.log('Found file directly:', fileName);
-    console.log('Public URL:', publicUrl);
+    console.log('Public URL:', publicUrlData.publicUrl);
 
     return NextResponse.json({
       success: true,
       id: id,
-      publicUrl: publicUrl
+      publicUrl: publicUrlData.publicUrl
     });
 
   } catch (error) {
     console.error('Fetch upload error:', error);
+    
+    // Ensure we always return valid JSON
     return NextResponse.json(
-      { success: false, error: 'Failed to fetch upload' },
+      { 
+        success: false, 
+        error: error instanceof Error ? error.message : 'Failed to fetch upload',
+        details: process.env.NODE_ENV === 'development' ? String(error) : undefined
+      },
       { status: 500 }
     );
   }
 }
-
-// Apply rate limiting
-export const GET = withRateLimit(handleGet, 'upload');
