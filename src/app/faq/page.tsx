@@ -112,7 +112,7 @@ const faqs: FAQItem[] = [
   {
     id: 'image-upscaling',
     question: 'What is image upscaling?',
-    answer: 'Image upscaling uses AI to increase the resolution and quality of low-resolution images. It's perfect for when you have a small or blurry image that needs to be printed at a larger size. Our upscaling can enhance images up to 4x their original resolution while maintaining or improving quality.',
+    answer: 'Image upscaling uses AI to increase the resolution and quality of low-resolution images. It\'s perfect for when you have a small or blurry image that needs to be printed at a larger size. Our upscaling can enhance images up to 4x their original resolution while maintaining or improving quality.',
     category: 'Features'
   },
   {
@@ -124,7 +124,7 @@ const faqs: FAQItem[] = [
   {
     id: 'ai-generation',
     question: 'How does AI image generation work?',
-    answer: 'Our AI image generation uses OpenAI's DALL-E 3 to create original images from text descriptions. Simply describe what you want, choose a style and size, and the AI will generate a unique image. This feature is available to paid subscribers only and uses 2-4 credits depending on quality settings.',
+    answer: 'Our AI image generation uses OpenAI\'s DALL-E 3 to create original images from text descriptions. Simply describe what you want, choose a style and size, and the AI will generate a unique image. This feature is available to paid subscribers only and uses 2-4 credits depending on quality settings.',
     category: 'Features'
   },
   {
@@ -212,7 +212,7 @@ const faqs: FAQItem[] = [
   {
     id: 'data-security',
     question: 'Is my data secure?',
-    answer: 'Yes! We use industry-standard encryption for all data transmission and storage. Your images are stored securely on Supabase's infrastructure, and we never share your personal information or designs with third parties.',
+    answer: 'Yes! We use industry-standard encryption for all data transmission and storage. Your images are stored securely on Supabase\'s infrastructure, and we never share your personal information or designs with third parties.',
     category: 'Account & Security'
   },
   {
@@ -248,7 +248,7 @@ const faqs: FAQItem[] = [
   },
   {
     id: 'credits-not-showing',
-    question: 'I purchased credits but they're not showing up',
+    question: 'I purchased credits but they\'re not showing up',
     answer: 'Credits are usually added instantly. If they don\'t appear within 5 minutes, try logging out and back in. If the issue persists, contact support with your order number and we\'ll resolve it immediately.',
     category: 'Troubleshooting'
   }
