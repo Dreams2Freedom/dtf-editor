@@ -4,7 +4,12 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/Button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
-import { ArrowLeft, Shield, Activity, Database, Gauge, AlertCircle, CheckCircle, XCircle, RefreshCw } from 'lucide-react';
+import { 
+  ArrowLeft, Shield, Activity, Database, Gauge, AlertCircle, 
+  CheckCircle, XCircle, RefreshCw, Server, HardDrive, Mail, 
+  Cpu, Globe, Clock, TrendingUp, Users, Image, CreditCard,
+  FileText, Package
+} from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 
 interface RateLimitStats {
@@ -37,24 +42,100 @@ interface RateLimitStats {
   recommendations?: string[];
 }
 
+interface SystemHealth {
+  timestamp: string;
+  status: string;
+  services: {
+    database: { status: string; latency: number };
+    storage: { status: string; message: string };
+    redis: { status: string; message: string };
+    stripe: { status: string; message: string };
+    email: { status: string; provider: string };
+    ai_services: {
+      openai: { status: string; message: string };
+      deepImage: { status: string; message: string };
+      clippingMagic: { status: string; message: string };
+      vectorizer: { status: string; message: string };
+    };
+  };
+  environment: {
+    node_version: string;
+    deployment: string;
+    region: string;
+    commit: string;
+  };
+  configuration: {
+    supabase: boolean;
+    stripe: boolean;
+    redis: boolean;
+    email: boolean;
+    ai_services: {
+      openai: boolean;
+      deepImage: boolean;
+      clippingMagic: boolean;
+      vectorizer: boolean;
+    };
+  };
+}
+
+interface DatabaseStats {
+  tables: {
+    users: { total: number; recent_24h: number; active_7d: number };
+    processed_images: { total: number; recent_24h: number };
+    payments: { total: number };
+    subscriptions: { total: number };
+    credit_transactions: { total: number };
+    audit_logs: { total: number };
+    support_tickets: { total: number };
+  };
+  storage: {
+    buckets: number;
+    total_size_bytes: number;
+    total_size_mb: string;
+  };
+  database: {
+    provider: string;
+    region: string;
+    status: string;
+  };
+  summary: {
+    total_records: number;
+    growth_rate_24h: number;
+  };
+}
+
 export default function SystemPage() {
   const router = useRouter();
   const { user } = useAuth();
   const [loading, setLoading] = useState(true);
   const [rateLimitStats, setRateLimitStats] = useState<RateLimitStats | null>(null);
+  const [systemHealth, setSystemHealth] = useState<SystemHealth | null>(null);
+  const [databaseStats, setDatabaseStats] = useState<DatabaseStats | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [lastRefresh, setLastRefresh] = useState<Date>(new Date());
 
   useEffect(() => {
     if (user) {
-      fetchSystemStats();
+      fetchAllStats();
     }
   }, [user]);
 
+  const fetchAllStats = async () => {
+    setLoading(true);
+    setError(null);
+    
+    await Promise.all([
+      fetchSystemStats(),
+      fetchHealthStatus(),
+      fetchDatabaseStats(),
+    ]);
+    
+    setLastRefresh(new Date());
+    setLoading(false);
+  };
+
   const fetchSystemStats = async () => {
     try {
-      setLoading(true);
-      setError(null);
-      
       const response = await fetch('/api/admin/rate-limits/stats', {
         headers: {
           'Authorization': `Bearer ${user?.access_token}`,
@@ -68,10 +149,45 @@ export default function SystemPage() {
       const data = await response.json();
       setRateLimitStats(data);
     } catch (err) {
-      console.error('Error fetching system stats:', err);
-      setError(err instanceof Error ? err.message : 'Failed to load system stats');
-    } finally {
-      setLoading(false);
+      console.error('Error fetching rate limit stats:', err);
+    }
+  };
+
+  const fetchHealthStatus = async () => {
+    try {
+      const response = await fetch('/api/admin/system/health', {
+        headers: {
+          'Authorization': `Bearer ${user?.access_token}`,
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to fetch health status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      setSystemHealth(data);
+    } catch (err) {
+      console.error('Error fetching health status:', err);
+    }
+  };
+
+  const fetchDatabaseStats = async () => {
+    try {
+      const response = await fetch('/api/admin/system/database', {
+        headers: {
+          'Authorization': `Bearer ${user?.access_token}`,
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to fetch database stats: ${response.status}`);
+      }
+
+      const data = await response.json();
+      setDatabaseStats(data);
+    } catch (err) {
+      console.error('Error fetching database stats:', err);
     }
   };
 
@@ -115,14 +231,19 @@ export default function SystemPage() {
             <h1 className="text-3xl font-bold text-gray-900">System Status</h1>
             <p className="text-gray-600 mt-2">Monitor system health and performance</p>
           </div>
-          <Button
-            onClick={fetchSystemStats}
-            disabled={loading}
-            className="flex items-center gap-2"
-          >
-            <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
-            Refresh
-          </Button>
+          <div className="flex items-center gap-4">
+            <span className="text-sm text-gray-500">
+              Last updated: {lastRefresh.toLocaleTimeString()}
+            </span>
+            <Button
+              onClick={fetchAllStats}
+              disabled={loading}
+              className="flex items-center gap-2"
+            >
+              <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+              Refresh
+            </Button>
+          </div>
         </div>
       </div>
 
@@ -328,6 +449,256 @@ export default function SystemPage() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Database Statistics */}
+      {databaseStats && (
+        <Card className="mb-6">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Database className="w-5 h-5" />
+              Database Statistics
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+              <div className="bg-blue-50 rounded-lg p-4">
+                <div className="flex items-center gap-2 mb-2">
+                  <Users className="w-4 h-4 text-blue-600" />
+                  <span className="text-sm text-gray-600">Total Users</span>
+                </div>
+                <p className="text-2xl font-bold">{databaseStats.tables.users.total}</p>
+                <p className="text-xs text-gray-500 mt-1">
+                  +{databaseStats.tables.users.recent_24h} today
+                </p>
+              </div>
+
+              <div className="bg-purple-50 rounded-lg p-4">
+                <div className="flex items-center gap-2 mb-2">
+                  <Image className="w-4 h-4 text-purple-600" />
+                  <span className="text-sm text-gray-600">Processed Images</span>
+                </div>
+                <p className="text-2xl font-bold">{databaseStats.tables.processed_images.total}</p>
+                <p className="text-xs text-gray-500 mt-1">
+                  +{databaseStats.tables.processed_images.recent_24h} today
+                </p>
+              </div>
+
+              <div className="bg-green-50 rounded-lg p-4">
+                <div className="flex items-center gap-2 mb-2">
+                  <CreditCard className="w-4 h-4 text-green-600" />
+                  <span className="text-sm text-gray-600">Payments</span>
+                </div>
+                <p className="text-2xl font-bold">{databaseStats.tables.payments.total}</p>
+                <p className="text-xs text-gray-500 mt-1">
+                  {databaseStats.tables.subscriptions.total} active subs
+                </p>
+              </div>
+
+              <div className="bg-orange-50 rounded-lg p-4">
+                <div className="flex items-center gap-2 mb-2">
+                  <HardDrive className="w-4 h-4 text-orange-600" />
+                  <span className="text-sm text-gray-600">Storage Used</span>
+                </div>
+                <p className="text-2xl font-bold">{databaseStats.storage.total_size_mb} MB</p>
+                <p className="text-xs text-gray-500 mt-1">
+                  {databaseStats.storage.buckets} buckets
+                </p>
+              </div>
+            </div>
+
+            <div className="border-t pt-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-gray-600">Database Provider</p>
+                  <p className="font-semibold">{databaseStats.database.provider}</p>
+                </div>
+                <div className="text-right">
+                  <p className="text-sm text-gray-600">Total Records</p>
+                  <p className="font-semibold">{databaseStats.summary.total_records.toLocaleString()}</p>
+                </div>
+                <div className="text-right">
+                  <p className="text-sm text-gray-600">24h Growth</p>
+                  <p className="font-semibold text-green-600">
+                    +{databaseStats.summary.growth_rate_24h.toFixed(2)}%
+                  </p>
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Service Status */}
+      {systemHealth && (
+        <Card className="mb-6">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Server className="w-5 h-5" />
+              Service Status
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              {/* Core Services */}
+              <div>
+                <h3 className="font-semibold mb-3">Core Services</h3>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="flex items-center justify-between p-3 border rounded-lg">
+                    <div className="flex items-center gap-2">
+                      <Database className="w-4 h-4" />
+                      <span>Database</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      {systemHealth.services.database.status === 'healthy' ? (
+                        <>
+                          <CheckCircle className="w-4 h-4 text-green-500" />
+                          <span className="text-sm text-gray-500">{systemHealth.services.database.latency}ms</span>
+                        </>
+                      ) : (
+                        <XCircle className="w-4 h-4 text-red-500" />
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-between p-3 border rounded-lg">
+                    <div className="flex items-center gap-2">
+                      <HardDrive className="w-4 h-4" />
+                      <span>Storage</span>
+                    </div>
+                    {systemHealth.services.storage.status === 'healthy' ? (
+                      <CheckCircle className="w-4 h-4 text-green-500" />
+                    ) : (
+                      <XCircle className="w-4 h-4 text-red-500" />
+                    )}
+                  </div>
+
+                  <div className="flex items-center justify-between p-3 border rounded-lg">
+                    <div className="flex items-center gap-2">
+                      <Shield className="w-4 h-4" />
+                      <span>Redis</span>
+                    </div>
+                    {systemHealth.services.redis.status === 'healthy' ? (
+                      <CheckCircle className="w-4 h-4 text-green-500" />
+                    ) : systemHealth.services.redis.status === 'warning' ? (
+                      <AlertCircle className="w-4 h-4 text-yellow-500" />
+                    ) : (
+                      <XCircle className="w-4 h-4 text-red-500" />
+                    )}
+                  </div>
+
+                  <div className="flex items-center justify-between p-3 border rounded-lg">
+                    <div className="flex items-center gap-2">
+                      <CreditCard className="w-4 h-4" />
+                      <span>Stripe</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      {systemHealth.services.stripe.status === 'healthy' ? (
+                        <>
+                          <CheckCircle className="w-4 h-4 text-green-500" />
+                          <span className="text-xs text-gray-500">{systemHealth.services.stripe.message}</span>
+                        </>
+                      ) : (
+                        <XCircle className="w-4 h-4 text-red-500" />
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-between p-3 border rounded-lg">
+                    <div className="flex items-center gap-2">
+                      <Mail className="w-4 h-4" />
+                      <span>Email</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      {systemHealth.services.email.status === 'healthy' ? (
+                        <>
+                          <CheckCircle className="w-4 h-4 text-green-500" />
+                          <span className="text-xs text-gray-500">{systemHealth.services.email.provider}</span>
+                        </>
+                      ) : (
+                        <AlertCircle className="w-4 h-4 text-yellow-500" />
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* AI Services */}
+              <div>
+                <h3 className="font-semibold mb-3">AI Services</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="flex items-center justify-between p-3 border rounded-lg">
+                    <span>OpenAI (GPT-4)</span>
+                    {systemHealth.configuration.ai_services.openai ? (
+                      <CheckCircle className="w-4 h-4 text-green-500" />
+                    ) : (
+                      <XCircle className="w-4 h-4 text-red-500" />
+                    )}
+                  </div>
+
+                  <div className="flex items-center justify-between p-3 border rounded-lg">
+                    <span>Deep-Image.ai</span>
+                    {systemHealth.configuration.ai_services.deepImage ? (
+                      <CheckCircle className="w-4 h-4 text-green-500" />
+                    ) : (
+                      <XCircle className="w-4 h-4 text-red-500" />
+                    )}
+                  </div>
+
+                  <div className="flex items-center justify-between p-3 border rounded-lg">
+                    <span>ClippingMagic</span>
+                    {systemHealth.configuration.ai_services.clippingMagic ? (
+                      <CheckCircle className="w-4 h-4 text-green-500" />
+                    ) : (
+                      <XCircle className="w-4 h-4 text-red-500" />
+                    )}
+                  </div>
+
+                  <div className="flex items-center justify-between p-3 border rounded-lg">
+                    <span>Vectorizer.ai</span>
+                    {systemHealth.configuration.ai_services.vectorizer ? (
+                      <CheckCircle className="w-4 h-4 text-green-500" />
+                    ) : (
+                      <XCircle className="w-4 h-4 text-red-500" />
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Environment Information */}
+      {systemHealth && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Globe className="w-5 h-5" />
+              Environment
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <p className="text-sm text-gray-600">Deployment</p>
+                <p className="font-semibold capitalize">{systemHealth.environment.deployment}</p>
+              </div>
+              <div>
+                <p className="text-sm text-gray-600">Region</p>
+                <p className="font-semibold">{systemHealth.environment.region}</p>
+              </div>
+              <div>
+                <p className="text-sm text-gray-600">Node Version</p>
+                <p className="font-semibold">{systemHealth.environment.node_version}</p>
+              </div>
+              <div>
+                <p className="text-sm text-gray-600">Commit SHA</p>
+                <p className="font-mono text-sm">{systemHealth.environment.commit.substring(0, 8)}</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }
