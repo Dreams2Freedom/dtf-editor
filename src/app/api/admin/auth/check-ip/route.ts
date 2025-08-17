@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 import type { AdminSession } from '@/types/admin';
+import { withRateLimit } from '@/lib/rate-limit';
 
 function isIPInWhitelist(clientIP: string, whitelist: string[]): boolean {
   // If no whitelist, allow all
@@ -22,7 +23,7 @@ function isIPInWhitelist(clientIP: string, whitelist: string[]): boolean {
   });
 }
 
-export async function GET(request: NextRequest) {
+async function handleGet(request: NextRequest) {
   try {
     // Get client IP
     const clientIP = 
@@ -86,3 +87,6 @@ export async function GET(request: NextRequest) {
     });
   }
 }
+
+// Apply rate limiting
+export const GET = withRateLimit(handleGet, 'admin');

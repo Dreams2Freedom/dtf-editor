@@ -2,8 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 import type { AdminSession } from '@/types/admin';
+import { withRateLimit } from '@/lib/rate-limit';
 
-export async function POST(request: NextRequest) {
+async function handlePost(request: NextRequest) {
   try {
     // Verify admin session
     const sessionCookie = cookies().get('admin_session');
@@ -75,3 +76,6 @@ export async function POST(request: NextRequest) {
     );
   }
 }
+
+// Apply rate limiting
+export const POST = withRateLimit(handlePost, 'admin');

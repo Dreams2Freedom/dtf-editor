@@ -1,7 +1,8 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { withRateLimit } from '@/lib/rate-limit';
 
-export async function POST(request: Request) {
+async function handlePost(request: Request) {
   try {
     const { email, password } = await request.json();
 
@@ -62,3 +63,6 @@ export async function POST(request: Request) {
     );
   }
 }
+
+// Apply rate limiting
+export const POST = withRateLimit(handlePost, 'public');

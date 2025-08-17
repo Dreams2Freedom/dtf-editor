@@ -3,8 +3,9 @@ import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 import { env } from '@/config/env';
 import { logAdminAction, getClientIp, getUserAgent } from '@/utils/adminLogger';
+import { withRateLimit } from '@/lib/rate-limit';
 
-export async function POST(request: NextRequest) {
+async function handlePost(request: NextRequest) {
   try {
     const body = await request.json();
     const { email, password, remember = false } = body;
@@ -187,3 +188,6 @@ export async function POST(request: NextRequest) {
     );
   }
 }
+
+// Apply rate limiting
+export const POST = withRateLimit(handlePost, 'admin');

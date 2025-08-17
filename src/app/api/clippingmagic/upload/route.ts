@@ -3,11 +3,12 @@ import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { env } from '@/config/env';
 import { ImageProcessingService } from '@/services/imageProcessing';
 import sharp from 'sharp';
+import { withRateLimit } from '@/lib/rate-limit';
 
 export const runtime = 'nodejs';
 export const maxDuration = 60;
 
-export async function POST(request: NextRequest) {
+async function handlePost(request: NextRequest) {
   try {
     // Check authentication
     const supabase = await createServerSupabaseClient();
@@ -159,3 +160,6 @@ export async function POST(request: NextRequest) {
     );
   }
 }
+
+// Apply rate limiting
+export const POST = withRateLimit(handlePost, 'upload');

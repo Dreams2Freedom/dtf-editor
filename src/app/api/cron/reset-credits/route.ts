@@ -1,10 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServiceRoleSupabaseClient } from '@/lib/supabase/service';
 import { env } from '@/config/env';
+import { withRateLimit } from '@/lib/rate-limit';
 
 // This endpoint should be called by a cron job (e.g., daily)
 // It will reset credits for all eligible free tier users
-export async function GET(request: NextRequest) {
+async function handleGet(request: NextRequest) {
   try {
     // Verify cron secret to prevent unauthorized access
     const authHeader = request.headers.get('authorization');
@@ -52,7 +53,7 @@ export async function GET(request: NextRequest) {
 }
 
 // Manual endpoint for testing - can reset specific user
-export async function POST(request: NextRequest) {
+async function handlePost(request: NextRequest) {
   try {
     // This endpoint is for manual testing
     const { userId, secret } = await request.json();
@@ -93,3 +94,9 @@ export async function POST(request: NextRequest) {
     );
   }
 }
+
+// Apply rate limiting
+export const GET = withRateLimit(handleGet, 'api');
+
+// Apply rate limiting
+export const POST = withRateLimit(handlePost, 'api');

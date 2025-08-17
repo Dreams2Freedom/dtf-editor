@@ -2,8 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { cookies } from 'next/headers';
 import { logAdminAction, logSecurityAction, getClientIp, getUserAgent } from '@/utils/adminLogger';
+import { withRateLimit } from '@/lib/rate-limit';
 
-export async function POST(
+async function handlePost(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
@@ -114,7 +115,7 @@ export async function POST(
   }
 }
 
-export async function DELETE(request: NextRequest) {
+async function handleDelete(request: NextRequest) {
   try {
     const supabase = await createServerSupabaseClient();
     const cookieStore = cookies();
@@ -159,3 +160,9 @@ export async function DELETE(request: NextRequest) {
     );
   }
 }
+
+// Apply rate limiting
+export const POST = withRateLimit(handlePost, 'admin');
+
+// Apply rate limiting
+export const DELETE = withRateLimit(handleDelete, 'admin');

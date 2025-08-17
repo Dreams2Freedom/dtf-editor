@@ -1,7 +1,8 @@
 import { NextResponse } from 'next/server';
 import { env } from '@/config/env';
+import { withRateLimit } from '@/lib/rate-limit';
 
-export async function GET() {
+async function handleGet() {
   // Only show in development or with special header
   const isDev = process.env.NODE_ENV === 'development';
   
@@ -23,3 +24,6 @@ export async function GET() {
     } : 'Hidden in production'
   });
 }
+
+// Apply rate limiting
+export const GET = withRateLimit(handleGet, 'public');

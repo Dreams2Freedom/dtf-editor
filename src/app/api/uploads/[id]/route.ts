@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
+import { withRateLimit } from '@/lib/rate-limit';
 
 // This version works WITHOUT the uploads database table
-export async function GET(
+async function handleGet(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
@@ -112,3 +113,6 @@ export async function GET(
     );
   }
 }
+
+// Apply rate limiting
+export const GET = withRateLimit(handleGet, 'upload');

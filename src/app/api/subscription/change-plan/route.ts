@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { getStripe } from '@/lib/stripe';
 import { env } from '@/config/env';
+import { withRateLimit } from '@/lib/rate-limit';
 
 // Plan price mapping
 const PLAN_PRICES: Record<string, { priceId: string; monthlyPrice: number; credits: number }> = {
@@ -17,7 +18,7 @@ const PLAN_PRICES: Record<string, { priceId: string; monthlyPrice: number; credi
   }
 };
 
-export async function POST(request: NextRequest) {
+async function handlePost(request: NextRequest) {
   try {
     const supabase = await createServerSupabaseClient();
     const { data: { user }, error: authError } = await supabase.auth.getUser();
@@ -213,3 +214,6 @@ export async function POST(request: NextRequest) {
     );
   }
 }
+
+// Apply rate limiting
+export const POST = withRateLimit(handlePost, 'api');

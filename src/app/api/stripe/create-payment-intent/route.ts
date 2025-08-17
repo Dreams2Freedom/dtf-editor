@@ -2,10 +2,11 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getStripeService } from '@/services/stripe';
 import { createClient } from '@supabase/supabase-js';
 import { env } from '@/config/env';
+import { withRateLimit } from '@/lib/rate-limit';
 
 const supabase = createClient(env.SUPABASE_URL, env.SUPABASE_SERVICE_ROLE_KEY);
 
-export async function POST(request: NextRequest) {
+async function handlePost(request: NextRequest) {
   try {
     const { priceId, userId, credits } = await request.json();
 
@@ -85,3 +86,6 @@ export async function POST(request: NextRequest) {
     );
   }
 } 
+
+// Apply rate limiting
+export const POST = withRateLimit(handlePost, 'payment');

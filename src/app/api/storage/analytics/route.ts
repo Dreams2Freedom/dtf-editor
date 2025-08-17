@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
+import { withRateLimit } from '@/lib/rate-limit';
 
 // Storage limits by plan (in bytes)
 const STORAGE_LIMITS = {
@@ -9,7 +10,7 @@ const STORAGE_LIMITS = {
   professional: 10 * 1024 * 1024 * 1024 // 10 GB
 };
 
-export async function GET(request: NextRequest) {
+async function handleGet(request: NextRequest) {
   try {
     const supabase = await createServerSupabaseClient();
     
@@ -229,3 +230,6 @@ export async function GET(request: NextRequest) {
     );
   }
 }
+
+// Apply rate limiting
+export const GET = withRateLimit(handleGet, 'upload');

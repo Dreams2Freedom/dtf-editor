@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
+import { withRateLimit } from '@/lib/rate-limit';
 
-export async function GET(request: NextRequest) {
+async function handleGet(request: NextRequest) {
   try {
     const cookieStore = await cookies();
     const impersonationCookie = cookieStore.get('impersonation_session');
@@ -50,3 +51,6 @@ export async function GET(request: NextRequest) {
     );
   }
 }
+
+// Apply rate limiting
+export const GET = withRateLimit(handleGet, 'admin');

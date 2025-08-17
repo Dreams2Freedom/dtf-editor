@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { env } from '@/config/env';
+import { withRateLimit } from '@/lib/rate-limit';
 
-export async function GET(request: NextRequest) {
+async function handleGet(request: NextRequest) {
   try {
     const apiKey = env.DEEP_IMAGE_API_KEY;
     
@@ -66,3 +67,6 @@ export async function GET(request: NextRequest) {
     });
   }
 }
+
+// Apply rate limiting
+export const GET = withRateLimit(handleGet, 'public');

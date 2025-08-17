@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
+import { withRateLimit } from '@/lib/rate-limit';
 
-export async function GET(request: NextRequest) {
+async function handleGet(request: NextRequest) {
   console.log('[Test OpenAI] Starting test...');
   
   try {
@@ -106,3 +107,6 @@ export async function GET(request: NextRequest) {
     }, { status: 500 });
   }
 }
+
+// Apply rate limiting
+export const GET = withRateLimit(handleGet, 'public');

@@ -1,10 +1,11 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { env } from '@/config/env';
+import { withRateLimit } from '@/lib/rate-limit';
 
 const supabase = createClient(env.SUPABASE_URL, env.SUPABASE_SERVICE_ROLE_KEY);
 
-export async function GET() {
+async function handleGet() {
   try {
     // Get your user ID (replace with actual user ID)
     const userId = 'f689bb22-89dd-4c3c-a941-d77feb84428d'; // snsmarketing@gmail.com
@@ -63,7 +64,7 @@ export async function GET() {
   }
 }
 
-export async function POST(request: Request) {
+async function handlePost(request: Request) {
   try {
     const { userId } = await request.json();
     
@@ -110,3 +111,9 @@ export async function POST(request: Request) {
     }, { status: 500 });
   }
 }
+
+// Apply rate limiting
+export const GET = withRateLimit(handleGet, 'public');
+
+// Apply rate limiting
+export const POST = withRateLimit(handlePost, 'public');

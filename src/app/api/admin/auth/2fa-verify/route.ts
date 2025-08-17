@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 import type { Admin2FAVerifyRequest, AdminSession } from '@/types/admin';
+import { withRateLimit } from '@/lib/rate-limit';
 
 // Simple TOTP implementation for development
 // In production, use a library like speakeasy or otpauth
@@ -18,7 +19,7 @@ function verifyTOTP(secret: string, token: string): boolean {
   return false;
 }
 
-export async function POST(request: NextRequest) {
+async function handlePost(request: NextRequest) {
   try {
     const body: Admin2FAVerifyRequest = await request.json();
     const { code } = body;
@@ -130,3 +131,6 @@ export async function POST(request: NextRequest) {
     );
   }
 }
+
+// Apply rate limiting
+export const POST = withRateLimit(handlePost, 'admin');

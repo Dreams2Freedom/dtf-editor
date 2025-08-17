@@ -1,8 +1,9 @@
 import { NextResponse } from 'next/server';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { saveProcessedImageToGallery } from '@/utils/saveProcessedImage';
+import { withRateLimit } from '@/lib/rate-limit';
 
-export async function GET() {
+async function handleGet() {
   try {
     const supabase = await createServerSupabaseClient();
     const { data: { user }, error: authError } = await supabase.auth.getUser();
@@ -39,3 +40,6 @@ export async function GET() {
     );
   }
 }
+
+// Apply rate limiting
+export const GET = withRateLimit(handleGet, 'public');

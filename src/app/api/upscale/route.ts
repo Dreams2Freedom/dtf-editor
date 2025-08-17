@@ -6,8 +6,9 @@ import { ProcessingMode } from '@/services/deepImage';
 import { env } from '@/config/env';
 // Import save function
 import { saveProcessedImageToGallery } from '@/utils/saveProcessedImage';
+import { withRateLimit } from '@/lib/rate-limit';
 
-export async function POST(request: NextRequest) {
+async function handlePost(request: NextRequest) {
   console.log('[Upscale] Handler started - v2 with gallery save');
   
   // Set a timeout for the entire request (45 seconds, leaving 15s buffer for Vercel's 60s limit)
@@ -271,3 +272,6 @@ export async function OPTIONS() {
     },
   });
 } 
+
+// Apply rate limiting
+export const POST = withRateLimit(handlePost, 'processing');

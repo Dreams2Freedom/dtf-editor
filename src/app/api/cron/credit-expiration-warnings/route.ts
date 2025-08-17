@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { env } from '@/config/env';
 import { emailService } from '@/services/email';
+import { withRateLimit } from '@/lib/rate-limit';
 
 // Create Supabase client with service role for admin operations
 const supabase = createClient(
@@ -9,7 +10,7 @@ const supabase = createClient(
   env.SUPABASE_SERVICE_ROLE_KEY
 );
 
-export async function GET(request: NextRequest) {
+async function handleGet(request: NextRequest) {
   try {
     // Verify cron secret for security
     const cronSecret = request.headers.get('x-cron-secret');
@@ -172,6 +173,12 @@ export async function GET(request: NextRequest) {
 }
 
 // Also support POST for flexibility
-export async function POST(request: NextRequest) {
+async function handlePost(request: NextRequest) {
   return GET(request);
 }
+
+// Apply rate limiting
+export const GET = withRateLimit(handleGet, 'api');
+
+// Apply rate limiting
+export const POST = withRateLimit(handlePost, 'api');

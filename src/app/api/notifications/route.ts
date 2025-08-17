@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { withRateLimit } from '@/lib/rate-limit';
 
-export async function GET(request: NextRequest) {
+async function handleGet(request: NextRequest) {
   try {
     // Get the auth token
     const authHeader = request.headers.get('authorization');
@@ -71,7 +72,7 @@ export async function GET(request: NextRequest) {
   }
 }
 
-export async function PATCH(request: NextRequest) {
+async function handlePatch(request: NextRequest) {
   try {
     // Get the auth token
     const authHeader = request.headers.get('authorization');
@@ -135,3 +136,9 @@ export async function PATCH(request: NextRequest) {
     );
   }
 }
+
+// Apply rate limiting
+export const GET = withRateLimit(handleGet, 'api');
+
+// Apply rate limiting
+export const PATCH = withRateLimit(handlePatch, 'api');

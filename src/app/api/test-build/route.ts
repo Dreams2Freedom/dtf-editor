@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
+import { withRateLimit } from '@/lib/rate-limit';
 
-export async function GET() {
+async function handleGet() {
   // Simple test to verify deployment
   return NextResponse.json({
     message: 'Build test v3',
@@ -9,3 +10,6 @@ export async function GET() {
     env: process.env.NODE_ENV
   });
 }
+
+// Apply rate limiting
+export const GET = withRateLimit(handleGet, 'public');

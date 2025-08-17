@@ -3,12 +3,13 @@ import { createServerSupabaseClient, createServiceRoleClient } from '@/lib/supab
 import { chatGPTService } from '@/services/chatgpt';
 import { enhancePromptForDTF } from '@/utils/promptHelpers';
 import { v4 as uuidv4 } from 'uuid';
+import { withRateLimit } from '@/lib/rate-limit';
 
 // Configure for Vercel
 export const maxDuration = 60;
 export const runtime = 'nodejs';
 
-export async function POST(request: NextRequest) {
+async function handlePost(request: NextRequest) {
   console.log('[Generate From Image API] Request received');
 
   try {
@@ -257,3 +258,6 @@ export async function POST(request: NextRequest) {
     );
   }
 }
+
+// Apply rate limiting
+export const POST = withRateLimit(handlePost, 'processing');

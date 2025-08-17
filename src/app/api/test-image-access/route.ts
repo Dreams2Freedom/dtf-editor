@@ -1,7 +1,8 @@
 import { NextResponse } from 'next/server';
 import { createServerSupabaseClient, createServiceRoleClient } from '@/lib/supabase/server';
+import { withRateLimit } from '@/lib/rate-limit';
 
-export async function GET() {
+async function handleGet() {
   try {
     const supabase = await createServerSupabaseClient();
     const serviceClient = createServiceRoleClient();
@@ -73,3 +74,6 @@ export async function GET() {
     }, { status: 500 });
   }
 }
+
+// Apply rate limiting
+export const GET = withRateLimit(handleGet, 'public');

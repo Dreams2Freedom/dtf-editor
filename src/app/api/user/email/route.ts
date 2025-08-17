@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
+import { withRateLimit } from '@/lib/rate-limit';
 
-export async function PATCH(request: NextRequest) {
+async function handlePatch(request: NextRequest) {
   try {
     const supabase = await createServerSupabaseClient();
     
@@ -63,3 +64,6 @@ export async function PATCH(request: NextRequest) {
     );
   }
 }
+
+// Apply rate limiting
+export const PATCH = withRateLimit(handlePatch, 'api');

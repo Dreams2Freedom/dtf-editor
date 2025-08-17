@@ -1,13 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { StorageService } from '@/services/storage';
+import { withRateLimit } from '@/lib/rate-limit';
 
 // Configure size limit for this route (50MB)
 export const maxDuration = 60; // 60 seconds timeout
 export const dynamic = 'force-dynamic';
 
 // This version works WITHOUT the uploads database table
-export async function POST(request: NextRequest) {
+async function handlePost(request: NextRequest) {
   try {
     const supabase = await createServerSupabaseClient();
     
@@ -96,3 +97,6 @@ export async function POST(request: NextRequest) {
     );
   }
 }
+
+// Apply rate limiting
+export const POST = withRateLimit(handlePost, 'upload');

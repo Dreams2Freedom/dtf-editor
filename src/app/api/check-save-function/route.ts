@@ -1,8 +1,9 @@
 import { NextResponse } from 'next/server';
 import fs from 'fs';
 import path from 'path';
+import { withRateLimit } from '@/lib/rate-limit';
 
-export async function GET() {
+async function handleGet() {
   try {
     // Check if the saveProcessedImage file exists in the build
     const utilsPath = path.join(process.cwd(), '.next/server/app/api/upscale/route.js');
@@ -33,3 +34,6 @@ export async function GET() {
     }, { status: 500 });
   }
 }
+
+// Apply rate limiting
+export const GET = withRateLimit(handleGet, 'api');

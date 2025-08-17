@@ -1,13 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { env } from '@/config/env';
+import { withRateLimit } from '@/lib/rate-limit';
 
 // This endpoint can be called by:
 // 1. Stripe webhooks when subscription renews
 // 2. A scheduled cron job
 // 3. Manually for testing
 
-export async function POST(request: NextRequest) {
+async function handlePost(request: NextRequest) {
   try {
     // Check for API key in headers for cron job access
     const apiKey = request.headers.get('x-api-key');
@@ -139,3 +140,6 @@ export async function POST(request: NextRequest) {
     );
   }
 }
+
+// Apply rate limiting
+export const POST = withRateLimit(handlePost, 'api');

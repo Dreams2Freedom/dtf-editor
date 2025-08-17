@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
+import { withRateLimit } from '@/lib/rate-limit';
 
-export async function GET(request: NextRequest) {
+async function handleGet(request: NextRequest) {
   const cookieStore = await cookies();
   
   // Get all cookies
@@ -18,7 +19,7 @@ export async function GET(request: NextRequest) {
   });
 }
 
-export async function POST(request: NextRequest) {
+async function handlePost(request: NextRequest) {
   const cookieStore = await cookies();
   
   // Test setting a cookie
@@ -35,3 +36,9 @@ export async function POST(request: NextRequest) {
     canReadItBack: !!cookieStore.get('test-cookie')
   });
 }
+
+// Apply rate limiting
+export const GET = withRateLimit(handleGet, 'admin');
+
+// Apply rate limiting
+export const POST = withRateLimit(handlePost, 'admin');

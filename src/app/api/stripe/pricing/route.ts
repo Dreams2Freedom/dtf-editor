@@ -1,7 +1,8 @@
 import { NextResponse } from 'next/server';
 import { getStripeService } from '@/services/stripe';
+import { withRateLimit } from '@/lib/rate-limit';
 
-export async function GET() {
+async function handleGet() {
   try {
     const stripeService = getStripeService();
     
@@ -19,3 +20,6 @@ export async function GET() {
     );
   }
 }
+
+// Apply rate limiting
+export const GET = withRateLimit(handleGet, 'payment');

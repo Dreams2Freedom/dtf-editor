@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 import Stripe from 'stripe';
+import { withRateLimit } from '@/lib/rate-limit';
 
 // Initialize Stripe only when the function is called, not at module level
 let stripe: Stripe | null = null;
@@ -18,7 +19,7 @@ function getStripe() {
   return stripe;
 }
 
-export async function POST(request: NextRequest) {
+async function handlePost(request: NextRequest) {
   try {
     const supabase = await createServerSupabaseClient();
     const { data: { user }, error: authError } = await supabase.auth.getUser();
@@ -155,3 +156,6 @@ export async function POST(request: NextRequest) {
     );
   }
 }
+
+// Apply rate limiting
+export const POST = withRateLimit(handlePost, 'api');

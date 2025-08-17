@@ -2,10 +2,11 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getStripeService } from '@/services/stripe';
 import { createClient } from '@supabase/supabase-js';
 import { env } from '@/config/env';
+import { withRateLimit } from '@/lib/rate-limit';
 
 const supabase = createClient(env.SUPABASE_URL, env.SUPABASE_SERVICE_ROLE_KEY);
 
-export async function GET(request: NextRequest) {
+async function handleGet(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams;
     const sessionId = searchParams.get('session_id');
@@ -57,3 +58,6 @@ export async function GET(request: NextRequest) {
     );
   }
 }
+
+// Apply rate limiting
+export const GET = withRateLimit(handleGet, 'payment');

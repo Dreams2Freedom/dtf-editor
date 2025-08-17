@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabaseClient, createServiceRoleClient } from '@/lib/supabase/server';
 import { logAdminAction, getClientIp, getUserAgent } from '@/utils/adminLogger';
+import { withRateLimit } from '@/lib/rate-limit';
 
-export async function GET(
+async function handleGet(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
@@ -129,7 +130,7 @@ export async function GET(
   }
 }
 
-export async function PATCH(
+async function handlePatch(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
@@ -216,3 +217,9 @@ export async function PATCH(
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
+
+// Apply rate limiting
+export const GET = withRateLimit(handleGet, 'admin');
+
+// Apply rate limiting
+export const PATCH = withRateLimit(handlePatch, 'admin');

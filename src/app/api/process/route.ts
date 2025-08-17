@@ -3,8 +3,9 @@ import { imageProcessingService, ProcessingOptions, ProcessingOperation } from '
 import { storageService } from '@/services/storage';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { saveProcessedImageToGallery } from '@/utils/saveProcessedImage';
+import { withRateLimit } from '@/lib/rate-limit';
 
-export async function POST(request: NextRequest) {
+async function handlePost(request: NextRequest) {
   try {
     // 1. Get authenticated user
     const supabase = await createServerSupabaseClient();
@@ -206,7 +207,7 @@ function validateProcessingOptions(options: ProcessingOptions): string | null {
 }
 
 // GET endpoint to retrieve user's processing history
-export async function GET(request: NextRequest) {
+async function handleGet(request: NextRequest) {
   try {
     // Get authenticated user
     const supabase = await createServerSupabaseClient();
@@ -239,3 +240,9 @@ export async function GET(request: NextRequest) {
     );
   }
 }
+
+// Apply rate limiting
+export const POST = withRateLimit(handlePost, 'processing');
+
+// Apply rate limiting
+export const GET = withRateLimit(handleGet, 'processing');
