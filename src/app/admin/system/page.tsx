@@ -10,7 +10,7 @@ import {
   Cpu, Globe, Clock, TrendingUp, Users, Image, CreditCard,
   FileText, Package
 } from 'lucide-react';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuthContext } from '@/contexts/AuthContext';
 
 interface RateLimitStats {
   status: string;
@@ -106,7 +106,7 @@ interface DatabaseStats {
 
 export default function SystemPage() {
   const router = useRouter();
-  const { user } = useAuth();
+  const { user } = useAuthContext();
   const [loading, setLoading] = useState(true);
   const [rateLimitStats, setRateLimitStats] = useState<RateLimitStats | null>(null);
   const [systemHealth, setSystemHealth] = useState<SystemHealth | null>(null);
@@ -426,7 +426,7 @@ export default function SystemPage() {
               <p className="text-lg font-semibold mt-1">Connected</p>
             </div>
 
-            <div className={rateLimitStats?.status === 'connected' ? 'bg-green-50' : 'bg-yellow-50'} rounded-lg p-4">
+            <div className={`${rateLimitStats?.status === 'connected' ? 'bg-green-50' : 'bg-yellow-50'} rounded-lg p-4`}>
               <div className="flex items-center justify-between">
                 <span className="text-sm text-gray-600">Rate Limiting</span>
                 {rateLimitStats?.status === 'connected' ? 
