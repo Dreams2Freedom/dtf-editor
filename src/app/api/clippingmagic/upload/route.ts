@@ -122,9 +122,11 @@ export async function POST(request: NextRequest) {
     cmFormData.append('format', 'json');
     
     // Add test parameter in development
-    if (process.env.NODE_ENV === 'development') {
-      cmFormData.append('test', 'true');
-    }
+    // NOTE: Test mode might cause issues with white label editor
+    // Comment out for production-like testing
+    // if (process.env.NODE_ENV === 'development') {
+    //   cmFormData.append('test', 'true');
+    // }
 
     // Upload to ClippingMagic
     const response = await fetch('https://clippingmagic.com/api/v1/images', {

@@ -375,23 +375,19 @@ export default function BackgroundRemovalClient() {
 
   // Open ClippingMagic editor
   const openEditor = (image: { id: number; secret: string }) => {
-    if (!initialized) {
-      setError('ClippingMagic not initialized');
+    if (!window.ClippingMagic) {
+      console.error('ClippingMagic not loaded');
+      setError('ClippingMagic not loaded. Please refresh the page.');
       return;
     }
 
-    console.log('Opening ClippingMagic editor with:', image);
+    console.log('Opening ClippingMagic editor with image:', image);
+    console.log('Image ID type:', typeof image.id);
+    console.log('Image secret type:', typeof image.secret);
     
     try {
-      window.ClippingMagic.edit({
-        image: {
-          id: image.id,
-          secret: image.secret
-        },
-        useStickySettings: true,
-        hideBottomToolbar: false,
-        locale: 'en-US'
-      }, (opts: any) => {
+      // Ensure the callback is in the global scope
+      (window as any).cmCallback = (opts: any) => {
         console.log('ClippingMagic callback:', opts);
         
         switch (opts.event) {
@@ -439,7 +435,22 @@ export default function BackgroundRemovalClient() {
             // No refund needed since we only deduct on completion
             break;
         }
-      });
+      };
+      
+      // Call edit with the global callback
+      const editConfig = {
+        image: {
+          id: image.id,
+          secret: image.secret
+        },
+        useStickySettings: true,
+        hideBottomToolbar: false,
+        locale: 'en-US'
+      };
+      
+      console.log('Edit config:', editConfig);
+      
+      window.ClippingMagic.edit(editConfig, (window as any).cmCallback);
     } catch (err) {
       console.error('Failed to open editor:', err);
       setError('Failed to open editor');
