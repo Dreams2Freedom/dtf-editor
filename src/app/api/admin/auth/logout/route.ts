@@ -3,8 +3,14 @@ import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 import { env } from '@/config/env';
 import type { AdminSession } from '@/types/admin';
+import { withRateLimit } from '@/lib/rate-limit';
+import { requireAdmin } from '@/lib/auth-middleware';
 
-export async function POST(request: NextRequest) {
+async function handleLogout(request: NextRequest) {
+  // Verify admin authentication first
+  const adminCheck = await requireAdmin(request);
+  if (adminCheck) return adminCheck;
+
   try {
     const cookieStore = await cookies();
     
@@ -60,3 +66,6 @@ export async function POST(request: NextRequest) {
     );
   }
 }
+
+// Export with rate limiting
+export const POST = withRateLimit(handleLogout, 'admin');
