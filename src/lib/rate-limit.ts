@@ -3,41 +3,47 @@ import { Redis } from '@upstash/redis';
 import { NextRequest, NextResponse } from 'next/server';
 
 // Rate limit configurations for different endpoint types
+// Designed for production with 1000+ concurrent users
 export const RATE_LIMITS = {
-  // Authentication endpoints - strict limits
+  // Authentication endpoints - balanced for user experience
   auth: {
-    requests: 5,
-    window: '1 m', // 5 requests per minute
+    requests: 20,
+    window: '5 m', // 20 requests per 5 minutes (allows retry on failed login)
   },
-  // Admin endpoints - moderate limits
+  // Admin endpoints - generous for admin operations
   admin: {
-    requests: 30,
-    window: '1 m', // 30 requests per minute
+    requests: 200,
+    window: '1 m', // 200 requests per minute (admins need to work efficiently)
   },
-  // Payment endpoints - strict limits
+  // Payment endpoints - balanced security and UX
   payment: {
-    requests: 10,
-    window: '1 m', // 10 requests per minute
+    requests: 30,
+    window: '1 m', // 30 requests per minute (shopping cart updates, etc.)
   },
-  // File upload endpoints - very strict
+  // File upload endpoints - reasonable for active users
   upload: {
-    requests: 5,
-    window: '5 m', // 5 uploads per 5 minutes
+    requests: 20,
+    window: '1 m', // 20 uploads per minute (batch processing)
   },
-  // Processing endpoints (AI operations) - strict
+  // Processing endpoints (AI operations) - based on credits anyway
   processing: {
-    requests: 10,
-    window: '1 m', // 10 requests per minute
+    requests: 50,
+    window: '1 m', // 50 requests per minute (credits already limit usage)
   },
-  // General API endpoints - standard limits
+  // General API endpoints - generous for smooth UX
   api: {
-    requests: 60,
-    window: '1 m', // 60 requests per minute
+    requests: 300,
+    window: '1 m', // 300 requests per minute (smooth app experience)
   },
-  // Public endpoints - relaxed limits
+  // Public endpoints - very relaxed
   public: {
+    requests: 500,
+    window: '1 m', // 500 requests per minute (landing pages, etc.)
+  },
+  // DPI Checker - extra generous (marketing tool)
+  dpiChecker: {
     requests: 100,
-    window: '1 m', // 100 requests per minute
+    window: '1 m', // 100 checks per minute per IP (marketing/conversion tool)
   },
 } as const;
 
