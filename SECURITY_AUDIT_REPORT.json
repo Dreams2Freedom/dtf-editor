@@ -1,0 +1,613 @@
+{
+  "timestamp": "2025-08-17T12:14:15.377Z",
+  "summary": {
+    "total": 93,
+    "secure": 12,
+    "warnings": 34,
+    "critical": 47,
+    "coverage": {
+      "authentication": 56,
+      "adminAuth": 19,
+      "inputValidation": 38,
+      "errorHandling": 88,
+      "rateLimiting": 0,
+      "logging": 23
+    }
+  },
+  "criticalIssues": [
+    {
+      "endpoint": "/api/admin/audit/log",
+      "category": "admin",
+      "issues": [
+        "❌ Missing admin authorization check"
+      ],
+      "methods": [
+        "POST"
+      ]
+    },
+    {
+      "endpoint": "/api/admin/audit/logs",
+      "category": "admin",
+      "issues": [
+        "❌ Potential SQL injection vulnerability"
+      ],
+      "methods": [
+        "GET"
+      ]
+    },
+    {
+      "endpoint": "/api/admin/auth/2fa-verify",
+      "category": "admin",
+      "issues": [
+        "❌ Missing admin authorization check"
+      ],
+      "methods": [
+        "POST"
+      ]
+    },
+    {
+      "endpoint": "/api/admin/auth/check-ip",
+      "category": "admin",
+      "issues": [
+        "❌ Missing admin authorization check"
+      ],
+      "methods": [
+        "GET"
+      ]
+    },
+    {
+      "endpoint": "/api/admin/auth/logout",
+      "category": "admin",
+      "issues": [
+        "❌ Missing authentication",
+        "❌ Missing admin authorization check"
+      ],
+      "methods": [
+        "POST"
+      ]
+    },
+    {
+      "endpoint": "/api/admin/notifications/send",
+      "category": "admin",
+      "issues": [
+        "❌ Potential SQL injection vulnerability"
+      ],
+      "methods": [
+        "POST"
+      ]
+    },
+    {
+      "endpoint": "/api/admin/test-cookie",
+      "category": "admin",
+      "issues": [
+        "❌ Missing authentication",
+        "❌ Missing admin authorization check"
+      ],
+      "methods": [
+        "GET",
+        "POST"
+      ]
+    },
+    {
+      "endpoint": "/api/admin/users/[id]/credits",
+      "category": "admin",
+      "issues": [
+        "❌ Potential SQL injection vulnerability"
+      ],
+      "methods": [
+        "POST"
+      ]
+    },
+    {
+      "endpoint": "/api/admin/users/[id]/details",
+      "category": "admin",
+      "issues": [
+        "❌ Potential SQL injection vulnerability"
+      ],
+      "methods": [
+        "GET"
+      ]
+    },
+    {
+      "endpoint": "/api/admin/users/[id]/impersonate",
+      "category": "admin",
+      "issues": [
+        "❌ Potential SQL injection vulnerability"
+      ],
+      "methods": [
+        "POST",
+        "DELETE"
+      ]
+    },
+    {
+      "endpoint": "/api/admin/users/[id]",
+      "category": "admin",
+      "issues": [
+        "❌ Potential SQL injection vulnerability"
+      ],
+      "methods": [
+        "GET",
+        "PATCH"
+      ]
+    },
+    {
+      "endpoint": "/api/admin/users/bulk",
+      "category": "admin",
+      "issues": [
+        "❌ Potential SQL injection vulnerability"
+      ],
+      "methods": [
+        "POST"
+      ]
+    },
+    {
+      "endpoint": "/api/admin/users/export",
+      "category": "admin",
+      "issues": [
+        "❌ Potential SQL injection vulnerability"
+      ],
+      "methods": [
+        "GET"
+      ]
+    },
+    {
+      "endpoint": "/api/admin/users/impersonate/status",
+      "category": "admin",
+      "issues": [
+        "❌ Missing authentication",
+        "❌ Missing admin authorization check"
+      ],
+      "methods": [
+        "GET"
+      ]
+    },
+    {
+      "endpoint": "/api/admin/users",
+      "category": "admin",
+      "issues": [
+        "❌ Potential SQL injection vulnerability"
+      ],
+      "methods": [
+        "GET"
+      ]
+    },
+    {
+      "endpoint": "/api/admin/users/send-email",
+      "category": "admin",
+      "issues": [
+        "❌ Potential SQL injection vulnerability"
+      ],
+      "methods": [
+        "POST"
+      ]
+    },
+    {
+      "endpoint": "/api/analyze/image",
+      "category": "general",
+      "issues": [
+        "❌ Missing authentication",
+        "❌ Potential SQL injection vulnerability"
+      ],
+      "methods": [
+        "POST"
+      ]
+    },
+    {
+      "endpoint": "/api/auth/send-reset-email",
+      "category": "auth",
+      "issues": [
+        "❌ Missing authentication",
+        "❌ Potential SQL injection vulnerability"
+      ],
+      "methods": [
+        "POST"
+      ]
+    },
+    {
+      "endpoint": "/api/check-save-function",
+      "category": "general",
+      "issues": [
+        "❌ Missing authentication"
+      ],
+      "methods": [
+        "GET"
+      ]
+    },
+    {
+      "endpoint": "/api/clippingmagic/download/[id]",
+      "category": "general",
+      "issues": [
+        "❌ Potential SQL injection vulnerability"
+      ],
+      "methods": [
+        "GET"
+      ]
+    },
+    {
+      "endpoint": "/api/clippingmagic/upload",
+      "category": "storage",
+      "issues": [
+        "❌ Potential SQL injection vulnerability"
+      ],
+      "methods": [
+        "POST"
+      ]
+    },
+    {
+      "endpoint": "/api/credits/reset",
+      "category": "general",
+      "issues": [
+        "❌ Missing authentication",
+        "❌ Potential SQL injection vulnerability"
+      ],
+      "methods": [
+        "POST"
+      ]
+    },
+    {
+      "endpoint": "/api/cron/credit-expiration-warnings",
+      "category": "cron",
+      "issues": [
+        "❌ Missing authentication",
+        "❌ Potential SQL injection vulnerability"
+      ],
+      "methods": [
+        "GET",
+        "POST"
+      ]
+    },
+    {
+      "endpoint": "/api/cron/reset-credits",
+      "category": "cron",
+      "issues": [
+        "❌ Potential SQL injection vulnerability"
+      ],
+      "methods": [
+        "GET",
+        "POST"
+      ]
+    },
+    {
+      "endpoint": "/api/debug-storage",
+      "category": "debug",
+      "issues": [
+        "❌ Potential SQL injection vulnerability"
+      ],
+      "methods": [
+        "GET"
+      ]
+    },
+    {
+      "endpoint": "/api/dpi-tool/signup",
+      "category": "general",
+      "issues": [
+        "❌ Missing authentication"
+      ],
+      "methods": [
+        "POST"
+      ]
+    },
+    {
+      "endpoint": "/api/generate/edit",
+      "category": "processing",
+      "issues": [
+        "❌ Potential SQL injection vulnerability"
+      ],
+      "methods": [
+        "POST"
+      ]
+    },
+    {
+      "endpoint": "/api/generate/from-image",
+      "category": "processing",
+      "issues": [
+        "❌ Potential SQL injection vulnerability"
+      ],
+      "methods": [
+        "POST"
+      ]
+    },
+    {
+      "endpoint": "/api/generate/image",
+      "category": "processing",
+      "issues": [
+        "❌ Potential SQL injection vulnerability"
+      ],
+      "methods": [
+        "POST"
+      ]
+    },
+    {
+      "endpoint": "/api/process",
+      "category": "processing",
+      "issues": [
+        "❌ Potential SQL injection vulnerability"
+      ],
+      "methods": [
+        "GET",
+        "POST"
+      ]
+    },
+    {
+      "endpoint": "/api/storage/analytics",
+      "category": "storage",
+      "issues": [
+        "❌ Potential SQL injection vulnerability"
+      ],
+      "methods": [
+        "GET"
+      ]
+    },
+    {
+      "endpoint": "/api/stripe/create-checkout-session",
+      "category": "payment",
+      "issues": [
+        "❌ Potential SQL injection vulnerability"
+      ],
+      "methods": [
+        "POST"
+      ]
+    },
+    {
+      "endpoint": "/api/stripe/create-payment-intent",
+      "category": "payment",
+      "issues": [
+        "❌ Missing authentication"
+      ],
+      "methods": [
+        "POST"
+      ]
+    },
+    {
+      "endpoint": "/api/stripe/create-portal-session",
+      "category": "payment",
+      "issues": [
+        "❌ Potential SQL injection vulnerability"
+      ],
+      "methods": [
+        "POST"
+      ]
+    },
+    {
+      "endpoint": "/api/stripe/create-subscription",
+      "category": "payment",
+      "issues": [
+        "❌ Missing authentication",
+        "❌ Potential SQL injection vulnerability"
+      ],
+      "methods": [
+        "POST"
+      ]
+    },
+    {
+      "endpoint": "/api/subscription/change-plan",
+      "category": "general",
+      "issues": [
+        "❌ Potential SQL injection vulnerability"
+      ],
+      "methods": [
+        "POST"
+      ]
+    },
+    {
+      "endpoint": "/api/subscription/preview-change",
+      "category": "general",
+      "issues": [
+        "❌ Potential SQL injection vulnerability"
+      ],
+      "methods": [
+        "POST"
+      ]
+    },
+    {
+      "endpoint": "/api/test-openai",
+      "category": "test",
+      "issues": [
+        "❌ Potential SQL injection vulnerability"
+      ],
+      "methods": [
+        "GET"
+      ]
+    },
+    {
+      "endpoint": "/api/test-upload",
+      "category": "test",
+      "issues": [
+        "❌ Potential SQL injection vulnerability"
+      ],
+      "methods": [
+        "GET"
+      ]
+    },
+    {
+      "endpoint": "/api/uploads/[id]",
+      "category": "storage",
+      "issues": [
+        "❌ Potential SQL injection vulnerability"
+      ],
+      "methods": [
+        "GET"
+      ]
+    },
+    {
+      "endpoint": "/api/uploads/processed",
+      "category": "storage",
+      "issues": [
+        "❌ Potential SQL injection vulnerability"
+      ],
+      "methods": [
+        "POST"
+      ]
+    },
+    {
+      "endpoint": "/api/upscale",
+      "category": "processing",
+      "issues": [
+        "❌ Potential SQL injection vulnerability"
+      ],
+      "methods": [
+        "POST"
+      ]
+    },
+    {
+      "endpoint": "/api/user/email",
+      "category": "general",
+      "issues": [
+        "❌ Missing authentication"
+      ],
+      "methods": [
+        "PATCH"
+      ]
+    },
+    {
+      "endpoint": "/api/user/password",
+      "category": "general",
+      "issues": [
+        "❌ Missing authentication"
+      ],
+      "methods": [
+        "PATCH"
+      ]
+    },
+    {
+      "endpoint": "/api/users/[id]/export",
+      "category": "general",
+      "issues": [
+        "❌ Potential SQL injection vulnerability"
+      ],
+      "methods": [
+        "GET"
+      ]
+    },
+    {
+      "endpoint": "/api/webhooks/stripe",
+      "category": "webhook",
+      "issues": [
+        "❌ Potential SQL injection vulnerability"
+      ],
+      "methods": [
+        "POST"
+      ]
+    },
+    {
+      "endpoint": "/api/webhooks/stripe-simple",
+      "category": "webhook",
+      "issues": [
+        "❌ Potential SQL injection vulnerability"
+      ],
+      "methods": [
+        "POST"
+      ]
+    }
+  ],
+  "mediumIssues": [],
+  "byCategory": {
+    "admin": {
+      "total": 25,
+      "secure": 0,
+      "issues": [
+        "/api/admin/audit/log",
+        "/api/admin/audit/logs",
+        "/api/admin/auth/2fa-verify",
+        "/api/admin/auth/check-ip",
+        "/api/admin/auth/logout",
+        "/api/admin/notifications/send",
+        "/api/admin/test-cookie",
+        "/api/admin/users/[id]/credits",
+        "/api/admin/users/[id]/details",
+        "/api/admin/users/[id]/impersonate",
+        "/api/admin/users/[id]",
+        "/api/admin/users/bulk",
+        "/api/admin/users/export",
+        "/api/admin/users/impersonate/status",
+        "/api/admin/users",
+        "/api/admin/users/send-email"
+      ]
+    },
+    "general": {
+      "total": 24,
+      "secure": 0,
+      "issues": [
+        "/api/analyze/image",
+        "/api/check-save-function",
+        "/api/clippingmagic/download/[id]",
+        "/api/credits/reset",
+        "/api/dpi-tool/signup",
+        "/api/subscription/change-plan",
+        "/api/subscription/preview-change",
+        "/api/user/email",
+        "/api/user/password",
+        "/api/users/[id]/export"
+      ]
+    },
+    "auth": {
+      "total": 2,
+      "secure": 0,
+      "issues": [
+        "/api/auth/send-reset-email"
+      ]
+    },
+    "storage": {
+      "total": 6,
+      "secure": 0,
+      "issues": [
+        "/api/clippingmagic/upload",
+        "/api/storage/analytics",
+        "/api/uploads/[id]",
+        "/api/uploads/processed"
+      ]
+    },
+    "cron": {
+      "total": 2,
+      "secure": 0,
+      "issues": [
+        "/api/cron/credit-expiration-warnings",
+        "/api/cron/reset-credits"
+      ]
+    },
+    "debug": {
+      "total": 5,
+      "secure": 2,
+      "issues": [
+        "/api/debug-storage"
+      ]
+    },
+    "processing": {
+      "total": 6,
+      "secure": 0,
+      "issues": [
+        "/api/generate/edit",
+        "/api/generate/from-image",
+        "/api/generate/image",
+        "/api/process",
+        "/api/upscale"
+      ]
+    },
+    "payment": {
+      "total": 6,
+      "secure": 0,
+      "issues": [
+        "/api/stripe/create-checkout-session",
+        "/api/stripe/create-payment-intent",
+        "/api/stripe/create-portal-session",
+        "/api/stripe/create-subscription"
+      ]
+    },
+    "test": {
+      "total": 15,
+      "secure": 10,
+      "issues": [
+        "/api/test-openai",
+        "/api/test-upload"
+      ]
+    },
+    "webhook": {
+      "total": 2,
+      "secure": 0,
+      "issues": [
+        "/api/webhooks/stripe",
+        "/api/webhooks/stripe-simple"
+      ]
+    }
+  }
+}
