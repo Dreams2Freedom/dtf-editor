@@ -272,7 +272,7 @@ export default function BackgroundRemovalClient() {
       const formData = new FormData();
       formData.append('image', fileToUpload);
 
-      const response = await fetch('/api/clippingmagic/upload', {
+      const response = await fetch('/api/clippingmagic/upload-large', {
         method: 'POST',
         body: formData,
         credentials: 'include'

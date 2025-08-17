@@ -94,7 +94,7 @@ export function ClippingMagicEditor({
       const formData = new FormData();
       formData.append('image', imageFile);
 
-      const response = await fetch('/api/clippingmagic/upload', {
+      const response = await fetch('/api/clippingmagic/upload-large', {
         method: 'POST',
         body: formData,
       });

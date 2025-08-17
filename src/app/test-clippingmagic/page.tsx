@@ -75,7 +75,7 @@ export default function TestClippingMagic() {
       const formData = new FormData();
       formData.append('image', blob, 'test.png');
       
-      const response = await fetch('/api/clippingmagic/upload', {
+      const response = await fetch('/api/clippingmagic/upload-large', {
         method: 'POST',
         body: formData,
         credentials: 'include'

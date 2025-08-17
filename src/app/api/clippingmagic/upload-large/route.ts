@@ -7,9 +7,11 @@ import sharp from 'sharp';
 export const runtime = 'nodejs';
 export const maxDuration = 60;
 
-// In App Router, we need to handle large files differently
-// The config export doesn't work - we'll parse the body manually
+// Next.js App Router approach for large file uploads
+// We use dynamic configuration to override the body size limit
+export const dynamic = 'force-dynamic';
 
+// This is the new way to configure body size in App Router
 export async function POST(request: NextRequest) {
   try {
     // Check authentication
@@ -23,28 +25,49 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Check content length to prevent 413 errors
+    // Check content length
     const contentLength = request.headers.get('content-length');
     const maxSize = 10 * 1024 * 1024; // 10MB
     
     if (contentLength && parseInt(contentLength) > maxSize) {
       console.error('[ClippingMagic Upload] File too large:', contentLength);
       return NextResponse.json(
-        { error: 'File too large. Maximum size is 10MB. Please try with a smaller image.' },
+        { error: 'File too large. Maximum size is 10MB.' },
         { status: 413 }
       );
     }
 
-    // Get the uploaded file
-    // In App Router, formData() automatically handles the body parsing
-    let formData;
-    try {
-      formData = await request.formData();
-    } catch (formError) {
-      console.error('[ClippingMagic Upload] Error parsing form data:', formError);
-      // Don't assume it's a size error - could be malformed data
+    // For large files, we need to handle the body as a stream
+    // Get the raw body as ArrayBuffer first
+    const contentType = request.headers.get('content-type') || '';
+    
+    let formData: FormData;
+    
+    if (contentType.includes('multipart/form-data')) {
+      // Parse multipart form data
+      try {
+        formData = await request.formData();
+      } catch (error) {
+        console.error('[ClippingMagic Upload] Failed to parse form data:', error);
+        
+        // If formData parsing fails, try to read as blob
+        const blob = await request.blob();
+        console.log('[ClippingMagic Upload] Blob size:', blob.size);
+        
+        if (blob.size > maxSize) {
+          return NextResponse.json(
+            { error: 'File too large. Maximum size is 10MB.' },
+            { status: 413 }
+          );
+        }
+        
+        // Create FormData from blob
+        formData = new FormData();
+        formData.append('image', blob, 'upload.png');
+      }
+    } else {
       return NextResponse.json(
-        { error: 'Failed to parse upload data. Please try again.' },
+        { error: 'Invalid content type. Please upload as multipart/form-data.' },
         { status: 400 }
       );
     }
@@ -87,21 +110,17 @@ export async function POST(request: NextRequest) {
       env.CLIPPINGMAGIC_API_KEY + ':' + env.CLIPPINGMAGIC_API_SECRET
     ).toString('base64');
 
-    // Convert WebP to PNG if necessary (ClippingMagic doesn't support WebP input)
+    // Convert WebP to PNG if necessary
     let fileToUpload = file;
     if (file.type === 'image/webp') {
       console.log('Converting WebP to PNG for ClippingMagic...');
       
       try {
-        // Read the file as array buffer
         const buffer = await file.arrayBuffer();
-        
-        // Convert WebP to PNG using Sharp
         const pngBuffer = await sharp(Buffer.from(buffer))
           .png()
           .toBuffer();
         
-        // Create a new File object with PNG type
         fileToUpload = new File([pngBuffer], file.name.replace('.webp', '.png'), {
           type: 'image/png'
         });
@@ -145,9 +164,6 @@ export async function POST(request: NextRequest) {
     }
 
     const result = await response.json();
-    
-    // DO NOT deduct credits here - wait until the user completes the operation
-    // Credits will be deducted when the result is generated
     
     // Return the image ID and secret for the editor
     return NextResponse.json({

@@ -25,7 +25,7 @@ export default function TestCMSimple() {
       const formData = new FormData();
       formData.append('image', imageFile);
 
-      const response = await fetch('/api/clippingmagic/upload', {
+      const response = await fetch('/api/clippingmagic/upload-large', {
         method: 'POST',
         body: formData,
       });
@@ -118,7 +118,7 @@ export default function TestCMSimple() {
           <div className="text-xs font-mono">
             <p>File selected: {imageFile ? 'Yes' : 'No'}</p>
             <p>Upload result: {uploadResult ? 'Success' : 'None'}</p>
-            <p>API endpoint: /api/clippingmagic/upload</p>
+            <p>API endpoint: /api/clippingmagic/upload-large</p>
           </div>
         </div>
       </div>
