@@ -219,7 +219,7 @@ export default function ContactPage() {
 
                 <div className="flex items-center justify-between">
                   <p className="text-sm text-gray-500">
-                    {user ? 'Your message will create a support ticket.' : 'We'll respond to your email address.'}
+                    {user ? 'Your message will create a support ticket.' : 'We\'ll respond to your email address.'}
                   </p>
                   <Button type="submit" disabled={loading}>
                     {loading ? 'Sending...' : 'Send Message'}

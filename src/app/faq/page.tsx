@@ -27,7 +27,7 @@ const faqs: FAQItem[] = [
         <p>Getting started is easy:</p>
         <ol className="list-decimal list-inside mt-2 space-y-1">
           <li>Sign up for a free account</li>
-          <li>You'll receive 2 free credits to try our tools</li>
+          <li>You&apos;ll receive 2 free credits to try our tools</li>
           <li>Upload an image or create one with AI</li>
           <li>Use our tools to enhance, remove backgrounds, or vectorize</li>
           <li>Download your print-ready file at 300 DPI</li>
@@ -92,13 +92,13 @@ const faqs: FAQItem[] = [
   {
     id: 'credit-expiration',
     question: 'Do credits expire?',
-    answer: 'Monthly subscription credits roll over for up to 2 months. For example, if you don't use all your January credits, they'll be available in February and March. Pay-as-you-go credits never expire.',
+    answer: 'Monthly subscription credits roll over for up to 2 months. For example, if you don\'t use all your January credits, they\'ll be available in February and March. Pay-as-you-go credits never expire.',
     category: 'Credits & Pricing'
   },
   {
     id: 'cancel-subscription',
     question: 'Can I cancel my subscription anytime?',
-    answer: 'Yes, you can cancel your subscription at any time from your account settings. You'll continue to have access to your credits until the end of your billing period.',
+    answer: 'Yes, you can cancel your subscription at any time from your account settings. You\'ll continue to have access to your credits until the end of your billing period.',
     category: 'Credits & Pricing'
   },
 
@@ -146,7 +146,7 @@ const faqs: FAQItem[] = [
           <li><strong>Pay-as-you-go:</strong> 90 days from last credit purchase</li>
           <li><strong>Subscribers:</strong> Unlimited storage while subscribed</li>
         </ul>
-        <p className="mt-2">You'll see expiration warnings in your gallery for images that will be deleted soon.</p>
+        <p className="mt-2">You&apos;ll see expiration warnings in your gallery for images that will be deleted soon.</p>
       </div>
     ),
     category: 'Storage & Gallery'
@@ -197,8 +197,8 @@ const faqs: FAQItem[] = [
     answer: (
       <div>
         You can reset your password by clicking the "Forgot Password?" link on the login page. 
-        We'll send you an email with instructions to create a new password. 
-        Check your spam folder if you don't see it within a few minutes.
+        We&apos;ll send you an email with instructions to create a new password. 
+        Check your spam folder if you don&apos;t see it within a few minutes.
       </div>
     ),
     category: 'Account & Security'
@@ -206,7 +206,7 @@ const faqs: FAQItem[] = [
   {
     id: 'change-email',
     question: 'Can I change my email address?',
-    answer: 'Yes, you can update your email address in your account settings. You'll need to verify the new email address before the change takes effect.',
+    answer: 'Yes, you can update your email address in your account settings. You\'ll need to verify the new email address before the change takes effect.',
     category: 'Account & Security'
   },
   {
@@ -218,7 +218,7 @@ const faqs: FAQItem[] = [
   {
     id: 'delete-account',
     question: 'Can I delete my account?',
-    answer: 'Yes, you can request account deletion by contacting our support team. We'll permanently delete your account and all associated data within 30 days of your request.',
+    answer: 'Yes, you can request account deletion by contacting our support team. We\'ll permanently delete your account and all associated data within 30 days of your request.',
     category: 'Account & Security'
   },
 
@@ -249,7 +249,7 @@ const faqs: FAQItem[] = [
   {
     id: 'credits-not-showing',
     question: 'I purchased credits but they're not showing up',
-    answer: 'Credits are usually added instantly. If they don't appear within 5 minutes, try logging out and back in. If the issue persists, contact support with your order number and we'll resolve it immediately.',
+    answer: 'Credits are usually added instantly. If they don\'t appear within 5 minutes, try logging out and back in. If the issue persists, contact support with your order number and we\'ll resolve it immediately.',
     category: 'Troubleshooting'
   }
 ];
