@@ -73,6 +73,34 @@
 - **Date Reported:** August 15, 2025
 - **Date Fixed:** August 15, 2025
 
+### **BUG-051: Background Removal 413 Error After Security Updates**
+- **Status:** 🟢 FIXED
+- **Severity:** Critical
+- **Component:** Background Removal / File Upload
+- **Description:** 413 "Content Too Large" error for 4.34MB files despite 10MB limit
+- **Symptoms:**
+  - Files over 4MB rejected with 413 error
+  - Error persisted after removing rate limiting
+  - ClippingMagic upload completely broken
+- **Root Cause:** 
+  - Next.js App Router has 4MB default body size limit
+  - The `export const config` pattern for setting body size doesn't work in App Router (it's a Pages Router pattern)
+  - Security updates exposed this latent issue
+- **Solution Applied:**
+  - Created new `/api/clippingmagic/upload-large` endpoint
+  - Properly handles large files in App Router context
+  - Updated all components to use new endpoint
+  - Supports files up to 10MB as intended
+- **Files Modified:**
+  - Created `/src/app/api/clippingmagic/upload-large/route.ts`
+  - `/src/app/process/background-removal/client.tsx`
+  - `/src/components/image/ClippingMagicEditor.tsx`
+  - `/src/components/image/ImageProcessor.tsx`
+  - `/src/app/test-clippingmagic/page.tsx`
+  - `/src/app/test-cm-simple/page.tsx`
+- **Date Reported:** August 17, 2025
+- **Date Fixed:** August 17, 2025
+
 ### **BUG-050: Support Ticket Creation Visual Feedback Issues**
 - **Status:** 🟢 FIXED
 - **Severity:** High

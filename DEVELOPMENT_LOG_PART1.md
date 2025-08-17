@@ -7,6 +7,47 @@
 
 ## 📅 August 2025 - Production Bug Fixes
 
+### **Date: 2025-08-17 - Critical Background Removal 413 Error Fix**
+
+#### **Task: Fix 413 "Content Too Large" Error on Background Removal**
+
+**Duration:** 1 hour
+
+**What Was Accomplished:**
+
+1. **Diagnosed Root Cause of 413 Error**
+   - User reported 4.34MB file being rejected despite 10MB limit
+   - Investigation revealed Next.js App Router has 4MB default body size limit
+   - The `export const config` pattern used in routes doesn't work in App Router (it's a Pages Router pattern)
+   - Recent security updates exposed this latent configuration issue
+
+2. **Implemented Proper App Router Solution**
+   - Created new `/api/clippingmagic/upload-large` endpoint
+   - Properly handles large file uploads in App Router context
+   - Uses `formData()` method which automatically handles body parsing
+   - Includes fallback to blob parsing if formData fails
+   - Maintains all authentication and credit checking
+
+3. **Updated All Components**
+   - Updated background-removal client to use new endpoint
+   - Updated ClippingMagicEditor component
+   - Updated ImageProcessor component  
+   - Updated test pages (test-clippingmagic, test-cm-simple)
+   - All components now properly support up to 10MB files
+
+**Key Learnings:**
+- Next.js App Router and Pages Router have different configuration patterns
+- The `export const config` pattern for API routes only works in Pages Router
+- App Router has a 4MB default body size limit that cannot be overridden with config export
+- Must handle large files differently in App Router (streaming, formData, manual parsing)
+
+**Impact:**
+- Background removal now works for files up to 10MB as intended
+- Users can process larger, higher quality images
+- Restored critical feature functionality
+
+---
+
 ### **Date: 2025-08-17 - Logo Integration & DPI Checker Prominence**
 
 #### **Task: Integrate Company Logo and Enhance DPI Checker Visibility**
