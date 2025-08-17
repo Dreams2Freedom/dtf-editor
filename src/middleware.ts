@@ -18,12 +18,12 @@ const securityHeaders = {
 const getCSP = () => {
   const policy = [
     "default-src 'self'",
-    "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://js.stripe.com https://checkout.stripe.com",
+    "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://js.stripe.com https://checkout.stripe.com https://clippingmagic.com",
     "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
     "img-src 'self' data: blob: https: http://localhost:*",
     "font-src 'self' data: https://fonts.gstatic.com",
     "connect-src 'self' https://api.stripe.com https://checkout.stripe.com https://*.supabase.co wss://*.supabase.co https://api.openai.com https://deep-image.ai https://clippingmagic.com https://api.vectorizer.ai https://api.mailgun.net http://localhost:*",
-    "frame-src 'self' https://checkout.stripe.com https://js.stripe.com",
+    "frame-src 'self' https://checkout.stripe.com https://js.stripe.com https://clippingmagic.com",
     "object-src 'none'",
     "base-uri 'self'",
     "form-action 'self' https://checkout.stripe.com",
