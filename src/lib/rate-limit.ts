@@ -5,10 +5,10 @@ import { NextRequest, NextResponse } from 'next/server';
 // Rate limit configurations for different endpoint types
 // Designed for production with 1000+ concurrent users
 export const RATE_LIMITS = {
-  // Authentication endpoints - balanced for user experience
+  // Authentication endpoints - strict for security
   auth: {
-    requests: 20,
-    window: '5 m', // 20 requests per 5 minutes (allows retry on failed login)
+    requests: 5,
+    window: '5 m', // 5 requests per 5 minutes (prevent brute force attacks)
   },
   // Admin endpoints - generous for admin operations
   admin: {
