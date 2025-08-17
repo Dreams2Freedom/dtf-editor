@@ -3,12 +3,20 @@ import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { env } from '@/config/env';
 import { ImageProcessingService } from '@/services/imageProcessing';
 import sharp from 'sharp';
-import { withRateLimit } from '@/lib/rate-limit';
 
 export const runtime = 'nodejs';
 export const maxDuration = 60;
 
-async function handlePost(request: NextRequest) {
+// Configure body size limit for this route
+export const config = {
+  api: {
+    bodyParser: {
+      sizeLimit: '10mb',
+    },
+  },
+};
+
+export async function POST(request: NextRequest) {
   try {
     // Check authentication
     const supabase = await createServerSupabaseClient();
@@ -73,8 +81,9 @@ async function handlePost(request: NextRequest) {
     console.log('ClippingMagic Upload Debug:', {
       hasApiKey: !!env.CLIPPINGMAGIC_API_KEY,
       hasApiSecret: !!env.CLIPPINGMAGIC_API_SECRET,
-      apiKeyLength: env.CLIPPINGMAGIC_API_KEY?.length,
-      apiSecretLength: env.CLIPPINGMAGIC_API_SECRET?.length
+      fileSize: file.size,
+      fileType: file.type,
+      fileName: file.name
     });
     
     // Create Basic Auth header
@@ -132,6 +141,7 @@ async function handlePost(request: NextRequest) {
 
     if (!response.ok) {
       const errorText = await response.text();
+      console.error('ClippingMagic API error:', response.status, errorText);
       return NextResponse.json(
         { error: `ClippingMagic error: ${errorText}` },
         { status: response.status }
@@ -155,11 +165,8 @@ async function handlePost(request: NextRequest) {
   } catch (error) {
     console.error('ClippingMagic upload error:', error);
     return NextResponse.json(
-      { error: 'Failed to upload image' },
+      { error: error instanceof Error ? error.message : 'Failed to upload image' },
       { status: 500 }
     );
   }
 }
-
-// Apply rate limiting
-export const POST = withRateLimit(handlePost, 'upload');

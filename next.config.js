@@ -3,6 +3,13 @@ const nextConfig = {
   // Disable error overlay in development
   reactStrictMode: false,
   
+  // API configuration for larger file uploads
+  api: {
+    bodyParser: {
+      sizeLimit: '10mb',
+    },
+  },
+  
   // Temporarily allow build with ESLint warnings for testing
   // TODO: Set to false once all ESLint errors are fixed
   eslint: {
