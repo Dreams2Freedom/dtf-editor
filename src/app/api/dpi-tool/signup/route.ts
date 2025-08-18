@@ -29,7 +29,8 @@ async function handlePost(request: NextRequest) {
           last_name: lastName,
           phone: phone,
           signup_source: 'dpi-tool'
-        }
+        },
+        emailRedirectTo: `${process.env.NEXT_PUBLIC_APP_URL}/auth/callback`
       }
     });
 
@@ -48,6 +49,17 @@ async function handlePost(request: NextRequest) {
         { error: authError.message || 'Failed to create account' },
         { status: 400 }
       );
+    }
+
+    // After successful signup, also sign in the user to establish session
+    const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
+      email,
+      password
+    });
+
+    if (signInError) {
+      console.error('Auto sign-in after signup failed:', signInError);
+      // Don't fail the signup, just log the error
     }
 
     // Create contact in GoHighLevel (non-blocking)
@@ -70,12 +82,37 @@ async function handlePost(request: NextRequest) {
       console.error('Error creating GoHighLevel contact:', error);
     });
 
-    // Return success with user data
-    return NextResponse.json({
+    // Return success with user data and session
+    const response = NextResponse.json({
       success: true,
       user: authData.user,
+      session: signInData?.session,
       message: 'Account created successfully! Check your email to verify your account.'
     });
+
+    // If we have a session, set the auth cookies
+    if (signInData?.session) {
+      const { access_token, refresh_token } = signInData.session;
+      
+      // Set secure auth cookies
+      response.cookies.set('sb-access-token', access_token, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        maxAge: 60 * 60 * 24 * 7, // 7 days
+        path: '/'
+      });
+      
+      response.cookies.set('sb-refresh-token', refresh_token, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        maxAge: 60 * 60 * 24 * 30, // 30 days
+        path: '/'
+      });
+    }
+
+    return response;
 
   } catch (error) {
     console.error('DPI tool signup error:', error);

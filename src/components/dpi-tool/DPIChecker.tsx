@@ -32,6 +32,7 @@ export function DPIChecker({ showSignupForm = true, onSignupComplete }: DPICheck
   const [signupData, setSignupData] = useState({
     email: '',
     password: '',
+    confirmPassword: '',
     firstName: '',
     lastName: '',
     phone: ''
@@ -124,15 +125,56 @@ export function DPIChecker({ showSignupForm = true, onSignupComplete }: DPICheck
     });
   }, [imageDimensions, printWidth, printHeight]);
 
-  const handleUpscaleClick = () => {
-    // If user is logged in, go directly to upscaler
+  const handleUpscaleClick = async () => {
+    // If user is logged in, upload image first then go to upscaler
     if (user) {
-      const params = new URLSearchParams();
-      params.append('imageUrl', encodeURIComponent(imagePreview));
-      params.append('printWidth', printWidth);
-      params.append('printHeight', printHeight);
-      router.push(`/process/upscale?${params.toString()}`);
+      if (imageFile) {
+        try {
+          const uploadFormData = new FormData();
+          uploadFormData.append('file', imageFile);
+          
+          const uploadResponse = await fetch('/api/upload', {
+            method: 'POST',
+            body: uploadFormData,
+            credentials: 'include'
+          });
+          
+          const uploadData = await uploadResponse.json();
+          
+          if (uploadData.success && uploadData.imageId) {
+            const params = new URLSearchParams();
+            params.append('imageId', uploadData.imageId);
+            if (printWidth) params.append('printWidth', printWidth);
+            if (printHeight) params.append('printHeight', printHeight);
+            router.push(`/process/upscale?${params.toString()}`);
+          } else {
+            alert('Failed to upload image. Please try again.');
+          }
+        } catch (uploadError) {
+          console.error('Upload error:', uploadError);
+          alert('Failed to upload image. Please try again.');
+        }
+      }
     } else {
+      // Store image data before showing signup form
+      if (imageFile && imagePreview) {
+        // Pre-store the image data so it's ready after signup
+        localStorage.setItem('dpi_tool_filename', imageFile.name);
+        localStorage.setItem('dpi_tool_printWidth', printWidth || '');
+        localStorage.setItem('dpi_tool_printHeight', printHeight || '');
+        
+        // Convert to base64 if needed
+        if (!imagePreview.startsWith('data:')) {
+          const reader = new FileReader();
+          reader.onloadend = () => {
+            localStorage.setItem('dpi_tool_image', reader.result as string);
+          };
+          reader.readAsDataURL(imageFile);
+        } else {
+          localStorage.setItem('dpi_tool_image', imagePreview);
+        }
+      }
+      
       // Show signup form for non-logged-in users
       setShowSignup(true);
     }
@@ -142,6 +184,20 @@ export function DPIChecker({ showSignupForm = true, onSignupComplete }: DPICheck
     e.preventDefault();
     setSignupError('');
     setSignupLoading(true);
+
+    // Validate passwords match
+    if (signupData.password !== signupData.confirmPassword) {
+      setSignupError('Passwords do not match');
+      setSignupLoading(false);
+      return;
+    }
+
+    // Validate password strength
+    if (signupData.password.length < 8) {
+      setSignupError('Password must be at least 8 characters');
+      setSignupLoading(false);
+      return;
+    }
 
     try {
       const response = await fetch('/api/dpi-tool/signup', {
@@ -156,20 +212,44 @@ export function DPIChecker({ showSignupForm = true, onSignupComplete }: DPICheck
         throw new Error(data.error || 'Signup failed');
       }
 
-      // After successful signup, redirect to upscaler with the image
-      setShowSignup(false);
-      
-      // Redirect to upscaler after successful signup
-      const params = new URLSearchParams();
-      params.append('imageUrl', encodeURIComponent(imagePreview));
-      params.append('printWidth', printWidth);
-      params.append('printHeight', printHeight);
-      
-      // Show success message
-      setTimeout(() => {
-        alert('Account created successfully! Check your email to verify your account.');
-        router.push(`/process/upscale?${params.toString()}`);
-      }, 500);
+      // After successful signup, store data BEFORE any async operations
+      // Store image data immediately in localStorage (more persistent than sessionStorage)
+      if (imageFile && imagePreview) {
+        try {
+          // Store metadata immediately
+          localStorage.setItem('dpi_tool_redirect', 'true');
+          localStorage.setItem('dpi_tool_filename', imageFile.name);
+          localStorage.setItem('dpi_tool_printWidth', printWidth || '');
+          localStorage.setItem('dpi_tool_printHeight', printHeight || '');
+          
+          // Convert file to base64 if needed and store
+          if (!imagePreview.startsWith('data:')) {
+            const reader = new FileReader();
+            reader.onloadend = () => {
+              const base64String = reader.result as string;
+              localStorage.setItem('dpi_tool_image', base64String);
+              
+              // Now redirect - use replace to prevent back button issues
+              window.location.replace('/process/upscale?fromDpiTool=true');
+            };
+            reader.readAsDataURL(imageFile);
+          } else {
+            // Already base64
+            localStorage.setItem('dpi_tool_image', imagePreview);
+            
+            // Now redirect - use replace to prevent back button issues
+            window.location.replace('/process/upscale?fromDpiTool=true');
+          }
+        } catch (error) {
+          console.error('Failed to store image data:', error);
+          alert('Account created! Please upload your image on the next page.');
+          window.location.replace('/process/upscale');
+        }
+      } else {
+        // No image file, still redirect to upscale page
+        localStorage.setItem('dpi_tool_redirect', 'true');
+        window.location.replace('/process/upscale');
+      }
 
     } catch (error) {
       setSignupError(error instanceof Error ? error.message : 'Signup failed');
@@ -483,11 +563,20 @@ export function DPIChecker({ showSignupForm = true, onSignupComplete }: DPICheck
 
               <Input
                 type="password"
-                placeholder="Password *"
+                placeholder="Password * (min 8 characters)"
                 required
-                minLength={6}
+                minLength={8}
                 value={signupData.password}
                 onChange={(e) => setSignupData({ ...signupData, password: e.target.value })}
+              />
+
+              <Input
+                type="password"
+                placeholder="Confirm Password *"
+                required
+                minLength={8}
+                value={signupData.confirmPassword}
+                onChange={(e) => setSignupData({ ...signupData, confirmPassword: e.target.value })}
               />
 
               <Input

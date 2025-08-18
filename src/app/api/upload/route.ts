@@ -23,7 +23,7 @@ async function handlePost(request: NextRequest) {
 
     // Get the file from form data
     const formData = await request.formData();
-    const file = formData.get('image') as File;
+    const file = (formData.get('file') || formData.get('image')) as File;
     
     if (!file) {
       return NextResponse.json(

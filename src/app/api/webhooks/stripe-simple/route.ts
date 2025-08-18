@@ -78,6 +78,10 @@ export async function POST(request: NextRequest) {
         
         // Map price IDs to plans
         const planMap: Record<string, { plan: string, credits: number }> = {
+          // LIVE MODE Price IDs (updated 2025-08-18)
+          'price_1RxH1xAsm2LYaw1CjKGXfN6k': { plan: 'basic', credits: 20 },
+          'price_1RxH1yAsm2LYaw1CbLYwXv8B': { plan: 'starter', credits: 60 },
+          // Keep old test IDs for backward compatibility during transition
           'price_1RleoYPHFzf1GpIrfy9RVk9m': { plan: 'basic', credits: 20 },
           'price_1RlepVPHFzf1GpIrjRiKHtvb': { plan: 'starter', credits: 60 }
         };
@@ -187,6 +191,10 @@ export async function POST(request: NextRequest) {
       
       // Map price IDs to plans
       const planMap: Record<string, { plan: string, credits: number }> = {
+        // LIVE MODE Price IDs (updated 2025-08-18)
+        'price_1RxH1xAsm2LYaw1CjKGXfN6k': { plan: 'basic', credits: 20 },
+        'price_1RxH1yAsm2LYaw1CbLYwXv8B': { plan: 'starter', credits: 60 },
+        // Keep old test IDs for backward compatibility during transition
         'price_1RleoYPHFzf1GpIrfy9RVk9m': { plan: 'basic', credits: 20 },
         'price_1RlepVPHFzf1GpIrjRiKHtvb': { plan: 'starter', credits: 60 }
       };

@@ -62,31 +62,23 @@ export function Header() {
       submenu: [
         { name: 'Process Image', href: '/process', icon: Upload },
         { name: 'Generate Image', href: '/generate', icon: Sparkles },
+        { name: 'DPI Checker', href: '/free-dpi-checker', icon: Ruler },
       ]
     },
-    { 
-      name: 'Library', 
-      icon: Images,
-      submenu: [
-        { name: 'My Images', href: '/dashboard#my-images', icon: Images },
-        { name: 'Storage', href: '/storage', icon: HardDrive },
-      ]
-    },
-    { name: 'DPI Checker', href: '/free-dpi-checker', icon: Ruler },
-    { name: 'FAQ', href: '/faq', icon: HelpCircle },
-    { name: 'Support', href: isAdmin ? '/admin/support' : '/support', icon: HelpCircle },
+    { name: 'My Images', href: '/dashboard#my-images', icon: Images },
+    { name: 'Pricing', href: '/pricing', icon: DollarSign },
   ] : [
     { name: 'Home', href: '/', icon: Home },
-    { name: 'DPI Checker', href: '/free-dpi-checker', icon: Ruler },
     { name: 'Pricing', href: '/pricing', icon: DollarSign },
-    { name: 'FAQ', href: '/faq', icon: HelpCircle },
-    { name: 'Process', href: '/process', icon: Upload },
+    { name: 'DPI Checker', href: '/free-dpi-checker', icon: Ruler },
   ];
 
   const userNavigation = [
     ...(isAdmin ? [{ name: 'Admin Dashboard', href: '/admin', icon: Shield }] : []),
-    { name: 'Pricing', href: '/pricing', icon: DollarSign },
+    { name: 'Storage', href: '/storage', icon: HardDrive },
     { name: 'Settings', href: '/settings', icon: Settings },
+    { name: 'Support', href: isAdmin ? '/admin/support' : '/support', icon: HelpCircle },
+    { name: 'FAQ', href: '/faq', icon: HelpCircle },
   ];
 
   return (
@@ -162,37 +154,58 @@ export function Header() {
                 <CreditDisplay />
                 <NotificationBell />
                 <div className="relative ml-3">
-                  <div className="flex items-center space-x-3">
-                    {userNavigation.map((item) => (
-                      <Link
-                        key={item.name}
-                        href={item.href}
-                        className="text-gray-500 hover:text-gray-700"
-                      >
-                        <item.icon className="h-5 w-5" />
-                      </Link>
-                    ))}
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={handleSignOut}
+                  <button
+                    className="flex items-center p-2 text-sm rounded-full hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-blue"
+                    onClick={() => setOpenDropdown(openDropdown === 'user' ? null : 'user')}
+                    onMouseEnter={() => setOpenDropdown('user')}
+                  >
+                    <User className="h-6 w-6 text-gray-500" />
+                    <ChevronDown className="ml-1 h-4 w-4 text-gray-500" />
+                  </button>
+                  {openDropdown === 'user' && (
+                    <div 
+                      className="absolute right-0 mt-2 w-48 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 z-50"
+                      onMouseLeave={() => setOpenDropdown(null)}
                     >
-                      <LogOut className="h-4 w-4 mr-2" />
-                      Sign Out
-                    </Button>
-                  </div>
+                      <div className="py-1">
+                        <div className="px-4 py-2 text-xs text-gray-500 border-b">
+                          {profile?.email || user.email}
+                        </div>
+                        {userNavigation.map((item) => (
+                          <Link
+                            key={item.name}
+                            href={item.href}
+                            className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                            onClick={() => setOpenDropdown(null)}
+                          >
+                            <item.icon className="w-4 h-4 mr-2" />
+                            {item.name}
+                          </Link>
+                        ))}
+                        <div className="border-t">
+                          <button
+                            onClick={handleSignOut}
+                            className="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 text-left"
+                          >
+                            <LogOut className="w-4 h-4 mr-2" />
+                            Sign Out
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </>
             ) : (
               <div className="flex items-center space-x-4">
                 <Link href="/auth/login">
-                  <Button variant="outline" size="sm">
+                  <Button variant="ghost" size="sm">
                     Sign In
                   </Button>
                 </Link>
                 <Link href="/auth/signup">
-                  <Button size="sm">
-                    Get Started
+                  <Button size="sm" className="bg-[#366494] hover:bg-[#233E5C]">
+                    Get Started Free
                   </Button>
                 </Link>
               </div>

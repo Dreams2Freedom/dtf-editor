@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
-import { Wand2, Download, Loader2, ArrowLeft, Scissors, Calculator, Lock, Unlock, Info } from 'lucide-react';
+import { Wand2, Download, Loader2, ArrowLeft, Scissors, Calculator, Lock, Unlock, Info, Upload } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { Input } from '@/components/ui/Input';
@@ -130,6 +130,129 @@ export default function UpscaleClient() {
 
   // Load image data
   useEffect(() => {
+    // Check if coming from DPI tool - check both URL param and localStorage flag
+    const fromDpiTool = searchParams.get('fromDpiTool') === 'true' || localStorage.getItem('dpi_tool_redirect') === 'true';
+    
+    if (fromDpiTool) {
+      // Check localStorage first (more persistent)
+      const storedImage = localStorage.getItem('dpi_tool_image') || sessionStorage.getItem('dpi_tool_image');
+      const storedFilename = localStorage.getItem('dpi_tool_filename') || sessionStorage.getItem('dpi_tool_filename');
+      const storedPrintWidth = localStorage.getItem('dpi_tool_printWidth') || sessionStorage.getItem('dpi_tool_printWidth');
+      const storedPrintHeight = localStorage.getItem('dpi_tool_printHeight') || sessionStorage.getItem('dpi_tool_printHeight');
+      
+      // Clear the redirect flag
+      localStorage.removeItem('dpi_tool_redirect');
+      
+      if (storedImage) {
+        // Set loading state
+        setIsLoading(true);
+        
+        // Function to handle the upload
+        const handleUpload = async () => {
+          try {
+            // Convert data URL to blob without using fetch (CSP issue)
+            let blob;
+            if (storedImage.startsWith('data:')) {
+              // Extract the base64 data
+              const base64Data = storedImage.split(',')[1];
+              const mimeType = storedImage.match(/data:([^;]+)/)?.[1] || 'image/jpeg';
+              
+              // Convert base64 to binary
+              const binaryString = atob(base64Data);
+              const bytes = new Uint8Array(binaryString.length);
+              for (let i = 0; i < binaryString.length; i++) {
+                bytes[i] = binaryString.charCodeAt(i);
+              }
+              
+              // Create blob from binary data
+              blob = new Blob([bytes], { type: mimeType });
+            } else {
+              // If not a data URL, fetch it normally
+              const res = await fetch(storedImage);
+              if (!res.ok) throw new Error('Failed to fetch image data');
+              blob = await res.blob();
+            }
+            
+            const file = new File([blob], storedFilename || 'image.jpg', { type: blob.type });
+            const formData = new FormData();
+            formData.append('file', file);
+            
+            const uploadResponse = await fetch('/api/upload', {
+              method: 'POST',
+              body: formData,
+              credentials: 'include'
+            });
+            
+            if (!uploadResponse.ok) {
+              // If 401, auth might not be ready yet - retry once
+              if (uploadResponse.status === 401) {
+                console.log('Auth not ready, retrying in 2 seconds...');
+                setTimeout(handleUpload, 2000);
+                return;
+              }
+              
+              const errorText = await uploadResponse.text();
+              console.error('Upload failed:', uploadResponse.status, errorText);
+              throw new Error(`Upload failed: ${uploadResponse.status}`);
+            }
+            
+            const uploadData = await uploadResponse.json();
+            
+            if (uploadData.success && uploadData.publicUrl) {
+              setImageUrl(uploadData.publicUrl);
+              detectImageDimensions(uploadData.publicUrl).then(() => {
+                if (storedPrintWidth) setPrintWidth(storedPrintWidth);
+                if (storedPrintHeight) setPrintHeight(storedPrintHeight);
+              });
+              
+              // Clear stored data
+              localStorage.removeItem('dpi_tool_image');
+              localStorage.removeItem('dpi_tool_filename');
+              localStorage.removeItem('dpi_tool_printWidth');
+              localStorage.removeItem('dpi_tool_printHeight');
+              sessionStorage.removeItem('dpi_tool_image');
+              sessionStorage.removeItem('dpi_tool_filename');
+              sessionStorage.removeItem('dpi_tool_printWidth');
+              sessionStorage.removeItem('dpi_tool_printHeight');
+            } else {
+              console.error('Upload response error:', uploadData);
+              setError(uploadData.error || 'Failed to upload image. Please try uploading again.');
+            }
+            setIsLoading(false);
+          } catch (err) {
+            console.error('Error processing DPI tool image:', err);
+            setError('Failed to process image. Please try uploading again from the form below.');
+            setIsLoading(false);
+            
+            // Clear bad data
+            localStorage.removeItem('dpi_tool_image');
+            localStorage.removeItem('dpi_tool_filename');
+            localStorage.removeItem('dpi_tool_printWidth');
+            localStorage.removeItem('dpi_tool_printHeight');
+            sessionStorage.removeItem('dpi_tool_image');
+            sessionStorage.removeItem('dpi_tool_filename');
+            sessionStorage.removeItem('dpi_tool_printWidth');
+            sessionStorage.removeItem('dpi_tool_printHeight');
+          }
+        };
+        
+        // Wait for auth to be ready before uploading
+        if (user) {
+          // User is already authenticated, upload immediately
+          handleUpload();
+        } else {
+          // Wait for auth to initialize
+          console.log('Waiting for authentication to initialize...');
+          setTimeout(handleUpload, 2000);
+        }
+        return;
+      } else {
+        // No stored image but fromDpiTool is true
+        console.log('No image found in storage for DPI tool redirect');
+        setIsLoading(false);
+      }
+    }
+    
     // Handle imageUrl parameter (from background removal or other tools)
     if (imageUrlParam) {
       try {
@@ -154,6 +277,12 @@ export default function UpscaleClient() {
     
     // Handle imageId parameter (from upload flow)
     if (!imageId) {
+      // If we came from DPI tool but have no image, just show the upscale page
+      if (fromDpiTool === 'true') {
+        setIsLoading(false);
+        return;
+      }
+      // Otherwise redirect to process page
       router.push('/process');
       return;
     }
@@ -178,7 +307,7 @@ export default function UpscaleClient() {
     };
 
     fetchImage();
-  }, [imageId, imageUrlParam, router, detectImageDimensions, printWidthParam, printHeightParam]);
+  }, [imageId, imageUrlParam, router, detectImageDimensions, printWidthParam, printHeightParam, searchParams, user]);
 
   // Refresh credits when page loads or regains focus
   useEffect(() => {
@@ -381,6 +510,58 @@ export default function UpscaleClient() {
                 <div className="text-center py-12">
                   <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4" />
                   <p>Loading image...</p>
+                </div>
+              )}
+
+              {/* Upload form when no image */}
+              {!isLoading && !imageUrl && (
+                <div className="space-y-4">
+                  <div className="text-center">
+                    <p className="text-gray-600 mb-4">Upload an image to begin upscaling</p>
+                  </div>
+                  <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center hover:border-blue-500 transition-colors">
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={async (e) => {
+                        const file = e.target.files?.[0];
+                        if (!file) return;
+                        
+                        setIsLoading(true);
+                        const formData = new FormData();
+                        formData.append('file', file);
+                        
+                        try {
+                          const response = await fetch('/api/upload', {
+                            method: 'POST',
+                            body: formData,
+                            credentials: 'include'
+                          });
+                          
+                          const data = await response.json();
+                          
+                          if (data.success && data.publicUrl) {
+                            setImageUrl(data.publicUrl);
+                            await detectImageDimensions(data.publicUrl);
+                          } else {
+                            setError(data.error || 'Failed to upload image');
+                          }
+                        } catch (err) {
+                          setError('Failed to upload image');
+                        } finally {
+                          setIsLoading(false);
+                        }
+                      }}
+                      className="hidden"
+                      id="upscale-upload"
+                    />
+                    <label htmlFor="upscale-upload" className="cursor-pointer">
+                      <Upload className="w-12 h-12 mx-auto mb-4 text-gray-400" />
+                      <p className="text-lg font-medium">Click to upload image</p>
+                      <p className="text-sm text-gray-500 mt-2">or drag and drop</p>
+                      <p className="text-xs text-gray-400 mt-2">PNG, JPG, GIF up to 10MB</p>
+                    </label>
+                  </div>
                 </div>
               )}
 
