@@ -24,16 +24,37 @@ export const env = {
   VECTORIZER_API_SECRET: process.env.VECTORIZER_API_SECRET || '',
 
   // Stripe Configuration (required for payments)
-  STRIPE_PUBLISHABLE_KEY: process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || process.env.STRIPE_PUBLISHABLE_KEY || '',
-  STRIPE_SECRET_KEY: process.env.STRIPE_SECRET_KEY || '',
-  STRIPE_WEBHOOK_SECRET: process.env.STRIPE_WEBHOOK_SECRET || '',
+  // Use LIVE keys in production, TEST keys otherwise
+  STRIPE_PUBLISHABLE_KEY: process.env.NODE_ENV === 'production' && process.env.NEXT_PUBLIC_STRIPE_LIVE_PUBLISHABLE_KEY
+    ? process.env.NEXT_PUBLIC_STRIPE_LIVE_PUBLISHABLE_KEY
+    : (process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || process.env.STRIPE_PUBLISHABLE_KEY || ''),
+  STRIPE_SECRET_KEY: process.env.NODE_ENV === 'production' && process.env.STRIPE_LIVE_SECRET_KEY
+    ? process.env.STRIPE_LIVE_SECRET_KEY
+    : (process.env.STRIPE_SECRET_KEY || ''),
+  STRIPE_WEBHOOK_SECRET: process.env.NODE_ENV === 'production' && process.env.STRIPE_LIVE_WEBHOOK_SECRET
+    ? process.env.STRIPE_LIVE_WEBHOOK_SECRET
+    : (process.env.STRIPE_WEBHOOK_SECRET || ''),
   
   // Stripe Product IDs (required for payment plans)
-  STRIPE_BASIC_PLAN_PRICE_ID: process.env.STRIPE_BASIC_PLAN_PRICE_ID || '',
-  STRIPE_STARTER_PLAN_PRICE_ID: process.env.STRIPE_STARTER_PLAN_PRICE_ID || '',
-  STRIPE_PAYG_10_CREDITS_PRICE_ID: process.env.STRIPE_PAYG_10_CREDITS_PRICE_ID || '',
-  STRIPE_PAYG_20_CREDITS_PRICE_ID: process.env.STRIPE_PAYG_20_CREDITS_PRICE_ID || '',
-  STRIPE_PAYG_50_CREDITS_PRICE_ID: process.env.STRIPE_PAYG_50_CREDITS_PRICE_ID || '',
+  // Use LIVE price IDs in production, TEST price IDs otherwise
+  STRIPE_BASIC_PLAN_PRICE_ID: process.env.NODE_ENV === 'production' && process.env.STRIPE_LIVE_BASIC_PLAN_PRICE_ID
+    ? process.env.STRIPE_LIVE_BASIC_PLAN_PRICE_ID
+    : (process.env.STRIPE_BASIC_PLAN_PRICE_ID || ''),
+  STRIPE_STARTER_PLAN_PRICE_ID: process.env.NODE_ENV === 'production' && process.env.STRIPE_LIVE_STARTER_PLAN_PRICE_ID
+    ? process.env.STRIPE_LIVE_STARTER_PLAN_PRICE_ID
+    : (process.env.STRIPE_STARTER_PLAN_PRICE_ID || ''),
+  STRIPE_PROFESSIONAL_PLAN_PRICE_ID: process.env.NODE_ENV === 'production' && process.env.STRIPE_LIVE_PROFESSIONAL_PLAN_PRICE_ID
+    ? process.env.STRIPE_LIVE_PROFESSIONAL_PLAN_PRICE_ID
+    : (process.env.STRIPE_PROFESSIONAL_PLAN_PRICE_ID || ''),
+  STRIPE_PAYG_10_CREDITS_PRICE_ID: process.env.NODE_ENV === 'production' && process.env.STRIPE_LIVE_PAYG_10_CREDITS_PRICE_ID
+    ? process.env.STRIPE_LIVE_PAYG_10_CREDITS_PRICE_ID
+    : (process.env.STRIPE_PAYG_10_CREDITS_PRICE_ID || ''),
+  STRIPE_PAYG_20_CREDITS_PRICE_ID: process.env.NODE_ENV === 'production' && process.env.STRIPE_LIVE_PAYG_20_CREDITS_PRICE_ID
+    ? process.env.STRIPE_LIVE_PAYG_20_CREDITS_PRICE_ID
+    : (process.env.STRIPE_PAYG_20_CREDITS_PRICE_ID || ''),
+  STRIPE_PAYG_50_CREDITS_PRICE_ID: process.env.NODE_ENV === 'production' && process.env.STRIPE_LIVE_PAYG_50_CREDITS_PRICE_ID
+    ? process.env.STRIPE_LIVE_PAYG_50_CREDITS_PRICE_ID
+    : (process.env.STRIPE_PAYG_50_CREDITS_PRICE_ID || ''),
 
   // Email Configuration (optional)
   SENDGRID_API_KEY: process.env.SENDGRID_API_KEY || '',
