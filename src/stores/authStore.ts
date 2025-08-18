@@ -205,6 +205,25 @@ export const useAuthStore = create<AuthStore>()(
             error: null,
           });
 
+          // Send welcome email after successful signup
+          try {
+            const response = await fetch('/api/auth/welcome-email', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+            });
+            
+            if (!response.ok) {
+              console.error('Failed to send welcome email:', await response.text());
+            } else {
+              console.log('Welcome email sent successfully');
+            }
+          } catch (error) {
+            console.error('Error sending welcome email:', error);
+            // Don't fail the signup if email fails
+          }
+
           return { success: true };
         } else {
           set({ loading: false, error: 'Sign up failed' });

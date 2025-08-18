@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { goHighLevelService } from '@/services/goHighLevel';
 import { withRateLimit } from '@/lib/rate-limit';
+import { emailService } from '@/services/email';
 
 async function handlePost(request: NextRequest) {
   try {
@@ -80,6 +81,21 @@ async function handlePost(request: NextRequest) {
       }
     }).catch(error => {
       console.error('Error creating GoHighLevel contact:', error);
+    });
+
+    // Send welcome email in the background (don't await to avoid blocking response)
+    emailService.sendWelcomeEmail({
+      email,
+      firstName,
+      planName: 'Free'
+    }).then(sent => {
+      if (sent) {
+        console.log('Welcome email sent to:', email);
+      } else {
+        console.error('Failed to send welcome email to:', email);
+      }
+    }).catch(error => {
+      console.error('Error sending welcome email:', error);
     });
 
     // Return success with user data and session

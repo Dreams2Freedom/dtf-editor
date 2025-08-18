@@ -178,6 +178,40 @@ async function handleSubscriptionEvent(subscription: any) {
   }
   
   console.log('✅ Subscription updated for user:', userId);
+  
+  // Send subscription confirmation email for new subscriptions
+  if (subscription.status === 'active' && !subscription.cancel_at_period_end) {
+    try {
+      // Get user details for email
+      const { data: { user }, error: userError } = await getSupabase().auth.admin.getUserById(userId);
+      
+      if (userError) {
+        console.error('❌ Error fetching user for email:', userError);
+      }
+      
+      // Get user profile for first name
+      const { data: profile } = await getSupabase()
+        .from('profiles')
+        .select('first_name')
+        .eq('id', userId)
+        .single();
+      
+      if (user?.email && plan) {
+        console.log('📧 Sending subscription confirmation email to:', user.email);
+        const emailSent = await emailService.sendSubscriptionEmail({
+          email: user.email,
+          firstName: profile?.first_name,
+          action: 'created',
+          planName: plan.name,
+          nextBillingDate: subscription.current_period_end ? new Date(subscription.current_period_end * 1000) : undefined
+        });
+        console.log('📧 Subscription email sent result:', emailSent);
+      }
+    } catch (emailError) {
+      console.error('Failed to send subscription email:', emailError);
+      // Don't fail the webhook if email fails
+    }
+  }
 }
 
 async function handleSubscriptionCancellation(subscription: any) {
@@ -568,11 +602,29 @@ async function handleTrialWillEnd(subscription: any) {
 }
 
 async function handleInvoicePaymentFailed(invoice: any) {
-  const userId = invoice.metadata?.userId;
-  if (!userId) return;
+  console.log('💳❌ Handling failed payment for invoice:', invoice.id);
+  
+  // Try to get userId from metadata or customer lookup
+  let userId = invoice.metadata?.userId;
+  
+  if (!userId && invoice.customer) {
+    const { data: profile } = await getSupabase()
+      .from('profiles')
+      .select('id, subscription_plan')
+      .eq('stripe_customer_id', invoice.customer)
+      .single();
+    
+    if (profile) {
+      userId = profile.id;
+    }
+  }
+  
+  if (!userId) {
+    console.error('❌ Could not find userId for failed payment');
+    return;
+  }
 
-  // Subscription payment failed
-  // TODO: Send email notification and update subscription status
+  // Update subscription status to past_due
   const { error } = await getSupabase()
     .from('profiles')
     .update({
@@ -582,5 +634,52 @@ async function handleInvoicePaymentFailed(invoice: any) {
 
   if (error) {
     throw error;
+  }
+  
+  // Send failed payment notification email
+  try {
+    // Get user details
+    const { data: { user }, error: userError } = await getSupabase().auth.admin.getUserById(userId);
+    
+    if (userError) {
+      console.error('❌ Error fetching user for email:', userError);
+    }
+    
+    // Get user profile for details
+    const { data: profile } = await getSupabase()
+      .from('profiles')
+      .select('first_name, subscription_plan')
+      .eq('id', userId)
+      .single();
+    
+    if (user?.email) {
+      // Determine attempt count from invoice
+      const attemptCount = invoice.attempt_count || 1;
+      
+      // Get next retry date if available
+      let nextRetryDate;
+      if (invoice.next_payment_attempt) {
+        nextRetryDate = new Date(invoice.next_payment_attempt * 1000);
+      }
+      
+      // Get plan name
+      const stripeService = getStripeService();
+      const plans = stripeService.getSubscriptionPlans();
+      const plan = plans.find((p: any) => p.id === profile?.subscription_plan);
+      
+      console.log('📧 Sending payment failed email to:', user.email);
+      const emailSent = await emailService.sendPaymentFailedEmail({
+        email: user.email,
+        firstName: profile?.first_name,
+        planName: plan?.name || profile?.subscription_plan || 'subscription',
+        attemptCount: attemptCount,
+        nextRetryDate: nextRetryDate,
+        amount: invoice.amount_due
+      });
+      console.log('📧 Payment failed email sent result:', emailSent);
+    }
+  } catch (emailError) {
+    console.error('Failed to send payment failed email:', emailError);
+    // Don't fail the webhook if email fails
   }
 } 

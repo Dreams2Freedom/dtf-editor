@@ -236,6 +236,37 @@ export class SupportService {
         .eq('id', data.ticket_id)
         .eq('status', 'waiting_on_user');
 
+      // Get ticket details for email notification
+      const { data: ticket } = await supabase
+        .from('support_tickets')
+        .select('ticket_number, subject')
+        .eq('id', data.ticket_id)
+        .single();
+
+      // Get user profile for email
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('email, first_name, last_name')
+        .eq('id', userId)
+        .single();
+
+      // Send email notification to admin about user reply
+      if (ticket && profile) {
+        try {
+          const { emailService } = await import('@/services/email');
+          await emailService.sendTicketReplyToAdmin({
+            ticketNumber: ticket.ticket_number,
+            userEmail: profile.email,
+            userName: profile.first_name ? `${profile.first_name} ${profile.last_name || ''}`.trim() : undefined,
+            userMessage: data.message,
+            ticketSubject: ticket.subject
+          });
+        } catch (emailError) {
+          console.error('Failed to send user reply notification:', emailError);
+          // Don't fail the message creation if email fails
+        }
+      }
+
       return message;
     } catch (error) {
       console.error('Error adding message:', error);

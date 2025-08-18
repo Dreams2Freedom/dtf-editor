@@ -516,6 +516,259 @@ export class EmailService {
   }
 
   /**
+   * Send ticket reply notification to user (when admin replies)
+   */
+  async sendTicketReplyToUser(data: {
+    ticketNumber: string;
+    userEmail: string;
+    userName?: string;
+    adminMessage: string;
+    ticketSubject: string;
+  }): Promise<boolean> {
+    if (!this.enabled || !this.mailgunApiKey) {
+      console.log('EmailService: Would send ticket reply notification to', data.userEmail);
+      return true;
+    }
+
+    try {
+      const mailOptions = {
+        from: `${env.MAILGUN_FROM_NAME} <${env.MAILGUN_FROM_EMAIL}>`,
+        to: data.userEmail,
+        subject: `RE: ${data.ticketSubject} [${data.ticketNumber}]`,
+        html: `
+          <!DOCTYPE html>
+          <html>
+          <head>
+            <meta charset="utf-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          </head>
+          <body style="margin: 0; padding: 0; font-family: Arial, sans-serif; background-color: #f5f5f5;">
+            <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff;">
+              ${this.getEmailLogoHeader()}
+              <div style="padding: 40px 30px;">
+                <h2 style="color: #333; margin-bottom: 20px;">Support Team Reply</h2>
+                <p style="color: #666; font-size: 16px;">Hi ${data.userName || 'there'},</p>
+                <p style="color: #666; font-size: 16px;">
+                  Our support team has replied to your ticket <strong>#${data.ticketNumber}</strong>.
+                </p>
+                
+                <div style="background: #f8f9fa; border-left: 4px solid #366494; padding: 15px; margin: 20px 0;">
+                  <p style="color: #333; margin: 0; white-space: pre-wrap;">${data.adminMessage}</p>
+                </div>
+                
+                <div style="margin-top: 30px;">
+                  <a href="${process.env.NEXT_PUBLIC_APP_URL || 'https://dtfeditor.com'}/support/${data.ticketNumber}" 
+                     style="display: inline-block; background: #366494; color: white; padding: 12px 30px; text-decoration: none; border-radius: 4px;">
+                    View Full Conversation
+                  </a>
+                </div>
+                
+                <hr style="margin: 30px 0; border: none; border-top: 1px solid #eee;">
+                <p style="color: #999; font-size: 12px;">
+                  You can reply directly to this email or click the button above to view the full conversation.
+                </p>
+              </div>
+            </div>
+          </body>
+          </html>
+        `,
+        text: `Support Team Reply\n\nHi ${data.userName || 'there'},\n\nOur support team has replied to your ticket #${data.ticketNumber}.\n\nReply:\n${data.adminMessage}\n\nView full conversation: ${process.env.NEXT_PUBLIC_APP_URL || 'https://dtfeditor.com'}/support/${data.ticketNumber}\n\n© ${new Date().getFullYear()} DTF Editor`,
+        'o:tag': ['support', 'ticket-reply', 'admin-reply'],
+        'o:tracking': true,
+        'o:tracking-clicks': true,
+        'o:tracking-opens': true,
+        'v:ticket_number': data.ticketNumber,
+        'v:user_email': data.userEmail,
+      };
+
+      return await this.sendMailgunEmail(mailOptions);
+    } catch (error) {
+      console.error('Error sending ticket reply notification to user:', error);
+      return false;
+    }
+  }
+
+  /**
+   * Send ticket reply notification to admin (when user replies)
+   */
+  async sendTicketReplyToAdmin(data: {
+    ticketNumber: string;
+    userEmail: string;
+    userName?: string;
+    userMessage: string;
+    ticketSubject: string;
+  }): Promise<boolean> {
+    const adminEmail = 's2transfers@gmail.com';
+    
+    if (!this.enabled || !this.mailgunApiKey) {
+      console.log('EmailService: Would send user reply notification to', adminEmail);
+      return true;
+    }
+
+    try {
+      const mailOptions = {
+        from: `${env.MAILGUN_FROM_NAME} <${env.MAILGUN_FROM_EMAIL}>`,
+        to: adminEmail,
+        subject: `[USER REPLY] Ticket ${data.ticketNumber}: ${data.ticketSubject}`,
+        html: `
+          <!DOCTYPE html>
+          <html>
+          <head>
+            <meta charset="utf-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          </head>
+          <body style="margin: 0; padding: 0; font-family: Arial, sans-serif; background-color: #f5f5f5;">
+            <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff;">
+              ${this.getEmailLogoHeader()}
+              <div style="padding: 40px 30px;">
+                <div style="background: #fff3cd; border-left: 4px solid #ffc107; padding: 12px; margin-bottom: 20px;">
+                  <p style="margin: 0; color: #856404; font-weight: bold;">User Reply</p>
+                  <p style="margin: 4px 0 0 0; color: #856404;">Ticket #${data.ticketNumber} has a new reply from the user.</p>
+                </div>
+                
+                <table style="width: 100%; margin-bottom: 20px;">
+                  <tr>
+                    <td style="padding: 8px 0; color: #666;">From:</td>
+                    <td style="padding: 8px 0; color: #333;">${data.userName || 'User'} (${data.userEmail})</td>
+                  </tr>
+                  <tr>
+                    <td style="padding: 8px 0; color: #666;">Subject:</td>
+                    <td style="padding: 8px 0; color: #333;">${data.ticketSubject}</td>
+                  </tr>
+                </table>
+                
+                <div style="background: #f8f9fa; border-left: 4px solid #366494; padding: 15px; margin: 20px 0;">
+                  <p style="color: #333; margin: 0; white-space: pre-wrap;">${data.userMessage}</p>
+                </div>
+                
+                <div style="margin-top: 30px;">
+                  <a href="${process.env.NEXT_PUBLIC_APP_URL || 'https://dtfeditor.com'}/admin/support" 
+                     style="display: inline-block; background: #366494; color: white; padding: 12px 30px; text-decoration: none; border-radius: 4px;">
+                    View in Admin Panel
+                  </a>
+                </div>
+              </div>
+            </div>
+          </body>
+          </html>
+        `,
+        text: `USER REPLY - Ticket #${data.ticketNumber}\n\nFrom: ${data.userName || 'User'} (${data.userEmail})\nSubject: ${data.ticketSubject}\n\nMessage:\n${data.userMessage}\n\nView in admin panel: ${process.env.NEXT_PUBLIC_APP_URL || 'https://dtfeditor.com'}/admin/support\n\n© ${new Date().getFullYear()} DTF Editor`,
+        'o:tag': ['support', 'ticket-reply', 'user-reply'],
+        'o:tracking': true,
+        'o:tracking-clicks': true,
+        'o:tracking-opens': true,
+        'v:ticket_number': data.ticketNumber,
+        'v:user_email': data.userEmail,
+        'h:Reply-To': data.userEmail,
+      };
+
+      return await this.sendMailgunEmail(mailOptions);
+    } catch (error) {
+      console.error('Error sending ticket reply notification to admin:', error);
+      return false;
+    }
+  }
+
+  /**
+   * Send failed payment notification
+   */
+  async sendPaymentFailedEmail(data: {
+    email: string;
+    firstName?: string;
+    planName: string;
+    attemptCount: number;
+    nextRetryDate?: Date;
+    amount: number;
+  }): Promise<boolean> {
+    if (!this.enabled || !this.mailgunApiKey) {
+      console.log('EmailService: Would send payment failed email to', data.email);
+      return true;
+    }
+
+    try {
+      const isFirstAttempt = data.attemptCount === 1;
+      const subject = isFirstAttempt 
+        ? `Payment Failed - Action Required`
+        : `Payment Retry Failed - ${data.attemptCount} Attempts`;
+
+      const mailOptions = {
+        from: `${env.MAILGUN_FROM_NAME} <${env.MAILGUN_FROM_EMAIL}>`,
+        to: data.email,
+        subject,
+        html: `
+          <!DOCTYPE html>
+          <html>
+          <head>
+            <meta charset="utf-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          </head>
+          <body style="margin: 0; padding: 0; font-family: Arial, sans-serif; background-color: #f5f5f5;">
+            <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff;">
+              ${this.getEmailLogoHeader()}
+              <div style="padding: 40px 30px;">
+                <div style="background: #fee; border-left: 4px solid #dc3545; padding: 12px; margin-bottom: 20px;">
+                  <p style="margin: 0; color: #721c24; font-weight: bold;">Payment Failed</p>
+                  <p style="margin: 4px 0 0 0; color: #721c24;">We were unable to process your payment for the ${data.planName} plan.</p>
+                </div>
+                
+                <p style="color: #666; font-size: 16px;">Hi ${data.firstName || 'there'},</p>
+                
+                <p style="color: #666; font-size: 16px;">
+                  We attempted to charge <strong>$${(data.amount / 100).toFixed(2)}</strong> for your DTF Editor ${data.planName} subscription, 
+                  but the payment was declined.
+                </p>
+                
+                ${data.nextRetryDate ? `
+                  <p style="color: #666; font-size: 16px;">
+                    <strong>We'll automatically retry the payment on ${data.nextRetryDate.toLocaleDateString()}.</strong>
+                  </p>
+                ` : ''}
+                
+                <div style="background: #f8f9fa; padding: 15px; margin: 20px 0; border-radius: 4px;">
+                  <h3 style="color: #333; margin-top: 0;">What you can do:</h3>
+                  <ul style="color: #666; margin: 10px 0;">
+                    <li>Update your payment method</li>
+                    <li>Ensure sufficient funds are available</li>
+                    <li>Contact your bank if the issue persists</li>
+                  </ul>
+                </div>
+                
+                <div style="margin-top: 30px; text-align: center;">
+                  <a href="${process.env.NEXT_PUBLIC_APP_URL || 'https://dtfeditor.com'}/dashboard" 
+                     style="display: inline-block; background: #dc3545; color: white; padding: 12px 30px; text-decoration: none; border-radius: 4px;">
+                    Update Payment Method
+                  </a>
+                </div>
+                
+                <hr style="margin: 30px 0; border: none; border-top: 1px solid #eee;">
+                
+                <p style="color: #999; font-size: 12px;">
+                  If you continue to have issues, please contact our support team.
+                  After ${data.attemptCount >= 3 ? 'multiple' : 'several'} failed attempts, 
+                  your subscription may be cancelled.
+                </p>
+              </div>
+            </div>
+          </body>
+          </html>
+        `,
+        text: `Payment Failed\n\nHi ${data.firstName || 'there'},\n\nWe attempted to charge $${(data.amount / 100).toFixed(2)} for your DTF Editor ${data.planName} subscription, but the payment was declined.\n\n${data.nextRetryDate ? `We'll automatically retry the payment on ${data.nextRetryDate.toLocaleDateString()}.\n\n` : ''}What you can do:\n- Update your payment method\n- Ensure sufficient funds are available\n- Contact your bank if the issue persists\n\nUpdate your payment method: ${process.env.NEXT_PUBLIC_APP_URL || 'https://dtfeditor.com'}/dashboard\n\n© ${new Date().getFullYear()} DTF Editor`,
+        'o:tag': ['payment', 'payment-failed', `attempt-${data.attemptCount}`],
+        'o:tracking': true,
+        'o:tracking-clicks': true,
+        'o:tracking-opens': true,
+        'v:user_email': data.email,
+        'v:attempt_count': data.attemptCount.toString(),
+      };
+
+      return await this.sendMailgunEmail(mailOptions);
+    } catch (error) {
+      console.error('Error sending payment failed email:', error);
+      return false;
+    }
+  }
+
+  /**
    * Send support ticket notification to admin
    */
   async sendSupportTicketNotification(data: SupportTicketEmailData): Promise<boolean> {
