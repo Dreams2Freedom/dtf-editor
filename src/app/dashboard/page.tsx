@@ -223,14 +223,14 @@ export default function DashboardPage() {
             </Card>
 
             <Card className="cursor-pointer hover:shadow-md transition-shadow">
-              <Link href="/pricing?tab=payasyougo">
+              <Link href="/pricing">
                 <CardContent className="p-6 text-center">
                   <CreditCard className="w-12 h-12 text-green-600 mx-auto mb-4" />
                   <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                    Buy Credits
+                    Get More Credits
                   </h3>
                   <p className="text-gray-600 text-sm">
-                    Purchase processing credits
+                    View plans & pricing options
                   </p>
                 </CardContent>
               </Link>
@@ -347,10 +347,10 @@ export default function DashboardPage() {
                   </Button>
                 </Link>
                 
-                <Link href="/pricing?tab=payasyougo">
+                <Link href="/pricing">
                   <Button variant="outline" className="w-full">
                     <CreditCard className="w-4 h-4 mr-2" />
-                    Buy Credits
+                    Get More Credits
                   </Button>
                 </Link>
                 

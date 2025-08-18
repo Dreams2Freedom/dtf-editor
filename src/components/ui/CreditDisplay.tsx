@@ -35,7 +35,7 @@ export function CreditDisplay({ showPurchaseButton = true, className = '' }: Cre
         <Link href="/pricing">
           <Button size="sm" variant="outline">
             <Plus className="w-4 h-4 mr-1" />
-            Buy Credits
+            Get More
           </Button>
         </Link>
       )}
