@@ -94,6 +94,8 @@ export const SubscriptionPlans: React.FC<SubscriptionPlansProps> = ({ onSubscrip
         return <Zap className="w-6 h-6 text-blue-500" />;
       case 'starter':
         return <CreditCard className="w-6 h-6 text-purple-500" />;
+      case 'professional':
+        return <Star className="w-6 h-6 text-yellow-500" />;
       default:
         return <Star className="w-6 h-6" />;
     }
@@ -107,6 +109,8 @@ export const SubscriptionPlans: React.FC<SubscriptionPlansProps> = ({ onSubscrip
         return <span className="bg-blue-100 text-blue-800 text-xs font-medium px-2.5 py-0.5 rounded">Popular</span>;
       case 'starter':
         return <span className="bg-purple-100 text-purple-800 text-xs font-medium px-2.5 py-0.5 rounded">Pro</span>;
+      case 'professional':
+        return <span className="bg-yellow-100 text-yellow-800 text-xs font-medium px-2.5 py-0.5 rounded">Best Value</span>;
       default:
         return null;
     }

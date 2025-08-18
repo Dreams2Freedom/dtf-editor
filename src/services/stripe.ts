@@ -80,7 +80,7 @@ export class StripeService {
       {
         id: 'basic',
         name: 'Basic',
-        price: 4.99,
+        price: 9.99,
         currency: 'usd',
         interval: 'month',
         features: ['20 credits per month', 'All features', 'Priority support', 'HD downloads'],
@@ -90,12 +90,22 @@ export class StripeService {
       {
         id: 'starter',
         name: 'Starter',
-        price: 14.99,
+        price: 24.99,
         currency: 'usd',
         interval: 'month',
         features: ['60 credits per month', 'All features', 'Priority support', 'HD downloads', 'Bulk processing'],
         creditsPerMonth: 60,
         stripePriceId: env.STRIPE_STARTER_PLAN_PRICE_ID || '',
+      },
+      {
+        id: 'professional',
+        name: 'Professional',
+        price: 49.99,
+        currency: 'usd',
+        interval: 'month',
+        features: ['150 credits per month', 'All features', 'Priority support', 'HD downloads', 'Bulk processing', 'API access'],
+        creditsPerMonth: 150,
+        stripePriceId: env.STRIPE_PROFESSIONAL_PLAN_PRICE_ID || '',
       },
     ];
   }
@@ -104,18 +114,10 @@ export class StripeService {
   public getPayAsYouGoPackages(): PayAsYouGoPackage[] {
     return [
       {
-        id: 'payg-5',
-        name: '5 Credits',
-        credits: 5,
-        price: 2.49,
-        currency: 'usd',
-        stripePriceId: env.STRIPE_PAYG_5_CREDITS_PRICE_ID || '',
-      },
-      {
         id: 'payg-10',
         name: '10 Credits',
         credits: 10,
-        price: 4.49,
+        price: 7.99,
         currency: 'usd',
         stripePriceId: env.STRIPE_PAYG_10_CREDITS_PRICE_ID || '',
       },
@@ -123,9 +125,17 @@ export class StripeService {
         id: 'payg-20',
         name: '20 Credits',
         credits: 20,
-        price: 7.99,
+        price: 14.99,
         currency: 'usd',
         stripePriceId: env.STRIPE_PAYG_20_CREDITS_PRICE_ID || '',
+      },
+      {
+        id: 'payg-50',
+        name: '50 Credits',
+        credits: 50,
+        price: 29.99,
+        currency: 'usd',
+        stripePriceId: env.STRIPE_PAYG_50_CREDITS_PRICE_ID || '',
       },
     ];
   }
