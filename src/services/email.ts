@@ -769,6 +769,246 @@ export class EmailService {
   }
 
   /**
+   * Send monthly usage summary email
+   */
+  async sendMonthlyUsageSummary(data: {
+    email: string;
+    firstName?: string;
+    month: string; // e.g., "January 2025"
+    creditsUsed: number;
+    creditsRemaining: number;
+    imagesProcessed: number;
+    popularFeatures: Array<{ feature: string; count: number }>;
+    planName: string;
+  }): Promise<boolean> {
+    if (!this.enabled || !this.mailgunApiKey) {
+      console.log('EmailService: Would send monthly summary to', data.email);
+      return true;
+    }
+
+    try {
+      const topFeatures = data.popularFeatures.slice(0, 3);
+      
+      const mailOptions = {
+        from: `${env.MAILGUN_FROM_NAME} <${env.MAILGUN_FROM_EMAIL}>`,
+        to: data.email,
+        subject: `Your ${data.month} DTF Editor Summary`,
+        html: `
+          <!DOCTYPE html>
+          <html>
+          <head>
+            <meta charset="utf-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          </head>
+          <body style="margin: 0; padding: 0; font-family: Arial, sans-serif; background-color: #f5f5f5;">
+            <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff;">
+              ${this.getEmailLogoHeader()}
+              <div style="padding: 40px 30px;">
+                <h2 style="color: #333; margin-bottom: 20px;">Your Monthly Summary</h2>
+                <p style="color: #666; font-size: 16px;">Hi ${data.firstName || 'there'},</p>
+                <p style="color: #666; font-size: 16px;">
+                  Here's your DTF Editor activity summary for ${data.month}:
+                </p>
+                
+                <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; border-radius: 8px; margin: 20px 0;">
+                  <div style="text-align: center;">
+                    <div style="font-size: 48px; font-weight: bold; margin-bottom: 10px;">
+                      ${data.imagesProcessed}
+                    </div>
+                    <div style="font-size: 18px; opacity: 0.9;">
+                      Images Processed
+                    </div>
+                  </div>
+                  
+                  <div style="display: flex; justify-content: space-around; margin-top: 30px;">
+                    <div style="text-align: center;">
+                      <div style="font-size: 24px; font-weight: bold;">${data.creditsUsed}</div>
+                      <div style="font-size: 14px; opacity: 0.9;">Credits Used</div>
+                    </div>
+                    <div style="text-align: center;">
+                      <div style="font-size: 24px; font-weight: bold;">${data.creditsRemaining}</div>
+                      <div style="font-size: 14px; opacity: 0.9;">Credits Left</div>
+                    </div>
+                  </div>
+                </div>
+                
+                ${topFeatures.length > 0 ? `
+                  <div style="margin: 30px 0;">
+                    <h3 style="color: #333; margin-bottom: 15px;">Your Most Used Features</h3>
+                    <div style="background: #f8f9fa; padding: 20px; border-radius: 4px;">
+                      ${topFeatures.map((feature, index) => `
+                        <div style="display: flex; justify-content: space-between; padding: 10px 0; ${index < topFeatures.length - 1 ? 'border-bottom: 1px solid #e9ecef;' : ''}">
+                          <span style="color: #495057;">${feature.feature}</span>
+                          <span style="color: #366494; font-weight: bold;">${feature.count} uses</span>
+                        </div>
+                      `).join('')}
+                    </div>
+                  </div>
+                ` : ''}
+                
+                <div style="background: #e7f5ff; border-left: 4px solid #339af0; padding: 15px; margin: 20px 0;">
+                  <p style="color: #1971c2; margin: 0;">
+                    <strong>Your Plan:</strong> ${data.planName}<br>
+                    ${data.creditsRemaining < 5 ? 
+                      `<span style="color: #e03131;">⚠️ Running low on credits!</span>` : 
+                      `You have ${data.creditsRemaining} credits remaining this month.`
+                    }
+                  </p>
+                </div>
+                
+                ${data.creditsRemaining < 5 ? `
+                  <div style="margin-top: 30px; text-align: center;">
+                    <a href="${process.env.NEXT_PUBLIC_APP_URL || 'https://dtfeditor.com'}/pricing" 
+                       style="display: inline-block; background: #366494; color: white; padding: 12px 30px; text-decoration: none; border-radius: 4px;">
+                      Get More Credits
+                    </a>
+                  </div>
+                ` : ''}
+                
+                <hr style="margin: 30px 0; border: none; border-top: 1px solid #eee;">
+                
+                <p style="color: #999; font-size: 12px;">
+                  This is your monthly activity summary. To view detailed analytics, visit your dashboard.
+                </p>
+              </div>
+            </div>
+          </body>
+          </html>
+        `,
+        text: `Your Monthly Summary\n\nHi ${data.firstName || 'there'},\n\nHere's your DTF Editor activity summary for ${data.month}:\n\nImages Processed: ${data.imagesProcessed}\nCredits Used: ${data.creditsUsed}\nCredits Remaining: ${data.creditsRemaining}\n\n${topFeatures.length > 0 ? `Most Used Features:\n${topFeatures.map(f => `- ${f.feature}: ${f.count} uses`).join('\n')}\n\n` : ''}Your Plan: ${data.planName}\n\nView your dashboard: ${process.env.NEXT_PUBLIC_APP_URL || 'https://dtfeditor.com'}/dashboard\n\n© ${new Date().getFullYear()} DTF Editor`,
+        'o:tag': ['monthly-summary', 'engagement'],
+        'o:tracking': true,
+        'o:tracking-clicks': true,
+        'o:tracking-opens': true,
+        'v:user_email': data.email,
+        'v:month': data.month,
+      };
+
+      return await this.sendMailgunEmail(mailOptions);
+    } catch (error) {
+      console.error('Error sending monthly summary email:', error);
+      return false;
+    }
+  }
+
+  /**
+   * Send processing error notification
+   */
+  async sendProcessingErrorEmail(data: {
+    email: string;
+    firstName?: string;
+    errorType: 'upscale' | 'background_removal' | 'vectorize' | 'generation' | 'upload';
+    errorMessage: string;
+    creditsRefunded?: number;
+    fileName?: string;
+  }): Promise<boolean> {
+    if (!this.enabled || !this.mailgunApiKey) {
+      console.log('EmailService: Would send processing error email to', data.email);
+      return true;
+    }
+
+    try {
+      const errorTypeDisplay = {
+        upscale: 'Image Upscaling',
+        background_removal: 'Background Removal',
+        vectorize: 'Vectorization',
+        generation: 'AI Image Generation',
+        upload: 'File Upload'
+      };
+
+      const mailOptions = {
+        from: `${env.MAILGUN_FROM_NAME} <${env.MAILGUN_FROM_EMAIL}>`,
+        to: data.email,
+        subject: `Processing Error - ${errorTypeDisplay[data.errorType]}`,
+        html: `
+          <!DOCTYPE html>
+          <html>
+          <head>
+            <meta charset="utf-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          </head>
+          <body style="margin: 0; padding: 0; font-family: Arial, sans-serif; background-color: #f5f5f5;">
+            <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff;">
+              ${this.getEmailLogoHeader()}
+              <div style="padding: 40px 30px;">
+                <h2 style="color: #333; margin-bottom: 20px;">Processing Error</h2>
+                
+                <div style="background: #fff5f5; border-left: 4px solid #fa5252; padding: 15px; margin-bottom: 20px;">
+                  <p style="color: #c92a2a; margin: 0;">
+                    We encountered an error while processing your ${errorTypeDisplay[data.errorType]} request.
+                  </p>
+                </div>
+                
+                <p style="color: #666; font-size: 16px;">Hi ${data.firstName || 'there'},</p>
+                
+                <p style="color: #666; font-size: 16px;">
+                  Unfortunately, we were unable to complete your ${errorTypeDisplay[data.errorType]} request${data.fileName ? ` for "${data.fileName}"` : ''}.
+                </p>
+                
+                <div style="background: #f8f9fa; padding: 15px; margin: 20px 0; border-radius: 4px;">
+                  <p style="color: #495057; margin: 0;">
+                    <strong>Error Details:</strong><br>
+                    ${data.errorMessage}
+                  </p>
+                </div>
+                
+                ${data.creditsRefunded ? `
+                  <div style="background: #d3f9d8; border-left: 4px solid #51cf66; padding: 15px; margin: 20px 0;">
+                    <p style="color: #2b8a3e; margin: 0;">
+                      ✓ <strong>${data.creditsRefunded} credit${data.creditsRefunded > 1 ? 's have' : ' has'} been refunded</strong> to your account.
+                    </p>
+                  </div>
+                ` : ''}
+                
+                <div style="margin: 30px 0;">
+                  <h3 style="color: #333; margin-bottom: 15px;">What to do next:</h3>
+                  <ul style="color: #666; line-height: 1.8;">
+                    <li>Try uploading a different image</li>
+                    <li>Ensure your image meets our requirements (max 10MB, JPG/PNG format)</li>
+                    <li>Check your internet connection and try again</li>
+                    <li>If the issue persists, contact our support team</li>
+                  </ul>
+                </div>
+                
+                <div style="margin-top: 30px; text-align: center;">
+                  <a href="${process.env.NEXT_PUBLIC_APP_URL || 'https://dtfeditor.com'}/support" 
+                     style="display: inline-block; background: #366494; color: white; padding: 12px 30px; text-decoration: none; border-radius: 4px; margin-right: 10px;">
+                    Contact Support
+                  </a>
+                  <a href="${process.env.NEXT_PUBLIC_APP_URL || 'https://dtfeditor.com'}/process" 
+                     style="display: inline-block; background: #fff; color: #366494; border: 2px solid #366494; padding: 10px 28px; text-decoration: none; border-radius: 4px;">
+                    Try Again
+                  </a>
+                </div>
+                
+                <hr style="margin: 30px 0; border: none; border-top: 1px solid #eee;">
+                
+                <p style="color: #999; font-size: 12px;">
+                  Error ID: ${Date.now()}-${Math.random().toString(36).substr(2, 9)}<br>
+                  Please reference this ID if you contact support.
+                </p>
+              </div>
+            </div>
+          </body>
+          </html>
+        `,
+        text: `Processing Error\n\nHi ${data.firstName || 'there'},\n\nWe encountered an error while processing your ${errorTypeDisplay[data.errorType]} request${data.fileName ? ` for "${data.fileName}"` : ''}.\n\nError Details:\n${data.errorMessage}\n\n${data.creditsRefunded ? `✓ ${data.creditsRefunded} credit${data.creditsRefunded > 1 ? 's have' : ' has'} been refunded to your account.\n\n` : ''}What to do next:\n- Try uploading a different image\n- Ensure your image meets our requirements\n- Check your internet connection\n- Contact support if the issue persists\n\nContact Support: ${process.env.NEXT_PUBLIC_APP_URL || 'https://dtfeditor.com'}/support\nTry Again: ${process.env.NEXT_PUBLIC_APP_URL || 'https://dtfeditor.com'}/process\n\n© ${new Date().getFullYear()} DTF Editor`,
+        'o:tag': ['error', `error-${data.errorType}`],
+        'o:tracking': true,
+        'o:tracking-clicks': true,
+        'o:tracking-opens': true,
+        'v:user_email': data.email,
+        'v:error_type': data.errorType,
+      };
+
+      return await this.sendMailgunEmail(mailOptions);
+    } catch (error) {
+      console.error('Error sending processing error email:', error);
+      return false;
+    }
+  }
+
+  /**
    * Send support ticket notification to admin
    */
   async sendSupportTicketNotification(data: SupportTicketEmailData): Promise<boolean> {

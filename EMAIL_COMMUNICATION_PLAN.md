@@ -32,14 +32,28 @@
    - Triggered in: `/api/subscription/pause/route.ts`
    - Status: **WORKING**
 
+### ✅ **Phase 2 Completed (Retention & Engagement)**
+
+1. **Credit Warning Email** ✅
+   - Template: `sendCreditWarningEmail()`
+   - Cron job: `/api/cron/check-expiring-credits`
+   - Sends warnings at 30 days, 7 days, and expiration
+   - Status: **IMPLEMENTED**
+
+2. **Monthly Usage Summary** ✅
+   - Template: `sendMonthlyUsageSummary()`
+   - Cron job: `/api/cron/monthly-summary`
+   - Sends on 1st of each month with usage stats
+   - Status: **IMPLEMENTED**
+
+3. **Processing Error Notifications** ✅
+   - Template: `sendProcessingErrorEmail()`
+   - Notifies users when processing fails with credit refund info
+   - Status: **IMPLEMENTED**
+
 ### ⚠️ **Implemented But Not Connected**
 
 These email templates exist but are NOT being called anywhere:
-
-1. **Credit Warning Email**
-   - Template: `sendCreditWarningEmail()`
-   - Should be sent when credits are running low or expiring
-   - Status: **NOT CONNECTED**
 
 2. **Password Reset Email**
    - Template: `sendPasswordResetEmail()`
