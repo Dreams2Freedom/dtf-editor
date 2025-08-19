@@ -5,8 +5,8 @@ import { Breadcrumb } from '@/components/ui/Breadcrumb';
 import { FileText, AlertCircle, CreditCard, Ban, Scale, Mail, Shield, Clock } from 'lucide-react';
 
 export default function TermsOfServicePage() {
-  const lastUpdated = 'January 30, 2025';
-  const effectiveDate = 'February 1, 2025';
+  const lastUpdated = 'August 19, 2025';
+  const effectiveDate = 'August 19, 2025';
   
   return (
     <div className="min-h-screen bg-gray-50">
@@ -139,7 +139,18 @@ export default function TermsOfServicePage() {
                       <li>Subscription fees are billed in advance monthly or annually</li>
                       <li>All payments are processed securely through Stripe</li>
                       <li>Prices are subject to change with 30 days notice</li>
-                      <li>No refunds for unused credits or partial months</li>
+                      <li>You may cancel your subscription at any time</li>
+                    </ul>
+                  </div>
+                  
+                  <div>
+                    <h3 className="font-semibold text-gray-800 mb-2">Refund Policy</h3>
+                    <ul className="list-disc list-inside space-y-2 ml-4">
+                      <li><strong>7-Day Money Back Guarantee:</strong> New subscribers may request a full refund within 7 days of their first subscription</li>
+                      <li><strong>Failed Processing:</strong> Credits are automatically refunded if image processing fails due to technical issues</li>
+                      <li><strong>Annual Plans:</strong> May be cancelled within 30 days for a pro-rated refund</li>
+                      <li><strong>Used Credits:</strong> No refunds for successfully used credits</li>
+                      <li><strong>Unused Credits:</strong> Subscription credits expire monthly and do not carry over unless specified in your plan</li>
                     </ul>
                   </div>
                 </div>
