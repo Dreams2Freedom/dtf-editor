@@ -76,6 +76,10 @@ export async function POST(request: NextRequest) {
         await handlePaymentIntentFailed(event.data.object);
         break;
 
+      case 'charge.refunded':
+        await handleChargeRefunded(event.data.object);
+        break;
+
       default:
         // Unhandled event type
     }
@@ -393,6 +397,95 @@ async function handlePaymentIntentFailed(paymentIntent: any) {
 
   // Payment failed - could implement notification logic here
   // TODO: Send email notification about failed payment
+}
+
+async function handleChargeRefunded(charge: any) {
+  console.log('💳 handleChargeRefunded called');
+  console.log('Charge ID:', charge.id);
+  console.log('Refunded amount:', charge.amount_refunded);
+  console.log('Payment Intent:', charge.payment_intent);
+  
+  // Get metadata from the original payment intent
+  const userId = charge.metadata?.userId;
+  const credits = parseInt(charge.metadata?.credits || '0');
+  
+  console.log('User ID:', userId);
+  console.log('Credits to deduct:', credits);
+  
+  if (!userId || !credits) {
+    console.log('⚠️ Missing userId or credits in refund, skipping');
+    return;
+  }
+
+  try {
+    // Calculate how many credits to deduct based on refund amount
+    const refundPercentage = charge.amount_refunded / charge.amount;
+    const creditsToDeduct = Math.ceil(credits * refundPercentage);
+    
+    console.log(`📝 Deducting ${creditsToDeduct} credits due to refund`);
+    
+    // Deduct credits from the user
+    const { data: profile, error: fetchError } = await getSupabase()
+      .from('profiles')
+      .select('credits_remaining')
+      .eq('id', userId)
+      .single();
+    
+    if (fetchError) {
+      console.error('❌ Error fetching profile:', fetchError);
+      throw fetchError;
+    }
+    
+    const currentCredits = profile.credits_remaining || 0;
+    const newCredits = Math.max(0, currentCredits - creditsToDeduct); // Don't go negative
+    
+    const { error: updateError } = await getSupabase()
+      .from('profiles')
+      .update({ credits_remaining: newCredits })
+      .eq('id', userId);
+    
+    if (updateError) {
+      console.error('❌ Error updating credits:', updateError);
+      throw updateError;
+    }
+    
+    // Log the transaction
+    const { error: transactionError } = await getSupabase()
+      .from('credit_transactions')
+      .insert({
+        user_id: userId,
+        amount: -creditsToDeduct,
+        transaction_type: 'refund',
+        description: `Refund: ${creditsToDeduct} credits deducted`,
+        metadata: {
+          stripe_charge_id: charge.id,
+          stripe_payment_intent_id: charge.payment_intent,
+          refund_amount: charge.amount_refunded
+        }
+      });
+    
+    if (transactionError) {
+      console.log('Note: Could not log transaction:', transactionError.message);
+    }
+    
+    console.log(`✅ Credits deducted successfully! ${currentCredits} → ${newCredits}`);
+    
+    // Send refund notification email
+    try {
+      const { data: { user }, error: userError } = await getSupabase().auth.admin.getUserById(userId);
+      
+      if (user?.email) {
+        // You could send a refund notification email here
+        console.log('📧 Would send refund notification to:', user.email);
+      }
+    } catch (emailError) {
+      console.error('Error sending refund email:', emailError);
+    }
+    
+  } catch (err) {
+    console.error('❌ Failed to process refund:', err);
+    throw err;
+  }
 }
 
 async function handleCheckoutSessionCompleted(session: any) {
