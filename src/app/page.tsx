@@ -87,12 +87,6 @@ export default function HomePage() {
     }
   ];
 
-  const stats = [
-    { value: '58M+', label: 'Images Processed' },
-    { value: '11TB+', label: 'Data Handled' },
-    { value: '142M+', label: 'Downloads' },
-    { value: '5M+', label: 'Happy Printers' }
-  ];
 
   return (
     <ClientOnly fallback={<LoadingPage message="Initializing..." />}>
@@ -142,15 +136,6 @@ export default function HomePage() {
               <p className="text-sm text-gray-500">No credit card required • 2 free credits to start</p>
             </div>
 
-            {/* Trust Indicators */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-8 mt-20 pb-10 border-b border-gray-100">
-              {stats.map((stat, index) => (
-                <div key={index} className="text-center">
-                  <div className="text-3xl md:text-4xl font-bold text-gray-900">{stat.value}</div>
-                  <div className="text-sm text-gray-600 mt-1">{stat.label}</div>
-                </div>
-              ))}
-            </div>
           </div>
         </section>
 
@@ -429,70 +414,24 @@ export default function HomePage() {
         {/* Testimonials */}
         <section className="py-20 bg-gray-50">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="text-center mb-16">
+            <div className="text-center">
               <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
-                Trusted by DTF Printing Professionals
+                Customer Reviews
               </h2>
-              <p className="text-xl text-gray-600">
-                Join thousands of print shops improving their quality
-              </p>
-            </div>
-
-            <div className="grid md:grid-cols-3 gap-8">
-              <div className="bg-white rounded-xl p-8 shadow-lg">
-                <div className="flex mb-4">
-                  {[...Array(5)].map((_, i) => (
-                    <Star key={i} className="w-5 h-5 text-yellow-400 fill-current" />
-                  ))}
-                </div>
-                <p className="text-gray-700 mb-6">
-                  &quot;DTF Editor saved my business. I can now accept any logo, no matter the quality, 
-                  and deliver perfect prints. My customers are amazed!&quot;
-                </p>
-                <div className="flex items-center">
-                  <div className="w-12 h-12 bg-gray-200 rounded-full mr-4"></div>
-                  <div>
-                    <p className="font-semibold text-gray-900">Sarah Johnson</p>
-                    <p className="text-sm text-gray-600">Custom Prints Co.</p>
+              <div className="max-w-2xl mx-auto">
+                <div className="bg-white rounded-xl p-12 shadow-lg">
+                  <div className="flex justify-center mb-6">
+                    {[...Array(5)].map((_, i) => (
+                      <Star key={i} className="w-8 h-8 text-gray-300" />
+                    ))}
                   </div>
-                </div>
-              </div>
-
-              <div className="bg-white rounded-xl p-8 shadow-lg">
-                <div className="flex mb-4">
-                  {[...Array(5)].map((_, i) => (
-                    <Star key={i} className="w-5 h-5 text-yellow-400 fill-current" />
-                  ))}
-                </div>
-                <p className="text-gray-700 mb-6">
-                  &quot;The background removal is incredible. What used to take me 30 minutes 
-                  now takes 30 seconds. I&apos;ve tripled my output!&quot;
-                </p>
-                <div className="flex items-center">
-                  <div className="w-12 h-12 bg-gray-200 rounded-full mr-4"></div>
-                  <div>
-                    <p className="font-semibold text-gray-900">Mike Chen</p>
-                    <p className="text-sm text-gray-600">T-Shirt Empire</p>
-                  </div>
-                </div>
-              </div>
-
-              <div className="bg-white rounded-xl p-8 shadow-lg">
-                <div className="flex mb-4">
-                  {[...Array(5)].map((_, i) => (
-                    <Star key={i} className="w-5 h-5 text-yellow-400 fill-current" />
-                  ))}
-                </div>
-                <p className="text-gray-700 mb-6">
-                  &quot;The AI upscaling is magic. I can take phone photos and turn them into 
-                  billboard-quality prints. Game changer!&quot;
-                </p>
-                <div className="flex items-center">
-                  <div className="w-12 h-12 bg-gray-200 rounded-full mr-4"></div>
-                  <div>
-                    <p className="font-semibold text-gray-900">Lisa Martinez</p>
-                    <p className="text-sm text-gray-600">Quick Print Solutions</p>
-                  </div>
+                  <p className="text-2xl font-medium text-gray-700 mb-4">
+                    Real user reviews coming soon
+                  </p>
+                  <p className="text-gray-600">
+                    We&apos;re brand new and gathering feedback from our early users. 
+                    Check back soon for authentic reviews from DTF printing professionals!
+                  </p>
                 </div>
               </div>
             </div>
