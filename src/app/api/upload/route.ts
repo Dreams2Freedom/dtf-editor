@@ -13,10 +13,14 @@ async function handlePost(request: NextRequest) {
     const supabase = await createServerSupabaseClient();
     
     // Check authentication
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    if (authError || !user) {
       return NextResponse.json(
-        { success: false, error: 'Unauthorized' },
+        { 
+          success: false, 
+          error: 'Your session has expired. Please sign in again to continue.',
+          code: 'SESSION_EXPIRED'
+        },
         { status: 401 }
       );
     }

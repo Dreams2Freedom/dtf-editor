@@ -97,6 +97,38 @@ export function AuthProvider({ children }: AuthProviderProps) {
       // Error is handled by the auth store
     }
   }, []); // Empty dependency array - only run once on mount
+  
+  // Periodically check session validity
+  useEffect(() => {
+    if (!authStore.user) return;
+    
+    // Check session validity every 5 minutes
+    const checkSession = async () => {
+      try {
+        const response = await fetch('/api/auth/session', {
+          credentials: 'include'
+        });
+        
+        if (response.status === 401) {
+          console.log('Session expired, signing out...');
+          await authStore.signOut();
+        }
+      } catch (error) {
+        console.error('Session check failed:', error);
+      }
+    };
+    
+    // Initial check after 30 seconds
+    const initialTimer = setTimeout(checkSession, 30000);
+    
+    // Then check every 5 minutes
+    const interval = setInterval(checkSession, 5 * 60 * 1000);
+    
+    return () => {
+      clearTimeout(initialTimer);
+      clearInterval(interval);
+    };
+  }, [authStore.user]);
 
   // Memoize the context value to prevent infinite re-renders
   const authContextValue: AuthContextType = useMemo(

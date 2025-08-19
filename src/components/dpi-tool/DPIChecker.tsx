@@ -141,6 +141,20 @@ export function DPIChecker({ showSignupForm = true, onSignupComplete }: DPICheck
           
           const uploadData = await uploadResponse.json();
           
+          // Check for authentication error specifically
+          if (uploadResponse.status === 401) {
+            alert('Your session has expired. Please sign in again to continue.');
+            // Clear the auth state and redirect to login
+            router.push('/auth/signin?redirect=/free-dpi-checker');
+            return;
+          }
+          
+          if (!uploadResponse.ok) {
+            const errorMessage = uploadData.error || 'Failed to upload image';
+            alert(`Upload failed: ${errorMessage}`);
+            return;
+          }
+          
           if (uploadData.success && uploadData.imageId) {
             const params = new URLSearchParams();
             params.append('imageId', uploadData.imageId);
@@ -148,11 +162,11 @@ export function DPIChecker({ showSignupForm = true, onSignupComplete }: DPICheck
             if (printHeight) params.append('printHeight', printHeight);
             router.push(`/process/upscale?${params.toString()}`);
           } else {
-            alert('Failed to upload image. Please try again.');
+            alert('Failed to process image. Please try again.');
           }
         } catch (uploadError) {
           console.error('Upload error:', uploadError);
-          alert('Failed to upload image. Please try again.');
+          alert('An unexpected error occurred. Please check your connection and try again.');
         }
       }
     } else {
