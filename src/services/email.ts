@@ -45,6 +45,25 @@ export interface SubscriptionEmailData {
   pauseUntil?: Date;
 }
 
+export interface RetentionDiscountEmailData {
+  firstName?: string;
+  email: string;
+  discountPercent: number;
+  originalAmount: number;
+  discountedAmount: number;
+  nextBillingDate: Date;
+  planName: string;
+}
+
+export interface RefundEmailData {
+  firstName?: string;
+  email: string;
+  refundAmount: number;
+  originalPaymentDate?: Date;
+  refundReason?: string;
+  creditDeducted?: number;
+}
+
 export interface PasswordResetEmailData {
   firstName?: string;
   email: string;
@@ -1932,6 +1951,204 @@ ${process.env.NEXT_PUBLIC_APP_URL}/account/verify
       return true;
     } catch (error) {
       console.error('Error sending activity summary:', error);
+      return false;
+    }
+  }
+
+  /**
+   * Send retention discount confirmation email
+   */
+  async sendRetentionDiscountEmail(data: RetentionDiscountEmailData): Promise<boolean> {
+    if (!this.enabled || !this.mailgunApiKey) {
+      console.log('EmailService: Would send retention discount email to', data.email);
+      return true;
+    }
+
+    try {
+      const mailOptions = {
+        from: `${env.MAILGUN_FROM_NAME} <${env.MAILGUN_FROM_EMAIL}>`,
+        to: data.email,
+        subject: '🎉 Your 50% Discount Has Been Applied!',
+        html: `
+          <!DOCTYPE html>
+          <html>
+          <head>
+            <meta charset="utf-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          </head>
+          <body style="margin: 0; padding: 0; font-family: Arial, sans-serif; background-color: #f5f5f5;">
+            <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff;">
+              ${this.getEmailLogoHeader()}
+              <div style="padding: 40px 30px;">
+                <h1 style="color: #10b981; margin-bottom: 10px;">Great News, ${data.firstName || 'Valued Customer'}! 🎉</h1>
+                <h2 style="color: #333; margin-bottom: 20px;">Your 50% Discount is Active</h2>
+                
+                <p style="color: #666; font-size: 16px; line-height: 1.6;">
+                  We're thrilled you've decided to continue with DTF Editor! As a thank you for your loyalty, 
+                  we've successfully applied your <strong>50% discount</strong> to your next billing cycle.
+                </p>
+                
+                <div style="background-color: #f0fdf4; border-left: 4px solid #10b981; padding: 20px; margin: 30px 0;">
+                  <h3 style="color: #065f46; margin-top: 0;">Discount Details:</h3>
+                  <ul style="color: #666; font-size: 15px; line-height: 1.8;">
+                    <li><strong>Discount:</strong> ${data.discountPercent}% OFF</li>
+                    <li><strong>Your Plan:</strong> ${data.planName}</li>
+                    <li><strong>Original Price:</strong> <span style="text-decoration: line-through;">$${data.originalAmount.toFixed(2)}</span></li>
+                    <li><strong>Your Price:</strong> <span style="color: #10b981; font-size: 18px; font-weight: bold;">$${data.discountedAmount.toFixed(2)}</span></li>
+                    <li><strong>Next Billing Date:</strong> ${new Date(data.nextBillingDate).toLocaleDateString('en-US', { 
+                      year: 'numeric', 
+                      month: 'long', 
+                      day: 'numeric' 
+                    })}</li>
+                  </ul>
+                </div>
+                
+                <p style="color: #666; font-size: 14px; line-height: 1.6;">
+                  <strong>Please Note:</strong> This discount applies to your next billing cycle only. 
+                  After that, your subscription will renew at the regular price of $${data.originalAmount.toFixed(2)}/month.
+                </p>
+                
+                <div style="text-align: center; margin: 30px 0;">
+                  <a href="https://dtfeditor.com/dashboard" style="display: inline-block; background-color: #3b82f6; color: white; padding: 12px 30px; text-decoration: none; border-radius: 6px; font-weight: bold;">
+                    Go to Dashboard
+                  </a>
+                </div>
+                
+                <p style="color: #666; font-size: 14px; line-height: 1.6;">
+                  Thank you for being a valued member of the DTF Editor community! 
+                  We're here to help you create amazing DTF transfers.
+                </p>
+              </div>
+              ${this.getEmailFooter()}
+            </div>
+          </body>
+          </html>
+        `,
+        text: `Great News! Your 50% Discount is Active\n\n` +
+              `We've successfully applied your 50% discount to your next billing cycle.\n\n` +
+              `Discount Details:\n` +
+              `- Discount: ${data.discountPercent}% OFF\n` +
+              `- Your Plan: ${data.planName}\n` +
+              `- Your Price: $${data.discountedAmount.toFixed(2)} (was $${data.originalAmount.toFixed(2)})\n` +
+              `- Next Billing Date: ${new Date(data.nextBillingDate).toLocaleDateString()}\n\n` +
+              `Note: This discount applies to your next billing cycle only.\n\n` +
+              `Thank you for being a valued member of the DTF Editor community!`,
+        'o:tag': ['retention-discount', 'billing'],
+        'o:tracking': true,
+        'o:tracking-clicks': true,
+        'o:tracking-opens': true,
+        'v:user_email': data.email,
+        'v:discount_percent': data.discountPercent.toString(),
+      };
+
+      return await this.sendMailgunEmail(mailOptions);
+    } catch (error) {
+      console.error('Error sending retention discount email:', error);
+      return false;
+    }
+  }
+
+  /**
+   * Send refund notification email
+   */
+  async sendRefundEmail(data: RefundEmailData): Promise<boolean> {
+    if (!this.enabled || !this.mailgunApiKey) {
+      console.log('EmailService: Would send refund email to', data.email);
+      return true;
+    }
+
+    try {
+      const mailOptions = {
+        from: `${env.MAILGUN_FROM_NAME} <${env.MAILGUN_FROM_EMAIL}>`,
+        to: data.email,
+        subject: 'Refund Processed - DTF Editor',
+        html: `
+          <!DOCTYPE html>
+          <html>
+          <head>
+            <meta charset="utf-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          </head>
+          <body style="margin: 0; padding: 0; font-family: Arial, sans-serif; background-color: #f5f5f5;">
+            <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff;">
+              ${this.getEmailLogoHeader()}
+              <div style="padding: 40px 30px;">
+                <h2 style="color: #333; margin-bottom: 20px;">Refund Confirmation</h2>
+                
+                <p style="color: #666; font-size: 16px; line-height: 1.6;">
+                  Hello ${data.firstName || 'Valued Customer'},
+                </p>
+                
+                <p style="color: #666; font-size: 16px; line-height: 1.6;">
+                  We've successfully processed your refund request. Here are the details:
+                </p>
+                
+                <div style="background-color: #fef2f2; border-left: 4px solid #ef4444; padding: 20px; margin: 30px 0;">
+                  <h3 style="color: #991b1b; margin-top: 0;">Refund Details:</h3>
+                  <ul style="color: #666; font-size: 15px; line-height: 1.8;">
+                    <li><strong>Refund Amount:</strong> $${data.refundAmount.toFixed(2)}</li>
+                    ${data.originalPaymentDate ? `<li><strong>Original Payment Date:</strong> ${new Date(data.originalPaymentDate).toLocaleDateString('en-US', { 
+                      year: 'numeric', 
+                      month: 'long', 
+                      day: 'numeric' 
+                    })}</li>` : ''}
+                    ${data.creditDeducted ? `<li><strong>Credits Deducted:</strong> ${data.creditDeducted} credits</li>` : ''}
+                    ${data.refundReason ? `<li><strong>Reason:</strong> ${data.refundReason}</li>` : ''}
+                  </ul>
+                </div>
+                
+                <div style="background-color: #fef3c7; border-left: 4px solid #f59e0b; padding: 20px; margin: 30px 0;">
+                  <p style="color: #92400e; margin: 0;">
+                    <strong>⏱️ Processing Time:</strong><br>
+                    Please allow 3-7 business days for the refund to appear in your account. 
+                    The exact timing depends on your bank or credit card company's processing times.
+                  </p>
+                </div>
+                
+                <p style="color: #666; font-size: 14px; line-height: 1.6;">
+                  If you have any questions about this refund or if you don't see it reflected 
+                  in your account after 7 business days, please don't hesitate to contact our support team.
+                </p>
+                
+                <div style="text-align: center; margin: 30px 0;">
+                  <a href="https://dtfeditor.com/support" style="display: inline-block; background-color: #6b7280; color: white; padding: 12px 30px; text-decoration: none; border-radius: 6px; font-weight: bold;">
+                    Contact Support
+                  </a>
+                </div>
+                
+                <p style="color: #666; font-size: 14px; line-height: 1.6;">
+                  We're sorry to see you go, but we hope to serve you again in the future. 
+                  Thank you for giving DTF Editor a try!
+                </p>
+              </div>
+              ${this.getEmailFooter()}
+            </div>
+          </body>
+          </html>
+        `,
+        text: `Refund Confirmation\n\n` +
+              `Hello ${data.firstName || 'Valued Customer'},\n\n` +
+              `We've successfully processed your refund request.\n\n` +
+              `Refund Details:\n` +
+              `- Refund Amount: $${data.refundAmount.toFixed(2)}\n` +
+              `${data.originalPaymentDate ? `- Original Payment Date: ${new Date(data.originalPaymentDate).toLocaleDateString()}\n` : ''}` +
+              `${data.creditDeducted ? `- Credits Deducted: ${data.creditDeducted} credits\n` : ''}` +
+              `${data.refundReason ? `- Reason: ${data.refundReason}\n` : ''}` +
+              `\nProcessing Time:\n` +
+              `Please allow 3-7 business days for the refund to appear in your account.\n\n` +
+              `If you have any questions, please contact our support team.\n\n` +
+              `Thank you for giving DTF Editor a try!`,
+        'o:tag': ['refund', 'billing'],
+        'o:tracking': true,
+        'o:tracking-clicks': true,
+        'o:tracking-opens': true,
+        'v:user_email': data.email,
+        'v:refund_amount': data.refundAmount.toString(),
+      };
+
+      return await this.sendMailgunEmail(mailOptions);
+    } catch (error) {
+      console.error('Error sending refund email:', error);
       return false;
     }
   }

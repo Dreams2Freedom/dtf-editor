@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 import Stripe from 'stripe';
 import { withRateLimit } from '@/lib/rate-limit';
+import { emailService } from '@/services/email';
 
 // Initialize Stripe only when the function is called, not at module level
 let stripe: Stripe | null = null;
@@ -126,6 +127,23 @@ async function handlePost(request: NextRequest) {
       const originalAmount = subscription.items.data[0].price.unit_amount / 100;
       const discountAmount = originalAmount * 0.5; // 50% off
       const finalAmount = originalAmount - discountAmount;
+
+      // Send retention discount confirmation email
+      try {
+        await emailService.sendRetentionDiscountEmail({
+          email: profile.email,
+          firstName: profile.first_name,
+          discountPercent: 50,
+          originalAmount: originalAmount,
+          discountedAmount: finalAmount,
+          nextBillingDate: nextBillingDate,
+          planName: profile.subscription_plan || 'Basic'
+        });
+        console.log('Retention discount confirmation email sent to:', profile.email);
+      } catch (emailError) {
+        console.error('Failed to send retention discount email:', emailError);
+        // Don't fail the request if email fails
+      }
 
       return NextResponse.json({
         success: true,

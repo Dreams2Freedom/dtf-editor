@@ -464,8 +464,21 @@ async function handleChargeRefunded(charge: any) {
       const { data: { user }, error: userError } = await getSupabase().auth.admin.getUserById(userId);
       
       if (user?.email) {
-        // You could send a refund notification email here
-        console.log('📧 Would send refund notification to:', user.email);
+        // Get user's first name from profile
+        const { data: userProfile } = await getSupabase()
+          .from('profiles')
+          .select('first_name')
+          .eq('id', userId)
+          .single();
+        
+        await emailService.sendRefundEmail({
+          email: user.email,
+          firstName: userProfile?.first_name,
+          refundAmount: charge.amount_refunded / 100, // Convert from cents
+          creditDeducted: creditsToDeduct,
+          originalPaymentDate: new Date(charge.created * 1000) // Convert from Unix timestamp
+        });
+        console.log('📧 Refund notification sent to:', user.email);
       }
     } catch (emailError) {
       console.error('Error sending refund email:', emailError);
