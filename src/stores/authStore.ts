@@ -156,6 +156,19 @@ export const useAuthStore = create<AuthStore>()(
             error: null,
           });
 
+          // Send security alert for new login (async, don't wait)
+          fetch('/api/auth/security-alert', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              alertType: 'new_login',
+            }),
+          }).catch(error => {
+            console.error('Failed to send login security alert:', error);
+          });
+
           return { success: true };
         } else {
           set({ loading: false, error: 'Sign in failed' });

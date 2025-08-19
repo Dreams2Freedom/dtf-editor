@@ -1621,6 +1621,336 @@ ${process.env.NEXT_PUBLIC_APP_URL || 'https://dtfeditor.com'}/admin/support
 © ${new Date().getFullYear()} DTF Editor
     `.trim();
   }
+
+  // Phase 3: Security & Account Management Emails
+
+  async sendSecurityAlert(data: {
+    email: string;
+    userName?: string;
+    alertType: 'new_login' | 'password_changed' | 'email_changed' | 'suspicious_activity';
+    deviceInfo?: {
+      browser?: string;
+      os?: string;
+      location?: string;
+      ip?: string;
+    };
+    timestamp?: Date;
+  }): Promise<boolean> {
+    if (!isFeatureAvailable('mailgun')) {
+      console.log('Security alert email (Mailgun not configured):', data);
+      return false;
+    }
+
+    const alertMessages = {
+      new_login: 'New Login Detected',
+      password_changed: 'Password Changed',
+      email_changed: 'Email Address Changed',
+      suspicious_activity: 'Suspicious Activity Detected'
+    };
+
+    const alertActions = {
+      new_login: 'A new login to your account was detected',
+      password_changed: 'Your password has been successfully changed',
+      email_changed: 'Your email address has been updated',
+      suspicious_activity: 'We detected unusual activity on your account'
+    };
+
+    try {
+      const formData = new FormData();
+      formData.append('from', `${env.MAILGUN_FROM_NAME} <${env.MAILGUN_FROM_EMAIL}>`);
+      formData.append('to', data.email);
+      formData.append('subject', `🔐 Security Alert: ${alertMessages[data.alertType]}`);
+      
+      const timestamp = data.timestamp || new Date();
+      const deviceInfo = data.deviceInfo || {};
+      
+      const htmlContent = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <style>
+            body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px; }
+            .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
+            .content { background: white; padding: 30px; border: 1px solid #e5e7eb; border-radius: 0 0 10px 10px; }
+            .alert-box { background: #fef2f2; border: 1px solid #fecaca; border-radius: 8px; padding: 20px; margin: 20px 0; }
+            .alert-box.warning { background: #fef3c7; border-color: #fde68a; }
+            .device-info { background: #f9fafb; padding: 15px; border-radius: 8px; margin: 20px 0; }
+            .device-info p { margin: 5px 0; }
+            .button { display: inline-block; padding: 12px 30px; background: #dc2626; color: white; text-decoration: none; border-radius: 5px; margin: 20px 0; }
+            .footer { text-align: center; margin-top: 30px; padding-top: 20px; border-top: 1px solid #e5e7eb; color: #6b7280; }
+          </style>
+        </head>
+        <body>
+          <div class="header">
+            <h1>🔐 Security Alert</h1>
+          </div>
+          <div class="content">
+            <p>Hi ${data.userName || 'there'},</p>
+            
+            <div class="alert-box ${data.alertType === 'suspicious_activity' ? '' : 'warning'}">
+              <strong>${alertActions[data.alertType]}</strong>
+              <p>Time: ${timestamp.toLocaleString()}</p>
+            </div>
+
+            ${deviceInfo.browser || deviceInfo.os || deviceInfo.location ? `
+            <div class="device-info">
+              <strong>Device Information:</strong>
+              ${deviceInfo.browser ? `<p>Browser: ${deviceInfo.browser}</p>` : ''}
+              ${deviceInfo.os ? `<p>Operating System: ${deviceInfo.os}</p>` : ''}
+              ${deviceInfo.location ? `<p>Location: ${deviceInfo.location}</p>` : ''}
+              ${deviceInfo.ip ? `<p>IP Address: ${deviceInfo.ip}</p>` : ''}
+            </div>
+            ` : ''}
+
+            ${data.alertType === 'new_login' ? `
+            <p><strong>Was this you?</strong></p>
+            <p>If you recognize this activity, you can safely ignore this email.</p>
+            <p>If you don't recognize this activity, please secure your account immediately:</p>
+            <a href="${process.env.NEXT_PUBLIC_APP_URL}/account/security" class="button">Secure My Account</a>
+            ` : ''}
+
+            ${data.alertType === 'password_changed' ? `
+            <p>If you made this change, no further action is needed.</p>
+            <p><strong>If you didn't change your password, your account may be compromised.</strong> Please contact support immediately.</p>
+            ` : ''}
+
+            ${data.alertType === 'email_changed' ? `
+            <p>Your email address has been updated. You'll now receive all account notifications at this address.</p>
+            <p>If you didn't make this change, please contact support immediately.</p>
+            ` : ''}
+
+            ${data.alertType === 'suspicious_activity' ? `
+            <p>We've temporarily secured your account. Please verify your identity to continue using DTF Editor.</p>
+            <a href="${process.env.NEXT_PUBLIC_APP_URL}/account/verify" class="button">Verify My Account</a>
+            ` : ''}
+
+            <div class="footer">
+              <p>This is an automated security notification from DTF Editor.</p>
+              <p>© ${new Date().getFullYear()} DTF Editor. All rights reserved.</p>
+            </div>
+          </div>
+        </body>
+        </html>
+      `;
+
+      formData.append('html', htmlContent);
+      formData.append('text', this.getSecurityAlertText(data));
+      formData.append('o:tracking', 'yes');
+      formData.append('o:tracking-clicks', 'yes');
+      formData.append('o:tracking-opens', 'yes');
+      formData.append('o:tag', `security-${data.alertType}`);
+
+      const response = await fetch(
+        `https://api.mailgun.net/v3/${env.MAILGUN_DOMAIN}/messages`,
+        {
+          method: 'POST',
+          headers: {
+            Authorization: `Basic ${Buffer.from(`api:${env.MAILGUN_API_KEY}`).toString('base64')}`,
+          },
+          body: formData,
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error(`Failed to send security alert: ${response.statusText}`);
+      }
+
+      return true;
+    } catch (error) {
+      console.error('Error sending security alert:', error);
+      return false;
+    }
+  }
+
+  private getSecurityAlertText(data: any): string {
+    const alertMessages = {
+      new_login: 'New Login Detected',
+      password_changed: 'Password Changed',
+      email_changed: 'Email Address Changed',
+      suspicious_activity: 'Suspicious Activity Detected'
+    };
+
+    const timestamp = data.timestamp || new Date();
+    const deviceInfo = data.deviceInfo || {};
+
+    return `
+SECURITY ALERT: ${alertMessages[data.alertType]}
+
+Hi ${data.userName || 'there'},
+
+${data.alertType === 'new_login' ? 'A new login to your account was detected.' : ''}
+${data.alertType === 'password_changed' ? 'Your password has been successfully changed.' : ''}
+${data.alertType === 'email_changed' ? 'Your email address has been updated.' : ''}
+${data.alertType === 'suspicious_activity' ? 'We detected unusual activity on your account.' : ''}
+
+Time: ${timestamp.toLocaleString()}
+
+${deviceInfo.browser ? `Browser: ${deviceInfo.browser}` : ''}
+${deviceInfo.os ? `Operating System: ${deviceInfo.os}` : ''}
+${deviceInfo.location ? `Location: ${deviceInfo.location}` : ''}
+${deviceInfo.ip ? `IP Address: ${deviceInfo.ip}` : ''}
+
+${data.alertType === 'new_login' ? `
+If you recognize this activity, you can safely ignore this email.
+If you don't recognize this activity, please secure your account at:
+${process.env.NEXT_PUBLIC_APP_URL}/account/security
+` : ''}
+
+${data.alertType === 'password_changed' || data.alertType === 'email_changed' ? `
+If you didn't make this change, please contact support immediately.
+` : ''}
+
+${data.alertType === 'suspicious_activity' ? `
+We've temporarily secured your account. Please verify your identity at:
+${process.env.NEXT_PUBLIC_APP_URL}/account/verify
+` : ''}
+
+© ${new Date().getFullYear()} DTF Editor
+    `.trim();
+  }
+
+  async sendAccountActivitySummary(data: {
+    email: string;
+    userName?: string;
+    period: 'weekly' | 'monthly';
+    stats: {
+      loginsCount: number;
+      imagesProcessed: number;
+      creditsUsed: number;
+      storageUsed: string;
+      lastLogin?: Date;
+      mostUsedFeature?: string;
+    };
+  }): Promise<boolean> {
+    if (!isFeatureAvailable('mailgun')) {
+      console.log('Account activity summary email (Mailgun not configured):', data);
+      return false;
+    }
+
+    try {
+      const formData = new FormData();
+      formData.append('from', `${env.MAILGUN_FROM_NAME} <${env.MAILGUN_FROM_EMAIL}>`);
+      formData.append('to', data.email);
+      formData.append('subject', `📊 Your ${data.period === 'weekly' ? 'Weekly' : 'Monthly'} Activity Summary`);
+      
+      const htmlContent = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <style>
+            body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px; }
+            .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
+            .content { background: white; padding: 30px; border: 1px solid #e5e7eb; border-radius: 0 0 10px 10px; }
+            .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin: 20px 0; }
+            .stat-box { background: #f9fafb; padding: 20px; border-radius: 8px; text-align: center; }
+            .stat-value { font-size: 28px; font-weight: bold; color: #6366f1; }
+            .stat-label { color: #6b7280; margin-top: 5px; }
+            .footer { text-align: center; margin-top: 30px; padding-top: 20px; border-top: 1px solid #e5e7eb; color: #6b7280; }
+          </style>
+        </head>
+        <body>
+          <div class="header">
+            <h1>📊 ${data.period === 'weekly' ? 'Weekly' : 'Monthly'} Activity Summary</h1>
+          </div>
+          <div class="content">
+            <p>Hi ${data.userName || 'there'},</p>
+            
+            <p>Here's your ${data.period} activity summary for DTF Editor:</p>
+
+            <div class="stats-grid">
+              <div class="stat-box">
+                <div class="stat-value">${data.stats.loginsCount}</div>
+                <div class="stat-label">Logins</div>
+              </div>
+              <div class="stat-box">
+                <div class="stat-value">${data.stats.imagesProcessed}</div>
+                <div class="stat-label">Images Processed</div>
+              </div>
+              <div class="stat-box">
+                <div class="stat-value">${data.stats.creditsUsed}</div>
+                <div class="stat-label">Credits Used</div>
+              </div>
+              <div class="stat-box">
+                <div class="stat-value">${data.stats.storageUsed}</div>
+                <div class="stat-label">Storage Used</div>
+              </div>
+            </div>
+
+            ${data.stats.lastLogin ? `
+            <p><strong>Last Login:</strong> ${data.stats.lastLogin.toLocaleString()}</p>
+            ` : ''}
+
+            ${data.stats.mostUsedFeature ? `
+            <p><strong>Most Used Feature:</strong> ${data.stats.mostUsedFeature}</p>
+            ` : ''}
+
+            <p>Keep creating amazing DTF transfers!</p>
+
+            <div class="footer">
+              <p>You're receiving this because you're subscribed to activity summaries.</p>
+              <p><a href="${process.env.NEXT_PUBLIC_APP_URL}/account/preferences">Update Email Preferences</a></p>
+              <p>© ${new Date().getFullYear()} DTF Editor. All rights reserved.</p>
+            </div>
+          </div>
+        </body>
+        </html>
+      `;
+
+      formData.append('html', htmlContent);
+      formData.append('text', this.getAccountActivityText(data));
+      formData.append('o:tracking', 'yes');
+      formData.append('o:tracking-clicks', 'yes');
+      formData.append('o:tracking-opens', 'yes');
+      formData.append('o:tag', `activity-${data.period}`);
+
+      const response = await fetch(
+        `https://api.mailgun.net/v3/${env.MAILGUN_DOMAIN}/messages`,
+        {
+          method: 'POST',
+          headers: {
+            Authorization: `Basic ${Buffer.from(`api:${env.MAILGUN_API_KEY}`).toString('base64')}`,
+          },
+          body: formData,
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error(`Failed to send activity summary: ${response.statusText}`);
+      }
+
+      return true;
+    } catch (error) {
+      console.error('Error sending activity summary:', error);
+      return false;
+    }
+  }
+
+  private getAccountActivityText(data: any): string {
+    return `
+${data.period === 'weekly' ? 'WEEKLY' : 'MONTHLY'} ACTIVITY SUMMARY
+
+Hi ${data.userName || 'there'},
+
+Here's your ${data.period} activity summary for DTF Editor:
+
+• Logins: ${data.stats.loginsCount}
+• Images Processed: ${data.stats.imagesProcessed}
+• Credits Used: ${data.stats.creditsUsed}
+• Storage Used: ${data.stats.storageUsed}
+
+${data.stats.lastLogin ? `Last Login: ${data.stats.lastLogin.toLocaleString()}` : ''}
+${data.stats.mostUsedFeature ? `Most Used Feature: ${data.stats.mostUsedFeature}` : ''}
+
+Keep creating amazing DTF transfers!
+
+---
+
+Update email preferences:
+${process.env.NEXT_PUBLIC_APP_URL}/account/preferences
+
+© ${new Date().getFullYear()} DTF Editor
+    `.trim();
+  }
 }
 
 // Export singleton instance

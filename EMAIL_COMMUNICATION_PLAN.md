@@ -51,6 +51,22 @@
    - Notifies users when processing fails with credit refund info
    - Status: **IMPLEMENTED**
 
+### ✅ **Phase 3 Completed (Security & Account Management)**
+
+1. **Security Alert Emails** ✅
+   - Template: `sendSecurityAlert()`
+   - Triggered on: new login, password change, email change, suspicious activity
+   - Includes device info (browser, OS, IP, location)
+   - API endpoint: `/api/auth/security-alert`
+   - Status: **IMPLEMENTED** - Integrated with login flow
+
+2. **Account Activity Summaries** ✅
+   - Template: `sendAccountActivitySummary()`
+   - Cron job: `/api/cron/weekly-activity-summary`
+   - Sends weekly summaries with usage stats
+   - Includes: logins, images processed, credits used, storage
+   - Status: **IMPLEMENTED**
+
 ### ⚠️ **Implemented But Not Connected**
 
 These email templates exist but are NOT being called anywhere:
