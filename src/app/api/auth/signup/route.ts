@@ -13,7 +13,7 @@ export async function POST(request: NextRequest) {
     
     // Create Supabase client with service role for signup
     const supabase = createClient(
-      env.NEXT_PUBLIC_SUPABASE_URL,
+      env.SUPABASE_URL,
       env.SUPABASE_SERVICE_ROLE_KEY
     );
     
@@ -67,20 +67,30 @@ export async function POST(request: NextRequest) {
     
     // Send welcome email (this happens server-side, so it won't be cancelled)
     console.log('[SIGNUP API] Step 5: Sending welcome email to:', email);
+    console.log('[SIGNUP API] Email metadata:', {
+      email: email,
+      firstName: metadata?.firstName || '',
+      planName: 'Free',
+    });
+    
     try {
+      console.log('[SIGNUP API] Calling emailService.sendWelcomeEmail...');
       const emailSent = await emailService.sendWelcomeEmail({
         email: email,
         firstName: metadata?.firstName || '',
         planName: 'Free',
       });
       
+      console.log('[SIGNUP API] emailService.sendWelcomeEmail returned:', emailSent);
+      
       if (emailSent) {
         console.log('[SIGNUP API] Step 6: Welcome email sent successfully');
       } else {
-        console.error('[SIGNUP API] Step 6: Welcome email failed to send');
+        console.error('[SIGNUP API] Step 6: Welcome email failed to send (returned false)');
       }
     } catch (emailError) {
-      console.error('[SIGNUP API] Step 6: Welcome email error:', emailError);
+      console.error('[SIGNUP API] Step 6: Welcome email error caught:', emailError);
+      console.error('[SIGNUP API] Error stack:', (emailError as any)?.stack);
       // Don't fail signup if email fails
     }
     

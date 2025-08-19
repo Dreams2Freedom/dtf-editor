@@ -176,12 +176,19 @@ export class EmailService {
    * Send welcome email to new users
    */
   async sendWelcomeEmail(data: WelcomeEmailData): Promise<boolean> {
+    console.log('[EmailService] sendWelcomeEmail called with:', data);
+    console.log('[EmailService] Enabled:', this.enabled);
+    console.log('[EmailService] Has API Key:', !!this.mailgunApiKey);
+    console.log('[EmailService] Mailgun Domain:', this.mailgunDomain);
+    
     if (!this.enabled || !this.mailgunApiKey) {
       console.log('EmailService: Would send welcome email to', data.email);
+      console.log('EmailService: Skipping because enabled=', this.enabled, 'hasKey=', !!this.mailgunApiKey);
       return true;
     }
 
     try {
+      console.log('[EmailService] Preparing welcome email for:', data.email);
       const mailOptions = {
         from: `${env.MAILGUN_FROM_NAME} <${env.MAILGUN_FROM_EMAIL}>`,
         to: data.email,
@@ -196,9 +203,13 @@ export class EmailService {
         'v:user_name': data.firstName || 'User',
       };
 
-      return await this.sendMailgunEmail(mailOptions);
+      console.log('[EmailService] Calling sendMailgunEmail with options');
+      const result = await this.sendMailgunEmail(mailOptions);
+      console.log('[EmailService] sendMailgunEmail returned:', result);
+      return result;
     } catch (error) {
-      console.error('Error sending welcome email:', error);
+      console.error('[EmailService] Error sending welcome email:', error);
+      console.error('[EmailService] Error details:', (error as any)?.message);
       return false;
     }
   }

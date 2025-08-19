@@ -5,6 +5,29 @@
 
 ## 🐛 **Critical Bugs (P0)**
 
+### **BUG-053: Welcome Email Not Sent During Signup**
+- **Status:** 🟢 FIXED
+- **Severity:** Critical
+- **Component:** Email System / Signup Flow
+- **Description:** Welcome emails not being sent when new users sign up
+- **Symptoms:**
+  - Test emails from Mailgun worked correctly
+  - User received test emails immediately
+  - But no email received during actual signup process
+- **Root Cause:**
+  - Environment variable mismatch: signup route was using `env.NEXT_PUBLIC_SUPABASE_URL` instead of `env.SUPABASE_URL`
+  - This caused a "supabaseUrl is required" error that prevented the signup API from executing
+- **Solution Applied:**
+  - Fixed environment variable reference in `/src/app/api/auth/signup/route.ts`
+  - Changed from `env.NEXT_PUBLIC_SUPABASE_URL` to `env.SUPABASE_URL`
+  - Emails now being sent successfully via Mailgun
+- **Verification:**
+  - Server logs confirm: "Email sent successfully: <20250819020612.719a59b0ddbb8d12@mg.dtfeditor.com>"
+  - Mailgun API returning success responses
+- **Note:** If emails still not received, likely going to spam or blocked by recipient provider. User should check Mailgun dashboard for bounces and verify domain DNS configuration (SPF, DKIM).
+- **Date Reported:** August 19, 2025
+- **Date Fixed:** August 19, 2025
+
 ### **BUG-017: Subscription Updates Create New Subscriptions**
 - **Status:** 🟢 FIXED
 - **Severity:** Critical
