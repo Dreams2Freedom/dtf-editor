@@ -195,46 +195,52 @@ export const useAuthStore = create<AuthStore>()(
       set({ loading: true, error: null });
 
       try {
-        const result = await authService.signUp(email, password, metadata);
+        console.log('[SIGNUP STORE] Step 1: Calling server-side signup API');
+        
+        // Use server-side signup to ensure email is sent
+        const response = await fetch('/api/auth/signup', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            email,
+            password,
+            metadata,
+          }),
+        });
 
-        if (result.error) {
-          set({ loading: false, error: result.error.message });
-          return { success: false, error: result.error.message };
+        const result = await response.json();
+        
+        console.log('[SIGNUP STORE] Step 2: Server response:', result);
+
+        if (!result.success) {
+          set({ loading: false, error: result.error });
+          return { success: false, error: result.error };
         }
 
         if (result.user) {
-          // Get user profile
-          const profile = await authService.getUserProfile(result.user.id);
+          // If we have a session, set it up
+          if (result.session) {
+            // Get user profile
+            const profile = await authService.getUserProfile(result.user.id);
 
-          set({
-            user: result.user,
-            session: result.user ? await authService.getSession() : null,
-            profile,
-            isAdmin: profile?.is_admin || false,
-            creditsRemaining: profile?.credits_remaining ?? 0,
-            subscriptionStatus: profile?.subscription_status || 'free',
-            subscriptionPlan: profile?.subscription_plan || 'free',
-            loading: false,
-            error: null,
-          });
-
-          // Send welcome email after successful signup
-          try {
-            const response = await fetch('/api/auth/welcome-email', {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-              },
+            set({
+              user: result.user,
+              session: result.session,
+              profile,
+              isAdmin: profile?.is_admin || false,
+              creditsRemaining: profile?.credits_remaining ?? 0,
+              subscriptionStatus: profile?.subscription_status || 'free',
+              subscriptionPlan: profile?.subscription_plan || 'free',
+              loading: false,
+              error: null,
             });
             
-            if (!response.ok) {
-              console.error('Failed to send welcome email:', await response.text());
-            } else {
-              console.log('Welcome email sent successfully');
-            }
-          } catch (error) {
-            console.error('Error sending welcome email:', error);
-            // Don't fail the signup if email fails
+            console.log('[SIGNUP STORE] Step 3: User state set, signup complete');
+          } else {
+            // User created but needs to sign in
+            set({ loading: false, error: null });
           }
 
           return { success: true };

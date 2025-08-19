@@ -45,7 +45,69 @@ async function deleteUser(email) {
     
     console.log(`Found user with ID: ${user.id}`);
     
-    // Delete the user's profile first (due to foreign key constraints)
+    // Delete related records first (due to foreign key constraints)
+    
+    // Delete uploads
+    const { error: uploadsError } = await supabase
+      .from('uploads')
+      .delete()
+      .eq('user_id', user.id);
+    
+    if (uploadsError) {
+      console.log('No uploads to delete or error:', uploadsError?.message);
+    } else {
+      console.log('✅ Deleted user uploads');
+    }
+
+    // Delete credit transactions
+    const { error: creditsError } = await supabase
+      .from('credit_transactions')
+      .delete()
+      .eq('user_id', user.id);
+    
+    if (creditsError) {
+      console.log('No credit transactions to delete or error:', creditsError?.message);
+    } else {
+      console.log('✅ Deleted credit transactions');
+    }
+
+    // Delete support tickets
+    const { error: ticketsError } = await supabase
+      .from('support_tickets')
+      .delete()
+      .eq('user_id', user.id);
+    
+    if (ticketsError) {
+      console.log('No support tickets to delete or error:', ticketsError?.message);
+    } else {
+      console.log('✅ Deleted support tickets');
+    }
+
+    // Delete collections
+    const { error: collectionsError } = await supabase
+      .from('collections')
+      .delete()
+      .eq('user_id', user.id);
+    
+    if (collectionsError) {
+      console.log('No collections to delete or error:', collectionsError?.message);
+    } else {
+      console.log('✅ Deleted collections');
+    }
+
+    // Delete email notifications
+    const { error: emailNotifError } = await supabase
+      .from('email_notifications')
+      .delete()
+      .eq('user_id', user.id);
+    
+    if (emailNotifError) {
+      console.log('No email notifications to delete or error:', emailNotifError?.message);
+    } else {
+      console.log('✅ Deleted email notifications');
+    }
+    
+    // Delete the user's profile
     const { error: profileError } = await supabase
       .from('profiles')
       .delete()
@@ -54,7 +116,7 @@ async function deleteUser(email) {
     if (profileError) {
       console.error('Error deleting profile:', profileError);
     } else {
-      console.log('Profile deleted successfully');
+      console.log('✅ Profile deleted successfully');
     }
     
     // Delete the auth user
@@ -63,7 +125,8 @@ async function deleteUser(email) {
     if (deleteError) {
       console.error('Error deleting user:', deleteError);
     } else {
-      console.log(`User ${email} deleted successfully!`);
+      console.log(`\n✅ User ${email} deleted successfully!`);
+      console.log('You can now test the signup process with this email.');
     }
     
   } catch (error) {
