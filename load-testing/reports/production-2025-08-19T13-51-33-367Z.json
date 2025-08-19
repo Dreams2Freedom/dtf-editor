@@ -1,0 +1,74 @@
+{
+  "config": {
+    "baseUrl": "https://dtfeditor.com",
+    "maxConcurrentUsers": 10,
+    "maxRequestsPerUser": 5,
+    "delayBetweenRequests": 500,
+    "concurrentUsers": 3,
+    "requestsPerUser": 3
+  },
+  "results": {
+    "successful": 9,
+    "failed": 0,
+    "responseTimes": [
+      {
+        "endpoint": "Health Check",
+        "time": 728.8013330000003,
+        "statusCode": 200
+      },
+      {
+        "endpoint": "Health Check",
+        "time": 491.59487500000023,
+        "statusCode": 200
+      },
+      {
+        "endpoint": "Health Check",
+        "time": 875.5972499999998,
+        "statusCode": 200
+      },
+      {
+        "endpoint": "Pricing Page",
+        "time": 141.34375,
+        "statusCode": 200
+      },
+      {
+        "endpoint": "Home Page",
+        "time": 593.7334579999997,
+        "statusCode": 200
+      },
+      {
+        "endpoint": "Health Check",
+        "time": 95.8667919999998,
+        "statusCode": 200
+      },
+      {
+        "endpoint": "Pricing Page",
+        "time": 48.54962499999965,
+        "statusCode": 200
+      },
+      {
+        "endpoint": "Home Page",
+        "time": 49.176415999999335,
+        "statusCode": 200
+      },
+      {
+        "endpoint": "Pricing Page",
+        "time": 59.5096250000006,
+        "statusCode": 200
+      }
+    ],
+    "errors": [],
+    "startTime": 1755611490186,
+    "endTime": 1755611493366
+  },
+  "stats": {
+    "p50": 141.34375,
+    "p95": 875.5972499999998,
+    "p99": 875.5972499999998,
+    "avg": 342.6859026666666,
+    "min": 48.54962499999965,
+    "max": 875.5972499999998
+  },
+  "timestamp": "2025-08-19T13:51:33.369Z",
+  "environment": "production"
+}

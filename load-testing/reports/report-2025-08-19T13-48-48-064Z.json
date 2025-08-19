@@ -1,0 +1,526 @@
+{
+  "config": {
+    "baseUrl": "http://localhost:3000",
+    "concurrentUsers": 10,
+    "testDuration": 30,
+    "requestsPerUser": 10
+  },
+  "results": {
+    "successful": 100,
+    "failed": 0,
+    "responseTimes": [
+      {
+        "endpoint": "Health Check",
+        "time": 25.870875000000012,
+        "statusCode": 200
+      },
+      {
+        "endpoint": "Pricing Page",
+        "time": 53.875125000000025,
+        "statusCode": 200
+      },
+      {
+        "endpoint": "Home Page",
+        "time": 70.04537500000004,
+        "statusCode": 200
+      },
+      {
+        "endpoint": "Process Page",
+        "time": 53.022333,
+        "statusCode": 200
+      },
+      {
+        "endpoint": "Health Check",
+        "time": 8.398457999999948,
+        "statusCode": 200
+      },
+      {
+        "endpoint": "Pricing Page",
+        "time": 43.38441599999999,
+        "statusCode": 200
+      },
+      {
+        "endpoint": "Health Check",
+        "time": 45.07245799999998,
+        "statusCode": 200
+      },
+      {
+        "endpoint": "Pricing Page",
+        "time": 70.86183299999999,
+        "statusCode": 200
+      },
+      {
+        "endpoint": "Process Page",
+        "time": 77.16608299999996,
+        "statusCode": 200
+      },
+      {
+        "endpoint": "Pricing Page",
+        "time": 79.253333,
+        "statusCode": 200
+      },
+      {
+        "endpoint": "Health Check",
+        "time": 66.84466699999996,
+        "statusCode": 200
+      },
+      {
+        "endpoint": "Health Check",
+        "time": 52.26704100000006,
+        "statusCode": 200
+      },
+      {
+        "endpoint": "Health Check",
+        "time": 33.91087500000003,
+        "statusCode": 200
+      },
+      {
+        "endpoint": "Home Page",
+        "time": 61.988958000000025,
+        "statusCode": 200
+      },
+      {
+        "endpoint": "Pricing Page",
+        "time": 49.93983299999991,
+        "statusCode": 200
+      },
+      {
+        "endpoint": "Home Page",
+        "time": 88.48733300000004,
+        "statusCode": 200
+      },
+      {
+        "endpoint": "Health Check",
+        "time": 59.774125000000026,
+        "statusCode": 200
+      },
+      {
+        "endpoint": "Pricing Page",
+        "time": 105.27058399999999,
+        "statusCode": 200
+      },
+      {
+        "endpoint": "Process Page",
+        "time": 173.78754100000003,
+        "statusCode": 200
+      },
+      {
+        "endpoint": "Home Page",
+        "time": 75.087625,
+        "statusCode": 200
+      },
+      {
+        "endpoint": "Process Page",
+        "time": 87.29208399999993,
+        "statusCode": 200
+      },
+      {
+        "endpoint": "Process Page",
+        "time": 40.90899999999999,
+        "statusCode": 200
+      },
+      {
+        "endpoint": "Health Check",
+        "time": 26.261665999999877,
+        "statusCode": 200
+      },
+      {
+        "endpoint": "Home Page",
+        "time": 70.13312499999995,
+        "statusCode": 200
+      },
+      {
+        "endpoint": "Process Page",
+        "time": 77.0095,
+        "statusCode": 200
+      },
+      {
+        "endpoint": "Home Page",
+        "time": 46.328500000000076,
+        "statusCode": 200
+      },
+      {
+        "endpoint": "Pricing Page",
+        "time": 37.184792000000016,
+        "statusCode": 200
+      },
+      {
+        "endpoint": "Home Page",
+        "time": 65.21550000000002,
+        "statusCode": 200
+      },
+      {
+        "endpoint": "Pricing Page",
+        "time": 102.619416,
+        "statusCode": 200
+      },
+      {
+        "endpoint": "Process Page",
+        "time": 148.70354199999997,
+        "statusCode": 200
+      },
+      {
+        "endpoint": "Pricing Page",
+        "time": 138.09345800000006,
+        "statusCode": 200
+      },
+      {
+        "endpoint": "Health Check",
+        "time": 114.62799999999993,
+        "statusCode": 200
+      },
+      {
+        "endpoint": "Home Page",
+        "time": 112.38779099999988,
+        "statusCode": 200
+      },
+      {
+        "endpoint": "Home Page",
+        "time": 76.46637499999997,
+        "statusCode": 200
+      },
+      {
+        "endpoint": "Pricing Page",
+        "time": 101.4699579999999,
+        "statusCode": 200
+      },
+      {
+        "endpoint": "Health Check",
+        "time": 70.61691599999995,
+        "statusCode": 200
+      },
+      {
+        "endpoint": "Pricing Page",
+        "time": 111.11920899999996,
+        "statusCode": 200
+      },
+      {
+        "endpoint": "Health Check",
+        "time": 13.746000000000095,
+        "statusCode": 200
+      },
+      {
+        "endpoint": "Pricing Page",
+        "time": 36.04299999999989,
+        "statusCode": 200
+      },
+      {
+        "endpoint": "Process Page",
+        "time": 43.005499999999984,
+        "statusCode": 200
+      },
+      {
+        "endpoint": "Pricing Page",
+        "time": 46.54591699999992,
+        "statusCode": 200
+      },
+      {
+        "endpoint": "Health Check",
+        "time": 9.609874999999874,
+        "statusCode": 200
+      },
+      {
+        "endpoint": "Process Page",
+        "time": 46.04504100000008,
+        "statusCode": 200
+      },
+      {
+        "endpoint": "Health Check",
+        "time": 14.723332999999911,
+        "statusCode": 200
+      },
+      {
+        "endpoint": "Process Page",
+        "time": 76.39137499999993,
+        "statusCode": 200
+      },
+      {
+        "endpoint": "Process Page",
+        "time": 96.02662499999997,
+        "statusCode": 200
+      },
+      {
+        "endpoint": "Home Page",
+        "time": 68.299667,
+        "statusCode": 200
+      },
+      {
+        "endpoint": "Health Check",
+        "time": 61.890791000000036,
+        "statusCode": 200
+      },
+      {
+        "endpoint": "Pricing Page",
+        "time": 35.59337500000015,
+        "statusCode": 200
+      },
+      {
+        "endpoint": "Home Page",
+        "time": 60.82933400000002,
+        "statusCode": 200
+      },
+      {
+        "endpoint": "Home Page",
+        "time": 73.8877910000001,
+        "statusCode": 200
+      },
+      {
+        "endpoint": "Pricing Page",
+        "time": 61.018833000000086,
+        "statusCode": 200
+      },
+      {
+        "endpoint": "Process Page",
+        "time": 39.73370900000009,
+        "statusCode": 200
+      },
+      {
+        "endpoint": "Home Page",
+        "time": 28.244958000000224,
+        "statusCode": 200
+      },
+      {
+        "endpoint": "Health Check",
+        "time": 6.778582999999799,
+        "statusCode": 200
+      },
+      {
+        "endpoint": "Process Page",
+        "time": 40.01570899999979,
+        "statusCode": 200
+      },
+      {
+        "endpoint": "Health Check",
+        "time": 10.849666999999954,
+        "statusCode": 200
+      },
+      {
+        "endpoint": "Pricing Page",
+        "time": 35.667333000000326,
+        "statusCode": 200
+      },
+      {
+        "endpoint": "Health Check",
+        "time": 5.79358400000001,
+        "statusCode": 200
+      },
+      {
+        "endpoint": "Health Check",
+        "time": 5.408582999999908,
+        "statusCode": 200
+      },
+      {
+        "endpoint": "Pricing Page",
+        "time": 39.795374999999694,
+        "statusCode": 200
+      },
+      {
+        "endpoint": "Health Check",
+        "time": 42.94745899999998,
+        "statusCode": 200
+      },
+      {
+        "endpoint": "Pricing Page",
+        "time": 66.3291250000002,
+        "statusCode": 200
+      },
+      {
+        "endpoint": "Process Page",
+        "time": 116.7725830000004,
+        "statusCode": 200
+      },
+      {
+        "endpoint": "Pricing Page",
+        "time": 40.23295800000005,
+        "statusCode": 200
+      },
+      {
+        "endpoint": "Pricing Page",
+        "time": 63.955375000000004,
+        "statusCode": 200
+      },
+      {
+        "endpoint": "Home Page",
+        "time": 84.72241699999995,
+        "statusCode": 200
+      },
+      {
+        "endpoint": "Pricing Page",
+        "time": 79.02383400000008,
+        "statusCode": 200
+      },
+      {
+        "endpoint": "Pricing Page",
+        "time": 89.713209,
+        "statusCode": 200
+      },
+      {
+        "endpoint": "Process Page",
+        "time": 161.1278339999999,
+        "statusCode": 200
+      },
+      {
+        "endpoint": "Health Check",
+        "time": 77.79670800000031,
+        "statusCode": 200
+      },
+      {
+        "endpoint": "Home Page",
+        "time": 107.68212499999981,
+        "statusCode": 200
+      },
+      {
+        "endpoint": "Pricing Page",
+        "time": 127.88083300000017,
+        "statusCode": 200
+      },
+      {
+        "endpoint": "Health Check",
+        "time": 16.591707999999926,
+        "statusCode": 200
+      },
+      {
+        "endpoint": "Health Check",
+        "time": 5.8813749999999345,
+        "statusCode": 200
+      },
+      {
+        "endpoint": "Home Page",
+        "time": 30.009416999999758,
+        "statusCode": 200
+      },
+      {
+        "endpoint": "Pricing Page",
+        "time": 58.01804100000027,
+        "statusCode": 200
+      },
+      {
+        "endpoint": "Pricing Page",
+        "time": 90.44008299999996,
+        "statusCode": 200
+      },
+      {
+        "endpoint": "Health Check",
+        "time": 69.40987499999983,
+        "statusCode": 200
+      },
+      {
+        "endpoint": "Home Page",
+        "time": 83.0265830000003,
+        "statusCode": 200
+      },
+      {
+        "endpoint": "Home Page",
+        "time": 30.670917000000372,
+        "statusCode": 200
+      },
+      {
+        "endpoint": "Home Page",
+        "time": 52.31720799999994,
+        "statusCode": 200
+      },
+      {
+        "endpoint": "Process Page",
+        "time": 38.56620799999973,
+        "statusCode": 200
+      },
+      {
+        "endpoint": "Pricing Page",
+        "time": 46.63854199999969,
+        "statusCode": 200
+      },
+      {
+        "endpoint": "Process Page",
+        "time": 102.31433300000026,
+        "statusCode": 200
+      },
+      {
+        "endpoint": "Health Check",
+        "time": 62.64308299999993,
+        "statusCode": 200
+      },
+      {
+        "endpoint": "Home Page",
+        "time": 30.362083999999868,
+        "statusCode": 200
+      },
+      {
+        "endpoint": "Home Page",
+        "time": 29.653208000000177,
+        "statusCode": 200
+      },
+      {
+        "endpoint": "Health Check",
+        "time": 35.13858399999981,
+        "statusCode": 200
+      },
+      {
+        "endpoint": "Home Page",
+        "time": 37.09483300000011,
+        "statusCode": 200
+      },
+      {
+        "endpoint": "Home Page",
+        "time": 57.97200000000021,
+        "statusCode": 200
+      },
+      {
+        "endpoint": "Home Page",
+        "time": 36.88516600000003,
+        "statusCode": 200
+      },
+      {
+        "endpoint": "Process Page",
+        "time": 45.358999999999924,
+        "statusCode": 200
+      },
+      {
+        "endpoint": "Process Page",
+        "time": 39.4091669999998,
+        "statusCode": 200
+      },
+      {
+        "endpoint": "Process Page",
+        "time": 71.64849999999979,
+        "statusCode": 200
+      },
+      {
+        "endpoint": "Health Check",
+        "time": 41.34825000000001,
+        "statusCode": 200
+      },
+      {
+        "endpoint": "Health Check",
+        "time": 13.89212499999985,
+        "statusCode": 200
+      },
+      {
+        "endpoint": "Pricing Page",
+        "time": 36.16458399999965,
+        "statusCode": 200
+      },
+      {
+        "endpoint": "Health Check",
+        "time": 7.0349999999998545,
+        "statusCode": 200
+      },
+      {
+        "endpoint": "Pricing Page",
+        "time": 43.704625000000306,
+        "statusCode": 200
+      }
+    ],
+    "errors": [],
+    "startTime": 1755611323683,
+    "endTime": 1755611328062
+  },
+  "stats": {
+    "p50": 53.875125000000025,
+    "p95": 127.88083300000017,
+    "p99": 173.78754100000003,
+    "avg": 59.47070619999999,
+    "min": 5.408582999999908,
+    "max": 173.78754100000003
+  },
+  "timestamp": "2025-08-19T13:48:48.065Z"
+}

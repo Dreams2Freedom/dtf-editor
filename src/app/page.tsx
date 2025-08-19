@@ -192,16 +192,28 @@ export default function HomePage() {
                   <div className="absolute top-4 left-4 z-10 bg-red-500 text-white px-3 py-1 rounded-full text-sm font-medium">
                     Before
                   </div>
-                  <div className="bg-gray-100 rounded-lg h-96 flex items-center justify-center">
-                    <span className="text-gray-400">Low Quality Image</span>
+                  <div className="bg-gray-100 rounded-lg h-96 overflow-hidden">
+                    <Image 
+                      src="/images/home/upscale-before.png"
+                      alt="Low quality pixelated image before upscaling"
+                      width={800}
+                      height={384}
+                      className="w-full h-full object-cover"
+                    />
                   </div>
                 </div>
                 <div className="relative">
                   <div className="absolute top-4 left-4 z-10 bg-green-500 text-white px-3 py-1 rounded-full text-sm font-medium">
                     After
                   </div>
-                  <div className="bg-gradient-to-br from-blue-50 to-purple-50 rounded-lg h-96 flex items-center justify-center">
-                    <span className="text-gray-600 font-medium">HD Print-Ready Result</span>
+                  <div className="bg-gradient-to-br from-blue-50 to-purple-50 rounded-lg h-96 overflow-hidden">
+                    <Image 
+                      src="/images/home/upscale-after.png"
+                      alt="HD print-ready image after AI upscaling"
+                      width={800}
+                      height={384}
+                      className="w-full h-full object-cover"
+                    />
                   </div>
                 </div>
               </div>
