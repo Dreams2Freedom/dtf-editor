@@ -6,7 +6,7 @@
 ## 🐛 **Critical Bugs (P0)**
 
 ### **BUG-054: Duplicate Credit Allocation on Payment**
-- **Status:** 🟢 FIXED
+- **Status:** 🟢 FIXED (FULLY RESOLVED)
 - **Severity:** Critical
 - **Component:** Payment Processing / Webhooks
 - **Description:** Credits were being allocated twice for a single payment
@@ -15,17 +15,22 @@
   - Payment history showed transaction twice
   - Stripe dashboard showed only one transaction (correct)
   - User was charged correctly (once)
-- **Root Cause:**
-  - Two webhook endpoints were both processing payment_intent.succeeded events
-  - `/api/webhooks/stripe` - Main webhook handler
-  - `/api/webhooks/stripe-simple` - Simplified webhook (created as workaround)
-  - Both were calling `add_user_credits` RPC for the same payment
-- **Solution Applied:**
-  - Disabled payment_intent.succeeded processing in stripe-simple webhook
-  - Added check to skip and log when payment events arrive at stripe-simple
-  - Main webhook at /api/webhooks/stripe now handles all payment intents
+- **Root Cause (COMPLETE):**
+  - TWO different issues were causing duplicates:
+  - 1. Two webhook endpoints both processing same events (partially fixed first)
+  - 2. BOTH `checkout.session.completed` AND `payment_intent.succeeded` were adding credits
+  - For pay-as-you-go purchases, Stripe sends both events for the same payment
+- **Solution Applied (FINAL):**
+  - First fix: Disabled payment processing in stripe-simple webhook
+  - REAL fix: Removed credit addition from `payment_intent.succeeded` handler
+  - Now ONLY `checkout.session.completed` adds credits (best practice)
+  - This prevents duplicates even if multiple webhooks receive events
+- **Verification:**
+  - Refund flow works correctly (deducts credits)
+  - New purchases only add credits once
+  - Payment history shows single entries
 - **Date Reported:** August 19, 2025
-- **Date Fixed:** August 19, 2025
+- **Date Fixed:** August 19, 2025 (final fix deployed 8:44 AM)
 
 ### **BUG-053: Welcome Email Not Sent During Signup**
 - **Status:** 🟢 FIXED
