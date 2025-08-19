@@ -317,37 +317,26 @@ async function handlePaymentIntentSucceeded(paymentIntent: any) {
   console.log('Payment Intent ID:', paymentIntent.id);
   console.log('Metadata:', paymentIntent.metadata);
   
+  // IMPORTANT: Credits are now added in checkout.session.completed to prevent duplicates
+  // This handler now only sends confirmation emails for direct payment intents
+  // that don't go through Checkout (if any exist in your flow)
+  
   const userId = paymentIntent.metadata?.userId;
   const credits = parseInt(paymentIntent.metadata?.credits || '0');
   
   console.log('User ID:', userId);
-  console.log('Credits to add:', credits);
+  console.log('Credits in metadata:', credits);
+  console.log('⚠️ NOTE: Credits are added via checkout.session.completed, not here');
   
-  if (!userId || !credits) {
-    console.log('⚠️ Missing userId or credits, skipping');
+  if (!userId) {
+    console.log('⚠️ No userId, skipping');
     return;
   }
 
   try {
-    // Use the credit addition function for pay-as-you-go purchases
-    console.log('📝 Calling add_user_credits RPC...');
-    const { error } = await getSupabase().rpc('add_user_credits', {
-      p_user_id: userId,
-      p_amount: credits,
-      p_transaction_type: 'purchase',
-      p_description: `${credits} credits purchase`,
-      p_metadata: {
-        stripe_payment_intent_id: paymentIntent.id,
-        price_paid: paymentIntent.amount // in cents
-      }
-    });
-
-    if (error) {
-      console.error('❌ RPC Error:', error);
-      throw error;
-    }
-    
-    console.log('✅ Credits added successfully!');
+    // DON'T add credits here - they're added in checkout.session.completed
+    // This prevents duplicate credit allocation (BUG-054)
+    console.log('✅ Payment intent processed (credits handled by checkout.session)');
     
     // Send purchase confirmation email
     try {
