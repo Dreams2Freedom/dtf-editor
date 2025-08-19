@@ -145,7 +145,7 @@ export function DPIChecker({ showSignupForm = true, onSignupComplete }: DPICheck
           if (uploadResponse.status === 401) {
             alert('Your session has expired. Please sign in again to continue.');
             // Clear the auth state and redirect to login
-            router.push('/auth/signin?redirect=/free-dpi-checker');
+            router.push('/auth/login?redirect=/free-dpi-checker');
             return;
           }
           
@@ -625,7 +625,7 @@ export function DPIChecker({ showSignupForm = true, onSignupComplete }: DPICheck
                 Already have an account?{' '}
                 <button
                   type="button"
-                  onClick={() => router.push('/auth/signin')}
+                  onClick={() => router.push('/auth/login')}
                   className="text-[#366494] hover:underline"
                 >
                   Sign in
