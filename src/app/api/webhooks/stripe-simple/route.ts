@@ -130,37 +130,13 @@ export async function POST(request: NextRequest) {
   }
 
   // Handle payment_intent.succeeded
+  // DISABLED: This is now handled by the main webhook at /api/webhooks/stripe
+  // to prevent duplicate credit allocation (BUG-054)
   if (event.type === 'payment_intent.succeeded') {
-    const paymentIntent = event.data.object as Stripe.PaymentIntent;
-    const userId = paymentIntent.metadata?.userId;
-    const credits = parseInt(paymentIntent.metadata?.credits || '0');
-
-    if (userId && credits > 0) {
-      console.log(`Adding ${credits} credits to user ${userId}`);
-      
-      try {
-        const { error } = await getSupabase().rpc('add_user_credits', {
-          p_user_id: userId,
-          p_amount: credits,
-          p_transaction_type: 'purchase',
-          p_description: `${credits} credits purchase`,
-          p_metadata: {
-            stripe_payment_intent_id: paymentIntent.id,
-            price_paid: paymentIntent.amount
-          }
-        });
-
-        if (error) {
-          console.error('Supabase error:', error);
-          throw error;
-        }
-
-        console.log('✅ Credits added successfully!');
-      } catch (err) {
-        console.error('Failed to add credits:', err);
-        return NextResponse.json({ error: 'Failed to add credits' }, { status: 500 });
-      }
-    }
+    console.log('⚠️ payment_intent.succeeded received at stripe-simple webhook');
+    console.log('⚠️ This event is handled by the main webhook - skipping to prevent duplicates');
+    // Return success so Stripe doesn't retry, but don't process the payment
+    return NextResponse.json({ received: true });
   }
 
   // Handle subscription updates (plan changes)

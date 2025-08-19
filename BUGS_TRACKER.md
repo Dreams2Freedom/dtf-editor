@@ -5,6 +5,28 @@
 
 ## 🐛 **Critical Bugs (P0)**
 
+### **BUG-054: Duplicate Credit Allocation on Payment**
+- **Status:** 🟢 FIXED
+- **Severity:** Critical
+- **Component:** Payment Processing / Webhooks
+- **Description:** Credits were being allocated twice for a single payment
+- **Symptoms:**
+  - User purchased 10 credits, received 20 credits
+  - Payment history showed transaction twice
+  - Stripe dashboard showed only one transaction (correct)
+  - User was charged correctly (once)
+- **Root Cause:**
+  - Two webhook endpoints were both processing payment_intent.succeeded events
+  - `/api/webhooks/stripe` - Main webhook handler
+  - `/api/webhooks/stripe-simple` - Simplified webhook (created as workaround)
+  - Both were calling `add_user_credits` RPC for the same payment
+- **Solution Applied:**
+  - Disabled payment_intent.succeeded processing in stripe-simple webhook
+  - Added check to skip and log when payment events arrive at stripe-simple
+  - Main webhook at /api/webhooks/stripe now handles all payment intents
+- **Date Reported:** August 19, 2025
+- **Date Fixed:** August 19, 2025
+
 ### **BUG-053: Welcome Email Not Sent During Signup**
 - **Status:** 🟢 FIXED
 - **Severity:** Critical
