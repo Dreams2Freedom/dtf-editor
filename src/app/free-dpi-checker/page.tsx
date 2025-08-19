@@ -46,8 +46,8 @@ export default function FreeDPICheckerPage() {
             {/* Trust Indicators */}
             <div className="flex justify-center items-center gap-8 mb-8 text-gray-500">
               <div className="flex items-center gap-2">
-                <Users className="w-5 h-5" />
-                <span className="text-sm">5M+ Checks</span>
+                <Shield className="w-5 h-5" />
+                <span className="text-sm">Trusted Tool</span>
               </div>
               <div className="flex items-center gap-2">
                 <Shield className="w-5 h-5" />
