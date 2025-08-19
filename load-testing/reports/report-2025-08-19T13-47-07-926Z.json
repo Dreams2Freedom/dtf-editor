@@ -1,0 +1,57 @@
+{
+  "config": {
+    "baseUrl": "http://localhost:3000",
+    "concurrentUsers": 3,
+    "testDuration": 30,
+    "requestsPerUser": 2
+  },
+  "results": {
+    "successful": 2,
+    "failed": 4,
+    "responseTimes": [
+      {
+        "endpoint": "Home Page",
+        "time": 3400.892708,
+        "statusCode": 200
+      },
+      {
+        "endpoint": "Process Page",
+        "time": 4434.888,
+        "statusCode": 200
+      }
+    ],
+    "errors": [
+      {
+        "endpoint": "Health Check",
+        "statusCode": 404,
+        "error": "HTTP 404"
+      },
+      {
+        "endpoint": "Health Check",
+        "statusCode": 404,
+        "error": "HTTP 404"
+      },
+      {
+        "endpoint": "Health Check",
+        "statusCode": 404,
+        "error": "HTTP 404"
+      },
+      {
+        "endpoint": "Health Check",
+        "statusCode": 404,
+        "error": "HTTP 404"
+      }
+    ],
+    "startTime": 1755611222942,
+    "endTime": 1755611227926
+  },
+  "stats": {
+    "p50": 4434.888,
+    "p95": 4434.888,
+    "p99": 4434.888,
+    "avg": 3917.890354,
+    "min": 3400.892708,
+    "max": 4434.888
+  },
+  "timestamp": "2025-08-19T13:47:07.928Z"
+}

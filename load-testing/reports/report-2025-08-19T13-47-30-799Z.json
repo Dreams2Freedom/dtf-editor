@@ -1,0 +1,101 @@
+{
+  "config": {
+    "baseUrl": "http://localhost:3000",
+    "concurrentUsers": 5,
+    "testDuration": 30,
+    "requestsPerUser": 3
+  },
+  "results": {
+    "successful": 15,
+    "failed": 0,
+    "responseTimes": [
+      {
+        "endpoint": "Pricing Page",
+        "time": 1129.0389169999999,
+        "statusCode": 200
+      },
+      {
+        "endpoint": "Pricing Page",
+        "time": 916.3501250000002,
+        "statusCode": 200
+      },
+      {
+        "endpoint": "Home Page",
+        "time": 1006.932667,
+        "statusCode": 200
+      },
+      {
+        "endpoint": "Home Page",
+        "time": 1005.2001660000001,
+        "statusCode": 200
+      },
+      {
+        "endpoint": "Process Page",
+        "time": 1031.1844999999998,
+        "statusCode": 200
+      },
+      {
+        "endpoint": "Health Check",
+        "time": 326.80383299999994,
+        "statusCode": 200
+      },
+      {
+        "endpoint": "Health Check",
+        "time": 135.78529099999992,
+        "statusCode": 200
+      },
+      {
+        "endpoint": "Pricing Page",
+        "time": 475.5054160000002,
+        "statusCode": 200
+      },
+      {
+        "endpoint": "Home Page",
+        "time": 556.656416,
+        "statusCode": 200
+      },
+      {
+        "endpoint": "Home Page",
+        "time": 522.8206670000002,
+        "statusCode": 200
+      },
+      {
+        "endpoint": "Home Page",
+        "time": 131.64937499999996,
+        "statusCode": 200
+      },
+      {
+        "endpoint": "Process Page",
+        "time": 73.99174999999968,
+        "statusCode": 200
+      },
+      {
+        "endpoint": "Home Page",
+        "time": 53.67183299999988,
+        "statusCode": 200
+      },
+      {
+        "endpoint": "Home Page",
+        "time": 41.88695800000005,
+        "statusCode": 200
+      },
+      {
+        "endpoint": "Home Page",
+        "time": 45.311709000000064,
+        "statusCode": 200
+      }
+    ],
+    "errors": [],
+    "startTime": 1755611248108,
+    "endTime": 1755611250797
+  },
+  "stats": {
+    "p50": 475.5054160000002,
+    "p95": 1129.0389169999999,
+    "p99": 1129.0389169999999,
+    "avg": 496.8526415333334,
+    "min": 41.88695800000005,
+    "max": 1129.0389169999999
+  },
+  "timestamp": "2025-08-19T13:47:30.800Z"
+}

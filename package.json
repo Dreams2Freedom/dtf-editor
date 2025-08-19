@@ -14,7 +14,12 @@
     "test:coverage": "vitest --coverage",
     "type-check": "tsc --noEmit",
     "db:setup": "node scripts/setup-database.js",
-    "prepare": "husky"
+    "prepare": "husky",
+    "load:quick": "node load-testing/simple-load-test.js",
+    "load:moderate": "CONCURRENT_USERS=25 REQUESTS_PER_USER=15 node load-testing/simple-load-test.js",
+    "load:stress": "CONCURRENT_USERS=50 REQUESTS_PER_USER=20 node load-testing/simple-load-test.js",
+    "load:flows": "TEST_USERS=10 node load-testing/user-flow-test.js",
+    "load:local": "TEST_URL=http://localhost:3000 node load-testing/simple-load-test.js"
   },
   "dependencies": {
     "@headlessui/react": "^2.1.1",
