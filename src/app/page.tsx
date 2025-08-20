@@ -151,17 +151,37 @@ export default function HomePage() {
               </p>
             </div>
 
-            {/* Interactive Feature Tabs */}
-            <div className="flex justify-center mb-8">
-              <div className="inline-flex bg-gray-100 rounded-lg p-1">
+            {/* Interactive Feature Tabs - Modern Mobile Design */}
+            <div className="mb-8">
+              {/* Desktop Tabs */}
+              <div className="hidden md:flex justify-center">
+                <div className="inline-flex bg-gray-100 rounded-lg p-1">
+                  {features.map((feature) => (
+                    <button
+                      key={feature.id}
+                      onClick={() => setActiveTab(feature.id as any)}
+                      className={`px-6 py-3 rounded-lg font-medium transition-all ${
+                        activeTab === feature.id 
+                          ? 'bg-white text-gray-900 shadow-sm' 
+                          : 'text-gray-600 hover:text-gray-900'
+                      }`}
+                    >
+                      {feature.title}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              
+              {/* Mobile Grid - 2x2 Modern Layout */}
+              <div className="grid grid-cols-2 gap-2 md:hidden px-4">
                 {features.map((feature) => (
                   <button
                     key={feature.id}
                     onClick={() => setActiveTab(feature.id as any)}
-                    className={`px-6 py-3 rounded-lg font-medium transition-all ${
+                    className={`py-3 px-4 rounded-xl font-medium transition-all text-sm ${
                       activeTab === feature.id 
-                        ? 'bg-white text-gray-900 shadow-sm' 
-                        : 'text-gray-600 hover:text-gray-900'
+                        ? 'bg-gradient-to-r from-[#366494] to-[#447CBA] text-white shadow-lg transform scale-105' 
+                        : 'bg-white text-gray-700 border border-gray-200'
                     }`}
                   >
                     {feature.title}
@@ -553,28 +573,56 @@ export default function HomePage() {
               </div>
             </div>
 
-            {/* Need More Credits */}
-            <div className="mt-16 bg-gray-50 rounded-2xl p-8 text-center">
-              <h3 className="text-2xl font-bold text-gray-900 mb-4">Need More Credits?</h3>
-              <p className="text-gray-600 mb-6">Buy credit packs anytime. No subscription required.</p>
-              <div className="flex justify-center gap-6 mb-8">
-                <div className="bg-white rounded-lg px-6 py-4 shadow-sm">
-                  <span className="font-bold text-xl">10 Credits</span>
-                  <span className="text-gray-600 ml-2">$7.99</span>
-                  <div className="text-xs text-gray-500 mt-1">$0.80 per credit</div>
+            {/* Need More Credits - Modern Card Design */}
+            <div className="mt-16 bg-gradient-to-br from-gray-50 to-gray-100 rounded-2xl p-6 sm:p-8">
+              <div className="text-center mb-8">
+                <h3 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">Need More Credits?</h3>
+                <p className="text-gray-600">Buy credit packs anytime. No subscription required.</p>
+              </div>
+              
+              {/* Mobile Vertical Stack / Desktop Horizontal */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 max-w-3xl mx-auto mb-6">
+                {/* 10 Credits */}
+                <div className="bg-white rounded-xl p-5 shadow-md hover:shadow-xl transition-shadow cursor-pointer relative overflow-hidden group">
+                  <div className="absolute inset-0 bg-gradient-to-r from-gray-50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                  <div className="relative">
+                    <div className="text-3xl font-bold text-gray-900">10</div>
+                    <div className="text-sm text-gray-600 font-medium">Credits</div>
+                    <div className="mt-3 text-2xl font-bold text-[#366494]">$7.99</div>
+                    <div className="text-xs text-gray-500 mt-1">$0.80 per credit</div>
+                  </div>
                 </div>
-                <div className="bg-white rounded-lg px-6 py-4 shadow-sm border-2 border-[#E88B4B]">
-                  <span className="font-bold text-xl">20 Credits</span>
-                  <span className="text-gray-600 ml-2">$14.99</span>
-                  <div className="text-xs text-green-600 font-semibold mt-1">$0.75 per credit - Save 6%</div>
+                
+                {/* 20 Credits - Popular */}
+                <div className="bg-white rounded-xl p-5 shadow-md hover:shadow-xl transition-shadow cursor-pointer relative overflow-hidden group border-2 border-[#E88B4B]">
+                  <div className="absolute -top-2 -right-2 bg-[#E88B4B] text-white text-xs font-bold px-3 py-1 rounded-bl-lg">POPULAR</div>
+                  <div className="absolute inset-0 bg-gradient-to-r from-orange-50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                  <div className="relative">
+                    <div className="text-3xl font-bold text-gray-900">20</div>
+                    <div className="text-sm text-gray-600 font-medium">Credits</div>
+                    <div className="mt-3 text-2xl font-bold text-[#E88B4B]">$14.99</div>
+                    <div className="text-xs text-green-600 font-semibold mt-1">Save 6% • $0.75 per credit</div>
+                  </div>
                 </div>
-                <div className="bg-white rounded-lg px-6 py-4 shadow-sm">
-                  <span className="font-bold text-xl">50 Credits</span>
-                  <span className="text-gray-600 ml-2">$29.99</span>
-                  <div className="text-xs text-green-600 font-semibold mt-1">$0.60 per credit - Save 25%</div>
+                
+                {/* 50 Credits - Best Value */}
+                <div className="bg-white rounded-xl p-5 shadow-md hover:shadow-xl transition-shadow cursor-pointer relative overflow-hidden group">
+                  <div className="absolute -top-2 -right-2 bg-green-500 text-white text-xs font-bold px-3 py-1 rounded-bl-lg">BEST VALUE</div>
+                  <div className="absolute inset-0 bg-gradient-to-r from-green-50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                  <div className="relative">
+                    <div className="text-3xl font-bold text-gray-900">50</div>
+                    <div className="text-sm text-gray-600 font-medium">Credits</div>
+                    <div className="mt-3 text-2xl font-bold text-green-600">$29.99</div>
+                    <div className="text-xs text-green-600 font-semibold mt-1">Save 25% • $0.60 per credit</div>
+                  </div>
                 </div>
               </div>
-              <p className="text-sm text-gray-500">Credits never expire • Use across all tools • Instant delivery</p>
+              
+              <div className="flex flex-wrap justify-center gap-2 text-xs text-gray-600">
+                <span className="flex items-center"><Check className="w-3 h-3 mr-1 text-green-500" />Never expire</span>
+                <span className="flex items-center"><Check className="w-3 h-3 mr-1 text-green-500" />Use on any tool</span>
+                <span className="flex items-center"><Check className="w-3 h-3 mr-1 text-green-500" />Instant delivery</span>
+              </div>
             </div>
           </div>
         </section>
