@@ -94,6 +94,27 @@ export async function POST(request: NextRequest) {
       // Don't fail signup if email fails
     }
     
+    // Send admin notification for new signup
+    console.log('[SIGNUP API] Step 6b: Sending admin notification for new signup');
+    try {
+      await emailService.sendAdminNotification({
+        type: 'new_signup',
+        userEmail: email,
+        userName: `${metadata?.firstName || ''} ${metadata?.lastName || ''}`.trim() || undefined,
+        details: {
+          company: metadata?.company || 'Not provided',
+          plan: 'Free',
+          initial_credits: 2,
+          signup_method: 'Email/Password',
+        },
+        timestamp: new Date().toISOString(),
+      });
+      console.log('[SIGNUP API] Admin notification sent successfully');
+    } catch (adminEmailError) {
+      console.error('[SIGNUP API] Admin notification error:', adminEmailError);
+      // Don't fail signup if admin notification fails
+    }
+    
     // Sign in the user to create a session
     const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
       email,

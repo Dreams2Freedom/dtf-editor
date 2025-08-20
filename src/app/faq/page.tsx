@@ -81,9 +81,9 @@ const faqs: FAQItem[] = [
         <p>We offer flexible pricing options:</p>
         <ul className="list-disc list-inside mt-2 space-y-2">
           <li><strong>Free Plan:</strong> 2 credits/month, 48-hour image storage</li>
-          <li><strong>Basic Plan ($4.99/month):</strong> 20 credits/month, unlimited storage</li>
-          <li><strong>Starter Plan ($14.99/month):</strong> 60 credits/month, unlimited storage, priority support</li>
-          <li><strong>Pay-As-You-Go:</strong> Buy credit packs (5 for $2.49, 10 for $4.49, 20 for $7.99)</li>
+          <li><strong>Starter Plan ($9.99/month):</strong> 20 credits/month, unlimited storage</li>
+          <li><strong>Pro Plan ($19.99/month):</strong> 50 credits/month, unlimited storage, priority support</li>
+          <li><strong>Pay-As-You-Go:</strong> Buy credit packs (10 for $7.99, 20 for $14.99, 50 for $29.99)</li>
         </ul>
       </div>
     ),

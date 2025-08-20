@@ -159,18 +159,18 @@
 - **Storage:** Images deleted after 48 hours
 - **Restrictions:** No AI Image Generation
 
-### **8.2 Basic Plan ($9.99/month)**
+### **8.2 Starter Plan ($9.99/month)**
 
 - **Credits:** 20 per month
 - **Features:** All tools including AI Image Generation
-- **Storage:** Images saved permanently
-- **Support:** Standard support
+- **Storage:** Images saved permanently while subscribed
+- **Support:** Standard email support
 
-### **8.3 Starter Plan ($24.99/month)**
+### **8.3 Pro Plan ($19.99/month)**
 
-- **Credits:** 60 per month
+- **Credits:** 50 per month
 - **Features:** All tools + Professional features
-- **Storage:** Images saved permanently
+- **Storage:** Images saved permanently while subscribed
 - **Support:** Priority support
 - **Extras:** Batch processing, priority processing
 

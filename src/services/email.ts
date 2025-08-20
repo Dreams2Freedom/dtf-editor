@@ -95,6 +95,14 @@ export interface SupportTicketEmailData {
   createdAt: string;
 }
 
+export interface AdminNotificationEmailData {
+  type: 'new_signup' | 'new_subscription' | 'cancellation' | 'refund_request' | 'support_ticket';
+  userEmail: string;
+  userName?: string;
+  details?: Record<string, string | number | boolean>;
+  timestamp: string;
+}
+
 // Email service class
 export class EmailService {
   private static instance: EmailService;
@@ -2178,6 +2186,118 @@ ${process.env.NEXT_PUBLIC_APP_URL}/account/preferences
 
 © ${new Date().getFullYear()} DTF Editor
     `.trim();
+  }
+
+  /**
+   * Send admin notification email
+   */
+  async sendAdminNotification(data: AdminNotificationEmailData): Promise<boolean> {
+    // Super admin email
+    const SUPER_ADMIN_EMAIL = 'Shannon@S2Transfers.com';
+    
+    if (!this.enabled || !this.mailgunApiKey) {
+      console.log('EmailService: Would send admin notification to', SUPER_ADMIN_EMAIL);
+      return true;
+    }
+
+    try {
+      // Check if admin has this notification type enabled
+      const prefsResponse = await fetch(`${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/admin/notification-preferences`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          adminEmail: SUPER_ADMIN_EMAIL,
+          notificationType: data.type
+        })
+      });
+
+      if (prefsResponse.ok) {
+        const { shouldSend, reason, message } = await prefsResponse.json();
+        if (!shouldSend) {
+          console.log(`Admin notification not sent: ${message || reason || 'Disabled in preferences'}`);
+          return true; // Return true since this is not an error
+        }
+      }
+      
+      const typeDisplay = {
+        'new_signup': 'New User Signup',
+        'new_subscription': 'New Subscription',
+        'cancellation': 'Subscription Cancellation',
+        'refund_request': 'Refund Request',
+        'support_ticket': 'Support Ticket'
+      };
+
+      const mailOptions = {
+        from: `${env.MAILGUN_FROM_NAME} <${env.MAILGUN_FROM_EMAIL}>`,
+        to: SUPER_ADMIN_EMAIL,
+        subject: `[Admin Alert] ${typeDisplay[data.type]} - ${data.userEmail}`,
+        html: `
+          <!DOCTYPE html>
+          <html>
+          <head>
+            <meta charset="utf-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          </head>
+          <body style="margin: 0; padding: 0; font-family: Arial, sans-serif; background-color: #f5f5f5;">
+            <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff;">
+              <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 20px; text-align: center;">
+                <h1 style="color: white; margin: 0; font-size: 24px;">Admin Notification</h1>
+              </div>
+              <div style="padding: 30px;">
+                <div style="background: #f0f9ff; border-left: 4px solid #0ea5e9; padding: 15px; margin-bottom: 20px;">
+                  <h2 style="color: #0284c7; margin: 0 0 10px 0;">${typeDisplay[data.type]}</h2>
+                  <p style="color: #0c4a6e; margin: 0;">Timestamp: ${data.timestamp}</p>
+                </div>
+                
+                <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
+                  <h3 style="color: #333; margin-top: 0;">User Information</h3>
+                  <p style="color: #666; margin: 5px 0;"><strong>Email:</strong> ${data.userEmail}</p>
+                  ${data.userName ? `<p style="color: #666; margin: 5px 0;"><strong>Name:</strong> ${data.userName}</p>` : ''}
+                </div>
+                
+                ${data.details ? `
+                  <div style="background: #fff; border: 1px solid #e9ecef; padding: 20px; border-radius: 8px;">
+                    <h3 style="color: #333; margin-top: 0;">Additional Details</h3>
+                    ${Object.entries(data.details).map(([key, value]) => 
+                      `<p style="color: #666; margin: 5px 0;"><strong>${key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}:</strong> ${value}</p>`
+                    ).join('')}
+                  </div>
+                ` : ''}
+                
+                <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #e9ecef;">
+                  <p style="color: #999; font-size: 12px; margin: 0;">
+                    This is an automated admin notification. You can manage your notification preferences in the admin dashboard.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </body>
+          </html>
+        `,
+        text: `
+Admin Notification: ${typeDisplay[data.type]}
+
+User: ${data.userEmail}
+${data.userName ? `Name: ${data.userName}` : ''}
+Timestamp: ${data.timestamp}
+
+${data.details ? `Additional Details:
+${Object.entries(data.details).map(([key, value]) => `${key}: ${value}`).join('\n')}` : ''}
+
+---
+This is an automated admin notification.
+        `.trim(),
+        'o:tag': ['admin-notification', data.type],
+        'o:tracking': false, // Don't track admin emails
+        'v:notification_type': data.type,
+        'v:user_email': data.userEmail,
+      };
+
+      return await this.sendMailgunEmail(mailOptions);
+    } catch (error) {
+      console.error('Error sending admin notification:', error);
+      return false;
+    }
   }
 }
 

@@ -2,7 +2,8 @@
 
 **Date:** January 2025  
 **Current State:** Core features complete, need monetization & user retention features  
-**Strategy:** Incremental implementation without breaking existing functionality
+**Strategy:** Incremental implementation without breaking existing functionality  
+**Pricing Reference:** See `PRICING_STRUCTURE.md` for official pricing tiers and credit costs
 
 ---
 
