@@ -71,15 +71,6 @@ export default function PricingClient() {
           )}
         </div>
 
-        {/* Development Notice */}
-        <div className="mt-8 text-center">
-          <div className="bg-blue-50 border border-blue-200 text-blue-700 px-4 py-3 rounded-lg max-w-2xl mx-auto">
-            <p className="text-sm">
-              <strong>Development Mode:</strong> Payment processing is currently being set up. 
-              The free plan is fully functional and you can test all image processing features!
-            </p>
-          </div>
-        </div>
 
         {/* Features Comparison */}
         <div className="mt-16">
