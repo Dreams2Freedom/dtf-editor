@@ -581,41 +581,47 @@ export default function HomePage() {
               </div>
               
               {/* Mobile Vertical Stack / Desktop Horizontal */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 max-w-3xl mx-auto mb-6">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 max-w-3xl mx-auto mb-6 pt-3">
                 {/* 10 Credits */}
-                <div className="bg-white rounded-xl p-5 shadow-md hover:shadow-xl transition-shadow cursor-pointer relative overflow-hidden group">
-                  <div className="absolute inset-0 bg-gradient-to-r from-gray-50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                  <div className="relative">
-                    <div className="text-3xl font-bold text-gray-900">10</div>
-                    <div className="text-sm text-gray-600 font-medium">Credits</div>
-                    <div className="mt-3 text-2xl font-bold text-[#366494]">$7.99</div>
-                    <div className="text-xs text-gray-500 mt-1">$0.80 per credit</div>
+                <Link href="/pricing?tab=payasyougo" className="block">
+                  <div className="bg-white rounded-xl p-5 shadow-md hover:shadow-xl transition-all hover:scale-105 cursor-pointer relative group h-full">
+                    <div className="absolute inset-0 bg-gradient-to-r from-gray-50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity rounded-xl"></div>
+                    <div className="relative">
+                      <div className="text-3xl font-bold text-gray-900">10</div>
+                      <div className="text-sm text-gray-600 font-medium">Credits</div>
+                      <div className="mt-3 text-2xl font-bold text-[#366494]">$7.99</div>
+                      <div className="text-xs text-gray-500 mt-1">$0.80 per credit</div>
+                    </div>
                   </div>
-                </div>
+                </Link>
                 
                 {/* 20 Credits - Popular */}
-                <div className="bg-white rounded-xl p-5 shadow-md hover:shadow-xl transition-shadow cursor-pointer relative overflow-hidden group border-2 border-[#E88B4B]">
-                  <div className="absolute -top-2 -right-2 bg-[#E88B4B] text-white text-xs font-bold px-3 py-1 rounded-bl-lg">POPULAR</div>
-                  <div className="absolute inset-0 bg-gradient-to-r from-orange-50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                  <div className="relative">
-                    <div className="text-3xl font-bold text-gray-900">20</div>
-                    <div className="text-sm text-gray-600 font-medium">Credits</div>
-                    <div className="mt-3 text-2xl font-bold text-[#E88B4B]">$14.99</div>
-                    <div className="text-xs text-green-600 font-semibold mt-1">Save 6% • $0.75 per credit</div>
+                <Link href="/pricing?tab=payasyougo" className="block relative">
+                  <div className="absolute -top-3 right-0 bg-[#E88B4B] text-white text-xs font-bold px-3 py-1 rounded-full z-10">POPULAR</div>
+                  <div className="bg-white rounded-xl p-5 shadow-md hover:shadow-xl transition-all hover:scale-105 cursor-pointer relative group border-2 border-[#E88B4B] h-full">
+                    <div className="absolute inset-0 bg-gradient-to-r from-orange-50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity rounded-xl"></div>
+                    <div className="relative">
+                      <div className="text-3xl font-bold text-gray-900">20</div>
+                      <div className="text-sm text-gray-600 font-medium">Credits</div>
+                      <div className="mt-3 text-2xl font-bold text-[#E88B4B]">$14.99</div>
+                      <div className="text-xs text-green-600 font-semibold mt-1">Save 6% • $0.75 per credit</div>
+                    </div>
                   </div>
-                </div>
+                </Link>
                 
                 {/* 50 Credits - Best Value */}
-                <div className="bg-white rounded-xl p-5 shadow-md hover:shadow-xl transition-shadow cursor-pointer relative overflow-hidden group">
-                  <div className="absolute -top-2 -right-2 bg-green-500 text-white text-xs font-bold px-3 py-1 rounded-bl-lg">BEST VALUE</div>
-                  <div className="absolute inset-0 bg-gradient-to-r from-green-50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                  <div className="relative">
-                    <div className="text-3xl font-bold text-gray-900">50</div>
-                    <div className="text-sm text-gray-600 font-medium">Credits</div>
-                    <div className="mt-3 text-2xl font-bold text-green-600">$29.99</div>
-                    <div className="text-xs text-green-600 font-semibold mt-1">Save 25% • $0.60 per credit</div>
+                <Link href="/pricing?tab=payasyougo" className="block relative">
+                  <div className="absolute -top-3 right-0 bg-green-500 text-white text-xs font-bold px-3 py-1 rounded-full z-10">BEST VALUE</div>
+                  <div className="bg-white rounded-xl p-5 shadow-md hover:shadow-xl transition-all hover:scale-105 cursor-pointer relative group h-full">
+                    <div className="absolute inset-0 bg-gradient-to-r from-green-50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity rounded-xl"></div>
+                    <div className="relative">
+                      <div className="text-3xl font-bold text-gray-900">50</div>
+                      <div className="text-sm text-gray-600 font-medium">Credits</div>
+                      <div className="mt-3 text-2xl font-bold text-green-600">$29.99</div>
+                      <div className="text-xs text-green-600 font-semibold mt-1">Save 25% • $0.60 per credit</div>
+                    </div>
                   </div>
-                </div>
+                </Link>
               </div>
               
               <div className="flex flex-wrap justify-center gap-2 text-xs text-gray-600">
