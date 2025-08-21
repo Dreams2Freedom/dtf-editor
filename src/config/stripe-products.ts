@@ -19,7 +19,7 @@ export const STRIPE_PRODUCTS = {
       price: 24.99,
       currency: 'usd',
       interval: 'month' as const,
-      features: ['60 credits per month', 'All processing features', 'Priority support', 'HD downloads', 'Bulk processing'],
+      features: ['60 credits per month', 'All processing features', 'Priority support', 'HD downloads', 'Bulk processing (coming soon)'],
       creditsPerMonth: 60,
       stripePriceId: process.env.STRIPE_STARTER_PLAN_PRICE_ID || '',
     },

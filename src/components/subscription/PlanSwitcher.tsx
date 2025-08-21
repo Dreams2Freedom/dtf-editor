@@ -42,7 +42,7 @@ const plans = [
     name: 'Starter',
     price: 24.99,
     credits: 60,
-    features: ['60 credits per month', 'All features', 'Priority support', 'HD downloads', 'Bulk processing']
+    features: ['60 credits per month', 'All features', 'Priority support', 'HD downloads', 'Bulk processing (coming soon)']
   }
 ];
 

@@ -696,7 +696,7 @@ export default function HomePage() {
                   Do you offer bulk or enterprise pricing?
                 </h3>
                 <p className="text-gray-600">
-                  Yes! For print shops processing 100+ images monthly, we offer custom plans with volume discounts, API access, and dedicated support. Contact us for details.
+                  Yes! For print shops processing 100+ images monthly, we offer custom plans with volume discounts and dedicated support. Contact us for details.
                 </p>
               </div>
             </div>
