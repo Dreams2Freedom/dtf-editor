@@ -30,11 +30,11 @@ export interface ImageGenerationResult {
 
 export type ImageEditResult = ImageGenerationResult;
 
-// Credit costs for GPT-Image-1 (based on size)
+// Credit costs for GPT-Image-1 (Beta pricing - based on size)
 const CREDIT_COSTS = {
   '256x256': 1,   // Small size uses 1 credit
   '512x512': 1,   // Medium size uses 1 credit  
-  '1024x1024': 2, // Large size uses 2 credits
+  '1024x1024': 1, // Large size uses 1 credit (Beta pricing)
 };
 
 export class ChatGPTService {

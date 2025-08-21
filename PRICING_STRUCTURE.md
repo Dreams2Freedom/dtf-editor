@@ -63,9 +63,9 @@ No subscription required - buy credits when you need them:
 - **Background Removal:** 1 credit
 - **Image Upscaling:** 1 credit
 - **Vectorization:** 1 credit
-- **AI Image Generation (Standard):** 2 credits
-- **AI Image Generation (HD):** 4 credits
-- **AI Image Editing:** 2 credits
+- **AI Image Generation (Beta - Standard):** 1 credit
+- **AI Image Generation (Beta - HD):** 2 credits
+- **AI Image Editing (Beta):** 1 credit
 - **Free DPI Checker:** 0 credits (always free)
 
 ### Credit Policies

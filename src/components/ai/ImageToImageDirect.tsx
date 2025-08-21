@@ -88,7 +88,7 @@ export function ImageToImageDirect({
     }
 
     // Check if user has enough credits
-    const creditCost = generationOptions.quality === 'hd' ? 4 : 2;
+    const creditCost = generationOptions.quality === 'hd' ? 2 : 1;
     const totalCost = creditCost * generationOptions.count;
     const isAdmin = profile?.is_admin === true;
     

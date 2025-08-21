@@ -143,7 +143,7 @@ async function handlePost(request: NextRequest) {
     }
 
     // Calculate and deduct credits
-    const creditsPerImage = quality === 'hd' ? 4 : 2;
+    const creditsPerImage = quality === 'hd' ? 2 : 1;
     const totalCreditsUsed = creditsPerImage * count;
 
     if (!isAdmin && profile) {

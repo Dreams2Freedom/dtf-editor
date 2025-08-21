@@ -748,7 +748,7 @@ export function ImageProcessor() {
                     {processingOptions.operation === 'vectorization' && <Zap className="w-4 h-4 mr-2" />}
                     {processingOptions.operation === 'upscale' && 'Upscale Image (1 credit)'}
                     {processingOptions.operation === 'background-removal' && 'Remove Background (1 credit)'}
-                    {processingOptions.operation === 'vectorization' && 'Vectorize Image (2 credits)'}
+                    {processingOptions.operation === 'vectorization' && 'Vectorize Image (1 credit)'}
                   </>
                 )}
               </Button>

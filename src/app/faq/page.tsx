@@ -61,7 +61,7 @@ const faqs: FAQItem[] = [
           <li>Background removal: 1 credit</li>
           <li>Image upscaling: 1 credit</li>
           <li>Vectorization: 1 credit</li>
-          <li>AI image generation: 2 credits (standard) or 4 credits (HD)</li>
+          <li>AI image generation (Beta): 1 credit (standard) or 2 credits (HD)</li>
         </ul>
       </div>
     ),
@@ -124,7 +124,7 @@ const faqs: FAQItem[] = [
   {
     id: 'ai-generation',
     question: 'How does AI image generation work?',
-    answer: 'Our AI image generation uses OpenAI\'s DALL-E 3 to create original images from text descriptions. Simply describe what you want, choose a style and size, and the AI will generate a unique image. This feature is available to paid subscribers only and uses 2-4 credits depending on quality settings.',
+    answer: 'Our AI image generation (currently in Beta) uses OpenAI\'s DALL-E 3 to create original images from text descriptions. Simply describe what you want, choose a style and size, and the AI will generate a unique image. This feature is available to paid subscribers only and uses 1-2 credits depending on quality settings.',
     category: 'Features'
   },
   {

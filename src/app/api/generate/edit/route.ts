@@ -111,8 +111,8 @@ async function handlePost(request: NextRequest) {
       );
     }
 
-    // Calculate required credits for editing (fixed at 2 credits per edit)
-    const creditsPerImage = 2;
+    // Calculate required credits for editing (fixed at 1 credit per edit - Beta pricing)
+    const creditsPerImage = 1;
     const totalCreditsRequired = creditsPerImage * count;
 
     // Check if user has enough credits (skip for admins)

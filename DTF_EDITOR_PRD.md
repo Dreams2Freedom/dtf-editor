@@ -69,13 +69,14 @@
 - **Input:** Poor quality images
 - **Output:** Vector format for better editing
 
-### **4.4 AI Image Generation**
+### **4.4 AI Image Generation (Beta)**
 
 - **API:** ChatGPT Image Generation (OpenAI)
 - **Purpose:** Create images from prompts or uploaded references
 - **Input:** Text prompts or reference images
 - **Output:** Generated images
 - **Restriction:** Paid plans only
+- **Credits:** 1 credit (standard), 2 credits (HD)
 
 ## 💻 **5. Technical Requirements**
 

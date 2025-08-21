@@ -42,13 +42,13 @@ export function ImageEditor() {
   const isPaidUser = profile?.subscription_tier && profile.subscription_tier !== 'free';
   const hasCredits = (profile?.credits || 0) > 0;
 
-  // Calculate credit cost
+  // Calculate credit cost (Beta pricing)
   const sizeCredits = {
     '256x256': 1,
     '512x512': 1,
-    '1024x1024': 2,
+    '1024x1024': 1, // Beta pricing: 1 credit for all sizes
   };
-  const creditCost = sizeCredits[options.size] || 2;
+  const creditCost = sizeCredits[options.size] || 1;
   const totalCost = creditCost * options.count;
   const canEdit = isAdmin || (isPaidUser && hasCredits && (profile?.credits || 0) >= totalCost);
 
@@ -183,7 +183,7 @@ export function ImageEditor() {
         <div className="mb-4">
           <Edit3 className="w-16 h-16 mx-auto text-purple-600" />
         </div>
-        <h2 className="text-2xl font-bold mb-2">AI Image Editor</h2>
+        <h2 className="text-2xl font-bold mb-2">AI Image Editor <span className="text-sm bg-blue-100 text-blue-700 px-2 py-1 rounded-full ml-2">Beta</span></h2>
         <p className="text-gray-600 mb-6">
           Edit and transform images with AI using natural language prompts.
           This feature is exclusively available for paid subscribers.
@@ -205,6 +205,7 @@ export function ImageEditor() {
           <h2 className="text-2xl font-bold flex items-center gap-2">
             <Edit3 className="w-6 h-6 text-purple-600" />
             AI Image Editor
+            <span className="text-sm bg-blue-100 text-blue-700 px-2 py-1 rounded-full font-normal">Beta</span>
           </h2>
           <p className="text-gray-600 mt-1">
             Edit images with AI using GPT-Image-1

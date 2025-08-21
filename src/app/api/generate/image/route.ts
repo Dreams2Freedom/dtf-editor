@@ -142,13 +142,14 @@ async function handlePost(request: NextRequest) {
     }
 
     // Calculate required credits based on quality for gpt-image-1
+    // Beta pricing: reduced credit costs
     const qualityMap = {
       'low': 1,
-      'standard': 2,
-      'high': 3,
-      'hd': 3, // Map hd to high for backwards compatibility
+      'standard': 1,
+      'high': 2,
+      'hd': 2, // Map hd to high for backwards compatibility
     };
-    const creditsPerImage = qualityMap[quality] || 2;
+    const creditsPerImage = qualityMap[quality] || 1;
     const totalCreditsRequired = creditsPerImage * count;
 
     // Check if user has enough credits (skip for admins)

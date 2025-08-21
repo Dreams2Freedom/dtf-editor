@@ -1,9 +1,33 @@
 # DTF Editor - Bug Tracker
 
-**Last Updated:** August 15, 2025  
+**Last Updated:** August 20, 2025  
 **Status:** Active Bug Tracking
 
 ## 🐛 **Critical Bugs (P0)**
+
+### **BUG-055: Incorrect Pricing Information Displayed**
+- **Status:** 🟢 FIXED
+- **Severity:** High
+- **Component:** Pricing / Documentation
+- **Description:** FAQ and documentation showed outdated/incorrect pricing
+- **Symptoms:**
+  - FAQ showed Basic Plan at $4.99 instead of Starter at $9.99
+  - FAQ showed Starter Plan at $14.99 instead of Pro at $19.99
+  - Pay-as-you-go prices were incorrect
+  - No single source of truth for pricing
+- **Root Cause:** 
+  - Multiple files had hardcoded pricing that wasn't updated
+  - No centralized pricing documentation
+- **Solution Applied:**
+  - Updated FAQ page with correct pricing
+  - Fixed PRD documentation
+  - Created PRICING_STRUCTURE.md as single source of truth
+  - Added reference to pricing doc in roadmap
+- **Verification:**
+  - All pricing now consistent across documentation
+  - Created authoritative pricing reference
+- **Date Reported:** August 20, 2025
+- **Date Fixed:** August 20, 2025
 
 ### **BUG-054: Duplicate Credit Allocation on Payment**
 - **Status:** 🟢 FIXED (FULLY RESOLVED)

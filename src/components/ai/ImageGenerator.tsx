@@ -46,11 +46,11 @@ export function ImageGenerator() {
   const isPaidUser = profile?.subscription_tier && profile.subscription_tier !== 'free';
   const hasCredits = (profile?.credits || 0) > 0;
 
-  // Calculate credit cost based on quality for GPT-Image-1
+  // Calculate credit cost based on quality for GPT-Image-1 (Beta)
   const qualityCredits = {
     'low': 1,
-    'standard': 2,
-    'high': 3,
+    'standard': 1,
+    'high': 2,
   };
   const creditCost = qualityCredits[options.quality] || 2;
   const totalCost = creditCost * options.count;
@@ -141,7 +141,7 @@ export function ImageGenerator() {
         <div className="mb-4">
           <Sparkles className="w-16 h-16 mx-auto text-purple-600" />
         </div>
-        <h2 className="text-2xl font-bold mb-2">AI Image Generation</h2>
+        <h2 className="text-2xl font-bold mb-2">AI Image Generation <span className="text-sm bg-blue-100 text-blue-700 px-2 py-1 rounded-full ml-2">Beta</span></h2>
         <p className="text-gray-600 mb-6">
           Create unique images with AI using natural language prompts.
           This feature is exclusively available for paid subscribers.
@@ -163,6 +163,7 @@ export function ImageGenerator() {
           <h2 className="text-2xl font-bold flex items-center gap-2">
             <Sparkles className="w-6 h-6 text-purple-600" />
             AI Image Generator
+            <span className="text-sm bg-blue-100 text-blue-700 px-2 py-1 rounded-full font-normal">Beta</span>
           </h2>
           <p className="text-gray-600 mt-1">
             Create unique images using GPT-Image-1
