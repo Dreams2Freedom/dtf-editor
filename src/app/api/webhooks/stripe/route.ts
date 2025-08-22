@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getStripeService } from '@/services/stripe';
 import { emailService } from '@/services/email';
+import { goHighLevelService } from '@/services/goHighLevel';
 import { createClient } from '@supabase/supabase-js';
 
 // Lazy initialize Supabase to avoid build-time errors
@@ -18,6 +19,61 @@ function getSupabase() {
     supabase = createClient(supabaseUrl, supabaseKey);
   }
   return supabase;
+}
+
+// Helper function to update GoHighLevel tags based on purchase type
+async function updateGoHighLevelTags(email: string, purchaseType: 'subscription' | 'credits', planName?: string) {
+  try {
+    console.log('🏷️ Updating GoHighLevel tags for:', email, purchaseType);
+    
+    // First, find or create the contact
+    const contactResult = await goHighLevelService.createContact({
+      email,
+      firstName: '',
+      tags: [], // Will be updated below
+    });
+    
+    if (!contactResult.success) {
+      console.error('Failed to find/create GoHighLevel contact:', contactResult.error);
+      return;
+    }
+    
+    // Prepare tags based on purchase type
+    const tagsToAdd: string[] = ['customer'];
+    const tagsToRemove: string[] = ['free-account'];
+    
+    if (purchaseType === 'subscription') {
+      tagsToAdd.push('customer-subscription');
+      if (planName) {
+        tagsToAdd.push(`subscription-${planName.toLowerCase()}`);
+      }
+    } else if (purchaseType === 'credits') {
+      tagsToAdd.push('customer-credits');
+      tagsToAdd.push('pay-as-you-go');
+    }
+    
+    // Update tags (Note: GoHighLevel v1 API doesn't have a remove tags endpoint,
+    // so we'll update the contact with new tags)
+    console.log('🏷️ Adding tags:', tagsToAdd);
+    console.log('🏷️ Removing tags:', tagsToRemove);
+    
+    // Create contact with updated tags
+    await goHighLevelService.createContact({
+      email,
+      firstName: '',
+      tags: tagsToAdd,
+      customFields: {
+        lastPurchase: new Date().toISOString(),
+        purchaseType: purchaseType,
+        customerStatus: 'active'
+      }
+    });
+    
+    console.log('✅ GoHighLevel tags updated successfully');
+  } catch (error) {
+    console.error('Error updating GoHighLevel tags:', error);
+    // Don't throw - we don't want to fail the webhook if GoHighLevel update fails
+  }
 }
 
 export async function POST(request: NextRequest) {
@@ -210,6 +266,9 @@ async function handleSubscriptionEvent(subscription: any) {
           nextBillingDate: subscription.current_period_end ? new Date(subscription.current_period_end * 1000) : undefined
         });
         console.log('📧 Subscription email sent result:', emailSent);
+        
+        // Update GoHighLevel tags for subscription purchase
+        await updateGoHighLevelTags(user.email, 'subscription', plan.name);
       }
     } catch (emailError) {
       console.error('Failed to send subscription email:', emailError);
@@ -367,6 +426,9 @@ async function handlePaymentIntentSucceeded(paymentIntent: any) {
           invoiceUrl: `${process.env.NEXT_PUBLIC_APP_URL}/dashboard`,
         });
         console.log('📧 Email sent result:', emailSent);
+        
+        // Update GoHighLevel tags for credit purchase
+        await updateGoHighLevelTags(user.email, 'credits');
       } else {
         console.error('❌ No user email found');
       }
@@ -673,6 +735,9 @@ async function handleCheckoutSessionCompleted(session: any) {
               invoiceUrl: `${process.env.NEXT_PUBLIC_APP_URL}/dashboard`,
             });
             console.log('📧 Email sent result:', emailSent);
+            
+            // Update GoHighLevel tags for credit purchase
+            await updateGoHighLevelTags(user.email, 'credits');
           } else {
             console.error('❌ No user email found for user:', userId);
           }
