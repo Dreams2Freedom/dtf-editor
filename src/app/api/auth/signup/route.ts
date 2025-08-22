@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { emailService } from '@/services/email';
+import { goHighLevelService } from '@/services/goHighLevel';
 import { env } from '@/config/env';
 
 export async function POST(request: NextRequest) {
@@ -114,6 +115,31 @@ export async function POST(request: NextRequest) {
       console.error('[SIGNUP API] Admin notification error:', adminEmailError);
       // Don't fail signup if admin notification fails
     }
+    
+    // Create contact in GoHighLevel (non-blocking)
+    console.log('[SIGNUP API] Step 6c: Creating GoHighLevel contact');
+    goHighLevelService.createContact({
+      firstName: metadata?.firstName || '',
+      lastName: metadata?.lastName || '',
+      email: email,
+      phone: metadata?.phone || '',
+      source: 'DTF Editor Signup',
+      tags: ['dtf-tool-signup', 'website-lead', 'free-account'],
+      customFields: {
+        company: metadata?.company || '',
+        signupDate: new Date().toISOString(),
+        accountType: 'free',
+        initialCredits: 2
+      }
+    }).then(result => {
+      if (result.success) {
+        console.log('[SIGNUP API] GoHighLevel contact created successfully');
+      } else {
+        console.error('[SIGNUP API] Failed to create GoHighLevel contact:', result.error);
+      }
+    }).catch(error => {
+      console.error('[SIGNUP API] Error creating GoHighLevel contact:', error);
+    });
     
     // Sign in the user to create a session
     const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({

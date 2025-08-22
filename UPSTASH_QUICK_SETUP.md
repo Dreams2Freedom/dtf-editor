@@ -1,3 +1,4 @@
+
 # 🚀 Upstash Redis Quick Setup (5 minutes)
 
 ## Step 1: Create Upstash Account

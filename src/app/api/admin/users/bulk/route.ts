@@ -81,38 +81,35 @@ async function handlePost(request: NextRequest) {
         break;
 
       case 'delete':
-        // Delete users - This is a soft delete approach
-        // First, anonymize their data
-        const { data: deletedUsers, error: deleteError } = await supabase
-          .from('profiles')
-          .update({ 
-            email_notifications: false,
-            subscription_status: 'deleted',
-            subscription_plan: 'free',
-            credits_remaining: 0,
-            first_name: 'Deleted',
-            last_name: 'User',
-            company_name: null,
-            phone_number: null,
-            updated_at: new Date().toISOString()
-          })
-          .in('id', userIds)
-          .select();
+        // Delete users - Actually delete from auth system
+        // This will cascade delete all related data (profiles, images, etc.)
+        let successCount = 0;
         
-        if (deleteError) {
-          errors.push(`Delete error: ${deleteError.message}`);
-        } else {
-          affected = deletedUsers?.length || 0;
-          
-          // Also delete their images
-          const { error: imagesError } = await supabase
-            .from('processed_images')
-            .delete()
-            .in('user_id', userIds);
-          
-          if (imagesError) {
-            errors.push(`Failed to delete user images: ${imagesError.message}`);
+        for (const userId of userIds) {
+          try {
+            // Use the admin API to delete the user
+            const { error: deleteAuthError } = await supabase.auth.admin.deleteUser(userId);
+            
+            if (deleteAuthError) {
+              console.error(`Failed to delete user ${userId}:`, deleteAuthError);
+              errors.push(`Failed to delete user ${userId}: ${deleteAuthError.message}`);
+            } else {
+              successCount++;
+              console.log(`Successfully deleted user ${userId}`);
+            }
+          } catch (err) {
+            console.error(`Error deleting user ${userId}:`, err);
+            errors.push(`Error deleting user ${userId}`);
           }
+        }
+        
+        affected = successCount;
+        
+        if (successCount === 0) {
+          return NextResponse.json(
+            { error: 'Failed to delete any users', errors },
+            { status: 500 }
+          );
         }
         break;
 
