@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createServerSupabaseClient } from '@/lib/supabase/server';
+import { createServerSupabaseClient, createServiceRoleClient } from '@/lib/supabase/server';
 import { withRateLimit } from '@/lib/rate-limit';
 
 async function handlePost(request: NextRequest) {
@@ -83,12 +83,14 @@ async function handlePost(request: NextRequest) {
       case 'delete':
         // Delete users - Actually delete from auth system
         // This will cascade delete all related data (profiles, images, etc.)
+        // Need to use service role client for admin operations
+        const serviceClient = createServiceRoleClient();
         let successCount = 0;
         
         for (const userId of userIds) {
           try {
-            // Use the admin API to delete the user
-            const { error: deleteAuthError } = await supabase.auth.admin.deleteUser(userId);
+            // Use the service role client to delete the user
+            const { error: deleteAuthError } = await serviceClient.auth.admin.deleteUser(userId);
             
             if (deleteAuthError) {
               console.error(`Failed to delete user ${userId}:`, deleteAuthError);
