@@ -36,7 +36,16 @@ async function handleGet(request: NextRequest) {
     thisMonth.setDate(today.getDate() - 30);
     
     // Use service role client to fetch data
-    const serviceClient = createServiceRoleSupabaseClient();
+    let serviceClient;
+    try {
+      serviceClient = createServiceRoleSupabaseClient();
+    } catch (error) {
+      console.error('Failed to create service role client in active-users route:', error);
+      return NextResponse.json(
+        { error: 'Database configuration error', details: error instanceof Error ? error.message : 'Unknown error' },
+        { status: 500 }
+      );
+    }
     
     // Fetch active users data
     const { data: allProfiles, error: profilesError } = await serviceClient

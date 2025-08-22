@@ -43,7 +43,16 @@ async function handleGet(request: NextRequest) {
     }
 
     // Use service role client for data access
-    const serviceClient = createServiceRoleSupabaseClient();
+    let serviceClient;
+    try {
+      serviceClient = createServiceRoleSupabaseClient();
+    } catch (error) {
+      console.error('Failed to create service role client in KPI route:', error);
+      return NextResponse.json(
+        { error: 'Database configuration error', details: error instanceof Error ? error.message : 'Unknown error' },
+        { status: 500 }
+      );
+    }
     
     // Fetch all necessary data for KPIs
     // Note: These are simplified calculations. In production, you'd want more sophisticated queries

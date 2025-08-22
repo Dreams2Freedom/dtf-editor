@@ -46,7 +46,16 @@ async function handleGet(request: NextRequest) {
     }
 
     // Use service role client for data access
-    const serviceClient = createServiceRoleSupabaseClient();
+    let serviceClient;
+    try {
+      serviceClient = createServiceRoleSupabaseClient();
+    } catch (error) {
+      console.error('Failed to create service role client in revenue route:', error);
+      return NextResponse.json(
+        { error: 'Database configuration error', details: error instanceof Error ? error.message : 'Unknown error' },
+        { status: 500 }
+      );
+    }
     
     // Fetch credit transactions (our revenue source)
     const { data: transactions, error: transactionsError } = await serviceClient

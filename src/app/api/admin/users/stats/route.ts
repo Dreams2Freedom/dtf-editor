@@ -24,7 +24,16 @@ async function handleGet() {
     }
 
     // Use service role client to get all users
-    const serviceClient = createServiceRoleSupabaseClient();
+    let serviceClient;
+    try {
+      serviceClient = createServiceRoleSupabaseClient();
+    } catch (error) {
+      console.error('Failed to create service role client in user stats route:', error);
+      return NextResponse.json(
+        { error: 'Database configuration error', details: error instanceof Error ? error.message : 'Unknown error' },
+        { status: 500 }
+      );
+    }
     
     // Get all users to calculate statistics
     const { data: allUsers, error: usersError } = await serviceClient
