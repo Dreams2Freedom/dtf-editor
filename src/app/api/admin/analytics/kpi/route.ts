@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
+import { createServiceRoleSupabaseClient } from '@/lib/supabase/service';
 import { withRateLimit } from '@/lib/rate-limit';
 
 async function handleGet(request: NextRequest) {
@@ -41,41 +42,44 @@ async function handleGet(request: NextRequest) {
         startDate.setDate(now.getDate() - 30);
     }
 
+    // Use service role client for data access
+    const serviceClient = createServiceRoleSupabaseClient();
+    
     // Fetch all necessary data for KPIs
     // Note: These are simplified calculations. In production, you'd want more sophisticated queries
 
     // Get total users and new users
-    const { data: allUsers } = await supabase
+    const { data: allUsers } = await serviceClient
       .from('profiles')
       .select('id, created_at, subscription_plan, subscription_status');
 
-    const { data: newUsers } = await supabase
+    const { data: newUsers } = await serviceClient
       .from('profiles')
       .select('id')
       .gte('created_at', startDate.toISOString());
 
     // Get active users (logged in within time range)
-    const { data: activeUsers } = await supabase
+    const { data: activeUsers } = await serviceClient
       .from('profiles')
       .select('id')
       .gte('last_sign_in_at', startDate.toISOString());
 
     // Get subscription data
-    const { data: subscriptions } = await supabase
+    const { data: subscriptions } = await serviceClient
       .from('profiles')
       .select('subscription_plan, subscription_status')
       .not('subscription_plan', 'eq', 'free')
       .eq('subscription_status', 'active');
 
     // Get churned users (had subscription but cancelled)
-    const { data: churnedUsers } = await supabase
+    const { data: churnedUsers } = await serviceClient
       .from('profiles')
       .select('id, subscription_plan')
       .eq('subscription_status', 'cancelled')
       .gte('updated_at', startDate.toISOString());
 
     // Get revenue data (simplified - in production you'd use Stripe data)
-    const { data: transactions } = await supabase
+    const { data: transactions } = await serviceClient
       .from('credit_transactions')
       .select('amount, type, created_at')
       .eq('type', 'purchase')

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
+import { createServiceRoleSupabaseClient } from '@/lib/supabase/service';
 import { withRateLimit } from '@/lib/rate-limit';
 
 async function handleGet(request: NextRequest) {
@@ -44,20 +45,31 @@ async function handleGet(request: NextRequest) {
         startDate.setDate(now.getDate() - 30);
     }
 
+    // Use service role client for data access
+    const serviceClient = createServiceRoleSupabaseClient();
+    
     // Fetch credit transactions (our revenue source)
-    const { data: transactions } = await supabase
+    const { data: transactions, error: transactionsError } = await serviceClient
       .from('credit_transactions')
       .select('*, profiles!inner(email, subscription_plan)')
       .eq('type', 'purchase')
       .gte('created_at', startDate.toISOString())
       .order('created_at', { ascending: false });
+    
+    if (transactionsError) {
+      console.error('Error fetching transactions:', transactionsError);
+    }
 
     // Get all users for plan distribution
-    const { data: allUsers } = await supabase
+    const { data: allUsers, error: usersError } = await serviceClient
       .from('profiles')
       .select('id, subscription_plan, subscription_status, created_at')
       .not('subscription_plan', 'eq', 'free')
       .eq('subscription_status', 'active');
+    
+    if (usersError) {
+      console.error('Error fetching users:', usersError);
+    }
 
     // Calculate daily revenue
     const dailyRevenue = new Map<string, { revenue: number; transactions: number }>();

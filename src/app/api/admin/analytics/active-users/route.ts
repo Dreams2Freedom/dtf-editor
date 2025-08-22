@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
+import { createServiceRoleSupabaseClient } from '@/lib/supabase/service';
 import { withRateLimit } from '@/lib/rate-limit';
 
 async function handleGet(request: NextRequest) {
@@ -34,10 +35,17 @@ async function handleGet(request: NextRequest) {
     const thisMonth = new Date(today);
     thisMonth.setDate(today.getDate() - 30);
     
+    // Use service role client to fetch data
+    const serviceClient = createServiceRoleSupabaseClient();
+    
     // Fetch active users data
-    const { data: allProfiles } = await supabase
+    const { data: allProfiles, error: profilesError } = await serviceClient
       .from('profiles')
       .select('id, last_sign_in_at, created_at');
+    
+    if (profilesError) {
+      console.error('Error fetching profiles:', profilesError);
+    }
 
     // Calculate active users
     const activeNow = allProfiles?.filter(p => {
