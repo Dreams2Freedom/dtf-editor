@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
+import { createServiceRoleSupabaseClient } from '@/lib/supabase/service';
 import { withRateLimit } from '@/lib/rate-limit';
 
 async function handleGet() {
@@ -22,34 +23,45 @@ async function handleGet() {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
-    // Get total users count
-    const { count: totalUsers } = await supabase
+    // Use service role client to get all users
+    const serviceClient = createServiceRoleSupabaseClient();
+    
+    // Get all users to calculate statistics
+    const { data: allUsers, error: usersError } = await serviceClient
       .from('profiles')
-      .select('*', { count: 'exact', head: true });
+      .select('is_active, subscription_plan');
 
-    // Get active users count
-    const { count: activeUsers } = await supabase
-      .from('profiles')
-      .select('*', { count: 'exact', head: true })
-      .eq('is_active', true);
+    if (usersError) {
+      console.error('Error fetching users:', usersError);
+      throw usersError;
+    }
 
-    // Get paid users count (users with non-free plan)
-    const { count: paidUsers } = await supabase
-      .from('profiles')
-      .select('*', { count: 'exact', head: true })
-      .in('subscription_plan', ['basic', 'starter', 'pro']);
+    // Calculate statistics from the fetched data
+    const totalUsers = allUsers?.length || 0;
+    const activeUsers = allUsers?.filter(user => user.is_active !== false).length || 0;
+    const paidUsers = allUsers?.filter(user => 
+      user.subscription_plan && 
+      ['basic', 'starter', 'professional', 'pro'].includes(user.subscription_plan.toLowerCase())
+    ).length || 0;
+    const suspendedUsers = allUsers?.filter(user => user.is_active === false).length || 0;
 
-    // Get suspended users count
-    const { count: suspendedUsers } = await supabase
-      .from('profiles')
-      .select('*', { count: 'exact', head: true })
-      .eq('is_active', false);
+    // Debug logging
+    console.log('User stats calculation:', {
+      totalData: allUsers?.length,
+      activeCount: activeUsers,
+      paidCount: paidUsers,
+      suspendedCount: suspendedUsers,
+      sampleData: allUsers?.slice(0, 3).map(u => ({
+        is_active: u.is_active,
+        subscription_plan: u.subscription_plan
+      }))
+    });
 
     return NextResponse.json({
-      total: totalUsers || 0,
-      active: activeUsers || 0,
-      paid: paidUsers || 0,
-      suspended: suspendedUsers || 0
+      total: totalUsers,
+      active: activeUsers,
+      paid: paidUsers,
+      suspended: suspendedUsers
     });
   } catch (error) {
     console.error('Admin user stats API error:', error);
