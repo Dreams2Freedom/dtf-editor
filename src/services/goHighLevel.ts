@@ -9,13 +9,13 @@ interface GHLContact {
   email: string;
   phone?: string;
   tags?: string[];
-  customFields?: Record<string, any>;
+  customFields?: Record<string, unknown>;
   source?: string;
 }
 
 interface GHLResponse {
   success: boolean;
-  contact?: any;
+  contact?: unknown;
   error?: string;
 }
 
@@ -26,9 +26,10 @@ class GoHighLevelService {
 
   constructor() {
     // These will be set via environment variables
-    this.baseUrl = process.env.NEXT_PUBLIC_GHL_API_URL || 'https://services.leadconnectorhq.com';
-    this.apiKey = process.env.GHL_API_KEY || '';
-    this.locationId = process.env.GHL_LOCATION_ID || '';
+    // Using v1 API endpoint which works with the location token
+    this.baseUrl = process.env.NEXT_PUBLIC_GHL_API_URL || 'https://rest.gohighlevel.com/v1';
+    this.apiKey = process.env.GOHIGHLEVEL_API_KEY || process.env.GHL_API_KEY || '';
+    this.locationId = process.env.GOHIGHLEVEL_LOCATION_ID || process.env.GHL_LOCATION_ID || '';
   }
 
   /**
@@ -135,7 +136,7 @@ class GoHighLevelService {
   /**
    * Track an event for analytics
    */
-  async trackEvent(email: string, eventName: string, eventData?: any): Promise<void> {
+  async trackEvent(email: string, eventName: string, eventData?: unknown): Promise<void> {
     try {
       if (!this.apiKey || !this.locationId) {
         return; // Skip if not configured
