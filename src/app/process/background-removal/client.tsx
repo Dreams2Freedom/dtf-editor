@@ -44,27 +44,69 @@ export default function BackgroundRemovalClient() {
     const fetchImageFromUrl = async (url: string) => {
       try {
         setImageUrl(url);
-        // Fetch and convert URL to File object for upload
-        const res = await fetch(url);
-        if (!res.ok) {
-          throw new Error('Failed to fetch image from URL');
+        
+        // Handle base64 data URLs differently
+        if (url.startsWith('data:')) {
+          console.log('[Background Removal] Processing base64 data URL');
+          
+          // Extract the base64 data and MIME type
+          const matches = url.match(/^data:([^;]+);base64,(.+)$/);
+          if (!matches) {
+            throw new Error('Invalid data URL format');
+          }
+          
+          const [, mimeType, base64Data] = matches;
+          
+          // Validate that it's an image
+          if (!mimeType.startsWith('image/')) {
+            throw new Error('Data URL is not an image');
+          }
+          
+          // Convert base64 to blob
+          const byteString = atob(base64Data);
+          const ab = new ArrayBuffer(byteString.length);
+          const ia = new Uint8Array(ab);
+          for (let i = 0; i < byteString.length; i++) {
+            ia[i] = byteString.charCodeAt(i);
+          }
+          const blob = new Blob([ab], { type: mimeType });
+          
+          // Use appropriate file extension based on MIME type
+          let extension = 'jpg';
+          if (mimeType === 'image/png') extension = 'png';
+          else if (mimeType === 'image/webp') extension = 'webp';
+          else if (mimeType === 'image/gif') extension = 'gif';
+          else if (mimeType === 'image/jpeg') extension = 'jpg';
+          
+          const file = new File([blob], `image.${extension}`, { type: mimeType });
+          console.log('[Background Removal] Created file from data URL:', file.size, 'bytes', file.type);
+          setImageFile(file);
+        } else {
+          // Regular URL - fetch it
+          console.log('[Background Removal] Fetching image from URL');
+          const res = await fetch(url);
+          if (!res.ok) {
+            throw new Error('Failed to fetch image from URL');
+          }
+          const blob = await res.blob();
+          
+          // Validate that it's an image
+          if (!blob.type.startsWith('image/')) {
+            throw new Error('URL does not point to a valid image');
+          }
+          
+          // Use appropriate file extension based on MIME type
+          let extension = 'jpg';
+          if (blob.type === 'image/png') extension = 'png';
+          else if (blob.type === 'image/webp') extension = 'webp';
+          else if (blob.type === 'image/gif') extension = 'gif';
+          
+          const file = new File([blob], `image.${extension}`, { type: blob.type });
+          console.log('[Background Removal] Created file from URL:', file.size, 'bytes', file.type);
+          setImageFile(file);
         }
-        const blob = await res.blob();
-        
-        // Validate that it's an image
-        if (!blob.type.startsWith('image/')) {
-          throw new Error('URL does not point to a valid image');
-        }
-        
-        // Use appropriate file extension based on MIME type
-        let extension = 'jpg';
-        if (blob.type === 'image/png') extension = 'png';
-        else if (blob.type === 'image/webp') extension = 'webp';
-        else if (blob.type === 'image/gif') extension = 'gif';
-        
-        const file = new File([blob], `image.${extension}`, { type: blob.type });
-        setImageFile(file);
       } catch (err) {
+        console.error('[Background Removal] Error processing image:', err);
         setError(err instanceof Error ? err.message : 'Failed to load image from URL');
       } finally {
         setIsLoading(false);
@@ -282,7 +324,19 @@ export default function BackgroundRemovalClient() {
       console.log('Upload result:', result);
 
       if (!response.ok) {
-        throw new Error(result.error || 'Upload failed');
+        // Extract meaningful error message
+        let errorMsg = result.error || 'Upload failed';
+        
+        // Check for common error patterns
+        if (errorMsg.includes('string did not match')) {
+          errorMsg = 'Image format not supported. Please try a different image.';
+        } else if (errorMsg.includes('authentication') || errorMsg.includes('unauthorized')) {
+          errorMsg = 'Authentication error. Please try logging in again.';
+        } else if (errorMsg.includes('too large') || errorMsg.includes('size')) {
+          errorMsg = 'Image is too large. Please use an image smaller than 10MB.';
+        }
+        
+        throw new Error(errorMsg);
       }
       
       if (result.success && result.image) {

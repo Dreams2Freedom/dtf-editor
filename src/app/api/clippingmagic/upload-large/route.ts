@@ -165,8 +165,27 @@ export async function POST(request: NextRequest) {
     if (!response.ok) {
       const errorText = await response.text();
       console.error('ClippingMagic API error:', response.status, errorText);
+      
+      // Parse error message if it's JSON
+      let errorMessage = errorText;
+      try {
+        const errorJson = JSON.parse(errorText);
+        errorMessage = errorJson.error || errorJson.message || errorText;
+      } catch (e) {
+        // Keep original error text if not JSON
+      }
+      
+      // Log detailed error info for debugging
+      console.error('ClippingMagic API Debug Info:', {
+        status: response.status,
+        headers: Object.fromEntries(response.headers.entries()),
+        error: errorMessage,
+        apiKeyLength: env.CLIPPINGMAGIC_API_KEY?.length || 0,
+        apiSecretLength: env.CLIPPINGMAGIC_API_SECRET?.length || 0
+      });
+      
       return NextResponse.json(
-        { error: `ClippingMagic error: ${errorText}` },
+        { error: `Background removal failed: ${errorMessage}` },
         { status: response.status }
       );
     }
