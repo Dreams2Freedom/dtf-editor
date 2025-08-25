@@ -132,6 +132,9 @@ export async function POST(request: NextRequest) {
     cmFormData.append('fit.toResult', 'false'); // Don't crop to subject
     cmFormData.append('result.allowEnlarging', 'true'); // Allow full size output
     
+    // Set default processing mode to graphics for better DTF results
+    cmFormData.append('processing.mode', 'graphics'); // Graphics mode is better for DTF designs
+    
     // Add test parameter in development
     // NOTE: Test mode might cause issues with white label editor
     // Comment out for production-like testing
