@@ -221,8 +221,8 @@ export default function BackgroundRemovalClient() {
     };
   }, []);
 
-  // Compress image if it's too large
-  const compressImage = async (file: File, maxSizeMB: number = 8): Promise<File> => {
+  // Compress image if it's too large - PRESERVE ORIGINAL DIMENSIONS
+  const compressImage = async (file: File, maxSizeMB: number = 10): Promise<File> => {
     const maxSizeBytes = maxSizeMB * 1024 * 1024;
     
     // If file is already small enough, return it
@@ -231,7 +231,7 @@ export default function BackgroundRemovalClient() {
       return file;
     }
     
-    console.log('[Background Removal] Compressing large image:', (file.size / 1024 / 1024).toFixed(2), 'MB');
+    console.log('[Background Removal] File too large, need to compress:', (file.size / 1024 / 1024).toFixed(2), 'MB');
     
     return new Promise((resolve) => {
       const reader = new FileReader();
@@ -241,48 +241,43 @@ export default function BackgroundRemovalClient() {
           const canvas = document.createElement('canvas');
           const ctx = canvas.getContext('2d');
           
-          // Calculate new dimensions (max 4096px on longest side)
-          let width = img.width;
-          let height = img.height;
-          const maxDimension = 4096;
+          // CRITICAL: Keep original dimensions for print quality
+          // Only compress file size, not dimensions
+          const width = img.width;
+          const height = img.height;
           
-          if (width > maxDimension || height > maxDimension) {
-            if (width > height) {
-              height = (maxDimension / width) * height;
-              width = maxDimension;
-            } else {
-              width = (maxDimension / height) * width;
-              height = maxDimension;
-            }
-          }
+          console.log('[Background Removal] Preserving original dimensions:', width, 'x', height);
           
           canvas.width = width;
           canvas.height = height;
           
-          // Draw and compress
+          // Draw at original size
           ctx?.drawImage(img, 0, 0, width, height);
           
-          // Start with high quality and reduce if needed
-          let quality = 0.9;
+          // Try to compress with quality reduction only
+          let quality = 0.95; // Start with very high quality
           const tryCompress = () => {
+            // Use original format if possible
+            const outputFormat = file.type === 'image/png' ? 'image/png' : 'image/jpeg';
+            
             canvas.toBlob(
               (blob) => {
                 if (blob) {
-                  if (blob.size > maxSizeBytes && quality > 0.3) {
-                    quality -= 0.1;
+                  if (blob.size > maxSizeBytes && quality > 0.5 && outputFormat === 'image/jpeg') {
+                    quality -= 0.05; // Smaller quality steps
                     tryCompress();
                   } else {
                     const compressedFile = new File([blob], file.name, {
-                      type: blob.type || 'image/jpeg',
+                      type: blob.type || file.type,
                     });
-                    console.log('[Background Removal] Compressed to:', (compressedFile.size / 1024 / 1024).toFixed(2), 'MB');
+                    console.log('[Background Removal] Compressed to:', (compressedFile.size / 1024 / 1024).toFixed(2), 'MB at quality:', quality);
                     resolve(compressedFile);
                   }
                 } else {
                   resolve(file); // Fallback to original
                 }
               },
-              'image/jpeg',
+              outputFormat,
               quality
             );
           };
@@ -308,8 +303,8 @@ export default function BackgroundRemovalClient() {
     setError(null);
 
     try {
-      // Compress image if needed (max 8MB)
-      const fileToUpload = await compressImage(imageFile, 8);
+      // Compress file size if needed (max 10MB) - preserves original dimensions
+      const fileToUpload = await compressImage(imageFile, 10);
       
       const formData = new FormData();
       formData.append('image', fileToUpload);
