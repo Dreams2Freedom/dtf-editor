@@ -57,6 +57,12 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       );
     }
+    
+    console.log('[DEBUG API] Received file:', {
+      name: file.name,
+      size: (file.size / 1024 / 1024).toFixed(2) + ' MB',
+      type: file.type
+    });
 
     // Check user credits
     const imageProcessing = new ImageProcessingService();

@@ -225,9 +225,16 @@ export default function BackgroundRemovalClient() {
   const compressImage = async (file: File, maxSizeMB: number = 10): Promise<File> => {
     const maxSizeBytes = maxSizeMB * 1024 * 1024;
     
+    console.log('[DEBUG] compressImage called with file:', {
+      name: file.name,
+      size: (file.size / 1024 / 1024).toFixed(2) + ' MB',
+      type: file.type
+    });
+    
     // If file is already small enough, return it
     if (file.size <= maxSizeBytes) {
       console.log('[Background Removal] Image size OK:', (file.size / 1024 / 1024).toFixed(2), 'MB');
+      console.log('[DEBUG] Returning original file without compression');
       return file;
     }
     
@@ -304,7 +311,19 @@ export default function BackgroundRemovalClient() {
 
     try {
       // Compress file size if needed (max 10MB) - preserves original dimensions
+      console.log('[DEBUG] Original imageFile before compression:', {
+        name: imageFile.name,
+        size: (imageFile.size / 1024 / 1024).toFixed(2) + ' MB',
+        type: imageFile.type
+      });
+      
       const fileToUpload = await compressImage(imageFile, 10);
+      
+      console.log('[DEBUG] File after compression (to upload):', {
+        name: fileToUpload.name,
+        size: (fileToUpload.size / 1024 / 1024).toFixed(2) + ' MB',
+        type: fileToUpload.type
+      });
       
       const formData = new FormData();
       formData.append('image', fileToUpload);

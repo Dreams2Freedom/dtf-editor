@@ -54,9 +54,13 @@ export async function GET(
     const queryParams = new URLSearchParams({
       'format': 'png',
       'output.dpi': '300', // CRITICAL: Set to 300 DPI for DTF printing
-      'size': 'original', // Preserve original image dimensions
-      'output.fit_to_result': 'true', // Fit to the result bounds
-      'output.border_padding': '0' // No extra padding
+      // Try different size parameters to preserve original dimensions
+      'output.size': 'original', // Request original size
+      'size': 'original', // Alternative parameter name
+      'output.fit_to_result': 'false', // Don't fit/crop to result
+      'output.border_padding': '0', // No extra padding
+      'output.maximum_width': '10000', // Set high max to prevent downscaling
+      'output.maximum_height': '10000' // Set high max to prevent downscaling
     });
     
     const response = await fetch(`https://clippingmagic.com/api/v1/images/${imageId}?${queryParams}`, {
@@ -83,6 +87,13 @@ export async function GET(
     // Get the image data
     const imageBuffer = await response.arrayBuffer();
     const contentType = response.headers.get('Content-Type') || 'image/png';
+    
+    console.log('[DEBUG Download] Response from ClippingMagic:', {
+      imageId,
+      size: (imageBuffer.byteLength / 1024 / 1024).toFixed(2) + ' MB',
+      contentType,
+      headers: Object.fromEntries(response.headers.entries())
+    });
     
     // Save to gallery
     try {
