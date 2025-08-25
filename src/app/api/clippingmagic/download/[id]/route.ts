@@ -50,19 +50,30 @@ export async function GET(
     ).toString('base64');
 
     // Download the processed image with 300 DPI for print-ready output
-    // CRITICAL: Preserve original size - do not downscale
+    // Try downloading at input size (original uploaded dimensions)
     const queryParams = new URLSearchParams({
       'format': 'png',
       'output.dpi': '300', // CRITICAL: Set to 300 DPI for DTF printing
-      // Try different size parameters to preserve original dimensions
-      'output.size': 'original', // Request original size
-      'size': 'original', // Alternative parameter name
-      'output.fit_to_result': 'false', // Don't fit/crop to result
-      'output.border_padding': '0', // No extra padding
-      'output.maximum_width': '10000', // Set high max to prevent downscaling
-      'output.maximum_height': '10000' // Set high max to prevent downscaling
+      'size': 'input' // Request at INPUT dimensions (original upload size)
     });
     
+    console.log('[DEBUG] Requesting download with params:', queryParams.toString());
+    
+    // First, try to get image info to see available sizes
+    const infoResponse = await fetch(`https://clippingmagic.com/api/v1/images/${imageId}`, {
+      method: 'GET',
+      headers: {
+        'Authorization': authHeader,
+        'Accept': 'application/json'
+      },
+    });
+    
+    if (infoResponse.ok) {
+      const imageInfo = await infoResponse.json();
+      console.log('[DEBUG] Image info from ClippingMagic:', imageInfo);
+    }
+    
+    // Now download the actual image
     const response = await fetch(`https://clippingmagic.com/api/v1/images/${imageId}?${queryParams}`, {
       method: 'GET',
       headers: {
