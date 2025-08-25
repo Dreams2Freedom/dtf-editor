@@ -19,7 +19,8 @@ export async function GET(
       );
     }
 
-    const { id: imageId } = await params;
+    const resolvedParams = await params;
+    const imageId = resolvedParams.id;
     
     console.log('ClippingMagic download request:', {
       imageId,
@@ -35,17 +36,26 @@ export async function GET(
       );
     }
     
+    // Check if API credentials are available
+    if (!env.CLIPPINGMAGIC_API_KEY || !env.CLIPPINGMAGIC_API_SECRET) {
+      console.error('ClippingMagic API credentials missing');
+      return NextResponse.json(
+        { error: 'ClippingMagic API not configured properly' },
+        { status: 500 }
+      );
+    }
+    
     const authHeader = 'Basic ' + Buffer.from(
       env.CLIPPINGMAGIC_API_KEY + ':' + env.CLIPPINGMAGIC_API_SECRET
     ).toString('base64');
 
     // Download the processed image with 300 DPI for print-ready output
-    const params = new URLSearchParams({
+    const queryParams = new URLSearchParams({
       'format': 'png',
       'output.dpi': '300' // CRITICAL: Set to 300 DPI for DTF printing
     });
     
-    const response = await fetch(`https://clippingmagic.com/api/v1/images/${imageId}?${params}`, {
+    const response = await fetch(`https://clippingmagic.com/api/v1/images/${imageId}?${queryParams}`, {
       method: 'GET',
       headers: {
         'Authorization': authHeader,
@@ -141,8 +151,12 @@ export async function GET(
 
   } catch (error) {
     console.error('ClippingMagic download error:', error);
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
     return NextResponse.json(
-      { error: 'Failed to download image' },
+      { 
+        error: 'Failed to download image',
+        details: errorMessage 
+      },
       { status: 500 }
     );
   }
