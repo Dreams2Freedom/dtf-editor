@@ -127,11 +127,9 @@ export async function POST(request: NextRequest) {
     cmFormData.append('image', fileToUpload);
     cmFormData.append('format', 'json');
     
-    // Add fit to result parameters for automatic cropping
-    cmFormData.append('fit.toResult', 'true');
-    cmFormData.append('fit.paddingPercent', '0.05'); // 0.05% padding as requested
-    cmFormData.append('fit.shadows', 'pad'); // Pad evenly to fit shadows
-    cmFormData.append('fit.verticalAlignment', 'middle'); // Center align vertically
+    // CRITICAL: Don't auto-crop to result - preserve full canvas
+    cmFormData.append('fit.toResult', 'false'); // Don't crop to subject
+    cmFormData.append('result.allowEnlarging', 'true'); // Allow full size output
     
     // Add test parameter in development
     // NOTE: Test mode might cause issues with white label editor

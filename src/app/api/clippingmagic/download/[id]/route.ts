@@ -50,11 +50,13 @@ export async function GET(
     ).toString('base64');
 
     // Download the processed image with 300 DPI for print-ready output
-    // Try downloading at input size (original uploaded dimensions)
+    // CRITICAL: Use result.allowEnlarging to maintain full resolution
     const queryParams = new URLSearchParams({
       'format': 'png',
-      'output.dpi': '300', // CRITICAL: Set to 300 DPI for DTF printing
-      'size': 'input' // Request at INPUT dimensions (original upload size)
+      'output.dpi': '300', // Set to 300 DPI for DTF printing
+      'result.allowEnlarging': 'true', // CRITICAL: Allow result to be full input size
+      'output.colorSpace': 'sRGB', // Standard color space for web/print
+      'output.pngOptimization': 'none' // No optimization to preserve quality
     });
     
     console.log('[DEBUG] Requesting download with params:', queryParams.toString());
