@@ -50,29 +50,41 @@ export async function GET(
     ).toString('base64');
 
     // Download the processed image with 300 DPI for print-ready output
-    // CRITICAL: Use result.allowEnlarging to maintain full resolution
-    const queryParams = new URLSearchParams({
-      'format': 'png',
-      'output.dpi': '300', // Set to 300 DPI for DTF printing
-      'result.allowEnlarging': 'true', // CRITICAL: Allow result to be full input size
-      'output.colorSpace': 'sRGB', // Standard color space for web/print
-      'output.pngOptimization': 'none' // No optimization to preserve quality
-    });
+    // Start with minimal parameters and add gradually
+    const queryParams = new URLSearchParams();
+    queryParams.append('format', 'png');
+    
+    // Try these parameters one by one to see which might be causing issues
+    try {
+      queryParams.append('output.dpi', '300');
+      queryParams.append('result.allowEnlarging', 'true');
+      // Temporarily comment out other parameters to isolate the issue
+      // queryParams.append('output.colorSpace', 'sRGB');
+      // queryParams.append('output.pngOptimization', 'none');
+    } catch (paramError) {
+      console.error('[DEBUG] Error building params:', paramError);
+    }
     
     console.log('[DEBUG] Requesting download with params:', queryParams.toString());
     
     // First, try to get image info to see available sizes
-    const infoResponse = await fetch(`https://clippingmagic.com/api/v1/images/${imageId}`, {
-      method: 'GET',
-      headers: {
-        'Authorization': authHeader,
-        'Accept': 'application/json'
-      },
-    });
-    
-    if (infoResponse.ok) {
-      const imageInfo = await infoResponse.json();
-      console.log('[DEBUG] Image info from ClippingMagic:', imageInfo);
+    try {
+      const infoResponse = await fetch(`https://clippingmagic.com/api/v1/images/${imageId}`, {
+        method: 'GET',
+        headers: {
+          'Authorization': authHeader,
+          'Accept': 'application/json'
+        },
+      });
+      
+      if (infoResponse.ok) {
+        const imageInfo = await infoResponse.json();
+        console.log('[DEBUG] Image info from ClippingMagic:', imageInfo);
+      } else {
+        console.error('[DEBUG] Failed to get image info:', infoResponse.status, await infoResponse.text());
+      }
+    } catch (infoError) {
+      console.error('[DEBUG] Error fetching image info:', infoError);
     }
     
     // Now download the actual image
