@@ -54,16 +54,8 @@ export async function GET(
     const queryParams = new URLSearchParams();
     queryParams.append('format', 'png');
     
-    // Try these parameters one by one to see which might be causing issues
-    try {
-      queryParams.append('output.dpi', '300');
-      queryParams.append('result.allowEnlarging', 'true');
-      // Temporarily comment out other parameters to isolate the issue
-      // queryParams.append('output.colorSpace', 'sRGB');
-      // queryParams.append('output.pngOptimization', 'none');
-    } catch (paramError) {
-      console.error('[DEBUG] Error building params:', paramError);
-    }
+    // Only add valid download parameters
+    queryParams.append('output.dpi', '300');  // Critical for DTF printing
     
     console.log('[DEBUG] Requesting download with params:', queryParams.toString());
     

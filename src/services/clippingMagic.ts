@@ -86,6 +86,7 @@ export class ClippingMagicService {
       const formData = new FormData();
       formData.append('image', imageBlob, 'image.jpg');
       formData.append('format', 'json'); // Get JSON response with image ID and secret
+      formData.append('maxPixels', '26214400'); // Preserve full resolution up to 26.2 megapixels
       
       // Remove test parameter - we want actual processing
       // formData.append('test', 'true');
@@ -247,7 +248,7 @@ export class ClippingMagicService {
         credits: data.credits || 0,
         subscription: data.subscription || 'free',
       };
-    } catch (error) {
+    } catch {
       return null;
     }
   }

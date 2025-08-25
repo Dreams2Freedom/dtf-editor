@@ -127,7 +127,8 @@ export async function POST(request: NextRequest) {
     cmFormData.append('image', fileToUpload);
     cmFormData.append('format', 'json');
     
-    // CRITICAL: Don't auto-crop to result - preserve full canvas
+    // CRITICAL: Preserve full image resolution
+    cmFormData.append('maxPixels', '26214400'); // Maximum allowed: 26.2 megapixels
     cmFormData.append('fit.toResult', 'false'); // Don't crop to subject
     cmFormData.append('result.allowEnlarging', 'true'); // Allow full size output
     
