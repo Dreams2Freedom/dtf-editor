@@ -50,9 +50,13 @@ export async function GET(
     ).toString('base64');
 
     // Download the processed image with 300 DPI for print-ready output
+    // CRITICAL: Preserve original size - do not downscale
     const queryParams = new URLSearchParams({
       'format': 'png',
-      'output.dpi': '300' // CRITICAL: Set to 300 DPI for DTF printing
+      'output.dpi': '300', // CRITICAL: Set to 300 DPI for DTF printing
+      'size': 'original', // Preserve original image dimensions
+      'output.fit_to_result': 'true', // Fit to the result bounds
+      'output.border_padding': '0' // No extra padding
     });
     
     const response = await fetch(`https://clippingmagic.com/api/v1/images/${imageId}?${queryParams}`, {

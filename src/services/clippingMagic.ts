@@ -157,6 +157,11 @@ export class ClippingMagicService {
       // CRITICAL: Set DPI to 300 for print-ready output (DTF requires high DPI)
       resultParams.append('output.dpi', '300');
       
+      // CRITICAL: Preserve original image dimensions - do not downscale
+      resultParams.append('size', 'original');
+      resultParams.append('output.fit_to_result', 'true');
+      resultParams.append('output.border_padding', '0');
+      
       if (options.backgroundColor && options.format === 'jpg') {
         resultParams.append('background_color', options.backgroundColor);
       }
