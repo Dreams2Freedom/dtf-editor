@@ -154,6 +154,9 @@ export class ClippingMagicService {
         resultParams.append('format', 'png'); // Default to PNG for transparency
       }
       
+      // CRITICAL: Set DPI to 300 for print-ready output (DTF requires high DPI)
+      resultParams.append('output.dpi', '300');
+      
       if (options.backgroundColor && options.format === 'jpg') {
         resultParams.append('background_color', options.backgroundColor);
       }

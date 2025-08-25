@@ -39,8 +39,13 @@ export async function GET(
       env.CLIPPINGMAGIC_API_KEY + ':' + env.CLIPPINGMAGIC_API_SECRET
     ).toString('base64');
 
-    // Download the processed image
-    const response = await fetch(`https://clippingmagic.com/api/v1/images/${imageId}`, {
+    // Download the processed image with 300 DPI for print-ready output
+    const params = new URLSearchParams({
+      'format': 'png',
+      'output.dpi': '300' // CRITICAL: Set to 300 DPI for DTF printing
+    });
+    
+    const response = await fetch(`https://clippingmagic.com/api/v1/images/${imageId}?${params}`, {
       method: 'GET',
       headers: {
         'Authorization': authHeader,
