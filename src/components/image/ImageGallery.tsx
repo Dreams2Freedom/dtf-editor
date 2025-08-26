@@ -313,12 +313,18 @@ export function ImageGallery() {
                       <ImageIcon className="w-12 h-12 text-gray-400" />
                     </div>
                   )}
-                  <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-50 transition-opacity flex items-center justify-center opacity-0 group-hover:opacity-100">
+                  {/* Overlay with buttons - always visible on mobile, hover on desktop */}
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent 
+                                  sm:bg-black sm:bg-opacity-0 sm:group-hover:bg-opacity-50 
+                                  transition-opacity flex items-end justify-center pb-2
+                                  sm:items-center sm:pb-0
+                                  sm:opacity-0 sm:group-hover:opacity-100">
                     <div className="flex gap-2">
                       <Button
                         size="sm"
                         variant="secondary"
                         onClick={() => handleDownload(image)}
+                        className="bg-white/90 hover:bg-white"
                       >
                         <Download className="w-4 h-4" />
                       </Button>
@@ -326,6 +332,7 @@ export function ImageGallery() {
                         size="sm"
                         variant="secondary"
                         onClick={() => handleDelete(image.id)}
+                        className="bg-white/90 hover:bg-white"
                       >
                         <Trash2 className="w-4 h-4" />
                       </Button>
@@ -354,6 +361,27 @@ export function ImageGallery() {
                       Expires {new Date(image.expires_at).toLocaleDateString()}
                     </div>
                   )}
+                  {/* Mobile-only action buttons */}
+                  <div className="flex gap-2 mt-3 sm:hidden">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => handleDownload(image)}
+                      className="flex-1"
+                    >
+                      <Download className="w-4 h-4 mr-1" />
+                      Download
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => handleDelete(image.id)}
+                      className="flex-1"
+                    >
+                      <Trash2 className="w-4 h-4 mr-1" />
+                      Delete
+                    </Button>
+                  </div>
                 </div>
               </div>
             ))}
