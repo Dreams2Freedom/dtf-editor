@@ -238,7 +238,7 @@ export function ImageGallery() {
               <span>{storageInfo.text}</span>
             </div>
             {/* Version indicator - v2 with native buttons */}
-            <div className="text-xs text-gray-400 mt-1">Gallery v2.1 - Mobile Fix</div>
+            <div className="text-xs text-gray-400 mt-1">Gallery v2.2 - Fixed Aug 26 7:56PM</div>
           </div>
           <div className="flex items-center gap-2">
             <Button
