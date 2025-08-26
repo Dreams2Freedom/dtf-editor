@@ -237,6 +237,8 @@ export function ImageGallery() {
               {storageInfo.icon}
               <span>{storageInfo.text}</span>
             </div>
+            {/* Version indicator - v2 with native buttons */}
+            <div className="text-xs text-gray-400 mt-1">Gallery v2.1 - Mobile Fix</div>
           </div>
           <div className="flex items-center gap-2">
             <Button
@@ -338,26 +340,24 @@ export function ImageGallery() {
                       Expires {new Date(image.expires_at).toLocaleDateString()}
                     </div>
                   )}
-                  {/* Action buttons - always visible */}
-                  <div className="flex gap-2 mt-3">
-                    <Button
-                      size="sm"
-                      variant="outline"
+                  {/* Action buttons - always visible using native HTML */}
+                  <div className="flex gap-2 mt-3 pt-2 border-t border-gray-100">
+                    <button
                       onClick={() => handleDownload(image)}
-                      className="flex-1 text-xs"
+                      className="flex-1 flex items-center justify-center gap-1 px-2 py-1.5 text-xs font-medium text-gray-700 bg-white border border-gray-300 rounded hover:bg-gray-50 active:bg-gray-100"
+                      type="button"
                     >
-                      <Download className="w-3 h-3 mr-1" />
-                      Download
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="outline"
+                      <Download className="w-3 h-3" />
+                      <span>Download</span>
+                    </button>
+                    <button
                       onClick={() => handleDelete(image.id)}
-                      className="flex-1 text-xs"
+                      className="flex-1 flex items-center justify-center gap-1 px-2 py-1.5 text-xs font-medium text-red-600 bg-white border border-red-300 rounded hover:bg-red-50 active:bg-red-100"
+                      type="button"
                     >
-                      <Trash2 className="w-3 h-3 mr-1" />
-                      Delete
-                    </Button>
+                      <Trash2 className="w-3 h-3" />
+                      <span>Delete</span>
+                    </button>
                   </div>
                 </div>
               </div>
@@ -399,20 +399,20 @@ export function ImageGallery() {
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
-                  <Button
-                    size="sm"
-                    variant="outline"
+                  <button
                     onClick={() => handleDownload(image)}
+                    className="flex items-center justify-center p-2 text-gray-700 bg-white border border-gray-300 rounded hover:bg-gray-50 active:bg-gray-100"
+                    type="button"
                   >
                     <Download className="w-4 h-4" />
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="outline"
+                  </button>
+                  <button
                     onClick={() => handleDelete(image.id)}
+                    className="flex items-center justify-center p-2 text-red-600 bg-white border border-red-300 rounded hover:bg-red-50 active:bg-red-100"
+                    type="button"
                   >
                     <Trash2 className="w-4 h-4" />
-                  </Button>
+                  </button>
                 </div>
               </div>
             ))}
