@@ -251,8 +251,9 @@ export function ImageGallery() {
       </CardHeader>
       <CardContent>
         {/* Filters */}
-        <div className="flex flex-col sm:flex-row gap-4 mb-6">
-          <div className="flex-1 relative">
+        <div className="space-y-4 mb-6">
+          {/* Search bar */}
+          <div className="relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
             <input
               type="text"
@@ -262,7 +263,8 @@ export function ImageGallery() {
               className="pl-10 pr-4 py-2 w-full border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-blue focus:border-transparent"
             />
           </div>
-          <div className="flex gap-2">
+          {/* Filters - responsive grid */}
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
             <select
               value={filterType}
               onChange={(e) => setFilterType(e.target.value)}
@@ -270,7 +272,7 @@ export function ImageGallery() {
             >
               <option value="all">All Types</option>
               <option value="upscale">Upscaled</option>
-              <option value="background-removal">Background Removed</option>
+              <option value="background-removal">BG Removed</option>
               <option value="vectorize">Vectorized</option>
               <option value="generate">AI Generated</option>
             </select>
@@ -299,7 +301,7 @@ export function ImageGallery() {
         ) : viewMode === 'grid' ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
             {filteredImages.map((image) => (
-              <div key={image.id} className="group relative bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow overflow-hidden">
+              <div key={image.id} className="bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow overflow-hidden">
                 <div className="aspect-square relative bg-gray-100">
                   {image.thumbnail_url ? (
                     <Image
@@ -313,31 +315,6 @@ export function ImageGallery() {
                       <ImageIcon className="w-12 h-12 text-gray-400" />
                     </div>
                   )}
-                  {/* Overlay with buttons - always visible on mobile, hover on desktop */}
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent 
-                                  sm:bg-black sm:bg-opacity-0 sm:group-hover:bg-opacity-50 
-                                  transition-opacity flex items-end justify-center pb-2
-                                  sm:items-center sm:pb-0
-                                  sm:opacity-0 sm:group-hover:opacity-100">
-                    <div className="flex gap-2">
-                      <Button
-                        size="sm"
-                        variant="secondary"
-                        onClick={() => handleDownload(image)}
-                        className="bg-white/90 hover:bg-white"
-                      >
-                        <Download className="w-4 h-4" />
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="secondary"
-                        onClick={() => handleDelete(image.id)}
-                        className="bg-white/90 hover:bg-white"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
-                    </div>
-                  </div>
                 </div>
                 <div className="p-3">
                   <p className="text-sm font-medium text-gray-900 truncate">
@@ -361,24 +338,24 @@ export function ImageGallery() {
                       Expires {new Date(image.expires_at).toLocaleDateString()}
                     </div>
                   )}
-                  {/* Mobile-only action buttons */}
-                  <div className="flex gap-2 mt-3 sm:hidden">
+                  {/* Action buttons - always visible */}
+                  <div className="flex gap-2 mt-3">
                     <Button
                       size="sm"
                       variant="outline"
                       onClick={() => handleDownload(image)}
-                      className="flex-1"
+                      className="flex-1 text-xs"
                     >
-                      <Download className="w-4 h-4 mr-1" />
+                      <Download className="w-3 h-3 mr-1" />
                       Download
                     </Button>
                     <Button
                       size="sm"
                       variant="outline"
                       onClick={() => handleDelete(image.id)}
-                      className="flex-1"
+                      className="flex-1 text-xs"
                     >
-                      <Trash2 className="w-4 h-4 mr-1" />
+                      <Trash2 className="w-3 h-3 mr-1" />
                       Delete
                     </Button>
                   </div>
