@@ -23,6 +23,7 @@ interface UserProfile {
   subscription_status: string;
   subscription_plan: string;
   is_admin: boolean;
+  credit_expires_at?: string; // When pay-as-you-go credits expire (for extended storage)
   created_at: string;
   updated_at: string;
 }

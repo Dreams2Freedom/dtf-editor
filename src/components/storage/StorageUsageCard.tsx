@@ -75,12 +75,17 @@ export function StorageUsageCard() {
     return null; // Simply don't show the card if there's an error
   }
 
-  // Only show the card if there's something important to show
+  // Determine user status and image expiration rules
   const hasExpiringImages = stats.expiringImages > 0;
   const isPaidUser = profile?.subscription_plan && profile.subscription_plan !== 'free';
+  const hasCredits = profile?.credits_remaining && profile.credits_remaining > 0;
+  const hasPurchasedCredits = profile?.credit_expires_at ? new Date(profile.credit_expires_at) > new Date() : false;
   
-  // For paid users with no expiring images, don't show anything
-  if (isPaidUser && !hasExpiringImages) {
+  // Determine actual expiration policy
+  const hasExtendedStorage = isPaidUser || hasPurchasedCredits;
+  
+  // For users with extended storage and no expiring images, don't show anything
+  if (hasExtendedStorage && !hasExpiringImages) {
     return null;
   }
 
@@ -100,7 +105,7 @@ export function StorageUsageCard() {
             <span className="text-lg font-semibold">{stats.totalImages}</span>
           </div>
 
-          {/* Expiration Warning - The most important part */}
+          {/* Expiration Warning - Show accurate message based on user's actual status */}
           {hasExpiringImages && (
             <div className="bg-amber-50 border border-amber-200 rounded-lg p-3">
               <div className="flex items-start gap-2">
@@ -110,11 +115,11 @@ export function StorageUsageCard() {
                     {stats.expiringImages} image{stats.expiringImages > 1 ? 's' : ''} expiring soon
                   </p>
                   <p className="text-amber-700">
-                    {profile?.subscription_plan === 'free' 
-                      ? 'Free plan images expire after 48 hours' 
-                      : 'Images will be deleted automatically'}
+                    {hasExtendedStorage 
+                      ? 'Images will be deleted automatically' 
+                      : 'Free plan images expire after 48 hours'}
                   </p>
-                  {profile?.subscription_plan === 'free' && (
+                  {!hasExtendedStorage && (
                     <Link href="/pricing" className="font-medium text-amber-900 underline mt-1 inline-block">
                       Upgrade to keep images permanently
                     </Link>
@@ -124,8 +129,8 @@ export function StorageUsageCard() {
             </div>
           )}
 
-          {/* Free user permanent storage notice */}
-          {profile?.subscription_plan === 'free' && !hasExpiringImages && stats.totalImages > 0 && (
+          {/* Storage policy notice - Show accurate message */}
+          {!hasExtendedStorage && !hasExpiringImages && stats.totalImages > 0 && (
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
               <div className="flex items-start gap-2">
                 <Shield className="w-4 h-4 text-blue-600 mt-0.5" />
@@ -135,6 +140,25 @@ export function StorageUsageCard() {
                     <Link href="/pricing" className="font-medium underline ml-1">
                       Upgrade for permanent storage
                     </Link>
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+          
+          {/* Show extended storage notice for users with purchased credits */}
+          {hasPurchasedCredits && !isPaidUser && stats.totalImages > 0 && (
+            <div className="bg-green-50 border border-green-200 rounded-lg p-3">
+              <div className="flex items-start gap-2">
+                <Shield className="w-4 h-4 text-green-600 mt-0.5" />
+                <div className="text-sm">
+                  <p className="text-green-700">
+                    Your images are protected for 90 days with your credit purchase.
+                    {profile?.credit_expires_at && (
+                      <span className="block mt-1 text-green-600">
+                        Extended storage until: {new Date(profile.credit_expires_at).toLocaleDateString()}
+                      </span>
+                    )}
                   </p>
                 </div>
               </div>
