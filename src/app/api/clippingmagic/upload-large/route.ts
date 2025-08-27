@@ -11,6 +11,9 @@ export const maxDuration = 60;
 // We use dynamic configuration to override the body size limit
 export const dynamic = 'force-dynamic';
 
+// For App Router, we need to export this to increase body size limit
+export const revalidate = 0;
+
 // This is the new way to configure body size in App Router
 export async function POST(request: NextRequest) {
   try {
@@ -25,14 +28,14 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Check content length
+    // Check content length - Vercel has a 4.5MB default limit for API routes
     const contentLength = request.headers.get('content-length');
-    const maxSize = 10 * 1024 * 1024; // 10MB
+    const maxSize = 4.5 * 1024 * 1024; // 4.5MB (Vercel's default limit)
     
     if (contentLength && parseInt(contentLength) > maxSize) {
-      console.error('[ClippingMagic Upload] File too large:', contentLength);
+      console.error('[ClippingMagic Upload] File too large:', contentLength, 'bytes, max:', maxSize, 'bytes');
       return NextResponse.json(
-        { error: 'File too large. Maximum size is 10MB.' },
+        { error: 'File too large. Maximum size is 4.5MB. Please try a smaller image.' },
         { status: 413 }
       );
     }

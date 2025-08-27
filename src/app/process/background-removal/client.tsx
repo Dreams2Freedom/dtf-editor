@@ -221,21 +221,22 @@ export default function BackgroundRemovalClient() {
     };
   }, []);
 
-  // Compress image ONLY if it exceeds Vercel's request body limit (4.5MB for Hobby, 50MB for Pro)
-  // We're on Pro plan, so we have 50MB limit, but we'll use 45MB to be safe
-  const compressImage = async (file: File, maxSizeMB: number = 45): Promise<File> => {
+  // Compress image if it exceeds Vercel's default API route limit
+  // Default is 4.5MB even on Pro plan unless specifically configured
+  // We'll use 4MB to be safe and avoid 413 errors
+  const compressImage = async (file: File, maxSizeMB: number = 4): Promise<File> => {
     const maxSizeBytes = maxSizeMB * 1024 * 1024;
     
     console.log('[DEBUG] compressImage called with file:', {
       name: file.name,
       size: (file.size / 1024 / 1024).toFixed(2) + ' MB',
       type: file.type,
-      vercelLimit: '50MB (Pro plan)'
+      vercelLimit: '4.5MB default (configurable to 50MB on Pro)'
     });
     
-    // If file is under Vercel's limit, DO NOT compress it - preserve original quality
+    // If file is under 4MB, don't compress
     if (file.size <= maxSizeBytes) {
-      console.log('[Background Removal] Image within Vercel limit, NO compression needed:', (file.size / 1024 / 1024).toFixed(2), 'MB');
+      console.log('[Background Removal] Image under 4MB limit, NO compression needed:', (file.size / 1024 / 1024).toFixed(2), 'MB');
       console.log('[DEBUG] Returning original file without compression - preserving full quality');
       return file;
     }
@@ -330,15 +331,15 @@ export default function BackgroundRemovalClient() {
     setError(null);
 
     try {
-      // Only compress if exceeding Vercel's 50MB limit (Pro plan)
+      // Compress if exceeding Vercel's default 4.5MB API route limit
       console.log('[DEBUG] Original imageFile before compression check:', {
         name: imageFile.name,
         size: (imageFile.size / 1024 / 1024).toFixed(2) + ' MB',
         type: imageFile.type
       });
       
-      // Pass 45MB as limit (leaving 5MB buffer for Vercel's 50MB Pro limit)
-      const fileToUpload = await compressImage(imageFile, 45);
+      // Pass 4MB as limit (safe threshold for Vercel's default API limit)
+      const fileToUpload = await compressImage(imageFile, 4);
       
       console.log('[DEBUG] File after compression (to upload):', {
         name: fileToUpload.name,
