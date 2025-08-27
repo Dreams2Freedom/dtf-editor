@@ -86,8 +86,8 @@ export const useAuthStore = create<AuthStore>()(
         const authState = await authService.getAuthState();
 
         if (authState.user) {
-          // Get user profile
-          const profile = await authService.getUserProfile(authState.user.id);
+          // Get user profile - don't pass ID to respect impersonation
+          const profile = await authService.getUserProfile();
 
           set({
             user: authState.user,

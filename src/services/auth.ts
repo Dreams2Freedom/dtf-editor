@@ -48,11 +48,15 @@ export class AuthService {
     try {
       // Check for impersonation first by calling our effective-user endpoint
       const response = await fetch('/api/auth/effective-user', {
-        credentials: 'include'
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+        }
       });
       
       if (response.ok) {
         const data = await response.json();
+        console.log('Effective user response:', data);
         
         if (data.user) {
           // If impersonating, use the impersonated user data
@@ -64,6 +68,8 @@ export class AuthService {
             error: null
           };
         }
+      } else {
+        console.error('Effective user endpoint failed:', response.status);
       }
       
       // Fallback to regular auth if endpoint fails
@@ -119,14 +125,20 @@ export class AuthService {
       // If no userId provided, check for impersonation first
       if (!userId) {
         const response = await fetch('/api/auth/effective-user', {
-          credentials: 'include'
+          credentials: 'include',
+          headers: {
+            'Content-Type': 'application/json',
+          }
         });
         
         if (response.ok) {
           const data = await response.json();
+          console.log('Effective user profile data:', data);
           if (data.profile) {
             return data.profile;
           }
+        } else {
+          console.error('Failed to get effective user profile:', response.status);
         }
       }
       
