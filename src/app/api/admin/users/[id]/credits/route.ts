@@ -14,9 +14,9 @@ const creditAdjustmentSchema = z.object({
   reason: z.string().min(5).max(500).trim(),
 });
 
-async function handleCreditAdjustment(
+export async function POST(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  context: { params: Promise<{ id: string }> }
 ) {
   try {
     // Get the authenticated user first
@@ -44,7 +44,7 @@ async function handleCreditAdjustment(
     
     console.log('Admin verified:', user.email);
 
-    const { id } = await params;
+    const { id } = await context.params;
     
     // Validate UUID format to prevent SQL injection
     const userIdValidation = schemas.uuid.safeParse(id);
@@ -134,7 +134,3 @@ async function handleCreditAdjustment(
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
-
-// Export without rate limiting for debugging
-// export const POST = withRateLimit(handleCreditAdjustment, 'admin');
-export const POST = handleCreditAdjustment;
