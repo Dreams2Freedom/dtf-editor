@@ -1,14 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createServerSupabaseClient } from '@/lib/supabase/server';
+import { createServerSupabaseClient, createServiceRoleClient } from '@/lib/supabase/server';
 import { cookies } from 'next/headers';
 import { logAdminAction, logSecurityAction, getClientIp, getUserAgent } from '@/utils/adminLogger';
 import { withRateLimit } from '@/lib/rate-limit';
 
-async function handlePost(
+export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  context: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await context.params;
+    
     const supabase = await createServerSupabaseClient();
     
     // Check if user is admin
@@ -27,11 +29,14 @@ async function handlePost(
       return NextResponse.json({ error: 'Admin access required' }, { status: 403 });
     }
 
+    // Use service role client to access other users' data
+    const serviceSupabase = createServiceRoleClient();
+    
     // Get target user details
-    const { data: targetUser } = await supabase
+    const { data: targetUser } = await serviceSupabase
       .from('profiles')
       .select('id, email, full_name')
-      .eq('id', params.id)
+      .eq('id', id)
       .single();
 
     if (!targetUser) {
@@ -39,10 +44,10 @@ async function handlePost(
     }
 
     // Don't allow impersonating other admins
-    const { data: targetProfile } = await supabase
+    const { data: targetProfile } = await serviceSupabase
       .from('profiles')
       .select('is_admin')
-      .eq('id', params.id)
+      .eq('id', id)
       .single();
 
     if (targetProfile?.is_admin) {
@@ -59,7 +64,7 @@ async function handlePost(
     };
 
     // Store impersonation data in a secure httpOnly cookie
-    const cookieStore = cookies();
+    const cookieStore = await cookies();
     cookieStore.set('impersonation_session', JSON.stringify(impersonationData), {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
@@ -73,7 +78,7 @@ async function handlePost(
       user.id,
       'user_impersonation_started',
       {
-        target_user_id: params.id,
+        target_user_id: id,
         target_user_email: targetUser.email,
         target_user_name: targetUser.full_name,
         admin_email: adminProfile.email
@@ -87,7 +92,7 @@ async function handlePost(
       adminEmail: user.email,
       action: 'user.impersonate',
       resourceType: 'user',
-      resourceId: params.id,
+      resourceId: id,
       details: {
         target_user_email: targetUser.email,
         session_duration: '2 hours max'
@@ -115,10 +120,10 @@ async function handlePost(
   }
 }
 
-async function handleDelete(request: NextRequest) {
+export async function DELETE(request: NextRequest) {
   try {
     const supabase = await createServerSupabaseClient();
-    const cookieStore = cookies();
+    const cookieStore = await cookies();
     
     // Get impersonation session
     const impersonationCookie = cookieStore.get('impersonation_session');
@@ -161,8 +166,3 @@ async function handleDelete(request: NextRequest) {
   }
 }
 
-// Apply rate limiting
-export const POST = withRateLimit(handlePost, 'admin');
-
-// Apply rate limiting
-export const DELETE = withRateLimit(handleDelete, 'admin');
