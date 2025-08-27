@@ -3,6 +3,7 @@ import { getStripeService } from '@/services/stripe';
 import { emailService } from '@/services/email';
 import { goHighLevelService } from '@/services/goHighLevel';
 import { createClient } from '@supabase/supabase-js';
+import { ApiCostTracker } from '@/lib/api-cost-tracker';
 
 // Lazy initialize Supabase to avoid build-time errors
 let supabase: ReturnType<typeof createClient> | null = null;
@@ -624,6 +625,30 @@ async function handleCheckoutSessionCompleted(session: any) {
           }
         }
         
+        // Track Stripe subscription payment costs
+        try {
+          await ApiCostTracker.logUsage({
+            userId,
+            provider: 'stripe',
+            operation: 'payment_processing',
+            status: 'success',
+            creditsCharged: 0, // No credits charged for payment processing
+            userPlan: plan.id,
+            stripeAmount: session.amount_total || 0, // Pass the amount for Stripe fee calculation
+            metadata: {
+              sessionId: session.id,
+              paymentMode: 'subscription',
+              subscriptionId: subscriptionId,
+              planName: plan.name,
+              amountCents: session.amount_total || 0
+            }
+          });
+          console.log('💰 Stripe subscription cost tracked');
+        } catch (costError) {
+          console.error('Error tracking Stripe costs:', costError);
+          // Don't fail the webhook if cost tracking fails
+        }
+        
         // Send subscription confirmation email
         try {
           console.log('📧 Attempting to send subscription email...');
@@ -705,6 +730,39 @@ async function handleCheckoutSessionCompleted(session: any) {
         }
         
         console.log('✅ Credits added successfully from checkout session!');
+        
+        // Track Stripe payment processing costs
+        try {
+          // Get user plan for cost tracking
+          const { data: userProfile } = await getSupabase()
+            .from('profiles')
+            .select('subscription_plan')
+            .eq('id', userId)
+            .single();
+          
+          const userPlan = userProfile?.subscription_plan || 'free';
+          
+          // Log Stripe API cost (2.9% + $0.30)
+          await ApiCostTracker.logUsage({
+            userId,
+            provider: 'stripe',
+            operation: 'payment_processing',
+            status: 'success',
+            creditsCharged: 0, // No credits charged for payment processing
+            userPlan,
+            stripeAmount: session.amount_total || 0, // Pass the amount for Stripe fee calculation
+            metadata: {
+              sessionId: session.id,
+              paymentMode: 'credits',
+              amountCents: session.amount_total || 0,
+              creditsAdded: credits
+            }
+          });
+          console.log('💰 Stripe payment cost tracked');
+        } catch (costError) {
+          console.error('Error tracking Stripe costs:', costError);
+          // Don't fail the webhook if cost tracking fails
+        }
         
         // Send purchase confirmation email
         try {

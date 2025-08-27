@@ -3,7 +3,7 @@ import { DeepImageService } from './deepImage';
 import { ClippingMagicService } from './clippingMagic';
 import { VectorizerService } from './vectorizer';
 import { createClient } from '@supabase/supabase-js';
-import { CostTrackingService, ApiProvider, ApiOperation } from './costTracking';
+import { ApiCostTracker } from '@/lib/api-cost-tracker';
 
 // Types for image processing operations
 export type ProcessingOperation = 'upscale' | 'background-removal' | 'vectorization' | 'ai-generation';
@@ -57,20 +57,18 @@ export class ImageProcessingService {
   private deepImageService: DeepImageService;
   private clippingMagicService: ClippingMagicService;
   private vectorizerService: VectorizerService;
-  private costTrackingService: CostTrackingService;
   private supabase = createClient(env.SUPABASE_URL, env.SUPABASE_SERVICE_ROLE_KEY);
 
   constructor() {
     this.deepImageService = new DeepImageService();
     this.clippingMagicService = new ClippingMagicService();
     this.vectorizerService = new VectorizerService();
-    this.costTrackingService = new CostTrackingService();
   }
 
   /**
    * Map processing operation to API provider and operation
    */
-  private mapOperationToProvider(operation: ProcessingOperation): { provider: ApiProvider; apiOperation: ApiOperation } {
+  private mapOperationToProvider(operation: ProcessingOperation): { provider: 'deep_image' | 'clipping_magic' | 'vectorizer' | 'openai'; apiOperation: 'upscale' | 'background_removal' | 'vectorization' | 'image_generation' } {
     switch (operation) {
       case 'upscale':
         return { provider: 'deep_image', apiOperation: 'upscale' };
@@ -168,18 +166,16 @@ export class ImageProcessingService {
 
       // 7. Track API costs (0 credits for admins)
       const { provider, apiOperation } = this.mapOperationToProvider(options.operation);
-      await this.costTrackingService.logApiUsage(
+      await ApiCostTracker.logUsage({
         userId,
         provider,
-        apiOperation,
-        'success',
-        isAdmin ? 0 : requiredCredits,
+        operation: apiOperation,
+        status: 'success',
+        creditsCharged: isAdmin ? 0 : requiredCredits,
         userPlan,
-        {
-          processingTimeMs: processingTime,
-          metadata: { imageUrl, processedUrl }
-        }
-      );
+        processingTimeMs: processingTime,
+        metadata: { imageUrl, processedUrl }
+      });
 
       // 8. Log successful operation (0 credits for admins)
       await this.logOperation(userId, options.operation, isAdmin ? 0 : requiredCredits, 'success', processingTime);
@@ -216,19 +212,17 @@ export class ImageProcessingService {
 
       // Track failed API usage (still costs us even if it fails)
       const { provider, apiOperation } = this.mapOperationToProvider(options.operation);
-      await this.costTrackingService.logApiUsage(
+      await ApiCostTracker.logUsage({
         userId,
         provider,
-        apiOperation,
-        'failed',
-        0, // No credits charged on failure
+        operation: apiOperation,
+        status: 'failed',
+        creditsCharged: 0, // No credits charged on failure
         userPlan,
-        {
-          processingTimeMs: processingTime,
-          errorMessage,
-          metadata: { imageUrl }
-        }
-      );
+        processingTimeMs: processingTime,
+        errorMessage,
+        metadata: { imageUrl }
+      });
       
       await this.logOperation(userId, options.operation, 0, 'failed', processingTime);
 
