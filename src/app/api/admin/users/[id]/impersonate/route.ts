@@ -72,6 +72,16 @@ export async function POST(
       maxAge: 60 * 60 * 2, // 2 hours max impersonation session
       path: '/'
     });
+    
+    // Set a cookie to override the user authentication
+    // This will be checked by our auth middleware
+    cookieStore.set('supabase-auth-override', targetUser.id, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      maxAge: 60 * 60 * 2, // 2 hours max impersonation session
+      path: '/'
+    });
 
     // Log the impersonation action with security priority
     await logSecurityAction(

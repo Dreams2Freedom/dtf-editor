@@ -24,7 +24,8 @@ export function ImpersonationBanner() {
 
   const checkImpersonationStatus = async () => {
     try {
-      const response = await fetch('/api/admin/users/impersonate/status', {
+      const response = await fetch('/api/admin/impersonate', {
+        method: 'GET',
         credentials: 'include'
       });
 
@@ -48,7 +49,7 @@ export function ImpersonationBanner() {
     setEnding(true);
     
     try {
-      const response = await fetch('/api/admin/users/impersonate', {
+      const response = await fetch('/api/admin/impersonate', {
         method: 'DELETE',
         credentials: 'include'
       });

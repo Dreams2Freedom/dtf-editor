@@ -20,9 +20,8 @@ export function useImpersonation(): ImpersonationStatus & { endImpersonation: ()
 
   const checkImpersonationStatus = async () => {
     try {
-      // Check if we have impersonation headers
-      // In a real implementation, we'd need to get these from the server
-      const response = await fetch('/api/admin/users/impersonate/status', {
+      const response = await fetch('/api/admin/impersonate', {
+        method: 'GET',
         credentials: 'include'
       });
 
@@ -42,7 +41,7 @@ export function useImpersonation(): ImpersonationStatus & { endImpersonation: ()
 
   const endImpersonation = async () => {
     try {
-      const response = await fetch('/api/admin/users/impersonate', {
+      const response = await fetch('/api/admin/impersonate', {
         method: 'DELETE',
         credentials: 'include'
       });
