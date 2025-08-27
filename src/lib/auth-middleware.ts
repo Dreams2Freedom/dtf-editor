@@ -92,13 +92,16 @@ export async function requireAdmin(request: NextRequest): Promise<NextResponse |
   const user = await verifyAuth(request);
   
   if (!user) {
+    console.error('requireAdmin: No authenticated user');
     return NextResponse.json(
       { error: 'Authentication required' },
       { status: 401 }
     );
   }
   
+  console.log('requireAdmin: Checking admin status for:', user.email);
   const isAdmin = await verifyAdmin(user.id);
+  console.log('requireAdmin: isAdmin result:', isAdmin);
   
   if (!isAdmin) {
     // Log unauthorized admin access attempts

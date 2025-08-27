@@ -18,11 +18,14 @@ async function handleCreditAdjustment(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  // Verify admin authentication
-  const adminCheck = await requireAdmin(request);
-  if (adminCheck) return adminCheck;
-
   try {
+    // Verify admin authentication first
+    const adminCheck = await requireAdmin(request);
+    if (adminCheck) {
+      console.error('Admin check failed:', adminCheck);
+      return adminCheck;
+    }
+
     const { id } = await params;
     
     // Validate UUID format to prevent SQL injection
@@ -40,9 +43,11 @@ async function handleCreditAdjustment(
     const supabase = await createServerSupabaseClient();
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
+      console.error('No authenticated user found');
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
-
+    
+    console.log('Credit adjustment by admin:', user.email, 'for user:', id);
 
     // Get current user credits
     const { data: targetUser, error: userError } = await supabase
