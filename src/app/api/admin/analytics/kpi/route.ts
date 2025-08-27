@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createServerSupabaseClient } from '@/lib/supabase/server';
-import { createServiceRoleSupabaseClient } from '@/lib/supabase/service';
+import { createServerSupabaseClient, createServiceRoleClient } from '@/lib/supabase/server';
 import { withRateLimit } from '@/lib/rate-limit';
 
 async function handleGet(request: NextRequest) {
@@ -30,143 +29,296 @@ async function handleGet(request: NextRequest) {
     // Calculate date range
     const now = new Date();
     const startDate = new Date();
+    const previousPeriodStart = new Date();
+    const previousPeriodEnd = new Date();
     
     switch (range) {
       case '90d':
         startDate.setDate(now.getDate() - 90);
+        previousPeriodStart.setDate(now.getDate() - 180);
+        previousPeriodEnd.setDate(now.getDate() - 90);
         break;
       case '1y':
         startDate.setFullYear(now.getFullYear() - 1);
+        previousPeriodStart.setFullYear(now.getFullYear() - 2);
+        previousPeriodEnd.setFullYear(now.getFullYear() - 1);
         break;
       default: // 30d
         startDate.setDate(now.getDate() - 30);
+        previousPeriodStart.setDate(now.getDate() - 60);
+        previousPeriodEnd.setDate(now.getDate() - 30);
     }
 
     // Use service role client for data access
-    let serviceClient;
-    try {
-      serviceClient = createServiceRoleSupabaseClient();
-    } catch (error) {
-      console.error('Failed to create service role client in KPI route:', error);
-      return NextResponse.json(
-        { error: 'Database configuration error', details: error instanceof Error ? error.message : 'Unknown error' },
-        { status: 500 }
-      );
-    }
+    const serviceClient = createServiceRoleClient();
     
-    // Fetch all necessary data for KPIs
-    // Note: These are simplified calculations. In production, you'd want more sophisticated queries
-
-    // Get total users and new users
-    const { data: allUsers } = await serviceClient
+    // ===============================================
+    // FETCH ALL NECESSARY DATA FOR KPIs
+    // ===============================================
+    
+    // Get all users and their subscription data
+    const { data: allUsers, error: usersError } = await serviceClient
       .from('profiles')
-      .select('id, created_at, subscription_plan, subscription_status');
+      .select('id, created_at, subscription_plan, subscription_status, last_activity_at, stripe_subscription_id, email');
+    
+    if (usersError) {
+      console.error('Error fetching users:', usersError);
+    }
 
-    const { data: newUsers } = await serviceClient
-      .from('profiles')
-      .select('id')
-      .gte('created_at', startDate.toISOString());
-
-    // Get active users (logged in within time range)
-    const { data: activeUsers } = await serviceClient
-      .from('profiles')
-      .select('id')
-      .gte('last_sign_in_at', startDate.toISOString());
-
-    // Get subscription data
-    const { data: subscriptions } = await serviceClient
-      .from('profiles')
-      .select('subscription_plan, subscription_status')
-      .not('subscription_plan', 'eq', 'free')
-      .eq('subscription_status', 'active');
-
-    // Get churned users (had subscription but cancelled)
-    const { data: churnedUsers } = await serviceClient
-      .from('profiles')
-      .select('id, subscription_plan')
-      .eq('subscription_status', 'cancelled')
-      .gte('updated_at', startDate.toISOString());
-
-    // Get revenue data (simplified - in production you'd use Stripe data)
+    const users = allUsers || [];
+    const totalUsers = users.length;
+    
+    // Calculate users by period
+    const currentPeriodNewUsers = users.filter(u => 
+      new Date(u.created_at) >= startDate
+    ).length;
+    
+    const previousPeriodNewUsers = users.filter(u => {
+      const createdAt = new Date(u.created_at);
+      return createdAt >= previousPeriodStart && createdAt < previousPeriodEnd;
+    }).length;
+    
+    // Active users (based on last_activity_at)
+    const activeUsersThisPeriod = users.filter(u => 
+      u.last_activity_at && new Date(u.last_activity_at) >= startDate
+    ).length;
+    
+    const activeUsersPreviousPeriod = users.filter(u => {
+      if (!u.last_activity_at) return false;
+      const activityDate = new Date(u.last_activity_at);
+      return activityDate >= previousPeriodStart && activityDate < previousPeriodEnd;
+    }).length;
+    
+    // Paid subscribers
+    const currentSubscribers = users.filter(u => 
+      u.subscription_status === 'active' || u.subscription_status === 'trialing'
+    );
+    
+    const basicSubscribers = currentSubscribers.filter(u => u.subscription_plan === 'basic').length;
+    const starterSubscribers = currentSubscribers.filter(u => u.subscription_plan === 'starter').length;
+    const proSubscribers = currentSubscribers.filter(u => 
+      u.subscription_plan === 'professional' || u.subscription_plan === 'pro'
+    ).length;
+    
+    // Free to paid conversions
+    const freeUsers = users.filter(u => 
+      u.subscription_plan === 'free' || !u.subscription_plan
+    ).length;
+    
+    // ===============================================
+    // REVENUE CALCULATIONS
+    // ===============================================
+    
+    // Get credit transactions for revenue
     const { data: transactions } = await serviceClient
       .from('credit_transactions')
-      .select('amount, type, created_at')
-      .eq('type', 'purchase')
-      .gte('created_at', startDate.toISOString());
-
-    // Calculate KPIs
-    const totalUsers = allUsers?.length || 0;
-    const paidUsers = subscriptions?.length || 0;
-    const newUserCount = newUsers?.length || 0;
-    const activeUserCount = activeUsers?.length || 0;
-    const churnedCount = churnedUsers?.length || 0;
-
-    // Conversion rate (free to paid)
-    const conversionRate = totalUsers > 0 ? (paidUsers / totalUsers) * 100 : 0;
+      .select('amount, metadata, type, created_at, user_id')
+      .in('type', ['purchase', 'subscription'])
+      .gte('created_at', previousPeriodStart.toISOString());
     
-    // Churn rate
-    const churnRate = paidUsers > 0 ? (churnedCount / paidUsers) * 100 : 0;
+    // Current period revenue
+    const currentPeriodTransactions = transactions?.filter(t => 
+      new Date(t.created_at) >= startDate
+    ) || [];
+    
+    const previousPeriodTransactions = transactions?.filter(t => {
+      const date = new Date(t.created_at);
+      return date >= previousPeriodStart && date < previousPeriodEnd;
+    }) || [];
+    
+    // Calculate actual revenue from metadata (price_paid is in cents)
+    const currentRevenue = currentPeriodTransactions.reduce((sum, t) => {
+      const price = t.metadata?.price_paid || t.metadata?.amount_paid || 0;
+      return sum + (price / 100); // Convert to dollars
+    }, 0);
+    
+    const previousRevenue = previousPeriodTransactions.reduce((sum, t) => {
+      const price = t.metadata?.price_paid || t.metadata?.amount_paid || 0;
+      return sum + (price / 100);
+    }, 0);
+    
+    // Calculate MRR
+    const planPrices: Record<string, number> = {
+      basic: 9.99,
+      starter: 24.99,
+      professional: 49.99,
+      pro: 49.99
+    };
+    
+    const mrr = currentSubscribers.reduce((total, sub) => {
+      return total + (planPrices[sub.subscription_plan] || 0);
+    }, 0);
     
     // ARPU (Average Revenue Per User)
-    const totalRevenue = transactions?.reduce((sum, t) => sum + (t.amount || 0), 0) || 0;
-    const arpu = paidUsers > 0 ? totalRevenue / paidUsers : 0;
-
-    // User growth rate
-    const previousPeriodUsers = totalUsers - newUserCount;
-    const userGrowthRate = previousPeriodUsers > 0 
-      ? ((newUserCount / previousPeriodUsers) * 100) 
-      : 0;
-
-    // Simplified retention cohorts (in production, track actual user behavior)
+    const paidUsers = currentSubscribers.length;
+    const arpu = paidUsers > 0 ? mrr / paidUsers : 0;
+    
+    // ===============================================
+    // CHURN CALCULATIONS
+    // ===============================================
+    
+    // Get cancelled subscriptions in current period
+    const { data: cancellations } = await serviceClient
+      .from('subscription_events')
+      .select('user_id, event_type, created_at, event_data')
+      .eq('event_type', 'subscription_cancelled')
+      .gte('created_at', startDate.toISOString());
+    
+    const churnedCount = cancellations?.length || 0;
+    const churnRate = paidUsers > 0 ? (churnedCount / (paidUsers + churnedCount)) * 100 : 0;
+    
+    // Calculate churn by plan
+    const basicChurn = basicSubscribers > 0 ? 
+      (cancellations?.filter(c => c.event_data?.plan === 'basic').length || 0) / basicSubscribers * 100 : 0;
+    
+    const starterChurn = starterSubscribers > 0 ? 
+      (cancellations?.filter(c => c.event_data?.plan === 'starter').length || 0) / starterSubscribers * 100 : 0;
+    
+    // ===============================================
+    // CONVERSION RATE CALCULATIONS
+    // ===============================================
+    
+    const conversionRate = freeUsers > 0 ? (paidUsers / (freeUsers + paidUsers)) * 100 : 0;
+    const conversionTrend = previousPeriodNewUsers > 0 ? 
+      ((currentPeriodNewUsers - previousPeriodNewUsers) / previousPeriodNewUsers) * 100 : 0;
+    
+    const freeToBasicRate = freeUsers > 0 ? (basicSubscribers / freeUsers) * 100 : 0;
+    const freeToStarterRate = freeUsers > 0 ? (starterSubscribers / freeUsers) * 100 : 0;
+    
+    // ===============================================
+    // GROWTH METRICS
+    // ===============================================
+    
+    const userGrowthRate = previousPeriodNewUsers > 0 ? 
+      ((currentPeriodNewUsers - previousPeriodNewUsers) / previousPeriodNewUsers) * 100 : 
+      currentPeriodNewUsers > 0 ? 100 : 0;
+    
+    const mauGrowth = activeUsersPreviousPeriod > 0 ? 
+      ((activeUsersThisPeriod - activeUsersPreviousPeriod) / activeUsersPreviousPeriod) * 100 : 
+      activeUsersThisPeriod > 0 ? 100 : 0;
+    
+    // ===============================================
+    // RETENTION COHORT ANALYSIS
+    // ===============================================
+    
+    // Get users created in specific periods and check their activity
+    const day1Cohort = users.filter(u => {
+      const created = new Date(u.created_at);
+      const dayAfter = new Date(created);
+      dayAfter.setDate(dayAfter.getDate() + 1);
+      return u.last_activity_at && new Date(u.last_activity_at) >= dayAfter;
+    });
+    
+    const day7Cohort = users.filter(u => {
+      const created = new Date(u.created_at);
+      const weekAfter = new Date(created);
+      weekAfter.setDate(weekAfter.getDate() + 7);
+      return u.last_activity_at && new Date(u.last_activity_at) >= weekAfter;
+    });
+    
+    const day30Cohort = users.filter(u => {
+      const created = new Date(u.created_at);
+      const monthAfter = new Date(created);
+      monthAfter.setDate(monthAfter.getDate() + 30);
+      return u.last_activity_at && new Date(u.last_activity_at) >= monthAfter;
+    });
+    
+    const day90Cohort = users.filter(u => {
+      const created = new Date(u.created_at);
+      const threeMonthsAfter = new Date(created);
+      threeMonthsAfter.setDate(threeMonthsAfter.getDate() + 90);
+      return u.last_activity_at && new Date(u.last_activity_at) >= threeMonthsAfter;
+    });
+    
     const retention = {
-      day1: 85, // Mock data - in production, calculate from actual user activity
-      day7: 65,
-      day30: 45,
-      day90: 35
+      day1: totalUsers > 0 ? (day1Cohort.length / totalUsers) * 100 : 0,
+      day7: totalUsers > 0 ? (day7Cohort.length / totalUsers) * 100 : 0,
+      day30: totalUsers > 0 ? (day30Cohort.length / totalUsers) * 100 : 0,
+      day90: totalUsers > 0 ? (day90Cohort.length / totalUsers) * 100 : 0
     };
-
-    // Build response
+    
+    // ===============================================
+    // FINANCIAL METRICS
+    // ===============================================
+    
+    // LTV calculation (simplified: ARPU * average customer lifespan in months)
+    const avgCustomerLifespan = churnRate > 0 ? 1 / (churnRate / 100) : 12; // months
+    const ltv = arpu * avgCustomerLifespan;
+    
+    // CAC (Customer Acquisition Cost) - this would need actual marketing spend data
+    // For now, using a placeholder
+    const cac = 25; // Placeholder - replace with actual CAC calculation
+    
+    const ltvCacRatio = cac > 0 ? ltv / cac : 0;
+    const paybackPeriod = arpu > 0 ? cac / arpu : 0;
+    
+    // Calculate trends
+    const arpuTrend = previousRevenue > 0 ? 
+      ((currentRevenue - previousRevenue) / previousRevenue) * 100 : 
+      currentRevenue > 0 ? 100 : 0;
+    
+    const churnTrend = churnRate > 5 ? -Math.abs(churnRate - 5) : Math.abs(5 - churnRate);
+    
+    // ===============================================
+    // BUILD RESPONSE
+    // ===============================================
+    
     const kpiData = {
       conversion: {
-        rate: conversionRate,
-        trend: 5.2, // Mock trend data
-        freeToBasic: 8.5,
-        freeToStarter: 3.2,
-        trialConversion: 0
+        rate: parseFloat(conversionRate.toFixed(2)),
+        trend: parseFloat(conversionTrend.toFixed(2)),
+        freeToBasic: parseFloat(freeToBasicRate.toFixed(2)),
+        freeToStarter: parseFloat(freeToStarterRate.toFixed(2)),
+        trialConversion: 0 // Would need trial tracking
       },
       churn: {
-        rate: churnRate,
-        trend: -2.1,
-        monthlyChurn: churnRate,
-        yearlyChurn: churnRate * 12,
+        rate: parseFloat(churnRate.toFixed(2)),
+        trend: parseFloat(churnTrend.toFixed(2)),
+        monthlyChurn: parseFloat(churnRate.toFixed(2)),
+        yearlyChurn: parseFloat((churnRate * 12).toFixed(2)),
         byPlan: {
-          basic: 5.2,
-          starter: 3.1
+          basic: parseFloat(basicChurn.toFixed(2)),
+          starter: parseFloat(starterChurn.toFixed(2))
         }
       },
       financial: {
-        arpu: arpu / 100, // Convert cents to dollars
-        arpuTrend: 3.5,
-        ltv: (arpu / 100) * 12, // Simplified LTV calculation
-        cac: 15, // Mock CAC
-        ltvCacRatio: arpu > 0 ? ((arpu / 100) * 12) / 15 : 0,
-        paybackPeriod: arpu > 0 ? 15 / (arpu / 100) : 0
+        arpu: parseFloat(arpu.toFixed(2)),
+        arpuTrend: parseFloat(arpuTrend.toFixed(2)),
+        ltv: parseFloat(ltv.toFixed(2)),
+        cac: cac,
+        ltvCacRatio: parseFloat(ltvCacRatio.toFixed(2)),
+        paybackPeriod: parseFloat(paybackPeriod.toFixed(2))
       },
       growth: {
-        userGrowthRate,
-        mauGrowth: 12.5, // Mock MAU growth
-        newUsersThisMonth: newUserCount,
-        referralRate: 15.3 // Mock referral rate
+        userGrowthRate: parseFloat(userGrowthRate.toFixed(2)),
+        mauGrowth: parseFloat(mauGrowth.toFixed(2)),
+        newUsersThisMonth: currentPeriodNewUsers,
+        referralRate: 0 // Would need referral tracking
       },
-      retention
+      retention: {
+        day1: parseFloat(retention.day1.toFixed(2)),
+        day7: parseFloat(retention.day7.toFixed(2)),
+        day30: parseFloat(retention.day30.toFixed(2)),
+        day90: parseFloat(retention.day90.toFixed(2))
+      }
     };
+    
+    console.log('[KPI Analytics] Calculated metrics:', {
+      totalUsers,
+      paidUsers,
+      activeUsersThisPeriod,
+      currentRevenue,
+      mrr,
+      conversionRate,
+      churnRate
+    });
 
     return NextResponse.json(kpiData);
 
   } catch (error) {
     console.error('Error fetching KPI data:', error);
     return NextResponse.json(
-      { error: 'Failed to fetch KPI data' },
+      { error: 'Failed to fetch KPI data', details: error instanceof Error ? error.message : 'Unknown error' },
       { status: 500 }
     );
   }
