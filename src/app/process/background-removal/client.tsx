@@ -221,7 +221,7 @@ export default function BackgroundRemovalClient() {
     };
   }, []);
 
-  // Compress image if it's too large - PRESERVE ORIGINAL DIMENSIONS
+  // Compress image if it's too large - with smart resizing for very large images
   const compressImage = async (file: File, maxSizeMB: number = 10): Promise<File> => {
     const maxSizeBytes = maxSizeMB * 1024 * 1024;
     
@@ -248,44 +248,63 @@ export default function BackgroundRemovalClient() {
           const canvas = document.createElement('canvas');
           const ctx = canvas.getContext('2d');
           
-          // CRITICAL: Keep original dimensions for print quality
-          // Only compress file size, not dimensions
-          const width = img.width;
-          const height = img.height;
+          // Calculate dimensions - scale down if extremely large
+          let width = img.width;
+          let height = img.height;
+          const maxDimension = 4096; // Max dimension for reasonable file size
           
-          console.log('[Background Removal] Preserving original dimensions:', width, 'x', height);
+          // Only scale down if dimensions are extremely large
+          if (width > maxDimension || height > maxDimension) {
+            const scale = Math.min(maxDimension / width, maxDimension / height);
+            width = Math.floor(width * scale);
+            height = Math.floor(height * scale);
+            console.log('[Background Removal] Scaling down from', img.width, 'x', img.height, 'to', width, 'x', height);
+          } else {
+            console.log('[Background Removal] Preserving original dimensions:', width, 'x', height);
+          }
           
           canvas.width = width;
           canvas.height = height;
           
-          // Draw at original size
+          // Draw image
           ctx?.drawImage(img, 0, 0, width, height);
           
-          // Try to compress with quality reduction only
-          let quality = 0.95; // Start with very high quality
+          // For large PNG files, convert to JPEG for better compression
+          // PNG compression doesn't work well, so force JPEG for large files
+          let quality = 0.85;
+          let outputFormat = file.type;
+          
+          // Force JPEG for large PNG files
+          if (file.type === 'image/png' && file.size > maxSizeBytes) {
+            outputFormat = 'image/jpeg';
+            console.log('[Background Removal] Converting PNG to JPEG for better compression');
+          }
+          
           const tryCompress = () => {
-            // Use original format if possible
-            const outputFormat = file.type === 'image/png' ? 'image/png' : 'image/jpeg';
-            
             canvas.toBlob(
               (blob) => {
                 if (blob) {
-                  if (blob.size > maxSizeBytes && quality > 0.5 && outputFormat === 'image/jpeg') {
-                    quality -= 0.05; // Smaller quality steps
+                  if (blob.size > maxSizeBytes && quality > 0.3) {
+                    quality -= 0.1; // More aggressive quality reduction
+                    outputFormat = 'image/jpeg'; // Force JPEG if still too large
                     tryCompress();
                   } else {
-                    const compressedFile = new File([blob], file.name, {
-                      type: blob.type || file.type,
+                    const fileName = outputFormat === 'image/jpeg' && file.name.endsWith('.png') 
+                      ? file.name.replace(/\.png$/i, '.jpg') 
+                      : file.name;
+                    const compressedFile = new File([blob], fileName, {
+                      type: outputFormat,
                     });
-                    console.log('[Background Removal] Compressed to:', (compressedFile.size / 1024 / 1024).toFixed(2), 'MB at quality:', quality);
+                    console.log('[Background Removal] Compressed to:', (compressedFile.size / 1024 / 1024).toFixed(2), 'MB at quality:', quality, 'format:', outputFormat);
                     resolve(compressedFile);
                   }
                 } else {
+                  console.log('[Background Removal] Failed to compress, using original');
                   resolve(file); // Fallback to original
                 }
               },
               outputFormat,
-              quality
+              outputFormat === 'image/png' ? undefined : quality // PNG doesn't use quality
             );
           };
           
