@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createServerSupabaseClient } from '@/lib/supabase/server';
+import { createServerSupabaseClient, createServiceRoleClient } from '@/lib/supabase/server';
 import { withRateLimit } from '@/lib/rate-limit';
+import { cookies } from 'next/headers';
 
 interface StorageStats {
   totalImages: number;
@@ -28,32 +29,60 @@ const STORAGE_LIMITS = {
 
 async function handleGet(request: NextRequest) {
   try {
-    const supabase = await createServerSupabaseClient();
+    const cookieStore = await cookies();
+    let effectiveUserId: string;
+    let effectiveSupabase;
     
-    // Get the current user
-    const { data: { user } } = await supabase.auth.getUser();
+    // Check for impersonation
+    const impersonationCookie = cookieStore.get('impersonation_session');
+    const authOverrideCookie = cookieStore.get('supabase-auth-override');
     
-    if (!user) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
+    if (impersonationCookie && authOverrideCookie) {
+      // We're impersonating - use the impersonated user's ID
+      try {
+        const impersonationData = JSON.parse(impersonationCookie.value);
+        effectiveUserId = impersonationData.impersonatedUserId;
+        effectiveSupabase = createServiceRoleClient(); // Use service role for impersonation
+      } catch (error) {
+        console.error('Error parsing impersonation data:', error);
+        // Fall through to regular auth
+        const supabase = await createServerSupabaseClient();
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) {
+          return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+        }
+        effectiveUserId = user.id;
+        effectiveSupabase = supabase;
+      }
+    } else {
+      // Regular auth flow
+      const supabase = await createServerSupabaseClient();
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (!user) {
+        return NextResponse.json(
+          { error: 'Unauthorized' },
+          { status: 401 }
+        );
+      }
+      effectiveUserId = user.id;
+      effectiveSupabase = supabase;
     }
 
     // Get user's profile to determine plan
-    const { data: profile } = await supabase
+    const { data: profile } = await effectiveSupabase
       .from('profiles')
       .select('subscription_plan')
-      .eq('id', user.id)
+      .eq('id', effectiveUserId)
       .single();
 
     const userPlan = profile?.subscription_plan || 'free';
     const storageLimit = STORAGE_LIMITS[userPlan as keyof typeof STORAGE_LIMITS] || STORAGE_LIMITS.free;
 
     // Get all user's images using RPC
-    const { data: images, error: imagesError } = await supabase
+    const { data: images, error: imagesError } = await effectiveSupabase
       .rpc('get_user_images', {
-        p_user_id: user.id
+        p_user_id: effectiveUserId
       });
 
     if (imagesError) {

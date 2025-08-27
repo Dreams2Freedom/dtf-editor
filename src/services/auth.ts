@@ -46,6 +46,27 @@ export class AuthService {
   // Get auth state (combines session and user)
   async getAuthState(): Promise<AuthState> {
     try {
+      // Check for impersonation first by calling our effective-user endpoint
+      const response = await fetch('/api/auth/effective-user', {
+        credentials: 'include'
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        
+        if (data.user) {
+          // If impersonating, use the impersonated user data
+          // Otherwise use the regular user data
+          return {
+            user: data.user,
+            session: data.isImpersonating ? null : await this.getSession(),
+            loading: false,
+            error: null
+          };
+        }
+      }
+      
+      // Fallback to regular auth if endpoint fails
       const session = await this.getSession();
       const user = session?.user || null;
       
@@ -95,6 +116,21 @@ export class AuthService {
   // Get user profile
   async getUserProfile(userId?: string): Promise<UserProfile | null> {
     try {
+      // If no userId provided, check for impersonation first
+      if (!userId) {
+        const response = await fetch('/api/auth/effective-user', {
+          credentials: 'include'
+        });
+        
+        if (response.ok) {
+          const data = await response.json();
+          if (data.profile) {
+            return data.profile;
+          }
+        }
+      }
+      
+      // Fallback to regular profile fetch
       const user = userId ? { id: userId } : await this.getUser();
       if (!user) return null;
 
