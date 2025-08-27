@@ -61,6 +61,7 @@ export async function POST(
     console.log('Credit adjustment by admin:', user.email, 'for user:', id, 'amount:', amount);
 
     // Get current user credits
+    console.log('Querying for user ID:', id);
     const { data: targetUser, error: userError } = await supabase
       .from('profiles')
       .select('credits_remaining')
@@ -68,8 +69,18 @@ export async function POST(
       .single();
 
     if (userError || !targetUser) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 });
+      console.error('Failed to find user:', { 
+        id, 
+        error: userError,
+        data: targetUser 
+      });
+      return NextResponse.json({ 
+        error: 'User not found',
+        details: userError?.message || 'No user data returned'
+      }, { status: 404 });
     }
+    
+    console.log('Found user, current credits:', targetUser.credits_remaining);
 
     const currentCredits = targetUser.credits_remaining || 0;
     const newBalance = currentCredits + amount;
