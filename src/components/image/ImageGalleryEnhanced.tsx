@@ -726,22 +726,22 @@ export function ImageGalleryEnhanced() {
                     </div>
                   )}
                   {!isSelectionMode && (
-                    <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-50 transition-opacity flex items-center justify-center opacity-0 group-hover:opacity-100">
+                    <div className="absolute inset-0 bg-black bg-opacity-0 sm:group-hover:bg-opacity-50 transition-opacity flex items-center justify-center opacity-100 sm:opacity-0 sm:group-hover:opacity-100">
                       <div className="flex gap-2">
-                        <Button
-                          size="sm"
-                          variant="secondary"
+                        <button
                           onClick={() => handleDownload(image)}
+                          className="flex items-center justify-center p-2 bg-white text-gray-700 rounded-lg shadow-md hover:bg-gray-50 active:bg-gray-100"
+                          type="button"
                         >
                           <Download className="w-4 h-4" />
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="secondary"
+                        </button>
+                        <button
                           onClick={() => handleDelete(image.id)}
+                          className="flex items-center justify-center p-2 bg-white text-red-600 rounded-lg shadow-md hover:bg-red-50 active:bg-red-100"
+                          type="button"
                         >
                           <Trash2 className="w-4 h-4" />
-                        </Button>
+                        </button>
                       </div>
                     </div>
                   )}
@@ -844,20 +844,20 @@ export function ImageGalleryEnhanced() {
                 </div>
                 {!isSelectionMode && (
                   <div className="flex items-center gap-2">
-                    <Button
-                      size="sm"
-                      variant="outline"
+                    <button
                       onClick={() => handleDownload(image)}
+                      className="flex items-center justify-center p-2 text-gray-700 bg-white border border-gray-300 rounded hover:bg-gray-50 active:bg-gray-100"
+                      type="button"
                     >
                       <Download className="w-4 h-4" />
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="outline"
+                    </button>
+                    <button
                       onClick={() => handleDelete(image.id)}
+                      className="flex items-center justify-center p-2 text-red-600 bg-white border border-red-300 rounded hover:bg-red-50 active:bg-red-100"
+                      type="button"
                     >
                       <Trash2 className="w-4 h-4" />
-                    </Button>
+                    </button>
                   </div>
                 )}
               </div>
