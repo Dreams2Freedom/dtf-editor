@@ -13,7 +13,6 @@ import { PlanSwitcher } from '@/components/subscription/PlanSwitcher';
 import { CreditExpirationBanner } from '@/components/credits/CreditExpirationBanner';
 import { ImageGalleryEnhanced } from '@/components/image/ImageGalleryEnhanced';
 import { StorageUsageCard } from '@/components/storage/StorageUsageCard';
-import { StorageManager } from '@/components/storage/StorageManager';
 import { 
   Upload, 
   Wand2, 
@@ -42,9 +41,6 @@ export default function DashboardPage() {
   // Check if user has active subscription (not free plan)
   const hasActiveSubscription = profile?.subscription_plan && profile.subscription_plan !== 'free';
   
-  const refreshStorageStats = () => {
-    setStorageKey(prev => prev + 1);
-  };
 
   useEffect(() => {
     // Initialize auth state on mount
@@ -384,14 +380,9 @@ export default function DashboardPage() {
             </Card>
           </div>
 
-          {/* Storage Management Section */}
-          <div id="storage" className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
-            <div key={storageKey}>
-              <StorageUsageCard />
-            </div>
-            <div>
-              <StorageManager onStorageUpdate={refreshStorageStats} />
-            </div>
+          {/* Image Status - Only shows for free users or when images are expiring */}
+          <div className="mt-6" key={storageKey}>
+            <StorageUsageCard />
           </div>
 
           {/* My Images Gallery */}
