@@ -81,18 +81,8 @@ export function StorageUsageCard() {
   const hasCredits = profile?.credits_remaining && profile.credits_remaining > 0;
   const hasPurchasedCredits = profile?.credit_expires_at ? new Date(profile.credit_expires_at) > new Date() : false;
   
-  // Debug logging (remove in production)
-  console.log('[StorageUsageCard] User status:', {
-    subscription_plan: profile?.subscription_plan,
-    credits_remaining: profile?.credits_remaining,
-    credit_expires_at: profile?.credit_expires_at,
-    isPaidUser,
-    hasCredits,
-    hasPurchasedCredits,
-  });
-  
   // Determine actual expiration policy
-  const hasExtendedStorage = isPaidUser || hasPurchasedCredits;
+  const hasExtendedStorage = isPaidUser || hasPurchasedCredits || hasCredits; // Also check if they have credits
   
   // For users with extended storage and no expiring images, don't show anything
   if (hasExtendedStorage && !hasExpiringImages) {
@@ -157,16 +147,21 @@ export function StorageUsageCard() {
           )}
           
           {/* Show extended storage notice for users with purchased credits */}
-          {hasPurchasedCredits && !isPaidUser && stats.totalImages > 0 && (
+          {(hasPurchasedCredits || hasCredits) && !isPaidUser && stats.totalImages > 0 && (
             <div className="bg-green-50 border border-green-200 rounded-lg p-3">
               <div className="flex items-start gap-2">
                 <Shield className="w-4 h-4 text-green-600 mt-0.5" />
                 <div className="text-sm">
                   <p className="text-green-700">
-                    Your images are protected for 90 days with your credit purchase.
+                    Your images are protected for 90 days from your credit purchase.
                     {profile?.credit_expires_at && (
                       <span className="block mt-1 text-green-600">
                         Extended storage until: {new Date(profile.credit_expires_at).toLocaleDateString()}
+                      </span>
+                    )}
+                    {!profile?.credit_expires_at && hasCredits && (
+                      <span className="block mt-1 text-green-600">
+                        You have {profile.credits_remaining} credit{profile.credits_remaining !== 1 ? 's' : ''} remaining
                       </span>
                     )}
                   </p>

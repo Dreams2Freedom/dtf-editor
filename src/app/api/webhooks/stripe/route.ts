@@ -704,11 +704,25 @@ async function handleCheckoutSessionCompleted(session: any) {
     
     if (credits > 0) {
       try {
-        // Update customer ID if not already set
+        // Update customer ID and set credit expiration (90 days for pay-as-you-go)
+        const creditExpirationDate = new Date();
+        creditExpirationDate.setDate(creditExpirationDate.getDate() + 90); // 90 days from purchase
+        
         if (customerId) {
           await getSupabase()
             .from('profiles')
-            .update({ stripe_customer_id: customerId })
+            .update({ 
+              stripe_customer_id: customerId,
+              credit_expires_at: creditExpirationDate.toISOString() // Set 90-day expiration for storage
+            })
+            .eq('id', userId);
+        } else {
+          // Even without customer ID, set the credit expiration
+          await getSupabase()
+            .from('profiles')
+            .update({ 
+              credit_expires_at: creditExpirationDate.toISOString()
+            })
             .eq('id', userId);
         }
         
