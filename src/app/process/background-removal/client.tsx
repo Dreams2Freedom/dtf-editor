@@ -221,20 +221,22 @@ export default function BackgroundRemovalClient() {
     };
   }, []);
 
-  // Compress image if it's too large - with smart resizing for very large images
-  const compressImage = async (file: File, maxSizeMB: number = 10): Promise<File> => {
+  // Compress image ONLY if it exceeds Vercel's request body limit (4.5MB for Hobby, 50MB for Pro)
+  // We're on Pro plan, so we have 50MB limit, but we'll use 45MB to be safe
+  const compressImage = async (file: File, maxSizeMB: number = 45): Promise<File> => {
     const maxSizeBytes = maxSizeMB * 1024 * 1024;
     
     console.log('[DEBUG] compressImage called with file:', {
       name: file.name,
       size: (file.size / 1024 / 1024).toFixed(2) + ' MB',
-      type: file.type
+      type: file.type,
+      vercelLimit: '50MB (Pro plan)'
     });
     
-    // If file is already small enough, return it
+    // If file is under Vercel's limit, DO NOT compress it - preserve original quality
     if (file.size <= maxSizeBytes) {
-      console.log('[Background Removal] Image size OK:', (file.size / 1024 / 1024).toFixed(2), 'MB');
-      console.log('[DEBUG] Returning original file without compression');
+      console.log('[Background Removal] Image within Vercel limit, NO compression needed:', (file.size / 1024 / 1024).toFixed(2), 'MB');
+      console.log('[DEBUG] Returning original file without compression - preserving full quality');
       return file;
     }
     
@@ -248,12 +250,12 @@ export default function BackgroundRemovalClient() {
           const canvas = document.createElement('canvas');
           const ctx = canvas.getContext('2d');
           
-          // Calculate dimensions - scale down if extremely large
+          // Calculate dimensions - only scale if absolutely necessary
           let width = img.width;
           let height = img.height;
-          const maxDimension = 4096; // Max dimension for reasonable file size
+          const maxDimension = 6000; // Increased limit since we have 50MB to work with
           
-          // Only scale down if dimensions are extremely large
+          // Only scale down if dimensions are absolutely massive
           if (width > maxDimension || height > maxDimension) {
             const scale = Math.min(maxDimension / width, maxDimension / height);
             width = Math.floor(width * scale);
@@ -269,13 +271,12 @@ export default function BackgroundRemovalClient() {
           // Draw image
           ctx?.drawImage(img, 0, 0, width, height);
           
-          // For large PNG files, convert to JPEG for better compression
-          // PNG compression doesn't work well, so force JPEG for large files
-          let quality = 0.85;
+          // Start with high quality since we have 50MB to work with
+          let quality = 0.92;
           let outputFormat = file.type;
           
-          // Force JPEG for large PNG files
-          if (file.type === 'image/png' && file.size > maxSizeBytes) {
+          // Only convert PNG to JPEG if file is really large
+          if (file.type === 'image/png' && file.size > maxSizeBytes * 1.5) {
             outputFormat = 'image/jpeg';
             console.log('[Background Removal] Converting PNG to JPEG for better compression');
           }
@@ -284,8 +285,8 @@ export default function BackgroundRemovalClient() {
             canvas.toBlob(
               (blob) => {
                 if (blob) {
-                  if (blob.size > maxSizeBytes && quality > 0.3) {
-                    quality -= 0.1; // More aggressive quality reduction
+                  if (blob.size > maxSizeBytes && quality > 0.5) {
+                    quality -= 0.05; // Gentle quality reduction to preserve image quality
                     outputFormat = 'image/jpeg'; // Force JPEG if still too large
                     tryCompress();
                   } else {
@@ -329,14 +330,15 @@ export default function BackgroundRemovalClient() {
     setError(null);
 
     try {
-      // Compress file size if needed (max 10MB) - preserves original dimensions
-      console.log('[DEBUG] Original imageFile before compression:', {
+      // Only compress if exceeding Vercel's 50MB limit (Pro plan)
+      console.log('[DEBUG] Original imageFile before compression check:', {
         name: imageFile.name,
         size: (imageFile.size / 1024 / 1024).toFixed(2) + ' MB',
         type: imageFile.type
       });
       
-      const fileToUpload = await compressImage(imageFile, 10);
+      // Pass 45MB as limit (leaving 5MB buffer for Vercel's 50MB Pro limit)
+      const fileToUpload = await compressImage(imageFile, 45);
       
       console.log('[DEBUG] File after compression (to upload):', {
         name: fileToUpload.name,
