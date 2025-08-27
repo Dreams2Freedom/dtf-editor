@@ -565,62 +565,132 @@ export function ImageGalleryEnhanced() {
                   <ChevronDown className="w-4 h-4" />
                 </Button>
                 {showFilterMenu && (
-                  <div className="absolute right-0 mt-2 w-64 bg-white rounded-lg shadow-lg border p-4 z-10">
-                    <div className="space-y-4">
-                      <div>
-                        <label className="text-sm font-medium text-gray-700">Date Range</label>
-                        <select
-                          value={dateFilter}
-                          onChange={(e) => setDateFilter(e.target.value as DateFilter)}
-                          className="mt-1 w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
+                  <>
+                    {/* Mobile: Full-screen modal */}
+                    <div className="fixed inset-0 bg-black bg-opacity-50 z-50 sm:hidden" onClick={() => setShowFilterMenu(false)} />
+                    <div className="fixed bottom-0 left-0 right-0 bg-white rounded-t-2xl shadow-xl border-t p-6 z-50 sm:hidden animate-slide-up-modal">
+                      <div className="flex items-center justify-between mb-4">
+                        <h3 className="text-lg font-semibold">Filters</h3>
+                        <button
+                          onClick={() => setShowFilterMenu(false)}
+                          className="p-2 hover:bg-gray-100 rounded-lg"
                         >
-                          <option value="all">All Time</option>
-                          <option value="today">Today</option>
-                          <option value="week">Last 7 Days</option>
-                          <option value="month">Last 30 Days</option>
-                          <option value="custom">Custom Range</option>
-                        </select>
+                          <X className="w-5 h-5" />
+                        </button>
                       </div>
-                      {dateFilter === 'custom' && (
-                        <div className="space-y-2">
-                          <input
-                            type="date"
-                            value={customDateRange.start}
-                            onChange={(e) => setCustomDateRange({ ...customDateRange, start: e.target.value })}
-                            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
-                          />
-                          <input
-                            type="date"
-                            value={customDateRange.end}
-                            onChange={(e) => setCustomDateRange({ ...customDateRange, end: e.target.value })}
-                            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
-                          />
+                      <div className="space-y-4 max-h-[60vh] overflow-y-auto">
+                        <div>
+                          <label className="text-sm font-medium text-gray-700">Date Range</label>
+                          <select
+                            value={dateFilter}
+                            onChange={(e) => setDateFilter(e.target.value as DateFilter)}
+                            className="mt-1 w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
+                          >
+                            <option value="all">All Time</option>
+                            <option value="today">Today</option>
+                            <option value="week">Last 7 Days</option>
+                            <option value="month">Last 30 Days</option>
+                            <option value="custom">Custom Range</option>
+                          </select>
                         </div>
-                      )}
-                      <div>
-                        <label className="text-sm font-medium text-gray-700">Collection</label>
-                        <select
-                          value={selectedCollection}
-                          onChange={(e) => setSelectedCollection(e.target.value)}
-                          className="mt-1 w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
+                        {dateFilter === 'custom' && (
+                          <div className="space-y-2">
+                            <input
+                              type="date"
+                              value={customDateRange.start}
+                              onChange={(e) => setCustomDateRange({ ...customDateRange, start: e.target.value })}
+                              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
+                            />
+                            <input
+                              type="date"
+                              value={customDateRange.end}
+                              onChange={(e) => setCustomDateRange({ ...customDateRange, end: e.target.value })}
+                              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
+                            />
+                          </div>
+                        )}
+                        <div>
+                          <label className="text-sm font-medium text-gray-700">Collection</label>
+                          <select
+                            value={selectedCollection}
+                            onChange={(e) => setSelectedCollection(e.target.value)}
+                            className="mt-1 w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
+                          >
+                            <option value="all">All Collections</option>
+                            {collections.map(col => (
+                              <option key={col.id} value={col.id}>
+                                {col.name}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                        <button
+                          onClick={() => setShowFilterMenu(false)}
+                          className="w-full py-3 px-4 bg-primary-blue text-white font-medium rounded-lg hover:bg-blue-700 active:bg-blue-800 transition-colors"
                         >
-                          <option value="all">All Collections</option>
-                          {collections.map(col => (
-                            <option key={col.id} value={col.id}>
-                              {col.name}
-                            </option>
-                          ))}
-                        </select>
+                          Apply Filters
+                        </button>
                       </div>
-                      <Button
-                        size="sm"
-                        onClick={() => setShowFilterMenu(false)}
-                        className="w-full"
-                      >
-                        Apply Filters
-                      </Button>
                     </div>
-                  </div>
+
+                    {/* Desktop: Dropdown */}
+                    <div className="hidden sm:block absolute right-0 mt-2 w-64 bg-white rounded-lg shadow-lg border p-4 z-10">
+                      <div className="space-y-4">
+                        <div>
+                          <label className="text-sm font-medium text-gray-700">Date Range</label>
+                          <select
+                            value={dateFilter}
+                            onChange={(e) => setDateFilter(e.target.value as DateFilter)}
+                            className="mt-1 w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
+                          >
+                            <option value="all">All Time</option>
+                            <option value="today">Today</option>
+                            <option value="week">Last 7 Days</option>
+                            <option value="month">Last 30 Days</option>
+                            <option value="custom">Custom Range</option>
+                          </select>
+                        </div>
+                        {dateFilter === 'custom' && (
+                          <div className="space-y-2">
+                            <input
+                              type="date"
+                              value={customDateRange.start}
+                              onChange={(e) => setCustomDateRange({ ...customDateRange, start: e.target.value })}
+                              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
+                            />
+                            <input
+                              type="date"
+                              value={customDateRange.end}
+                              onChange={(e) => setCustomDateRange({ ...customDateRange, end: e.target.value })}
+                              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
+                            />
+                          </div>
+                        )}
+                        <div>
+                          <label className="text-sm font-medium text-gray-700">Collection</label>
+                          <select
+                            value={selectedCollection}
+                            onChange={(e) => setSelectedCollection(e.target.value)}
+                            className="mt-1 w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
+                          >
+                            <option value="all">All Collections</option>
+                            {collections.map(col => (
+                              <option key={col.id} value={col.id}>
+                                {col.name}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                        <Button
+                          size="sm"
+                          onClick={() => setShowFilterMenu(false)}
+                          className="w-full"
+                        >
+                          Apply Filters
+                        </Button>
+                      </div>
+                    </div>
+                  </>
                 )}
               </div>
             </div>
