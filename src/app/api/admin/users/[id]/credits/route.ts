@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createServerSupabaseClient } from '@/lib/supabase/server';
+import { createServerSupabaseClient, createServiceRoleClient } from '@/lib/supabase/server';
 import { logAdminAction, getClientIp, getUserAgent } from '@/utils/adminLogger';
 import { withRateLimit } from '@/lib/rate-limit';
 import { requireAdmin } from '@/lib/auth-middleware';
@@ -60,9 +60,12 @@ export async function POST(
     
     console.log('Credit adjustment by admin:', user.email, 'for user:', id, 'amount:', amount);
 
+    // Use service role client for database operations (bypasses RLS)
+    const serviceSupabase = createServiceRoleClient();
+    
     // Get current user credits
     console.log('Querying for user ID:', id);
-    const { data: targetUser, error: userError } = await supabase
+    const { data: targetUser, error: userError } = await serviceSupabase
       .from('profiles')
       .select('credits_remaining')
       .eq('id', id)
@@ -90,7 +93,7 @@ export async function POST(
     }
 
     // Update user credits
-    const { error: updateError } = await supabase
+    const { error: updateError } = await serviceSupabase
       .from('profiles')
       .update({ credits_remaining: newBalance })
       .eq('id', id);
@@ -100,7 +103,7 @@ export async function POST(
     }
 
     // Log the credit transaction
-    const { error: transactionError } = await supabase
+    const { error: transactionError } = await serviceSupabase
       .from('credit_transactions')
       .insert({
         user_id: id,
