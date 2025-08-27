@@ -725,26 +725,6 @@ export function ImageGalleryEnhanced() {
                       <ImageIcon className="w-12 h-12 text-gray-400" />
                     </div>
                   )}
-                  {!isSelectionMode && (
-                    <div className="absolute inset-0 bg-black bg-opacity-0 sm:group-hover:bg-opacity-50 transition-opacity flex items-center justify-center opacity-100 sm:opacity-0 sm:group-hover:opacity-100">
-                      <div className="flex gap-2">
-                        <button
-                          onClick={() => handleDownload(image)}
-                          className="flex items-center justify-center p-2 bg-white text-gray-700 rounded-lg shadow-md hover:bg-gray-50 active:bg-gray-100"
-                          type="button"
-                        >
-                          <Download className="w-4 h-4" />
-                        </button>
-                        <button
-                          onClick={() => handleDelete(image.id)}
-                          className="flex items-center justify-center p-2 bg-white text-red-600 rounded-lg shadow-md hover:bg-red-50 active:bg-red-100"
-                          type="button"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      </div>
-                    </div>
-                  )}
                 </div>
                 <div className="p-3">
                   <p className="text-sm font-medium text-gray-900 truncate">
@@ -778,6 +758,26 @@ export function ImageGalleryEnhanced() {
                           return `Expires ${format(expiresDate, 'MMM dd')}`;
                         }
                       })()}
+                    </div>
+                  )}
+                  {!isSelectionMode && (
+                    <div className="flex gap-2 mt-3 pt-3 border-t border-gray-100">
+                      <button
+                        onClick={() => handleDownload(image)}
+                        className="flex-1 flex items-center justify-center gap-1 px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 active:bg-gray-100 transition-colors"
+                        type="button"
+                      >
+                        <Download className="w-4 h-4" />
+                        <span>Download</span>
+                      </button>
+                      <button
+                        onClick={() => handleDelete(image.id)}
+                        className="flex-1 flex items-center justify-center gap-1 px-3 py-2 text-sm font-medium text-red-600 bg-white border border-red-300 rounded-lg hover:bg-red-50 active:bg-red-100 transition-colors"
+                        type="button"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                        <span>Delete</span>
+                      </button>
                     </div>
                   )}
                 </div>
