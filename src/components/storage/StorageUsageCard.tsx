@@ -81,6 +81,16 @@ export function StorageUsageCard() {
   const hasCredits = profile?.credits_remaining && profile.credits_remaining > 0;
   const hasPurchasedCredits = profile?.credit_expires_at ? new Date(profile.credit_expires_at) > new Date() : false;
   
+  // Debug logging (remove in production)
+  console.log('[StorageUsageCard] User status:', {
+    subscription_plan: profile?.subscription_plan,
+    credits_remaining: profile?.credits_remaining,
+    credit_expires_at: profile?.credit_expires_at,
+    isPaidUser,
+    hasCredits,
+    hasPurchasedCredits,
+  });
+  
   // Determine actual expiration policy
   const hasExtendedStorage = isPaidUser || hasPurchasedCredits;
   
