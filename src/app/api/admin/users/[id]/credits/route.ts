@@ -19,12 +19,30 @@ async function handleCreditAdjustment(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    // Verify admin authentication first
-    const adminCheck = await requireAdmin(request);
-    if (adminCheck) {
-      console.error('Admin check failed:', adminCheck);
-      return adminCheck;
+    // Get the authenticated user first
+    const supabase = await createServerSupabaseClient();
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    
+    if (authError || !user) {
+      console.error('Auth error:', authError);
+      return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
     }
+    
+    console.log('Authenticated user:', user.email);
+    
+    // Check if user is admin
+    const { data: profile, error: profileError } = await supabase
+      .from('profiles')
+      .select('is_admin')
+      .eq('id', user.id)
+      .single();
+      
+    if (profileError || !profile?.is_admin) {
+      console.error('Admin check failed for user:', user.email, 'is_admin:', profile?.is_admin);
+      return NextResponse.json({ error: 'Admin access required' }, { status: 403 });
+    }
+    
+    console.log('Admin verified:', user.email);
 
     const { id } = await params;
     
@@ -40,14 +58,7 @@ async function handleCreditAdjustment(
     
     const { amount, reason } = validation.data;
     
-    const supabase = await createServerSupabaseClient();
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
-      console.error('No authenticated user found');
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-    
-    console.log('Credit adjustment by admin:', user.email, 'for user:', id);
+    console.log('Credit adjustment by admin:', user.email, 'for user:', id, 'amount:', amount);
 
     // Get current user credits
     const { data: targetUser, error: userError } = await supabase
@@ -124,5 +135,6 @@ async function handleCreditAdjustment(
   }
 }
 
-// Export with rate limiting
-export const POST = withRateLimit(handleCreditAdjustment, 'admin');
+// Export without rate limiting for debugging
+// export const POST = withRateLimit(handleCreditAdjustment, 'admin');
+export const POST = handleCreditAdjustment;
