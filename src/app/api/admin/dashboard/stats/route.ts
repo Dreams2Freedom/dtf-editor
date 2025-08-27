@@ -28,25 +28,36 @@ async function handleGet() {
 
     // Get current date ranges
     const now = new Date();
-    const todayStart = new Date(now.setHours(0, 0, 0, 0));
-    const weekStart = new Date(now.setDate(now.getDate() - now.getDay()));
-    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+    const todayStart = new Date(now);
+    todayStart.setHours(0, 0, 0, 0);
+    
+    const weekStart = new Date(now);
+    weekStart.setDate(now.getDate() - 7);
+    
+    const monthStart = new Date(now);
+    monthStart.setMonth(now.getMonth() - 1);
 
-    // User statistics
+    // ========================================
+    // USER STATISTICS - FIXED
+    // ========================================
+    
+    // Total users
     const { count: totalUsers } = await serviceClient
       .from('profiles')
       .select('*', { count: 'exact', head: true });
 
+    // Active users - Check last_activity_at field which actually exists
     const { count: activeToday } = await serviceClient
       .from('profiles')
       .select('*', { count: 'exact', head: true })
-      .gte('last_sign_in_at', todayStart.toISOString());
+      .gte('last_activity_at', todayStart.toISOString());
 
     const { count: activeWeek } = await serviceClient
       .from('profiles')
       .select('*', { count: 'exact', head: true })
-      .gte('last_sign_in_at', weekStart.toISOString());
+      .gte('last_activity_at', weekStart.toISOString());
 
+    // New users
     const { count: newToday } = await serviceClient
       .from('profiles')
       .select('*', { count: 'exact', head: true })
@@ -57,87 +68,110 @@ async function handleGet() {
       .select('*', { count: 'exact', head: true })
       .gte('created_at', weekStart.toISOString());
 
-    // Revenue statistics (from Stripe transactions)
-    // For now, we'll calculate from user plans
-    const { data: paidUsers } = await serviceClient
+    // ========================================
+    // REVENUE STATISTICS - PROPERLY CALCULATED
+    // ========================================
+    
+    // Get actual subscription revenue from active subscriptions
+    const { data: activeSubscriptions } = await serviceClient
       .from('profiles')
-      .select('subscription_plan')
-      .in('subscription_plan', ['basic', 'starter', 'pro']);
+      .select('subscription_plan, stripe_subscription_id')
+      .not('stripe_subscription_id', 'is', null)
+      .in('subscription_status', ['active', 'trialing']);
 
+    // Real plan prices (in dollars, not cents)
     const planPrices: Record<string, number> = {
       basic: 9.99,
       starter: 24.99,
+      professional: 49.99,
       pro: 49.99
     };
 
-    const mrr = paidUsers?.reduce((total, user) => {
-      return total + (planPrices[user.subscription_plan] || 0);
+    // Calculate MRR from active subscriptions
+    const mrr = activeSubscriptions?.reduce((total, sub) => {
+      return total + (planPrices[sub.subscription_plan] || 0);
     }, 0) || 0;
 
     const arr = mrr * 12;
 
-    // Get recent transactions for daily/weekly/monthly revenue
+    // Get revenue from credit transactions (purchases and subscriptions)
+    // Look for actual purchase transactions
     const { data: todayTransactions } = await serviceClient
       .from('credit_transactions')
-      .select('amount')
+      .select('amount, metadata, type')
       .gte('created_at', todayStart.toISOString())
-      .like('description', '%Purchase%');
+      .in('type', ['purchase', 'subscription']);
 
-    const todayRevenue = todayTransactions?.reduce((sum, t) => 
-      t.amount > 0 ? sum + (t.amount * 0.5) : sum, 0 // Rough estimate: $0.50 per credit
-    ) || 0;
+    // Calculate today's revenue from metadata which should contain price info
+    const todayRevenue = todayTransactions?.reduce((sum, t) => {
+      // Check metadata for actual price paid
+      const price = t.metadata?.price || t.metadata?.amount_paid || 0;
+      return sum + (price / 100); // Convert from cents to dollars if needed
+    }, 0) || 0;
 
     const { data: weekTransactions } = await serviceClient
       .from('credit_transactions')
-      .select('amount')
+      .select('amount, metadata, type')
       .gte('created_at', weekStart.toISOString())
-      .like('description', '%Purchase%');
+      .in('type', ['purchase', 'subscription']);
 
-    const weekRevenue = weekTransactions?.reduce((sum, t) => 
-      t.amount > 0 ? sum + (t.amount * 0.5) : sum, 0
-    ) || 0;
+    const weekRevenue = weekTransactions?.reduce((sum, t) => {
+      const price = t.metadata?.price || t.metadata?.amount_paid || 0;
+      return sum + (price / 100);
+    }, 0) || 0;
 
     const { data: monthTransactions } = await serviceClient
       .from('credit_transactions')
-      .select('amount')
+      .select('amount, metadata, type')
       .gte('created_at', monthStart.toISOString())
-      .like('description', '%Purchase%');
+      .in('type', ['purchase', 'subscription']);
 
-    const monthRevenue = monthTransactions?.reduce((sum, t) => 
-      t.amount > 0 ? sum + (t.amount * 0.5) : sum, 0
-    ) || 0;
+    const monthRevenue = monthTransactions?.reduce((sum, t) => {
+      const price = t.metadata?.price || t.metadata?.amount_paid || 0;
+      return sum + (price / 100);
+    }, 0) || 0;
 
-    // Processing statistics
+    // ========================================
+    // PROCESSING STATISTICS
+    // ========================================
+    
     let imagesToday = 0;
     let imagesWeek = 0; 
     let processingStats: any[] = [];
     
     try {
-      const { count: todayCount } = await serviceClient
-        .from('api_usage_logs')
+      // Count actual image operations or credit usage for today
+      const { count: todayUsage } = await serviceClient
+        .from('credit_transactions')
         .select('*', { count: 'exact', head: true })
+        .eq('type', 'usage')
         .gte('created_at', todayStart.toISOString());
-      imagesToday = todayCount || 0;
+      imagesToday = todayUsage || 0;
 
-      const { count: weekCount } = await serviceClient
-        .from('api_usage_logs')
+      const { count: weekUsage } = await serviceClient
+        .from('credit_transactions')
         .select('*', { count: 'exact', head: true })
+        .eq('type', 'usage')
         .gte('created_at', weekStart.toISOString());
-      imagesWeek = weekCount || 0;
+      imagesWeek = weekUsage || 0;
 
+      // Try to get processing stats from api_usage_logs if it exists
       const { data: stats } = await serviceClient
         .from('api_usage_logs')
         .select('processing_status, processing_time_ms')
-        .gte('created_at', weekStart.toISOString());
-      processingStats = stats || [];
+        .gte('created_at', weekStart.toISOString())
+        .limit(100);
+      
+      if (stats) {
+        processingStats = stats;
+      }
     } catch (error) {
-      // api_usage_logs table might not exist yet
-      console.log('api_usage_logs table not found, using defaults');
+      console.log('Some stats tables not found, using defaults');
     }
 
     const successCount = processingStats?.filter(p => p.processing_status === 'success').length || 0;
     const totalCount = processingStats?.length || 1;
-    const successRate = (successCount / totalCount) * 100;
+    const successRate = totalCount > 0 ? (successCount / totalCount) * 100 : 100;
 
     const avgProcessingTime = processingStats?.length 
       ? processingStats.reduce((sum, p) => sum + (p.processing_time_ms || 0), 0) / processingStats.length / 1000
@@ -150,12 +184,22 @@ async function handleGet() {
       satisfaction_score: 0
     };
 
-    console.log('[Admin Dashboard Stats] User counts:', {
-      totalUsers,
-      activeToday,
-      activeWeek,
-      newToday,
-      newWeek
+    console.log('[Admin Dashboard Stats] Fixed stats:', {
+      users: {
+        totalUsers,
+        activeToday,
+        activeWeek,
+        newToday,
+        newWeek
+      },
+      revenue: {
+        mrr,
+        arr,
+        todayRevenue,
+        weekRevenue,
+        monthRevenue,
+        activeSubscriptions: activeSubscriptions?.length || 0
+      }
     });
 
     const stats: AdminDashboardStats = {

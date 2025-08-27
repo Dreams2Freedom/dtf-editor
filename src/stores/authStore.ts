@@ -100,6 +100,12 @@ export const useAuthStore = create<AuthStore>()(
             loading: false,
             error: null,
           });
+          
+          // Track user activity (non-blocking)
+          fetch('/api/auth/activity', { 
+            method: 'POST',
+            credentials: 'include'
+          }).catch(err => console.log('Activity tracking failed:', err));
         } else {
           set({
             user: null,
@@ -168,6 +174,12 @@ export const useAuthStore = create<AuthStore>()(
           }).catch(error => {
             console.error('Failed to send login security alert:', error);
           });
+          
+          // Track user activity on sign in (non-blocking)
+          fetch('/api/auth/activity', { 
+            method: 'POST',
+            credentials: 'include'
+          }).catch(err => console.log('Activity tracking failed:', err));
 
           return { success: true };
         } else {
