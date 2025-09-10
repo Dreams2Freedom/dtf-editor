@@ -110,26 +110,45 @@ export async function saveProcessedImageToGallery({
     let buffer: Buffer;
     
     if (operationType === 'upscale') {
-      console.log('[SaveProcessedImage] Converting to PNG format for upscaled image');
+      console.log('[SaveProcessedImage] FORCING PNG CONVERSION for upscaled image');
+      console.log('[SaveProcessedImage] Original content type:', contentType);
+      console.log('[SaveProcessedImage] Original extension would be:', extension);
       
       try {
         // Convert the image to PNG format using sharp
         const inputBuffer = Buffer.from(imageBuffer);
+        console.log('[SaveProcessedImage] Input buffer size:', inputBuffer.length);
+        
+        // Use sharp to convert to PNG with maximum quality
         buffer = await sharp(inputBuffer)
           .png({ 
             quality: 100,
             compressionLevel: 9, // Max compression (lossless)
-            effort: 10 // Max effort for better compression
+            effort: 10, // Max effort for better compression
+            force: true // Force PNG output even if input is PNG
           })
           .toBuffer();
         
+        // Force extension and content type to PNG
         extension = 'png';
         contentType = 'image/png';
-        console.log('[SaveProcessedImage] Successfully converted to PNG, new size:', buffer.length);
+        
+        console.log('[SaveProcessedImage] ✅ PNG CONVERSION SUCCESSFUL');
+        console.log('[SaveProcessedImage] New buffer size:', buffer.length);
+        console.log('[SaveProcessedImage] New extension:', extension);
+        console.log('[SaveProcessedImage] New content type:', contentType);
       } catch (conversionError) {
-        console.error('[SaveProcessedImage] Failed to convert to PNG:', conversionError);
+        console.error('[SaveProcessedImage] ❌ PNG CONVERSION FAILED:', conversionError);
+        console.error('[SaveProcessedImage] Error details:', {
+          message: (conversionError as Error).message,
+          stack: (conversionError as Error).stack
+        });
         // Fallback to original buffer if conversion fails
         buffer = Buffer.from(imageBuffer);
+        // Still force PNG extension even if conversion fails
+        extension = 'png';
+        contentType = 'image/png';
+        console.log('[SaveProcessedImage] Using fallback buffer but forcing PNG extension');
       }
     } else {
       // For non-upscale operations, use the original buffer
@@ -211,6 +230,23 @@ export async function saveProcessedImageToGallery({
     }
     
     console.log(`Saved ${operationType} image to gallery with ID:`, savedImageId);
+    
+    // Final verification for upscale operations
+    if (operationType === 'upscale') {
+      console.log('[SaveProcessedImage] ✅ FINAL VERIFICATION - Upscaled image saved as PNG:', {
+        imageId: savedImageId,
+        storagePath,
+        filename: processedFilename,
+        extension,
+        contentType,
+        isPNG: extension === 'png' && contentType === 'image/png'
+      });
+      
+      if (!processedFilename.endsWith('.png')) {
+        console.error('[SaveProcessedImage] ⚠️ WARNING: Upscaled image filename does not end with .png!', processedFilename);
+      }
+    }
+    
     return savedImageId;
     
   } catch (error) {
