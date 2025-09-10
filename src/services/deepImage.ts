@@ -78,8 +78,8 @@ export class DeepImageService {
       // Build request body based on API documentation
       const requestBody: Record<string, unknown> = {
         url: finalImageUrl,
-        output_format: 'png', // Always use PNG for better quality and transparency
-        quality: 100 // Maximum quality for PNG
+        output_format: 'png', // MUST be lowercase: 'jpeg', 'jpg', 'png', or 'webp' per Deep-Image API docs
+        quality: 100 // Maximum quality for PNG (lossless anyway, but we set it)
       };
 
       // Set dimensions based on either exact pixels or scale percentage
@@ -151,6 +151,7 @@ export class DeepImageService {
       console.log('Deep-Image API request:', {
         url: this.baseUrl,
         hasApiKey: !!this.apiKey,
+        output_format: requestBody.output_format, // Explicitly log the format
         requestBody: {
           ...requestBody,
           url: typeof requestBody.url === 'string' ? requestBody.url.substring(0, 100) + '...' : requestBody.url // Truncate long URLs for logging
@@ -206,7 +207,11 @@ export class DeepImageService {
 
       // Handle immediate result
       if (result.status === 'complete' && result.result_url) {
-        console.log('[DeepImage] Processing complete, URL:', result.result_url);
+        console.log('[DeepImage] Processing complete:', {
+          url: result.result_url,
+          format: result.output_format,
+          requestedFormat: requestBody.output_format
+        });
         
         // TEMPORARY FIX: Return the original URL directly
         // Converting to data URLs causes navigation issues with "about:blank#blocked"

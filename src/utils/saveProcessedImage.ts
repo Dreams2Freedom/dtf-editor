@@ -1,4 +1,5 @@
 import { createServiceRoleClient } from '@/lib/supabase/server';
+import sharp from 'sharp';
 
 interface SaveImageParams {
   userId: string;
@@ -106,10 +107,33 @@ export async function saveProcessedImageToGallery({
     }
     
     // Force PNG for upscaled images to maintain quality
+    let buffer: Buffer;
+    
     if (operationType === 'upscale') {
-      extension = 'png';
-      contentType = 'image/png';
-      console.log('[SaveProcessedImage] Forcing PNG format for upscaled image');
+      console.log('[SaveProcessedImage] Converting to PNG format for upscaled image');
+      
+      try {
+        // Convert the image to PNG format using sharp
+        const inputBuffer = Buffer.from(imageBuffer);
+        buffer = await sharp(inputBuffer)
+          .png({ 
+            quality: 100,
+            compressionLevel: 9, // Max compression (lossless)
+            effort: 10 // Max effort for better compression
+          })
+          .toBuffer();
+        
+        extension = 'png';
+        contentType = 'image/png';
+        console.log('[SaveProcessedImage] Successfully converted to PNG, new size:', buffer.length);
+      } catch (conversionError) {
+        console.error('[SaveProcessedImage] Failed to convert to PNG:', conversionError);
+        // Fallback to original buffer if conversion fails
+        buffer = Buffer.from(imageBuffer);
+      }
+    } else {
+      // For non-upscale operations, use the original buffer
+      buffer = Buffer.from(imageBuffer);
     }
     
     const timestamp = Date.now();
@@ -119,13 +143,11 @@ export async function saveProcessedImageToGallery({
     // Upload to Supabase Storage (use 'images' bucket which is public)
     console.log('[SaveProcessedImage] Uploading to storage:', {
       path: storagePath,
-      size: actualFileSize,
+      size: buffer.length,
       contentType,
       extension
     });
     
-    // Convert ArrayBuffer to Buffer for upload
-    const buffer = Buffer.from(imageBuffer);
     console.log('[SaveProcessedImage] Buffer size for upload:', buffer.length);
     
     // For SVG files, ensure we're uploading with the correct content type
