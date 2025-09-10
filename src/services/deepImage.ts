@@ -78,7 +78,8 @@ export class DeepImageService {
       // Build request body based on API documentation
       const requestBody: Record<string, unknown> = {
         url: finalImageUrl,
-        output_format: 'png' // Use PNG for better quality
+        output_format: 'png', // Always use PNG for better quality and transparency
+        quality: 100 // Maximum quality for PNG
       };
 
       // Set dimensions based on either exact pixels or scale percentage

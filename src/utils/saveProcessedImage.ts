@@ -104,6 +104,14 @@ export async function saveProcessedImageToGallery({
     } else if (extension === 'jpeg') {
       extension = 'jpg';
     }
+    
+    // Force PNG for upscaled images to maintain quality
+    if (operationType === 'upscale') {
+      extension = 'png';
+      contentType = 'image/png';
+      console.log('[SaveProcessedImage] Forcing PNG format for upscaled image');
+    }
+    
     const timestamp = Date.now();
     const processedFilename = `${operationType}_${timestamp}.${extension}`;
     const storagePath = `${userId}/processed/${processedFilename}`;
@@ -140,7 +148,7 @@ export async function saveProcessedImageToGallery({
       console.error('[SaveProcessedImage] Upload failed:', {
         error: uploadError,
         message: uploadError.message,
-        statusCode: uploadError.statusCode
+        statusCode: (uploadError as any).statusCode
       });
       return null;
     }
