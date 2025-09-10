@@ -37,9 +37,47 @@ export class DeepImageService {
     }
 
     try {
+      // Check if the imageUrl is a data URL
+      let finalImageUrl = imageUrl;
+      if (imageUrl.startsWith('data:')) {
+        console.log('[DeepImage] Received data URL, need to convert to HTTP URL first');
+        
+        // Convert data URL to blob and upload to temporary storage
+        try {
+          // Import storage service dynamically to avoid circular dependencies
+          const { storageService } = await import('@/services/storage');
+          
+          // Convert data URL to blob
+          const response = await fetch(imageUrl);
+          const blob = await response.blob();
+          
+          // Create a File object from the blob
+          const file = new File([blob], 'temp_image.png', { type: blob.type });
+          
+          // Upload to storage
+          const uploadResult = await storageService.uploadFile(file);
+          
+          if (uploadResult.success && uploadResult.url) {
+            finalImageUrl = uploadResult.url;
+            console.log('[DeepImage] Successfully uploaded data URL to storage:', finalImageUrl);
+          } else {
+            return { 
+              status: 'error', 
+              error: 'Failed to upload image to storage. Deep-Image requires HTTP URLs, not data URLs.' 
+            };
+          }
+        } catch (uploadError) {
+          console.error('[DeepImage] Error converting data URL:', uploadError);
+          return { 
+            status: 'error', 
+            error: 'Failed to process image data. Please try uploading the image file directly.' 
+          };
+        }
+      }
+      
       // Build request body based on API documentation
       const requestBody: Record<string, unknown> = {
-        url: imageUrl,
+        url: finalImageUrl,
         output_format: 'png' // Use PNG for better quality
       };
 
@@ -114,7 +152,7 @@ export class DeepImageService {
         hasApiKey: !!this.apiKey,
         requestBody: {
           ...requestBody,
-          url: requestBody.url?.substring(0, 100) + '...' // Truncate long data URLs for logging
+          url: typeof requestBody.url === 'string' ? requestBody.url.substring(0, 100) + '...' : requestBody.url // Truncate long URLs for logging
         }
       });
 
