@@ -443,6 +443,13 @@ export default function UpscaleClient() {
 
       setProcessedUrl(result.url);
       
+      // Log the result URL to verify PNG format
+      console.log('[Upscale Client] Processing complete:', {
+        url: result.url,
+        isPNG: result.url?.includes('.png'),
+        urlExtension: result.url?.split('.').pop()?.split('?')[0]
+      });
+      
       // Refresh credits after successful processing
       await refreshCredits();
 
@@ -472,10 +479,18 @@ export default function UpscaleClient() {
       
       const link = document.createElement('a');
       link.href = blobUrl;
-      link.download = `upscaled-${selectedScale}x.jpg`;
+      
+      // Always use PNG extension for upscaled images
+      const filename = mode === 'dpi' 
+        ? `upscaled-300dpi.png`
+        : `upscaled-${selectedScale}x.png`;
+      
+      link.download = filename;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
+      
+      console.log(`Downloaded upscaled image as: ${filename}`);
       
       // Clean up the blob URL after a short delay
       setTimeout(() => URL.revokeObjectURL(blobUrl), 100);
