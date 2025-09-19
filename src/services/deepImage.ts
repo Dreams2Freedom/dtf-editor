@@ -37,6 +37,21 @@ export class DeepImageService {
     }
 
     try {
+      // Check if dimensions are too large for single-pass processing
+      const isExtremeDimensions = options.targetWidth && options.targetHeight && 
+        (options.targetWidth > 8000 || options.targetHeight > 8000 || 
+         options.targetWidth * options.targetHeight > 50000000); // 50 megapixels
+      
+      if (isExtremeDimensions) {
+        console.warn('[DeepImage] Extreme dimensions detected:', {
+          targetWidth: options.targetWidth,
+          targetHeight: options.targetHeight,
+          megapixels: (options.targetWidth! * options.targetHeight!) / 1000000
+        });
+        
+        // For extreme dimensions, use multi-step upscaling
+        return await this.multiStepUpscale(imageUrl, options);
+      }
       // Check if the imageUrl is a data URL
       let finalImageUrl = imageUrl;
       if (imageUrl.startsWith('data:')) {
@@ -158,7 +173,13 @@ export class DeepImageService {
         }
       });
 
-      // Make the API request
+      // Make the API request with extended timeout for large images
+      const controller = new AbortController();
+      const timeoutMs = this.getTimeoutForDimensions(options.targetWidth, options.targetHeight);
+      const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+      
+      console.log(`[DeepImage] Using timeout of ${timeoutMs/1000}s for dimensions ${options.targetWidth}x${options.targetHeight}`);
+      
       const response = await fetch(this.baseUrl, {
         method: 'POST',
         headers: {
@@ -166,7 +187,8 @@ export class DeepImageService {
           'x-api-key': this.apiKey,
         },
         body: JSON.stringify(requestBody),
-      });
+        signal: controller.signal
+      }).finally(() => clearTimeout(timeoutId));
 
       const responseText = await response.text();
 
@@ -285,7 +307,209 @@ export class DeepImageService {
         };
       }
     } catch (error) {
+      // Handle abort errors specially
+      if (error instanceof Error && error.name === 'AbortError') {
+        return { 
+          status: 'error', 
+          error: 'Processing timeout. The image is too large for real-time processing. Please try: 1) Using smaller dimensions, 2) Disabling AI enhancements (use basic upscale), or 3) Processing in smaller steps.' 
+        };
+      }
+      
       return { status: 'error', error: error instanceof Error ? error.message : 'Failed to connect to Deep-Image.ai API' };
+    }
+  }
+
+  /**
+   * Calculate appropriate timeout based on target dimensions
+   */
+  private getTimeoutForDimensions(width?: number, height?: number): number {
+    if (!width || !height) return 60000; // 60s default
+    
+    const megapixels = (width * height) / 1000000;
+    
+    // Scale timeout based on megapixels
+    if (megapixels > 60) return 180000; // 3 minutes for >60MP
+    if (megapixels > 40) return 120000; // 2 minutes for >40MP
+    if (megapixels > 20) return 90000;  // 90s for >20MP
+    return 60000; // 60s for smaller images
+  }
+
+  /**
+   * Multi-step upscaling for extreme dimensions
+   * Upscales in multiple passes to avoid timeouts
+   */
+  private async multiStepUpscale(imageUrl: string, options: UpscaleOptions): Promise<UpscaleResponse> {
+    const targetWidth = options.targetWidth!;
+    const targetHeight = options.targetHeight!;
+    
+    console.log('[DeepImage] Starting multi-step upscale to', targetWidth, 'x', targetHeight);
+    
+    // For extremely large dimensions, we need to upscale in steps
+    // Step 1: Use basic upscale to 2x first
+    const step1Options: UpscaleOptions = {
+      scale: 2,
+      processingMode: 'basic_upscale', // Fast mode
+      faceEnhance: false
+    };
+    
+    console.log('[DeepImage] Step 1: 2x basic upscale');
+    
+    // Create a modified upscale function that doesn't check for extreme dimensions
+    const step1Result = await this.upscaleImageWithoutCheck(imageUrl, step1Options);
+    
+    if (step1Result.status === 'error') {
+      console.error('[DeepImage] Step 1 failed:', step1Result.error);
+      return step1Result;
+    }
+    
+    // Step 2: Upscale from 2x to final dimensions
+    const step2Options: UpscaleOptions = {
+      targetWidth,
+      targetHeight,
+      processingMode: 'basic_upscale', // Continue with fast mode
+      faceEnhance: false
+    };
+    
+    console.log('[DeepImage] Step 2: Final upscale to target dimensions');
+    
+    return await this.upscaleImageWithoutCheck(step1Result.url!, step2Options);
+  }
+
+  /**
+   * Internal upscale method without extreme dimension check (to avoid recursion)
+   */
+  private async upscaleImageWithoutCheck(imageUrl: string, options: UpscaleOptions): Promise<UpscaleResponse> {
+    if (!this.apiKey) {
+      return { status: 'error', error: 'Deep-Image.ai API key is not configured' };
+    }
+
+    try {
+      // This is essentially the same as the main upscaleImage but without the extreme dimension check
+      // to avoid infinite recursion when doing multi-step processing
+      
+      // Check if the imageUrl is a data URL
+      let finalImageUrl = imageUrl;
+      if (imageUrl.startsWith('data:')) {
+        console.log('[DeepImage] Received data URL, need to convert to HTTP URL first');
+        
+        // Convert data URL to blob and upload to temporary storage
+        try {
+          const { storageService } = await import('@/services/storage');
+          const response = await fetch(imageUrl);
+          const blob = await response.blob();
+          const file = new File([blob], 'temp_image.png', { type: blob.type });
+          const uploadResult = await storageService.uploadFile(file);
+          
+          if (uploadResult.success && uploadResult.url) {
+            finalImageUrl = uploadResult.url;
+          } else {
+            return { 
+              status: 'error', 
+              error: 'Failed to upload image to storage. Deep-Image requires HTTP URLs, not data URLs.' 
+            };
+          }
+        } catch (uploadError) {
+          console.error('[DeepImage] Error converting data URL:', uploadError);
+          return { 
+            status: 'error', 
+            error: 'Failed to process image data. Please try uploading the image file directly.' 
+          };
+        }
+      }
+      
+      // Build request body
+      const requestBody: Record<string, unknown> = {
+        url: finalImageUrl,
+        output_format: 'png',
+        quality: 100
+      };
+
+      // Set dimensions
+      if (options.targetWidth && options.targetHeight) {
+        requestBody.width = options.targetWidth;
+        requestBody.height = options.targetHeight;
+      } else if (options.scale) {
+        if (options.scale === 2) {
+          requestBody.width = "200%";
+          requestBody.height = "200%";
+        } else if (options.scale === 4) {
+          requestBody.width = "400%";
+          requestBody.height = "400%";
+        }
+      } else {
+        requestBody.width = "200%";
+        requestBody.height = "200%";
+      }
+
+      // For multi-step, always use minimal enhancements for speed
+      if (options.processingMode === 'basic_upscale') {
+        // No enhancements for basic mode
+      } else {
+        // Minimal enhancements even for other modes when in multi-step
+        requestBody.enhancements = ['denoise'];
+      }
+
+      console.log('[DeepImage] Multi-step API request:', {
+        dimensions: `${requestBody.width}x${requestBody.height}`,
+        mode: options.processingMode
+      });
+
+      // Make request with timeout
+      const controller = new AbortController();
+      const timeoutMs = this.getTimeoutForDimensions(options.targetWidth, options.targetHeight);
+      const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+      
+      const response = await fetch(this.baseUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': this.apiKey,
+        },
+        body: JSON.stringify(requestBody),
+        signal: controller.signal
+      }).finally(() => clearTimeout(timeoutId));
+
+      const responseText = await response.text();
+
+      if (!response.ok) {
+        console.error('Deep-Image.ai API error in multi-step:', response.status);
+        return { 
+          status: 'error', 
+          error: `Deep-Image.ai API error: ${response.status}`
+        };
+      }
+
+      const result = JSON.parse(responseText);
+
+      if (result.status === 'complete' && result.result_url) {
+        return {
+          status: 'success',
+          url: result.result_url,
+          originalUrl: finalImageUrl
+        };
+      }
+
+      if (result.job) {
+        return this.pollForResult(result.job);
+      }
+
+      return { 
+        status: 'error', 
+        error: 'Unexpected response from Deep-Image.ai API' 
+      };
+      
+    } catch (error) {
+      if (error instanceof Error && error.name === 'AbortError') {
+        return { 
+          status: 'error', 
+          error: 'Processing timeout in multi-step upscale' 
+        };
+      }
+      
+      return { 
+        status: 'error', 
+        error: error instanceof Error ? error.message : 'Multi-step upscale failed' 
+      };
     }
   }
 

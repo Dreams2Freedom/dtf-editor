@@ -109,15 +109,37 @@ export default function UpscaleClient() {
     if (isNaN(width) || isNaN(height) || width <= 0 || height <= 0) return null;
     
     // Calculate required pixels for 300 DPI
-    const requiredWidth = Math.round(width * targetDPI);
-    const requiredHeight = Math.round(height * targetDPI);
+    let requiredWidth = Math.round(width * targetDPI);
+    let requiredHeight = Math.round(height * targetDPI);
     
     // Calculate scale factors
     const scaleX = requiredWidth / imageDimensions.width;
     const scaleY = requiredHeight / imageDimensions.height;
     
     // Use the maximum scale to ensure both dimensions meet 300 DPI
-    const scale = Math.max(scaleX, scaleY);
+    let scale = Math.max(scaleX, scaleY);
+    
+    // IMPORTANT: Limit extreme dimensions to prevent timeouts
+    const maxDimension = 8000; // Maximum 8000px per side
+    const maxMegapixels = 50; // Maximum 50 megapixels
+    
+    if (requiredWidth > maxDimension || requiredHeight > maxDimension) {
+      console.warn('[Upscale] Dimensions exceed maximum, limiting to', maxDimension, 'px');
+      const limitScale = Math.min(maxDimension / imageDimensions.width, maxDimension / imageDimensions.height);
+      scale = Math.min(scale, limitScale);
+      requiredWidth = Math.min(requiredWidth, maxDimension);
+      requiredHeight = Math.min(requiredHeight, maxDimension);
+    }
+    
+    // Check megapixels
+    const megapixels = (requiredWidth * requiredHeight) / 1000000;
+    if (megapixels > maxMegapixels) {
+      console.warn('[Upscale] Image exceeds', maxMegapixels, 'MP, reducing scale');
+      const mpScale = Math.sqrt(maxMegapixels / megapixels);
+      scale = scale * mpScale;
+      requiredWidth = Math.round(requiredWidth * mpScale);
+      requiredHeight = Math.round(requiredHeight * mpScale);
+    }
     
     return {
       scale,
@@ -126,7 +148,8 @@ export default function UpscaleClient() {
       currentDPI: Math.round(Math.min(
         imageDimensions.width / width,
         imageDimensions.height / height
-      ))
+      )),
+      limitedByMax: requiredWidth === maxDimension || requiredHeight === maxDimension || megapixels > maxMegapixels
     };
   }, [imageDimensions, printWidth, printHeight, targetDPI]);
 
@@ -403,26 +426,49 @@ export default function UpscaleClient() {
         console.log('[Upscale] Using URL for processing');
         formData.append('imageUrl', imageUrl);
       }
-      formData.append('processingMode', showEnhancements ? 'auto_enhance' : 'basic_upscale');
+      // Determine processing mode and handle DPI calculations
+      let processingMode = showEnhancements ? 'auto_enhance' : 'basic_upscale';
+      let upscaleInfo: ReturnType<typeof calculateUpscaleFactor> = null;
       
       // Handle DPI mode with exact dimensions
       if (mode === 'dpi') {
-        const upscaleInfo = calculateUpscaleFactor();
+        upscaleInfo = calculateUpscaleFactor();
         if (!upscaleInfo) {
           setError('Please enter valid print dimensions');
           setIsProcessing(false);
           return;
         }
         
+        // Check if we need to force basic mode for large dimensions
+        const megapixels = (upscaleInfo.requiredWidth * upscaleInfo.requiredHeight) / 1000000;
+        if (megapixels > 30) {
+          console.warn('[Upscale] Forcing basic mode for large image (>30MP)');
+          processingMode = 'basic_upscale';
+          setError('Using fast processing mode for large image. AI enhancements disabled.');
+          setTimeout(() => setError(null), 3000);
+        }
+        
         // Add target dimensions for DPI mode
         formData.append('targetWidth', upscaleInfo.requiredWidth.toString());
         formData.append('targetHeight', upscaleInfo.requiredHeight.toString());
+        
+        // Warn user if dimensions were limited
+        if (upscaleInfo.limitedByMax) {
+          const actualDPI = Math.round(Math.min(
+            upscaleInfo.requiredWidth / parseFloat(printWidth),
+            upscaleInfo.requiredHeight / parseFloat(printHeight)
+          ));
+          setError(`Note: Image dimensions limited to prevent timeout. Result will be ${actualDPI} DPI instead of 300 DPI.`);
+          // Continue processing but show warning
+          setTimeout(() => setError(null), 5000);
+        }
         
         console.log('DPI Mode Upscale:', {
           currentDPI: upscaleInfo.currentDPI,
           targetDPI: 300,
           scale: upscaleInfo.scale,
-          requiredDimensions: `${upscaleInfo.requiredWidth}x${upscaleInfo.requiredHeight}`
+          requiredDimensions: `${upscaleInfo.requiredWidth}x${upscaleInfo.requiredHeight}`,
+          limited: upscaleInfo.limitedByMax
         });
       } else {
         // Simple mode - use scale factor
@@ -430,10 +476,21 @@ export default function UpscaleClient() {
         const actualScale = selectedScale === '3' ? '4' : selectedScale;
         formData.append('scale', actualScale);
       }
+      
+      // Add processing mode after all logic
+      formData.append('processingMode', processingMode);
 
-      // Create an AbortController for timeout (90 seconds for large images)
+      // Create an AbortController for timeout (adjust based on image size)
       const controller = new AbortController();
-      const timeoutDuration = shouldUploadFile ? 90000 : 60000; // 90s for uploads, 60s for URLs
+      let timeoutDuration = shouldUploadFile ? 90000 : 60000; // Base: 90s for uploads, 60s for URLs
+      
+      // Extend timeout for very large dimensions
+      if (mode === 'dpi' && upscaleInfo) {
+        const megapixels = (upscaleInfo.requiredWidth * upscaleInfo.requiredHeight) / 1000000;
+        if (megapixels > 40) timeoutDuration = 120000; // 2 minutes for >40MP
+        if (megapixels > 30) timeoutDuration = 100000; // 100s for >30MP
+      }
+      
       const timeoutId = setTimeout(() => controller.abort(), timeoutDuration);
       
       console.log(`[Upscale] Setting timeout to ${timeoutDuration/1000} seconds`);
