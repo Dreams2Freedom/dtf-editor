@@ -1,0 +1,21 @@
+
+> dtf-editor@0.1.0 dev
+> next dev
+
+ ⚠ Warning: Found multiple lockfiles. Selecting /Users/shannonherod/package-lock.json.
+   Consider removing the lockfiles at:
+   * /Users/shannonherod/vectorizer-website/package-lock.json
+
+ ⚠ Port 3000 is in use by process 65436, using available port 3006 instead.
+   ▲ Next.js 15.4.4
+   - Local:        http://localhost:3006
+   - Network:      http://192.168.1.203:3006
+   - Environments: .env.local, .env
+   - Experiments (use with caution):
+     · optimizePackageImports
+
+ ✓ Starting...
+ ⚠ Invalid next.config.js options detected: 
+ ⚠     Unrecognized key(s) in object: 'api'
+ ⚠ See more info here: https://nextjs.org/docs/messages/invalid-next-config
+ ✓ Ready in 2.5s

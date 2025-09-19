@@ -101,8 +101,22 @@ export class DeepImageService {
       // Set dimensions based on either exact pixels or scale percentage
       if (options.targetWidth && options.targetHeight) {
         // Use exact pixel dimensions for DPI-aware upscaling
+        // But ensure we're actually upscaling (not downscaling or same size)
         requestBody.width = options.targetWidth;
         requestBody.height = options.targetHeight;
+        
+        // Log if dimensions suggest minimal or no upscaling
+        console.log('[DeepImage] Target dimensions:', options.targetWidth, 'x', options.targetHeight);
+        
+        // If dimensions are suspiciously small (no real upscaling), fallback to 2x
+        // This shouldn't happen with the client-side check, but it's a safety net
+        if (options.targetWidth < 100 || options.targetHeight < 100) {
+          console.warn('[DeepImage] Target dimensions too small, using 2x scale instead');
+          delete requestBody.width;
+          delete requestBody.height;
+          requestBody.width = "200%";
+          requestBody.height = "200%";
+        }
       } else if (options.scale) {
         // Use percentage format for traditional scaling
         // According to the docs, use "200%" for 2x scale, "400%" for 4x scale

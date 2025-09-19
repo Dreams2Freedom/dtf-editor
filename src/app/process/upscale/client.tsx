@@ -438,6 +438,7 @@ export default function UpscaleClient() {
       let upscaleInfo: ReturnType<typeof calculateUpscaleFactor> = null;
       
       // Handle DPI mode with exact dimensions
+      let actualMode = mode;  // Track the actual mode we'll use
       if (mode === 'dpi') {
         upscaleInfo = calculateUpscaleFactor();
         if (!upscaleInfo) {
@@ -446,7 +447,15 @@ export default function UpscaleClient() {
           return;
         }
         
-        // Check if we need to force basic mode for large dimensions
+        // Check if the scale factor is effectively 1.0 (no upscaling needed)
+        if (upscaleInfo.scale < 1.2) {  // Less than 20% increase
+          console.log('[Upscale] Image already meets DPI requirements, using 2x scale instead');
+          // Switch to simple mode with 2x scale
+          actualMode = 'simple';
+          setError('Your image already meets the required DPI. Applying 2x upscale with enhancements instead.');
+          setTimeout(() => setError(null), 3000);
+        } else {
+          // Check if we need to force basic mode for large dimensions
         const megapixels = (upscaleInfo.requiredWidth * upscaleInfo.requiredHeight) / 1000000;
         if (megapixels > 20) {  // Reduced threshold from 30 to 20
           console.warn('[Upscale] Forcing basic mode for large image (>20MP):', megapixels.toFixed(2), 'MP');
@@ -463,9 +472,11 @@ export default function UpscaleClient() {
           });
         }
         
-        // Add target dimensions for DPI mode
-        formData.append('targetWidth', upscaleInfo.requiredWidth.toString());
-        formData.append('targetHeight', upscaleInfo.requiredHeight.toString());
+        // Add target dimensions for DPI mode only if we're still in DPI mode
+        if (actualMode === 'dpi') {
+          formData.append('targetWidth', upscaleInfo.requiredWidth.toString());
+          formData.append('targetHeight', upscaleInfo.requiredHeight.toString());
+        }
         
         // Warn user if dimensions were limited
         if (upscaleInfo.limitedByMax) {
@@ -485,11 +496,15 @@ export default function UpscaleClient() {
           requiredDimensions: `${upscaleInfo.requiredWidth}x${upscaleInfo.requiredHeight}`,
           limited: upscaleInfo.limitedByMax
         });
-      } else {
-        // Simple mode - use scale factor
+      }
+      
+      // Handle scale for simple mode (either original simple or converted from DPI)
+      if (actualMode === 'simple') {
         // Deep-Image only supports 2x and 4x, so use 4x for 3x requests
         const actualScale = selectedScale === '3' ? '4' : selectedScale;
-        formData.append('scale', actualScale);
+        // If we switched from DPI mode, default to 2x
+        const scaleToUse = mode === 'dpi' ? '2' : actualScale;
+        formData.append('scale', scaleToUse);
       }
       
       // Add processing mode after all logic
@@ -500,7 +515,7 @@ export default function UpscaleClient() {
       let timeoutDuration = shouldUploadFile ? 90000 : 60000; // Base: 90s for uploads, 60s for URLs
       
       // Extend timeout for very large dimensions
-      if (mode === 'dpi' && upscaleInfo) {
+      if (actualMode === 'dpi' && upscaleInfo) {
         const megapixels = (upscaleInfo.requiredWidth * upscaleInfo.requiredHeight) / 1000000;
         if (megapixels > 40) timeoutDuration = 120000; // 2 minutes for >40MP
         if (megapixels > 30) timeoutDuration = 100000; // 100s for >30MP
