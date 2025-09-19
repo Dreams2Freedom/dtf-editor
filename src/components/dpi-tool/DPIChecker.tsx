@@ -76,6 +76,17 @@ export function DPIChecker({ showSignupForm = true, onSignupComplete }: DPICheck
       return;
     }
 
+    // Check if image needs compression and notify user
+    const { needsCompression } = await import('@/utils/imageCompression');
+    const needsCompress = await needsCompression(file, 10, 4096);
+    
+    if (needsCompress) {
+      console.log('[DPIChecker] Large image detected:', {
+        size: `${(file.size / 1024 / 1024).toFixed(2)}MB`,
+        message: 'Image will be automatically compressed before processing'
+      });
+    }
+
     setImageFile(file);
     
     // Create preview
@@ -130,8 +141,26 @@ export function DPIChecker({ showSignupForm = true, onSignupComplete }: DPICheck
     if (user) {
       if (imageFile) {
         try {
+          // Import compression utilities
+          const { compressImage, needsCompression } = await import('@/utils/imageCompression');
+          
+          // Check if compression is needed (>10MB or >4096px)
+          let finalFile = imageFile;
+          if (await needsCompression(imageFile, 10, 4096)) {
+            console.log('[DPIChecker] Compressing large image before upload...');
+            finalFile = await compressImage(imageFile, {
+              maxSizeMB: 10,
+              maxWidthOrHeight: 4096,
+              quality: 0.9
+            });
+            console.log('[DPIChecker] Compression complete:', {
+              originalSize: `${(imageFile.size / 1024 / 1024).toFixed(2)}MB`,
+              compressedSize: `${(finalFile.size / 1024 / 1024).toFixed(2)}MB`
+            });
+          }
+          
           const uploadFormData = new FormData();
-          uploadFormData.append('file', imageFile);
+          uploadFormData.append('file', finalFile);
           
           const uploadResponse = await fetch('/api/upload', {
             method: 'POST',

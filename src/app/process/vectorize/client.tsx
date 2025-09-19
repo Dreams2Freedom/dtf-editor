@@ -98,7 +98,22 @@ export default function VectorizeClient() {
       
       // Create a file from the blob
       const fileName = `image_${Date.now()}.${imageBlob.type.split('/')[1] || 'png'}`;
-      const imageFile = new File([imageBlob], fileName, { type: imageBlob.type });
+      let imageFile = new File([imageBlob], fileName, { type: imageBlob.type });
+
+      // Check if compression is needed for large files
+      const { compressImage, needsCompression } = await import('@/utils/imageCompression');
+      if (await needsCompression(imageFile, 10, 4096)) {
+        console.log('[Vectorizer] Compressing large image before processing...');
+        imageFile = await compressImage(imageFile, {
+          maxSizeMB: 10,
+          maxWidthOrHeight: 4096,
+          quality: 0.9
+        });
+        console.log('[Vectorizer] Compression complete:', {
+          originalSize: `${(imageBlob.size / 1024 / 1024).toFixed(2)}MB`,
+          compressedSize: `${(imageFile.size / 1024 / 1024).toFixed(2)}MB`
+        });
+      }
 
       // Use the process API endpoint
       const formData = new FormData();
