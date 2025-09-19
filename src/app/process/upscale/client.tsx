@@ -452,6 +452,8 @@ export default function UpscaleClient() {
           console.log('[Upscale] Image already meets DPI requirements, using 2x scale instead');
           // Switch to simple mode with 2x scale
           actualMode = 'simple';
+          // Clear the upscaleInfo since we're not using DPI mode anymore
+          upscaleInfo = null;
           setError('Your image already meets the required DPI. Applying 2x upscale with enhancements instead.');
           setTimeout(() => setError(null), 3000);
         } else {
@@ -473,7 +475,7 @@ export default function UpscaleClient() {
         }
         
         // Add target dimensions for DPI mode only if we're still in DPI mode
-        if (actualMode === 'dpi') {
+        if (actualMode === 'dpi' && upscaleInfo) {
           formData.append('targetWidth', upscaleInfo.requiredWidth.toString());
           formData.append('targetHeight', upscaleInfo.requiredHeight.toString());
         }

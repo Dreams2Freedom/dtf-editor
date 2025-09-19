@@ -37,6 +37,15 @@ async function handlePost(request: NextRequest) {
     const scale = formData.get('scale') ? parseInt(formData.get('scale') as string) : undefined;
     const targetWidth = formData.get('targetWidth') ? parseInt(formData.get('targetWidth') as string) : undefined;
     const targetHeight = formData.get('targetHeight') ? parseInt(formData.get('targetHeight') as string) : undefined;
+    
+    console.log('[Upscale] Request params:', {
+      hasImage: !!imageFile,
+      hasUrl: !!imageUrl,
+      processingMode,
+      scale,
+      targetWidth,
+      targetHeight
+    });
 
     let finalImageUrl: string;
 
@@ -73,9 +82,12 @@ async function handlePost(request: NextRequest) {
       processingOptions.targetWidth = targetWidth;
       processingOptions.targetHeight = targetHeight;
       console.log('[Upscale] Using target dimensions:', { targetWidth, targetHeight });
-    } else {
-      processingOptions.scale = (scale || 4) as 2 | 4;
+    } else if (scale) {
+      processingOptions.scale = scale as 2 | 4;
       console.log('[Upscale] Using scale factor:', processingOptions.scale);
+    } else {
+      console.error('[Upscale] No scale or dimensions provided, defaulting to 2x');
+      processingOptions.scale = 2; // Default to 2x instead of 4x
     }
     
     const processingPromise = imageProcessingService.processImage(
