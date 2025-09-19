@@ -101,6 +101,7 @@ async function handlePost(request: NextRequest) {
     
     if (result.success) {
       let finalUrl = result.processedUrl;
+      let savedId: string | undefined; // Declare savedId in the outer scope
       
       console.log('[Upscale] Initial processedUrl type:', {
         isDataUrl: result.processedUrl?.startsWith('data:'),
@@ -113,7 +114,7 @@ async function handlePost(request: NextRequest) {
       if (result.processedUrl) {
         try {
           console.log('[Upscale] Attempting to save to gallery...');
-          const savedId = await saveProcessedImageToGallery({
+          savedId = await saveProcessedImageToGallery({
             userId: user.id,
             processedUrl: result.processedUrl,
             operationType: 'upscale',
