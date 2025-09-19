@@ -11,10 +11,10 @@ import { withRateLimit } from '@/lib/rate-limit';
 async function handlePost(request: NextRequest) {
   console.log('[Upscale] Handler started - v2 with gallery save');
   
-  // Set a timeout for the entire request (45 seconds, leaving 15s buffer for Vercel's 60s limit)
+  // Set a timeout for the entire request (55 seconds, leaving 5s buffer for Vercel's 60s limit)
   // This ensures we return a proper JSON error before Vercel times out
   const timeoutPromise = new Promise((_, reject) => {
-    setTimeout(() => reject(new Error('Request timeout after 45 seconds')), 45000);
+    setTimeout(() => reject(new Error('Request timeout after 55 seconds')), 55000);
   });
   
   try {

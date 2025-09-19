@@ -11,6 +11,7 @@ import { useAuthStore } from '@/stores/authStore';
 import { Breadcrumb } from '@/components/ui/Breadcrumb';
 import { SignupModal } from '@/components/auth/SignupModal';
 import { getImageDimensions } from '@/utils/dpiCalculator';
+import { compressImage, urlToFile, needsCompression } from '@/utils/imageCompression';
 
 export default function UpscaleClient() {
   const searchParams = useSearchParams();
@@ -357,9 +358,51 @@ export default function UpscaleClient() {
     setError(null);
 
     try {
+      // Convert URL to File and check if compression is needed
+      console.log('[Upscale] Converting URL to file for processing');
+      let fileToUpload: File | null = null;
+      let shouldUploadFile = false;
+      
+      try {
+        // Convert URL to file
+        const file = await urlToFile(imageUrl, 'input_image');
+        console.log('[Upscale] File size:', (file.size / 1024 / 1024).toFixed(2), 'MB');
+        
+        // Check if compression is needed (for files > 10MB or dimensions > 4096px)
+        if (await needsCompression(file, 10, 4096)) {
+          console.log('[Upscale] Large file detected, compressing before upload');
+          setError('Compressing large image for processing...');
+          
+          fileToUpload = await compressImage(file, {
+            maxSizeMB: 10,
+            maxWidthOrHeight: 4096,
+            quality: 0.95,
+            format: 'jpeg'
+          });
+          
+          shouldUploadFile = true;
+          setError(null);
+        } else if (file.size > 5 * 1024 * 1024) {
+          // For files > 5MB, upload directly instead of using URL
+          console.log('[Upscale] Medium file detected, uploading file instead of URL');
+          fileToUpload = file;
+          shouldUploadFile = true;
+        }
+      } catch (err) {
+        console.log('[Upscale] Could not convert URL to file, using URL directly:', err);
+        // Continue with URL-based processing
+      }
+      
       // Use the existing upscale API endpoint
       const formData = new FormData();
-      formData.append('imageUrl', imageUrl);
+      
+      if (shouldUploadFile && fileToUpload) {
+        console.log('[Upscale] Uploading file directly');
+        formData.append('imageFile', fileToUpload);
+      } else {
+        console.log('[Upscale] Using URL for processing');
+        formData.append('imageUrl', imageUrl);
+      }
       formData.append('processingMode', showEnhancements ? 'auto_enhance' : 'basic_upscale');
       
       // Handle DPI mode with exact dimensions
@@ -388,9 +431,12 @@ export default function UpscaleClient() {
         formData.append('scale', actualScale);
       }
 
-      // Create an AbortController for timeout (40 seconds to be safe)
+      // Create an AbortController for timeout (90 seconds for large images)
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 40000); // 40 second timeout
+      const timeoutDuration = shouldUploadFile ? 90000 : 60000; // 90s for uploads, 60s for URLs
+      const timeoutId = setTimeout(() => controller.abort(), timeoutDuration);
+      
+      console.log(`[Upscale] Setting timeout to ${timeoutDuration/1000} seconds`);
       
       const response = await fetch('/api/upscale', {
         method: 'POST',
@@ -459,7 +505,7 @@ export default function UpscaleClient() {
     } catch (err) {
       if (err instanceof Error) {
         if (err.name === 'AbortError') {
-          setError('Request timed out. The image processing is taking too long. Please try with a smaller image or simpler settings.');
+          setError('Processing is taking longer than expected. For large images, please try: 1) Reducing image dimensions before uploading, 2) Using a smaller upscale factor, or 3) Disabling AI enhancements.');
         } else {
           setError(err.message);
         }
