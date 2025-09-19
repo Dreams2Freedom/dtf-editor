@@ -456,13 +456,13 @@ export default function UpscaleClient() {
           setTimeout(() => setError(null), 3000);
         } else {
           // Check if we need to force basic mode for large dimensions
-        const megapixels = (upscaleInfo.requiredWidth * upscaleInfo.requiredHeight) / 1000000;
-        if (megapixels > 20) {  // Reduced threshold from 30 to 20
-          console.warn('[Upscale] Forcing basic mode for large image (>20MP):', megapixels.toFixed(2), 'MP');
-          processingMode = 'basic_upscale';
-          setError('Using fast processing mode for large image. AI enhancements disabled.');
-          setTimeout(() => setError(null), 3000);
-        }
+          const megapixels = (upscaleInfo.requiredWidth * upscaleInfo.requiredHeight) / 1000000;
+          if (megapixels > 20) {  // Reduced threshold from 30 to 20
+            console.warn('[Upscale] Forcing basic mode for large image (>20MP):', megapixels.toFixed(2), 'MP');
+            processingMode = 'basic_upscale';
+            setError('Using fast processing mode for large image. AI enhancements disabled.');
+            setTimeout(() => setError(null), 3000);
+          }
         
         // Log dimension limiting info
         if (upscaleInfo.limitedByMax) {
@@ -496,6 +496,7 @@ export default function UpscaleClient() {
           requiredDimensions: `${upscaleInfo.requiredWidth}x${upscaleInfo.requiredHeight}`,
           limited: upscaleInfo.limitedByMax
         });
+        }  // Close the else block from line 457
       }
       
       // Handle scale for simple mode (either original simple or converted from DPI)
