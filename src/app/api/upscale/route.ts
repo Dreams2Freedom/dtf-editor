@@ -222,6 +222,11 @@ async function handlePost(request: NextRequest) {
         creditsUsed: result.metadata?.creditsUsed
       });
     } else {
+      console.error('[Upscale] Processing failed:', {
+        error: result.error,
+        success: result.success,
+        hasProcessedUrl: !!result.processedUrl
+      });
       return NextResponse.json(
         { error: result.error || 'Upscaling failed' },
         { status: 422 }

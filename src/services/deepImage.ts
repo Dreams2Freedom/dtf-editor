@@ -38,9 +38,10 @@ export class DeepImageService {
 
     try {
       // Check if dimensions are too large for single-pass processing
+      // Use conservative limits: >6000px or >30MP triggers multi-step
       const isExtremeDimensions = options.targetWidth && options.targetHeight && 
-        (options.targetWidth > 8000 || options.targetHeight > 8000 || 
-         options.targetWidth * options.targetHeight > 50000000); // 50 megapixels
+        (options.targetWidth > 6000 || options.targetHeight > 6000 || 
+         options.targetWidth * options.targetHeight > 30000000); // 30 megapixels
       
       if (isExtremeDimensions) {
         console.warn('[DeepImage] Extreme dimensions detected:', {

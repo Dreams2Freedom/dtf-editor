@@ -120,25 +120,30 @@ export default function UpscaleClient() {
     let scale = Math.max(scaleX, scaleY);
     
     // IMPORTANT: Limit extreme dimensions to prevent timeouts
-    const maxDimension = 8000; // Maximum 8000px per side
-    const maxMegapixels = 50; // Maximum 50 megapixels
+    // Use conservative limits to ensure reliability
+    const maxDimension = 6000; // Maximum 6000px per side (reduced from 8000)
+    const maxMegapixels = 30; // Maximum 30 megapixels (reduced from 50)
+    let limitedByMax = false;
     
     if (requiredWidth > maxDimension || requiredHeight > maxDimension) {
-      console.warn('[Upscale] Dimensions exceed maximum, limiting to', maxDimension, 'px');
+      // Only log once when actually processing, not on every render
       const limitScale = Math.min(maxDimension / imageDimensions.width, maxDimension / imageDimensions.height);
       scale = Math.min(scale, limitScale);
       requiredWidth = Math.min(requiredWidth, maxDimension);
       requiredHeight = Math.min(requiredHeight, maxDimension);
+      limitedByMax = true;
     }
     
     // Check megapixels
-    const megapixels = (requiredWidth * requiredHeight) / 1000000;
+    let megapixels = (requiredWidth * requiredHeight) / 1000000;
     if (megapixels > maxMegapixels) {
-      console.warn('[Upscale] Image exceeds', maxMegapixels, 'MP, reducing scale');
+      // Only log once when actually processing, not on every render
       const mpScale = Math.sqrt(maxMegapixels / megapixels);
       scale = scale * mpScale;
       requiredWidth = Math.round(requiredWidth * mpScale);
       requiredHeight = Math.round(requiredHeight * mpScale);
+      megapixels = (requiredWidth * requiredHeight) / 1000000; // Recalculate after adjustment
+      limitedByMax = true;
     }
     
     return {
@@ -149,7 +154,7 @@ export default function UpscaleClient() {
         imageDimensions.width / width,
         imageDimensions.height / height
       )),
-      limitedByMax: requiredWidth === maxDimension || requiredHeight === maxDimension || megapixels > maxMegapixels
+      limitedByMax
     };
   }, [imageDimensions, printWidth, printHeight, targetDPI]);
 
@@ -441,11 +446,19 @@ export default function UpscaleClient() {
         
         // Check if we need to force basic mode for large dimensions
         const megapixels = (upscaleInfo.requiredWidth * upscaleInfo.requiredHeight) / 1000000;
-        if (megapixels > 30) {
-          console.warn('[Upscale] Forcing basic mode for large image (>30MP)');
+        if (megapixels > 20) {  // Reduced threshold from 30 to 20
+          console.warn('[Upscale] Forcing basic mode for large image (>20MP):', megapixels.toFixed(2), 'MP');
           processingMode = 'basic_upscale';
           setError('Using fast processing mode for large image. AI enhancements disabled.');
           setTimeout(() => setError(null), 3000);
+        }
+        
+        // Log dimension limiting info
+        if (upscaleInfo.limitedByMax) {
+          console.log('[Upscale] Dimensions were limited to prevent timeout:', {
+            targetDimensions: `${upscaleInfo.requiredWidth}x${upscaleInfo.requiredHeight}`,
+            megapixels: megapixels.toFixed(2)
+          });
         }
         
         // Add target dimensions for DPI mode
