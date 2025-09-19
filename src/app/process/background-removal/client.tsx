@@ -116,7 +116,9 @@ export default function BackgroundRemovalClient() {
     // Fetch image from database using imageId
     const fetchImageFromDatabase = async () => {
       try {
-        const response = await fetch(`/api/uploads/${imageId}`);
+        const response = await fetch(`/api/uploads/${imageId}`, {
+          credentials: 'include', // Include cookies for authentication
+        });
         const data = await response.json();
         
         if (data.success) {

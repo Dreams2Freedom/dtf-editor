@@ -49,9 +49,17 @@ export async function GET(
       
       console.log('Found processed image:', processedImage.storage_url);
       
+      // Get the public URL from Supabase storage
+      // storage_url contains the path like "userId/processed/filename.png"
+      const { data: publicUrlData } = supabase.storage
+        .from('images')
+        .getPublicUrl(processedImage.storage_url);
+      
+      console.log('Generated public URL:', publicUrlData.publicUrl);
+      
       return NextResponse.json({
         success: true,
-        publicUrl: processedImage.storage_url,
+        publicUrl: publicUrlData.publicUrl,
         imageId: id
       });
     }

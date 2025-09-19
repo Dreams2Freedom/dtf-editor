@@ -34,7 +34,9 @@ export default function VectorizeClient() {
     // Fetch image URL from database
     const fetchImage = async () => {
       try {
-        const response = await fetch(`/api/uploads/${imageId}`);
+        const response = await fetch(`/api/uploads/${imageId}`, {
+          credentials: 'include', // Include cookies for authentication
+        });
         const data = await response.json();
         
         if (data.success) {
