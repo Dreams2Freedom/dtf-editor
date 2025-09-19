@@ -23,10 +23,40 @@ export async function GET(
       );
     }
     
-    console.log('Looking for upload with ID:', id);
+    console.log('Looking for image with ID:', id);
     console.log('Current user:', user.id);
     
-    // Try to decode the ID as base64 to get the path
+    // First, check if this is a processed image ID (UUID format)
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (uuidRegex.test(id)) {
+      console.log('ID appears to be a UUID, checking processed_images table');
+      
+      // Query the processed_images table
+      const { data: processedImage, error: dbError } = await supabase
+        .from('processed_images')
+        .select('storage_url')
+        .eq('id', id)
+        .eq('user_id', user.id)
+        .single();
+      
+      if (dbError || !processedImage) {
+        console.error('Processed image not found:', dbError);
+        return NextResponse.json(
+          { success: false, error: 'Image not found' },
+          { status: 404 }
+        );
+      }
+      
+      console.log('Found processed image:', processedImage.storage_url);
+      
+      return NextResponse.json({
+        success: true,
+        publicUrl: processedImage.storage_url,
+        imageId: id
+      });
+    }
+    
+    // Otherwise, try to decode the ID as base64 to get the path
     let path: string;
     try {
       path = Buffer.from(id, 'base64url').toString('utf-8');

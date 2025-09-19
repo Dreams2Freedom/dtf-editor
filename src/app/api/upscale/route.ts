@@ -217,6 +217,7 @@ async function handlePost(request: NextRequest) {
       return NextResponse.json({
         success: true,
         url: finalUrl,
+        imageId: savedId, // Include the image ID for navigation
         processingTime: result.metadata?.processingTime,
         creditsUsed: result.metadata?.creditsUsed
       });

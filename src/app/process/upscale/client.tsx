@@ -26,6 +26,7 @@ export default function UpscaleClient() {
   const [error, setError] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [processedUrl, setProcessedUrl] = useState<string | null>(null);
+  const [processedImageId, setProcessedImageId] = useState<string | null>(null);
   const [selectedScale, setSelectedScale] = useState('2');
   const [showEnhancements, setShowEnhancements] = useState(false);
   const [showSignupModal, setShowSignupModal] = useState(false);
@@ -442,10 +443,12 @@ export default function UpscaleClient() {
       }
 
       setProcessedUrl(result.url);
+      setProcessedImageId(result.imageId || null); // Store the image ID
       
       // Log the result URL to verify PNG format
       console.log('[Upscale Client] Processing complete:', {
         url: result.url,
+        imageId: result.imageId,
         isPNG: result.url?.includes('.png'),
         urlExtension: result.url?.split('.').pop()?.split('?')[0]
       });
@@ -881,16 +884,27 @@ export default function UpscaleClient() {
                         <Button
                           onClick={async () => {
                             console.log('Remove Background clicked');
+                            console.log('processedImageId:', processedImageId);
                             console.log('processedUrl:', processedUrl);
-                            console.log('processedUrl type:', typeof processedUrl);
-                            console.log('processedUrl length:', processedUrl?.length);
-                            console.log('Is data URL?', processedUrl?.startsWith('data:'));
                             
-                            // Check if processedUrl is valid
-                            if (!processedUrl) {
-                              alert('No processed image URL available. Please wait for the image to finish processing.');
+                            // Prefer using image ID for navigation (much shorter URL)
+                            if (processedImageId) {
+                              console.log('Using image ID for navigation:', processedImageId);
+                              const targetUrl = `/process/background-removal?imageId=${processedImageId}`;
+                              console.log('Target URL:', targetUrl);
+                              router.push(targetUrl);
                               return;
                             }
+                            
+                            // Fallback to URL-based navigation if no ID available
+                            if (!processedUrl) {
+                              alert('No processed image available. Please wait for the image to finish processing.');
+                              return;
+                            }
+                            
+                            console.log('No image ID available, falling back to URL');
+                            console.log('processedUrl length:', processedUrl?.length);
+                            console.log('Is data URL?', processedUrl?.startsWith('data:'));
                             
                             // If it's a data URL and too large, handle differently
                             if (processedUrl.startsWith('data:') && processedUrl.length > 2000) {
@@ -934,6 +948,7 @@ export default function UpscaleClient() {
                         <Button
                           onClick={() => {
                             setProcessedUrl(null);
+                            setProcessedImageId(null);
                             setSelectedScale('2');
                             setShowEnhancements(false);
                           }}
