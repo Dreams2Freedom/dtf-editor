@@ -21,6 +21,7 @@ export default function VectorizeClient() {
   const [error, setError] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [processedUrl, setProcessedUrl] = useState<string | null>(null);
+  const [processedImageId, setProcessedImageId] = useState<string | null>(null);
   const [selectedFormat, setSelectedFormat] = useState('svg');
   const [showSignupModal, setShowSignupModal] = useState(false);
 
@@ -152,7 +153,13 @@ export default function VectorizeClient() {
       }
 
       setProcessedUrl(result.processedUrl);
-      
+
+      // Store the saved image ID if available
+      if (result.metadata?.savedId) {
+        console.log('Vectorize saved with ID:', result.metadata.savedId);
+        setProcessedImageId(result.metadata.savedId);
+      }
+
       // Refresh credits after successful processing
       await refreshCredits();
 
@@ -347,28 +354,34 @@ export default function VectorizeClient() {
                         <Button
                           onClick={() => {
                             console.log('[Vectorize] Remove Background clicked');
+                            console.log('[Vectorize] processedImageId:', processedImageId);
                             console.log('[Vectorize] processedUrl:', processedUrl);
-                            console.log('[Vectorize] processedUrl type:', typeof processedUrl);
-                            console.log('[Vectorize] processedUrl length:', processedUrl?.length);
-                            console.log('[Vectorize] Is data URL?', processedUrl?.startsWith('data:'));
-                            
+
                             // Check if processedUrl is valid
                             if (!processedUrl) {
                               alert('No processed image URL available. Please wait for the image to finish processing.');
                               return;
                             }
-                            
+
+                            // Prefer using image ID for navigation (much shorter URL)
+                            if (processedImageId) {
+                              console.log('[Vectorize] Using image ID for navigation:', processedImageId);
+                              const targetUrl = `/process/background-removal?imageId=${processedImageId}`;
+                              router.push(targetUrl);
+                              return;
+                            }
+
                             // SVG files are typically data URLs and can be very large
                             // For vectorized images, we should handle them specially
                             if (processedUrl.startsWith('data:') && processedUrl.length > 2000) {
                               console.log('[Vectorize] Data URL is too large for URL parameter');
-                              
+
                               // Store in sessionStorage and navigate with a key
                               const storageKey = `temp_image_${Date.now()}`;
                               try {
                                 sessionStorage.setItem(storageKey, processedUrl);
                                 console.log('[Vectorize] Stored image in sessionStorage with key:', storageKey);
-                                
+
                                 // Navigate with the storage key instead
                                 const targetUrl = `/process/background-removal?tempImage=${storageKey}`;
                                 router.push(targetUrl);
@@ -378,12 +391,12 @@ export default function VectorizeClient() {
                               }
                               return;
                             }
-                            
+
                             // For regular URLs or small data URLs
                             const targetUrl = `/process/background-removal?imageUrl=${encodeURIComponent(processedUrl)}`;
                             console.log('[Vectorize] Target URL:', targetUrl);
                             console.log('[Vectorize] Target URL length:', targetUrl.length);
-                            
+
                             try {
                               console.log('[Vectorize] Attempting navigation...');
                               router.push(targetUrl);
@@ -401,6 +414,7 @@ export default function VectorizeClient() {
                         <Button
                           onClick={() => {
                             setProcessedUrl(null);
+                            setProcessedImageId(null);
                             setSelectedFormat('svg');
                           }}
                           variant="outline"

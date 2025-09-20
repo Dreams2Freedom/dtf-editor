@@ -402,9 +402,16 @@ export default function BackgroundRemovalClient() {
     try {
       // Download from ClippingMagic
       const response = await fetch(`/api/clippingmagic/download/${cmImageId}`);
-      
+
       if (!response.ok) {
         throw new Error('Failed to download processed image');
+      }
+
+      // Get the saved image ID from response headers
+      const savedImageId = response.headers.get('X-Image-Id');
+      if (savedImageId) {
+        console.log('Background removal saved with ID:', savedImageId);
+        setProcessedImageId(savedImageId);
       }
 
       // Convert to blob
@@ -682,13 +689,22 @@ export default function BackgroundRemovalClient() {
                         </Button>
                         <Button
                           onClick={() => {
-                            // Navigate to upscale page with the processed image URL
+                            // Navigate to upscale page with the processed image ID or URL
                             if (!processedUrl) {
                               alert('No processed image available');
                               return;
                             }
-                            
-                            // For data URLs or regular URLs
+
+                            // Prefer using image ID for navigation (much shorter URL)
+                            if (processedImageId) {
+                              console.log('Using image ID for navigation:', processedImageId);
+                              const targetUrl = `/process/upscale?imageId=${processedImageId}`;
+                              router.push(targetUrl);
+                              return;
+                            }
+
+                            // Fallback to URL-based navigation if no ID available
+                            console.log('No image ID available, using URL');
                             const targetUrl = `/process/upscale?imageUrl=${encodeURIComponent(processedUrl)}`;
                             router.push(targetUrl);
                           }}

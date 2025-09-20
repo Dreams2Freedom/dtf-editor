@@ -460,7 +460,12 @@ export function ImageGenerator() {
                         variant="secondary"
                         size="sm"
                         onClick={() => {
-                          router.push(`/process/background-removal?imageUrl=${encodeURIComponent(image.url)}`);
+                          // Prefer using image ID for navigation (much shorter URL)
+                          if (image.id) {
+                            router.push(`/process/background-removal?imageId=${image.id}`);
+                          } else {
+                            router.push(`/process/background-removal?imageUrl=${encodeURIComponent(image.url)}`);
+                          }
                         }}
                       >
                         <Scissors className="w-4 h-4 mr-1" />

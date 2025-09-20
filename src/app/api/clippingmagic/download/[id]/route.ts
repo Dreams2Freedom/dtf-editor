@@ -173,11 +173,14 @@ export async function GET(
       // Don't fail the download if gallery save fails
     }
     
-    // Return the image with appropriate headers
+    // Return the image with appropriate headers AND the savedImageId
+    // We'll return the image data but also include the ID in a custom header
     return new NextResponse(imageBuffer, {
       headers: {
         'Content-Type': contentType,
         'Content-Length': imageBuffer.byteLength.toString(),
+        'X-Image-Id': savedImageId || '', // Include the saved image ID
+        'X-Storage-Path': storagePath || '', // Include storage path for reference
       },
     });
 

@@ -18,6 +18,7 @@ export const UpscaleTool: React.FC<UpscaleToolProps> = ({ imageFile, imagePrevie
   const [progress, setProgress] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [upscaledUrl, setUpscaledUrl] = useState<string | null>(null);
+  const [upscaledImageId, setUpscaledImageId] = useState<string | null>(null);
   const [processingMode, setProcessingMode] = useState<ProcessingMode>('auto_enhance');
   const [scale, setScale] = useState<2 | 4>(4);
 
@@ -91,6 +92,9 @@ export const UpscaleTool: React.FC<UpscaleToolProps> = ({ imageFile, imagePrevie
 
       const data = await apiResponse.json();
       setUpscaledUrl(data.url);
+      if (data.imageId) {
+        setUpscaledImageId(data.imageId);
+      }
       onUpscaleComplete?.(data.url);
     } catch (err: any) {
       if (err.name === 'AbortError') {
@@ -230,7 +234,12 @@ export const UpscaleTool: React.FC<UpscaleToolProps> = ({ imageFile, imagePrevie
                   size="sm"
                   className="flex-1"
                   onClick={() => {
-                    router.push(`/process/background-removal?imageUrl=${encodeURIComponent(upscaledUrl)}`);
+                    // Prefer using image ID for navigation (much shorter URL)
+                    if (upscaledImageId) {
+                      router.push(`/process/background-removal?imageId=${upscaledImageId}`);
+                    } else {
+                      router.push(`/process/background-removal?imageUrl=${encodeURIComponent(upscaledUrl)}`);
+                    }
                   }}
                 >
                   <Scissors className="w-4 h-4 mr-1" />
