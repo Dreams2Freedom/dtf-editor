@@ -104,24 +104,28 @@ export async function GET(
     // Get the image data
     const imageBuffer = await response.arrayBuffer();
     const contentType = response.headers.get('Content-Type') || 'image/png';
-    
+
     console.log('[DEBUG Download] Response from ClippingMagic:', {
       imageId,
       size: (imageBuffer.byteLength / 1024 / 1024).toFixed(2) + ' MB',
       contentType,
       headers: Object.fromEntries(response.headers.entries())
     });
-    
+
+    // Variables for response headers
+    let savedImageId: string | null = null;
+    let storagePath: string | null = null;
+
     // Save to gallery
     try {
       const serviceClient = createServiceRoleClient();
-      
+
       // Generate filename
       const extension = contentType.split('/')[1] || 'png';
       const timestamp = Date.now();
       const filename = `clippingmagic_${imageId}_${timestamp}.${extension}`;
-      const storagePath = `${user.id}/processed/${filename}`;
-      
+      storagePath = `${user.id}/processed/${filename}`;
+
       // Upload to Supabase Storage (use 'images' bucket which is public)
       const { data: uploadData, error: uploadError } = await serviceClient
         .storage
@@ -131,7 +135,7 @@ export async function GET(
           cacheControl: '3600',
           upsert: false
         });
-      
+
       if (uploadError) {
         console.error('Failed to upload to storage:', uploadError);
       } else {
@@ -140,11 +144,11 @@ export async function GET(
           .storage
           .from('images')
           .getPublicUrl(storagePath);
-        
+
         const imageUrl = publicUrl;
-        
+
         // Save to processed_images table
-        const { data: savedImageId, error: saveError } = await serviceClient.rpc('insert_processed_image', {
+        const { data: processedImageId, error: saveError } = await serviceClient.rpc('insert_processed_image', {
           p_user_id: user.id,
           p_original_filename: `background_removal_${timestamp}.${extension}`,
           p_processed_filename: filename,
@@ -157,14 +161,15 @@ export async function GET(
             credits_used: 1,
             processing_time_ms: 0,
             api_used: 'ClippingMagic',
-            clippingmagic_id: imageId,
+            clippingmagic_id: imageId,  // This refers to the ClippingMagic image ID from params
             storage_path: storagePath
           }
         });
-        
+
         if (saveError) {
           console.error('Failed to save to gallery:', saveError);
         } else {
+          savedImageId = processedImageId;
           console.log('Saved to gallery with ID:', savedImageId);
         }
       }
@@ -172,7 +177,7 @@ export async function GET(
       console.error('Error saving to gallery:', error);
       // Don't fail the download if gallery save fails
     }
-    
+
     // Return the image with appropriate headers AND the savedImageId
     // We'll return the image data but also include the ID in a custom header
     return new NextResponse(imageBuffer, {
