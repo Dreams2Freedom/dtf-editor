@@ -914,8 +914,8 @@ export default function UpscaleClient() {
                                     {(() => {
                                       const info = calculateUpscaleFactor();
                                       if (!info) return null;
-                                      const quality = info.currentDPI >= 300 ? 'excellent' : 
-                                                     info.currentDPI >= 200 ? 'good' : 
+                                      const quality = info.currentDPI >= 300 ? 'excellent' :
+                                                     info.currentDPI >= 200 ? 'good' :
                                                      info.currentDPI >= 150 ? 'fair' : 'poor';
                                       const colors = {
                                         excellent: 'text-green-700',
@@ -923,7 +923,7 @@ export default function UpscaleClient() {
                                         fair: 'text-yellow-700',
                                         poor: 'text-red-700'
                                       };
-                                      
+
                                       return (
                                         <>
                                           <p className={`text-2xl font-bold ${colors[quality]}`}>
@@ -939,7 +939,112 @@ export default function UpscaleClient() {
                                 </div>
                               </div>
                             )}
-                            
+
+                            {/* Upscale Info - Moved up from bottom */}
+                            {(() => {
+                              const info = calculateUpscaleFactor();
+                              if (!info) return null;
+
+                              if (info.currentDPI >= 300) {
+                                return (
+                                  <div className="bg-green-50 border border-green-200 rounded-lg p-3">
+                                    <p className="text-sm text-green-700">
+                                      <Info className="w-4 h-4 inline mr-1" />
+                                      Your image already meets 300 DPI for this print size. Upscaling is optional.
+                                    </p>
+                                  </div>
+                                );
+                              }
+
+                              return (
+                                <div className="space-y-2">
+                                  <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
+                                    <p className="text-sm text-yellow-700">
+                                      <Info className="w-4 h-4 inline mr-1" />
+                                      Will upscale to {info.requiredWidth} × {info.requiredHeight} pixels ({info.scale.toFixed(1)}x) for 300 DPI quality
+                                    </p>
+                                  </div>
+                                  {(() => {
+                                    const megapixels = (info.requiredWidth * info.requiredHeight) / 1000000;
+                                    const willUseAsync = megapixels > 20 || (mode === 'dpi' && megapixels > 15);
+                                    if (willUseAsync) {
+                                      return (
+                                        <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                                          <p className="text-sm text-blue-700 font-medium">
+                                            <Info className="w-4 h-4 inline mr-1" />
+                                            Large Image Processing Mode
+                                          </p>
+                                          <p className="text-xs text-blue-600 mt-1">
+                                            This {megapixels.toFixed(1)} megapixel image will use enhanced processing for optimal quality.
+                                            Processing may take 30-60 seconds.
+                                          </p>
+                                        </div>
+                                      );
+                                    }
+                                    return null;
+                                  })()}
+                                </div>
+                              );
+                            })()}
+
+                            {/* AI Enhancements - Moved up from bottom */}
+                            <div>
+                              <label className="flex items-center space-x-2">
+                                <input
+                                  type="checkbox"
+                                  checked={showEnhancements}
+                                  onChange={(e) => setShowEnhancements(e.target.checked)}
+                                  className="rounded border-gray-300"
+                                />
+                                <span className="text-sm">
+                                  Apply AI enhancements (denoise, deblur, color correction)
+                                </span>
+                              </label>
+                            </div>
+
+                            {/* Credits Warning - Moved up from bottom */}
+                            {profile && !profile.is_admin && profile.credits_remaining < 1 && (
+                              <div className="bg-red-50 border border-red-200 text-red-600 p-3 rounded-lg text-sm">
+                                <p className="font-medium">Insufficient Credits</p>
+                                <p className="text-xs mt-1">You need at least 1 credit to upscale an image. Please purchase more credits or upgrade your plan.</p>
+                              </div>
+                            )}
+
+                            {/* UPSCALE BUTTON - Moved up to be immediately visible */}
+                            <Button
+                              onClick={processImage}
+                              disabled={isProcessing || !profile || (!profile.is_admin && profile.credits_remaining < 1)}
+                              className="w-full"
+                              size="lg"
+                            >
+                              {isProcessing ? (
+                                <>
+                                  <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                                  {isAsyncProcessing
+                                    ? jobStatus === 'processing'
+                                      ? `Processing Large Image... ${processingProgress}%`
+                                      : `Initializing... ${processingProgress}%`
+                                    : 'Processing...'
+                                  }
+                                </>
+                              ) : mode === 'dpi' ? (
+                                <>
+                                  <Calculator className="w-5 h-5 mr-2" />
+                                  Upscale to 300 DPI
+                                </>
+                              ) : (
+                                <>
+                                  <Wand2 className="w-5 h-5 mr-2" />
+                                  Upscale Image ({selectedScale}x)
+                                </>
+                              )}
+                            </Button>
+
+                            {/* Divider */}
+                            <div className="border-t border-gray-200 pt-4">
+                              <p className="text-xs text-gray-500 mb-3">Adjust print dimensions:</p>
+                            </div>
+
                             {/* Aspect Ratio Lock */}
                             <div className="flex items-center justify-between">
                               <label className="text-sm font-medium text-gray-700 flex items-center gap-2">
@@ -1036,106 +1141,9 @@ export default function UpscaleClient() {
                                 ))}
                               </div>
                             </div>
-                            
-                            {/* Upscale Info */}
-                            {(() => {
-                              const info = calculateUpscaleFactor();
-                              if (!info) return null;
-                              
-                              if (info.currentDPI >= 300) {
-                                return (
-                                  <div className="bg-green-50 border border-green-200 rounded-lg p-3">
-                                    <p className="text-sm text-green-700">
-                                      <Info className="w-4 h-4 inline mr-1" />
-                                      Your image already meets 300 DPI for this print size. Upscaling is optional.
-                                    </p>
-                                  </div>
-                                );
-                              }
-                              
-                              return (
-                                <div className="space-y-2">
-                                  <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
-                                    <p className="text-sm text-yellow-700">
-                                      <Info className="w-4 h-4 inline mr-1" />
-                                      Will upscale to {info.requiredWidth} × {info.requiredHeight} pixels ({info.scale.toFixed(1)}x) for 300 DPI quality
-                                    </p>
-                                  </div>
-                                  {(() => {
-                                    const megapixels = (info.requiredWidth * info.requiredHeight) / 1000000;
-                                    const willUseAsync = megapixels > 20 || (mode === 'dpi' && megapixels > 15);
-                                    if (willUseAsync) {
-                                      return (
-                                        <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
-                                          <p className="text-sm text-blue-700 font-medium">
-                                            <Info className="w-4 h-4 inline mr-1" />
-                                            Large Image Processing Mode
-                                          </p>
-                                          <p className="text-xs text-blue-600 mt-1">
-                                            This {megapixels.toFixed(1)} megapixel image will use enhanced processing for optimal quality.
-                                            Processing may take 30-60 seconds.
-                                          </p>
-                                        </div>
-                                      );
-                                    }
-                                    return null;
-                                  })()}
-                                </div>
-                              );
-                            })()}
                           </div>
                         )}
                       </div>
-
-                      <div>
-                        <label className="flex items-center space-x-2">
-                          <input
-                            type="checkbox"
-                            checked={showEnhancements}
-                            onChange={(e) => setShowEnhancements(e.target.checked)}
-                            className="rounded border-gray-300"
-                          />
-                          <span className="text-sm">
-                            Apply AI enhancements (denoise, deblur, color correction)
-                          </span>
-                        </label>
-                      </div>
-
-                      {profile && !profile.is_admin && profile.credits_remaining < 1 && (
-                        <div className="bg-red-50 border border-red-200 text-red-600 p-3 rounded-lg text-sm">
-                          <p className="font-medium">Insufficient Credits</p>
-                          <p className="text-xs mt-1">You need at least 1 credit to upscale an image. Please purchase more credits or upgrade your plan.</p>
-                        </div>
-                      )}
-
-                      <Button
-                        onClick={processImage}
-                        disabled={isProcessing || !profile || (!profile.is_admin && profile.credits_remaining < 1)}
-                        className="w-full"
-                        size="lg"
-                      >
-                        {isProcessing ? (
-                          <>
-                            <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                            {isAsyncProcessing
-                              ? jobStatus === 'processing'
-                                ? `Processing Large Image... ${processingProgress}%`
-                                : `Initializing... ${processingProgress}%`
-                              : 'Processing...'
-                            }
-                          </>
-                        ) : mode === 'dpi' ? (
-                          <>
-                            <Calculator className="w-5 h-5 mr-2" />
-                            Upscale to 300 DPI
-                          </>
-                        ) : (
-                          <>
-                            <Wand2 className="w-5 h-5 mr-2" />
-                            Upscale Image ({selectedScale}x)
-                          </>
-                        )}
-                      </Button>
                     </div>
                   )}
 
