@@ -115,15 +115,27 @@ export default function UpscaleClient() {
       // Calculate aspect ratio
       const ratio = dimensions.width / dimensions.height;
       setAspectRatio(ratio);
-      
-      // Set default print dimensions based on 300 DPI
-      const defaultWidth = dimensions.width / targetDPI;
-      const defaultHeight = dimensions.height / targetDPI;
-      
+
+      // Set default print dimensions - minimum 10 inches wide for realistic print sizes
+      // This shows users the actual DPI quality at common print sizes
+      const currentWidthAt300DPI = dimensions.width / targetDPI;
+
+      // Use 10 inches minimum width, or larger if the image supports it
+      const defaultWidth = Math.max(10, currentWidthAt300DPI);
+      const defaultHeight = defaultWidth / ratio; // Maintain aspect ratio
+
       setPrintWidth(defaultWidth.toFixed(2));
       setPrintHeight(defaultHeight.toFixed(2));
-      
+
+      // Log the actual DPI at the default print size
+      const actualDPI = Math.min(
+        dimensions.width / defaultWidth,
+        dimensions.height / defaultHeight
+      );
+
       console.log('Image dimensions detected:', dimensions);
+      console.log(`Default print size set to ${defaultWidth.toFixed(2)}" × ${defaultHeight.toFixed(2)}"`);
+      console.log(`Image quality at this size: ${Math.round(actualDPI)} DPI (300 DPI recommended for print)`);
     } catch (error) {
       console.error('Failed to detect image dimensions:', error);
     }
@@ -948,8 +960,17 @@ export default function UpscaleClient() {
                                 />
                               </button>
                             </div>
-                            
+
                             {/* Print Size Inputs */}
+                            {printWidth && parseFloat(printWidth) >= 10 && imageDimensions && (
+                              <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 mb-3">
+                                <p className="text-xs text-amber-700">
+                                  <Info className="w-3 h-3 inline mr-1" />
+                                  Showing quality for {printWidth}" width (minimum 10" for realistic print assessment).
+                                  Most DTF prints are 10-16 inches wide.
+                                </p>
+                              </div>
+                            )}
                             <div className="grid grid-cols-2 gap-4">
                               <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-1">
