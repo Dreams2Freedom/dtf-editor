@@ -967,7 +967,7 @@ export default function UpscaleClient() {
                                 <p className="text-xs text-amber-700">
                                   <Info className="w-3 h-3 inline mr-1" />
                                   Showing quality for {printWidth}" width (minimum 10" for realistic print assessment).
-                                  Most DTF prints are 10-16 inches wide.
+                                  Most DTF prints are 10-13 inches wide.
                                 </p>
                               </div>
                             )}
