@@ -223,28 +223,29 @@ export default function BackgroundRemovalClient() {
     };
   }, []);
 
-  // Compress image if it exceeds Vercel's default API route limit
-  // Default is 4.5MB even on Pro plan unless specifically configured
-  // We'll use 4MB to be safe and avoid 413 errors
-  const compressImage = async (file: File, maxSizeMB: number = 4): Promise<File> => {
+  // Compress image if it exceeds Vercel's configured limit
+  // We have 10MB configured in vercel.json for this route
+  const compressImage = async (file: File, maxSizeMB: number = 8, maxDimension: number = 6000): Promise<File> => {
     const maxSizeBytes = maxSizeMB * 1024 * 1024;
-    
+
     console.log('[DEBUG] compressImage called with file:', {
       name: file.name,
       size: (file.size / 1024 / 1024).toFixed(2) + ' MB',
       type: file.type,
-      vercelLimit: '4.5MB default (configurable to 50MB on Pro)'
+      maxSizeMB: maxSizeMB,
+      maxDimension: maxDimension,
+      vercelLimit: '10MB (configured in vercel.json)'
     });
-    
-    // If file is under 4MB, don't compress
+
+    // If file is under the size limit, don't compress
     if (file.size <= maxSizeBytes) {
-      console.log('[Background Removal] Image under 4MB limit, NO compression needed:', (file.size / 1024 / 1024).toFixed(2), 'MB');
+      console.log('[Background Removal] Image under size limit, NO compression needed:', (file.size / 1024 / 1024).toFixed(2), 'MB');
       console.log('[DEBUG] Returning original file without compression - preserving full quality');
       return file;
     }
-    
+
     console.log('[Background Removal] File too large, need to compress:', (file.size / 1024 / 1024).toFixed(2), 'MB');
-    
+
     return new Promise((resolve) => {
       const reader = new FileReader();
       reader.onload = (e) => {
@@ -252,11 +253,10 @@ export default function BackgroundRemovalClient() {
         img.onload = () => {
           const canvas = document.createElement('canvas');
           const ctx = canvas.getContext('2d');
-          
-          // Calculate dimensions - only scale if absolutely necessary
+
+          // Calculate dimensions - preserve upscaled quality
           let width = img.width;
           let height = img.height;
-          const maxDimension = 6000; // Increased limit since we have 50MB to work with
           
           // Only scale down if dimensions are absolutely massive
           if (width > maxDimension || height > maxDimension) {
@@ -340,9 +340,9 @@ export default function BackgroundRemovalClient() {
         type: imageFile.type
       });
 
-      // Pass 3MB as limit to be safe with FormData encoding overhead
-      // Keep high resolution for best background removal quality
-      const fileToUpload = await compressImage(imageFile, 3, 6000);
+      // Pass 8MB as limit to be safe with FormData encoding overhead (10MB max configured)
+      // Keep high resolution (6000px) for best background removal quality of upscaled images
+      const fileToUpload = await compressImage(imageFile, 8, 6000);
       
       console.log('[DEBUG] File after compression (to upload):', {
         name: fileToUpload.name,

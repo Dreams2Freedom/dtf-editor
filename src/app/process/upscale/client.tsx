@@ -860,6 +860,31 @@ export default function UpscaleClient() {
                                 </button>
                               ))}
                             </div>
+                            {/* Large Image Processing Indicator for Simple Mode */}
+                            {(() => {
+                              if (!imageDimensions) return null;
+                              const scale = parseInt(selectedScale);
+                              const outputWidth = imageDimensions.width * scale;
+                              const outputHeight = imageDimensions.height * scale;
+                              const megapixels = (outputWidth * outputHeight) / 1000000;
+                              const willUseAsync = megapixels > 20;
+
+                              if (willUseAsync) {
+                                return (
+                                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mt-2">
+                                    <p className="text-sm text-blue-700 font-medium">
+                                      <Info className="w-4 h-4 inline mr-1" />
+                                      Large Image Processing Mode
+                                    </p>
+                                    <p className="text-xs text-blue-600 mt-1">
+                                      Output will be {megapixels.toFixed(1)} megapixels ({outputWidth} × {outputHeight}).
+                                      Enhanced processing will be used for optimal quality (30-60 seconds).
+                                    </p>
+                                  </div>
+                                );
+                              }
+                              return null;
+                            })()}
                           </div>
                         ) : (
                           <div className="space-y-4">
@@ -1008,11 +1033,32 @@ export default function UpscaleClient() {
                               }
                               
                               return (
-                                <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
-                                  <p className="text-sm text-yellow-700">
-                                    <Info className="w-4 h-4 inline mr-1" />
-                                    Will upscale to {info.requiredWidth} × {info.requiredHeight} pixels ({info.scale.toFixed(1)}x) for 300 DPI quality
-                                  </p>
+                                <div className="space-y-2">
+                                  <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
+                                    <p className="text-sm text-yellow-700">
+                                      <Info className="w-4 h-4 inline mr-1" />
+                                      Will upscale to {info.requiredWidth} × {info.requiredHeight} pixels ({info.scale.toFixed(1)}x) for 300 DPI quality
+                                    </p>
+                                  </div>
+                                  {(() => {
+                                    const megapixels = (info.requiredWidth * info.requiredHeight) / 1000000;
+                                    const willUseAsync = megapixels > 20 || (mode === 'dpi' && megapixels > 15);
+                                    if (willUseAsync) {
+                                      return (
+                                        <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                                          <p className="text-sm text-blue-700 font-medium">
+                                            <Info className="w-4 h-4 inline mr-1" />
+                                            Large Image Processing Mode
+                                          </p>
+                                          <p className="text-xs text-blue-600 mt-1">
+                                            This {megapixels.toFixed(1)} megapixel image will use enhanced processing for optimal quality.
+                                            Processing may take 30-60 seconds.
+                                          </p>
+                                        </div>
+                                      );
+                                    }
+                                    return null;
+                                  })()}
                                 </div>
                               );
                             })()}
@@ -1051,7 +1097,9 @@ export default function UpscaleClient() {
                           <>
                             <Loader2 className="w-5 h-5 mr-2 animate-spin" />
                             {isAsyncProcessing
-                              ? `Processing... ${processingProgress}%`
+                              ? jobStatus === 'processing'
+                                ? `Processing Large Image... ${processingProgress}%`
+                                : `Initializing... ${processingProgress}%`
                               : 'Processing...'
                             }
                           </>
@@ -1164,9 +1212,16 @@ export default function UpscaleClient() {
                           Upscale Again
                         </Button>
                       </div>
-                      <p className="text-sm text-green-600">
-                        ✓ Image upscaled and saved to your account
-                      </p>
+                      <div className="space-y-1">
+                        <p className="text-sm text-green-600">
+                          ✓ Image upscaled and saved to your account
+                        </p>
+                        {isAsyncProcessing && (
+                          <p className="text-xs text-blue-600">
+                            ✓ Enhanced processing used for optimal quality
+                          </p>
+                        )}
+                      </div>
                     </div>
                   )}
 
