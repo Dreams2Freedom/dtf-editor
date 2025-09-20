@@ -1,6 +1,7 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef, useMemo } from 'react';
+import { useAsyncJob } from '@/hooks/useAsyncJob';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { Wand2, Download, Loader2, ArrowLeft, Scissors, Calculator, Lock, Unlock, Info, Upload } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
@@ -21,13 +22,42 @@ export default function UpscaleClient() {
   const imageUrlParam = searchParams.get('imageUrl');
   const printWidthParam = searchParams.get('printWidth');
   const printHeightParam = searchParams.get('printHeight');
-  
+
   const [imageUrl, setImageUrl] = useState<string | null>(null);
+
+  // Async job polling hook
+  const {
+    startPolling,
+    stopPolling,
+    cancelJob,
+    jobStatus,
+    isPolling
+  } = useAsyncJob({
+    onComplete: (result) => {
+      console.log('[Upscale] Async processing complete:', result);
+      setProcessedUrl(result.url);
+      setProcessedImageId(result.imageId);
+      setIsProcessing(false);
+      setIsAsyncProcessing(false);
+      setProcessingProgress(100);
+    },
+    onError: (error) => {
+      console.error('[Upscale] Async processing error:', error);
+      setError(error);
+      setIsProcessing(false);
+      setIsAsyncProcessing(false);
+    },
+    onProgress: (progress) => {
+      setProcessingProgress(progress);
+    }
+  });
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [processedUrl, setProcessedUrl] = useState<string | null>(null);
   const [processedImageId, setProcessedImageId] = useState<string | null>(null);
+  const [processingProgress, setProcessingProgress] = useState(0);
+  const [isAsyncProcessing, setIsAsyncProcessing] = useState(false);
   const [selectedScale, setSelectedScale] = useState('2');
   const [showEnhancements, setShowEnhancements] = useState(false);
   const [showSignupModal, setShowSignupModal] = useState(false);
@@ -527,15 +557,44 @@ export default function UpscaleClient() {
       const timeoutId = setTimeout(() => controller.abort(), timeoutDuration);
       
       console.log(`[Upscale] Setting timeout to ${timeoutDuration/1000} seconds`);
-      
-      const response = await fetch('/api/upscale', {
-        method: 'POST',
-        body: formData,
-        credentials: 'include',
-        signal: controller.signal
-      }).finally(() => {
-        clearTimeout(timeoutId);
+
+      // Determine if we should use async processing
+      // Use async for large images that might timeout
+      const megapixels = actualMode === 'dpi' && upscaleInfo
+        ? (upscaleInfo.requiredWidth * upscaleInfo.requiredHeight) / 1000000
+        : 0;
+
+      const useAsync = megapixels > 20 || // More than 20MP
+                      (actualMode === 'dpi' && megapixels > 15) || // DPI mode with >15MP
+                      processingMode === 'generative_upscale'; // Generative mode is slow
+
+      console.log('[Upscale] Processing mode:', {
+        useAsync,
+        megapixels: megapixels.toFixed(2),
+        processingMode
       });
+
+      let response;
+
+      if (useAsync) {
+        // Use async endpoint for large images
+        response = await fetch('/api/upscale-async', {
+          method: 'POST',
+          body: formData,
+          credentials: 'include'
+        });
+        clearTimeout(timeoutId);
+      } else {
+        // Use regular endpoint for smaller images
+        response = await fetch('/api/upscale', {
+          method: 'POST',
+          body: formData,
+          credentials: 'include',
+          signal: controller.signal
+        }).finally(() => {
+          clearTimeout(timeoutId);
+        });
+      }
 
       // Check content type before parsing
       const contentType = response.headers.get('content-type');
@@ -572,6 +631,15 @@ export default function UpscaleClient() {
 
       if (!response.ok) {
         throw new Error(result.error || `Processing failed with status ${response.status}`);
+      }
+
+      // Handle async response
+      if (result.jobId) {
+        console.log('[Upscale] Async job started:', result.jobId);
+        setIsAsyncProcessing(true);
+        setProcessingProgress(5);
+        startPolling(result.jobId);
+        return; // Exit here, polling will handle the rest
       }
 
       if (!result.success || !result.url) {
@@ -982,7 +1050,10 @@ export default function UpscaleClient() {
                         {isProcessing ? (
                           <>
                             <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                            Processing...
+                            {isAsyncProcessing
+                              ? `Processing... ${processingProgress}%`
+                              : 'Processing...'
+                            }
                           </>
                         ) : mode === 'dpi' ? (
                           <>

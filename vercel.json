@@ -33,6 +33,12 @@
     "src/app/api/upscale/route.ts": {
       "maxDuration": 60
     },
+    "src/app/api/upscale-async/route.ts": {
+      "maxDuration": 10
+    },
+    "src/app/api/jobs/[id]/route.ts": {
+      "maxDuration": 5
+    },
     "src/app/api/clippingmagic/upload/route.ts": {
       "maxDuration": 60
     },
