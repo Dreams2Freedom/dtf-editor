@@ -339,9 +339,10 @@ export default function BackgroundRemovalClient() {
         size: (imageFile.size / 1024 / 1024).toFixed(2) + ' MB',
         type: imageFile.type
       });
-      
-      // Pass 4MB as limit (safe threshold for Vercel's default API limit)
-      const fileToUpload = await compressImage(imageFile, 4);
+
+      // Pass 3MB as limit to be safe with FormData encoding overhead
+      // Keep high resolution for best background removal quality
+      const fileToUpload = await compressImage(imageFile, 3, 6000);
       
       console.log('[DEBUG] File after compression (to upload):', {
         name: fileToUpload.name,

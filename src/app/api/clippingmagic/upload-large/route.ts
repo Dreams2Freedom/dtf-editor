@@ -14,6 +14,16 @@ export const dynamic = 'force-dynamic';
 // For App Router, we need to export this to increase body size limit
 export const revalidate = 0;
 
+// Configure larger body size limit for this route
+// This is specific to Next.js 15 App Router
+export const config = {
+  api: {
+    bodyParser: {
+      sizeLimit: '10mb',
+    },
+  },
+};
+
 // This is the new way to configure body size in App Router
 export async function POST(request: NextRequest) {
   try {
@@ -28,17 +38,13 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Check content length - Vercel has a 4.5MB default limit for API routes
+    // Log content length but don't reject based on header alone
+    // FormData encoding adds overhead, so the content-length is larger than the actual file
     const contentLength = request.headers.get('content-length');
-    const maxSize = 4.5 * 1024 * 1024; // 4.5MB (Vercel's default limit)
-    
-    if (contentLength && parseInt(contentLength) > maxSize) {
-      console.error('[ClippingMagic Upload] File too large:', contentLength, 'bytes, max:', maxSize, 'bytes');
-      return NextResponse.json(
-        { error: 'File too large. Maximum size is 4.5MB. Please try a smaller image.' },
-        { status: 413 }
-      );
-    }
+    console.log('[ClippingMagic Upload] Content length header:', contentLength, 'bytes');
+
+    // We'll check the actual file size after parsing the form data
+    const maxSize = 10 * 1024 * 1024; // 10MB limit for actual file
 
     // For large files, we need to handle the body as a stream
     // Get the raw body as ArrayBuffer first
@@ -81,6 +87,15 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         { error: 'No image provided' },
         { status: 400 }
+      );
+    }
+
+    // Check actual file size
+    console.log('[ClippingMagic Upload] Actual file size:', file.size, 'bytes', '(', (file.size / 1024 / 1024).toFixed(2), 'MB)');
+    if (file.size > maxSize) {
+      return NextResponse.json(
+        { error: `File too large. Size is ${(file.size / 1024 / 1024).toFixed(2)}MB, maximum allowed is 10MB.` },
+        { status: 413 }
       );
     }
 
