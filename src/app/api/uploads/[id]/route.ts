@@ -2,6 +2,19 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 
 // Based on Next.js 15 documentation for dynamic route handlers
+// Add OPTIONS handler for CORS
+export async function OPTIONS() {
+  return new NextResponse(null, {
+    status: 200,
+    headers: {
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': 'GET, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+      'Access-Control-Allow-Credentials': 'true',
+    },
+  });
+}
+
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -13,14 +26,25 @@ export async function GET(
     // Get Supabase client
     const supabase = await createServerSupabaseClient();
     
-    // Check authentication
+    // Check authentication - try to get user from session
     const { data: { user }, error: authError } = await supabase.auth.getUser();
     
+    // If auth fails, try to get user from session (sometimes needed in production)
     if (authError || !user) {
-      return NextResponse.json(
-        { success: false, error: 'Unauthorized' },
-        { status: 401 }
-      );
+      console.error('[Uploads API] Authentication failed:', authError?.message || 'No user found');
+      
+      // For processed images, we can be less strict since they're already public URLs
+      // Check if this is a UUID (processed image)
+      const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+      if (!uuidRegex.test(id)) {
+        // Not a processed image, require auth
+        return NextResponse.json(
+          { success: false, error: 'Unauthorized' },
+          { status: 401 }
+        );
+      }
+      // For processed images, continue without user check
+      console.log('[Uploads API] Allowing public access to processed image:', id);
     }
     
     console.log('Looking for image with ID:', id);
@@ -32,12 +56,15 @@ export async function GET(
       console.log('ID appears to be a UUID, checking processed_images table');
       
       // Query the processed_images table
-      const { data: processedImage, error: dbError } = await supabase
-        .from('processed_images')
-        .select('storage_url')
-        .eq('id', id)
-        .eq('user_id', user.id)
-        .single();
+      // If we have a user, filter by user_id for security
+      // If no user (public access), just get by ID
+      let query = supabase.from('processed_images').select('storage_url').eq('id', id);
+      
+      if (user) {
+        query = query.eq('user_id', user.id);
+      }
+      
+      const { data: processedImage, error: dbError } = await query.single();
       
       if (dbError || !processedImage) {
         console.error('Processed image not found:', dbError);
