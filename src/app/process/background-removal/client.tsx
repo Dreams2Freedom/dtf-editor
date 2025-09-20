@@ -223,9 +223,9 @@ export default function BackgroundRemovalClient() {
     };
   }, []);
 
-  // Compress image if it exceeds Vercel's configured limit
-  // We have 10MB configured in vercel.json for this route
-  const compressImage = async (file: File, maxSizeMB: number = 8, maxDimension: number = 6000): Promise<File> => {
+  // Compress image if it exceeds Vercel's default API route limit
+  // Vercel has a 4.5MB default limit for API routes
+  const compressImage = async (file: File, maxSizeMB: number = 4, maxDimension: number = 6000): Promise<File> => {
     const maxSizeBytes = maxSizeMB * 1024 * 1024;
 
     console.log('[DEBUG] compressImage called with file:', {
@@ -234,7 +234,7 @@ export default function BackgroundRemovalClient() {
       type: file.type,
       maxSizeMB: maxSizeMB,
       maxDimension: maxDimension,
-      vercelLimit: '10MB (configured in vercel.json)'
+      vercelLimit: '4.5MB default (Vercel API route limit)'
     });
 
     // If file is under the size limit, don't compress
@@ -340,9 +340,9 @@ export default function BackgroundRemovalClient() {
         type: imageFile.type
       });
 
-      // Pass 8MB as limit to be safe with FormData encoding overhead (10MB max configured)
+      // Pass 4MB as limit to match Vercel's default API route limit (4.5MB)
       // Keep high resolution (6000px) for best background removal quality of upscaled images
-      const fileToUpload = await compressImage(imageFile, 8, 6000);
+      const fileToUpload = await compressImage(imageFile, 4, 6000);
       
       console.log('[DEBUG] File after compression (to upload):', {
         name: fileToUpload.name,
