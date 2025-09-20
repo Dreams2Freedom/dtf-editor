@@ -129,7 +129,10 @@ export async function POST(request: NextRequest) {
     
     // CRITICAL: Preserve full image resolution
     cmFormData.append('maxPixels', '26214400'); // Maximum allowed: 26.2 megapixels
-    cmFormData.append('fit.toResult', 'false'); // Don't crop to subject
+
+    // CRITICAL: Fit to result with small margin for consistent framing
+    cmFormData.append('fit.toResult', 'true'); // Fit to subject with margin
+    cmFormData.append('fit.margin', '0.5'); // 0.5% margin (0.05% might be too tight, using 0.5%)
     cmFormData.append('result.allowEnlarging', 'true'); // Allow full size output
     
     // Set default processing mode to graphics for better DTF results
