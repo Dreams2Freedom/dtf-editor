@@ -14,16 +14,6 @@ export const dynamic = 'force-dynamic';
 // For App Router, we need to export this to increase body size limit
 export const revalidate = 0;
 
-// Configure larger body size limit for this route
-// This is specific to Next.js 15 App Router
-export const config = {
-  api: {
-    bodyParser: {
-      sizeLimit: '10mb',
-    },
-  },
-};
-
 // This is the new way to configure body size in App Router
 export async function POST(request: NextRequest) {
   try {

@@ -43,8 +43,7 @@
       "maxDuration": 60
     },
     "src/app/api/clippingmagic/upload-large/route.ts": {
-      "maxDuration": 60,
-      "maxBodySize": "10mb"
+      "maxDuration": 60
     },
     "src/app/api/cron/backup/route.ts": {
       "maxDuration": 60
