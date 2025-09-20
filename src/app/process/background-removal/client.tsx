@@ -223,9 +223,9 @@ export default function BackgroundRemovalClient() {
     };
   }, []);
 
-  // Compress image if it exceeds Vercel's default API route limit
-  // Vercel has a 4.5MB default limit for API routes
-  const compressImage = async (file: File, maxSizeMB: number = 4, maxDimension: number = 6000): Promise<File> => {
+  // Compress image if it exceeds safe size for Vercel API routes
+  // Target 3MB to account for ~33% FormData encoding overhead
+  const compressImage = async (file: File, maxSizeMB: number = 3, maxDimension: number = 5000): Promise<File> => {
     const maxSizeBytes = maxSizeMB * 1024 * 1024;
 
     console.log('[DEBUG] compressImage called with file:', {
@@ -274,12 +274,12 @@ export default function BackgroundRemovalClient() {
           // Draw image
           ctx?.drawImage(img, 0, 0, width, height);
           
-          // Start with high quality since we have 50MB to work with
-          let quality = 0.92;
+          // Start with good quality, will reduce if needed
+          let quality = 0.85;
           let outputFormat = file.type;
-          
-          // Only convert PNG to JPEG if file is really large
-          if (file.type === 'image/png' && file.size > maxSizeBytes * 1.5) {
+
+          // Convert PNG to JPEG for better compression if file is large
+          if (file.type === 'image/png' && file.size > maxSizeBytes) {
             outputFormat = 'image/jpeg';
             console.log('[Background Removal] Converting PNG to JPEG for better compression');
           }
@@ -340,9 +340,10 @@ export default function BackgroundRemovalClient() {
         type: imageFile.type
       });
 
-      // Pass 4MB as limit to match Vercel's default API route limit (4.5MB)
-      // Keep high resolution (6000px) for best background removal quality of upscaled images
-      const fileToUpload = await compressImage(imageFile, 4, 6000);
+      // Pass 3MB as limit to account for FormData encoding overhead (~33%)
+      // 3MB file + overhead = ~4MB, staying under Vercel's 4.5MB limit
+      // Keep high resolution (5000px) for good background removal quality
+      const fileToUpload = await compressImage(imageFile, 3, 5000);
       
       console.log('[DEBUG] File after compression (to upload):', {
         name: fileToUpload.name,
