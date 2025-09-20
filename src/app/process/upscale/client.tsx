@@ -428,7 +428,7 @@ export default function UpscaleClient() {
       
       if (shouldUploadFile && fileToUpload) {
         console.log('[Upscale] Uploading file directly');
-        formData.append('imageFile', fileToUpload);
+        formData.append('image', fileToUpload);  // API expects 'image', not 'imageFile'
       } else {
         console.log('[Upscale] Using URL for processing');
         formData.append('imageUrl', imageUrl);
