@@ -1025,6 +1025,104 @@ export default function UpscaleClient() {
                       </div>
                     )}
 
+                    {/* Print Dimensions Controls - Above button in DPI mode */}
+                    {mode === 'dpi' && (
+                      <>
+                        {/* Divider */}
+                        <div className="border-t border-gray-200 pt-4">
+                          <p className="text-xs text-gray-500 mb-3">Adjust print dimensions:</p>
+                        </div>
+
+                        {/* Aspect Ratio Lock */}
+                        <div className="flex items-center justify-between">
+                          <label className="text-sm font-medium text-gray-700 flex items-center gap-2">
+                            {maintainAspectRatio ? <Lock className="w-4 h-4" /> : <Unlock className="w-4 h-4" />}
+                            Maintain Aspect Ratio
+                          </label>
+                          <button
+                            type="button"
+                            onClick={() => setMaintainAspectRatio(!maintainAspectRatio)}
+                            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                              maintainAspectRatio ? 'bg-[#366494]' : 'bg-gray-200'
+                            }`}
+                          >
+                            <span
+                              className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                                maintainAspectRatio ? 'translate-x-6' : 'translate-x-1'
+                              }`}
+                            />
+                          </button>
+                        </div>
+
+                        {/* Print Size Inputs */}
+                        {printWidth && parseFloat(printWidth) >= 10 && imageDimensions && (
+                          <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 mb-3">
+                            <p className="text-xs text-amber-700">
+                              <Info className="w-3 h-3 inline mr-1" />
+                              Showing quality for {printWidth}" width (minimum 10" for realistic print assessment).
+                              Most DTF prints are 10-13 inches wide.
+                            </p>
+                          </div>
+                        )}
+                        <div className="grid grid-cols-2 gap-4">
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                              Print Width (inches)
+                            </label>
+                            <Input
+                              type="number"
+                              step="0.01"
+                              min="0.1"
+                              value={printWidth}
+                              onChange={(e) => handleWidthChange(e.target.value)}
+                              placeholder="e.g., 11"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                              Print Height (inches)
+                            </label>
+                            <Input
+                              type="number"
+                              step="0.01"
+                              min="0.1"
+                              value={printHeight}
+                              onChange={(e) => handleHeightChange(e.target.value)}
+                              placeholder="e.g., 14"
+                            />
+                          </div>
+                        </div>
+
+                        {/* Common DTF Widths */}
+                        <div>
+                          <p className="text-xs text-gray-600 mb-2">Common DTF widths:</p>
+                          <div className="flex flex-wrap gap-1">
+                            {[
+                              { label: '4"', width: 4 },
+                              { label: '8"', width: 8 },
+                              { label: '10"', width: 10 },
+                              { label: '11"', width: 11 },
+                              { label: '12"', width: 12 }
+                            ].map(size => (
+                              <button
+                                key={size.label}
+                                onClick={() => {
+                                  setPrintWidth(size.width.toString());
+                                  // Always maintain aspect ratio when setting width
+                                  if (aspectRatio) {
+                                    setPrintHeight((size.width / aspectRatio).toFixed(2));
+                                  }
+                                }}
+                                className="px-3 py-1 text-xs border rounded hover:bg-gray-50"
+                              >
+                                {size.label} wide
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      </>
+                    )}
+
                     {/* Credits Warning */}
                     {profile && !profile.is_admin && profile.credits_remaining < 1 && (
                       <div className="bg-red-50 border border-red-200 text-red-600 p-3 rounded-lg text-sm">
@@ -1062,103 +1160,6 @@ export default function UpscaleClient() {
                                 </>
                               )}
                             </Button>
-
-                            {mode === 'dpi' && (
-                              <>
-                                {/* Divider */}
-                                <div className="border-t border-gray-200 pt-4">
-                              <p className="text-xs text-gray-500 mb-3">Adjust print dimensions:</p>
-                            </div>
-
-                            {/* Aspect Ratio Lock */}
-                            <div className="flex items-center justify-between">
-                              <label className="text-sm font-medium text-gray-700 flex items-center gap-2">
-                                {maintainAspectRatio ? <Lock className="w-4 h-4" /> : <Unlock className="w-4 h-4" />}
-                                Maintain Aspect Ratio
-                              </label>
-                              <button
-                                type="button"
-                                onClick={() => setMaintainAspectRatio(!maintainAspectRatio)}
-                                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                                  maintainAspectRatio ? 'bg-[#366494]' : 'bg-gray-200'
-                                }`}
-                              >
-                                <span
-                                  className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                                    maintainAspectRatio ? 'translate-x-6' : 'translate-x-1'
-                                  }`}
-                                />
-                              </button>
-                            </div>
-
-                            {/* Print Size Inputs */}
-                            {printWidth && parseFloat(printWidth) >= 10 && imageDimensions && (
-                              <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 mb-3">
-                                <p className="text-xs text-amber-700">
-                                  <Info className="w-3 h-3 inline mr-1" />
-                                  Showing quality for {printWidth}" width (minimum 10" for realistic print assessment).
-                                  Most DTF prints are 10-13 inches wide.
-                                </p>
-                              </div>
-                            )}
-                            <div className="grid grid-cols-2 gap-4">
-                              <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">
-                                  Print Width (inches)
-                                </label>
-                                <Input
-                                  type="number"
-                                  step="0.01"
-                                  min="0.1"
-                                  value={printWidth}
-                                  onChange={(e) => handleWidthChange(e.target.value)}
-                                  placeholder="e.g., 11"
-                                />
-                              </div>
-                              <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">
-                                  Print Height (inches)
-                                </label>
-                                <Input
-                                  type="number"
-                                  step="0.01"
-                                  min="0.1"
-                                  value={printHeight}
-                                  onChange={(e) => handleHeightChange(e.target.value)}
-                                  placeholder="e.g., 14"
-                                />
-                              </div>
-                            </div>
-                            
-                            {/* Common DTF Widths */}
-                            <div>
-                              <p className="text-xs text-gray-600 mb-2">Common DTF widths:</p>
-                              <div className="flex flex-wrap gap-1">
-                                {[
-                                  { label: '4"', width: 4 },
-                                  { label: '8"', width: 8 },
-                                  { label: '10"', width: 10 },
-                                  { label: '11"', width: 11 },
-                                  { label: '12"', width: 12 }
-                                ].map(size => (
-                                  <button
-                                    key={size.label}
-                                    onClick={() => {
-                                      setPrintWidth(size.width.toString());
-                                      // Always maintain aspect ratio when setting width
-                                      if (aspectRatio) {
-                                        setPrintHeight((size.width / aspectRatio).toFixed(2));
-                                      }
-                                    }}
-                                    className="px-3 py-1 text-xs border rounded hover:bg-gray-50"
-                                  >
-                                    {size.label} wide
-                                  </button>
-                                ))}
-                              </div>
-                            </div>
-                              </>
-                            )}
                   </div>
                 </div>
               )}
