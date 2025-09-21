@@ -724,7 +724,7 @@ export default function UpscaleClient() {
     <div className="min-h-screen bg-gray-50">
       {/* Main Content */}
       <main className="py-8">
-        <div className="max-w-4xl mx-auto p-6">
+        <div className="max-w-7xl mx-auto p-6">
           {/* Breadcrumb */}
           <div className="mb-6">
             <Breadcrumb items={[
@@ -805,27 +805,39 @@ export default function UpscaleClient() {
                 </div>
               )}
 
-              {imageUrl && (
-                <div className="space-y-6">
-                  {/* Original Image */}
+              {imageUrl && !processedUrl && (
+                <div className="grid lg:grid-cols-2 gap-8">
+                  {/* Left Column - Original Image */}
                   <div>
                     <h3 className="font-medium mb-2">Original Image</h3>
-                    <img 
-                      src={imageUrl} 
-                      alt="Original" 
-                      className="max-w-full h-auto rounded-lg border"
-                      style={{ maxHeight: '400px' }}
+                    <img
+                      src={imageUrl}
+                      alt="Original"
+                      className="w-full h-auto rounded-lg border"
+                      style={{ maxHeight: '600px', objectFit: 'contain' }}
                     />
-                    {imageDimensions && (
-                      <p className="text-sm text-gray-600 mt-2">
-                        Dimensions: {imageDimensions.width} × {imageDimensions.height} pixels
-                      </p>
-                    )}
                   </div>
 
-                  {/* Processing Options */}
-                  {!processedUrl && (
-                    <div className="space-y-4">
+                  {/* Right Column - Processing Options */}
+                  <div className="space-y-4">
+                    {/* Image Dimensions at Top */}
+                    {imageDimensions && (
+                      <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+                        <h3 className="font-medium text-sm text-gray-700 mb-2">Image Information</h3>
+                        <div className="grid grid-cols-2 gap-4 text-sm">
+                          <div>
+                            <span className="text-gray-500">Width:</span>
+                            <span className="ml-2 font-medium">{imageDimensions.width} px</span>
+                          </div>
+                          <div>
+                            <span className="text-gray-500">Height:</span>
+                            <span className="ml-2 font-medium">{imageDimensions.height} px</span>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Processing Options */}
                       {/* Mode Toggle */}
                       <div className="bg-gray-50 p-4 rounded-lg">
                         <div className="flex justify-center gap-2 mb-4">
@@ -1135,11 +1147,12 @@ export default function UpscaleClient() {
                           </div>
                         )}
                       </div>
-                    </div>
-                  )}
+                  </div>
+                </div>
+              )}
 
-                  {/* Processed Result */}
-                  {processedUrl && (
+              {/* Processed Result for Uploaded Image*/}
+              {imageUrl && processedUrl && (
                     <div className="space-y-4">
                       <h3 className="font-medium mb-2">Upscaled Result</h3>
                       <img 
@@ -1273,6 +1286,7 @@ export default function UpscaleClient() {
                   </div>
                 </div>
               )}
+
             </CardContent>
           </Card>
         </div>
