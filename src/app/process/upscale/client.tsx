@@ -1255,37 +1255,35 @@ export default function UpscaleClient() {
                           </p>
                         )}
                       </div>
-                    </div>
-                  )}
 
-                  {/* Instructions */}
-                  <div className="bg-blue-50 p-4 rounded-lg">
-                    {mode === 'dpi' ? (
-                      <>
-                        <h4 className="font-medium mb-2">Smart DPI Upscaling Features:</h4>
-                        <ul className="list-disc list-inside space-y-1 text-sm">
-                          <li>Automatically calculates exact upscaling needed for 300 DPI</li>
-                          <li>Ensures professional print quality at your selected size</li>
-                          <li>AI-powered detail enhancement during upscaling</li>
-                          <li>Optional noise reduction and sharpening</li>
-                          <li>Preserves image quality while achieving target resolution</li>
-                        </ul>
-                      </>
-                    ) : (
-                      <>
-                        <h4 className="font-medium mb-2">AI Upscaling Features:</h4>
-                        <ul className="list-disc list-inside space-y-1 text-sm">
-                          <li>Increase resolution by 2x, 3x, or 4x</li>
-                          <li>AI-powered detail enhancement</li>
-                          <li>Optional noise reduction and sharpening</li>
-                          <li>Automatic color and lighting correction</li>
-                          <li>Preserves image quality while enlarging</li>
-                        </ul>
-                      </>
-                    )}
-                  </div>
-                </div>
-              )}
+                      {/* Instructions */}
+                      <div className="bg-blue-50 p-4 rounded-lg">
+                      {mode === 'dpi' ? (
+                        <>
+                          <h4 className="font-medium mb-2">Smart DPI Upscaling Features:</h4>
+                          <ul className="list-disc list-inside space-y-1 text-sm">
+                            <li>Automatically calculates exact upscaling needed for 300 DPI</li>
+                            <li>Ensures professional print quality at your selected size</li>
+                            <li>AI-powered detail enhancement during upscaling</li>
+                            <li>Optional noise reduction and sharpening</li>
+                            <li>Preserves image quality while achieving target resolution</li>
+                          </ul>
+                        </>
+                      ) : (
+                        <>
+                          <h4 className="font-medium mb-2">AI Upscaling Features:</h4>
+                          <ul className="list-disc list-inside space-y-1 text-sm">
+                            <li>Increase resolution by 2x, 3x, or 4x</li>
+                            <li>AI-powered detail enhancement</li>
+                            <li>Optional noise reduction and sharpening</li>
+                            <li>Automatic color and lighting correction</li>
+                            <li>Preserves image quality while enlarging</li>
+                          </ul>
+                        </>
+                      )}
+                      </div>
+                    </div>
+                )}
 
             </CardContent>
           </Card>
