@@ -858,7 +858,7 @@ export default function UpscaleClient() {
                             <Button
                               onClick={processImage}
                               disabled={isProcessing || !profile || (!profile.is_admin && profile.credits_remaining < 1)}
-                              className="w-full mb-4"
+                              className="w-full"
                               size="lg"
                             >
                               {isProcessing ? (
@@ -878,6 +878,21 @@ export default function UpscaleClient() {
                                 </>
                               )}
                             </Button>
+
+                            {/* AI Enhancements - Below button on mobile for Simple Mode */}
+                            <div className="mt-4">
+                              <label className="flex items-center space-x-2">
+                                <input
+                                  type="checkbox"
+                                  checked={showEnhancements}
+                                  onChange={(e) => setShowEnhancements(e.target.checked)}
+                                  className="rounded border-gray-300"
+                                />
+                                <span className="text-sm">
+                                  Apply AI enhancements (denoise, deblur, color correction)
+                                </span>
+                              </label>
+                            </div>
                           </>
                         )}
 
@@ -986,6 +1001,42 @@ export default function UpscaleClient() {
                                 </>
                               )}
                             </Button>
+
+                            {/* AI Enhancements - Below button on mobile */}
+                            <div className="mt-4">
+                              <label className="flex items-center space-x-2">
+                                <input
+                                  type="checkbox"
+                                  checked={showEnhancements}
+                                  onChange={(e) => setShowEnhancements(e.target.checked)}
+                                  className="rounded border-gray-300"
+                                />
+                                <span className="text-sm">
+                                  Apply AI enhancements (denoise, deblur, color correction)
+                                </span>
+                              </label>
+                            </div>
+
+                            {/* Aspect Ratio Lock - At bottom on mobile */}
+                            <div className="flex items-center justify-between mt-4">
+                              <label className="text-sm font-medium text-gray-700 flex items-center gap-2">
+                                {maintainAspectRatio ? <Lock className="w-4 h-4" /> : <Unlock className="w-4 h-4" />}
+                                Maintain Aspect Ratio
+                              </label>
+                              <button
+                                type="button"
+                                onClick={() => setMaintainAspectRatio(!maintainAspectRatio)}
+                                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                                  maintainAspectRatio ? 'bg-[#366494]' : 'bg-gray-200'
+                                }`}
+                              >
+                                <span
+                                  className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                                    maintainAspectRatio ? 'translate-x-6' : 'translate-x-1'
+                                  }`}
+                                />
+                              </button>
+                            </div>
                           </>
                         )}
                       </div>
