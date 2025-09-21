@@ -1185,8 +1185,7 @@ export default function UpscaleClient() {
                       </div>
 
                     {/* Print Size Controls - Desktop only (hidden on mobile with lg:block) */}
-                    {mode === 'dpi' && (
-                      <div className="hidden lg:block space-y-4">
+                    <div className={`${mode === 'dpi' ? 'hidden lg:block space-y-4' : 'hidden'}`}>
                         {/* Divider */}
                         <div className="border-t border-gray-200 pt-4">
                           <p className="text-xs text-gray-500 mb-3">Adjust print dimensions:</p>
@@ -1259,17 +1258,14 @@ export default function UpscaleClient() {
                           </div>
                         </div>
                       </div>
-                    )}
 
                     {/* Credits Warning - Desktop only */}
-                    <div className="hidden lg:block">
-                      {profile && !profile.is_admin && profile.credits_remaining < 1 && (
-                        <div className="bg-red-50 border border-red-200 text-red-600 p-3 rounded-lg text-sm">
-                          <p className="font-medium">Insufficient Credits</p>
-                          <p className="text-xs mt-1">You need at least 1 credit to upscale an image. Please purchase more credits or upgrade your plan.</p>
-                        </div>
-                      )}
-                    </div>
+                    {profile && !profile.is_admin && profile.credits_remaining < 1 && (
+                      <div className="hidden lg:block bg-red-50 border border-red-200 text-red-600 p-3 rounded-lg text-sm">
+                        <p className="font-medium">Insufficient Credits</p>
+                        <p className="text-xs mt-1">You need at least 1 credit to upscale an image. Please purchase more credits or upgrade your plan.</p>
+                      </div>
+                    )}
 
                     {/* UPSCALE BUTTON - Desktop only (mobile has its own) */}
                     <div className="hidden lg:block">
