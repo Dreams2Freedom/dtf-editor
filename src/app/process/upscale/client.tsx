@@ -1342,6 +1342,7 @@ export default function UpscaleClient() {
                     )}
                   </div>
                 </div>
+              </div>
               )}
 
               {/* Processed Result for Uploaded Image*/}
