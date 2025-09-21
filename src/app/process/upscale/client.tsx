@@ -1010,86 +1010,12 @@ export default function UpscaleClient() {
                         )}
                       </div>
 
-                    {/* Credits Warning */}
-                    {profile && !profile.is_admin && profile.credits_remaining < 1 && (
-                      <div className="bg-red-50 border border-red-200 text-red-600 p-3 rounded-lg text-sm">
-                        <p className="font-medium">Insufficient Credits</p>
-                        <p className="text-xs mt-1">You need at least 1 credit to upscale an image. Please purchase more credits or upgrade your plan.</p>
-                      </div>
-                    )}
-
-                    {/* UPSCALE BUTTON - Right after Image Information */}
-                    <Button
-                      onClick={processImage}
-                      disabled={isProcessing || !profile || (!profile.is_admin && profile.credits_remaining < 1)}
-                      className="w-full"
-                      size="lg"
-                    >
-                      {isProcessing ? (
-                        <>
-                          <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                          {isAsyncProcessing
-                            ? jobStatus === 'processing'
-                              ? `Processing Large Image... ${processingProgress}%`
-                              : `Initializing... ${processingProgress}%`
-                            : 'Processing...'
-                          }
-                        </>
-                      ) : mode === 'dpi' ? (
-                        <>
-                          <Calculator className="w-5 h-5 mr-2" />
-                          Upscale to 300 DPI
-                        </>
-                      ) : (
-                        <>
-                          <Wand2 className="w-5 h-5 mr-2" />
-                          Upscale Image ({selectedScale}x)
-                        </>
-                      )}
-                    </Button>
-
-                    {/* AI Enhancements - Below button */}
-                    <div>
-                      <label className="flex items-center space-x-2">
-                        <input
-                          type="checkbox"
-                          checked={showEnhancements}
-                          onChange={(e) => setShowEnhancements(e.target.checked)}
-                          className="rounded border-gray-300"
-                        />
-                        <span className="text-sm">
-                          Apply AI enhancements (denoise, deblur, color correction)
-                        </span>
-                      </label>
-                    </div>
-
-                    {/* Print Dimensions Controls - At bottom in DPI mode */}
+                    {/* Print Size Controls - Moved above button */}
                     {mode === 'dpi' && (
                       <>
                         {/* Divider */}
                         <div className="border-t border-gray-200 pt-4">
                           <p className="text-xs text-gray-500 mb-3">Adjust print dimensions:</p>
-                        </div>
-
-                        {/* Aspect Ratio Lock */}
-                        <div className="flex items-center justify-between">
-                          <label className="text-sm font-medium text-gray-700 flex items-center gap-2">
-                            {maintainAspectRatio ? <Lock className="w-4 h-4" /> : <Unlock className="w-4 h-4" />}
-                            Maintain Aspect Ratio
-                          </label>
-                          <button
-                            type="button"
-                            onClick={() => setMaintainAspectRatio(!maintainAspectRatio)}
-                            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                              maintainAspectRatio ? 'bg-[#366494]' : 'bg-gray-200'
-                            }`}
-                          >
-                            <span
-                              className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                                maintainAspectRatio ? 'translate-x-6' : 'translate-x-1'
-                              }`}
-                            />
-                          </button>
                         </div>
 
                         {/* Print Size Inputs */}
@@ -1159,6 +1085,82 @@ export default function UpscaleClient() {
                           </div>
                         </div>
                       </>
+                    )}
+
+                    {/* Credits Warning */}
+                    {profile && !profile.is_admin && profile.credits_remaining < 1 && (
+                      <div className="bg-red-50 border border-red-200 text-red-600 p-3 rounded-lg text-sm">
+                        <p className="font-medium">Insufficient Credits</p>
+                        <p className="text-xs mt-1">You need at least 1 credit to upscale an image. Please purchase more credits or upgrade your plan.</p>
+                      </div>
+                    )}
+
+                    {/* UPSCALE BUTTON - After Print Dimensions */}
+                    <Button
+                      onClick={processImage}
+                      disabled={isProcessing || !profile || (!profile.is_admin && profile.credits_remaining < 1)}
+                      className="w-full"
+                      size="lg"
+                    >
+                      {isProcessing ? (
+                        <>
+                          <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                          {isAsyncProcessing
+                            ? jobStatus === 'processing'
+                              ? `Processing Large Image... ${processingProgress}%`
+                              : `Initializing... ${processingProgress}%`
+                            : 'Processing...'
+                          }
+                        </>
+                      ) : mode === 'dpi' ? (
+                        <>
+                          <Calculator className="w-5 h-5 mr-2" />
+                          Upscale to 300 DPI
+                        </>
+                      ) : (
+                        <>
+                          <Wand2 className="w-5 h-5 mr-2" />
+                          Upscale Image ({selectedScale}x)
+                        </>
+                      )}
+                    </Button>
+
+                    {/* AI Enhancements - Below button */}
+                    <div>
+                      <label className="flex items-center space-x-2">
+                        <input
+                          type="checkbox"
+                          checked={showEnhancements}
+                          onChange={(e) => setShowEnhancements(e.target.checked)}
+                          className="rounded border-gray-300"
+                        />
+                        <span className="text-sm">
+                          Apply AI enhancements (denoise, deblur, color correction)
+                        </span>
+                      </label>
+                    </div>
+
+                    {/* Aspect Ratio Lock - At bottom */}
+                    {mode === 'dpi' && (
+                      <div className="flex items-center justify-between">
+                        <label className="text-sm font-medium text-gray-700 flex items-center gap-2">
+                          {maintainAspectRatio ? <Lock className="w-4 h-4" /> : <Unlock className="w-4 h-4" />}
+                          Maintain Aspect Ratio
+                        </label>
+                        <button
+                          type="button"
+                          onClick={() => setMaintainAspectRatio(!maintainAspectRatio)}
+                          className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                            maintainAspectRatio ? 'bg-[#366494]' : 'bg-gray-200'
+                          }`}
+                        >
+                          <span
+                            className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                              maintainAspectRatio ? 'translate-x-6' : 'translate-x-1'
+                            }`}
+                          />
+                        </button>
+                      </div>
                     )}
                   </div>
                 </div>
