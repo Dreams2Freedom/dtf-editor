@@ -928,7 +928,7 @@ export default function UpscaleClient() {
                             </div>
 
                             {/* Common DTF Widths */}
-                            <div>
+                            <div className="mb-4">
                               <p className="text-xs text-gray-600 mb-2">Common DTF widths:</p>
                               <div className="flex flex-wrap gap-1">
                                 {[
@@ -956,7 +956,7 @@ export default function UpscaleClient() {
 
                             {/* Credits Warning */}
                             {profile && !profile.is_admin && profile.credits_remaining < 1 && (
-                              <div className="bg-red-50 border border-red-200 text-red-600 p-3 rounded-lg text-sm">
+                              <div className="bg-red-50 border border-red-200 text-red-600 p-3 rounded-lg text-sm mb-4">
                                 <p className="font-medium">Insufficient Credits</p>
                                 <p className="text-xs mt-1">You need at least 1 credit to upscale an image. Please purchase more credits or upgrade your plan.</p>
                               </div>
