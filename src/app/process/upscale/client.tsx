@@ -822,6 +822,23 @@ export default function UpscaleClient() {
                     {/* Info Boxes Below Image - Only in DPI Mode */}
                     {mode === 'dpi' && (
                       <>
+                        {/* Image Information Box - On left side */}
+                        {imageDimensions && (
+                          <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+                            <h3 className="font-medium text-sm text-gray-700 mb-2">Image Information</h3>
+                            <div className="grid grid-cols-2 gap-4 text-sm">
+                              <div>
+                                <span className="text-gray-500">Width:</span>
+                                <span className="ml-2 font-medium">{imageDimensions.width} px</span>
+                              </div>
+                              <div>
+                                <span className="text-gray-500">Height:</span>
+                                <span className="ml-2 font-medium">{imageDimensions.height} px</span>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+
                         {/* DPI Info Display */}
                         {imageDimensions && printWidth && printHeight && (
                           <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
@@ -992,23 +1009,6 @@ export default function UpscaleClient() {
                           </div>
                         )}
                       </div>
-
-                    {/* Image Dimensions - Right after mode toggle */}
-                    {mode === 'dpi' && imageDimensions && (
-                      <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
-                        <h3 className="font-medium text-sm text-gray-700 mb-2">Image Information</h3>
-                        <div className="grid grid-cols-2 gap-4 text-sm">
-                          <div>
-                            <span className="text-gray-500">Width:</span>
-                            <span className="ml-2 font-medium">{imageDimensions.width} px</span>
-                          </div>
-                          <div>
-                            <span className="text-gray-500">Height:</span>
-                            <span className="ml-2 font-medium">{imageDimensions.height} px</span>
-                          </div>
-                        </div>
-                      </div>
-                    )}
 
                     {/* Credits Warning */}
                     {profile && !profile.is_admin && profile.credits_remaining < 1 && (
