@@ -1157,7 +1157,6 @@ export default function UpscaleClient() {
                             </div>
                               </>
                             )}
-                      </div>
                   </div>
                 </div>
               )}
