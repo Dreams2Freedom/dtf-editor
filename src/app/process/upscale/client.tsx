@@ -806,22 +806,19 @@ export default function UpscaleClient() {
               )}
 
               {imageUrl && !processedUrl && (
-                <div className="space-y-8">
-                  {/* Image Section */}
-                  <div>
-                    <h3 className="font-medium mb-2">Original Image</h3>
-                    <img
-                      src={imageUrl}
-                      alt="Original"
-                      className="w-full h-auto rounded-lg border"
-                      style={{ maxHeight: '600px', objectFit: 'contain' }}
-                    />
-                  </div>
-
-                  {/* Mobile: Print controls directly after image, Desktop: Grid layout */}
-                  <div className="grid lg:grid-cols-2 gap-8">
-                    {/* Left Column - Info Boxes (Desktop) or First Section (Mobile) */}
+                <div className="grid lg:grid-cols-2 gap-8">
+                    {/* Left Column - Image and Info Boxes */}
                     <div className="space-y-4">
+                      {/* Image Section */}
+                      <div>
+                        <h3 className="font-medium mb-2">Original Image</h3>
+                        <img
+                          src={imageUrl}
+                          alt="Original"
+                          className="w-full h-auto rounded-lg border"
+                          style={{ maxHeight: '600px', objectFit: 'contain' }}
+                        />
+                      </div>
                       {/* On Mobile: Show controls directly after image */}
                       <div className="lg:hidden">
                         {/* Simple Mode Mobile Controls */}
@@ -1338,7 +1335,6 @@ export default function UpscaleClient() {
                     )}
                   </div>
                 </div>
-              </div>
               )}
 
               {/* Processed Result for Uploaded Image*/}
