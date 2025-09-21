@@ -807,38 +807,114 @@ export default function UpscaleClient() {
 
               {imageUrl && !processedUrl && (
                 <div className="grid lg:grid-cols-2 gap-8">
-                  {/* Left Column - Original Image */}
-                  <div>
-                    <h3 className="font-medium mb-2">Original Image</h3>
-                    <img
-                      src={imageUrl}
-                      alt="Original"
-                      className="w-full h-auto rounded-lg border"
-                      style={{ maxHeight: '600px', objectFit: 'contain' }}
-                    />
+                  {/* Left Column - Original Image and Info Boxes */}
+                  <div className="space-y-4">
+                    <div>
+                      <h3 className="font-medium mb-2">Original Image</h3>
+                      <img
+                        src={imageUrl}
+                        alt="Original"
+                        className="w-full h-auto rounded-lg border"
+                        style={{ maxHeight: '600px', objectFit: 'contain' }}
+                      />
+                    </div>
+
+                    {/* Info Boxes Below Image - Only in DPI Mode */}
+                    {mode === 'dpi' && (
+                      <>
+                        {/* DPI Info Display */}
+                        {imageDimensions && printWidth && printHeight && (
+                          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                            <div className="flex items-center justify-between">
+                              <div>
+                                <p className="text-sm text-blue-700 font-medium">Print Quality Analysis</p>
+                                <p className="text-xs text-blue-600 mt-1">
+                                  Target: {printWidth}" × {printHeight}" at 300 DPI
+                                </p>
+                              </div>
+                              <div className="text-right">
+                                {(() => {
+                                  const info = calculateUpscaleFactor();
+                                  if (!info) return null;
+                                  const quality = info.currentDPI >= 300 ? 'excellent' :
+                                                 info.currentDPI >= 200 ? 'good' :
+                                                 info.currentDPI >= 150 ? 'fair' : 'poor';
+                                  const colors = {
+                                    excellent: 'text-green-700',
+                                    good: 'text-blue-700',
+                                    fair: 'text-yellow-700',
+                                    poor: 'text-red-700'
+                                  };
+
+                                  return (
+                                    <>
+                                      <p className={`text-2xl font-bold ${colors[quality]}`}>
+                                        {info.currentDPI} DPI
+                                      </p>
+                                      <p className="text-xs text-gray-600">
+                                        Needs {info.scale.toFixed(1)}x upscale
+                                      </p>
+                                    </>
+                                  );
+                                })()}
+                              </div>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Upscale Info */}
+                        {(() => {
+                          const info = calculateUpscaleFactor();
+                          if (!info) return null;
+
+                          if (info.currentDPI >= 300) {
+                            return (
+                              <div className="bg-green-50 border border-green-200 rounded-lg p-3">
+                                <p className="text-sm text-green-700">
+                                  <Info className="w-4 h-4 inline mr-1" />
+                                  Your image already meets 300 DPI for this print size. Upscaling is optional.
+                                </p>
+                              </div>
+                            );
+                          }
+
+                          return (
+                            <div className="space-y-2">
+                              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
+                                <p className="text-sm text-yellow-700">
+                                  <Info className="w-4 h-4 inline mr-1" />
+                                  Will upscale to {info.requiredWidth} × {info.requiredHeight} pixels ({info.scale.toFixed(1)}x) for 300 DPI quality
+                                </p>
+                              </div>
+                              {(() => {
+                                const megapixels = (info.requiredWidth * info.requiredHeight) / 1000000;
+                                const willUseAsync = megapixels > 20 || (mode === 'dpi' && megapixels > 15);
+                                if (willUseAsync) {
+                                  return (
+                                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                                      <p className="text-sm text-blue-700 font-medium">
+                                        <Info className="w-4 h-4 inline mr-1" />
+                                        Large Image Processing Mode
+                                      </p>
+                                      <p className="text-xs text-blue-600 mt-1">
+                                        This {megapixels.toFixed(1)} megapixel image will use enhanced processing for optimal quality.
+                                        Processing may take 30-60 seconds.
+                                      </p>
+                                    </div>
+                                  );
+                                }
+                                return null;
+                              })()}
+                            </div>
+                          );
+                        })()}
+                      </>
+                    )}
                   </div>
 
                   {/* Right Column - Processing Options */}
                   <div className="space-y-4">
-                    {/* Image Dimensions at Top */}
-                    {imageDimensions && (
-                      <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
-                        <h3 className="font-medium text-sm text-gray-700 mb-2">Image Information</h3>
-                        <div className="grid grid-cols-2 gap-4 text-sm">
-                          <div>
-                            <span className="text-gray-500">Width:</span>
-                            <span className="ml-2 font-medium">{imageDimensions.width} px</span>
-                          </div>
-                          <div>
-                            <span className="text-gray-500">Height:</span>
-                            <span className="ml-2 font-medium">{imageDimensions.height} px</span>
-                          </div>
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Processing Options */}
-                      {/* Mode Toggle */}
+                    {/* Mode Toggle */}
                       <div className="bg-gray-50 p-4 rounded-lg">
                         <div className="flex justify-center gap-2 mb-4">
                           <button
@@ -912,94 +988,7 @@ export default function UpscaleClient() {
                           </div>
                         ) : (
                           <div className="space-y-4">
-                            {/* DPI Info Display */}
-                            {imageDimensions && printWidth && printHeight && (
-                              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                                <div className="flex items-center justify-between">
-                                  <div>
-                                    <p className="text-sm text-blue-700 font-medium">Print Quality Analysis</p>
-                                    <p className="text-xs text-blue-600 mt-1">
-                                      Target: {printWidth}" × {printHeight}" at 300 DPI
-                                    </p>
-                                  </div>
-                                  <div className="text-right">
-                                    {(() => {
-                                      const info = calculateUpscaleFactor();
-                                      if (!info) return null;
-                                      const quality = info.currentDPI >= 300 ? 'excellent' :
-                                                     info.currentDPI >= 200 ? 'good' :
-                                                     info.currentDPI >= 150 ? 'fair' : 'poor';
-                                      const colors = {
-                                        excellent: 'text-green-700',
-                                        good: 'text-blue-700',
-                                        fair: 'text-yellow-700',
-                                        poor: 'text-red-700'
-                                      };
-
-                                      return (
-                                        <>
-                                          <p className={`text-2xl font-bold ${colors[quality]}`}>
-                                            {info.currentDPI} DPI
-                                          </p>
-                                          <p className="text-xs text-gray-600">
-                                            Needs {info.scale.toFixed(1)}x upscale
-                                          </p>
-                                        </>
-                                      );
-                                    })()}
-                                  </div>
-                                </div>
-                              </div>
-                            )}
-
-                            {/* Upscale Info - Moved up from bottom */}
-                            {(() => {
-                              const info = calculateUpscaleFactor();
-                              if (!info) return null;
-
-                              if (info.currentDPI >= 300) {
-                                return (
-                                  <div className="bg-green-50 border border-green-200 rounded-lg p-3">
-                                    <p className="text-sm text-green-700">
-                                      <Info className="w-4 h-4 inline mr-1" />
-                                      Your image already meets 300 DPI for this print size. Upscaling is optional.
-                                    </p>
-                                  </div>
-                                );
-                              }
-
-                              return (
-                                <div className="space-y-2">
-                                  <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
-                                    <p className="text-sm text-yellow-700">
-                                      <Info className="w-4 h-4 inline mr-1" />
-                                      Will upscale to {info.requiredWidth} × {info.requiredHeight} pixels ({info.scale.toFixed(1)}x) for 300 DPI quality
-                                    </p>
-                                  </div>
-                                  {(() => {
-                                    const megapixels = (info.requiredWidth * info.requiredHeight) / 1000000;
-                                    const willUseAsync = megapixels > 20 || (mode === 'dpi' && megapixels > 15);
-                                    if (willUseAsync) {
-                                      return (
-                                        <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
-                                          <p className="text-sm text-blue-700 font-medium">
-                                            <Info className="w-4 h-4 inline mr-1" />
-                                            Large Image Processing Mode
-                                          </p>
-                                          <p className="text-xs text-blue-600 mt-1">
-                                            This {megapixels.toFixed(1)} megapixel image will use enhanced processing for optimal quality.
-                                            Processing may take 30-60 seconds.
-                                          </p>
-                                        </div>
-                                      );
-                                    }
-                                    return null;
-                                  })()}
-                                </div>
-                              );
-                            })()}
-
-                            {/* AI Enhancements - Moved up from bottom */}
+                            {/* AI Enhancements */}
                             <div>
                               <label className="flex items-center space-x-2">
                                 <input
@@ -1013,8 +1002,28 @@ export default function UpscaleClient() {
                                 </span>
                               </label>
                             </div>
+                          </div>
+                        )}
+                      </div>
 
-                            {/* Credits Warning - Moved up from bottom */}
+                    {/* Image Dimensions - Above Button */}
+                    {imageDimensions && (
+                      <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+                        <h3 className="font-medium text-sm text-gray-700 mb-2">Image Information</h3>
+                        <div className="grid grid-cols-2 gap-4 text-sm">
+                          <div>
+                            <span className="text-gray-500">Width:</span>
+                            <span className="ml-2 font-medium">{imageDimensions.width} px</span>
+                          </div>
+                          <div>
+                            <span className="text-gray-500">Height:</span>
+                            <span className="ml-2 font-medium">{imageDimensions.height} px</span>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Credits Warning */}
                             {profile && !profile.is_admin && profile.credits_remaining < 1 && (
                               <div className="bg-red-50 border border-red-200 text-red-600 p-3 rounded-lg text-sm">
                                 <p className="font-medium">Insufficient Credits</p>
@@ -1052,8 +1061,10 @@ export default function UpscaleClient() {
                               )}
                             </Button>
 
-                            {/* Divider */}
-                            <div className="border-t border-gray-200 pt-4">
+                            {mode === 'dpi' && (
+                              <>
+                                {/* Divider */}
+                                <div className="border-t border-gray-200 pt-4">
                               <p className="text-xs text-gray-500 mb-3">Adjust print dimensions:</p>
                             </div>
 
@@ -1144,8 +1155,8 @@ export default function UpscaleClient() {
                                 ))}
                               </div>
                             </div>
-                          </div>
-                        )}
+                              </>
+                            )}
                       </div>
                   </div>
                 </div>
