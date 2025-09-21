@@ -1105,38 +1105,29 @@ export default function UpscaleClient() {
                               </div>
                             </div>
                             
-                            {/* Common Print Sizes */}
+                            {/* Common DTF Widths */}
                             <div>
-                              <p className="text-xs text-gray-600 mb-2">Common DTF sizes:</p>
+                              <p className="text-xs text-gray-600 mb-2">Common DTF widths:</p>
                               <div className="flex flex-wrap gap-1">
                                 {[
-                                  { label: '8×10', width: 8, height: 10 },
-                                  { label: '11×14', width: 11, height: 14 },
-                                  { label: '12×15', width: 12, height: 15 },
-                                  { label: '12×16', width: 12, height: 16 }
+                                  { label: '4"', width: 4 },
+                                  { label: '8"', width: 8 },
+                                  { label: '10"', width: 10 },
+                                  { label: '11"', width: 11 },
+                                  { label: '12"', width: 12 }
                                 ].map(size => (
                                   <button
                                     key={size.label}
                                     onClick={() => {
-                                      if (maintainAspectRatio && aspectRatio) {
-                                        // Fit to size while maintaining aspect ratio
-                                        const widthRatio = size.width / (imageDimensions!.width / 300);
-                                        const heightRatio = size.height / (imageDimensions!.height / 300);
-                                        const ratio = Math.min(widthRatio, heightRatio);
-                                        
-                                        const newWidth = (imageDimensions!.width / 300) * ratio;
-                                        const newHeight = (imageDimensions!.height / 300) * ratio;
-                                        
-                                        setPrintWidth(newWidth.toFixed(2));
-                                        setPrintHeight(newHeight.toFixed(2));
-                                      } else {
-                                        setPrintWidth(size.width.toString());
-                                        setPrintHeight(size.height.toString());
+                                      setPrintWidth(size.width.toString());
+                                      // Always maintain aspect ratio when setting width
+                                      if (aspectRatio) {
+                                        setPrintHeight((size.width / aspectRatio).toFixed(2));
                                       }
                                     }}
-                                    className="px-2 py-1 text-xs border rounded hover:bg-gray-50"
+                                    className="px-3 py-1 text-xs border rounded hover:bg-gray-50"
                                   >
-                                    {size.label}"
+                                    {size.label} wide
                                   </button>
                                 ))}
                               </div>
