@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useCallback } from 'react';
-import { Upload, Calculator, AlertCircle, CheckCircle, XCircle, Info, Loader2, Lock, Unlock, Wand2 } from 'lucide-react';
+import { Upload, Calculator, AlertCircle, CheckCircle, XCircle, Info, Loader2, Lock, Unlock, Wand2, Shirt } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Card } from '@/components/ui/Card';
@@ -102,13 +102,25 @@ export function DPIChecker({ showSignupForm = true, onSignupComplete }: DPICheck
       const ratio = dimensions.width / dimensions.height;
       setAspectRatio(ratio);
       
-      // Set default print dimensions based on 300 DPI
-      const defaultWidth = dimensions.width / 300;
-      const defaultHeight = dimensions.height / 300;
-      
+      // Set default print dimensions - minimum 10 inches wide for realistic print sizes
+      // This shows users the actual DPI quality at common DTF print sizes
+      const currentWidthAt300DPI = dimensions.width / 300;
+
+      // Use 10 inches minimum width, or larger if the image supports it
+      const defaultWidth = Math.max(10, currentWidthAt300DPI);
+      const defaultHeight = defaultWidth / ratio; // Maintain aspect ratio
+
       // Round to 2 decimal places
       setPrintWidth(defaultWidth.toFixed(2));
       setPrintHeight(defaultHeight.toFixed(2));
+
+      // Log the actual DPI at the default print size
+      const actualDPI = Math.min(
+        dimensions.width / defaultWidth,
+        dimensions.height / defaultHeight
+      );
+      console.log(`Default print size: ${defaultWidth.toFixed(2)}" × ${defaultHeight.toFixed(2)}"`);
+      console.log(`Image quality at this size: ${Math.round(actualDPI)} DPI`);
       
       // Clear previous results when new image is uploaded
       setShowResult(false);
@@ -462,61 +474,65 @@ export function DPIChecker({ showSignupForm = true, onSignupComplete }: DPICheck
             </div>
           )}
 
-          {/* Common Print Sizes */}
+          {/* Common DTF Widths with Shirt Size Context */}
           {imageDimensions && (
             <div>
-              <p className="text-sm text-gray-600 mb-2">Quick size presets:</p>
+              <p className="text-sm text-gray-600 mb-2">Common DTF widths by shirt size:</p>
               <div className="flex flex-wrap gap-2">
                 {[
-                  { label: 'Optimal (300 DPI)', width: imageDimensions.width / 300, height: imageDimensions.height / 300 },
-                  { label: '8" × 10"', width: 8, height: 10 },
-                  { label: '11" × 14"', width: 11, height: 14 },
-                  { label: '12" × 15"', width: 12, height: 15 },
-                  { label: '12" × 16"', width: 12, height: 16 }
+                  { label: '4"', width: 4, description: 'Pocket' },
+                  { label: '8"', width: 8, description: 'Youth' },
+                  { label: '10"', width: 10, description: 'S-M Adult' },
+                  { label: '11"', width: 11, description: 'L-XL Adult' },
+                  { label: '12"', width: 12, description: '2XL+' }
                 ].map(size => {
-                  // Calculate what the DPI would be for this size
+                  // Calculate what the DPI would be for this width
+                  const height = aspectRatio ? size.width / aspectRatio : size.width;
                   const wouldBeDPI = Math.round(Math.min(
                     imageDimensions.width / size.width,
-                    imageDimensions.height / size.height
+                    imageDimensions.height / height
                   ));
-                  
+
                   return (
                     <Button
                       key={size.label}
                       variant="outline"
                       size="sm"
                       onClick={() => {
-                        if (size.label === 'Optimal (300 DPI)') {
-                          setPrintWidth(size.width.toFixed(2));
-                          setPrintHeight(size.height.toFixed(2));
-                        } else if (maintainAspectRatio) {
-                          // Fit to size while maintaining aspect ratio
-                          const widthRatio = size.width / (imageDimensions.width / 300);
-                          const heightRatio = size.height / (imageDimensions.height / 300);
-                          const ratio = Math.min(widthRatio, heightRatio);
-                          
-                          const newWidth = (imageDimensions.width / 300) * ratio;
-                          const newHeight = (imageDimensions.height / 300) * ratio;
-                          
-                          setPrintWidth(newWidth.toFixed(2));
-                          setPrintHeight(newHeight.toFixed(2));
-                        } else {
-                          setPrintWidth(size.width.toString());
-                          setPrintHeight(size.height.toString());
+                        setPrintWidth(size.width.toString());
+                        if (aspectRatio) {
+                          setPrintHeight((size.width / aspectRatio).toFixed(2));
                         }
+                        setShowResult(false);
                       }}
-                      className={`${wouldBeDPI < 150 ? 'border-red-300 hover:border-red-400' : wouldBeDPI < 300 ? 'border-yellow-300 hover:border-yellow-400' : ''}`}
+                      className={`flex flex-col items-center py-2 px-3 min-w-[80px] ${
+                        wouldBeDPI < 150 ? 'border-red-300 hover:border-red-400' :
+                        wouldBeDPI < 300 ? 'border-yellow-300 hover:border-yellow-400' :
+                        'border-green-300 hover:border-green-400'
+                      }`}
                     >
-                      {size.label}
-                      {size.label !== 'Optimal (300 DPI)' && (
-                        <span className={`ml-1 text-xs ${wouldBeDPI < 150 ? 'text-red-600' : wouldBeDPI < 300 ? 'text-yellow-600' : 'text-green-600'}`}>
-                          ({wouldBeDPI} DPI)
-                        </span>
-                      )}
+                      <span className="font-medium">{size.label} wide</span>
+                      <span className="text-xs text-gray-500">{size.description}</span>
+                      <span className={`text-xs mt-1 font-medium ${
+                        wouldBeDPI < 150 ? 'text-red-600' :
+                        wouldBeDPI < 300 ? 'text-yellow-600' :
+                        'text-green-600'
+                      }`}>
+                        {wouldBeDPI} DPI
+                      </span>
                     </Button>
                   );
                 })}
               </div>
+              {printWidth && parseFloat(printWidth) >= 10 && (
+                <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 mt-3">
+                  <p className="text-xs text-amber-700">
+                    <Info className="w-3 h-3 inline mr-1" />
+                    Showing quality for {printWidth}" width (minimum 10" for realistic assessment).
+                    Most DTF prints are 10-13 inches wide.
+                  </p>
+                </div>
+              )}
             </div>
           )}
 
