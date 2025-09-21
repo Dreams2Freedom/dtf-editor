@@ -22,46 +22,60 @@ export default function FreeDPICheckerPage() {
       {/* Hero Section */}
       <section className="pt-12 pb-8 px-4 sm:px-6 lg:px-8">
         <div className="max-w-7xl mx-auto">
-          {/* Header */}
+          {/* Header with Logo */}
           <div className="text-center mb-8">
-            <Link href="/" className="inline-block mb-8">
+            <Link href="/" className="inline-block">
               <h1 className="text-2xl font-bold text-[#366494]">DTF Editor</h1>
             </Link>
-            
-            <div className="inline-flex items-center px-3 py-1 rounded-full bg-green-100 text-green-800 text-sm font-medium mb-6">
-              <Zap className="w-4 h-4 mr-2" />
-              FREE TOOL - No Credit Card Required
-            </div>
-            
-            <h2 className="text-4xl md:text-5xl font-bold text-gray-900 mb-4">
-              Is Your Image High Enough Quality
-              <span className="block text-[#366494] mt-2">for DTF Printing?</span>
-            </h2>
-            
-            <p className="text-xl text-gray-600 max-w-3xl mx-auto mb-8">
-              Instantly check if your design will print crisp or pixelated. 
-              Our free DPI calculator tells you exactly what quality to expect at any print size.
-            </p>
+          </div>
 
-            {/* Trust Indicators */}
-            <div className="flex justify-center items-center gap-8 mb-8 text-gray-500">
-              <div className="flex items-center gap-2">
-                <Shield className="w-5 h-5" />
-                <span className="text-sm">Trusted Tool</span>
+          {/* Hero Grid */}
+          <div className="grid lg:grid-cols-2 gap-12 items-center mb-16">
+            {/* Left Column - Headlines and Subhead */}
+            <div>
+              <div className="inline-flex items-center px-3 py-1 rounded-full bg-green-100 text-green-800 text-sm font-medium mb-6">
+                <Zap className="w-4 h-4 mr-2" />
+                FREE TOOL - No Credit Card Required
               </div>
-              <div className="flex items-center gap-2">
-                <Shield className="w-5 h-5" />
-                <span className="text-sm">100% Free</span>
+
+              <h2 className="text-4xl md:text-5xl font-bold text-gray-900 mb-4">
+                Is Your Image High Enough Quality
+                <span className="block text-[#366494] mt-2">for DTF Printing?</span>
+              </h2>
+
+              <p className="text-xl text-gray-600 mb-8">
+                Instantly check if your design will print crisp or pixelated.
+                Our free DPI calculator tells you exactly what quality to expect at any print size.
+              </p>
+
+              {/* Trust Indicators */}
+              <div className="flex items-center gap-6 text-gray-500">
+                <div className="flex items-center gap-2">
+                  <Shield className="w-5 h-5" />
+                  <span className="text-sm">Trusted Tool</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Shield className="w-5 h-5" />
+                  <span className="text-sm">100% Free</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Star className="w-5 h-5" />
+                  <span className="text-sm">Instant Results</span>
+                </div>
               </div>
-              <div className="flex items-center gap-2">
-                <Star className="w-5 h-5" />
-                <span className="text-sm">Instant Results</span>
-              </div>
+            </div>
+
+            {/* Right Column - Upload Box (DPI Checker) */}
+            <div>
+              <DPIChecker
+                showSignupForm={true}
+                onSignupComplete={() => setHasSignedUp(true)}
+              />
             </div>
           </div>
 
-          {/* Value Props */}
-          <div className="grid md:grid-cols-3 gap-6 mb-12">
+          {/* Value Props - Now below the hero grid */}
+          <div className="grid md:grid-cols-3 gap-8">
             <div className="text-center">
               <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-3">
                 <AlertTriangle className="w-6 h-6 text-red-600" />
@@ -71,7 +85,7 @@ export default function FreeDPICheckerPage() {
                 Know before you print if your image will look professional or amateur
               </p>
             </div>
-            
+
             <div className="text-center">
               <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-3">
                 <CheckCircle className="w-6 h-6 text-green-600" />
@@ -81,7 +95,7 @@ export default function FreeDPICheckerPage() {
                 See precise DPI calculations for your specific print dimensions
               </p>
             </div>
-            
+
             <div className="text-center">
               <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-3">
                 <Calculator className="w-6 h-6 text-blue-600" />
@@ -92,16 +106,6 @@ export default function FreeDPICheckerPage() {
               </p>
             </div>
           </div>
-        </div>
-      </section>
-
-      {/* DPI Tool Section */}
-      <section className="py-8 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-7xl mx-auto">
-          <DPIChecker 
-            showSignupForm={true} 
-            onSignupComplete={() => setHasSignedUp(true)}
-          />
         </div>
       </section>
 
