@@ -30,7 +30,7 @@ export default function FreeDPICheckerPage() {
           </div>
 
           {/* Hero Grid */}
-          <div className="grid lg:grid-cols-2 gap-12 items-center mb-16">
+          <div className="grid lg:grid-cols-2 gap-12 items-start mb-16">
             {/* Left Column - Headlines and Subhead */}
             <div>
               <div className="inline-flex items-center px-3 py-1 rounded-full bg-green-100 text-green-800 text-sm font-medium mb-6">
