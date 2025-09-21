@@ -899,6 +899,46 @@ export default function UpscaleClient() {
                         {/* DPI Mode Mobile Controls */}
                         {mode === 'dpi' && (
                           <>
+                            {/* Print Quality Analysis - Mobile (shown first) */}
+                            {imageDimensions && printWidth && printHeight && (
+                              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+                                <div className="flex items-center justify-between">
+                                  <div>
+                                    <p className="text-sm text-blue-700 font-medium">Print Quality Analysis</p>
+                                    <p className="text-xs text-blue-600 mt-1">
+                                      Target: {printWidth}" × {printHeight}" at 300 DPI
+                                    </p>
+                                  </div>
+                                  <div className="text-right">
+                                    {(() => {
+                                      const info = calculateUpscaleFactor();
+                                      if (!info) return null;
+                                      const quality = info.currentDPI >= 300 ? 'excellent' :
+                                                     info.currentDPI >= 200 ? 'good' :
+                                                     info.currentDPI >= 150 ? 'fair' : 'poor';
+                                      const colors = {
+                                        excellent: 'text-green-700',
+                                        good: 'text-blue-700',
+                                        fair: 'text-yellow-700',
+                                        poor: 'text-red-700'
+                                      };
+
+                                      return (
+                                        <>
+                                          <p className={`text-2xl font-bold ${colors[quality]}`}>
+                                            {info.currentDPI} DPI
+                                          </p>
+                                          <p className="text-xs text-gray-600">
+                                            Needs {info.scale.toFixed(1)}x upscale
+                                          </p>
+                                        </>
+                                      );
+                                    })()}
+                                  </div>
+                                </div>
+                              </div>
+                            )}
+
                             {/* Print Size Controls for Mobile */}
                             <div className="border-t border-gray-200 pt-4">
                               <p className="text-xs text-gray-500 mb-3">Adjust print dimensions:</p>
@@ -1061,9 +1101,9 @@ export default function UpscaleClient() {
                             </div>
                           )}
 
-                          {/* DPI Info Display */}
+                          {/* DPI Info Display - Desktop only (hidden on mobile) */}
                           {imageDimensions && printWidth && printHeight && (
-                            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                            <div className="hidden lg:block bg-blue-50 border border-blue-200 rounded-lg p-4">
                               <div className="flex items-center justify-between">
                                 <div>
                                   <p className="text-sm text-blue-700 font-medium">Print Quality Analysis</p>
