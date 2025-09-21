@@ -806,48 +806,222 @@ export default function UpscaleClient() {
               )}
 
               {imageUrl && !processedUrl && (
-                <div className="grid lg:grid-cols-2 gap-8">
-                  {/* Left Column - Original Image and Info Boxes */}
-                  <div className="space-y-4">
-                    <div>
-                      <h3 className="font-medium mb-2">Original Image</h3>
-                      <img
-                        src={imageUrl}
-                        alt="Original"
-                        className="w-full h-auto rounded-lg border"
-                        style={{ maxHeight: '600px', objectFit: 'contain' }}
-                      />
-                    </div>
+                <div className="space-y-8">
+                  {/* Image Section */}
+                  <div>
+                    <h3 className="font-medium mb-2">Original Image</h3>
+                    <img
+                      src={imageUrl}
+                      alt="Original"
+                      className="w-full h-auto rounded-lg border"
+                      style={{ maxHeight: '600px', objectFit: 'contain' }}
+                    />
+                  </div>
 
-                    {/* Info Boxes Below Image - Only in DPI Mode */}
-                    {mode === 'dpi' && (
-                      <>
-                        {/* Image Information Box - On left side */}
-                        {imageDimensions && (
-                          <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
-                            <h3 className="font-medium text-sm text-gray-700 mb-2">Image Information</h3>
-                            <div className="grid grid-cols-2 gap-4 text-sm">
-                              <div>
-                                <span className="text-gray-500">Width:</span>
-                                <span className="ml-2 font-medium">{imageDimensions.width} px</span>
-                              </div>
-                              <div>
-                                <span className="text-gray-500">Height:</span>
-                                <span className="ml-2 font-medium">{imageDimensions.height} px</span>
+                  {/* Mobile: Print controls directly after image, Desktop: Grid layout */}
+                  <div className="grid lg:grid-cols-2 gap-8">
+                    {/* Left Column - Info Boxes (Desktop) or First Section (Mobile) */}
+                    <div className="space-y-4">
+                      {/* On Mobile: Show controls directly after image */}
+                      <div className="lg:hidden">
+                        {/* Simple Mode Mobile Controls */}
+                        {mode === 'simple' && (
+                          <>
+                            {/* Upscale Factor for Mobile */}
+                            <div className="mb-4">
+                              <label className="block text-sm font-medium mb-2">
+                                Upscale Factor
+                              </label>
+                              <div className="grid grid-cols-3 gap-2">
+                                {['2', '3', '4'].map((scale) => (
+                                  <button
+                                    key={scale}
+                                    onClick={() => setSelectedScale(scale)}
+                                    className={`p-2 border rounded-lg transition-colors ${
+                                      selectedScale === scale
+                                        ? 'border-blue-500 bg-blue-50 text-blue-700'
+                                        : 'border-gray-300 hover:border-gray-400'
+                                    }`}
+                                  >
+                                    {scale}x
+                                  </button>
+                                ))}
                               </div>
                             </div>
-                          </div>
+
+                            {/* Credits Warning */}
+                            {profile && !profile.is_admin && profile.credits_remaining < 1 && (
+                              <div className="bg-red-50 border border-red-200 text-red-600 p-3 rounded-lg text-sm mb-4">
+                                <p className="font-medium">Insufficient Credits</p>
+                                <p className="text-xs mt-1">You need at least 1 credit to upscale an image. Please purchase more credits or upgrade your plan.</p>
+                              </div>
+                            )}
+
+                            {/* UPSCALE BUTTON for Mobile Simple Mode */}
+                            <Button
+                              onClick={processImage}
+                              disabled={isProcessing || !profile || (!profile.is_admin && profile.credits_remaining < 1)}
+                              className="w-full mb-4"
+                              size="lg"
+                            >
+                              {isProcessing ? (
+                                <>
+                                  <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                                  {isAsyncProcessing
+                                    ? jobStatus === 'processing'
+                                      ? `Processing Large Image... ${processingProgress}%`
+                                      : `Initializing... ${processingProgress}%`
+                                    : 'Processing...'
+                                  }
+                                </>
+                              ) : (
+                                <>
+                                  <Wand2 className="w-5 h-5 mr-2" />
+                                  Upscale Image ({selectedScale}x)
+                                </>
+                              )}
+                            </Button>
+                          </>
                         )}
 
-                        {/* DPI Info Display */}
-                        {imageDimensions && printWidth && printHeight && (
-                          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                            <div className="flex items-center justify-between">
-                              <div>
-                                <p className="text-sm text-blue-700 font-medium">Print Quality Analysis</p>
-                                <p className="text-xs text-blue-600 mt-1">
-                                  Target: {printWidth}" × {printHeight}" at 300 DPI
+                        {/* DPI Mode Mobile Controls */}
+                        {mode === 'dpi' && (
+                          <>
+                            {/* Print Size Controls for Mobile */}
+                            <div className="border-t border-gray-200 pt-4">
+                              <p className="text-xs text-gray-500 mb-3">Adjust print dimensions:</p>
+                            </div>
+
+                            {printWidth && parseFloat(printWidth) >= 10 && imageDimensions && (
+                              <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 mb-3">
+                                <p className="text-xs text-amber-700">
+                                  <Info className="w-3 h-3 inline mr-1" />
+                                  Showing quality for {printWidth}" width (minimum 10" for realistic print assessment).
+                                  Most DTF prints are 10-13 inches wide.
                                 </p>
+                              </div>
+                            )}
+                            <div className="grid grid-cols-2 gap-4">
+                              <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">
+                                  Print Width (inches)
+                                </label>
+                                <Input
+                                  type="number"
+                                  step="0.01"
+                                  min="0.1"
+                                  value={printWidth}
+                                  onChange={(e) => handleWidthChange(e.target.value)}
+                                  placeholder="e.g., 11"
+                                />
+                              </div>
+                              <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">
+                                  Print Height (inches)
+                                </label>
+                                <Input
+                                  type="number"
+                                  step="0.01"
+                                  min="0.1"
+                                  value={printHeight}
+                                  onChange={(e) => handleHeightChange(e.target.value)}
+                                  placeholder="e.g., 14"
+                                />
+                              </div>
+                            </div>
+
+                            {/* Common DTF Widths */}
+                            <div>
+                              <p className="text-xs text-gray-600 mb-2">Common DTF widths:</p>
+                              <div className="flex flex-wrap gap-1">
+                                {[
+                                  { label: '4"', width: 4 },
+                                  { label: '8"', width: 8 },
+                                  { label: '10"', width: 10 },
+                                  { label: '11"', width: 11 },
+                                  { label: '12"', width: 12 }
+                                ].map(size => (
+                                  <button
+                                    key={size.label}
+                                    onClick={() => {
+                                      setPrintWidth(size.width.toString());
+                                      if (aspectRatio) {
+                                        setPrintHeight((size.width / aspectRatio).toFixed(2));
+                                      }
+                                    }}
+                                    className="px-3 py-1 text-xs border rounded hover:bg-gray-50"
+                                  >
+                                    {size.label} wide
+                                  </button>
+                                ))}
+                              </div>
+                            </div>
+
+                            {/* Credits Warning */}
+                            {profile && !profile.is_admin && profile.credits_remaining < 1 && (
+                              <div className="bg-red-50 border border-red-200 text-red-600 p-3 rounded-lg text-sm">
+                                <p className="font-medium">Insufficient Credits</p>
+                                <p className="text-xs mt-1">You need at least 1 credit to upscale an image. Please purchase more credits or upgrade your plan.</p>
+                              </div>
+                            )}
+
+                            {/* UPSCALE BUTTON for Mobile */}
+                            <Button
+                              onClick={processImage}
+                              disabled={isProcessing || !profile || (!profile.is_admin && profile.credits_remaining < 1)}
+                              className="w-full"
+                              size="lg"
+                            >
+                              {isProcessing ? (
+                                <>
+                                  <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                                  {isAsyncProcessing
+                                    ? jobStatus === 'processing'
+                                      ? `Processing Large Image... ${processingProgress}%`
+                                      : `Initializing... ${processingProgress}%`
+                                    : 'Processing...'
+                                  }
+                                </>
+                              ) : (
+                                <>
+                                  <Calculator className="w-5 h-5 mr-2" />
+                                  Upscale to 300 DPI
+                                </>
+                              )}
+                            </Button>
+                          </>
+                        )}
+                      </div>
+
+                      {/* Info Boxes - Desktop: left side, Mobile: after print controls */}
+                      {mode === 'dpi' && (
+                        <>
+                          {/* Image Information Box */}
+                          {imageDimensions && (
+                            <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+                              <h3 className="font-medium text-sm text-gray-700 mb-2">Image Information</h3>
+                              <div className="grid grid-cols-2 gap-4 text-sm">
+                                <div>
+                                  <span className="text-gray-500">Width:</span>
+                                  <span className="ml-2 font-medium">{imageDimensions.width} px</span>
+                                </div>
+                                <div>
+                                  <span className="text-gray-500">Height:</span>
+                                  <span className="ml-2 font-medium">{imageDimensions.height} px</span>
+                                </div>
+                              </div>
+                            </div>
+                          )}
+
+                          {/* DPI Info Display */}
+                          {imageDimensions && printWidth && printHeight && (
+                            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                              <div className="flex items-center justify-between">
+                                <div>
+                                  <p className="text-sm text-blue-700 font-medium">Print Quality Analysis</p>
+                                  <p className="text-xs text-blue-600 mt-1">
+                                    Target: {printWidth}" × {printHeight}" at 300 DPI
+                                  </p>
                               </div>
                               <div className="text-right">
                                 {(() => {
@@ -1010,9 +1184,9 @@ export default function UpscaleClient() {
                         )}
                       </div>
 
-                    {/* Print Size Controls - Moved above button */}
+                    {/* Print Size Controls - Desktop only (hidden on mobile with lg:block) */}
                     {mode === 'dpi' && (
-                      <>
+                      <div className="hidden lg:block space-y-4">
                         {/* Divider */}
                         <div className="border-t border-gray-200 pt-4">
                           <p className="text-xs text-gray-500 mb-3">Adjust print dimensions:</p>
@@ -1084,46 +1258,50 @@ export default function UpscaleClient() {
                             ))}
                           </div>
                         </div>
-                      </>
-                    )}
-
-                    {/* Credits Warning */}
-                    {profile && !profile.is_admin && profile.credits_remaining < 1 && (
-                      <div className="bg-red-50 border border-red-200 text-red-600 p-3 rounded-lg text-sm">
-                        <p className="font-medium">Insufficient Credits</p>
-                        <p className="text-xs mt-1">You need at least 1 credit to upscale an image. Please purchase more credits or upgrade your plan.</p>
                       </div>
                     )}
 
-                    {/* UPSCALE BUTTON - After Print Dimensions */}
-                    <Button
-                      onClick={processImage}
-                      disabled={isProcessing || !profile || (!profile.is_admin && profile.credits_remaining < 1)}
-                      className="w-full"
-                      size="lg"
-                    >
-                      {isProcessing ? (
-                        <>
-                          <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                          {isAsyncProcessing
-                            ? jobStatus === 'processing'
-                              ? `Processing Large Image... ${processingProgress}%`
-                              : `Initializing... ${processingProgress}%`
-                            : 'Processing...'
-                          }
-                        </>
-                      ) : mode === 'dpi' ? (
-                        <>
-                          <Calculator className="w-5 h-5 mr-2" />
-                          Upscale to 300 DPI
-                        </>
-                      ) : (
-                        <>
-                          <Wand2 className="w-5 h-5 mr-2" />
-                          Upscale Image ({selectedScale}x)
-                        </>
+                    {/* Credits Warning - Desktop only */}
+                    <div className="hidden lg:block">
+                      {profile && !profile.is_admin && profile.credits_remaining < 1 && (
+                        <div className="bg-red-50 border border-red-200 text-red-600 p-3 rounded-lg text-sm">
+                          <p className="font-medium">Insufficient Credits</p>
+                          <p className="text-xs mt-1">You need at least 1 credit to upscale an image. Please purchase more credits or upgrade your plan.</p>
+                        </div>
                       )}
-                    </Button>
+                    </div>
+
+                    {/* UPSCALE BUTTON - Desktop only (mobile has its own) */}
+                    <div className="hidden lg:block">
+                      <Button
+                        onClick={processImage}
+                        disabled={isProcessing || !profile || (!profile.is_admin && profile.credits_remaining < 1)}
+                        className="w-full"
+                        size="lg"
+                      >
+                        {isProcessing ? (
+                          <>
+                            <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                            {isAsyncProcessing
+                              ? jobStatus === 'processing'
+                                ? `Processing Large Image... ${processingProgress}%`
+                                : `Initializing... ${processingProgress}%`
+                              : 'Processing...'
+                            }
+                          </>
+                        ) : mode === 'dpi' ? (
+                          <>
+                            <Calculator className="w-5 h-5 mr-2" />
+                            Upscale to 300 DPI
+                          </>
+                        ) : (
+                          <>
+                            <Wand2 className="w-5 h-5 mr-2" />
+                            Upscale Image ({selectedScale}x)
+                          </>
+                        )}
+                      </Button>
+                    </div>
 
                     {/* AI Enhancements - Below button */}
                     <div>
