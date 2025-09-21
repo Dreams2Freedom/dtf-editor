@@ -1347,8 +1347,8 @@ export default function UpscaleClient() {
                       </Button>
                     </div>
 
-                    {/* AI Enhancements - Below button */}
-                    <div>
+                    {/* AI Enhancements - Below button - Desktop only */}
+                    <div className="hidden lg:block">
                       <label className="flex items-center space-x-2">
                         <input
                           type="checkbox"
@@ -1362,9 +1362,9 @@ export default function UpscaleClient() {
                       </label>
                     </div>
 
-                    {/* Aspect Ratio Lock - At bottom */}
+                    {/* Aspect Ratio Lock - At bottom - Desktop only */}
                     {mode === 'dpi' && (
-                      <div className="flex items-center justify-between">
+                      <div className="hidden lg:flex items-center justify-between">
                         <label className="text-sm font-medium text-gray-700 flex items-center gap-2">
                           {maintainAspectRatio ? <Lock className="w-4 h-4" /> : <Unlock className="w-4 h-4" />}
                           Maintain Aspect Ratio
