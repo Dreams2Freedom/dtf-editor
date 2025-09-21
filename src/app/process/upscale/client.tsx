@@ -988,26 +988,28 @@ export default function UpscaleClient() {
                           </div>
                         ) : (
                           <div className="space-y-4">
-                            {/* AI Enhancements */}
-                            <div>
-                              <label className="flex items-center space-x-2">
-                                <input
-                                  type="checkbox"
-                                  checked={showEnhancements}
-                                  onChange={(e) => setShowEnhancements(e.target.checked)}
-                                  className="rounded border-gray-300"
-                                />
-                                <span className="text-sm">
-                                  Apply AI enhancements (denoise, deblur, color correction)
-                                </span>
-                              </label>
-                            </div>
+                            {/* Empty for DPI mode - controls moved outside */}
                           </div>
                         )}
                       </div>
 
-                    {/* Image Dimensions - Above Button */}
-                    {imageDimensions && (
+                    {/* AI Enhancements - Available for both modes */}
+                    <div>
+                      <label className="flex items-center space-x-2">
+                        <input
+                          type="checkbox"
+                          checked={showEnhancements}
+                          onChange={(e) => setShowEnhancements(e.target.checked)}
+                          className="rounded border-gray-300"
+                        />
+                        <span className="text-sm">
+                          Apply AI enhancements (denoise, deblur, color correction)
+                        </span>
+                      </label>
+                    </div>
+
+                    {/* Image Dimensions - Right Above Button */}
+                    {mode === 'dpi' && imageDimensions && (
                       <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
                         <h3 className="font-medium text-sm text-gray-700 mb-2">Image Information</h3>
                         <div className="grid grid-cols-2 gap-4 text-sm">
@@ -1024,15 +1026,15 @@ export default function UpscaleClient() {
                     )}
 
                     {/* Credits Warning */}
-                            {profile && !profile.is_admin && profile.credits_remaining < 1 && (
-                              <div className="bg-red-50 border border-red-200 text-red-600 p-3 rounded-lg text-sm">
-                                <p className="font-medium">Insufficient Credits</p>
-                                <p className="text-xs mt-1">You need at least 1 credit to upscale an image. Please purchase more credits or upgrade your plan.</p>
-                              </div>
-                            )}
+                    {profile && !profile.is_admin && profile.credits_remaining < 1 && (
+                      <div className="bg-red-50 border border-red-200 text-red-600 p-3 rounded-lg text-sm">
+                        <p className="font-medium">Insufficient Credits</p>
+                        <p className="text-xs mt-1">You need at least 1 credit to upscale an image. Please purchase more credits or upgrade your plan.</p>
+                      </div>
+                    )}
 
-                            {/* UPSCALE BUTTON - Moved up to be immediately visible */}
-                            <Button
+                    {/* UPSCALE BUTTON - Prominently placed */}
+                    <Button
                               onClick={processImage}
                               disabled={isProcessing || !profile || (!profile.is_admin && profile.credits_remaining < 1)}
                               className="w-full"
