@@ -476,9 +476,12 @@ export function DPIChecker({ showSignupForm = true, onSignupComplete }: DPICheck
 
           {/* Common DTF Widths with Shirt Size Context */}
           {imageDimensions && (
-            <div>
-              <p className="text-sm text-gray-600 mb-2">Common DTF widths by shirt size:</p>
-              <div className="flex flex-wrap gap-2">
+            <div className="bg-gray-50 rounded-lg p-4">
+              <div className="flex items-center gap-2 mb-3">
+                <Shirt className="w-4 h-4 text-gray-600" />
+                <p className="text-sm font-medium text-gray-700">Common DTF widths by shirt size:</p>
+              </div>
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2">
                 {[
                   { label: '4"', width: 4, description: 'Pocket' },
                   { label: '8"', width: 8, description: 'Youth' },
@@ -493,11 +496,13 @@ export function DPIChecker({ showSignupForm = true, onSignupComplete }: DPICheck
                     imageDimensions.height / height
                   ));
 
+                  const isGoodQuality = wouldBeDPI >= 300;
+                  const isFairQuality = wouldBeDPI >= 150 && wouldBeDPI < 300;
+                  const isPoorQuality = wouldBeDPI < 150;
+
                   return (
-                    <Button
+                    <button
                       key={size.label}
-                      variant="outline"
-                      size="sm"
                       onClick={() => {
                         setPrintWidth(size.width.toString());
                         if (aspectRatio) {
@@ -505,22 +510,29 @@ export function DPIChecker({ showSignupForm = true, onSignupComplete }: DPICheck
                         }
                         setShowResult(false);
                       }}
-                      className={`flex flex-col items-center py-2 px-3 min-w-[80px] ${
-                        wouldBeDPI < 150 ? 'border-red-300 hover:border-red-400' :
-                        wouldBeDPI < 300 ? 'border-yellow-300 hover:border-yellow-400' :
-                        'border-green-300 hover:border-green-400'
-                      }`}
+                      className={`
+                        relative overflow-hidden rounded-lg border-2 p-3 transition-all hover:shadow-md
+                        ${isGoodQuality ? 'border-green-200 bg-green-50 hover:border-green-300' :
+                          isFairQuality ? 'border-yellow-200 bg-yellow-50 hover:border-yellow-300' :
+                          'border-red-200 bg-red-50 hover:border-red-300'}
+                      `}
                     >
-                      <span className="font-medium">{size.label} wide</span>
-                      <span className="text-xs text-gray-500">{size.description}</span>
-                      <span className={`text-xs mt-1 font-medium ${
-                        wouldBeDPI < 150 ? 'text-red-600' :
-                        wouldBeDPI < 300 ? 'text-yellow-600' :
-                        'text-green-600'
-                      }`}>
-                        {wouldBeDPI} DPI
-                      </span>
-                    </Button>
+                      <div className="flex flex-col items-center space-y-1">
+                        <span className="text-lg font-bold text-gray-900">{size.label}</span>
+                        <span className="text-xs text-gray-600">{size.description}</span>
+                        <div className={`
+                          inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold
+                          ${isGoodQuality ? 'bg-green-100 text-green-700' :
+                            isFairQuality ? 'bg-yellow-100 text-yellow-700' :
+                            'bg-red-100 text-red-700'}
+                        `}>
+                          {isGoodQuality ? <CheckCircle className="w-3 h-3" /> :
+                           isFairQuality ? <AlertCircle className="w-3 h-3" /> :
+                           <XCircle className="w-3 h-3" />}
+                          {wouldBeDPI} DPI
+                        </div>
+                      </div>
+                    </button>
                   );
                 })}
               </div>
