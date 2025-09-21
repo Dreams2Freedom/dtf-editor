@@ -138,31 +138,41 @@ export default function FreeDPICheckerPage() {
             </div>
 
             <div>
-              <h3 className="text-xl font-semibold text-gray-900 mb-4">Common Print Sizes</h3>
+              <h3 className="text-xl font-semibold text-gray-900 mb-4">Common DTF Print Widths</h3>
               <div className="bg-gray-50 rounded-lg p-4">
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="text-left text-gray-600">
-                      <th className="pb-2">Print Size</th>
-                      <th className="pb-2">Required Pixels @ 300 DPI</th>
+                      <th className="pb-2">Width</th>
+                      <th className="pb-2">Shirt Size</th>
+                      <th className="pb-2">Min Pixels @ 300 DPI</th>
                     </tr>
                   </thead>
                   <tbody className="text-gray-900">
                     <tr className="border-t border-gray-200">
-                      <td className="py-2">8" × 10"</td>
-                      <td>2400 × 3000 px</td>
+                      <td className="py-2">4" wide</td>
+                      <td>Pocket</td>
+                      <td>1200 px wide</td>
                     </tr>
                     <tr className="border-t border-gray-200">
-                      <td className="py-2">11" × 14"</td>
-                      <td>3300 × 4200 px</td>
+                      <td className="py-2">8" wide</td>
+                      <td>Youth</td>
+                      <td>2400 px wide</td>
                     </tr>
                     <tr className="border-t border-gray-200">
-                      <td className="py-2">12" × 15"</td>
-                      <td>3600 × 4500 px</td>
+                      <td className="py-2">10" wide</td>
+                      <td>S-M Adult</td>
+                      <td>3000 px wide</td>
                     </tr>
                     <tr className="border-t border-gray-200">
-                      <td className="py-2">12" × 16"</td>
-                      <td>3600 × 4800 px</td>
+                      <td className="py-2">11" wide</td>
+                      <td>L-XL Adult</td>
+                      <td>3300 px wide</td>
+                    </tr>
+                    <tr className="border-t border-gray-200">
+                      <td className="py-2">12" wide</td>
+                      <td>2XL+</td>
+                      <td>3600 px wide</td>
                     </tr>
                   </tbody>
                 </table>
