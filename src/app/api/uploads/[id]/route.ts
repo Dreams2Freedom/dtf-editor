@@ -74,18 +74,25 @@ export async function GET(
       }
       
       console.log('Found processed image:', processedImage.storage_url);
-      
-      // Get the public URL from Supabase storage
-      // storage_url contains the path like "userId/processed/filename.png"
-      const { data: publicUrlData } = supabase.storage
-        .from('images')
-        .getPublicUrl(processedImage.storage_url);
-      
-      console.log('Generated public URL:', publicUrlData.publicUrl);
-      
+
+      // Check if storage_url is already a complete URL or just a path
+      let publicUrl: string;
+      if (processedImage.storage_url.startsWith('http://') || processedImage.storage_url.startsWith('https://')) {
+        // It's already a full URL, use it directly
+        publicUrl = processedImage.storage_url;
+        console.log('Using existing public URL:', publicUrl);
+      } else {
+        // It's a path, generate the public URL
+        const { data: publicUrlData } = supabase.storage
+          .from('images')
+          .getPublicUrl(processedImage.storage_url);
+        publicUrl = publicUrlData.publicUrl;
+        console.log('Generated public URL:', publicUrl);
+      }
+
       return NextResponse.json({
         success: true,
-        publicUrl: publicUrlData.publicUrl,
+        publicUrl: publicUrl,
         imageId: id
       });
     }
