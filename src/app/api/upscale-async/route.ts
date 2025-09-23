@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { waitUntil } from '@vercel/functions';
 import { createServerSupabaseClient, createServiceRoleClient } from '@/lib/supabase/server';
 import { ProcessingMode, DeepImageService } from '@/services/deepImage';
 import { storageService } from '@/services/storage';
@@ -87,14 +88,18 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 5. Process the job directly (can't make HTTP requests to self in serverless)
-    // We'll process synchronously but return immediately
-    processJob(job.id, user.id, finalImageUrl, {
+    // 5. Process the job using Vercel's waitUntil to keep function alive
+    // This allows background processing after response is sent
+    const processPromise = processJob(job.id, user.id, finalImageUrl, {
       processingMode,
       scale,
       targetWidth,
       targetHeight
     });
+
+    // Use waitUntil to keep the function execution alive
+    // This is Vercel's way of handling background tasks
+    waitUntil(processPromise);
 
     // 6. Return job ID immediately
     return NextResponse.json({
@@ -125,6 +130,7 @@ async function processJob(
   }
 ) {
   const serviceClient = createServiceRoleClient();
+  console.log(`[Upscale Async] Starting processing for job ${jobId}`);
 
   try {
     // Update job status to processing
@@ -137,6 +143,8 @@ async function processJob(
       })
       .eq('id', jobId);
 
+    console.log(`[Upscale Async] Job ${jobId} marked as processing`);
+
     // Process the image using DeepImageService
     const deepImageService = new DeepImageService();
     const startTime = Date.now();
@@ -147,6 +155,8 @@ async function processJob(
       .update({ progress: 30 })
       .eq('id', jobId);
 
+    console.log(`[Upscale Async] Job ${jobId} calling Deep-Image API`);
+
     const response = await deepImageService.upscaleImage(imageUrl, {
       processingMode: options.processingMode || 'auto_enhance',
       scale: options.scale as (2 | 4 | undefined),
@@ -156,6 +166,7 @@ async function processJob(
     });
 
     const processingTime = Date.now() - startTime;
+    console.log(`[Upscale Async] Job ${jobId} Deep-Image response:`, response.status);
 
     // Update progress to 70%
     await serviceClient
