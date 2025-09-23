@@ -70,14 +70,13 @@ export async function POST(request: NextRequest) {
         .update({ progress: 30 })
         .eq('id', jobId);
 
-      const response = await deepImageService.upscale(
-        imageUrl,
-        processingMode as ProcessingMode,
-        scale,
-        false, // faceEnhance
+      const response = await deepImageService.upscaleImage(imageUrl, {
+        processingMode: processingMode as ProcessingMode,
+        scale: scale as (2 | 4 | undefined),
+        faceEnhance: false,
         targetWidth,
         targetHeight
-      );
+      });
 
       const processingTime = Date.now() - startTime;
 
@@ -87,7 +86,7 @@ export async function POST(request: NextRequest) {
         .update({ progress: 70 })
         .eq('id', jobId);
 
-      if (!response.success || !response.processedUrl) {
+      if (response.status === 'error' || !response.url) {
         throw new Error(response.error || 'Processing failed');
       }
 
@@ -108,19 +107,19 @@ export async function POST(request: NextRequest) {
 
       // Save to gallery
       let savedId = null;
-      let finalUrl = response.processedUrl;
+      let finalUrl = response.url;
 
-      if (response.processedUrl && !response.processedUrl.startsWith('data:')) {
+      if (response.url && !response.url.startsWith('data:')) {
         try {
           savedId = await saveProcessedImageToGallery({
             userId: job.user_id,
-            processedUrl: response.processedUrl,
+            processedUrl: response.url,
             operationType: 'upscale',
             originalFilename: `upscale_${Date.now()}.png`,
             metadata: {
               processingTime,
               creditsUsed: 1,
-              ...response.metadata
+              processingTimeFromApi: response.processingTime
             }
           });
 
