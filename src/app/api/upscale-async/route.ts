@@ -1,14 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabaseClient, createServiceRoleClient } from '@/lib/supabase/server';
-import { ProcessingMode } from '@/services/deepImage';
+import { ProcessingMode, DeepImageService } from '@/services/deepImage';
 import { storageService } from '@/services/storage';
 import { saveProcessedImageToGallery } from '@/utils/saveProcessedImage';
-
-// Import imageProcessingService directly to avoid bundling issues
-const getImageProcessingService = () => {
-  const { imageProcessingService } = require('@/services/imageProcessing');
-  return imageProcessingService;
-};
+import { ApiCostTracker } from '@/lib/api-cost-tracker';
 
 // This endpoint starts an upscale job and returns immediately
 export async function POST(request: NextRequest) {
@@ -153,16 +148,55 @@ async function processUpscaleJob(
       })
       .eq('id', jobId);
 
-    // Process the image
-    const imageService = getImageProcessingService();
-    const result = await imageService.upscaleImage(
-      imageUrl,
-      userId,
-      options.processingMode,
-      options.scale,
-      options.targetWidth,
-      options.targetHeight
-    );
+    // Process the image directly using DeepImageService
+    const deepImageService = new DeepImageService();
+    const startTime = Date.now();
+
+    let result;
+    try {
+      const response = await deepImageService.upscale(
+        imageUrl,
+        options.processingMode || 'auto_enhance',
+        options.scale,
+        false, // faceEnhance
+        options.targetWidth,
+        options.targetHeight
+      );
+
+      const processingTime = Date.now() - startTime;
+
+      result = {
+        success: response.success,
+        processedUrl: response.processedUrl,
+        error: response.error,
+        metadata: {
+          processingTime,
+          creditsUsed: 1,
+          ...response.metadata
+        }
+      };
+
+      // Track API cost
+      await ApiCostTracker.logUsage({
+        userId,
+        provider: 'deep_image',
+        operation: 'upscale',
+        status: response.success ? 'success' : 'failed',
+        creditsCharged: 1,
+        processingTimeMs: processingTime,
+        errorMessage: response.error,
+        metadata: {
+          targetWidth: options.targetWidth,
+          targetHeight: options.targetHeight,
+          processingMode: options.processingMode
+        }
+      });
+    } catch (error) {
+      result = {
+        success: false,
+        error: error instanceof Error ? error.message : 'Processing failed'
+      };
+    }
 
     // Update progress
     await serviceClient
