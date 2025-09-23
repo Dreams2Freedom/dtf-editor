@@ -33,8 +33,14 @@
     "src/app/api/upscale/route.ts": {
       "maxDuration": 60
     },
+    "src/app/api/upscale-direct/route.ts": {
+      "maxDuration": 60
+    },
     "src/app/api/upscale-async/route.ts": {
-      "maxDuration": 10
+      "maxDuration": 60
+    },
+    "src/app/api/jobs/process/route.ts": {
+      "maxDuration": 60
     },
     "src/app/api/jobs/[id]/route.ts": {
       "maxDuration": 5

@@ -576,20 +576,29 @@ export default function UpscaleClient() {
         ? (upscaleInfo.requiredWidth * upscaleInfo.requiredHeight) / 1000000
         : 0;
 
-      const useAsync = megapixels > 20 || // More than 20MP
-                      (actualMode === 'dpi' && megapixels > 15) || // DPI mode with >15MP
-                      processingMode === 'generative_upscale'; // Generative mode is slow
+      // Always use direct endpoint for reliability
+      // It handles both small and large images properly
+      const useDirectEndpoint = true;
 
       console.log('[Upscale] Processing mode:', {
-        useAsync,
+        endpoint: useDirectEndpoint ? 'direct' : 'standard',
         megapixels: megapixels.toFixed(2),
         processingMode
       });
 
       let response;
 
-      if (useAsync) {
-        // Use async endpoint for large images
+      if (useDirectEndpoint) {
+        // Use direct endpoint that processes synchronously
+        response = await fetch('/api/upscale-direct', {
+          method: 'POST',
+          body: formData,
+          credentials: 'include',
+          signal: controller.signal
+        });
+        clearTimeout(timeoutId);
+      } else if (megapixels > 20) {
+        // Fallback to async for very large images (kept for backward compatibility)
         response = await fetch('/api/upscale-async', {
           method: 'POST',
           body: formData,
