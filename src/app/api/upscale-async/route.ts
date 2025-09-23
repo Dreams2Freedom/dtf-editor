@@ -1,9 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabaseClient, createServiceRoleClient } from '@/lib/supabase/server';
 import { ProcessingMode } from '@/services/deepImage';
-import { imageProcessingService } from '@/services/imageProcessing';
 import { storageService } from '@/services/storage';
 import { saveProcessedImageToGallery } from '@/utils/saveProcessedImage';
+
+// Import imageProcessingService directly to avoid bundling issues
+const getImageProcessingService = () => {
+  const { imageProcessingService } = require('@/services/imageProcessing');
+  return imageProcessingService;
+};
 
 // This endpoint starts an upscale job and returns immediately
 export async function POST(request: NextRequest) {
@@ -149,7 +154,8 @@ async function processUpscaleJob(
       .eq('id', jobId);
 
     // Process the image
-    const result = await imageProcessingService.upscaleImage(
+    const imageService = getImageProcessingService();
+    const result = await imageService.upscaleImage(
       imageUrl,
       userId,
       options.processingMode,
