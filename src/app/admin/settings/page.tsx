@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/Button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 import { toast } from '@/lib/toast';
-import { 
+import {
   ArrowLeft,
   Bell,
   Shield,
@@ -17,9 +17,11 @@ import {
   Users,
   AlertCircle,
   Check,
-  X
+  X,
+  Calculator
 } from 'lucide-react';
 import Link from 'next/link';
+import ApiCostConfig from '@/components/admin/settings/ApiCostConfig';
 
 export default function AdminSettingsPage() {
   const { user, profile, loading, initialize } = useAuthStore();
@@ -299,6 +301,11 @@ export default function AdminSettingsPage() {
               </div>
             </CardContent>
           </Card>
+        </div>
+
+        {/* API Cost Configuration */}
+        <div className="mt-6">
+          <ApiCostConfig />
         </div>
 
         {/* System Status */}

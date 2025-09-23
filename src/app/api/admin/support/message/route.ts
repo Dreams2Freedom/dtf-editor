@@ -2,10 +2,11 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { emailService } from '@/services/email';
 import { withAdminAuth } from '@/lib/admin-auth';
+import { AdminAuditService } from '@/services/adminAudit';
 
 async function handlePost(request: NextRequest) {
   try {
-    const supabase = createServerSupabaseClient();
+    const supabase = await createServerSupabaseClient();
     const body = await request.json();
     const { ticketId, message, adminId } = body;
 
@@ -78,9 +79,33 @@ async function handlePost(request: NextRequest) {
       }
     }
 
-    return NextResponse.json({ 
-      success: true, 
-      message: newMessage 
+    // Create audit log entry
+    const auditService = AdminAuditService.getInstance();
+    await auditService.logAction(
+      {
+        user: {
+          id: adminId,
+          email: '' // Admin email would need to be fetched
+        },
+        role: 'admin',
+        createdAt: new Date()
+      },
+      {
+        action: 'support.reply',
+        resource_type: 'support_ticket',
+        resource_id: ticketId,
+        details: {
+          ticket_number: ticket?.ticket_number,
+          message_length: message.length,
+          user_notified: !!userProfile?.email
+        }
+      },
+      request
+    );
+
+    return NextResponse.json({
+      success: true,
+      message: newMessage
     });
 
   } catch (error) {

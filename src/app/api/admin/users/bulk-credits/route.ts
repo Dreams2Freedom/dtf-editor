@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { withRateLimit } from '@/lib/rate-limit';
+import { AdminAuditService } from '@/services/adminAudit';
 
 async function handlePost(request: NextRequest) {
   try {
@@ -161,6 +162,32 @@ async function handlePost(request: NextRequest) {
 
     // Log the bulk action
     console.log(`[Admin Bulk Credits] ${operation} ${amount} credits for ${affected} users by ${user.email}`);
+
+    // Create audit log entry
+    const auditService = AdminAuditService.getInstance();
+    await auditService.logAction(
+      {
+        user: {
+          id: user.id,
+          email: user.email || ''
+        },
+        role: 'admin',
+        createdAt: new Date()
+      },
+      {
+        action: 'user.bulk_credits',
+        resource_type: 'user',
+        details: {
+          operation,
+          amount,
+          affected_users: affected,
+          total_users: userIds.length,
+          user_ids: userIds,
+          errors: errors.length > 0 ? errors : undefined
+        }
+      },
+      request
+    );
 
     return NextResponse.json({
       success: true,

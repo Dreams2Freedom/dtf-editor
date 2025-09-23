@@ -38,6 +38,37 @@ export class ApiCostTracker {
   };
 
   /**
+   * Get cost from database or fall back to hardcoded values
+   */
+  private static async getDynamicCost(provider: ApiProvider, operation: ApiOperation): Promise<number> {
+    try {
+      const supabase = createServiceRoleClient();
+
+      // Try to fetch from database
+      const { data, error } = await supabase
+        .from('api_cost_config')
+        .select('cost_per_unit')
+        .eq('provider', provider)
+        .eq('operation', operation)
+        .single();
+
+      if (!error && data?.cost_per_unit !== undefined) {
+        return data.cost_per_unit;
+      }
+    } catch (err) {
+      console.warn(`[ApiCostTracker] Failed to fetch dynamic cost for ${provider}/${operation}, using fallback`);
+    }
+
+    // Fall back to hardcoded values
+    const costs = this.API_COSTS[provider];
+    if (costs && costs[operation as keyof typeof costs]) {
+      return costs[operation as keyof typeof costs];
+    }
+
+    return 0;
+  }
+
+  /**
    * Log API usage and costs
    */
   static async logUsage(params: {
@@ -54,18 +85,17 @@ export class ApiCostTracker {
   }): Promise<void> {
     try {
       const supabase = createServiceRoleClient();
-      
-      // Calculate API cost
+
+      // Calculate API cost (dynamic or fallback)
       let apiCost = 0;
       if (params.provider === 'stripe' && params.stripeAmount) {
-        // Stripe: 2.9% + $0.30
-        apiCost = (params.stripeAmount * 0.029 / 100) + 0.30;
+        // For Stripe, get the percentage from config and calculate
+        const stripePercentage = await this.getDynamicCost('stripe', 'payment_processing');
+        // Stripe: configured percentage + $0.30
+        apiCost = (params.stripeAmount * stripePercentage / 100) + 0.30;
       } else {
-        // Other APIs: fixed cost per operation
-        const costs = this.API_COSTS[params.provider];
-        if (costs && costs[params.operation as keyof typeof costs]) {
-          apiCost = costs[params.operation as keyof typeof costs];
-        }
+        // Other APIs: get cost from database or fallback
+        apiCost = await this.getDynamicCost(params.provider, params.operation);
       }
       
       // Calculate credit value (revenue)

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { withRateLimit } from '@/lib/rate-limit';
+import { AdminAuditService } from '@/services/adminAudit';
 
 async function handlePatch(
   request: NextRequest,
@@ -43,16 +44,28 @@ async function handlePatch(
       throw updateError;
     }
 
-    // Log admin action (when audit logs table is available)
-    console.log('Admin status change:', {
-      admin_id: user.id,
-      action: status === 'active' ? 'user.activate' : 'user.suspend',
-      resource_type: 'user',
-      resource_id: id,
-      details: {
-        new_status: status
-      }
-    });
+    // Log admin action
+    const auditService = AdminAuditService.getInstance();
+    await auditService.logAction(
+      {
+        user: {
+          id: user.id,
+          email: user.email || ''
+        },
+        role: 'admin',
+        createdAt: new Date()
+      },
+      {
+        action: 'user.status_change',
+        resource_type: 'user',
+        resource_id: id,
+        details: {
+          new_status: status,
+          action: status === 'active' ? 'activated' : 'suspended'
+        }
+      },
+      request
+    );
 
     return NextResponse.json({
       success: true,
