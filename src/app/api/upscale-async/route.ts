@@ -1,9 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabaseClient, createServiceRoleClient } from '@/lib/supabase/server';
-import { ProcessingMode, DeepImageService } from '@/services/deepImage';
+import { ProcessingMode } from '@/services/deepImage';
 import { storageService } from '@/services/storage';
-import { saveProcessedImageToGallery } from '@/utils/saveProcessedImage';
-import { ApiCostTracker } from '@/lib/api-cost-tracker';
 
 // This endpoint starts an upscale job and returns immediately
 export async function POST(request: NextRequest) {
@@ -87,24 +85,28 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 5. Start processing asynchronously (non-blocking)
-    processUpscaleJob(job.id, user.id, finalImageUrl, {
-      processingMode,
-      scale,
-      targetWidth,
-      targetHeight
+    // 5. Trigger job processing via separate endpoint
+    // This avoids serverless timeout issues by making a separate request
+    const baseUrl = request.url.split('/api')[0];
+
+    // Make a non-blocking request to process the job
+    fetch(`${baseUrl}/api/jobs/process`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ jobId: job.id })
     }).catch(error => {
-      console.error('[Upscale Async] Processing error:', error);
-      // Update job status to failed
+      console.error('[Upscale Async] Failed to trigger job processing:', error);
+      // Update job status to failed if we can't even trigger it
       serviceClient
         .from('processing_jobs')
         .update({
           status: 'failed',
-          error_message: error.message,
+          error_message: 'Failed to start processing',
           completed_at: new Date().toISOString()
         })
-        .eq('id', job.id)
-        .then(() => console.log('Job marked as failed'));
+        .eq('id', job.id);
     });
 
     // 6. Return job ID immediately
@@ -120,160 +122,5 @@ export async function POST(request: NextRequest) {
       { error: error instanceof Error ? error.message : 'Processing failed' },
       { status: 500 }
     );
-  }
-}
-
-// Background processing function (runs asynchronously)
-async function processUpscaleJob(
-  jobId: string,
-  userId: string,
-  imageUrl: string,
-  options: {
-    processingMode: ProcessingMode;
-    scale?: number;
-    targetWidth?: number;
-    targetHeight?: number;
-  }
-) {
-  const serviceClient = createServiceRoleClient();
-
-  try {
-    // Update job status to processing
-    await serviceClient
-      .from('processing_jobs')
-      .update({
-        status: 'processing',
-        started_at: new Date().toISOString(),
-        progress: 10
-      })
-      .eq('id', jobId);
-
-    // Process the image directly using DeepImageService
-    const deepImageService = new DeepImageService();
-    const startTime = Date.now();
-
-    let result;
-    try {
-      const response = await deepImageService.upscale(
-        imageUrl,
-        options.processingMode || 'auto_enhance',
-        options.scale,
-        false, // faceEnhance
-        options.targetWidth,
-        options.targetHeight
-      );
-
-      const processingTime = Date.now() - startTime;
-
-      result = {
-        success: response.success,
-        processedUrl: response.processedUrl,
-        error: response.error,
-        metadata: {
-          processingTime,
-          creditsUsed: 1,
-          ...response.metadata
-        }
-      };
-
-      // Track API cost
-      await ApiCostTracker.logUsage({
-        userId,
-        provider: 'deep_image',
-        operation: 'upscale',
-        status: response.success ? 'success' : 'failed',
-        creditsCharged: 1,
-        processingTimeMs: processingTime,
-        errorMessage: response.error,
-        metadata: {
-          targetWidth: options.targetWidth,
-          targetHeight: options.targetHeight,
-          processingMode: options.processingMode
-        }
-      });
-    } catch (error) {
-      result = {
-        success: false,
-        error: error instanceof Error ? error.message : 'Processing failed'
-      };
-    }
-
-    // Update progress
-    await serviceClient
-      .from('processing_jobs')
-      .update({ progress: 50 })
-      .eq('id', jobId);
-
-    if (!result.success || !result.processedUrl) {
-      throw new Error(result.error || 'Processing failed');
-    }
-
-    // Save to gallery if successful
-    let savedId = null;
-    let finalUrl = result.processedUrl;
-
-    if (result.processedUrl && !result.processedUrl.startsWith('data:')) {
-      try {
-        savedId = await saveProcessedImageToGallery({
-          userId,
-          processedUrl: result.processedUrl,
-          operationType: 'upscale',
-          originalFilename: `upscale_${Date.now()}.png`,
-          metadata: result.metadata || {}
-        });
-
-        if (savedId) {
-          // Get the saved image URL
-          const { data: imageData } = await serviceClient
-            .from('processed_images')
-            .select('storage_url')
-            .eq('id', savedId)
-            .single();
-
-          if (imageData?.storage_url) {
-            const { data: urlData } = serviceClient.storage
-              .from('images')
-              .getPublicUrl(imageData.storage_url);
-
-            if (urlData?.publicUrl) {
-              finalUrl = urlData.publicUrl;
-            }
-          }
-        }
-      } catch (saveError) {
-        console.error('[Upscale Async] Error saving to gallery:', saveError);
-      }
-    }
-
-    // Update job as completed
-    await serviceClient
-      .from('processing_jobs')
-      .update({
-        status: 'completed',
-        progress: 100,
-        output_data: {
-          url: finalUrl,
-          imageId: savedId,
-          processingTime: result.metadata?.processingTime,
-          creditsUsed: result.metadata?.creditsUsed
-        },
-        completed_at: new Date().toISOString()
-      })
-      .eq('id', jobId);
-
-  } catch (error) {
-    console.error('[Upscale Async] Processing failed:', error);
-
-    // Update job as failed
-    await serviceClient
-      .from('processing_jobs')
-      .update({
-        status: 'failed',
-        error_message: error instanceof Error ? error.message : 'Processing failed',
-        completed_at: new Date().toISOString()
-      })
-      .eq('id', jobId);
-
-    throw error;
   }
 }
