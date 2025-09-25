@@ -53,6 +53,7 @@ export function Modal({
           className={cn(
             'fixed left-[50%] top-[50%] z-50 w-full translate-x-[-50%] translate-y-[-50%]',
             'bg-white rounded-lg shadow-xl',
+            'max-h-[90vh] flex flex-col', // Add height constraint and flex
             'data-[state=open]:animate-in data-[state=closed]:animate-out',
             'data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0',
             'data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95',
@@ -63,7 +64,7 @@ export function Modal({
           )}
         >
           {(title || showCloseButton) && (
-            <div className="flex items-center justify-between p-6 border-b border-gray-200">
+            <div className="flex items-center justify-between p-6 border-b border-gray-200 flex-shrink-0">
               <div className="flex-1">
                 {title && (
                   <Dialog.Title className="text-lg font-semibold text-gray-900">
@@ -89,7 +90,7 @@ export function Modal({
               )}
             </div>
           )}
-          <div className="p-6">{children}</div>
+          <div className="p-6 overflow-y-auto flex-1">{children}</div>
         </Dialog.Content>
       </Dialog.Portal>
     </Dialog.Root>

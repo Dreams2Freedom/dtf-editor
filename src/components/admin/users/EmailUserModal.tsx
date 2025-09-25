@@ -167,8 +167,9 @@ export function EmailUserModal({ isOpen, onClose, selectedUsers, onSuccess }: Em
       title="Send Email to Users"
       size="lg"
     >
-      <div className="space-y-4">
-        {/* Recipients Info */}
+      <div className="flex flex-col h-full">
+        <div className="space-y-4 flex-1 overflow-y-auto">
+          {/* Recipients Info */}
         <div className="bg-blue-50 rounded-lg p-4">
           <div className="flex items-start gap-3">
             <Users className="w-5 h-5 text-blue-600 mt-0.5" />
@@ -298,9 +299,10 @@ export function EmailUserModal({ isOpen, onClose, selectedUsers, onSuccess }: Em
             </div>
           </div>
         )}
+        </div>
 
-        {/* Actions */}
-        <div className="flex gap-3 justify-end pt-4 border-t">
+        {/* Actions - Fixed at bottom */}
+        <div className="flex gap-3 justify-end pt-4 mt-4 border-t flex-shrink-0">
           <Button
             variant="outline"
             onClick={onClose}
