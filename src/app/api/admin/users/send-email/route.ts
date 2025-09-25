@@ -15,7 +15,7 @@ async function handlePost(request: NextRequest) {
 
     const { data: profile } = await supabase
       .from('profiles')
-      .select('is_admin, email')
+      .select('is_admin, email, first_name, last_name')
       .eq('id', user.id)
       .single();
 
@@ -39,8 +39,16 @@ async function handlePost(request: NextRequest) {
       .select('id, email, first_name, last_name, email_marketing_opted_out')
       .in('id', userIds);
 
-    if (usersError || !users) {
-      return NextResponse.json({ error: 'Failed to fetch user data' }, { status: 500 });
+    if (usersError) {
+      console.error('Error fetching user data:', usersError);
+      return NextResponse.json({
+        error: 'Failed to fetch user data',
+        details: usersError.message
+      }, { status: 500 });
+    }
+
+    if (!users || users.length === 0) {
+      return NextResponse.json({ error: 'No valid users found' }, { status: 400 });
     }
 
     // Log the email activity
