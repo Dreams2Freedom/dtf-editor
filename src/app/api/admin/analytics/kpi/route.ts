@@ -177,13 +177,33 @@ async function handleGet(request: NextRequest) {
     // ===============================================
     // CONVERSION RATE CALCULATIONS
     // ===============================================
-    
-    const conversionRate = freeUsers > 0 ? (paidUsers / (freeUsers + paidUsers)) * 100 : 0;
-    const conversionTrend = previousPeriodNewUsers > 0 ? 
-      ((currentPeriodNewUsers - previousPeriodNewUsers) / previousPeriodNewUsers) * 100 : 0;
-    
-    const freeToBasicRate = freeUsers > 0 ? (basicSubscribers / freeUsers) * 100 : 0;
-    const freeToStarterRate = freeUsers > 0 ? (starterSubscribers / freeUsers) * 100 : 0;
+
+    const totalUserBase = freeUsers + paidUsers;
+    const conversionRate = totalUserBase > 0 ? (paidUsers / totalUserBase) * 100 : 0;
+
+    const previousPeriodPaidUsers = users.filter(u => {
+      const createdAt = new Date(u.created_at);
+      const isPaidUser = u.subscription_status === 'active' || u.subscription_status === 'trialing';
+      return isPaidUser && createdAt >= previousPeriodStart && createdAt < previousPeriodEnd;
+    }).length;
+
+    const currentPeriodPaidUsers = users.filter(u => {
+      const createdAt = new Date(u.created_at);
+      const isPaidUser = u.subscription_status === 'active' || u.subscription_status === 'trialing';
+      return isPaidUser && createdAt >= startDate;
+    }).length;
+
+    const previousConversionRate = previousPeriodNewUsers > 0 ?
+      (previousPeriodPaidUsers / previousPeriodNewUsers) * 100 : 0;
+    const currentConversionRate = currentPeriodNewUsers > 0 ?
+      (currentPeriodPaidUsers / currentPeriodNewUsers) * 100 : 0;
+
+    const conversionTrend = previousConversionRate > 0 ?
+      ((currentConversionRate - previousConversionRate) / previousConversionRate) * 100 :
+      currentConversionRate > 0 ? 100 : 0;
+
+    const freeToBasicRate = totalUserBase > 0 ? (basicSubscribers / totalUserBase) * 100 : 0;
+    const freeToStarterRate = totalUserBase > 0 ? (starterSubscribers / totalUserBase) * 100 : 0;
     
     // ===============================================
     // GROWTH METRICS
