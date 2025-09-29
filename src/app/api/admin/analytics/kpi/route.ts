@@ -89,20 +89,24 @@ async function handleGet(request: NextRequest) {
       return activityDate >= previousPeriodStart && activityDate < previousPeriodEnd;
     }).length;
     
-    // Paid subscribers
-    const currentSubscribers = users.filter(u => 
-      u.subscription_status === 'active' || u.subscription_status === 'trialing'
+    // Paid subscribers - check by plan, not status since status might not be properly set
+    const paidPlans = ['basic', 'starter', 'professional', 'pro'];
+    const currentSubscribers = users.filter(u =>
+      paidPlans.includes(u.subscription_plan) ||
+      u.subscription_status === 'active' ||
+      u.subscription_status === 'trialing'
     );
-    
-    const basicSubscribers = currentSubscribers.filter(u => u.subscription_plan === 'basic').length;
-    const starterSubscribers = currentSubscribers.filter(u => u.subscription_plan === 'starter').length;
-    const proSubscribers = currentSubscribers.filter(u => 
+
+    const basicSubscribers = users.filter(u => u.subscription_plan === 'basic').length;
+    const starterSubscribers = users.filter(u => u.subscription_plan === 'starter').length;
+    const proSubscribers = users.filter(u =>
       u.subscription_plan === 'professional' || u.subscription_plan === 'pro'
     ).length;
-    
-    // Free to paid conversions
-    const freeUsers = users.filter(u => 
-      u.subscription_plan === 'free' || !u.subscription_plan
+
+    // Free users - those without a paid plan
+    const freeUsers = users.filter(u =>
+      u.subscription_plan === 'free' || !u.subscription_plan ||
+      (!paidPlans.includes(u.subscription_plan) && u.subscription_status !== 'active' && u.subscription_status !== 'trialing')
     ).length;
     
     // ===============================================
@@ -183,13 +187,17 @@ async function handleGet(request: NextRequest) {
 
     const previousPeriodPaidUsers = users.filter(u => {
       const createdAt = new Date(u.created_at);
-      const isPaidUser = u.subscription_status === 'active' || u.subscription_status === 'trialing';
+      const isPaidUser = paidPlans.includes(u.subscription_plan) ||
+                        u.subscription_status === 'active' ||
+                        u.subscription_status === 'trialing';
       return isPaidUser && createdAt >= previousPeriodStart && createdAt < previousPeriodEnd;
     }).length;
 
     const currentPeriodPaidUsers = users.filter(u => {
       const createdAt = new Date(u.created_at);
-      const isPaidUser = u.subscription_status === 'active' || u.subscription_status === 'trialing';
+      const isPaidUser = paidPlans.includes(u.subscription_plan) ||
+                        u.subscription_status === 'active' ||
+                        u.subscription_status === 'trialing';
       return isPaidUser && createdAt >= startDate;
     }).length;
 
