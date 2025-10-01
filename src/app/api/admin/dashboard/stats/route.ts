@@ -71,13 +71,13 @@ async function handleGet() {
     // ========================================
     // REVENUE STATISTICS - PROPERLY CALCULATED
     // ========================================
-    
-    // Get actual subscription revenue from active subscriptions
+
+    // Get users with paid subscription plans (checking plan field since status might not be set correctly)
+    const paidPlans = ['basic', 'starter', 'professional', 'pro'];
     const { data: activeSubscriptions } = await serviceClient
       .from('profiles')
-      .select('subscription_plan, stripe_subscription_id')
-      .not('stripe_subscription_id', 'is', null)
-      .in('subscription_status', ['active', 'trialing']);
+      .select('subscription_plan, subscription_status, stripe_subscription_id')
+      .or(`subscription_plan.in.(${paidPlans.join(',')}),subscription_status.in.(active,trialing)`);
 
     // Real plan prices (in dollars, not cents)
     const planPrices: Record<string, number> = {
@@ -87,9 +87,13 @@ async function handleGet() {
       pro: 49.99
     };
 
-    // Calculate MRR from active subscriptions
+    // Calculate MRR from users with paid plans
     const mrr = activeSubscriptions?.reduce((total, sub) => {
-      return total + (planPrices[sub.subscription_plan] || 0);
+      // Only count users with actual paid plans
+      if (paidPlans.includes(sub.subscription_plan)) {
+        return total + (planPrices[sub.subscription_plan] || 0);
+      }
+      return total;
     }, 0) || 0;
 
     const arr = mrr * 12;
@@ -104,9 +108,9 @@ async function handleGet() {
 
     // Calculate today's revenue from metadata which should contain price info
     const todayRevenue = todayTransactions?.reduce((sum, t) => {
-      // Check metadata for actual price paid
-      const price = t.metadata?.price || t.metadata?.amount_paid || 0;
-      return sum + (price / 100); // Convert from cents to dollars if needed
+      // Check metadata for actual price paid (price_paid is in cents)
+      const price = t.metadata?.price_paid || t.metadata?.amount_paid || 0;
+      return sum + (price / 100); // Convert from cents to dollars
     }, 0) || 0;
 
     const { data: weekTransactions } = await serviceClient
@@ -116,7 +120,7 @@ async function handleGet() {
       .in('type', ['purchase', 'subscription']);
 
     const weekRevenue = weekTransactions?.reduce((sum, t) => {
-      const price = t.metadata?.price || t.metadata?.amount_paid || 0;
+      const price = t.metadata?.price_paid || t.metadata?.amount_paid || 0;
       return sum + (price / 100);
     }, 0) || 0;
 
@@ -127,7 +131,7 @@ async function handleGet() {
       .in('type', ['purchase', 'subscription']);
 
     const monthRevenue = monthTransactions?.reduce((sum, t) => {
-      const price = t.metadata?.price || t.metadata?.amount_paid || 0;
+      const price = t.metadata?.price_paid || t.metadata?.amount_paid || 0;
       return sum + (price / 100);
     }, 0) || 0;
 
