@@ -180,6 +180,13 @@ export default function AdminAffiliatePayoutsPage() {
         throw new Error('Affiliate not found');
       }
 
+      // Check if tax form is on file
+      if (!pendingAffiliate.affiliate.tax_form_submitted) {
+        toast.error('Tax form must be on file before processing payouts');
+        setProcessingPayout(null);
+        return;
+      }
+
       // Create payout record
       const { data: payout, error: payoutError } = await supabase
         .from('payouts')
@@ -355,6 +362,7 @@ export default function AdminAffiliatePayoutsPage() {
                 <thead>
                   <tr>
                     <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Affiliate</th>
+                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Tax Form</th>
                     <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Payment Method</th>
                     <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Commissions</th>
                     <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Total Amount</th>
@@ -372,6 +380,19 @@ export default function AdminAffiliatePayoutsPage() {
                             {pending.affiliate?.referral_code}
                           </div>
                         </div>
+                      </td>
+                      <td className="px-4 py-3">
+                        {pending.affiliate?.tax_form_submitted ? (
+                          <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                            <CheckCircle className="h-3 w-3 mr-1" />
+                            {pending.affiliate?.tax_form_type || 'On File'}
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                            <XCircle className="h-3 w-3 mr-1" />
+                            Missing
+                          </span>
+                        )}
                       </td>
                       <td className="px-4 py-3">
                         <div className="text-sm">

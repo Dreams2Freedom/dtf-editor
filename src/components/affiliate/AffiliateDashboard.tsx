@@ -13,8 +13,11 @@ import {
   ExternalLink,
   Calendar,
   Award,
-  AlertCircle
+  AlertCircle,
+  FileText,
+  Mail
 } from 'lucide-react';
+import Link from 'next/link';
 import type {
   Affiliate,
   AffiliateDashboardStats,
@@ -221,6 +224,87 @@ export function AffiliateDashboard({ initialData }: AffiliateDashboardProps) {
               </p>
             </div>
             <DollarSign className="w-8 h-8 text-yellow-500 opacity-20" />
+          </div>
+        </Card>
+      </div>
+
+      {/* Tax Form & Payout Status */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {/* Tax Form Status */}
+        <Card className="p-6">
+          <div className="flex items-start justify-between">
+            <div className="flex-1">
+              <h3 className="font-semibold mb-2 flex items-center">
+                <FileText className="w-4 h-4 mr-2" />
+                Tax Information
+              </h3>
+              {affiliate.tax_form_submitted ? (
+                <div>
+                  <p className="text-sm text-green-600 font-medium">✓ Tax form on file</p>
+                  <p className="text-xs text-gray-500 mt-1">
+                    {affiliate.tax_form_type} submitted
+                  </p>
+                </div>
+              ) : (
+                <div>
+                  <p className="text-sm text-yellow-600 font-medium mb-2">Tax form required</p>
+                  <Link href="/affiliate/tax-forms">
+                    <Button size="sm" variant="secondary">
+                      Submit Tax Form
+                    </Button>
+                  </Link>
+                </div>
+              )}
+            </div>
+          </div>
+        </Card>
+
+        {/* Available Balance & Payout Request */}
+        <Card className="p-6">
+          <div className="flex-1">
+            <h3 className="font-semibold mb-2 flex items-center">
+              <DollarSign className="w-4 h-4 mr-2" />
+              Available Balance
+            </h3>
+            <p className="text-2xl font-bold mb-2">
+              ${stats.available_balance?.toFixed(2) || '0.00'}
+            </p>
+            {affiliate.tax_form_submitted ? (
+              stats.available_balance >= 50 ? (
+                <div>
+                  <p className="text-xs text-gray-500 mb-2">Minimum $50 for payout</p>
+                  <Button
+                    size="sm"
+                    onClick={() => {
+                      const subject = encodeURIComponent('Affiliate Payout Request');
+                      const body = encodeURIComponent(`
+Hi DTF Editor Team,
+
+I would like to request a payout for my affiliate earnings.
+
+Affiliate Code: ${affiliate.referral_code}
+Available Balance: $${stats.available_balance?.toFixed(2)}
+Payment Method: ${affiliate.payment_method || 'Please specify'}
+
+Thank you!
+                      `.trim());
+                      window.location.href = `mailto:affiliates@dtfeditor.com?subject=${subject}&body=${body}`;
+                    }}
+                  >
+                    <Mail className="w-4 h-4 mr-1" />
+                    Request Payout
+                  </Button>
+                </div>
+              ) : (
+                <p className="text-sm text-gray-500">
+                  ${(50 - (stats.available_balance || 0)).toFixed(2)} more needed for payout
+                </p>
+              )
+            ) : (
+              <p className="text-sm text-yellow-600">
+                Submit tax form to enable payouts
+              </p>
+            )}
           </div>
         </Card>
       </div>
