@@ -4,15 +4,14 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs';
-import { cookies } from 'next/headers';
+import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { applyToAffiliate } from '@/services/affiliate';
 import type { AffiliateApplicationData } from '@/types/affiliate';
 
 export async function POST(request: NextRequest) {
   try {
     // Get authenticated user
-    const supabase = createRouteHandlerClient({ cookies });
+    const supabase = await createServerSupabaseClient();
     const { data: { user }, error: authError } = await supabase.auth.getUser();
 
     if (authError || !user) {
