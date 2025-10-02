@@ -50,35 +50,35 @@ async function handleGet(request: NextRequest) {
     // Fetch active users data
     const { data: allProfiles, error: profilesError } = await serviceClient
       .from('profiles')
-      .select('id, last_sign_in_at, created_at');
-    
+      .select('id, last_activity_at, created_at');
+
     if (profilesError) {
       console.error('Error fetching profiles:', profilesError);
     }
 
     // Calculate active users
     const activeNow = allProfiles?.filter(p => {
-      if (!p.last_sign_in_at) return false;
-      const lastActive = new Date(p.last_sign_in_at);
+      if (!p.last_activity_at) return false;
+      const lastActive = new Date(p.last_activity_at);
       const fiveMinutesAgo = new Date(now.getTime() - 5 * 60 * 1000);
       return lastActive >= fiveMinutesAgo;
     }).length || 0;
 
     const activeToday = allProfiles?.filter(p => {
-      if (!p.last_sign_in_at) return false;
-      const lastActive = new Date(p.last_sign_in_at);
+      if (!p.last_activity_at) return false;
+      const lastActive = new Date(p.last_activity_at);
       return lastActive >= today;
     }).length || 0;
 
     const activeThisWeek = allProfiles?.filter(p => {
-      if (!p.last_sign_in_at) return false;
-      const lastActive = new Date(p.last_sign_in_at);
+      if (!p.last_activity_at) return false;
+      const lastActive = new Date(p.last_activity_at);
       return lastActive >= thisWeek;
     }).length || 0;
 
     const activeThisMonth = allProfiles?.filter(p => {
-      if (!p.last_sign_in_at) return false;
-      const lastActive = new Date(p.last_sign_in_at);
+      if (!p.last_activity_at) return false;
+      const lastActive = new Date(p.last_activity_at);
       return lastActive >= thisMonth;
     }).length || 0;
 
@@ -91,8 +91,8 @@ async function handleGet(request: NextRequest) {
       nextDate.setDate(date.getDate() + 1);
       
       const count = allProfiles?.filter(p => {
-        if (!p.last_sign_in_at) return false;
-        const lastActive = new Date(p.last_sign_in_at);
+        if (!p.last_activity_at) return false;
+        const lastActive = new Date(p.last_activity_at);
         return lastActive >= date && lastActive < nextDate;
       }).length || 0;
 
@@ -118,9 +118,9 @@ async function handleGet(request: NextRequest) {
 
     // Calculate engagement metrics (simplified)
     const returningUsers = allProfiles?.filter(p => {
-      if (!p.created_at || !p.last_sign_in_at) return false;
+      if (!p.created_at || !p.last_activity_at) return false;
       const created = new Date(p.created_at);
-      const lastActive = new Date(p.last_sign_in_at);
+      const lastActive = new Date(p.last_activity_at);
       const daysSinceCreation = (lastActive.getTime() - created.getTime()) / (1000 * 60 * 60 * 24);
       return daysSinceCreation > 1;
     }).length || 0;
