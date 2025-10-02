@@ -193,7 +193,7 @@ CREATE TABLE IF NOT EXISTS public.commissions (
   clawback_fee DECIMAL(10,2),
 
   -- Payment Information
-  payout_id UUID REFERENCES public.payouts(id),
+  payout_id UUID, -- Will add foreign key constraint after payouts table is created
 
   -- Tracking
   commission_month DATE, -- for monthly calculations
@@ -268,6 +268,14 @@ CREATE TABLE IF NOT EXISTS public.affiliate_events (
   created_by UUID REFERENCES auth.users(id),
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
+
+-- =====================================================
+-- ADD FOREIGN KEY CONSTRAINT
+-- =====================================================
+-- Now that payouts table exists, add the foreign key constraint
+ALTER TABLE public.commissions
+ADD CONSTRAINT commissions_payout_id_fkey
+FOREIGN KEY (payout_id) REFERENCES public.payouts(id);
 
 -- =====================================================
 -- INDEXES FOR PERFORMANCE
