@@ -26,7 +26,7 @@ import { CreateTicketModal } from '@/components/support/CreateTicketModal';
 
 export default function SupportPage() {
   const router = useRouter();
-  const { user, loading: authLoading } = useAuthStore();
+  const { user, isAdmin, loading: authLoading } = useAuthStore();
   const [tickets, setTickets] = useState<SupportTicket[]>([]);
   const [filteredTickets, setFilteredTickets] = useState<SupportTicket[]>([]);
   const [loading, setLoading] = useState(true);
@@ -40,11 +40,16 @@ export default function SupportPage() {
       router.push('/auth/login');
       return;
     }
+    // Redirect admin users to admin support page
+    if (user && isAdmin) {
+      router.push('/admin/support');
+      return;
+    }
     // Only fetch tickets if we have a user
     if (user) {
       fetchTickets();
     }
-  }, [user, authLoading, router]);
+  }, [user, isAdmin, authLoading, router]);
 
   useEffect(() => {
     filterTickets();

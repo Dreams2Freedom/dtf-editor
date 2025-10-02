@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/stores/authStore';
+import { AdminLayout } from '@/components/admin/layout/AdminLayout';
 import { supportService } from '@/services/support';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
@@ -205,11 +206,12 @@ export default function AdminSupportPage() {
   };
 
   return (
-    <div className="p-6">
-      {/* Header */}
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900 mb-2">Support Tickets</h1>
-        <p className="text-gray-600">Manage and respond to customer support requests</p>
+    <AdminLayout>
+      <div className="p-6">
+        {/* Header */}
+        <div className="mb-6">
+          <h1 className="text-2xl font-bold text-gray-900 mb-2">Support Tickets</h1>
+          <p className="text-gray-600">Manage and respond to customer support requests</p>
       </div>
 
       {/* Stats Cards */}
@@ -424,6 +426,7 @@ export default function AdminSupportPage() {
           </div>
         </Card>
       )}
-    </div>
+      </div>
+    </AdminLayout>
   );
 }
