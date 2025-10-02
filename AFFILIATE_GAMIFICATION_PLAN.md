@@ -13,10 +13,10 @@
 #### **1. Monthly Earnings Champion**
 - **Metric:** Total commissions earned this month
 - **Display:** Top 25 affiliates
-- **Prize:** 
-  - 🥇 1st Place: $100 bonus + "Top Earner" badge
-  - 🥈 2nd Place: $50 bonus
-  - 🥉 3rd Place: $25 bonus
+- **Prize:**
+  - 🥇 1st Place: 100 credits + "Top Earner" badge
+  - 🥈 2nd Place: 50 credits
+  - 🥉 3rd Place: 25 credits
 - **Reset:** 1st of each month
 - **Visibility:** Public (with opt-out option)
 
@@ -121,12 +121,13 @@
 
 | Reward | Points Cost |
 |--------|------------|
-| $5 bonus commission | 500 |
 | 10 customer credits | 250 |
+| 25 customer credits | 500 |
+| 50 customer credits | 900 |
 | Premium support for 1 month | 300 |
 | Custom vanity URL | 400 |
 | Early payout (skip 30-day hold) | 600 |
-| Commission boost (5% for 1 month) | 1000 |
+| Commission boost (3% for 1 month, max 5% total) | 1000 |
 | Featured affiliate spotlight | 800 |
 | 1-on-1 strategy session | 1500 |
 | Exclusive webinar access | 200 |
@@ -138,53 +139,46 @@
 
 ### **Affiliate Tiers**
 
-#### **🌱 Starter Tier (Default)**
-- Commission: 20% recurring
+#### **🌱 Standard Tier (Default)**
+- Commission: 20% for 24 months, then 10%
 - Cookie duration: 30 days
 - Basic dashboard
 - Standard support
 - Access to basic materials
 
 #### **⭐ Silver Tier**
-- **Requirements:** 5 active customers OR $250/month
-- Commission: 22% recurring
-- Cookie duration: 35 days
+- **Requirements:** Generate $500+/month in MRR (3-month average)
+- Commission: 22% for 24 months, then 10%
+- Cookie duration: 30 days
 - Advanced analytics
 - Priority support
 - Custom referral links
 - Silver badge display
 
-#### **🏆 Gold Tier**
-- **Requirements:** 15 active customers OR $500/month
-- Commission: 25% recurring
-- Cookie duration: 40 days
+#### **🏆 Gold Tier (Maximum)**
+- **Requirements:** Generate $1,500+/month in MRR (3-month average)
+- Commission: 25% for 24 months, then 10%
+- Cookie duration: 30 days
 - Real-time notifications
 - Dedicated account manager
 - Custom marketing materials
 - Gold badge display
 - Quarterly bonus pool eligibility
-
-#### **💎 Diamond Tier**
-- **Requirements:** 50 active customers OR $2,000/month
-- Commission: 30% recurring
-- Cookie duration: 45 days
-- White-label options
-- Monthly strategy calls
-- First access to new features
-- Diamond badge display
-- Annual retreat invitation
+- **Note:** 25% is the maximum commission rate available
 
 ### **Tier Benefits Comparison**
 
-| Feature | Starter | Silver | Gold | Diamond |
-|---------|---------|--------|------|--------|
-| Commission Rate | 20% | 22% | 25% | 30% |
-| Cookie Duration | 30 days | 35 days | 40 days | 45 days |
-| Support Level | Standard | Priority | Dedicated | VIP |
-| Custom Materials | ❌ | Basic | Full | White-label |
-| Bonus Eligibility | Monthly | Monthly | Quarterly | All |
-| Strategy Calls | ❌ | ❌ | Quarterly | Monthly |
-| Early Access | ❌ | ❌ | Some | All |
+| Feature | Standard | Silver | Gold |
+|---------|----------|--------|------|
+| Commission Rate (First 24 months) | 20% | 22% | 25% |
+| Commission Rate (After 24 months) | 10% | 10% | 10% |
+| Cookie Duration | 30 days | 30 days | 30 days |
+| Support Level | Standard | Priority | Dedicated |
+| Custom Materials | ❌ | Basic | Full |
+| Bonus Eligibility | Monthly | Monthly | Quarterly |
+| Strategy Calls | ❌ | ❌ | Quarterly |
+| MRR Requirement | $0 | $500/month | $1,500/month |
+| Max Bonus Stack | 5% | 5% | 5% |
 
 ---
 
@@ -269,7 +263,7 @@
 ### **Affiliate of the Month**
 - Featured on website
 - Success story interview
-- $250 bonus
+- 250 credits bonus
 - Exclusive "AOTM" badge
 - Social media shoutout
 - Free merchandise package

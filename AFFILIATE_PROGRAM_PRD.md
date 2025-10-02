@@ -32,17 +32,24 @@ Implement a comprehensive affiliate program to drive user acquisition through pa
 ### **Commission Structure**
 
 #### **Standard Tier (All Affiliates)**
-- **Recurring Commission:** 20% of subscription revenue for lifetime (as long as customer stays)
+- **Recurring Commission:** 20% of subscription revenue for 24 months, then 10% lifetime
 - **One-time Purchase:** 20% of credit pack purchases
 - **Cookie Duration:** 30 days
 - **Minimum Payout:** $50
 - **Payment Schedule:** Monthly (NET-30)
 
-#### **Premium Tier (Top Performers)**
-- **Qualification:** 10+ active referrals or $500+ monthly commissions
-- **Recurring Commission:** 25% for lifetime (as long as customer stays)
+#### **Silver Tier**
+- **Qualification:** Generate $500+/month in MRR
+- **Recurring Commission:** 22% for 24 months, then 10% lifetime
+- **One-time Purchase:** 22% of credit packs
+- **Additional Benefits:** Priority support, custom referral links
+
+#### **Gold Tier (Top Performers)**
+- **Qualification:** Generate $1,500+/month in MRR
+- **Recurring Commission:** 25% for 24 months, then 10% lifetime
 - **One-time Purchase:** 25% of credit packs
-- **Additional Benefits:** Early access to features, dedicated support, leaderboard recognition
+- **Additional Benefits:** Dedicated support, custom marketing materials, leaderboard recognition
+- **Maximum Commission Cap:** 25% (no higher tiers available)
 
 #### **Special Programs**
 - **Influencer Program:** Custom rates for 1000+ followers
@@ -191,6 +198,9 @@ CREATE TABLE affiliates (
   tier VARCHAR(20) DEFAULT 'standard',
   commission_rate_recurring DECIMAL(3,2) DEFAULT 0.20,
   commission_rate_onetime DECIMAL(3,2) DEFAULT 0.20,
+  commission_rate_lifetime DECIMAL(3,2) DEFAULT 0.10, -- after 24 months
+  mrr_generated DECIMAL(10,2) DEFAULT 0.00, -- for tier calculation
+  mrr_3month_avg DECIMAL(10,2) DEFAULT 0.00, -- 3-month average
   status VARCHAR(20) DEFAULT 'pending',
   approved_at TIMESTAMP,
   approved_by UUID REFERENCES profiles(id),
@@ -247,6 +257,8 @@ CREATE TABLE commissions (
   status VARCHAR(20) DEFAULT 'pending', -- pending, approved, paid, cancelled
   commission_rate DECIMAL(3,2),
   base_amount DECIMAL(10,2), -- original transaction amount
+  months_since_referral INTEGER DEFAULT 0, -- track 24-month period
+  is_lifetime_rate BOOLEAN DEFAULT false, -- true after 24 months
   hold_until TIMESTAMP, -- 30-day hold period
   approved_at TIMESTAMP,
   paid_at TIMESTAMP,
@@ -478,8 +490,10 @@ const trackReferral = async (userId: string, req: Request) => {
 3. **Partial refunds:** Adjust commission proportionally
 4. **Plan changes:** Adjust recurring commission on upgrade/downgrade
 5. **Subscription cancellation:** Stop future commissions
-6. **Lifetime commissions:** 20% recurring as long as customer remains subscribed (no cap)
+6. **Commission duration:** Full rate for 24 months, then 10% lifetime
 7. **Tax compliance:** W-9/W-8BEN must be on file before first payout
+8. **Bonus cap:** Maximum 5% additional commission from all bonuses combined
+9. **Tier evaluation:** Based on trailing 3-month MRR average
 
 ### **Fraud Prevention**
 1. **IP filtering:** Flag multiple signups from same IP

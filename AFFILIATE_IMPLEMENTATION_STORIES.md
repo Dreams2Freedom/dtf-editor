@@ -220,20 +220,23 @@ POST /api/affiliate/track
 - [ ] Handles one-time purchases
 - [ ] Updates in real-time
 
-#### **Story 4.3: Commission Calculation Service** ⏱ 2 hours
-**Task:** Create commission calculation logic
+#### **Story 4.3: Commission Calculation Service** ⏱ 3 hours
+**Task:** Create commission calculation logic with 24-month cap
 **File:** `/services/commission.ts`
 **Functions:**
 ```typescript
-calculateCommission(amount, type, tier)
+calculateCommission(amount, type, tier, monthsSinceReferral)
 applyCommissionRules(commission, rules)
 handleRefund(transactionId)
 handleSubscriptionChange(subId, change)
+getCommissionRate(tier, monthsSinceReferral) // 20-25% first 24mo, 10% after
+checkBonusCap(totalBonuses) // Max 5% additional
 ```
 **Acceptance Criteria:**
-- [ ] Calculates accurately
-- [ ] Applies tier rates
-- [ ] Handles edge cases
+- [ ] Calculates accurately with time-based rates
+- [ ] Applies 24-month cap correctly
+- [ ] Switches to 10% after 24 months
+- [ ] Bonus cap at 5% total
 - [ ] Refund deductions work
 - [ ] Well-tested with unit tests
 
@@ -531,12 +534,14 @@ POST /api/admin/affiliates/payouts/process
 - [ ] Motivational badges/achievements
 
 #### **Story 10.2: Tier System Implementation** ⏱ 3 hours
-**Task:** Implement performance tiers
+**Task:** Implement performance tiers based on MRR
 **File:** `/services/affiliate-tiers.ts`
 **Tiers:**
-- Standard: 20% recurring lifetime
-- Premium: 25% recurring lifetime
-- Conditions for upgrade (10+ active referrals or $500+ monthly)
+- Standard: 20% for 24 months, then 10%
+- Silver: 22% for 24 months, then 10% (requires $500/mo MRR)
+- Gold: 25% for 24 months, then 10% (requires $1,500/mo MRR)
+- Calculate based on 3-month average MRR
+- Maximum 25% commission (no higher tiers)
 
 **Acceptance Criteria:**
 - [ ] Auto-upgrades work
