@@ -352,6 +352,51 @@
 
 ---
 
+## 📣 **Phase 9: Affiliate Program (Weeks 6-9) - NEW**
+
+**Goal:** Complete affiliate program for user acquisition and growth
+
+**Status:** Planning Complete - Ready to implement
+
+### **9.1 Foundation & Database** ⏱️ 3 days
+- [ ] Create affiliate database schema
+- [ ] Build registration system
+- [ ] Implement referral tracking
+- [ ] Set up cookie attribution
+- [ ] Create admin approval interface
+
+### **9.2 Tracking & Attribution** ⏱️ 3 days
+- [ ] User signup attribution
+- [ ] Payment conversion tracking
+- [ ] Commission calculation service
+- [ ] Affiliate dashboard
+- [ ] Marketing materials library
+
+### **9.3 Payout System** ⏱️ 3 days
+- [ ] Payout request interface
+- [ ] Payment method management
+- [ ] Admin payout processing
+- [ ] Commission hold period
+- [ ] Refund/chargeback handling
+
+### **9.4 Advanced Features** ⏱️ 3 days
+- [ ] Performance tier system
+- [ ] Advanced analytics
+- [ ] Automated notifications
+- [ ] Fraud detection
+- [ ] Campaign tracking
+
+### **9.5 Testing & Launch** ⏱️ 2 days
+- [ ] Comprehensive testing
+- [ ] Documentation
+- [ ] Beta launch
+- [ ] Performance optimization
+- [ ] Go-live preparation
+
+**Documentation:** See `AFFILIATE_PROGRAM_PRD.md` and `AFFILIATE_IMPLEMENTATION_STORIES.md` for complete details
+
+---
+
 ## 📋 **Implementation Guidelines**
 
 ### **🚨 CRITICAL: Use Context7 MCP for Latest Documentation**
