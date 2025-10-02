@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { createClientSupabaseClient } from '@/lib/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
+import { AffiliateAdminNav } from '@/components/admin/affiliates/AffiliateAdminNav';
 import { Button } from '@/components/ui/Button';
 import { toast } from 'react-hot-toast';
 import {
@@ -155,10 +156,7 @@ export default function AdminAffiliateApplicationsPage() {
 
   return (
     <div className="p-6">
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold">Affiliate Applications</h1>
-        <p className="text-gray-600">Review and manage affiliate program applications</p>
-      </div>
+      <AffiliateAdminNav />
 
       {/* Stats */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">

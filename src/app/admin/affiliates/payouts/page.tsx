@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { createClientSupabaseClient } from '@/lib/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
+import { AffiliateAdminNav } from '@/components/admin/affiliates/AffiliateAdminNav';
 import { Button } from '@/components/ui/Button';
 import { toast } from 'react-hot-toast';
 import {
@@ -282,10 +283,11 @@ export default function AdminAffiliatePayoutsPage() {
 
   return (
     <div className="p-6">
+      <AffiliateAdminNav />
+
       <div className="mb-6 flex justify-between items-center">
         <div>
-          <h1 className="text-2xl font-bold">Payout Management</h1>
-          <p className="text-gray-600">Process affiliate payouts</p>
+          <h2 className="text-xl font-semibold">Payout Management</h2>
         </div>
         <div className="flex gap-3">
           <Button onClick={exportPayouts} variant="secondary">

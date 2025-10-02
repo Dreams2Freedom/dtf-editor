@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClientSupabaseClient } from '@/lib/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
+import { AffiliateAdminNav } from '@/components/admin/affiliates/AffiliateAdminNav';
 import {
   UsersRound,
   DollarSign,
@@ -186,10 +187,7 @@ export default function AdminAffiliatesPage() {
 
   return (
     <div className="p-6">
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold">Affiliate Program Management</h1>
-        <p className="text-gray-600">Monitor and manage your affiliate program</p>
-      </div>
+      <AffiliateAdminNav />
 
       {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
