@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { emailService } from '@/services/email';
 import { goHighLevelService } from '@/services/goHighLevel';
+import { trackReferralSignup } from '@/services/affiliate';
 import { env } from '@/config/env';
 
 export async function POST(request: NextRequest) {
@@ -9,6 +10,10 @@ export async function POST(request: NextRequest) {
   
   try {
     const { email, password, metadata } = await request.json();
+
+    // Check for affiliate cookie
+    const affiliateCookie = request.cookies.get('dtf_ref')?.value;
+    const affiliateCode = request.cookies.get('dtf_ref_code')?.value;
     
     console.log('[SIGNUP API] Step 2: Creating user for:', email);
     
@@ -65,7 +70,27 @@ export async function POST(request: NextRequest) {
     } else {
       console.log('[SIGNUP API] Step 4: Profile created successfully');
     }
-    
+
+    // Track referral if cookie exists
+    if (affiliateCookie || affiliateCode) {
+      console.log('[SIGNUP API] Step 4b: Tracking referral with cookie:', affiliateCookie, 'code:', affiliateCode);
+      try {
+        const referralResult = await trackReferralSignup(
+          signUpData.user.id,
+          affiliateCookie,
+          affiliateCode
+        );
+        if (referralResult.success) {
+          console.log('[SIGNUP API] Referral tracked successfully');
+        } else {
+          console.log('[SIGNUP API] Failed to track referral');
+        }
+      } catch (referralError) {
+        console.error('[SIGNUP API] Error tracking referral:', referralError);
+        // Don't fail signup if referral tracking fails
+      }
+    }
+
     // Send welcome email (this happens server-side, so it won't be cancelled)
     console.log('[SIGNUP API] Step 5: Sending welcome email to:', email);
     console.log('[SIGNUP API] Email metadata:', {

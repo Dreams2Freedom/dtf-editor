@@ -4,6 +4,7 @@ import { emailService } from '@/services/email';
 import { goHighLevelService } from '@/services/goHighLevel';
 import { createClient } from '@supabase/supabase-js';
 import { ApiCostTracker } from '@/lib/api-cost-tracker';
+import { trackReferralConversion } from '@/services/affiliate';
 
 // Lazy initialize Supabase to avoid build-time errors
 let supabase: ReturnType<typeof createClient> | null = null;
@@ -624,7 +625,22 @@ async function handleCheckoutSessionCompleted(session: any) {
             throw creditError;
           }
         }
-        
+
+        // Track affiliate conversion for subscription
+        try {
+          const paymentAmount = (session.amount_total || 0) / 100; // Convert from cents to dollars
+          await trackReferralConversion(
+            userId,
+            paymentAmount,
+            session.payment_intent as string,
+            plan.id // subscription plan
+          );
+          console.log('✅ Tracked affiliate conversion for subscription');
+        } catch (affiliateError) {
+          console.error('❌ Error tracking affiliate conversion:', affiliateError);
+          // Don't fail the webhook if affiliate tracking fails
+        }
+
         // Track Stripe subscription payment costs
         try {
           await ApiCostTracker.logUsage({
@@ -744,7 +760,22 @@ async function handleCheckoutSessionCompleted(session: any) {
         }
         
         console.log('✅ Credits added successfully from checkout session!');
-        
+
+        // Track affiliate conversion for one-time purchase
+        try {
+          const paymentAmount = (session.amount_total || 0) / 100; // Convert from cents to dollars
+          await trackReferralConversion(
+            userId,
+            paymentAmount,
+            session.payment_intent as string,
+            undefined // one-time purchase, not subscription
+          );
+          console.log('✅ Tracked affiliate conversion for one-time purchase');
+        } catch (affiliateError) {
+          console.error('❌ Error tracking affiliate conversion:', affiliateError);
+          // Don't fail the webhook if affiliate tracking fails
+        }
+
         // Track Stripe payment processing costs
         try {
           // Get user plan for cost tracking
