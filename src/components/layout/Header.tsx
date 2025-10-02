@@ -75,6 +75,7 @@ export function Header() {
 
   const userNavigation = [
     ...(isAdmin ? [{ name: 'Admin Dashboard', href: '/admin', icon: Shield }] : []),
+    { name: 'Affiliate Dashboard', href: '/dashboard/affiliate', icon: Crown },
     { name: 'Storage', href: '/storage', icon: HardDrive },
     { name: 'Settings', href: '/settings', icon: Settings },
     { name: 'Support', href: isAdmin ? '/admin/support' : '/support', icon: HelpCircle },

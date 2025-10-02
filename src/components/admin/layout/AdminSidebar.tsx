@@ -2,11 +2,11 @@
 
 import { usePathname } from 'next/navigation';
 import Link from 'next/link';
-import { 
-  LayoutDashboard, 
-  Users, 
-  DollarSign, 
-  BarChart3, 
+import {
+  LayoutDashboard,
+  Users,
+  DollarSign,
+  BarChart3,
   Settings,
   HeadphonesIcon,
   Shield,
@@ -14,7 +14,8 @@ import {
   X,
   ChevronDown,
   ChevronRight,
-  Bell
+  Bell,
+  UsersRound
 } from 'lucide-react';
 import { useState } from 'react';
 interface AdminSidebarProps {
@@ -62,6 +63,18 @@ const menuItems: MenuItem[] = [
     href: '/admin/analytics',
     icon: BarChart3,
     permission: ['analytics', 'view'],
+  },
+  {
+    name: 'Affiliates',
+    href: '/admin/affiliates',
+    icon: UsersRound,
+    permission: ['affiliates', 'view'],
+    children: [
+      { name: 'Overview', href: '/admin/affiliates', icon: BarChart3 },
+      { name: 'Applications', href: '/admin/affiliates/applications', icon: FileText },
+      { name: 'Commissions', href: '/admin/affiliates/commissions', icon: DollarSign },
+      { name: 'Payouts', href: '/admin/affiliates/payouts', icon: DollarSign },
+    ]
   },
   {
     name: 'Support',
