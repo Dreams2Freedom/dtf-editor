@@ -35,7 +35,6 @@ export async function POST(request: NextRequest) {
       check_payable_to: body.check_payable_to,
       mailing_address: body.mailing_address,
       tax_form_type: body.tax_form_type,
-      tax_id: body.tax_id,
       agree_to_terms: body.agree_to_terms
     };
 

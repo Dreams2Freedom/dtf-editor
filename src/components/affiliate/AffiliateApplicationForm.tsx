@@ -46,7 +46,6 @@ export function AffiliateApplicationForm({ userId }: AffiliateApplicationFormPro
 
     // Tax
     tax_form_type: 'W9' as 'W9' | 'W8BEN',
-    tax_id: '',
 
     // Agreement
     agree_to_terms: false
@@ -111,7 +110,6 @@ export function AffiliateApplicationForm({ userId }: AffiliateApplicationFormPro
           country: formData.mailing_country
         } : undefined,
         tax_form_type: formData.tax_form_type,
-        tax_id: formData.tax_id,
         agree_to_terms: formData.agree_to_terms
       };
 
@@ -422,18 +420,14 @@ export function AffiliateApplicationForm({ userId }: AffiliateApplicationFormPro
             </select>
           </div>
 
-          <div>
-            <label className="block text-sm font-medium mb-2">
-              Tax ID (SSN/EIN) <span className="text-red-500">*</span>
-            </label>
-            <Input
-              required
-              type="password"
-              value={formData.tax_id}
-              onChange={(e) => setFormData({ ...formData, tax_id: e.target.value })}
-              placeholder={formData.tax_form_type === 'W9' ? 'XXX-XX-XXXX' : 'Foreign Tax ID'}
-            />
-            <p className="text-xs text-gray-500 mt-1">This will be encrypted and stored securely</p>
+          <div className="bg-blue-50 p-4 rounded-lg">
+            <p className="text-sm text-blue-800 font-medium mb-1">
+              Tax Information Required After Approval
+            </p>
+            <p className="text-xs text-blue-700">
+              You'll be required to submit your {formData.tax_form_type === 'W9' ? 'W-9' : 'W-8BEN'} form
+              with tax ID after your application is approved. All tax information is encrypted and stored securely.
+            </p>
           </div>
         </div>
       </Card>

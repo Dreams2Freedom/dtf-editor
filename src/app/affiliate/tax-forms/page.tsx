@@ -39,7 +39,7 @@ interface TaxFormData {
 
 export default function TaxFormsPage() {
   const [loading, setLoading] = useState(true);
-  const [affiliate, setAffiliate] = useState<any>(null);
+  const [affiliate, setAffiliate] = useState<Record<string, any> | null>(null);
   const [formType, setFormType] = useState<'W9' | 'W8BEN' | null>(null);
   const [taxFormData, setTaxFormData] = useState<TaxFormData>({
     form_type: 'W9',
@@ -70,13 +70,13 @@ export default function TaxFormsPage() {
       }
 
       // Get affiliate record
-      const { data: affiliateData, error } = await supabase
+      const { data: affiliateData, error: affiliateError } = await supabase
         .from('affiliates')
         .select('*')
         .eq('user_id', user.id)
         .single();
 
-      if (error || !affiliateData) {
+      if (affiliateError || !affiliateData) {
         toast.error('Please apply to the affiliate program first');
         router.push('/affiliate/apply');
         return;
@@ -106,25 +106,41 @@ export default function TaxFormsPage() {
 
     setSubmitting(true);
     try {
-      // Update affiliate record with tax information
-      const { error } = await supabase
-        .from('affiliates')
-        .update({
-          tax_form_type: taxFormData.form_type,
-          tax_form_submitted: true,
-          tax_form_data: taxFormData,
-          tax_id: taxFormData.tax_id, // Store encrypted
-          tax_form_submitted_at: new Date().toISOString()
+      // Get the user's auth token
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        toast.error('Please log in to submit tax form');
+        router.push('/auth/login');
+        return;
+      }
+
+      // Submit tax form through secure API endpoint
+      const response = await fetch('/api/affiliate/tax-form', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`
+        },
+        body: JSON.stringify({
+          affiliateId: affiliate.id,
+          taxFormData: {
+            ...taxFormData,
+            submitted_at: new Date().toISOString()
+          }
         })
-        .eq('id', affiliate.id);
+      });
 
-      if (error) throw error;
+      const result = await response.json();
 
-      toast.success('Tax form submitted successfully');
+      if (!response.ok) {
+        throw new Error(result.error || 'Failed to submit tax form');
+      }
+
+      toast.success('Tax form submitted securely');
       router.push('/dashboard/affiliate');
     } catch (error) {
       console.error('Error submitting tax form:', error);
-      toast.error('Failed to submit tax form');
+      toast.error((error as Error).message || 'Failed to submit tax form');
     } finally {
       setSubmitting(false);
     }
@@ -154,7 +170,7 @@ export default function TaxFormsPage() {
                 <ul className="text-sm text-gray-600 space-y-1">
                   <li>• Form Type: {formType}</li>
                   <li>• Submitted: {new Date(affiliate.tax_form_submitted_at).toLocaleDateString()}</li>
-                  <li>• Tax ID: ****{affiliate.tax_id?.slice(-4)}</li>
+                  <li>• Tax ID: ***-**-****</li>
                   {formType === 'W9' && (
                     <li>• 1099-MISC will be issued if earnings exceed $600</li>
                   )}
