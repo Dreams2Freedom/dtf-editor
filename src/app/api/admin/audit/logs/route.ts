@@ -34,10 +34,10 @@ async function handleGet(request: NextRequest) {
     const limit = parseInt(searchParams.get('limit') || '20');
     const offset = (page - 1) * limit;
 
-    // Build query
+    // Build query - simplified without foreign key join
     let query = supabase
       .from('admin_audit_logs')
-      .select('*, profiles!admin_audit_logs_admin_id_fkey(email)', { count: 'exact' })
+      .select('*', { count: 'exact' })
       .order('created_at', { ascending: false })
       .limit(limit)
       .offset(offset);
@@ -77,11 +77,22 @@ async function handleGet(request: NextRequest) {
       throw error;
     }
 
-    // Format logs with admin email
-    const formattedLogs = logs?.map(log => ({
-      ...log,
-      admin_email: log.profiles?.email || null
-    })) || [];
+    // Get admin emails separately if we have logs
+    let formattedLogs = logs || [];
+    if (logs && logs.length > 0) {
+      const adminIds = [...new Set(logs.map(log => log.admin_id))];
+      const { data: admins } = await supabase
+        .from('profiles')
+        .select('id, email')
+        .in('id', adminIds);
+
+      const adminEmailMap = new Map(admins?.map(a => [a.id, a.email]) || []);
+
+      formattedLogs = logs.map(log => ({
+        ...log,
+        admin_email: adminEmailMap.get(log.admin_id) || 'Unknown'
+      }));
+    }
 
     return NextResponse.json({
       logs: formattedLogs,
