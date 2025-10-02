@@ -61,7 +61,7 @@ async function handleGet(request: NextRequest) {
     const { data: transactions, error: transactionsError } = await serviceClient
       .from('credit_transactions')
       .select('*, profiles!inner(email, subscription_plan)')
-      .eq('type', 'purchase')
+      .in('type', ['purchase', 'subscription'])
       .gte('created_at', startDate.toISOString())
       .order('created_at', { ascending: false });
     
@@ -69,12 +69,12 @@ async function handleGet(request: NextRequest) {
       console.error('Error fetching transactions:', transactionsError);
     }
 
-    // Get all users for plan distribution
+    // Get all users for plan distribution - check by plan since status might not be set correctly
+    const paidPlans = ['basic', 'starter', 'professional', 'pro'];
     const { data: allUsers, error: usersError } = await serviceClient
       .from('profiles')
       .select('id, subscription_plan, subscription_status, created_at')
-      .not('subscription_plan', 'eq', 'free')
-      .eq('subscription_status', 'active');
+      .in('subscription_plan', paidPlans);
     
     if (usersError) {
       console.error('Error fetching users:', usersError);
@@ -86,8 +86,9 @@ async function handleGet(request: NextRequest) {
     transactions?.forEach(transaction => {
       const date = new Date(transaction.created_at).toISOString().split('T')[0];
       const existing = dailyRevenue.get(date) || { revenue: 0, transactions: 0 };
+      const price = transaction.metadata?.price_paid || transaction.metadata?.amount_paid || 0;
       dailyRevenue.set(date, {
-        revenue: existing.revenue + (transaction.amount || 0) / 100,
+        revenue: existing.revenue + (price / 100),
         transactions: existing.transactions + 1
       });
     });
@@ -103,8 +104,9 @@ async function handleGet(request: NextRequest) {
     transactions?.forEach(transaction => {
       const month = new Date(transaction.created_at).toISOString().slice(0, 7);
       const existing = monthlyRevenue.get(month) || { revenue: 0, mrr: 0, new_customers: 0 };
+      const price = transaction.metadata?.price_paid || transaction.metadata?.amount_paid || 0;
       monthlyRevenue.set(month, {
-        revenue: existing.revenue + (transaction.amount || 0) / 100,
+        revenue: existing.revenue + (price / 100),
         mrr: existing.mrr,
         new_customers: existing.new_customers
       });
@@ -113,8 +115,9 @@ async function handleGet(request: NextRequest) {
     // Calculate MRR for each month based on active subscriptions
     const planPrices: Record<string, number> = {
       basic: 9.99,
-      starter: 19.99,
-      professional: 39.99
+      starter: 24.99,
+      professional: 49.99,
+      pro: 49.99
     };
 
     allUsers?.forEach(user => {
@@ -161,12 +164,13 @@ async function handleGet(request: NextRequest) {
       const userId = transaction.user_id;
       const existing = customerSpending.get(userId);
       
+      const price = transaction.metadata?.price_paid || transaction.metadata?.amount_paid || 0;
       if (existing) {
-        existing.total_spent += (transaction.amount || 0) / 100;
+        existing.total_spent += (price / 100);
       } else {
         customerSpending.set(userId, {
           email: transaction.profiles.email,
-          total_spent: (transaction.amount || 0) / 100,
+          total_spent: (price / 100),
           subscription_plan: transaction.profiles.subscription_plan || 'free',
           created_at: transaction.created_at
         });
@@ -179,7 +183,10 @@ async function handleGet(request: NextRequest) {
       .slice(0, 10);
 
     // Calculate metrics
-    const totalRevenue = transactions?.reduce((sum, t) => sum + (t.amount || 0) / 100, 0) || 0;
+    const totalRevenue = transactions?.reduce((sum, t) => {
+      const price = t.metadata?.price_paid || t.metadata?.amount_paid || 0;
+      return sum + (price / 100);
+    }, 0) || 0;
     const currentMRR = allUsers?.reduce((sum, user) => {
       return sum + (planPrices[user.subscription_plan] || 0);
     }, 0) || 0;
@@ -191,7 +198,10 @@ async function handleGet(request: NextRequest) {
         prevMonth.setMonth(prevMonth.getMonth() - 1);
         return transactionDate.getMonth() === prevMonth.getMonth();
       })
-      .reduce((sum, t) => sum + (t.amount || 0) / 100, 0) || 0;
+      .reduce((sum, t) => {
+        const price = t.metadata?.price_paid || t.metadata?.amount_paid || 0;
+        return sum + (price / 100);
+      }, 0) || 0;
 
     const growthRate = previousMonthRevenue > 0 
       ? ((totalRevenue - previousMonthRevenue) / previousMonthRevenue) * 100 
