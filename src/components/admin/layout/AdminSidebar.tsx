@@ -125,7 +125,7 @@ export function AdminSidebar({ isOpen, onClose }: AdminSidebarProps) {
             className={`
               w-full flex items-center justify-between px-3 py-2 text-sm font-medium rounded-lg
               ${active
-                ? 'bg-primary-blue text-white'
+                ? 'bg-blue-600 text-white hover:bg-blue-700'
                 : 'text-gray-700 hover:bg-gray-100 hover:text-gray-900'
               }
               ${isChild ? 'pl-11' : ''}
@@ -147,7 +147,7 @@ export function AdminSidebar({ isOpen, onClose }: AdminSidebarProps) {
             className={`
               flex items-center px-3 py-2 text-sm font-medium rounded-lg
               ${active
-                ? 'bg-primary-blue text-white'
+                ? 'bg-blue-600 text-white hover:bg-blue-700'
                 : 'text-gray-700 hover:bg-gray-100 hover:text-gray-900'
               }
               ${isChild ? 'pl-11' : ''}
