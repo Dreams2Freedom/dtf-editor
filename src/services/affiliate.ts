@@ -67,8 +67,20 @@ export async function applyToAffiliate(
 
     // Generate referral code
     const username = profile?.full_name || profile?.email?.split('@')[0] || 'USER';
-    const { data: referralCode } = await supabase
+
+    // Try to use database function, fallback to local generation
+    let referralCode: string;
+    const { data: dbReferralCode, error: rpcError } = await supabase
       .rpc('generate_referral_code', { username });
+
+    if (rpcError || !dbReferralCode) {
+      // Fallback: Generate locally if database function doesn't exist
+      const baseCode = username.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 6) || 'USER';
+      const uniqueId = Date.now().toString().slice(-4);
+      referralCode = `${baseCode}${uniqueId}`;
+    } else {
+      referralCode = dbReferralCode;
+    }
 
     // Determine if auto-approval should apply
     const shouldAutoApprove = await checkAutoApprovalCriteria(applicationData);
@@ -78,7 +90,7 @@ export async function applyToAffiliate(
       .from('affiliates')
       .insert({
         user_id: userId,
-        referral_code: referralCode || username.toUpperCase().slice(0, 6) + Date.now().toString().slice(-4),
+        referral_code: referralCode,
         status: shouldAutoApprove ? 'approved' : 'pending',
         approved_at: shouldAutoApprove ? new Date().toISOString() : null,
 
