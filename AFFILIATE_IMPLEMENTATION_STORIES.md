@@ -73,6 +73,7 @@ interface Commission {...}
 - Audience Size
 - Promotion Method
 - Why join program?
+- Tax Information (US/International selection)
 - Agreement checkbox
 
 **Acceptance Criteria:**
@@ -137,14 +138,14 @@ POST /api/affiliate/apply
 
 #### **Story 3.2: Cookie Tracking Implementation** ⏱ 3 hours
 **Task:** Implement referral tracking system
-**Files:** 
+**Files:**
 - `/lib/affiliate-tracking.ts`
 - `/middleware.ts` (update)
 
 **Features:**
 ```typescript
 // Cookie functions
-setAffiliateCookie(code, 60 days)
+setAffiliateCookie(code, 30 days)
 getAffiliateCookie()
 clearAffiliateCookie()
 // Tracking functions
@@ -154,7 +155,7 @@ attributeReferral(userId)
 
 **Acceptance Criteria:**
 - [ ] Cookie sets on ?ref= parameter
-- [ ] 60-day expiration works
+- [ ] 30-day expiration works
 - [ ] Survives navigation
 - [ ] localStorage backup works
 - [ ] Server can read cookie
@@ -370,18 +371,38 @@ POST /api/affiliate/payouts/request
 - [ ] Sends emails
 - [ ] Returns confirmation
 
-#### **Story 7.3: Payment Method Management** ⏱ 2 hours
+#### **Story 7.3: Tax Form Collection** ⏱ 3 hours
+**Task:** Collect and validate tax documentation
+**Files:**
+- `/app/affiliate/tax-forms/page.tsx`
+- `/api/affiliate/tax-forms/route.ts`
+
+**Requirements:**
+- W-9 form for US affiliates
+- W-8BEN form for international
+- Secure storage of tax info
+- Block payouts until completed
+- Annual 1099-MISC generation for $600+
+
+**Acceptance Criteria:**
+- [ ] Tax form selection (US/International)
+- [ ] Form validation
+- [ ] Secure encrypted storage
+- [ ] Blocks payout if not completed
+- [ ] Admin can view status
+- [ ] Reminder emails sent
+
+#### **Story 7.4: Payment Method Management** ⏱ 2 hours
 **Task:** Save payment preferences
 **File:** `/api/affiliate/payment-method/route.ts`
 **Supported Methods:**
 - PayPal email
-- Bank account (ACH)
-- Store credit
-- Stripe Connect (future)
+- Check (mailing address required)
 
 **Acceptance Criteria:**
 - [ ] Saves securely
-- [ ] Validates format
+- [ ] Validates PayPal email format
+- [ ] Validates mailing address for checks
 - [ ] Updates existing
 - [ ] Encrypts sensitive data
 - [ ] Audit logging
@@ -484,13 +505,38 @@ POST /api/admin/affiliates/payouts/process
 
 ### **Day 10: Performance & Tiers**
 
-#### **Story 10.1: Tier System Implementation** ⏱ 3 hours
+#### **Story 10.1: Affiliate Leaderboard** ⏱ 4 hours
+**Task:** Create competitive leaderboard system
+**Files:**
+- `/app/affiliate/leaderboard/page.tsx`
+- `/api/affiliate/leaderboard/route.ts`
+- `/components/affiliate/LeaderboardWidget.tsx`
+
+**Features:**
+- Monthly earnings leaderboard
+- All-time earnings leaderboard
+- Most referrals leaderboard
+- Highest conversion rate
+- Achievement badges
+- Anonymous/display name option
+- Filter by time period
+
+**Acceptance Criteria:**
+- [ ] Real-time updates
+- [ ] Top 10/25/50 display options
+- [ ] Current user highlighted
+- [ ] Privacy settings respected
+- [ ] Mobile responsive design
+- [ ] Export functionality for admins
+- [ ] Motivational badges/achievements
+
+#### **Story 10.2: Tier System Implementation** ⏱ 3 hours
 **Task:** Implement performance tiers
 **File:** `/services/affiliate-tiers.ts`
 **Tiers:**
-- Standard: 30% recurring, 20% one-time
-- Premium: 40% recurring, 30% one-time  
-- Conditions for upgrade
+- Standard: 20% recurring lifetime
+- Premium: 25% recurring lifetime
+- Conditions for upgrade (10+ active referrals or $500+ monthly)
 
 **Acceptance Criteria:**
 - [ ] Auto-upgrades work
@@ -499,7 +545,7 @@ POST /api/admin/affiliates/payouts/process
 - [ ] Manual override option
 - [ ] Historical tracking
 
-#### **Story 10.2: Performance Dashboard** ⏱ 2 hours
+#### **Story 10.3: Performance Dashboard** ⏱ 2 hours
 **Task:** Add performance metrics
 **File:** `/components/affiliate/PerformanceMetrics.tsx`
 **Metrics:**

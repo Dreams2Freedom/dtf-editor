@@ -32,17 +32,17 @@ Implement a comprehensive affiliate program to drive user acquisition through pa
 ### **Commission Structure**
 
 #### **Standard Tier (All Affiliates)**
-- **Recurring Commission:** 30% of subscription revenue for 12 months
+- **Recurring Commission:** 20% of subscription revenue for lifetime (as long as customer stays)
 - **One-time Purchase:** 20% of credit pack purchases
-- **Cookie Duration:** 60 days
+- **Cookie Duration:** 30 days
 - **Minimum Payout:** $50
 - **Payment Schedule:** Monthly (NET-30)
 
 #### **Premium Tier (Top Performers)**
 - **Qualification:** 10+ active referrals or $500+ monthly commissions
-- **Recurring Commission:** 40% for 12 months
-- **One-time Purchase:** 30% of credit packs
-- **Additional Benefits:** Early access to features, dedicated support
+- **Recurring Commission:** 25% for lifetime (as long as customer stays)
+- **One-time Purchase:** 25% of credit packs
+- **Additional Benefits:** Early access to features, dedicated support, leaderboard recognition
 
 #### **Special Programs**
 - **Influencer Program:** Custom rates for 1000+ followers
@@ -50,10 +50,14 @@ Implement a comprehensive affiliate program to drive user acquisition through pa
 - **Educational Discount:** 50% commission for educational content creators
 
 ### **Payment Methods**
-- PayPal (primary)
-- Bank transfer (for $500+ payouts)
-- Stripe Connect (future)
-- Store credit option (110% value)
+- PayPal (primary method)
+- Check (mailed monthly)
+
+### **Tax Requirements**
+- **US Affiliates:** W-9 form required before first payout
+- **International Affiliates:** W-8BEN form required
+- **Tax Reporting:** 1099-MISC issued for US affiliates earning $600+ annually
+- **Compliance:** All tax documents must be completed and verified before payouts
 
 ---
 
@@ -123,9 +127,25 @@ Implement a comprehensive affiliate program to drive user acquisition through pa
 #### **5. Payout System**
 - Payout request interface
 - Minimum payout threshold ($50)
-- Payment method selection
-- Tax form collection (W-9/W-8BEN)
+- Payment method selection (PayPal or check)
+- Tax form collection (W-9/W-8BEN) - REQUIRED before first payout
 - Payout history and invoices
+
+#### **6. Leaderboard & Competition**
+- **Real-time Rankings:**
+  - Top affiliates by monthly earnings
+  - Most referrals this month
+  - Highest conversion rate
+  - Lifetime earnings leaders
+- **Gamification:**
+  - Achievement badges
+  - Milestone rewards
+  - Monthly contests
+  - Public recognition
+- **Privacy Options:**
+  - Display name/alias option
+  - Opt-out of public leaderboard
+  - Private stats always available
 
 ### **Advanced Features (Phase 2)**
 
@@ -169,13 +189,18 @@ CREATE TABLE affiliates (
   referral_code VARCHAR(50) UNIQUE NOT NULL,
   vanity_url VARCHAR(100) UNIQUE,
   tier VARCHAR(20) DEFAULT 'standard',
-  commission_rate_recurring DECIMAL(3,2) DEFAULT 0.30,
+  commission_rate_recurring DECIMAL(3,2) DEFAULT 0.20,
   commission_rate_onetime DECIMAL(3,2) DEFAULT 0.20,
   status VARCHAR(20) DEFAULT 'pending',
   approved_at TIMESTAMP,
   approved_by UUID REFERENCES profiles(id),
   payment_method JSONB,
-  tax_info JSONB,
+  tax_form_type VARCHAR(20), -- 'W9', 'W8BEN'
+  tax_form_completed BOOLEAN DEFAULT false,
+  tax_form_data JSONB, -- encrypted
+  tax_id VARCHAR(255), -- encrypted SSN/EIN
+  display_name VARCHAR(100), -- for leaderboard
+  leaderboard_opt_out BOOLEAN DEFAULT false,
   metadata JSONB,
   created_at TIMESTAMP DEFAULT NOW(),
   updated_at TIMESTAMP DEFAULT NOW()
@@ -275,10 +300,10 @@ CREATE TABLE affiliate_activity (
 
 #### **Cookie Strategy**
 ```javascript
-// Set affiliate cookie (60 days)
+// Set affiliate cookie (30 days)
 const setAffiliateCookie = (referralCode) => {
   const expiryDate = new Date();
-  expiryDate.setDate(expiryDate.getDate() + 60);
+  expiryDate.setDate(expiryDate.getDate() + 30);
   
   document.cookie = `dtf_ref=${referralCode}; ` +
     `expires=${expiryDate.toUTCString()}; ` +
@@ -374,7 +399,7 @@ const trackReferral = async (userId: string, req: Request) => {
 
 **Acceptance Criteria:**
 - [ ] Cookie set on referral link visit
-- [ ] 60-day cookie duration
+- [ ] 30-day cookie duration
 - [ ] Cross-device tracking via email
 - [ ] Track landing pages
 - [ ] Record UTM parameters
@@ -453,7 +478,8 @@ const trackReferral = async (userId: string, req: Request) => {
 3. **Partial refunds:** Adjust commission proportionally
 4. **Plan changes:** Adjust recurring commission on upgrade/downgrade
 5. **Subscription cancellation:** Stop future commissions
-6. **Lifetime cap:** Max 12 months of recurring commissions
+6. **Lifetime commissions:** 20% recurring as long as customer remains subscribed (no cap)
+7. **Tax compliance:** W-9/W-8BEN must be on file before first payout
 
 ### **Fraud Prevention**
 1. **IP filtering:** Flag multiple signups from same IP
