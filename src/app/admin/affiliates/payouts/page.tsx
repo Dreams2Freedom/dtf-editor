@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { createBrowserSupabaseClient } from '@/lib/supabase/client';
+import { createClientSupabaseClient } from '@/lib/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { toast } from 'react-hot-toast';
@@ -52,7 +52,7 @@ export default function AdminAffiliatePayoutsPage() {
   const [payoutAmount, setPayoutAmount] = useState('');
   const [payoutNotes, setPayoutNotes] = useState('');
   const [showCreatePayout, setShowCreatePayout] = useState(false);
-  const supabase = createBrowserSupabaseClient();
+  const supabase = createClientSupabaseClient();
 
   useEffect(() => {
     fetchPayouts();

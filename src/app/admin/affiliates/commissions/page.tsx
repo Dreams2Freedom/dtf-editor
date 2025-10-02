@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { createBrowserSupabaseClient } from '@/lib/supabase/client';
+import { createClientSupabaseClient } from '@/lib/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { toast } from 'react-hot-toast';
@@ -51,7 +51,7 @@ export default function AdminAffiliateCommissionsPage() {
     paidAmount: 0,
     averageCommission: 0
   });
-  const supabase = createBrowserSupabaseClient();
+  const supabase = createClientSupabaseClient();
 
   useEffect(() => {
     fetchCommissions();
