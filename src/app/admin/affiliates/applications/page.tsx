@@ -53,11 +53,13 @@ export default function AdminAffiliateApplicationsPage() {
 
   async function fetchApplications() {
     try {
+      console.log('Fetching affiliates...');
       const { data: affiliates, error } = await supabase
         .from('affiliates')
         .select('*')
         .order('created_at', { ascending: false });
 
+      console.log('Affiliates fetched:', affiliates?.length || 0, error);
       if (error) throw error;
 
       // Fetch user details for each application
