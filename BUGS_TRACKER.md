@@ -1,7 +1,56 @@
 # DTF Editor - Bug Tracker
 
-**Last Updated:** August 20, 2025  
+**Last Updated:** October 3, 2025
 **Status:** Active Bug Tracking
+
+## 🐛 **Critical Bugs (P0)**
+
+### **BUG-056: Admin Cannot Access Affiliate Dashboard**
+- **Status:** 🟢 FIXED
+- **Severity:** Critical
+- **Component:** Admin Dashboard / RLS Policies / SQL Functions
+- **Description:** Admin user (shannon@s2transfers.com) getting "permission denied" (42501) when accessing affiliate dashboard
+- **Symptoms:**
+  - Error: "permission denied for table affiliates"
+  - Console error: "Minified React error #418"
+  - Console error: "Request failed with status code 401"
+  - get_admin_role RPC returning 400 error
+  - Admin pages showing "Access Denied" message
+  - 3 affiliates exist in database but not visible to admin
+- **Root Cause:**
+  1. SQL functions (is_admin, get_admin_role) had ambiguous column reference errors
+  2. Function parameter named `user_id` conflicted with table column `user_id`
+  3. RLS policies blocked service_role from initial admin table access
+  4. Admin system relied on hardcoded email checks (not scalable)
+- **Solution Applied:**
+  1. Dropped and recreated all admin functions with CASCADE
+  2. Renamed function parameters from `user_id` to `check_user_id`
+  3. Added service_role bypass policies for admin tables
+  4. Implemented proper role-based admin system
+  5. Created admin management UI at /admin/users/admins
+  6. Recreated all RLS policies for affiliate tables
+- **Database Changes:**
+  - New tables: admin_users, admin_role_presets, admin_action_log
+  - New functions: is_admin(), is_super_admin(), has_permission(), get_admin_role()
+  - Updated RLS policies on: affiliates, referrals, commissions, payouts
+  - Super admin: shannon@s2transfers.com configured with full permissions
+- **Migrations Applied:**
+  - `20250103_create_admin_roles_system.sql`
+  - `FIX_ADMIN_TABLES_ACCESS.sql`
+  - `FIX_ADMIN_FUNCTIONS_FINAL.sql`
+- **Verification:**
+  - ✅ Backend test: is_admin() = true
+  - ✅ Backend test: is_super_admin() = true
+  - ✅ Backend test: get_admin_role() = "super_admin"
+  - ✅ Can access 3 affiliates via service role: DLUE, SNSMAR, HELLO (all approved)
+  - ⏳ Frontend requires hard refresh to see changes
+- **Architecture Improvement:**
+  - **Before:** Hardcoded admin email checks in SQL functions
+  - **After:** Database-driven role system with 5 role types
+  - **Benefit:** Super admin can create/manage other admins via UI
+- **Date Reported:** October 3, 2025
+- **Date Fixed:** October 3, 2025
+- **Next Steps:** User should hard refresh browser to see admin interface
 
 ## 🐛 **Critical Bugs (P0)**
 
