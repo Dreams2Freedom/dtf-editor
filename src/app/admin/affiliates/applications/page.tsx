@@ -13,7 +13,6 @@ import {
   Globe,
   Users,
   FileText,
-  Mail,
   Calendar,
   Eye,
   DollarSign
@@ -25,13 +24,14 @@ interface Application {
   referral_code: string;
   status: 'pending' | 'approved' | 'rejected';
   website_url?: string;
-  social_media?: any;
+  social_media?: Record<string, string>;
   promotional_methods?: string[];
   audience_size?: string;
   application_reason?: string;
   content_examples?: string;
   payment_method?: string;
   paypal_email?: string;
+  rejection_reason?: string;
   created_at: string;
   user?: {
     email: string;
@@ -49,6 +49,7 @@ export default function AdminAffiliateApplicationsPage() {
 
   useEffect(() => {
     fetchApplications();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   async function fetchApplications() {
@@ -63,6 +64,35 @@ export default function AdminAffiliateApplicationsPage() {
         userId: session?.user?.id,
         sessionError
       });
+
+      if (!session) {
+        console.error('❌ NO SESSION - User not logged in');
+        toast.error('Not logged in. Please refresh the page.');
+        setLoading(false);
+        return;
+      }
+
+      // Check if user is admin
+      const { data: profile, error: profileError } = await supabase
+        .from('profiles')
+        .select('is_admin, email')
+        .eq('id', session.user.id)
+        .single();
+
+      console.log('Profile check:', {
+        profile,
+        profileError,
+        isAdmin: profile?.is_admin
+      });
+
+      if (!profile?.is_admin) {
+        console.error('❌ NOT ADMIN - User does not have admin privileges');
+        toast.error('Access denied: Admin privileges required');
+        setLoading(false);
+        return;
+      }
+
+      console.log('✅ Session valid, user is admin, fetching affiliates...');
 
       const { data: affiliates, error } = await supabase
         .from('affiliates')
@@ -236,41 +266,53 @@ export default function AdminAffiliateApplicationsPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200">
-                {applications.map((app) => (
-                  <tr key={app.id}>
-                    <td className="px-4 py-3">
-                      <div>
-                        <div className="text-sm font-medium text-gray-900">{app.user?.full_name || 'N/A'}</div>
-                        <div className="text-xs text-gray-500">{app.user?.email}</div>
+                {applications.length === 0 ? (
+                  <tr>
+                    <td colSpan={6} className="px-4 py-8 text-center text-gray-500">
+                      <div className="flex flex-col items-center gap-2">
+                        <FileText className="h-12 w-12 text-gray-400" />
+                        <p className="text-lg font-medium">No affiliate applications found</p>
+                        <p className="text-sm">Applications will appear here when users apply to the affiliate program</p>
                       </div>
                     </td>
-                    <td className="px-4 py-3 text-sm font-mono">{app.referral_code}</td>
-                    <td className="px-4 py-3 text-sm">{app.audience_size || 'N/A'}</td>
-                    <td className="px-4 py-3">
-                      <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
-                        app.status === 'approved' ? 'bg-green-100 text-green-800' :
-                        app.status === 'rejected' ? 'bg-red-100 text-red-800' :
-                        'bg-yellow-100 text-yellow-800'
-                      }`}>
-                        {app.status === 'approved' && <CheckCircle className="h-3 w-3 mr-1" />}
-                        {app.status === 'rejected' && <XCircle className="h-3 w-3 mr-1" />}
-                        {app.status === 'pending' && <Clock className="h-3 w-3 mr-1" />}
-                        {app.status}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 text-sm text-gray-500">
-                      {new Date(app.created_at).toLocaleDateString()}
-                    </td>
-                    <td className="px-4 py-3">
-                      <button
-                        onClick={() => setSelectedApplication(app)}
-                        className="text-blue-600 hover:text-blue-800"
-                      >
-                        <Eye className="h-4 w-4" />
-                      </button>
-                    </td>
                   </tr>
-                ))}
+                ) : (
+                  applications.map((app) => (
+                    <tr key={app.id}>
+                      <td className="px-4 py-3">
+                        <div>
+                          <div className="text-sm font-medium text-gray-900">{app.user?.full_name || 'N/A'}</div>
+                          <div className="text-xs text-gray-500">{app.user?.email}</div>
+                        </div>
+                      </td>
+                      <td className="px-4 py-3 text-sm font-mono">{app.referral_code}</td>
+                      <td className="px-4 py-3 text-sm">{app.audience_size || 'N/A'}</td>
+                      <td className="px-4 py-3">
+                        <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                          app.status === 'approved' ? 'bg-green-100 text-green-800' :
+                          app.status === 'rejected' ? 'bg-red-100 text-red-800' :
+                          'bg-yellow-100 text-yellow-800'
+                        }`}>
+                          {app.status === 'approved' && <CheckCircle className="h-3 w-3 mr-1" />}
+                          {app.status === 'rejected' && <XCircle className="h-3 w-3 mr-1" />}
+                          {app.status === 'pending' && <Clock className="h-3 w-3 mr-1" />}
+                          {app.status}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 text-sm text-gray-500">
+                        {new Date(app.created_at).toLocaleDateString()}
+                      </td>
+                      <td className="px-4 py-3">
+                        <button
+                          onClick={() => setSelectedApplication(app)}
+                          className="text-blue-600 hover:text-blue-800"
+                        >
+                          <Eye className="h-4 w-4" />
+                        </button>
+                      </td>
+                    </tr>
+                  ))
+                )}
               </tbody>
             </table>
           </div>

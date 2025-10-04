@@ -14,46 +14,44 @@ export const createClientSupabaseClient = () => {
     );
   }
 
-  // Create new client only if it doesn't exist
-  // Reusing the same client maintains auth session continuity
-  if (!supabaseClient) {
-    supabaseClient = createBrowserClient(supabaseUrl, supabaseAnonKey, {
-      cookies: {
-        getAll() {
-          if (typeof document === 'undefined') return [];
-          
-          return document.cookie.split('; ').map(cookie => {
-            const [name, ...value] = cookie.split('=');
-            return { name, value: value.join('=') };
-          });
-        },
-        setAll(cookiesToSet) {
-          if (typeof document === 'undefined') return;
-          
-          cookiesToSet.forEach(({ name, value, options }) => {
-            const cookieStr = `${name}=${value}`;
-            const optionsStr = Object.entries(options || {})
-              .map(([key, val]) => {
-                if (key === 'maxAge') return `max-age=${val}`;
-                if (key === 'httpOnly' && val) return 'HttpOnly';
-                if (key === 'secure' && val) return 'Secure';
-                if (key === 'sameSite') return `SameSite=${val}`;
-                if (typeof val === 'boolean') return val ? key : '';
-                return `${key}=${val}`;
-              })
-              .filter(Boolean)
-              .join('; ');
-            
-            document.cookie = `${cookieStr}; ${optionsStr}`;
-          });
-        },
-        remove(name, options) {
-          if (typeof document === 'undefined') return;
-          document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=${options?.path || '/'}`;
-        }
+  // Always create a fresh client to ensure session is properly loaded
+  // The singleton pattern was causing issues with auth state
+  supabaseClient = createBrowserClient(supabaseUrl, supabaseAnonKey, {
+    cookies: {
+      getAll() {
+        if (typeof document === 'undefined') return [];
+
+        return document.cookie.split('; ').map(cookie => {
+          const [name, ...value] = cookie.split('=');
+          return { name, value: value.join('=') };
+        });
+      },
+      setAll(cookiesToSet) {
+        if (typeof document === 'undefined') return;
+
+        cookiesToSet.forEach(({ name, value, options }) => {
+          const cookieStr = `${name}=${value}`;
+          const optionsStr = Object.entries(options || {})
+            .map(([key, val]) => {
+              if (key === 'maxAge') return `max-age=${val}`;
+              if (key === 'httpOnly' && val) return 'HttpOnly';
+              if (key === 'secure' && val) return 'Secure';
+              if (key === 'sameSite') return `SameSite=${val}`;
+              if (typeof val === 'boolean') return val ? key : '';
+              return `${key}=${val}`;
+            })
+            .filter(Boolean)
+            .join('; ');
+
+          document.cookie = `${cookieStr}; ${optionsStr}`;
+        });
+      },
+      remove(name, options) {
+        if (typeof document === 'undefined') return;
+        document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=${options?.path || '/'}`;
       }
-    });
-  }
-  
+    }
+  });
+
   return supabaseClient;
 };
