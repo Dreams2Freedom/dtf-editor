@@ -60,6 +60,13 @@ export async function GET(request: NextRequest) {
     // Use service role to fetch affiliate's data (bypasses RLS)
     const serviceClient = createServiceRoleClient();
 
+    // Test service role access
+    console.log('[DASHBOARD API] Testing service role - checking all profiles count');
+    const { count: profileCount, error: countError } = await serviceClient
+      .from('profiles')
+      .select('*', { count: 'exact', head: true });
+    console.log('[DASHBOARD API] Service role can see profiles count:', profileCount, 'Error:', countError);
+
     // Get recent referrals
     console.log('[DASHBOARD API] Fetching referrals for affiliate:', affiliate.id);
     const { data: rawReferrals, error: referralsError } = await serviceClient
