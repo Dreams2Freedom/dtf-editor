@@ -4,12 +4,12 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { createServerSupabaseClient } from '@/lib/supabase/server';
+import { createServerSupabaseClient, createServiceRoleClient } from '@/lib/supabase/server';
 import { getAffiliateByUserId, getAffiliateDashboardStats } from '@/services/affiliate';
 
 export async function GET(request: NextRequest) {
   try {
-    // Get authenticated user
+    // Validate session server-side
     const supabase = await createServerSupabaseClient();
     const { data: { user }, error: authError } = await supabase.auth.getUser();
 
@@ -20,7 +20,7 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Get affiliate account
+    // Get affiliate account (uses service role internally)
     const affiliate = await getAffiliateByUserId(user.id);
 
     if (!affiliate) {
@@ -54,11 +54,14 @@ export async function GET(request: NextRequest) {
       });
     }
 
-    // Get dashboard stats
+    // Get dashboard stats (uses service role internally)
     const stats = await getAffiliateDashboardStats(affiliate.id);
 
+    // Use service role to fetch affiliate's data (bypasses RLS)
+    const serviceClient = createServiceRoleClient();
+
     // Get recent referrals
-    const { data: recentReferrals } = await supabase
+    const { data: recentReferrals } = await serviceClient
       .from('referrals')
       .select('*')
       .eq('affiliate_id', affiliate.id)
@@ -66,7 +69,7 @@ export async function GET(request: NextRequest) {
       .limit(10);
 
     // Get recent commissions
-    const { data: recentCommissions } = await supabase
+    const { data: recentCommissions } = await serviceClient
       .from('commissions')
       .select('*')
       .eq('affiliate_id', affiliate.id)
@@ -74,7 +77,7 @@ export async function GET(request: NextRequest) {
       .limit(10);
 
     // Get payout history
-    const { data: payouts } = await supabase
+    const { data: payouts } = await serviceClient
       .from('payouts')
       .select('*')
       .eq('affiliate_id', affiliate.id)
