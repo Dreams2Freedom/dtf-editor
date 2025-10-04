@@ -127,12 +127,32 @@ export default async function AffiliateDashboardPage() {
   // Get additional data
   const supabase = createServiceClient();
 
-  const { data: recentReferrals } = await supabase
+  // Get referrals
+  const { data: rawReferrals } = await supabase
     .from('referrals')
     .select('*')
     .eq('affiliate_id', affiliate.id)
     .order('created_at', { ascending: false })
     .limit(10);
+
+  // Get user profiles for referrals
+  const userIds = rawReferrals?.map(r => r.referred_user_id).filter(Boolean) || [];
+  let profiles = null;
+
+  if (userIds.length > 0) {
+    const { data } = await supabase
+      .from('profiles')
+      .select('id, email, full_name, subscription_plan, subscription_status')
+      .in('id', userIds);
+    profiles = data;
+  }
+
+  // Merge profiles with referrals
+  const profilesMap = new Map(profiles?.map(p => [p.id, p]) || []);
+  const recentReferrals = rawReferrals?.map(ref => ({
+    ...ref,
+    referred_user: profilesMap.get(ref.referred_user_id) || null
+  })) || [];
 
   const { data: recentCommissions } = await supabase
     .from('commissions')
