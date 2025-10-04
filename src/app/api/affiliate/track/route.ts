@@ -45,6 +45,7 @@ export async function GET(request: NextRequest) {
       const response = NextResponse.json({
         success: result.success,
         cookieId: result.cookieId,
+        error: result.error,
         referralCode
       });
 

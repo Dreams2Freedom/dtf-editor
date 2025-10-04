@@ -229,21 +229,26 @@ export async function trackReferralVisit(
     user_agent?: string;
     referer?: string;
   }
-): Promise<{ success: boolean; cookieId?: string }> {
+): Promise<{ success: boolean; cookieId?: string; error?: string }> {
   try {
+    console.log('[TRACK VISIT] Starting tracking for:', referralCode);
     const supabase = createServiceClient();
 
     // Get affiliate by referral code
     const affiliate = await getAffiliateByReferralCode(referralCode);
+    console.log('[TRACK VISIT] Affiliate lookup result:', affiliate ? 'Found' : 'Not found');
+
     if (!affiliate) {
-      return { success: false };
+      console.warn('[TRACK VISIT] Affiliate not found or not approved:', referralCode);
+      return { success: false, error: 'Affiliate not found or not approved' };
     }
 
     // Generate cookie ID for tracking
     const cookieId = `${referralCode}_${Date.now()}_${Math.random().toString(36).substring(7)}`;
+    console.log('[TRACK VISIT] Generated cookie ID:', cookieId);
 
     // Create visit record
-    const { error } = await supabase
+    const { data: visitRecord, error } = await supabase
       .from('referral_visits')
       .insert({
         affiliate_id: affiliate.id,
@@ -258,15 +263,19 @@ export async function trackReferralVisit(
         ip_address: visitData.ip_address,
         user_agent: visitData.user_agent,
         referer: visitData.referer
-      });
+      })
+      .select()
+      .single();
 
     if (error) {
-      console.error('Error tracking visit:', error);
-      return { success: false };
+      console.error('[TRACK VISIT] Error inserting visit record:', error);
+      return { success: false, error: error.message };
     }
 
+    console.log('[TRACK VISIT] Visit record created:', visitRecord?.id);
+
     // Update affiliate click count
-    await supabase
+    const { error: updateError } = await supabase
       .from('affiliates')
       .update({
         total_clicks: affiliate.total_clicks + 1,
@@ -274,10 +283,16 @@ export async function trackReferralVisit(
       })
       .eq('id', affiliate.id);
 
+    if (updateError) {
+      console.error('[TRACK VISIT] Error updating click count:', updateError);
+    } else {
+      console.log('[TRACK VISIT] Click count updated successfully');
+    }
+
     return { success: true, cookieId };
   } catch (error) {
-    console.error('Error in trackReferralVisit:', error);
-    return { success: false };
+    console.error('[TRACK VISIT] Unexpected error:', error);
+    return { success: false, error: String(error) };
   }
 }
 
