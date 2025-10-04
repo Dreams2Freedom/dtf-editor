@@ -14,9 +14,10 @@ export const createClientSupabaseClient = () => {
     );
   }
 
-  // Always create a fresh client to ensure session is properly loaded
-  // The singleton pattern was causing issues with auth state
-  supabaseClient = createBrowserClient(supabaseUrl, supabaseAnonKey, {
+  // Create new client only if it doesn't exist
+  // Reusing the same client maintains auth session continuity
+  if (!supabaseClient) {
+    supabaseClient = createBrowserClient(supabaseUrl, supabaseAnonKey, {
     cookies: {
       getAll() {
         if (typeof document === 'undefined') return [];
@@ -51,7 +52,8 @@ export const createClientSupabaseClient = () => {
         document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=${options?.path || '/'}`;
       }
     }
-  });
+    });
+  }
 
   return supabaseClient;
 };
