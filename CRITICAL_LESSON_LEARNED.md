@@ -143,4 +143,71 @@ The admin panel (`/admin/users/admins`) calls these RPC functions:
 
 ---
 
-**REMEMBER:** The code was perfect. The database was *mostly* perfect (just missing functions). The user just wasn't logged in. 🤦
+## 🔧 UPDATE 2: October 4, 2025 - RLS Circular Dependency (Affiliate Access)
+
+After fixing the admin functions, we discovered the affiliate admin dashboard still showed "permission denied" even though:
+- ✅ User was authenticated (session exists, email = shannon@s2transfers.com)
+- ✅ User had `profiles.is_admin = true`
+- ✅ RLS policies existed on affiliate tables
+
+**Root Cause:** RLS policies used subquery to check admin status:
+```sql
+EXISTS (
+  SELECT 1 FROM public.profiles
+  WHERE profiles.id = auth.uid()
+  AND profiles.is_admin = true
+)
+```
+
+But the `profiles` table itself has RLS enabled! This created a circular dependency:
+1. RLS policy needs to check if user is admin
+2. To check admin, it queries profiles table
+3. But profiles table RLS blocks the query
+4. Result: Admin check always fails
+
+**Fix:** Use direct UUID matching instead of subqueries:
+```sql
+USING (auth.uid() = '1596097b-8333-452a-a2bd-ea27340677ec'::uuid)
+```
+
+**Time Wasted:** Additional 2 hours (8 hours total for this whole saga)
+
+**Lesson:** NEVER use subqueries to RLS-protected tables in RLS policies. Use:
+- Direct UUID comparisons, OR
+- SECURITY DEFINER functions that bypass RLS
+
+**Prevention:** Set up Supabase MCP server for direct database debugging from Claude Code.
+
+---
+
+## 🛠️ Supabase MCP Server Configured
+
+**Location:** `~/.claude/claude_desktop_config.json`
+
+```json
+{
+  "mcpServers": {
+    "supabase": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@supabase/mcp-server-supabase@latest",
+        "--access-token",
+        "sbp_***"
+      ]
+    }
+  }
+}
+```
+
+**Going Forward:**
+- ✅ Use MCP server for all database debugging
+- ✅ No more manual SQL Editor copy/paste
+- ✅ Direct query execution from Claude Code
+- ✅ Faster iteration and problem solving
+
+**Activation:** Restart Claude Desktop to load the MCP server.
+
+---
+
+**REMEMBER:** The code was perfect. The database had TWO real issues (missing functions + RLS circular dependency). And the user wasn't logged in initially. 🤦
