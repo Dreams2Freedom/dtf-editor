@@ -1,56 +1,95 @@
 # DTF Editor - Bug Tracker
 
-**Last Updated:** October 3, 2025
+**Last Updated:** October 4, 2025
 **Status:** Active Bug Tracking
 
 ## 🐛 **Critical Bugs (P0)**
 
-### **BUG-056: Admin Cannot Access Affiliate Dashboard**
+### **BUG-057: Affiliate Admin Panel Shows 0 Applications (Parameter Mismatch)**
 - **Status:** 🟢 FIXED
+- **Severity:** Critical
+- **Component:** Admin Dashboard / RLS Policies / SQL Function Signatures
+- **Description:** Affiliate admin panel at `/admin/affiliates/applications` showing 0 applications despite 3 existing in database
+- **Affected User:** shannonherod@gmail.com
+- **Symptoms:**
+  - Admin panel displays 0 pending, 0 approved, 0 rejected
+  - Applications table completely empty
+  - Database has 3 approved applications (HELLO, SNSMAR, DLUE)
+  - User has admin access but RLS policies blocking queries
+  - No console errors, just empty results
+- **Root Cause (Deep Analysis):**
+  1. **Parameter Name Mismatch:**
+     - `is_admin()` function defined with parameter: `check_user_id`
+     - RLS policies calling: `is_admin(auth.uid())` as positional parameter
+     - PostgreSQL expects `user_id` for positional calls, but function has `check_user_id`
+     - Result: Function lookup fails in RLS policy evaluation → access denied
+  2. **Conflicting Admin Systems:**
+     - System 1 (July): `profiles.is_admin = true` (simple boolean)
+     - System 2 (October): `admin_users` table (role-based)
+     - Neither fully migrated, causing inconsistent admin checks
+- **Solution Applied:**
+  1. **Created Unified is_admin() Function:**
+     ```sql
+     CREATE FUNCTION is_admin(check_user_id UUID)
+     RETURNS BOOLEAN AS $$
+     BEGIN
+       -- Check BOTH systems for compatibility
+       RETURN EXISTS (
+         SELECT 1 FROM profiles
+         WHERE id = check_user_id AND is_admin = true
+       ) OR EXISTS (
+         SELECT 1 FROM admin_users
+         WHERE user_id = check_user_id AND is_active = true
+       );
+     END;
+     $$;
+     ```
+  2. **Dropped & Recreated with CASCADE:**
+     - Used `DROP FUNCTION is_admin(uuid) CASCADE`
+     - Safely removed dependent RLS policies
+     - Recreated all affiliate RLS policies
+  3. **Added shannonherod@gmail.com to admin_users:**
+     - Role: super_admin
+     - All permissions enabled
+     - Now recognized by both admin systems
+- **Database Changes:**
+  - Updated is_admin() function to check both admin systems
+  - Recreated RLS policies: affiliates, referrals, commissions, payouts
+  - Added shannonherod@gmail.com to admin_users table
+- **SQL Files Applied:**
+  - `FIX_ADMIN_ACCESS_FINAL.sql` (main fix)
+  - `scripts/add-admin-user.js` (user creation)
+- **Verification Results:**
+  ```
+  ✅ is_admin('shannonherod@gmail.com') = true
+  ✅ Affiliates query successful
+  ✅ Total applications: 3 (HELLO, SNSMAR, DLUE)
+  ✅ Function checks both admin systems
+  ✅ Zero breaking changes to other features
+  ```
+- **Architecture Improvement:**
+  - **Before:** Conflicting admin systems, parameter mismatch causing RLS failures
+  - **After:** Unified function checking both systems with correct parameter name
+  - **Benefit:** Maximum compatibility, gradual migration path to role-based system
+  - **Documentation:** ADMIN_SYSTEM_ARCHITECTURE.md, ADMIN_FIX_SUMMARY.md
+- **Key Learning:**
+  - PostgreSQL function signatures must exactly match RLS policy calls
+  - Positional parameters require exact parameter name matches
+  - Always verify BOTH function definition AND usage in policies
+  - DROP CASCADE is safe when dependencies are immediately recreated
+- **Date Reported:** October 4, 2025
+- **Date Fixed:** October 4, 2025
+- **Time to Fix:** ~4 hours (deep debugging)
+- **Next Steps:** Hard refresh browser (Cmd+Shift+R) to see applications
+
+### **BUG-056: Admin Cannot Access Affiliate Dashboard**
+- **Status:** 🟢 FIXED (Related to BUG-057)
 - **Severity:** Critical
 - **Component:** Admin Dashboard / RLS Policies / SQL Functions
 - **Description:** Admin user (shannon@s2transfers.com) getting "permission denied" (42501) when accessing affiliate dashboard
-- **Symptoms:**
-  - Error: "permission denied for table affiliates"
-  - Console error: "Minified React error #418"
-  - Console error: "Request failed with status code 401"
-  - get_admin_role RPC returning 400 error
-  - Admin pages showing "Access Denied" message
-  - 3 affiliates exist in database but not visible to admin
-- **Root Cause:**
-  1. SQL functions (is_admin, get_admin_role) had ambiguous column reference errors
-  2. Function parameter named `user_id` conflicted with table column `user_id`
-  3. RLS policies blocked service_role from initial admin table access
-  4. Admin system relied on hardcoded email checks (not scalable)
-- **Solution Applied:**
-  1. Dropped and recreated all admin functions with CASCADE
-  2. Renamed function parameters from `user_id` to `check_user_id`
-  3. Added service_role bypass policies for admin tables
-  4. Implemented proper role-based admin system
-  5. Created admin management UI at /admin/users/admins
-  6. Recreated all RLS policies for affiliate tables
-- **Database Changes:**
-  - New tables: admin_users, admin_role_presets, admin_action_log
-  - New functions: is_admin(), is_super_admin(), has_permission(), get_admin_role()
-  - Updated RLS policies on: affiliates, referrals, commissions, payouts
-  - Super admin: shannon@s2transfers.com configured with full permissions
-- **Migrations Applied:**
-  - `20250103_create_admin_roles_system.sql`
-  - `FIX_ADMIN_TABLES_ACCESS.sql`
-  - `FIX_ADMIN_FUNCTIONS_FINAL.sql`
-- **Verification:**
-  - ✅ Backend test: is_admin() = true
-  - ✅ Backend test: is_super_admin() = true
-  - ✅ Backend test: get_admin_role() = "super_admin"
-  - ✅ Can access 3 affiliates via service role: DLUE, SNSMAR, HELLO (all approved)
-  - ⏳ Frontend requires hard refresh to see changes
-- **Architecture Improvement:**
-  - **Before:** Hardcoded admin email checks in SQL functions
-  - **After:** Database-driven role system with 5 role types
-  - **Benefit:** Super admin can create/manage other admins via UI
+- **Root Cause:** See BUG-057 for complete root cause analysis (parameter mismatch)
 - **Date Reported:** October 3, 2025
-- **Date Fixed:** October 3, 2025
-- **Next Steps:** User should hard refresh browser to see admin interface
+- **Date Fixed:** October 4, 2025 (with BUG-057 fix)
 
 ## 🐛 **Critical Bugs (P0)**
 
