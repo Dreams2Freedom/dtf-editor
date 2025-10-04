@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { createClientSupabaseClient } from '@/lib/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { AffiliateAdminNav } from '@/components/admin/affiliates/AffiliateAdminNav';
 import {
@@ -43,7 +42,6 @@ export default function AdminAffiliatesPage() {
   const [stats, setStats] = useState<AffiliateStats | null>(null);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
-  const supabase = createClientSupabaseClient();
 
   useEffect(() => {
     fetchAffiliateStats();
@@ -52,88 +50,27 @@ export default function AdminAffiliatesPage() {
 
   async function fetchAffiliateStats() {
     try {
-      // Check session first
-      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-      console.log('Session check:', {
-        hasSession: !!session,
-        userEmail: session?.user?.email,
-        userId: session?.user?.id,
-        sessionError
-      });
+      // Call API route instead of direct Supabase query
+      // API route uses service role client to bypass RLS
+      const response = await fetch('/api/admin/affiliates/stats');
 
-      if (!session) {
-        console.error('❌ NO SESSION - User not logged in');
-        setLoading(false);
-        return;
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to fetch affiliate stats');
       }
 
-      // Check if user is admin
-      const { data: profile, error: profileError } = await supabase
-        .from('profiles')
-        .select('is_admin, email')
-        .eq('id', session.user.id)
-        .single();
-
-      console.log('Profile check:', {
-        profile,
-        profileError,
-        isAdmin: profile?.is_admin
-      });
-
-      if (!profile?.is_admin) {
-        console.error('❌ NOT ADMIN - User does not have admin privileges');
-        setLoading(false);
-        return;
-      }
-
-      console.log('✅ Session valid, user is admin, fetching affiliate stats...');
-
-      // Fetch all affiliates
-      const { data: affiliates, error: affiliatesError } = await supabase
-        .from('affiliates')
-        .select('*')
-        .order('created_at', { ascending: false });
-
-      if (affiliatesError) throw affiliatesError;
-
-      // Fetch recent referrals
-      const { data: referrals, error: referralsError } = await supabase
-        .from('referrals')
-        .select('*')
-        .order('created_at', { ascending: false })
-        .limit(100);
-
-      if (referralsError) throw referralsError;
-
-      // Fetch commissions
-      const { data: commissions, error: commissionsError } = await supabase
-        .from('commissions')
-        .select('*')
-        .order('created_at', { ascending: false });
-
-      if (commissionsError) throw commissionsError;
-
-      // Fetch payouts
-      const { data: payouts, error: payoutsError } = await supabase
-        .from('payouts')
-        .select('*')
-        .order('created_at', { ascending: false });
-
-      if (payoutsError) throw payoutsError;
-
-      // Calculate stats
-      const totalAffiliates = affiliates?.length || 0;
-      const activeAffiliates = affiliates?.filter(a => a.status === 'approved').length || 0;
-      const pendingApplications = affiliates?.filter(a => a.status === 'pending').length || 0;
-      const totalReferrals = referrals?.length || 0;
-
-      const totalCommissionsEarned = commissions?.reduce((sum, c) =>
-        sum + parseFloat(c.amount || 0), 0
-      ) || 0;
-
-      const pendingPayouts = commissions?.filter(c =>
-        c.status === 'pending' || c.status === 'approved'
-      ).reduce((sum, c) => sum + parseFloat(c.amount || 0), 0) || 0;
+      const data = await response.json();
+      const {
+        affiliates,
+        referrals,
+        commissions,
+        totalAffiliates,
+        activeAffiliates,
+        pendingApplications,
+        totalReferrals,
+        totalCommissionsEarned,
+        pendingPayouts
+      } = data;
 
       // Get top performers
       const affiliateEarnings = new Map();
@@ -149,27 +86,43 @@ export default function AdminAffiliatesPage() {
         affiliateReferrals.set(r.affiliate_id, current + 1);
       });
 
-      const topPerformers = await Promise.all(
-        Array.from(affiliateEarnings.entries())
-          .sort((a, b) => b[1] - a[1])
-          .slice(0, 5)
-          .map(async ([affiliateId, earnings]) => {
-            const affiliate = affiliates?.find(a => a.id === affiliateId);
-            const { data: profile } = await supabase
-              .from('profiles')
-              .select('email, full_name')
-              .eq('id', affiliate?.user_id)
-              .single();
+      // Fetch user profiles for top performers
+      const topPerformerIds = Array.from(affiliateEarnings.entries())
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 5)
+        .map(([affiliateId]) => affiliateId);
 
-            return {
-              id: affiliateId,
-              name: profile?.full_name || 'Unknown',
-              email: profile?.email || '',
-              totalEarnings: earnings,
-              referrals: affiliateReferrals.get(affiliateId) || 0
-            };
-          })
+      const topPerformerAffiliates = affiliates?.filter(a =>
+        topPerformerIds.includes(a.id)
+      ) || [];
+
+      const userIds = topPerformerAffiliates.map(a => a.user_id);
+
+      // Fetch profiles for top performers via API
+      const profilesResponse = await fetch('/api/admin/users/profiles', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userIds })
+      });
+
+      const profilesData = await profilesResponse.json();
+      const profilesMap = new Map(
+        profilesData.profiles?.map((p: any) => [p.id, p]) || []
       );
+
+      const topPerformers = topPerformerIds.map(affiliateId => {
+        const affiliate = affiliates?.find(a => a.id === affiliateId);
+        const profile = profilesMap.get(affiliate?.user_id);
+        const earnings = affiliateEarnings.get(affiliateId) || 0;
+
+        return {
+          id: affiliateId,
+          name: profile?.full_name || 'Unknown',
+          email: profile?.email || '',
+          totalEarnings: earnings,
+          referrals: affiliateReferrals.get(affiliateId) || 0
+        };
+      });
 
       // Get recent activity
       const recentActivity: any[] = [];
