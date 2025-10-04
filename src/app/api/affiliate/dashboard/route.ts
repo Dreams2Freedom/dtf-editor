@@ -60,13 +60,21 @@ export async function GET(request: NextRequest) {
     // Use service role to fetch affiliate's data (bypasses RLS)
     const serviceClient = createServiceRoleClient();
 
-    // Get recent referrals
+    // Get recent referrals with user info
     const { data: recentReferrals } = await serviceClient
       .from('referrals')
-      .select('*')
+      .select(`
+        *,
+        referred_user:profiles!referred_user_id(
+          email,
+          full_name,
+          subscription_plan,
+          subscription_status
+        )
+      `)
       .eq('affiliate_id', affiliate.id)
       .order('created_at', { ascending: false })
-      .limit(10);
+      .limit(20);
 
     // Get recent commissions
     const { data: recentCommissions } = await serviceClient

@@ -18,6 +18,7 @@ import {
   Mail
 } from 'lucide-react';
 import Link from 'next/link';
+import { maskEmail } from '@/lib/utils/privacy';
 import type {
   Affiliate,
   AffiliateDashboardStats,
@@ -364,27 +365,65 @@ Thank you!
         <Card className="p-6">
           <h3 className="font-semibold mb-4">Recent Referrals</h3>
           {recentReferrals && recentReferrals.length > 0 ? (
-            <div className="space-y-2">
-              {recentReferrals.slice(0, 5).map((referral) => (
-                <div key={referral.id} className="flex justify-between items-center text-sm">
-                  <div className="flex items-center gap-2">
-                    <div className={`w-2 h-2 rounded-full
-                      ${referral.status === 'converted' ? 'bg-green-500' :
-                        referral.status === 'signed_up' ? 'bg-yellow-500' :
-                        'bg-gray-400'}`}
-                    />
-                    <span className="text-gray-600">
-                      {new Date(referral.created_at).toLocaleDateString()}
-                    </span>
+            <div className="space-y-3">
+              {recentReferrals.slice(0, 5).map((referral: any) => {
+                const isPaid = referral.status === 'converted' ||
+                  (referral.referred_user?.subscription_status === 'active' &&
+                   referral.referred_user?.subscription_plan !== 'free');
+                const isFree = referral.status === 'signed_up' &&
+                  (!referral.referred_user?.subscription_status ||
+                   referral.referred_user?.subscription_status === 'free');
+
+                return (
+                  <div key={referral.id} className="border rounded-lg p-3 bg-gray-50">
+                    <div className="flex justify-between items-start mb-2">
+                      <div className="flex items-center gap-2">
+                        <div className={`w-2 h-2 rounded-full mt-1
+                          ${isPaid ? 'bg-green-500' :
+                            isFree ? 'bg-gray-400' :
+                            'bg-yellow-500'}`}
+                        />
+                        <div>
+                          <p className="font-medium text-sm">
+                            {maskEmail(referral.referred_user?.email)}
+                          </p>
+                          <p className="text-xs text-gray-500">
+                            {new Date(referral.created_at).toLocaleDateString('en-US', {
+                              month: 'short',
+                              day: 'numeric',
+                              year: 'numeric',
+                              hour: '2-digit',
+                              minute: '2-digit'
+                            })}
+                          </p>
+                        </div>
+                      </div>
+                      <span className={`text-xs px-2 py-1 rounded-full font-medium
+                        ${isPaid ? 'bg-green-100 text-green-700' :
+                          isFree ? 'bg-gray-100 text-gray-600' :
+                          'bg-yellow-100 text-yellow-700'}`}>
+                        {isPaid ? '🟢 Paid Customer' :
+                         isFree ? '⚪ Free Signup' :
+                         '🟡 Pending'}
+                      </span>
+                    </div>
+                    {referral.referred_user?.subscription_plan && (
+                      <div className="flex justify-between items-center text-xs mt-2 pt-2 border-t">
+                        <span className="text-gray-600">
+                          Plan: <span className="font-medium capitalize">
+                            {referral.referred_user.subscription_plan}
+                          </span>
+                        </span>
+                        {isPaid && (
+                          <span className="text-green-600 font-medium">
+                            💰 Earning commission
+                          </span>
+                        )}
+                      </div>
+                    )}
                   </div>
-                  <span className={`text-xs px-2 py-1 rounded-full
-                    ${referral.status === 'converted' ? 'bg-green-100 text-green-700' :
-                      referral.status === 'signed_up' ? 'bg-yellow-100 text-yellow-700' :
-                      'bg-gray-100 text-gray-700'}`}>
-                    {referral.status}
-                  </span>
-                </div>
-              ))}
+                );
+              })}
             </div>
           ) : (
             <p className="text-sm text-gray-500">No referrals yet. Share your link to get started!</p>
