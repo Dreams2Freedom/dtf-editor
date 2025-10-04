@@ -54,13 +54,31 @@ export default function AdminAffiliateApplicationsPage() {
   async function fetchApplications() {
     try {
       console.log('Fetching affiliates...');
+
+      // Check session first
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      console.log('Session check:', {
+        hasSession: !!session,
+        userEmail: session?.user?.email,
+        userId: session?.user?.id,
+        sessionError
+      });
+
       const { data: affiliates, error } = await supabase
         .from('affiliates')
         .select('*')
         .order('created_at', { ascending: false });
 
       console.log('Affiliates fetched:', affiliates?.length || 0, error);
-      if (error) throw error;
+      if (error) {
+        console.error('Detailed error:', {
+          message: error.message,
+          code: error.code,
+          details: error.details,
+          hint: error.hint
+        });
+        throw error;
+      }
 
       // Fetch user details for each application
       const applicationsWithUsers = await Promise.all(
