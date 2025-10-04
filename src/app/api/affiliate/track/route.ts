@@ -11,9 +11,12 @@ export async function GET(request: NextRequest) {
     const searchParams = request.nextUrl.searchParams;
     const referralCode = searchParams.get('ref');
     const redirectTo = searchParams.get('redirect') || '/';
+    const format = searchParams.get('format'); // 'json' for API calls, undefined for redirects
 
     if (!referralCode) {
-      // No referral code, just redirect
+      if (format === 'json') {
+        return NextResponse.json({ success: false, error: 'No referral code provided' }, { status: 400 });
+      }
       return NextResponse.redirect(new URL(redirectTo, request.url));
     }
 
@@ -30,28 +33,61 @@ export async function GET(request: NextRequest) {
       referer: request.headers.get('referer') || undefined
     };
 
+    console.log('[TRACK API] Tracking visit for:', referralCode, visitData);
+
     // Track the visit
     const result = await trackReferralVisit(referralCode, visitData);
 
-    // Create response with redirect
+    console.log('[TRACK API] Track result:', result);
+
+    // If called from frontend (format=json), return JSON response
+    if (format === 'json') {
+      const response = NextResponse.json({
+        success: result.success,
+        cookieId: result.cookieId,
+        referralCode
+      });
+
+      if (result.success && result.cookieId) {
+        response.cookies.set({
+          name: 'dtf_ref',
+          value: result.cookieId,
+          maxAge: 30 * 24 * 60 * 60,
+          path: '/',
+          sameSite: 'lax',
+          secure: process.env.NODE_ENV === 'production'
+        });
+
+        response.cookies.set({
+          name: 'dtf_ref_code',
+          value: referralCode,
+          maxAge: 30 * 24 * 60 * 60,
+          path: '/',
+          sameSite: 'lax',
+          secure: process.env.NODE_ENV === 'production'
+        });
+      }
+
+      return response;
+    }
+
+    // Otherwise, return redirect for direct browser visits
     const response = NextResponse.redirect(new URL(redirectTo, request.url));
 
     if (result.success && result.cookieId) {
-      // Set cookie for tracking
       response.cookies.set({
         name: 'dtf_ref',
         value: result.cookieId,
-        maxAge: 30 * 24 * 60 * 60, // 30 days
+        maxAge: 30 * 24 * 60 * 60,
         path: '/',
         sameSite: 'lax',
         secure: process.env.NODE_ENV === 'production'
       });
 
-      // Also set the referral code for easy access
       response.cookies.set({
         name: 'dtf_ref_code',
         value: referralCode,
-        maxAge: 30 * 24 * 60 * 60, // 30 days
+        maxAge: 30 * 24 * 60 * 60,
         path: '/',
         sameSite: 'lax',
         secure: process.env.NODE_ENV === 'production'

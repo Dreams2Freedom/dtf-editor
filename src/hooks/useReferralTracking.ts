@@ -14,17 +14,21 @@ export function useReferralTracking() {
     if (refCode) {
       console.log('[REFERRAL TRACKING] Detected ref parameter:', refCode);
 
-      // Call tracking API
-      fetch(`/api/affiliate/track?ref=${refCode}`)
-        .then(response => {
-          if (response.ok) {
-            console.log('[REFERRAL TRACKING] Affiliate referral tracked successfully:', refCode);
+      // Call tracking API with format=json to get proper response
+      fetch(`/api/affiliate/track?ref=${refCode}&format=json`)
+        .then(response => response.json())
+        .then(data => {
+          if (data.success) {
+            console.log('[REFERRAL TRACKING] ✅ Affiliate referral tracked successfully:', {
+              refCode,
+              cookieId: data.cookieId
+            });
           } else {
-            console.warn('[REFERRAL TRACKING] Failed to track referral. Status:', response.status);
+            console.error('[REFERRAL TRACKING] ❌ Failed to track referral:', data.error || 'Unknown error');
           }
         })
         .catch(error => {
-          console.error('[REFERRAL TRACKING] Error tracking referral:', error);
+          console.error('[REFERRAL TRACKING] ❌ Error tracking referral:', error);
         });
     }
   }, []); // Run once on mount
