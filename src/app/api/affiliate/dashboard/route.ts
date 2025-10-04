@@ -86,16 +86,27 @@ export async function GET(request: NextRequest) {
     const userIds = rawReferrals?.map(r => r.referred_user_id).filter(Boolean) || [];
     console.log('[DASHBOARD API] User IDs to fetch:', userIds);
 
-    const { data: profiles, error: profilesError } = await serviceClient
-      .from('profiles')
-      .select('id, email, full_name, subscription_plan, subscription_status')
-      .in('id', userIds);
+    let profiles = null;
+    let profilesError = null;
 
-    if (profilesError) {
-      console.error('[DASHBOARD API] Error fetching profiles:', profilesError);
+    // Only query if we have user IDs
+    if (userIds.length > 0) {
+      const result = await serviceClient
+        .from('profiles')
+        .select('id, email, full_name, subscription_plan, subscription_status')
+        .in('id', userIds);
+
+      profiles = result.data;
+      profilesError = result.error;
+
+      if (profilesError) {
+        console.error('[DASHBOARD API] Error fetching profiles:', profilesError);
+      }
+
+      console.log('[DASHBOARD API] Profiles fetched:', JSON.stringify(profiles, null, 2));
+    } else {
+      console.log('[DASHBOARD API] No user IDs to fetch');
     }
-
-    console.log('[DASHBOARD API] Profiles fetched:', JSON.stringify(profiles, null, 2));
 
     // Merge profiles with referrals
     const profilesMap = new Map(profiles?.map(p => [p.id, p]) || []);
