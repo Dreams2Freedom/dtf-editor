@@ -1,8 +1,9 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/stores/authStore';
+import { useReferralTracking } from '@/hooks/useReferralTracking';
 import { Button } from '@/components/ui/Button';
 import { ClientOnly } from '@/components/auth/ClientOnly';
 import { LoadingPage } from '@/components/ui/LoadingPage';
@@ -31,30 +32,15 @@ import {
 
 export default function HomePage() {
   const router = useRouter();
-  const searchParams = useSearchParams();
   const { user, loading, initialize } = useAuthStore();
   const [activeTab, setActiveTab] = useState<'upscale' | 'background' | 'vectorize'>('upscale');
+
+  // Track affiliate referrals
+  useReferralTracking();
 
   useEffect(() => {
     initialize();
   }, [initialize]);
-
-  // Track affiliate referral if ref parameter is present
-  useEffect(() => {
-    const refCode = searchParams.get('ref');
-    if (refCode) {
-      // Call tracking API
-      fetch(`/api/affiliate/track?ref=${refCode}`)
-        .then(response => {
-          if (response.ok) {
-            console.log('[HOMEPAGE] Affiliate referral tracked:', refCode);
-          }
-        })
-        .catch(error => {
-          console.error('[HOMEPAGE] Error tracking referral:', error);
-        });
-    }
-  }, [searchParams]);
 
   useEffect(() => {
     if (!loading && user) {

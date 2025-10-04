@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { ChevronDown, ChevronUp, Search } from 'lucide-react';
 import Link from 'next/link';
+import { useReferralTracking } from '@/hooks/useReferralTracking';
 
 interface FAQItem {
   id: string;
@@ -255,6 +256,8 @@ const faqs: FAQItem[] = [
 ];
 
 export default function FAQPage() {
+  useReferralTracking();
+
   const [searchTerm, setSearchTerm] = useState('');
   const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set());
   const [selectedCategory, setSelectedCategory] = useState<string>('All');

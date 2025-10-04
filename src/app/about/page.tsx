@@ -2,8 +2,11 @@
 
 import Link from 'next/link';
 import { ArrowRight, Heart, Target, Zap, Users } from 'lucide-react';
+import { useReferralTracking } from '@/hooks/useReferralTracking';
 
 export default function AboutPage() {
+  useReferralTracking();
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-50 via-white to-pink-50">
       {/* Hero Section */}

@@ -8,8 +8,11 @@ import { PayAsYouGo } from '@/components/payment/PayAsYouGo';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { CreditCard, Zap, Star, Check } from 'lucide-react';
+import { useReferralTracking } from '@/hooks/useReferralTracking';
 
 export default function PricingClient() {
+  useReferralTracking();
+
   const searchParams = useSearchParams();
   const [activeTab, setActiveTab] = useState<'subscription' | 'payg'>('subscription');
 

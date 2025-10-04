@@ -6,10 +6,13 @@ import { Mail, MessageSquare, Clock, CheckCircle } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { useAuthStore } from '@/stores/authStore';
+import { useReferralTracking } from '@/hooks/useReferralTracking';
 import { supportService } from '@/services/support';
 import { toast } from 'react-hot-toast';
 
 export default function ContactPage() {
+  useReferralTracking();
+
   const router = useRouter();
   const { user } = useAuthStore();
   const [loading, setLoading] = useState(false);
