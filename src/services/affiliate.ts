@@ -318,10 +318,10 @@ export async function trackReferralSignup(
       return { success: false };
     }
 
-    // Check if user is self-referring (not allowed)
+    // Check if user is self-referring (not allowed) and get current counts
     const { data: affiliate } = await supabase
       .from('affiliates')
-      .select('user_id')
+      .select('user_id, total_signups')
       .eq('id', affiliateId)
       .single();
 
@@ -353,7 +353,7 @@ export async function trackReferralSignup(
     await supabase
       .from('affiliates')
       .update({
-        total_signups: affiliate.total_signups + 1,
+        total_signups: (affiliate.total_signups || 0) + 1,
         updated_at: new Date().toISOString()
       })
       .eq('id', affiliateId);
