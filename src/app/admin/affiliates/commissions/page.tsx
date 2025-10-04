@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { createClientSupabaseClient } from '@/lib/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { AffiliateAdminNav } from '@/components/admin/affiliates/AffiliateAdminNav';
 import { Button } from '@/components/ui/Button';
@@ -52,7 +51,6 @@ export default function AdminAffiliateCommissionsPage() {
     paidAmount: 0,
     averageCommission: 0
   });
-  const supabase = createClientSupabaseClient();
 
   useEffect(() => {
     fetchCommissions();
@@ -61,103 +59,41 @@ export default function AdminAffiliateCommissionsPage() {
 
   async function fetchCommissions() {
     try {
-      // Check session first
-      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-      console.log('Session check:', {
-        hasSession: !!session,
-        userEmail: session?.user?.email,
-        userId: session?.user?.id,
-        sessionError
-      });
+      // Call API route instead of direct Supabase query
+      const response = await fetch('/api/admin/affiliates/commissions');
 
-      if (!session) {
-        console.error('❌ NO SESSION - User not logged in');
-        setLoading(false);
-        return;
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to fetch commissions');
       }
 
-      // Check if user is admin
-      const { data: profile, error: profileError } = await supabase
-        .from('profiles')
-        .select('is_admin, email')
-        .eq('id', session.user.id)
-        .single();
+      const data = await response.json();
+      let commissionsData = data.commissions || [];
 
-      console.log('Profile check:', {
-        profile,
-        profileError,
-        isAdmin: profile?.is_admin
-      });
-
-      if (!profile?.is_admin) {
-        console.error('❌ NOT ADMIN - User does not have admin privileges');
-        setLoading(false);
-        return;
-      }
-
-      console.log('✅ Session valid, user is admin, fetching commissions...');
-
-      let query = supabase
-        .from('commissions')
-        .select(`
-          *,
-          affiliates!inner (
-            referral_code,
-            user_id
-          ),
-          referrals (
-            user_email,
-            conversion_value
-          )
-        `)
-        .order('created_at', { ascending: false });
-
+      // Apply client-side filters
       if (filter !== 'all') {
-        query = query.eq('status', filter);
+        commissionsData = commissionsData.filter((c: any) => c.status === filter);
       }
 
       if (selectedMonth) {
         const startDate = new Date(selectedMonth + '-01');
         const endDate = new Date(startDate.getFullYear(), startDate.getMonth() + 1, 0);
-        query = query
-          .gte('created_at', startDate.toISOString())
-          .lte('created_at', endDate.toISOString());
+        commissionsData = commissionsData.filter((c: any) => {
+          const createdAt = new Date(c.created_at);
+          return createdAt >= startDate && createdAt <= endDate;
+        });
       }
 
-      const { data: commissionsData, error } = await query;
-
-      if (error) throw error;
-
-      // Fetch user details for affiliates
-      const commissionsWithUsers = await Promise.all(
-        (commissionsData || []).map(async (commission: any) => {
-          const { data: profile } = await supabase
-            .from('profiles')
-            .select('email, full_name')
-            .eq('id', commission.affiliates.user_id)
-            .single();
-
-          return {
-            ...commission,
-            affiliate: {
-              ...commission.affiliates,
-              user: profile
-            },
-            referral: commission.referrals
-          };
-        })
-      );
-
-      setCommissions(commissionsWithUsers);
+      setCommissions(commissionsData);
 
       // Calculate stats
-      const total = commissionsWithUsers.length;
-      const pending = commissionsWithUsers
-        .filter(c => c.status === 'pending' || c.status === 'approved')
-        .reduce((sum, c) => sum + parseFloat(c.amount || 0), 0);
-      const paid = commissionsWithUsers
-        .filter(c => c.status === 'paid')
-        .reduce((sum, c) => sum + parseFloat(c.amount || 0), 0);
+      const total = commissionsData.length;
+      const pending = commissionsData
+        .filter((c: any) => c.status === 'pending' || c.status === 'approved')
+        .reduce((sum: number, c: any) => sum + parseFloat(c.amount || 0), 0);
+      const paid = commissionsData
+        .filter((c: any) => c.status === 'paid')
+        .reduce((sum: number, c: any) => sum + parseFloat(c.amount || 0), 0);
       const avg = total > 0 ? (pending + paid) / total : 0;
 
       setStats({
@@ -176,12 +112,16 @@ export default function AdminAffiliateCommissionsPage() {
 
   async function updateCommissionStatus(commissionId: string, newStatus: string) {
     try {
-      const { error } = await supabase
-        .from('commissions')
-        .update({ status: newStatus })
-        .eq('id', commissionId);
+      const response = await fetch(`/api/admin/affiliates/commissions/${commissionId}/update-status`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: newStatus })
+      });
 
-      if (error) throw error;
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to update commission');
+      }
 
       toast.success(`Commission ${newStatus}`);
       await fetchCommissions();
