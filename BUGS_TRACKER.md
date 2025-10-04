@@ -3,6 +3,23 @@
 **Last Updated:** October 4, 2025
 **Status:** Active Bug Tracking
 
+## 🎓 **LESSONS LEARNED - NOT BUGS, USER ERRORS**
+
+### **LESSON-001: Admin Email Confusion & Authentication (October 4, 2025)**
+- **What Happened:** Spent 6 hours debugging "admin access denied" issues
+- **Root Cause:**
+  1. Using wrong admin email (shannonherod@gmail.com instead of Shannon@S2Transfers.com)
+  2. Not logged in to production (separate sessions from local)
+- **Lesson:** ALWAYS check these FIRST before debugging:
+  - ✅ Is user logged in? (Check header for "Sign In" button)
+  - ✅ Using correct email? (Shannon@S2Transfers.com for admin)
+  - ✅ Correct environment? (production vs local sessions are separate)
+- **Prevention:** Created ADMIN_CREDENTIALS.md as mandatory reference file
+- **Time Wasted:** 6 hours on what should have been 5-minute check
+- **Reference:** See ADMIN_CREDENTIALS.md for all admin system details
+
+---
+
 ## 🐛 **Critical Bugs (P0)**
 
 ### **BUG-057: Affiliate Admin Panel Shows 0 Applications (Parameter Mismatch)**

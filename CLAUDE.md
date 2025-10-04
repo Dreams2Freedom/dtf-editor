@@ -6,12 +6,25 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 **ALWAYS read these files at the beginning of each conversation:**
 1. **`SESSION_END_2025_07_31.md`** - 🔴 READ THIS FIRST! Summary of last session and next steps
-2. **`DTF_EDITOR_PRD.md`** - Product Requirements Document (understand the project)
-3. **`DEVELOPMENT_ROADMAP_V3.md`** - Current development plan and phases (use V3, not V2!)
-4. **`DEVELOPMENT_LOG.md`** - Recent work, issues, and solutions
-5. **`BUGS_TRACKER.md`** - Known bugs and their status
-6. **`COMPLETION_TRACKER.md`** - What features are complete
-7. **`API_CODE_EXAMPLES.md`** - Verified API code examples for all integrations
+2. **`ADMIN_CREDENTIALS.md`** - 🔴 CRITICAL: Admin login info and common mistakes
+3. **`DTF_EDITOR_PRD.md`** - Product Requirements Document (understand the project)
+4. **`DEVELOPMENT_ROADMAP_V3.md`** - Current development plan and phases (use V3, not V2!)
+5. **`DEVELOPMENT_LOG.md`** - Recent work, issues, and solutions
+6. **`BUGS_TRACKER.md`** - Known bugs and their status
+7. **`COMPLETION_TRACKER.md`** - What features are complete
+8. **`API_CODE_EXAMPLES.md`** - Verified API code examples for all integrations
+
+## 🔐 CRITICAL ADMIN INFORMATION
+
+**SUPER ADMIN EMAIL:** `Shannon@S2Transfers.com` (capital S, capital T)
+**NOT:** shannonherod@gmail.com (this is a testing account, not primary admin)
+
+**ALWAYS CHECK FIRST when debugging admin issues:**
+1. ✅ Is user logged in? (Check for "Sign In" button in header)
+2. ✅ Using Shannon@S2Transfers.com? (NOT shannonherod@gmail.com)
+3. ✅ Correct environment? (production vs local have separate sessions)
+
+See `ADMIN_CREDENTIALS.md` for complete admin system documentation.
 
 ## 🔄 CRITICAL: Development Process Rules
 
