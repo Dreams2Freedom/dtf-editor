@@ -1,9 +1,9 @@
 import { NextResponse } from 'next/server';
-import { createServerSupabaseClient } from '@/lib/supabase/server';
+import { createServerSupabaseClient, createServiceRoleClient } from '@/lib/supabase/server';
 
 export async function GET() {
   try {
-    // Get authenticated user
+    // Validate session server-side
     const supabase = await createServerSupabaseClient();
     const { data: { user }, error: authError } = await supabase.auth.getUser();
 
@@ -14,8 +14,10 @@ export async function GET() {
       );
     }
 
-    // Get affiliate record for this user
-    const { data: affiliate, error: affiliateError } = await supabase
+    // Use service role to bypass RLS and get affiliate record
+    const serviceClient = createServiceRoleClient();
+
+    const { data: affiliate, error: affiliateError } = await serviceClient
       .from('affiliates')
       .select('*')
       .eq('user_id', user.id)
