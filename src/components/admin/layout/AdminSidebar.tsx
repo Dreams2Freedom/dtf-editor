@@ -15,9 +15,11 @@ import {
   ChevronDown,
   ChevronRight,
   Bell,
-  UsersRound
+  UsersRound,
+  ShieldCheck
 } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { createClientSupabaseClient } from '@/lib/supabase/client';
 interface AdminSidebarProps {
   isOpen: boolean;
   onClose: () => void;
@@ -100,14 +102,52 @@ const menuItems: MenuItem[] = [
     icon: Shield,
     permission: ['admin', 'manage'],
   },
+  {
+    name: 'Super Admin',
+    href: '/admin/users/admins',
+    icon: ShieldCheck,
+    permission: ['super_admin'],
+  },
 ];
 
 export function AdminSidebar({ isOpen, onClose }: AdminSidebarProps) {
   const pathname = usePathname();
   const [expandedItems, setExpandedItems] = useState<string[]>([]);
+  const [isSuperAdmin, setIsSuperAdmin] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const checkSuperAdmin = async () => {
+      try {
+        const supabase = createClientSupabaseClient();
+        const { data: { user } } = await supabase.auth.getUser();
+
+        if (user) {
+          const { data: role } = await supabase
+            .rpc('get_admin_role', { user_id: user.id });
+
+          setIsSuperAdmin(role === 'super_admin');
+        }
+      } catch (error) {
+        console.error('Error checking super admin status:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    checkSuperAdmin();
+  }, []);
 
   const hasPermission = (permission?: string[]): boolean => {
-    // For now, all admins have full permissions
+    // If no permission required, show to all admins
+    if (!permission || permission.length === 0) return true;
+
+    // Check for super_admin permission
+    if (permission.includes('super_admin')) {
+      return isSuperAdmin;
+    }
+
+    // For all other permissions, all admins have access
     return true;
   };
 

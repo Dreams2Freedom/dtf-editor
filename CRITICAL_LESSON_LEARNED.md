@@ -116,4 +116,31 @@ Files created to prevent this:
 
 ---
 
-**REMEMBER:** The code was perfect. The database was perfect. The user just wasn't logged in. 🤦
+## 🔧 UPDATE: October 4, 2025 - Additional Issue Found
+
+After documenting the authentication lesson, we discovered **one more real issue**:
+
+### Missing Database Functions + Parameter Name Mismatch
+The admin panel (`/admin/users/admins`) calls these RPC functions:
+- `get_admin_role(user_id)` ❌ Not in production
+- `is_super_admin(user_id)` ❌ Not in production
+- `has_permission(user_id, permission_key)` ❌ Not in production
+
+**Cause 1:** Migration `20250103_create_admin_roles_system.sql` was committed to codebase but never applied to production Supabase.
+
+**Cause 2:** Inconsistent parameter naming across migrations:
+- `FIX_ADMIN_ACCESS_FINAL.sql` used parameter name `check_user_id`
+- `20250103_create_admin_roles_system.sql` used parameter name `user_id`
+- Client code expects `user_id`
+- Result: Functions exist but can't be called (parameter mismatch = 404 error)
+
+**Fix:** Apply `scripts/FIX_ADMIN_FUNCTIONS_CORRECT.sql` to production database.
+
+**Lessons Learned:**
+1. Always verify migrations are applied to production, not just committed to git
+2. **CRITICAL: Use consistent parameter naming across all PostgreSQL functions**
+3. When creating database functions, check what parameter names the client code expects
+
+---
+
+**REMEMBER:** The code was perfect. The database was *mostly* perfect (just missing functions). The user just wasn't logged in. 🤦
