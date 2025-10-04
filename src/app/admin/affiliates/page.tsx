@@ -47,10 +47,47 @@ export default function AdminAffiliatesPage() {
 
   useEffect(() => {
     fetchAffiliateStats();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   async function fetchAffiliateStats() {
     try {
+      // Check session first
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      console.log('Session check:', {
+        hasSession: !!session,
+        userEmail: session?.user?.email,
+        userId: session?.user?.id,
+        sessionError
+      });
+
+      if (!session) {
+        console.error('❌ NO SESSION - User not logged in');
+        setLoading(false);
+        return;
+      }
+
+      // Check if user is admin
+      const { data: profile, error: profileError } = await supabase
+        .from('profiles')
+        .select('is_admin, email')
+        .eq('id', session.user.id)
+        .single();
+
+      console.log('Profile check:', {
+        profile,
+        profileError,
+        isAdmin: profile?.is_admin
+      });
+
+      if (!profile?.is_admin) {
+        console.error('❌ NOT ADMIN - User does not have admin privileges');
+        setLoading(false);
+        return;
+      }
+
+      console.log('✅ Session valid, user is admin, fetching affiliate stats...');
+
       // Fetch all affiliates
       const { data: affiliates, error: affiliatesError } = await supabase
         .from('affiliates')

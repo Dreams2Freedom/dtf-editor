@@ -58,10 +58,47 @@ export default function AdminAffiliatePayoutsPage() {
   useEffect(() => {
     fetchPayouts();
     fetchPendingCommissions();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   async function fetchPayouts() {
     try {
+      // Check session first
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      console.log('Session check:', {
+        hasSession: !!session,
+        userEmail: session?.user?.email,
+        userId: session?.user?.id,
+        sessionError
+      });
+
+      if (!session) {
+        console.error('❌ NO SESSION - User not logged in');
+        setLoading(false);
+        return;
+      }
+
+      // Check if user is admin
+      const { data: profile, error: profileError } = await supabase
+        .from('profiles')
+        .select('is_admin, email')
+        .eq('id', session.user.id)
+        .single();
+
+      console.log('Profile check:', {
+        profile,
+        profileError,
+        isAdmin: profile?.is_admin
+      });
+
+      if (!profile?.is_admin) {
+        console.error('❌ NOT ADMIN - User does not have admin privileges');
+        setLoading(false);
+        return;
+      }
+
+      console.log('✅ Session valid, user is admin, fetching payouts...');
+
       const { data: payoutsData, error } = await supabase
         .from('payouts')
         .select(`
