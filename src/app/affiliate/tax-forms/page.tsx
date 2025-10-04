@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { createClientSupabaseClient } from '@/lib/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { toast } from 'react-hot-toast';
@@ -55,7 +54,6 @@ export default function TaxFormsPage() {
   });
   const [submitting, setSubmitting] = useState(false);
   const router = useRouter();
-  const supabase = createClientSupabaseClient();
 
   useEffect(() => {
     fetchAffiliateData();
@@ -63,20 +61,27 @@ export default function TaxFormsPage() {
 
   async function fetchAffiliateData() {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        router.push('/auth/login');
+      // Call API route instead of direct Supabase query
+      const response = await fetch('/api/affiliate/me');
+
+      if (response.status === 404) {
+        toast.error('Please apply to the affiliate program first');
+        router.push('/affiliate/apply');
         return;
       }
 
-      // Get affiliate record
-      const { data: affiliateData, error: affiliateError } = await supabase
-        .from('affiliates')
-        .select('*')
-        .eq('user_id', user.id)
-        .single();
+      if (!response.ok) {
+        const error = await response.json();
+        if (response.status === 401) {
+          router.push('/auth/login');
+          return;
+        }
+        throw new Error(error.error || 'Failed to load affiliate data');
+      }
 
-      if (affiliateError || !affiliateData) {
+      const { affiliate: affiliateData } = await response.json();
+
+      if (!affiliateData) {
         toast.error('Please apply to the affiliate program first');
         router.push('/affiliate/apply');
         return;
@@ -106,20 +111,12 @@ export default function TaxFormsPage() {
 
     setSubmitting(true);
     try {
-      // Get the user's auth token
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
-        toast.error('Please log in to submit tax form');
-        router.push('/auth/login');
-        return;
-      }
-
       // Submit tax form through secure API endpoint
+      // Server will validate session and permissions
       const response = await fetch('/api/affiliate/tax-form', {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session.access_token}`
+          'Content-Type': 'application/json'
         },
         body: JSON.stringify({
           affiliateId: affiliate.id,
