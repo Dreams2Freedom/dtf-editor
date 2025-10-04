@@ -252,7 +252,7 @@ export async function trackReferralVisit(
       .from('referral_visits')
       .insert({
         affiliate_id: affiliate.id,
-        referral_code,
+        referral_code: referralCode,
         cookie_id: cookieId,
         landing_page: visitData.landing_page,
         utm_source: visitData.utm_source,
