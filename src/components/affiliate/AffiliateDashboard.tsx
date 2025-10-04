@@ -238,7 +238,7 @@ export function AffiliateDashboard({ initialData }: AffiliateDashboardProps) {
                 <FileText className="w-4 h-4 mr-2" />
                 Tax Information
               </h3>
-              {affiliate.tax_form_submitted ? (
+              {affiliate.tax_form_completed ? (
                 <div>
                   <p className="text-sm text-green-600 font-medium">✓ Tax form on file</p>
                   <p className="text-xs text-gray-500 mt-1">
