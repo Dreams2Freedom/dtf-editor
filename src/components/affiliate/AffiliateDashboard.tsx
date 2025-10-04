@@ -538,17 +538,26 @@ Thank you!
 
       {/* Marketing Resources */}
       <Card className="p-6 bg-gradient-to-r from-purple-50 to-pink-50">
-        <h3 className="font-semibold mb-4">Marketing Resources</h3>
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="font-semibold">Marketing Resources</h3>
+          <span className="text-xs font-medium px-3 py-1 bg-purple-100 text-purple-700 rounded-full">
+            Coming Soon
+          </span>
+        </div>
+        <p className="text-sm text-gray-600 mb-4">
+          We're creating high-quality marketing materials to help you promote DTF Editor.
+          Check back soon for banners, email templates, and social media kits!
+        </p>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <Button variant="outline" className="justify-start">
+          <Button variant="outline" className="justify-start" disabled>
             <ExternalLink className="w-4 h-4 mr-2" />
             Download Banners
           </Button>
-          <Button variant="outline" className="justify-start">
+          <Button variant="outline" className="justify-start" disabled>
             <ExternalLink className="w-4 h-4 mr-2" />
             Email Templates
           </Button>
-          <Button variant="outline" className="justify-start">
+          <Button variant="outline" className="justify-start" disabled>
             <ExternalLink className="w-4 h-4 mr-2" />
             Social Media Kit
           </Button>
