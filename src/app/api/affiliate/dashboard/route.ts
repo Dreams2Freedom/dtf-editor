@@ -61,6 +61,7 @@ export async function GET(request: NextRequest) {
     const serviceClient = createServiceRoleClient();
 
     // Get recent referrals
+    console.log('[DASHBOARD API] Fetching referrals for affiliate:', affiliate.id);
     const { data: rawReferrals, error: referralsError } = await serviceClient
       .from('referrals')
       .select('*')
@@ -72,8 +73,12 @@ export async function GET(request: NextRequest) {
       console.error('[DASHBOARD API] Error fetching referrals:', referralsError);
     }
 
+    console.log('[DASHBOARD API] Raw referrals:', JSON.stringify(rawReferrals, null, 2));
+
     // Get user profiles for referrals
     const userIds = rawReferrals?.map(r => r.referred_user_id).filter(Boolean) || [];
+    console.log('[DASHBOARD API] User IDs to fetch:', userIds);
+
     const { data: profiles, error: profilesError } = await serviceClient
       .from('profiles')
       .select('id, email, full_name, subscription_plan, subscription_status')
@@ -83,12 +88,22 @@ export async function GET(request: NextRequest) {
       console.error('[DASHBOARD API] Error fetching profiles:', profilesError);
     }
 
+    console.log('[DASHBOARD API] Profiles fetched:', JSON.stringify(profiles, null, 2));
+
     // Merge profiles with referrals
     const profilesMap = new Map(profiles?.map(p => [p.id, p]) || []);
-    const recentReferrals = rawReferrals?.map(ref => ({
-      ...ref,
-      referred_user: profilesMap.get(ref.referred_user_id) || null
-    })) || [];
+    console.log('[DASHBOARD API] Profiles map size:', profilesMap.size);
+
+    const recentReferrals = rawReferrals?.map(ref => {
+      const profile = profilesMap.get(ref.referred_user_id);
+      console.log(`[DASHBOARD API] Mapping referral ${ref.id}: user_id=${ref.referred_user_id}, profile found:`, !!profile);
+      return {
+        ...ref,
+        referred_user: profile || null
+      };
+    }) || [];
+
+    console.log('[DASHBOARD API] Final recent referrals count:', recentReferrals.length);
 
     // Get recent commissions
     const { data: recentCommissions } = await serviceClient
