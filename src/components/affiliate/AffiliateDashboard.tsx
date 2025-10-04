@@ -185,13 +185,16 @@ export function AffiliateDashboard({ initialData }: AffiliateDashboardProps) {
         <Card className="p-6">
           <div className="flex items-start justify-between">
             <div>
-              <p className="text-sm text-gray-600">Signups</p>
+              <p className="text-sm text-gray-600">Free Signups</p>
               <p className="text-2xl font-bold mt-1">{stats.total_signups}</p>
               {stats.total_clicks > 0 && (
                 <p className="text-xs text-gray-500 mt-1">
-                  {((stats.total_signups / stats.total_clicks) * 100).toFixed(1)}% rate
+                  {((stats.total_signups / stats.total_clicks) * 100).toFixed(1)}% conversion
                 </p>
               )}
+              <p className="text-xs text-gray-500 mt-1">
+                No payment yet
+              </p>
             </div>
             <Users className="w-8 h-8 text-green-500 opacity-20" />
           </div>
@@ -200,13 +203,16 @@ export function AffiliateDashboard({ initialData }: AffiliateDashboardProps) {
         <Card className="p-6">
           <div className="flex items-start justify-between">
             <div>
-              <p className="text-sm text-gray-600">Conversions</p>
+              <p className="text-sm text-gray-600">Paid Conversions</p>
               <p className="text-2xl font-bold mt-1">{stats.total_conversions}</p>
               {stats.total_signups > 0 && (
                 <p className="text-xs text-gray-500 mt-1">
-                  {stats.conversion_rate.toFixed(1)}% rate
+                  {stats.conversion_rate.toFixed(1)}% of signups
                 </p>
               )}
+              <p className="text-xs text-green-600 mt-1 font-medium">
+                💰 Earning commissions
+              </p>
             </div>
             <TrendingUp className="w-8 h-8 text-purple-500 opacity-20" />
           </div>
