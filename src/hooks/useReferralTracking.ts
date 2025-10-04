@@ -4,26 +4,28 @@
  */
 
 import { useEffect } from 'react';
-import { useSearchParams } from 'next/navigation';
 
 export function useReferralTracking() {
-  const searchParams = useSearchParams();
-
   useEffect(() => {
-    const refCode = searchParams.get('ref');
+    // Read ref parameter directly from URL
+    const urlParams = new URLSearchParams(window.location.search);
+    const refCode = urlParams.get('ref');
+
     if (refCode) {
+      console.log('[REFERRAL TRACKING] Detected ref parameter:', refCode);
+
       // Call tracking API
       fetch(`/api/affiliate/track?ref=${refCode}`)
         .then(response => {
           if (response.ok) {
-            console.log('[REFERRAL TRACKING] Affiliate referral tracked:', refCode);
+            console.log('[REFERRAL TRACKING] Affiliate referral tracked successfully:', refCode);
           } else {
-            console.warn('[REFERRAL TRACKING] Failed to track referral:', response.status);
+            console.warn('[REFERRAL TRACKING] Failed to track referral. Status:', response.status);
           }
         })
         .catch(error => {
           console.error('[REFERRAL TRACKING] Error tracking referral:', error);
         });
     }
-  }, [searchParams]);
+  }, []); // Run once on mount
 }
