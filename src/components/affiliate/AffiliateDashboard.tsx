@@ -56,6 +56,13 @@ export function AffiliateDashboard({ initialData }: AffiliateDashboardProps) {
       const response = await fetch('/api/affiliate/dashboard');
       const result = await response.json();
 
+      console.log('[AFFILIATE DASHBOARD] API Response:', result);
+      console.log('[AFFILIATE DASHBOARD] Recent Referrals:', result.recentReferrals);
+      if (result.recentReferrals && result.recentReferrals.length > 0) {
+        console.log('[AFFILIATE DASHBOARD] First referral:', result.recentReferrals[0]);
+        console.log('[AFFILIATE DASHBOARD] First referral user:', result.recentReferrals[0].referred_user);
+      }
+
       if (!response.ok) {
         throw new Error(result.error || 'Failed to load dashboard');
       }
