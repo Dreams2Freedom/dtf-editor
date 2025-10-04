@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { createClientSupabaseClient } from '@/lib/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { AffiliateAdminNav } from '@/components/admin/affiliates/AffiliateAdminNav';
 import { Button } from '@/components/ui/Button';
@@ -45,7 +44,6 @@ export default function AdminAffiliateApplicationsPage() {
   const [selectedApplication, setSelectedApplication] = useState<Application | null>(null);
   const [processingId, setProcessingId] = useState<string | null>(null);
   const [rejectionReason, setRejectionReason] = useState('');
-  const supabase = createClientSupabaseClient();
 
   useEffect(() => {
     fetchApplications();
@@ -54,79 +52,19 @@ export default function AdminAffiliateApplicationsPage() {
 
   async function fetchApplications() {
     try {
-      console.log('Fetching affiliates...');
+      // Call API route instead of direct Supabase query
+      const response = await fetch('/api/admin/affiliates/applications');
 
-      // Check session first
-      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-      console.log('Session check:', {
-        hasSession: !!session,
-        userEmail: session?.user?.email,
-        userId: session?.user?.id,
-        sessionError
-      });
-
-      if (!session) {
-        console.error('❌ NO SESSION - User not logged in');
-        toast.error('Not logged in. Please refresh the page.');
-        setLoading(false);
-        return;
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to fetch applications');
       }
 
-      // Check if user is admin
-      const { data: profile, error: profileError } = await supabase
-        .from('profiles')
-        .select('is_admin, email')
-        .eq('id', session.user.id)
-        .single();
+      const data = await response.json();
+      const affiliates = data.affiliates || [];
 
-      console.log('Profile check:', {
-        profile,
-        profileError,
-        isAdmin: profile?.is_admin
-      });
-
-      if (!profile?.is_admin) {
-        console.error('❌ NOT ADMIN - User does not have admin privileges');
-        toast.error('Access denied: Admin privileges required');
-        setLoading(false);
-        return;
-      }
-
-      console.log('✅ Session valid, user is admin, fetching affiliates...');
-
-      const { data: affiliates, error } = await supabase
-        .from('affiliates')
-        .select('*')
-        .order('created_at', { ascending: false });
-
-      console.log('Affiliates fetched:', affiliates?.length || 0, error);
-      if (error) {
-        console.error('Detailed error:', {
-          message: error.message,
-          code: error.code,
-          details: error.details,
-          hint: error.hint
-        });
-        throw error;
-      }
-
-      // Fetch user details for each application
-      const applicationsWithUsers = await Promise.all(
-        (affiliates || []).map(async (affiliate) => {
-          const { data: profile } = await supabase
-            .from('profiles')
-            .select('email, full_name')
-            .eq('id', affiliate.user_id)
-            .single();
-
-          return {
-            ...affiliate,
-            user: profile
-          };
-        })
-      );
-
-      setApplications(applicationsWithUsers);
+      // API route already includes user profiles
+      setApplications(affiliates);
     } catch (error) {
       console.error('Error fetching applications:', error);
       toast.error('Failed to load applications');
@@ -138,16 +76,14 @@ export default function AdminAffiliateApplicationsPage() {
   async function approveApplication(applicationId: string) {
     setProcessingId(applicationId);
     try {
-      const { error } = await supabase
-        .from('affiliates')
-        .update({
-          status: 'approved',
-          approved_at: new Date().toISOString(),
-          approved_by: 'admin'
-        })
-        .eq('id', applicationId);
+      const response = await fetch(`/api/admin/affiliates/${applicationId}/approve`, {
+        method: 'POST'
+      });
 
-      if (error) throw error;
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to approve application');
+      }
 
       toast.success('Application approved successfully');
       await fetchApplications();
@@ -168,17 +104,16 @@ export default function AdminAffiliateApplicationsPage() {
 
     setProcessingId(applicationId);
     try {
-      const { error } = await supabase
-        .from('affiliates')
-        .update({
-          status: 'rejected',
-          rejection_reason: rejectionReason,
-          rejected_at: new Date().toISOString(),
-          rejected_by: 'admin'
-        })
-        .eq('id', applicationId);
+      const response = await fetch(`/api/admin/affiliates/${applicationId}/reject`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ rejectionReason })
+      });
 
-      if (error) throw error;
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to reject application');
+      }
 
       toast.success('Application rejected');
       setRejectionReason('');
