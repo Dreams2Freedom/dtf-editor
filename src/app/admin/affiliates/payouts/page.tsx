@@ -218,7 +218,7 @@ export default function AdminAffiliatePayoutsPage() {
       }
 
       // Check if tax form is on file
-      if (!pendingAffiliate.affiliate.tax_form_submitted) {
+      if (!pendingAffiliate.affiliate.tax_form_completed) {
         toast.error('Tax form must be on file before processing payouts');
         setProcessingPayout(null);
         return;
@@ -419,7 +419,7 @@ export default function AdminAffiliatePayoutsPage() {
                         </div>
                       </td>
                       <td className="px-4 py-3">
-                        {pending.affiliate?.tax_form_submitted ? (
+                        {pending.affiliate?.tax_form_completed ? (
                           <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
                             <CheckCircle className="h-3 w-3 mr-1" />
                             {pending.affiliate?.tax_form_type || 'On File'}

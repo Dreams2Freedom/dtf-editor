@@ -269,7 +269,7 @@ export function AffiliateDashboard({ initialData }: AffiliateDashboardProps) {
             <p className="text-2xl font-bold mb-2">
               ${stats.available_balance?.toFixed(2) || '0.00'}
             </p>
-            {affiliate.tax_form_submitted ? (
+            {affiliate.tax_form_completed ? (
               stats.available_balance >= 50 ? (
                 <div>
                   <p className="text-xs text-gray-500 mb-2">Minimum $50 for payout</p>

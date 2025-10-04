@@ -90,7 +90,7 @@ export default function TaxFormsPage() {
       setAffiliate(affiliateData);
 
       // Check if tax form already submitted
-      if (affiliateData.tax_form_submitted) {
+      if (affiliateData.tax_form_completed) {
         setFormType(affiliateData.tax_form_type);
       }
     } catch (error) {
@@ -151,7 +151,7 @@ export default function TaxFormsPage() {
     );
   }
 
-  if (affiliate?.tax_form_submitted) {
+  if (affiliate?.tax_form_completed) {
     return (
       <div className="min-h-screen bg-gray-50 py-12 px-4">
         <div className="max-w-3xl mx-auto">
@@ -166,7 +166,7 @@ export default function TaxFormsPage() {
                 <p className="text-sm font-medium text-gray-700 mb-2">Important Information:</p>
                 <ul className="text-sm text-gray-600 space-y-1">
                   <li>• Form Type: {formType}</li>
-                  <li>• Submitted: {new Date(affiliate.tax_form_submitted_at).toLocaleDateString()}</li>
+                  <li>• Submitted: {new Date(affiliate.tax_form_completed_at).toLocaleDateString()}</li>
                   <li>• Tax ID: ***-**-****</li>
                   {formType === 'W9' && (
                     <li>• 1099-MISC will be issued if earnings exceed $600</li>
