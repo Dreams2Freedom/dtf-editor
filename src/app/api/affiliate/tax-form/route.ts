@@ -1,27 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
+import { createServerSupabaseClient, createServiceRoleClient } from '@/lib/supabase/server';
 import { encryptSensitiveData, encryptTaxFormData, sanitizeTaxId, isValidSSN, isValidEIN } from '@/lib/encryption';
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
 
 export async function POST(request: NextRequest) {
   try {
-    // Get the authorization header
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    // Verify the user
-    const token = authHeader.replace('Bearer ', '');
-    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+    // Validate session server-side (uses httpOnly cookies)
+    const supabase = await createServerSupabaseClient();
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
 
     if (authError || !user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
+
+    // Use service role client for database operations
+    const serviceClient = createServiceRoleClient();
 
     // Get the request body
     const body = await request.json();
@@ -32,7 +24,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Verify the affiliate belongs to the user
-    const { data: affiliate, error: affiliateError } = await supabase
+    const { data: affiliate, error: affiliateError } = await serviceClient
       .from('affiliates')
       .select('id, user_id')
       .eq('id', affiliateId)
@@ -67,7 +59,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Update the affiliate record with encrypted data
-    const { error: updateError } = await supabase
+    const { error: updateError } = await serviceClient
       .from('affiliates')
       .update({
         tax_form_type: taxFormData.form_type,
@@ -87,7 +79,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Log the event for audit trail (without sensitive data)
-    await supabase
+    await serviceClient
       .from('affiliate_events')
       .insert({
         affiliate_id: affiliateId,
@@ -115,20 +107,19 @@ export async function POST(request: NextRequest) {
 // GET endpoint to check tax form status (no sensitive data returned)
 export async function GET(request: NextRequest) {
   try {
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    const token = authHeader.replace('Bearer ', '');
-    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+    // Validate session server-side
+    const supabase = await createServerSupabaseClient();
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
 
     if (authError || !user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    // Use service role client for database operations
+    const serviceClient = createServiceRoleClient();
+
     // Get affiliate record
-    const { data: affiliate, error } = await supabase
+    const { data: affiliate, error } = await serviceClient
       .from('affiliates')
       .select('id, tax_form_type, tax_form_completed, tax_form_completed_at')
       .eq('user_id', user.id)
