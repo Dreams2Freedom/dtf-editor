@@ -34,7 +34,7 @@ export function CreditHistory() {
   const [loading, setLoading] = useState(true);
   const [mounted, setMounted] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
-  const [totalCount, setTotalCount] = useState(0);
+  const [hasMore, setHasMore] = useState(false);
   const supabase = createClientSupabaseClient();
 
   useEffect(() => {
@@ -52,26 +52,32 @@ export function CreditHistory() {
     try {
       const offset = (currentPage - 1) * ITEMS_PER_PAGE;
 
-      // Use RPC function to fetch transactions with pagination
+      // Fetch one extra item to check if there are more pages
       const { data, error } = await supabase
         .rpc('get_user_credit_transactions', {
           p_user_id: user?.id,
-          p_limit: ITEMS_PER_PAGE,
+          p_limit: ITEMS_PER_PAGE + 1,
           p_offset: offset
         });
 
-      if (error) throw error;
-      setTransactions(data || []);
-
-      // Get total count for pagination
-      const { count, error: countError } = await supabase
-        .from('credit_transactions')
-        .select('*', { count: 'exact', head: true })
-        .eq('user_id', user?.id);
-
-      if (!countError && count !== null) {
-        setTotalCount(count);
+      if (error) {
+        console.error('Error fetching transactions:', error);
+        throw error;
       }
+
+      const results = data || [];
+
+      // Check if there are more items beyond the current page
+      if (results.length > ITEMS_PER_PAGE) {
+        setHasMore(true);
+        // Remove the extra item
+        setTransactions(results.slice(0, ITEMS_PER_PAGE));
+      } else {
+        setHasMore(false);
+        setTransactions(results);
+      }
+
+      console.log('[CreditHistory] Fetched:', results.length, 'Has more:', results.length > ITEMS_PER_PAGE);
     } catch (error) {
       console.error('Error fetching credit history:', error);
     } finally {
@@ -132,9 +138,9 @@ export function CreditHistory() {
     );
   }
 
-  const totalPages = Math.ceil(totalCount / ITEMS_PER_PAGE);
+  const showPagination = currentPage > 1 || hasMore;
   const startItem = (currentPage - 1) * ITEMS_PER_PAGE + 1;
-  const endItem = Math.min(currentPage * ITEMS_PER_PAGE, totalCount);
+  const endItem = startItem + transactions.length - 1;
 
   return (
     <div className="space-y-4">
@@ -175,10 +181,10 @@ export function CreditHistory() {
       </div>
 
       {/* Pagination Controls */}
-      {totalPages > 1 && (
+      {showPagination && (
         <div className="flex items-center justify-between border-t pt-4">
           <div className="text-sm text-gray-600">
-            Showing {startItem} to {endItem} of {totalCount} transactions
+            Showing {startItem} to {endItem} transactions
           </div>
           <div className="flex items-center gap-2">
             <Button
@@ -191,13 +197,13 @@ export function CreditHistory() {
               Previous
             </Button>
             <span className="text-sm text-gray-600 px-3">
-              Page {currentPage} of {totalPages}
+              Page {currentPage}
             </span>
             <Button
               variant="secondary"
               size="sm"
-              onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
-              disabled={currentPage === totalPages}
+              onClick={() => setCurrentPage(prev => prev + 1)}
+              disabled={!hasMore}
             >
               Next
               <ChevronRight className="w-4 h-4 ml-1" />
