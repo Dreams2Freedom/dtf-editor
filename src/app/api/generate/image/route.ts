@@ -1,7 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createServerSupabaseClient, createServiceRoleClient } from '@/lib/supabase/server';
+import {
+  createServerSupabaseClient,
+  createServiceRoleClient,
+} from '@/lib/supabase/server';
 import { chatGPTService } from '@/services/chatgpt';
-import { validatePrompt, enhancePromptForDTF } from '@/utils/promptHelpers';
+import {
+  validatePrompt,
+  enhancePromptForDTF,
+  enforceTransparentBackground
+} from '@/utils/promptHelpers';
 import { v4 as uuidv4 } from 'uuid';
 import { withRateLimit } from '@/lib/rate-limit';
 
@@ -10,8 +17,11 @@ export const maxDuration = 60;
 export const runtime = 'nodejs';
 
 async function handlePost(request: NextRequest) {
-  console.log('[Generate Image API] Request received at:', new Date().toISOString());
-  
+  console.log(
+    '[Generate Image API] Request received at:',
+    new Date().toISOString()
+  );
+
   try {
     // Get the authenticated user using the server Supabase client
     console.log('[Generate Image API] Creating Supabase client...');
@@ -19,16 +29,19 @@ async function handlePost(request: NextRequest) {
     try {
       supabase = await createServerSupabaseClient();
     } catch (clientError: any) {
-      console.error('[Generate Image API] Failed to create Supabase client:', clientError);
+      console.error(
+        '[Generate Image API] Failed to create Supabase client:',
+        clientError
+      );
       return NextResponse.json(
-        { 
+        {
           error: 'Failed to initialize authentication',
-          details: clientError.message 
+          details: clientError.message,
         },
         { status: 500 }
       );
     }
-    
+
     console.log('[Generate Image API] Getting user from session...');
     const {
       data: { user },
@@ -42,15 +55,15 @@ async function handlePost(request: NextRequest) {
         { status: 401 }
       );
     }
-    
+
     console.log('[Generate Image API] User authenticated:', user.id);
 
     // Get user profile to check subscription status, credits, and admin status
     console.log('[Generate Image API] Fetching profile for user:', user.id);
-    
+
     // Use service role client to bypass RLS for reading profile
     const serviceClient = createServiceRoleClient();
-    
+
     // Try to get profile with all fields first
     const { data: profile, error: profileError } = await serviceClient
       .from('profiles')
@@ -59,17 +72,23 @@ async function handlePost(request: NextRequest) {
       .single();
 
     if (profileError) {
-      console.error('[Generate Image API] Error fetching profile:', profileError);
+      console.error(
+        '[Generate Image API] Error fetching profile:',
+        profileError
+      );
       console.error('[Generate Image API] Profile error details:', {
         message: profileError.message,
         details: profileError.details,
         hint: profileError.hint,
-        code: profileError.code
+        code: profileError.code,
       });
-      
+
       // Try to create a basic profile if it doesn't exist
-      if (profileError.code === 'PGRST116') { // Row not found
-        console.log('[Generate Image API] Profile not found, creating default profile');
+      if (profileError.code === 'PGRST116') {
+        // Row not found
+        console.log(
+          '[Generate Image API] Profile not found, creating default profile'
+        );
         const { data: newProfile, error: insertError } = await supabase
           .from('profiles')
           .insert({
@@ -77,43 +96,54 @@ async function handlePost(request: NextRequest) {
             email: user.email,
             credits: 0,
             subscription_tier: 'free',
-            is_admin: false
+            is_admin: false,
           })
           .select()
           .single();
-          
+
         if (insertError) {
-          console.error('[Generate Image API] Failed to create profile:', insertError);
+          console.error(
+            '[Generate Image API] Failed to create profile:',
+            insertError
+          );
           return NextResponse.json(
-            { error: 'Failed to create user profile', details: insertError.message },
+            {
+              error: 'Failed to create user profile',
+              details: insertError.message,
+            },
             { status: 500 }
           );
         }
-        
+
         // Use the newly created profile
         Object.assign(profile || {}, newProfile);
       } else {
         return NextResponse.json(
-          { error: 'Failed to fetch user profile', details: profileError.message },
+          {
+            error: 'Failed to fetch user profile',
+            details: profileError.message,
+          },
           { status: 500 }
         );
       }
     }
-    
+
     console.log('[Generate Image API] Profile fetched:', {
       id: profile?.id,
       credits: profile?.credits,
       is_admin: profile?.is_admin,
-      subscription_tier: profile?.subscription_tier
+      subscription_tier: profile?.subscription_tier,
     });
 
     // Check if user has access (must be paid user or admin)
-    const isAdmin = profile.is_admin === true;
-    const isPaidUser = profile.subscription_tier && profile.subscription_tier !== 'free';
-    
+    // Use Boolean() to safely handle any truthy value (true, 1, 'true', etc.)
+    const isAdmin = Boolean(profile.is_admin);
+    const isPaidUser =
+      profile.subscription_tier && profile.subscription_tier !== 'free';
+
     if (!isPaidUser && !isAdmin) {
       return NextResponse.json(
-        { 
+        {
           error: 'AI image generation is only available for paid subscribers',
           requiresUpgrade: true,
         },
@@ -135,96 +165,56 @@ async function handlePost(request: NextRequest) {
     // Validate prompt
     const validation = validatePrompt(prompt);
     if (!validation.valid) {
-      return NextResponse.json(
-        { error: validation.reason },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: validation.reason }, { status: 400 });
     }
 
     // Calculate required credits based on quality for gpt-image-1
     // Beta pricing: reduced credit costs
     const qualityMap = {
-      'low': 1,
-      'standard': 1,
-      'high': 2,
-      'hd': 2, // Map hd to high for backwards compatibility
+      low: 1,
+      standard: 1,
+      high: 2,
+      hd: 2, // Map hd to high for backwards compatibility
     };
     const creditsPerImage = qualityMap[quality] || 1;
     const totalCreditsRequired = creditsPerImage * count;
 
-    // Check if user has enough credits (skip for admins)
-    if (!isAdmin && profile.credits < totalCreditsRequired) {
-      return NextResponse.json(
-        { 
-          error: `Insufficient credits. You need ${totalCreditsRequired} credits but only have ${profile.credits}`,
-          creditsRequired: totalCreditsRequired,
-          creditsAvailable: profile.credits,
-        },
-        { status: 402 } // Payment Required
-      );
-    }
-
-    // Enhance prompt for DTF if requested
-    const enhancedPrompt = body.enhanceForDTF 
-      ? enhancePromptForDTF(prompt)
-      : prompt;
-
-    console.log('[Generate Image API] Generating AI image:', {
-      userId: user.id,
-      prompt: enhancedPrompt.substring(0, 100) + '...',
-      size,
-      quality,
-      style,
-      count,
-      creditsRequired: totalCreditsRequired,
-    });
-
-    // Generate the image(s)
-    console.log('[Generate Image API] Calling ChatGPT service...');
-    let result;
-    try {
-      result = count > 1
-        ? await chatGPTService.generateMultipleImages(
-            { prompt: enhancedPrompt, size, quality, style },
-            count
-          )
-        : await chatGPTService.generateImage({
-            prompt: enhancedPrompt,
-            size,
-            quality,
-            style,
-          });
-      console.log('[Generate Image API] ChatGPT service response:', { success: result.success, imageCount: result.images?.length });
-    } catch (serviceError: any) {
-      console.error('[Generate Image API] ChatGPT service error:', serviceError);
-      return NextResponse.json(
-        { error: 'Image generation service error', details: serviceError.message },
-        { status: 500 }
-      );
-    }
-
-    if (!result.success || !result.images) {
-      console.error('[Generate Image API] Image generation failed:', result.error);
-      return NextResponse.json(
-        { error: result.error || 'Failed to generate image' },
-        { status: 500 }
-      );
-    }
-
-    // Deduct credits (skip for admins)
+    // CRITICAL: Deduct credits BEFORE generation to prevent race conditions
+    // Use atomic database function to ensure only one request can deduct credits at a time
+    // This is only for non-admin users
+    let creditsDeducted = false;
     if (!isAdmin) {
-      const { error: creditError } = await serviceClient
-        .from('profiles')
-        .update({ credits: profile.credits - totalCreditsRequired })
-        .eq('id', user.id);
+      console.log('[Generate Image API] Atomically deducting credits:', {
+        userId: user.id,
+        amount: totalCreditsRequired,
+        currentCredits: profile.credits,
+      });
 
-      if (creditError) {
-        console.error('Error deducting credits:', creditError);
-        // Image was generated but credits couldn't be deducted
-        // Still return the image but log the error
+      const { data: newBalance, error: deductError } = await serviceClient.rpc(
+        'deduct_credits_atomic',
+        {
+          p_user_id: user.id,
+          p_amount: totalCreditsRequired,
+        }
+      );
+
+      if (deductError || newBalance === null) {
+        // Deduction failed - user doesn't have enough credits
+        console.error('[Generate Image API] Credit deduction failed:', deductError);
+        return NextResponse.json(
+          {
+            error: `Insufficient credits. You need ${totalCreditsRequired} credits but only have ${profile.credits}`,
+            creditsRequired: totalCreditsRequired,
+            creditsAvailable: profile.credits,
+          },
+          { status: 402 } // Payment Required
+        );
       }
 
-      // Log credit transaction
+      creditsDeducted = true;
+      console.log('[Generate Image API] Credits deducted successfully. New balance:', newBalance);
+
+      // Log credit transaction immediately after deduction
       await serviceClient.from('credit_transactions').insert({
         user_id: user.id,
         amount: -totalCreditsRequired,
@@ -232,13 +222,123 @@ async function handlePost(request: NextRequest) {
         description: `AI image generation (${quality} quality, ${count} image${count > 1 ? 's' : ''})`,
         metadata: {
           service: 'chatgpt',
-          prompt: enhancedPrompt.substring(0, 200),
+          prompt: prompt.substring(0, 200),
           size,
           quality,
           style,
           count,
         },
       });
+    }
+
+    // Enhance prompt for DTF if requested
+    const enhancedPrompt = body.enhanceForDTF
+      ? enhancePromptForDTF(prompt)
+      : prompt;
+
+    // CRITICAL: ALWAYS enforce transparent background - this is the final gate
+    // This ensures 100% of images have transparent backgrounds for DTF printing
+    const finalPrompt = enforceTransparentBackground(enhancedPrompt);
+
+    console.log('[Generate Image API] Generating AI image:', {
+      userId: user.id,
+      prompt: finalPrompt.substring(0, 100) + '...',
+      size,
+      quality,
+      style,
+      count,
+      creditsRequired: totalCreditsRequired,
+      creditsDeducted,
+      transparentBgEnforced: true,
+    });
+
+    // Generate the image(s)
+    console.log('[Generate Image API] Calling ChatGPT service...');
+    let result;
+    try {
+      result =
+        count > 1
+          ? await chatGPTService.generateMultipleImages(
+              { prompt: finalPrompt, size, quality, style },
+              count
+            )
+          : await chatGPTService.generateImage({
+              prompt: finalPrompt,
+              size,
+              quality,
+              style,
+            });
+      console.log('[Generate Image API] ChatGPT service response:', {
+        success: result.success,
+        imageCount: result.images?.length,
+      });
+    } catch (serviceError: any) {
+      console.error(
+        '[Generate Image API] ChatGPT service error:',
+        serviceError
+      );
+
+      // CRITICAL: Refund credits if generation failed
+      if (creditsDeducted) {
+        console.log('[Generate Image API] Refunding credits due to generation failure...');
+        await serviceClient.rpc('refund_credits_atomic', {
+          p_user_id: user.id,
+          p_amount: totalCreditsRequired,
+        });
+
+        // Log refund transaction
+        await serviceClient.from('credit_transactions').insert({
+          user_id: user.id,
+          amount: totalCreditsRequired,
+          type: 'refund',
+          description: `Credit refund - image generation failed: ${serviceError.message}`,
+          metadata: {
+            service: 'chatgpt',
+            error: serviceError.message,
+          },
+        });
+      }
+
+      return NextResponse.json(
+        {
+          error: 'Image generation service error',
+          details: serviceError.message,
+        },
+        { status: 500 }
+      );
+    }
+
+    if (!result.success || !result.images) {
+      console.error(
+        '[Generate Image API] Image generation failed:',
+        result.error
+      );
+
+      // CRITICAL: Refund credits if generation failed
+      if (creditsDeducted) {
+        console.log('[Generate Image API] Refunding credits due to generation failure...');
+        await serviceClient.rpc('refund_credits_atomic', {
+          p_user_id: user.id,
+          p_amount: totalCreditsRequired,
+        });
+
+        // Log refund transaction
+        await serviceClient.from('credit_transactions').insert({
+          user_id: user.id,
+          amount: totalCreditsRequired,
+          type: 'refund',
+          description: `Credit refund - image generation failed: ${result.error}`,
+          metadata: {
+            service: 'chatgpt',
+            error: result.error,
+          },
+        });
+      }
+
+      return NextResponse.json(
+        { error: result.error || 'Failed to generate image' },
+        { status: 500 }
+      );
     }
 
     // serviceClient already initialized above for profile operations
@@ -248,7 +348,7 @@ async function handlePost(request: NextRequest) {
     for (const image of result.images) {
       try {
         let buffer: Buffer;
-        
+
         // Check if the image is a base64 data URL or a regular URL
         if (image.url.startsWith('data:')) {
           // Extract base64 data from data URL
@@ -266,12 +366,13 @@ async function handlePost(request: NextRequest) {
         const filename = `ai-generated/${user.id}/${uuidv4()}.png`;
 
         // Upload to Supabase Storage
-        const { data: uploadData, error: uploadError } = await serviceClient.storage
-          .from('user-uploads')
-          .upload(filename, buffer, {
-            contentType: 'image/png',
-            upsert: false,
-          });
+        const { data: uploadData, error: uploadError } =
+          await serviceClient.storage
+            .from('user-uploads')
+            .upload(filename, buffer, {
+              contentType: 'image/png',
+              upsert: false,
+            });
 
         if (uploadError) {
           console.error('Error uploading to storage:', uploadError);
@@ -284,11 +385,14 @@ async function handlePost(request: NextRequest) {
           .getPublicUrl(filename);
 
         // Save to processed_images via RPC so it appears in My Images (bypasses RLS/grant issues)
-        const widthVal = size?.split('x')[0] ? parseInt(size.split('x')[0]) : 1024;
-        const heightVal = size?.split('x')[1] ? parseInt(size.split('x')[1]) : 1024;
-        const { data: insertedId, error: recordError } = await serviceClient.rpc(
-          'insert_processed_image',
-          {
+        const widthVal = size?.split('x')[0]
+          ? parseInt(size.split('x')[0])
+          : 1024;
+        const heightVal = size?.split('x')[1]
+          ? parseInt(size.split('x')[1])
+          : 1024;
+        const { data: insertedId, error: recordError } =
+          await serviceClient.rpc('insert_processed_image', {
             p_user_id: user.id,
             p_original_filename: `ai-generated-${Date.now()}.png`,
             p_processed_filename: filename.split('/').pop() || filename,
@@ -306,10 +410,9 @@ async function handlePost(request: NextRequest) {
               credits_used: creditsPerImage,
               width: widthVal,
               height: heightVal,
-              storage_path: filename
-            }
-          }
-        );
+              storage_path: filename,
+            },
+          });
 
         if (recordError) {
           console.error('Error saving upload record:', recordError);
@@ -325,22 +428,87 @@ async function handlePost(request: NextRequest) {
       }
     }
 
+    // CRITICAL: If NO images were stored successfully, refund credits
+    if (storedImages.length === 0 && creditsDeducted) {
+      console.log('[Generate Image API] No images were stored. Refunding credits...');
+      await serviceClient.rpc('refund_credits_atomic', {
+        p_user_id: user.id,
+        p_amount: totalCreditsRequired,
+      });
+
+      // Log refund transaction
+      await serviceClient.from('credit_transactions').insert({
+        user_id: user.id,
+        amount: totalCreditsRequired,
+        type: 'refund',
+        description: 'Credit refund - all image storage operations failed',
+        metadata: {
+          service: 'chatgpt',
+          attempted_count: result.images.length,
+        },
+      });
+
+      return NextResponse.json(
+        { error: 'Failed to store generated images. Credits have been refunded.' },
+        { status: 500 }
+      );
+    }
+
+    // Calculate actual credits used based on successfully stored images
+    // If some images failed to store, only charge for what was successfully stored
+    const actualCreditsUsed = storedImages.length * creditsPerImage;
+    const creditsToRefund = totalCreditsRequired - actualCreditsUsed;
+
+    // If we charged for more images than we successfully stored, refund the difference
+    if (creditsToRefund > 0 && creditsDeducted) {
+      console.log('[Generate Image API] Refunding credits for failed images:', {
+        total: totalCreditsRequired,
+        successful: actualCreditsUsed,
+        refund: creditsToRefund,
+      });
+
+      await serviceClient.rpc('refund_credits_atomic', {
+        p_user_id: user.id,
+        p_amount: creditsToRefund,
+      });
+
+      // Log partial refund transaction
+      await serviceClient.from('credit_transactions').insert({
+        user_id: user.id,
+        amount: creditsToRefund,
+        type: 'refund',
+        description: `Partial credit refund - ${result.images.length - storedImages.length} of ${result.images.length} images failed to store`,
+        metadata: {
+          service: 'chatgpt',
+          requested_count: result.images.length,
+          successful_count: storedImages.length,
+        },
+      });
+    }
+
+    // Get updated credit balance
+    const { data: updatedProfile } = await serviceClient
+      .from('profiles')
+      .select('credits')
+      .eq('id', user.id)
+      .single();
+
     // Return success response
     return NextResponse.json({
       success: true,
       images: storedImages,
-      creditsUsed: totalCreditsRequired,
-      creditsRemaining: profile.credits - totalCreditsRequired,
+      creditsUsed: actualCreditsUsed,
+      creditsRemaining: updatedProfile?.credits || 0,
       enhancedPrompt: enhancedPrompt !== prompt ? enhancedPrompt : undefined,
     });
-
   } catch (error: any) {
     console.error('[Generate Image API] Unexpected error:', error);
     console.error('[Generate Image API] Error stack:', error.stack);
     return NextResponse.json(
-      { 
+      {
         error: error.message || 'Internal server error',
-        details: process.env.NODE_ENV === 'development' ? error.stack : undefined
+        details:
+          process.env.NODE_ENV === 'development' ? error.stack : undefined,
       },
       { status: 500 }
     );
