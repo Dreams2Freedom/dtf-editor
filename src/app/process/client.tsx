@@ -319,7 +319,7 @@ export default function ProcessClient() {
                 <CardHeader className="pb-3">
                   <CardTitle className="text-lg flex items-center justify-between">
                     Selected Image
-                    <Button variant="outline" size="sm" onClick={() => {
+                    <Button variant="secondary" size="sm" onClick={() => {
                       setSelectedFile(null);
                       setImagePreview(null);
                       setUploadedImageId(null);

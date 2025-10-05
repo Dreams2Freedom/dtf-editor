@@ -123,7 +123,7 @@ export default function HomePage() {
                   </Button>
                 </Link>
                 <Link href="/auth/signup">
-                  <Button size="lg" variant="outline" className="text-lg px-8 py-6 border-[#366494] text-[#366494] hover:bg-[#366494] hover:text-white">
+                  <Button size="lg" className="text-lg px-8 py-6 bg-transparent border-2 border-[#366494] text-[#366494] hover:bg-[#366494] hover:text-white">
                     Sign Up & Get 2 Free Credits
                     <ArrowRight className="ml-2 w-5 h-5" />
                   </Button>
@@ -724,7 +724,7 @@ export default function HomePage() {
                 </Button>
               </Link>
               <Link href="#pricing">
-                <Button size="lg" variant="outline" className="text-white border-white/50 hover:bg-white/10 px-8 py-3">
+                <Button size="lg" className="bg-transparent text-white border-2 border-white hover:bg-white/20 px-8 py-3">
                   View Pricing
                   <ChevronRight className="ml-2 w-5 h-5" />
                 </Button>

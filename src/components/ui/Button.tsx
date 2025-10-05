@@ -14,7 +14,7 @@ const buttonVariants = cva(
         secondary:
           'bg-gray-100 text-gray-900 hover:bg-gray-200 focus-visible:ring-gray-500',
         outline:
-          'border border-gray-300 bg-white text-gray-700 hover:bg-gray-50 focus-visible:ring-gray-500',
+          'border-2 border-gray-300 bg-transparent text-gray-700 hover:bg-gray-100 focus-visible:ring-gray-500',
         ghost: 'text-gray-700 hover:bg-gray-100 focus-visible:ring-gray-500',
         accent:
           'bg-accent-500 text-white hover:bg-accent-600 focus-visible:ring-accent-500',

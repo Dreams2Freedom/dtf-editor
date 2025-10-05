@@ -30,8 +30,8 @@ const config: Config = {
           200: '#bcccdc',
           300: '#9fb3c8',
           400: '#829ab1',
-          500: '#386594', // Primary Blue
-          600: '#2d5a7a',
+          500: '#366494', // Primary Blue (corrected to match design system)
+          600: '#233E5C', // Hover state (darker)
           700: '#1e3a5c',
           800: '#152a45',
           900: '#0f1f2e',
