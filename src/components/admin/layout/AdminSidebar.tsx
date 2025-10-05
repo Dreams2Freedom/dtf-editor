@@ -74,6 +74,7 @@ const menuItems: MenuItem[] = [
     children: [
       { name: 'Overview', href: '/admin/affiliates', icon: BarChart3 },
       { name: 'Applications', href: '/admin/affiliates/applications', icon: FileText },
+      { name: 'Referrals', href: '/admin/affiliates/referrals', icon: Users },
       { name: 'Commissions', href: '/admin/affiliates/commissions', icon: DollarSign },
       { name: 'Payouts', href: '/admin/affiliates/payouts', icon: DollarSign },
     ]
