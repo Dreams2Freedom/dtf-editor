@@ -115,23 +115,18 @@ export async function GET(request: NextRequest) {
       query: query
     });
 
-    // If RPC doesn't work, use direct query
+    // Use direct query with proper foreign key syntax
     const { data: referralsData, error: referralsError } = await serviceClient
       .from('referrals')
       .select(`
         *,
-        affiliate:affiliates!affiliate_id (
+        affiliate:affiliates (
           id,
           user_id,
           display_name,
-          referral_code,
-          affiliate_user:profiles!user_id (
-            email,
-            first_name,
-            last_name
-          )
+          referral_code
         ),
-        referred_user:profiles!referred_user_id (
+        referred_user:profiles!referrals_referred_user_id_fkey (
           id,
           email,
           first_name,
@@ -151,8 +146,39 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Failed to fetch referrals' }, { status: 500 });
     }
 
+    // Get unique affiliate user IDs
+    const affiliateUserIds = [...new Set(
+      (referralsData || [])
+        .map(r => r.affiliate?.user_id)
+        .filter(Boolean)
+    )];
+
+    // Fetch affiliate user profiles
+    let affiliateProfiles: any = {};
+    if (affiliateUserIds.length > 0) {
+      const { data: profiles } = await serviceClient
+        .from('profiles')
+        .select('id, email, first_name, last_name')
+        .in('id', affiliateUserIds);
+
+      if (profiles) {
+        profiles.forEach(p => {
+          affiliateProfiles[p.id] = p;
+        });
+      }
+    }
+
+    // Merge affiliate user data
+    const mergedData = (referralsData || []).map(r => ({
+      ...r,
+      affiliate: r.affiliate ? {
+        ...r.affiliate,
+        affiliate_user: affiliateProfiles[r.affiliate.user_id] || null
+      } : null
+    }));
+
     // Apply filters in JavaScript since Supabase query might not support all filters
-    let filteredData = referralsData || [];
+    let filteredData = mergedData;
 
     // Filter by affiliate
     if (affiliateId) {
