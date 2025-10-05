@@ -38,7 +38,7 @@ export async function GET(request: NextRequest) {
     // Use service role to fetch data
     const serviceClient = createServiceRoleClient();
 
-    // Use direct query with proper foreign key syntax
+    // Fetch all referrals first
     const { data: referralsData, error: referralsError } = await serviceClient
       .from('referrals')
       .select(`
@@ -48,18 +48,6 @@ export async function GET(request: NextRequest) {
           user_id,
           display_name,
           referral_code
-        ),
-        referred_user:profiles!referrals_referred_user_id_fkey (
-          id,
-          email,
-          first_name,
-          last_name,
-          subscription_plan,
-          subscription_status,
-          stripe_customer_id,
-          total_credits_purchased,
-          total_credits_used,
-          created_at
         )
       `)
       .order(sortBy, { ascending: sortOrder === 'asc' });
@@ -82,7 +70,14 @@ export async function GET(request: NextRequest) {
           .filter(Boolean)
       )];
 
-      console.log('[REFERRALS] Found', affiliateUserIds.length, 'unique affiliate users');
+      // Get unique referred user IDs
+      const referredUserIds = [...new Set(
+        (referralsData || [])
+          .map(r => r.referred_user_id)
+          .filter(Boolean)
+      )];
+
+      console.log('[REFERRALS] Found', affiliateUserIds.length, 'unique affiliate users and', referredUserIds.length, 'referred users');
 
       // Fetch affiliate user profiles
       let affiliateProfiles: any = {};
@@ -93,7 +88,7 @@ export async function GET(request: NextRequest) {
           .in('id', affiliateUserIds);
 
         if (profilesError) {
-          console.error('[REFERRALS] Error fetching profiles:', profilesError);
+          console.error('[REFERRALS] Error fetching affiliate profiles:', profilesError);
         } else if (profiles) {
           profiles.forEach(p => {
             affiliateProfiles[p.id] = p;
@@ -102,13 +97,32 @@ export async function GET(request: NextRequest) {
         }
       }
 
-      // Merge affiliate user data
+      // Fetch referred user profiles
+      let referredUserProfiles: any = {};
+      if (referredUserIds.length > 0) {
+        const { data: profiles, error: profilesError } = await serviceClient
+          .from('profiles')
+          .select('id, email, first_name, last_name, subscription_plan, subscription_status, stripe_customer_id, total_credits_purchased, total_credits_used, created_at')
+          .in('id', referredUserIds);
+
+        if (profilesError) {
+          console.error('[REFERRALS] Error fetching referred user profiles:', profilesError);
+        } else if (profiles) {
+          profiles.forEach(p => {
+            referredUserProfiles[p.id] = p;
+          });
+          console.log('[REFERRALS] Fetched', profiles.length, 'referred user profiles');
+        }
+      }
+
+      // Merge affiliate user data and referred user data
       const mergedData = (referralsData || []).map(r => ({
         ...r,
         affiliate: r.affiliate ? {
           ...r.affiliate,
           affiliate_user: affiliateProfiles[r.affiliate.user_id] || null
-        } : null
+        } : null,
+        referred_user: referredUserProfiles[r.referred_user_id] || null
       }));
 
       console.log('[REFERRALS] Merged data, total:', mergedData.length);
