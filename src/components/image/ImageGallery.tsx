@@ -5,17 +5,19 @@ import { useAuthStore } from '@/stores/authStore';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { createClientSupabaseClient } from '@/lib/supabase/client';
-import { 
-  Image as ImageIcon, 
-  Download, 
-  Trash2, 
+import {
+  Image as ImageIcon,
+  Download,
+  Trash2,
   Calendar,
   Clock,
   AlertCircle,
   Grid,
   List,
   Search,
-  Filter
+  Filter,
+  ChevronLeft,
+  ChevronRight
 } from 'lucide-react';
 import { toast } from '@/lib/toast';
 import Image from 'next/image';
@@ -41,6 +43,9 @@ interface ProcessedImage {
   };
 }
 
+const ITEMS_PER_PAGE_OPTIONS = [8, 16, 32, 64, 'all'] as const;
+type ItemsPerPageOption = typeof ITEMS_PER_PAGE_OPTIONS[number];
+
 export function ImageGallery() {
   const { user, profile } = useAuthStore();
   const [images, setImages] = useState<ProcessedImage[]>([]);
@@ -49,21 +54,30 @@ export function ImageGallery() {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterType, setFilterType] = useState<string>('all');
   const [sortBy, setSortBy] = useState<'newest' | 'oldest'>('newest');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState<ItemsPerPageOption>(8);
+  const [hasMore, setHasMore] = useState(false);
 
   useEffect(() => {
     if (user) {
       fetchImages();
     }
-  }, [user, sortBy, filterType]);
+  }, [user, sortBy, filterType, currentPage, itemsPerPage]);
 
   const fetchImages = async () => {
     try {
       setLoading(true);
       const supabase = createClientSupabaseClient();
-      
-      // Use RPC function to fetch images
+
+      // Calculate limit and offset for pagination
+      const limit = itemsPerPage === 'all' ? 1000 : itemsPerPage + 1; // Fetch one extra to check for more
+      const offset = itemsPerPage === 'all' ? 0 : (currentPage - 1) * itemsPerPage;
+
+      // Use RPC function to fetch images with pagination
       const { data, error } = await supabase.rpc('get_user_images', {
-        p_user_id: user.id
+        p_user_id: user.id,
+        p_limit: limit,
+        p_offset: offset
       });
 
       if (error) {
@@ -73,12 +87,12 @@ export function ImageGallery() {
       }
 
       let images = data || [];
-      
+
       // Apply client-side filtering
       if (filterType !== 'all') {
         images = images.filter(img => img.operation_type === filterType);
       }
-      
+
       // Apply client-side sorting
       images.sort((a, b) => {
         const dateA = new Date(a.created_at).getTime();
@@ -86,7 +100,16 @@ export function ImageGallery() {
         return sortBy === 'oldest' ? dateA - dateB : dateB - dateA;
       });
 
-      setImages(images);
+      // Check if there are more items for pagination
+      if (itemsPerPage !== 'all' && images.length > itemsPerPage) {
+        setHasMore(true);
+        setImages(images.slice(0, itemsPerPage)); // Remove the extra item
+      } else {
+        setHasMore(false);
+        setImages(images);
+      }
+
+      console.log('[ImageGallery] Fetched:', images.length, 'Has more:', itemsPerPage !== 'all' && images.length > itemsPerPage);
     } catch (error) {
       console.error('Error:', error);
       toast.error('Failed to load images');
@@ -416,6 +439,67 @@ export function ImageGallery() {
                 </div>
               </div>
             ))}
+          </div>
+        )}
+
+        {/* Pagination Controls */}
+        {filteredImages.length > 0 && (currentPage > 1 || hasMore || itemsPerPage !== 'all') && (
+          <div className="flex flex-col sm:flex-row items-center justify-between border-t pt-4 mt-6 gap-4">
+            <div className="text-sm text-gray-600">
+              {itemsPerPage === 'all' ? (
+                `Showing all ${filteredImages.length} images`
+              ) : (
+                `Showing ${(currentPage - 1) * (typeof itemsPerPage === 'number' ? itemsPerPage : 0) + 1} to ${(currentPage - 1) * (typeof itemsPerPage === 'number' ? itemsPerPage : 0) + filteredImages.length} images`
+              )}
+            </div>
+            <div className="flex items-center gap-3">
+              {/* Items per page dropdown */}
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-gray-600">Show:</span>
+                <select
+                  value={itemsPerPage}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    setItemsPerPage(value === 'all' ? 'all' : parseInt(value));
+                    setCurrentPage(1); // Reset to first page when changing items per page
+                  }}
+                  className="border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                >
+                  {ITEMS_PER_PAGE_OPTIONS.map(option => (
+                    <option key={option} value={option}>
+                      {option === 'all' ? 'All' : option} images
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Page navigation - only show if not viewing all */}
+              {itemsPerPage !== 'all' && (
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                    disabled={currentPage === 1}
+                  >
+                    <ChevronLeft className="w-4 h-4 mr-1" />
+                    Previous
+                  </Button>
+                  <span className="text-sm text-gray-600 px-3">
+                    Page {currentPage}
+                  </span>
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onClick={() => setCurrentPage(prev => prev + 1)}
+                    disabled={!hasMore}
+                  >
+                    Next
+                    <ChevronRight className="w-4 h-4 ml-1" />
+                  </Button>
+                </div>
+              )}
+            </div>
           </div>
         )}
       </CardContent>
