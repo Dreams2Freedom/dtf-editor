@@ -151,7 +151,7 @@ export default function DashboardPage() {
             <Card className="cursor-pointer hover:shadow-md transition-shadow">
               <Link href="/process?operation=upscale">
                 <CardContent className="p-6 text-center">
-                  <Upload className="w-12 h-12 text-blue-600 mx-auto mb-4" />
+                  <Upload className="w-12 h-12 text-primary-600 mx-auto mb-4" />
                   <h3 className="text-lg font-semibold text-gray-900 mb-2">
                     Upscale Image
                   </h3>
@@ -165,7 +165,7 @@ export default function DashboardPage() {
             <Card className="cursor-pointer hover:shadow-md transition-shadow">
               <Link href="/process?operation=background-removal">
                 <CardContent className="p-6 text-center">
-                  <Scissors className="w-12 h-12 text-purple-600 mx-auto mb-4" />
+                  <Scissors className="w-12 h-12 text-accent-600 mx-auto mb-4" />
                   <h3 className="text-lg font-semibold text-gray-900 mb-2">
                     Remove Background
                   </h3>
@@ -179,7 +179,7 @@ export default function DashboardPage() {
             <Card className="cursor-pointer hover:shadow-md transition-shadow">
               <Link href="/process?operation=vectorize">
                 <CardContent className="p-6 text-center">
-                  <Zap className="w-12 h-12 text-orange-600 mx-auto mb-4" />
+                  <Zap className="w-12 h-12 text-accent-600 mx-auto mb-4" />
                   <h3 className="text-lg font-semibold text-gray-900 mb-2">
                     Vectorize
                   </h3>
@@ -193,7 +193,7 @@ export default function DashboardPage() {
             <Card className="cursor-pointer hover:shadow-md transition-shadow">
               <Link href="/generate">
                 <CardContent className="p-6 text-center">
-                  <Sparkles className="w-12 h-12 text-purple-600 mx-auto mb-4" />
+                  <Sparkles className="w-12 h-12 text-accent-600 mx-auto mb-4" />
                   <h3 className="text-lg font-semibold text-gray-900 mb-2">
                     AI Generate
                   </h3>
@@ -207,7 +207,7 @@ export default function DashboardPage() {
             <Card className="cursor-pointer hover:shadow-md transition-shadow">
               <Link href="/tools/dpi-checker">
                 <CardContent className="p-6 text-center">
-                  <Calculator className="w-12 h-12 text-teal-600 mx-auto mb-4" />
+                  <Calculator className="w-12 h-12 text-info-600 mx-auto mb-4" />
                   <h3 className="text-lg font-semibold text-gray-900 mb-2">
                     DPI Checker
                   </h3>
@@ -221,7 +221,7 @@ export default function DashboardPage() {
             <Card className="cursor-pointer hover:shadow-md transition-shadow">
               <Link href="/pricing">
                 <CardContent className="p-6 text-center">
-                  <CreditCard className="w-12 h-12 text-green-600 mx-auto mb-4" />
+                  <CreditCard className="w-12 h-12 text-success-600 mx-auto mb-4" />
                   <h3 className="text-lg font-semibold text-gray-900 mb-2">
                     Get More Credits
                   </h3>
@@ -235,7 +235,7 @@ export default function DashboardPage() {
             <Card className="cursor-pointer hover:shadow-md transition-shadow">
               <Link href="#my-images">
                 <CardContent className="p-6 text-center">
-                  <Images className="w-12 h-12 text-indigo-600 mx-auto mb-4" />
+                  <Images className="w-12 h-12 text-primary-600 mx-auto mb-4" />
                   <h3 className="text-lg font-semibold text-gray-900 mb-2">
                     My Images
                   </h3>
@@ -249,7 +249,7 @@ export default function DashboardPage() {
             <Card className="cursor-pointer hover:shadow-md transition-shadow">
               <Link href="/storage">
                 <CardContent className="p-6 text-center">
-                  <HardDrive className="w-12 h-12 text-purple-600 mx-auto mb-4" />
+                  <HardDrive className="w-12 h-12 text-accent-600 mx-auto mb-4" />
                   <h3 className="text-lg font-semibold text-gray-900 mb-2">
                     Storage
                   </h3>
@@ -312,7 +312,7 @@ export default function DashboardPage() {
               <CardContent className="space-y-3">
                 <div>
                   <p className="text-sm text-gray-600">Credits Remaining</p>
-                  <p className="text-2xl font-bold text-blue-600">
+                  <p className="text-2xl font-bold text-primary-600">
                     {profile.credits_remaining}
                   </p>
                 </div>

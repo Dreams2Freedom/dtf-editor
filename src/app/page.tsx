@@ -198,7 +198,7 @@ export default function HomePage() {
             <div className="bg-white rounded-2xl shadow-xl p-8">
               <div className="grid md:grid-cols-2 gap-8">
                 <div className="relative">
-                  <div className="absolute top-4 left-4 z-10 bg-red-500 text-white px-3 py-1 rounded-full text-sm font-medium">
+                  <div className="absolute top-4 left-4 z-10 bg-error-500 text-white px-3 py-1 rounded-full text-sm font-medium">
                     Before
                   </div>
                   <div className="bg-gray-100 rounded-lg h-96 overflow-hidden">
@@ -212,7 +212,7 @@ export default function HomePage() {
                   </div>
                 </div>
                 <div className="relative">
-                  <div className="absolute top-4 left-4 z-10 bg-green-500 text-white px-3 py-1 rounded-full text-sm font-medium">
+                  <div className="absolute top-4 left-4 z-10 bg-success-500 text-white px-3 py-1 rounded-full text-sm font-medium">
                     After
                   </div>
                   <div className="bg-gradient-to-br from-blue-50 to-purple-50 rounded-lg h-96 overflow-hidden">
@@ -254,7 +254,7 @@ export default function HomePage() {
 
             <div className="grid md:grid-cols-3 gap-8">
               <div className="bg-white rounded-xl p-8 shadow-lg hover:shadow-2xl transition-shadow">
-                <div className="w-14 h-14 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center mb-6">
+                <div className="w-14 h-14 bg-gradient-to-br from-primary-500 to-primary-600 rounded-xl flex items-center justify-center mb-6">
                   <Zap className="w-8 h-8 text-white" />
                 </div>
                 <h3 className="text-2xl font-bold text-gray-900 mb-3">Instant Processing</h3>
@@ -264,7 +264,7 @@ export default function HomePage() {
               </div>
 
               <div className="bg-white rounded-xl p-8 shadow-lg hover:shadow-2xl transition-shadow">
-                <div className="w-14 h-14 bg-gradient-to-br from-green-500 to-green-600 rounded-xl flex items-center justify-center mb-6">
+                <div className="w-14 h-14 bg-gradient-to-br from-success-500 to-success-600 rounded-xl flex items-center justify-center mb-6">
                   <Shield className="w-8 h-8 text-white" />
                 </div>
                 <h3 className="text-2xl font-bold text-gray-900 mb-3">100% Print-Ready Guarantee</h3>
@@ -274,7 +274,7 @@ export default function HomePage() {
               </div>
 
               <div className="bg-white rounded-xl p-8 shadow-lg hover:shadow-2xl transition-shadow">
-                <div className="w-14 h-14 bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl flex items-center justify-center mb-6">
+                <div className="w-14 h-14 bg-gradient-to-br from-accent-500 to-accent-600 rounded-xl flex items-center justify-center mb-6">
                   <CreditCard className="w-8 h-8 text-white" />
                 </div>
                 <h3 className="text-2xl font-bold text-gray-900 mb-3">Save $1000s Monthly</h3>

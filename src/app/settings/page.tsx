@@ -8,9 +8,10 @@ import { LoadingPage } from '@/components/ui/LoadingPage';
 import { Button } from '@/components/ui/Button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/Card';
 import { Input } from '@/components/ui/Input';
+import { Checkbox } from '@/components/ui/Checkbox';
 import { toast } from '@/lib/toast';
 import { formatPhoneNumber, cleanPhoneNumber, displayPhoneNumber } from '@/utils/phoneFormatter';
-import { 
+import {
   ArrowLeft,
   User,
   Mail,
@@ -84,7 +85,7 @@ export default function SettingsPage() {
                       onClick={() => setActiveTab(tab.id)}
                       className={`w-full flex items-center px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
                         activeTab === tab.id
-                          ? 'bg-primary-blue text-white'
+                          ? 'bg-primary-500 text-white'
                           : 'text-gray-700 hover:bg-gray-100'
                       }`}
                     >
@@ -519,11 +520,9 @@ function NotificationSettings() {
                 <p className="font-medium text-gray-900">Product Updates</p>
                 <p className="text-sm text-gray-500">Get notified about new features and improvements</p>
               </div>
-              <input
-                type="checkbox"
+              <Checkbox
                 checked={preferences.email_updates}
-                onChange={(e) => setPreferences({ ...preferences, email_updates: e.target.checked })}
-                className="h-4 w-4 text-primary-blue rounded border-gray-300 focus:ring-primary-blue"
+                onCheckedChange={(checked) => setPreferences({ ...preferences, email_updates: checked as boolean })}
               />
             </div>
 
@@ -532,11 +531,9 @@ function NotificationSettings() {
                 <p className="font-medium text-gray-900">Tips & Tutorials</p>
                 <p className="text-sm text-gray-500">Helpful tips to get the most out of DTF Editor</p>
               </div>
-              <input
-                type="checkbox"
+              <Checkbox
                 checked={preferences.email_tips}
-                onChange={(e) => setPreferences({ ...preferences, email_tips: e.target.checked })}
-                className="h-4 w-4 text-primary-blue rounded border-gray-300 focus:ring-primary-blue"
+                onCheckedChange={(checked) => setPreferences({ ...preferences, email_tips: checked as boolean })}
               />
             </div>
 
@@ -545,11 +542,9 @@ function NotificationSettings() {
                 <p className="font-medium text-gray-900">Credit Alerts</p>
                 <p className="text-sm text-gray-500">Notifications when credits are low or expiring</p>
               </div>
-              <input
-                type="checkbox"
+              <Checkbox
                 checked={preferences.credit_alerts}
-                onChange={(e) => setPreferences({ ...preferences, credit_alerts: e.target.checked })}
-                className="h-4 w-4 text-primary-blue rounded border-gray-300 focus:ring-primary-blue"
+                onCheckedChange={(checked) => setPreferences({ ...preferences, credit_alerts: checked as boolean })}
               />
             </div>
 
@@ -558,11 +553,9 @@ function NotificationSettings() {
                 <p className="font-medium text-gray-900">Subscription Reminders</p>
                 <p className="text-sm text-gray-500">Billing and renewal notifications</p>
               </div>
-              <input
-                type="checkbox"
+              <Checkbox
                 checked={preferences.subscription_reminders}
-                onChange={(e) => setPreferences({ ...preferences, subscription_reminders: e.target.checked })}
-                className="h-4 w-4 text-primary-blue rounded border-gray-300 focus:ring-primary-blue"
+                onCheckedChange={(checked) => setPreferences({ ...preferences, subscription_reminders: checked as boolean })}
               />
             </div>
 
@@ -571,11 +564,9 @@ function NotificationSettings() {
                 <p className="font-medium text-gray-900">Marketing Emails</p>
                 <p className="text-sm text-gray-500">Special offers and promotions</p>
               </div>
-              <input
-                type="checkbox"
+              <Checkbox
                 checked={preferences.email_marketing}
-                onChange={(e) => setPreferences({ ...preferences, email_marketing: e.target.checked })}
-                className="h-4 w-4 text-primary-blue rounded border-gray-300 focus:ring-primary-blue"
+                onCheckedChange={(checked) => setPreferences({ ...preferences, email_marketing: checked as boolean })}
               />
             </div>
           </div>
