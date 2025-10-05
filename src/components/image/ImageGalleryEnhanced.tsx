@@ -18,11 +18,8 @@ import {
   Filter,
   CheckSquare,
   Square,
-  FolderPlus,
   X,
   ChevronDown,
-  Archive,
-  MoreVertical,
   ChevronLeft,
   ChevronRight
 } from 'lucide-react';

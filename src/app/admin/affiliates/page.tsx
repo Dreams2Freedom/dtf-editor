@@ -46,7 +46,7 @@ export default function AdminAffiliatesPage() {
 
   useEffect(() => {
     fetchAffiliateStats();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
   }, []);
 
   async function fetchAffiliateStats() {

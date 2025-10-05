@@ -50,7 +50,7 @@ export default function AdminAffiliateApplicationsPage() {
 
   useEffect(() => {
     fetchApplications();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
   }, []);
 
   async function fetchApplications() {

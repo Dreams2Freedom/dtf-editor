@@ -80,7 +80,7 @@ export async function GET(request: NextRequest) {
       console.log('[REFERRALS] Found', affiliateUserIds.length, 'unique affiliate users and', referredUserIds.length, 'referred users');
 
       // Fetch affiliate user profiles
-      let affiliateProfiles: any = {};
+      const affiliateProfiles: any = {};
       if (affiliateUserIds.length > 0) {
         const { data: profiles, error: profilesError } = await serviceClient
           .from('profiles')
@@ -98,7 +98,7 @@ export async function GET(request: NextRequest) {
       }
 
       // Fetch referred user profiles
-      let referredUserProfiles: any = {};
+      const referredUserProfiles: any = {};
       if (referredUserIds.length > 0) {
         const { data: profiles, error: profilesError } = await serviceClient
           .from('profiles')

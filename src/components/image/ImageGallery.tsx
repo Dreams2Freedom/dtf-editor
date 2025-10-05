@@ -15,7 +15,6 @@ import {
   Grid,
   List,
   Search,
-  Filter,
   ChevronLeft,
   ChevronRight
 } from 'lucide-react';
