@@ -15,7 +15,8 @@ import {
   Award,
   AlertCircle,
   FileText,
-  Mail
+  Mail,
+  Settings
 } from 'lucide-react';
 import Link from 'next/link';
 import { maskEmail } from '@/lib/utils/privacy';
@@ -137,13 +138,19 @@ export function AffiliateDashboard({ initialData }: AffiliateDashboardProps) {
             Welcome back, {affiliate.display_name}!
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-3">
           <span className={`px-3 py-1 rounded-full text-sm font-medium
             ${affiliate.tier === 'gold' ? 'bg-yellow-100 text-yellow-800' :
               affiliate.tier === 'silver' ? 'bg-gray-100 text-gray-800' :
               'bg-blue-100 text-blue-800'}`}>
             {affiliate.tier.charAt(0).toUpperCase() + affiliate.tier.slice(1)} Tier
           </span>
+          <Link href="/dashboard/affiliate/settings">
+            <Button variant="outline" size="sm">
+              <Settings className="w-4 h-4 mr-2" />
+              Settings
+            </Button>
+          </Link>
         </div>
       </div>
 
