@@ -4,15 +4,15 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/stores/authStore';
 import { toast } from '@/lib/toast';
-import { 
-  Menu, 
-  Bell, 
-  Search, 
-  ChevronDown, 
-  LogOut, 
+import { NotificationBell } from '@/components/notifications/NotificationBell';
+import {
+  Menu,
+  Search,
+  ChevronDown,
+  LogOut,
   Settings,
   User,
-  Shield
+  Shield,
 } from 'lucide-react';
 
 interface AdminHeaderProps {
@@ -22,7 +22,6 @@ interface AdminHeaderProps {
 export function AdminHeader({ onMenuToggle }: AdminHeaderProps) {
   const router = useRouter();
   const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
-  const [notificationCount] = useState(3); // TODO: Fetch from API
   const { user, profile, signOut } = useAuthStore();
 
   const handleLogout = async () => {
@@ -87,12 +86,7 @@ export function AdminHeader({ onMenuToggle }: AdminHeaderProps) {
           {/* Right side */}
           <div className="flex items-center space-x-4">
             {/* Notifications */}
-            <button className="relative p-2 text-gray-400 hover:text-gray-500">
-              <Bell className="h-6 w-6" />
-              {notificationCount > 0 && (
-                <span className="absolute top-0 right-0 block h-2.5 w-2.5 rounded-full bg-red-500 ring-2 ring-white" />
-              )}
-            </button>
+            <NotificationBell />
 
             {/* Profile dropdown */}
             <div className="relative">
@@ -105,7 +99,9 @@ export function AdminHeader({ onMenuToggle }: AdminHeaderProps) {
                     {profile?.full_name || user?.email}
                   </p>
                   <p className="text-xs text-gray-500">
-                    <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-purple-100 text-purple-800`}>
+                    <span
+                      className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-purple-100 text-purple-800`}
+                    >
                       Admin
                     </span>
                   </p>
@@ -133,7 +129,7 @@ export function AdminHeader({ onMenuToggle }: AdminHeaderProps) {
                           Admin ID: {user?.id.slice(0, 8)}...
                         </p>
                       </div>
-                      
+
                       <a
                         href="/admin/profile"
                         className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
@@ -141,7 +137,7 @@ export function AdminHeader({ onMenuToggle }: AdminHeaderProps) {
                         <User className="mr-3 h-4 w-4" />
                         My Profile
                       </a>
-                      
+
                       <a
                         href="/admin/settings"
                         className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
@@ -149,7 +145,7 @@ export function AdminHeader({ onMenuToggle }: AdminHeaderProps) {
                         <Settings className="mr-3 h-4 w-4" />
                         Settings
                       </a>
-                      
+
                       <div className="border-t border-gray-100">
                         <button
                           onClick={handleLogout}
