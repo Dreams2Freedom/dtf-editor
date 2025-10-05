@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { AffiliateAdminNav } from '@/components/admin/affiliates/AffiliateAdminNav';
 import { Button } from '@/components/ui/Button';
+import { TaxFormViewer } from '@/components/admin/affiliates/TaxFormViewer';
 import { toast } from 'react-hot-toast';
 import {
   Clock,
@@ -44,6 +45,7 @@ export default function AdminAffiliateApplicationsPage() {
   const [selectedApplication, setSelectedApplication] = useState<Application | null>(null);
   const [processingId, setProcessingId] = useState<string | null>(null);
   const [rejectionReason, setRejectionReason] = useState('');
+  const [viewingTaxForm, setViewingTaxForm] = useState<{ id: string; name: string } | null>(null);
 
   useEffect(() => {
     fetchApplications();
@@ -338,6 +340,24 @@ export default function AdminAffiliateApplicationsPage() {
                   <p>{new Date(selectedApplication.created_at).toLocaleString()}</p>
                 </div>
 
+                {/* Tax Form Button */}
+                <div className="border-t pt-4">
+                  <Button
+                    onClick={() => {
+                      setViewingTaxForm({
+                        id: selectedApplication.id,
+                        name: selectedApplication.user?.full_name || 'Unknown'
+                      });
+                      setSelectedApplication(null);
+                    }}
+                    variant="outline"
+                    className="w-full"
+                  >
+                    <FileText className="h-4 w-4 mr-2" />
+                    View Tax Form (W-9/W-8BEN)
+                  </Button>
+                </div>
+
                 {selectedApplication.status === 'pending' && (
                   <>
                     <div className="border-t pt-4">
@@ -395,6 +415,15 @@ export default function AdminAffiliateApplicationsPage() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Tax Form Viewer */}
+      {viewingTaxForm && (
+        <TaxFormViewer
+          affiliateId={viewingTaxForm.id}
+          affiliateName={viewingTaxForm.name}
+          onClose={() => setViewingTaxForm(null)}
+        />
       )}
     </div>
   );
