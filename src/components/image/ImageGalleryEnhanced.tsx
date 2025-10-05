@@ -5,10 +5,10 @@ import { useAuthStore } from '@/stores/authStore';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { createClientSupabaseClient } from '@/lib/supabase/client';
-import { 
-  Image as ImageIcon, 
-  Download, 
-  Trash2, 
+import {
+  Image as ImageIcon,
+  Download,
+  Trash2,
   Calendar,
   Clock,
   AlertCircle,
@@ -22,7 +22,9 @@ import {
   X,
   ChevronDown,
   Archive,
-  MoreVertical
+  MoreVertical,
+  ChevronLeft,
+  ChevronRight
 } from 'lucide-react';
 import { toast } from '@/lib/toast';
 import Image from 'next/image';
@@ -59,9 +61,13 @@ interface Collection {
 
 type DateFilter = 'all' | 'today' | 'week' | 'month' | 'custom';
 
+const ITEMS_PER_PAGE_OPTIONS = [8, 16, 32, 64, 'all'] as const;
+type ItemsPerPageOption = typeof ITEMS_PER_PAGE_OPTIONS[number];
+
 export function ImageGalleryEnhanced() {
   const { user, profile } = useAuthStore();
   const [images, setImages] = useState<ProcessedImage[]>([]);
+  const [allImages, setAllImages] = useState<ProcessedImage[]>([]); // Store all filtered images
   const [collections, setCollections] = useState<Collection[]>([]);
   const [loading, setLoading] = useState(true);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
@@ -74,13 +80,21 @@ export function ImageGalleryEnhanced() {
   const [isSelectionMode, setIsSelectionMode] = useState(false);
   const [showFilterMenu, setShowFilterMenu] = useState(false);
   const [selectedCollection, setSelectedCollection] = useState<string>('all');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState<ItemsPerPageOption>(8);
+  const [hasMore, setHasMore] = useState(false);
 
   useEffect(() => {
     if (user) {
       fetchImages();
       fetchCollections();
     }
-  }, [user, sortBy, filterType, dateFilter, customDateRange, selectedCollection]);
+  }, [user, sortBy, filterType, dateFilter, customDateRange, selectedCollection, currentPage, itemsPerPage]);
+
+  // Reset to page 1 when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [filterType, sortBy, dateFilter, searchTerm]);
 
   const fetchCollections = async () => {
     try {
@@ -214,7 +228,24 @@ export function ImageGalleryEnhanced() {
         }
       });
 
-      setImages(images);
+      // Store all filtered images
+      setAllImages(images);
+
+      // Apply pagination
+      if (itemsPerPage === 'all') {
+        setImages(images);
+        setHasMore(false);
+        console.log('[ImageGalleryEnhanced] Total images:', images.length, 'Showing all');
+      } else {
+        const startIndex = (currentPage - 1) * itemsPerPage;
+        const endIndex = startIndex + itemsPerPage;
+        const paginatedImages = images.slice(startIndex, endIndex);
+        const hasMorePages = endIndex < images.length;
+
+        setImages(paginatedImages);
+        setHasMore(hasMorePages);
+        console.log('[ImageGalleryEnhanced] Total images:', images.length, 'Page:', currentPage, 'Showing:', paginatedImages.length, 'Has more:', hasMorePages);
+      }
     } catch (error) {
       console.error('Error:', error);
       toast.error('Failed to load images');
@@ -1015,6 +1046,67 @@ export function ImageGalleryEnhanced() {
                 )}
               </div>
             ))}
+          </div>
+        )}
+
+        {/* Pagination Controls */}
+        {filteredImages.length > 0 && (currentPage > 1 || hasMore || itemsPerPage !== 'all') && (
+          <div className="flex flex-col sm:flex-row items-center justify-between border-t pt-4 mt-6 gap-4">
+            <div className="text-sm text-gray-600">
+              {itemsPerPage === 'all' ? (
+                `Showing all ${filteredImages.length} images`
+              ) : (
+                `Showing ${(currentPage - 1) * (typeof itemsPerPage === 'number' ? itemsPerPage : 0) + 1} to ${(currentPage - 1) * (typeof itemsPerPage === 'number' ? itemsPerPage : 0) + filteredImages.length} of ${allImages.length} images`
+              )}
+            </div>
+            <div className="flex items-center gap-3">
+              {/* Items per page dropdown */}
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-gray-600">Show:</span>
+                <select
+                  value={itemsPerPage}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    setItemsPerPage(value === 'all' ? 'all' : parseInt(value));
+                    setCurrentPage(1); // Reset to first page when changing items per page
+                  }}
+                  className="border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                >
+                  {ITEMS_PER_PAGE_OPTIONS.map(option => (
+                    <option key={option} value={option}>
+                      {option === 'all' ? 'All' : option} images
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Page navigation - only show if not viewing all */}
+              {itemsPerPage !== 'all' && (
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                    disabled={currentPage === 1}
+                  >
+                    <ChevronLeft className="w-4 h-4 mr-1" />
+                    Previous
+                  </Button>
+                  <span className="text-sm text-gray-600 px-3">
+                    Page {currentPage}
+                  </span>
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onClick={() => setCurrentPage(prev => prev + 1)}
+                    disabled={!hasMore}
+                  >
+                    Next
+                    <ChevronRight className="w-4 h-4 ml-1" />
+                  </Button>
+                </div>
+              )}
+            </div>
           </div>
         )}
       </CardContent>
