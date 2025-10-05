@@ -74,18 +74,31 @@ export async function GET(request: NextRequest) {
 
     try {
       console.log('[TAX FORM] Starting decryption');
+      console.log('[TAX FORM] ENCRYPTION_KEY available:', !!(process.env.ENCRYPTION_KEY || process.env.NEXT_PUBLIC_ENCRYPTION_KEY));
       console.log('[TAX FORM] Has tax_form_data:', !!affiliate.tax_form_data);
       console.log('[TAX FORM] Has tax_id_encrypted:', !!affiliate.tax_id_encrypted);
 
       if (affiliate.tax_form_data?.encrypted) {
         console.log('[TAX FORM] Decrypting form data...');
+        console.log('[TAX FORM] Encrypted data length:', affiliate.tax_form_data.encrypted.length);
         decryptedData = decryptTaxFormData(affiliate.tax_form_data.encrypted);
+
+        if (!decryptedData) {
+          throw new Error('Form data decryption returned null - check encryption key and data format');
+        }
+
         console.log('[TAX FORM] Form data decrypted successfully');
       }
 
       if (affiliate.tax_id_encrypted) {
         console.log('[TAX FORM] Decrypting tax ID...');
+        console.log('[TAX FORM] Encrypted tax ID length:', affiliate.tax_id_encrypted.length);
         decryptedTaxId = decryptSensitiveData(affiliate.tax_id_encrypted);
+
+        if (!decryptedTaxId) {
+          throw new Error('Tax ID decryption returned null - check encryption key and data format');
+        }
+
         console.log('[TAX FORM] Tax ID decrypted successfully');
       }
     } catch (decryptError: any) {

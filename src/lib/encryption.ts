@@ -75,17 +75,24 @@ export function decryptSensitiveData(encryptedText: string): string | null {
   }
 
   if (!ENCRYPTION_KEY) {
+    console.error('[ENCRYPTION] No encryption key found! Checked:', {
+      NEXT_PUBLIC_ENCRYPTION_KEY: !!process.env.NEXT_PUBLIC_ENCRYPTION_KEY,
+      ENCRYPTION_KEY: !!process.env.ENCRYPTION_KEY
+    });
     throw new Error('Encryption key not configured');
   }
 
   try {
     // Decode from base64
     const combined = Buffer.from(encryptedText, 'base64');
+    console.log('[ENCRYPTION] Decrypting data - combined length:', combined.length);
 
     // Extract components
     const iv = combined.slice(0, 16);
     const authTag = combined.slice(16, 32);
     const encrypted = combined.slice(32);
+
+    console.log('[ENCRYPTION] Component lengths - IV:', iv.length, 'AuthTag:', authTag.length, 'Data:', encrypted.length);
 
     // Create decipher
     const decipher = crypto.createDecipheriv(
@@ -101,9 +108,16 @@ export function decryptSensitiveData(encryptedText: string): string | null {
     let decrypted = decipher.update(encrypted, null, 'utf8');
     decrypted += decipher.final('utf8');
 
+    console.log('[ENCRYPTION] Decryption successful - decrypted length:', decrypted.length);
     return decrypted;
-  } catch (error) {
-    console.error('Decryption error:', error);
+  } catch (error: any) {
+    console.error('[ENCRYPTION] Decryption error:', {
+      message: error.message,
+      code: error.code,
+      encryptedTextLength: encryptedText.length,
+      hasKey: !!ENCRYPTION_KEY,
+      keyLength: ENCRYPTION_KEY?.length
+    });
     return null;
   }
 }
