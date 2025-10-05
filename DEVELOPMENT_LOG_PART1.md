@@ -7,6 +7,137 @@
 
 ## 📅 October 2025 - Admin System & Affiliate Program Fixes
 
+### **Date: 2025-10-04 - Affiliate Referrals API: Supabase Foreign Key Join Issue**
+
+#### **Issue: 500 Error on /api/admin/affiliates/referrals Endpoint**
+
+**Duration:** ~1 hour debugging and fixing
+
+**The Problem:**
+- Affiliate referrals page showed "Failed to fetch referrals" with 500 error
+- API endpoint `/api/admin/affiliates/referrals` returning 500 Internal Server Error
+- Error occurred after implementing new referrals tracking feature
+
+**Root Cause Analysis:**
+
+**What We Thought Was Wrong (Initial Attempts):**
+1. ❌ Dead code with `execute_sql` RPC function that doesn't exist
+   - Removed unused SQL query building code
+   - This cleaned up the code but didn't fix the 500 error
+2. ❌ Missing environment variables or service role issues
+3. ❌ Deployment caching problems
+
+**The ACTUAL Root Cause:**
+The Supabase query was using an **incorrect foreign key hint** for joining referred user profiles:
+
+```typescript
+// ❌ WRONG - This was failing:
+referred_user:profiles!referrals_referred_user_id_fkey (
+  id,
+  email,
+  first_name,
+  // ...
+)
+```
+
+**Why It Failed:**
+- The `referrals.referred_user_id` column references `auth.users(id)`, NOT `profiles` directly
+- The foreign key `referrals_referred_user_id_fkey` points to `auth.users`, not `profiles`
+- Supabase couldn't resolve the join because we were trying to join to the wrong table
+- The foreign key hint syntax `profiles!referrals_referred_user_id_fkey` doesn't exist in the schema
+
+**Database Schema (from migration):**
+```sql
+CREATE TABLE IF NOT EXISTS public.referrals (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  affiliate_id UUID REFERENCES public.affiliates(id) ON DELETE CASCADE,
+  referred_user_id UUID REFERENCES auth.users(id) ON DELETE SET NULL,  -- ← Points to auth.users!
+  -- ...
+);
+```
+
+**The Solution:**
+Instead of trying to use a foreign key join, we:
+1. Fetch referrals with only the affiliates relationship (which works fine)
+2. Separately fetch referred user profiles from `profiles` table by their IDs
+3. Merge the data in the application layer
+
+```typescript
+// ✅ CORRECT - Fetch referrals without referred_user join:
+const { data: referralsData } = await serviceClient
+  .from('referrals')
+  .select(`
+    *,
+    affiliate:affiliates (
+      id,
+      user_id,
+      display_name,
+      referral_code
+    )
+  `)
+  .order(sortBy, { ascending: sortOrder === 'asc' });
+
+// Then separately fetch referred user profiles:
+const referredUserIds = [...new Set(
+  (referralsData || []).map(r => r.referred_user_id).filter(Boolean)
+)];
+
+const { data: profiles } = await serviceClient
+  .from('profiles')
+  .select('id, email, first_name, last_name, subscription_plan, ...')
+  .in('id', referredUserIds);
+
+// Merge in application layer:
+const mergedData = referralsData.map(r => ({
+  ...r,
+  referred_user: referredUserProfiles[r.referred_user_id] || null
+}));
+```
+
+**Files Changed:**
+- `src/app/api/admin/affiliates/referrals/route.ts` - Fixed query and added proper profile fetching
+
+**Key Learnings:**
+
+1. **Foreign Key Joins in Supabase:**
+   - Foreign key hint syntax only works when the FK directly references the table you're joining to
+   - If FK references `auth.users` but you want `profiles` data, you can't use the FK hint
+   - Must fetch separately and merge in application layer
+
+2. **Debugging Supabase Queries:**
+   - Check the actual foreign key constraints in migrations
+   - Verify which table the FK references (auth.users vs profiles)
+   - Use service role client with proper logging to see actual errors
+   - Test queries in Supabase dashboard first if possible
+
+3. **When to Use Application-Layer Joins:**
+   - When FK references a different table than what you need (auth.users → profiles)
+   - When dealing with complex multi-step data aggregation
+   - When Supabase query builder doesn't support your join pattern
+
+4. **Pattern to Remember:**
+   - Many apps have `user_id` columns that reference `auth.users(id)`
+   - User profile data is stored in a separate `profiles` table
+   - Can't use FK hints to join `auth.users` → `profiles` directly
+   - Always fetch profiles separately by user IDs and merge
+
+**Prevention Strategy:**
+- Document foreign key relationships in migrations clearly
+- When adding new queries that join tables, check migration files first
+- Test complex queries with console.log of error details
+- Consider application-layer joins for cross-table relationships
+
+**Commit Messages:**
+1. "Remove unused SQL query code causing errors in referrals API" (cleaned dead code)
+2. "Fix referrals API to properly fetch referred user profiles" (actual fix)
+
+**Time Spent:**
+- Investigating: 30 minutes
+- Fixing: 15 minutes
+- Testing and documenting: 15 minutes
+
+---
+
 ### **Date: 2025-10-04 - Critical Lesson: Admin Email Confusion & Authentication**
 
 #### **Issue: Admin Panel "Access Denied" - Root Cause Analysis**
