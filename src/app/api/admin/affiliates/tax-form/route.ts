@@ -73,17 +73,29 @@ export async function GET(request: NextRequest) {
     let decryptedTaxId: string | null = null;
 
     try {
+      console.log('[TAX FORM] Starting decryption');
+      console.log('[TAX FORM] Has tax_form_data:', !!affiliate.tax_form_data);
+      console.log('[TAX FORM] Has tax_id_encrypted:', !!affiliate.tax_id_encrypted);
+
       if (affiliate.tax_form_data?.encrypted) {
-        decryptedData = JSON.parse(decrypt(affiliate.tax_form_data.encrypted));
+        console.log('[TAX FORM] Decrypting form data...');
+        const decrypted = decrypt(affiliate.tax_form_data.encrypted);
+        console.log('[TAX FORM] Form data decrypted, parsing JSON...');
+        decryptedData = JSON.parse(decrypted);
+        console.log('[TAX FORM] Form data parsed successfully');
       }
 
       if (affiliate.tax_id_encrypted) {
+        console.log('[TAX FORM] Decrypting tax ID...');
         decryptedTaxId = decrypt(affiliate.tax_id_encrypted);
+        console.log('[TAX FORM] Tax ID decrypted successfully');
       }
-    } catch (decryptError) {
+    } catch (decryptError: any) {
       console.error('[TAX FORM] Decryption error:', decryptError);
+      console.error('[TAX FORM] Error message:', decryptError.message);
+      console.error('[TAX FORM] Error stack:', decryptError.stack);
       return NextResponse.json(
-        { error: 'Failed to decrypt tax form data' },
+        { error: 'Failed to decrypt tax form data: ' + decryptError.message },
         { status: 500 }
       );
     }
