@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { AdminLayout } from '@/components/admin/layout/AdminLayout';
 import { useAuthStore } from '@/stores/authStore';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
+import { Button } from '@/components/ui/Button';
 import { KPIDashboard } from '@/components/admin/analytics/KPIDashboard';
 import { toast } from '@/lib/toast';
 import { 
@@ -116,7 +117,7 @@ export default function AdminDashboard() {
             </p>
             {change !== undefined && (
               <p className={`text-sm mt-2 flex items-center ${
-                trend === 'up' ? 'text-green-600' : 'text-red-600'
+                trend === 'up' ? 'text-success-600' : 'text-error-600'
               }`}>
                 {trend === 'up' ? (
                   <ArrowUp className="w-4 h-4 mr-1" />
@@ -128,10 +129,10 @@ export default function AdminDashboard() {
             )}
           </div>
           <div className={`p-3 rounded-full ${
-            trend === 'up' ? 'bg-green-100' : 'bg-blue-100'
+            trend === 'up' ? 'bg-success-100' : 'bg-info-100'
           }`}>
             <Icon className={`w-6 h-6 ${
-              trend === 'up' ? 'text-green-600' : 'text-blue-600'
+              trend === 'up' ? 'text-success-600' : 'text-info-600'
             }`} />
           </div>
         </div>
@@ -247,7 +248,7 @@ export default function AdminDashboard() {
                 <div className="pt-4 border-t">
                   <div className="flex justify-between items-center">
                     <span className="text-gray-600">Success Rate</span>
-                    <span className="font-bold text-lg text-green-600">{stats.processing.success_rate}%</span>
+                    <span className="font-bold text-lg text-success-600">{stats.processing.success_rate}%</span>
                   </div>
                 </div>
               </div>
@@ -262,34 +263,38 @@ export default function AdminDashboard() {
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <button 
+              <Button
+                variant="outline"
                 onClick={() => router.push('/admin/users')}
-                className="p-4 text-center border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+                className="flex flex-col items-center justify-center p-4 h-auto"
               >
-                <Users className="w-6 h-6 mx-auto mb-2 text-primary-blue" />
+                <Users className="w-6 h-6 mb-2 text-primary-500" />
                 <span className="text-sm font-medium">View All Users</span>
-              </button>
-              <button 
+              </Button>
+              <Button
+                variant="outline"
                 onClick={() => router.push('/admin/transactions')}
-                className="p-4 text-center border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+                className="flex flex-col items-center justify-center p-4 h-auto"
               >
-                <DollarSign className="w-6 h-6 mx-auto mb-2 text-primary-blue" />
+                <DollarSign className="w-6 h-6 mb-2 text-primary-500" />
                 <span className="text-sm font-medium">Recent Transactions</span>
-              </button>
-              <button 
+              </Button>
+              <Button
+                variant="outline"
                 onClick={() => router.push('/admin/coupons')}
-                className="p-4 text-center border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+                className="flex flex-col items-center justify-center p-4 h-auto"
               >
-                <CreditCard className="w-6 h-6 mx-auto mb-2 text-primary-blue" />
+                <CreditCard className="w-6 h-6 mb-2 text-primary-500" />
                 <span className="text-sm font-medium">Create Coupon</span>
-              </button>
-              <button 
+              </Button>
+              <Button
+                variant="outline"
                 onClick={() => router.push('/admin/system')}
-                className="p-4 text-center border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+                className="flex flex-col items-center justify-center p-4 h-auto"
               >
-                <Activity className="w-6 h-6 mx-auto mb-2 text-primary-blue" />
+                <Activity className="w-6 h-6 mb-2 text-primary-500" />
                 <span className="text-sm font-medium">System Status</span>
-              </button>
+              </Button>
             </div>
           </CardContent>
         </Card>

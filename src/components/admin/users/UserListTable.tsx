@@ -27,6 +27,17 @@ import { UserEditModal } from './UserEditModal';
 import { CreditAdjustmentModal } from './CreditAdjustmentModal';
 import { BulkCreditModal } from './BulkCreditModal';
 import { EmailUserModal } from './EmailUserModal';
+import { Input } from '@/components/ui/Input';
+import { Select } from '@/components/ui/Select';
+import { Button } from '@/components/ui/Button';
+import { Badge } from '@/components/ui/Badge';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/DropdownMenu';
 import type { AdminUserListResponse, AdminUserListParams } from '@/types/admin';
 
 export function UserListTable() {
@@ -49,7 +60,6 @@ export function UserListTable() {
   const [bulkActionLoading, setBulkActionLoading] = useState(false);
   const [bulkCreditModalOpen, setBulkCreditModalOpen] = useState(false);
   const [emailModalOpen, setEmailModalOpen] = useState(false);
-  const [exportDropdownOpen, setExportDropdownOpen] = useState(false);
 
   useEffect(() => {
     fetchUsers();
@@ -318,30 +328,30 @@ export function UserListTable() {
     });
   };
 
-  const getPlanBadgeColor = (plan: string) => {
+  const getPlanBadgeVariant = (plan: string): 'default' | 'secondary' | 'success' | 'info' => {
     switch (plan) {
       case 'starter':
-        return 'bg-blue-100 text-blue-800';
+        return 'info';
       case 'basic':
-        return 'bg-green-100 text-green-800';
+        return 'success';
       case 'pro':
-        return 'bg-purple-100 text-purple-800';
+        return 'default';
       default:
-        return 'bg-gray-100 text-gray-800';
+        return 'secondary';
     }
   };
 
   const getStatusBadge = (status: string) => {
     return status === 'active' ? (
-      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+      <Badge variant="success">
         <CheckCircle className="w-3 h-3 mr-1" />
         Active
-      </span>
+      </Badge>
     ) : (
-      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
+      <Badge variant="error">
         <Ban className="w-3 h-3 mr-1" />
         Suspended
-      </span>
+      </Badge>
     );
   };
 
@@ -359,56 +369,33 @@ export function UserListTable() {
             </p>
           </div>
           <div className="flex items-center gap-2">
-            <div className="relative inline-block">
-              <button 
-                onClick={() => setExportDropdownOpen(!exportDropdownOpen)}
-                className="btn btn-secondary"
-              >
-                <Download className="h-4 w-4 mr-2" />
-                Export
-              </button>
-              {exportDropdownOpen && (
-                <>
-                  <div
-                    className="fixed inset-0 z-10"
-                    onClick={() => setExportDropdownOpen(false)}
-                  />
-                  <div className="absolute right-0 mt-2 w-48 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 z-20">
-                    <div className="py-1">
-                      <button
-                        onClick={() => handleExport('all', 'csv')}
-                        className="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                      >
-                        Export All (CSV)
-                      </button>
-                      <button
-                        onClick={() => handleExport('all', 'json')}
-                        className="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                      >
-                        Export All (JSON)
-                      </button>
-                      {selectedUserIds.size > 0 && (
-                        <>
-                          <div className="border-t border-gray-100"></div>
-                          <button
-                            onClick={() => handleExport('selected', 'csv')}
-                            className="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                          >
-                            Export Selected ({selectedUserIds.size}) (CSV)
-                          </button>
-                          <button
-                            onClick={() => handleExport('selected', 'json')}
-                            className="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                          >
-                            Export Selected ({selectedUserIds.size}) (JSON)
-                          </button>
-                        </>
-                      )}
-                    </div>
-                  </div>
-                </>
-              )}
-            </div>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="secondary" size="sm">
+                  <Download className="h-4 w-4 mr-2" />
+                  Export
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={() => handleExport('all', 'csv')}>
+                  Export All (CSV)
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => handleExport('all', 'json')}>
+                  Export All (JSON)
+                </DropdownMenuItem>
+                {selectedUserIds.size > 0 && (
+                  <>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={() => handleExport('selected', 'csv')}>
+                      Export Selected ({selectedUserIds.size}) (CSV)
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => handleExport('selected', 'json')}>
+                      Export Selected ({selectedUserIds.size}) (JSON)
+                    </DropdownMenuItem>
+                  </>
+                )}
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </div>
       </div>
@@ -418,92 +405,96 @@ export function UserListTable() {
         <div className="flex flex-col sm:flex-row gap-4">
           {/* Search */}
           <div className="flex-1">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
-              <input
-                type="text"
-                placeholder="Search by email or name..."
-                value={params.search || ''}
-                onChange={(e) => handleSearch(e.target.value)}
-                className="pl-10 pr-4 py-2 w-full border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-blue focus:border-transparent"
-              />
-            </div>
+            <Input
+              type="text"
+              placeholder="Search by email or name..."
+              value={params.search || ''}
+              onChange={(e) => handleSearch(e.target.value)}
+              leftIcon={<Search className="h-5 w-5" />}
+            />
           </div>
 
           {/* Status Filter */}
-          <div className="flex items-center gap-2">
-            <Filter className="h-5 w-5 text-gray-400" />
-            <select
+          <div className="w-full sm:w-48">
+            <Select
               value={params.status}
               onChange={(e) => handleStatusFilter(e.target.value as AdminUserListParams['status'])}
-              className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-blue focus:border-transparent"
+              leftIcon={<Filter className="h-5 w-5" />}
             >
               <option value="all">All Status</option>
               <option value="active">Active</option>
               <option value="suspended">Suspended</option>
-            </select>
+            </Select>
           </div>
         </div>
       </div>
 
       {/* Bulk Actions Bar */}
       {selectedUserIds.size > 0 && (
-        <div className="px-4 py-3 bg-blue-50 border-b border-blue-200">
+        <div className="px-4 py-3 bg-info-50 border-b border-info-200">
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
             <div className="flex items-center gap-2">
-              <span className="text-sm font-medium text-blue-900">
+              <span className="text-sm font-medium text-info-900">
                 {selectedUserIds.size} user{selectedUserIds.size !== 1 ? 's' : ''} selected
               </span>
               <button
                 onClick={deselectAllUsers}
-                className="text-sm text-blue-600 hover:text-blue-800"
+                className="text-sm text-info-600 hover:text-info-800"
               >
                 Clear selection
               </button>
             </div>
             <div className="flex flex-wrap gap-2">
-              <button
+              <Button
+                variant="outline"
+                size="sm"
                 onClick={() => handleBulkAction('activate')}
                 disabled={bulkActionLoading}
-                className="inline-flex items-center px-3 py-1.5 text-sm font-medium rounded-md text-green-700 bg-green-100 hover:bg-green-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="bg-success-100 text-success-700 hover:bg-success-200 border-success-300"
               >
                 <UserCheck className="w-4 h-4 mr-1" />
                 Activate
-              </button>
-              <button
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
                 onClick={() => handleBulkAction('suspend')}
                 disabled={bulkActionLoading}
-                className="inline-flex items-center px-3 py-1.5 text-sm font-medium rounded-md text-yellow-700 bg-yellow-100 hover:bg-yellow-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="bg-warning-100 text-warning-700 hover:bg-warning-200 border-warning-300"
               >
                 <UserX className="w-4 h-4 mr-1" />
                 Suspend
-              </button>
-              <button
-                onClick={() => {
-                  setEmailModalOpen(true);
-                }}
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setEmailModalOpen(true)}
                 disabled={bulkActionLoading}
-                className="inline-flex items-center px-3 py-1.5 text-sm font-medium rounded-md text-blue-700 bg-blue-100 hover:bg-blue-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="bg-info-100 text-info-700 hover:bg-info-200 border-info-300"
               >
                 <Mail className="w-4 h-4 mr-1" />
                 Email
-              </button>
-              <button
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
                 onClick={() => setBulkCreditModalOpen(true)}
                 disabled={bulkActionLoading}
-                className="inline-flex items-center px-3 py-1.5 text-sm font-medium rounded-md text-purple-700 bg-purple-100 hover:bg-purple-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="bg-primary-100 text-primary-700 hover:bg-primary-200 border-primary-300"
               >
                 <CreditCard className="w-4 h-4 mr-1" />
                 Add Credits
-              </button>
-              <button
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
                 onClick={() => handleBulkAction('delete')}
                 disabled={bulkActionLoading}
-                className="inline-flex items-center px-3 py-1.5 text-sm font-medium rounded-md text-red-700 bg-red-100 hover:bg-red-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="bg-error-100 text-error-700 hover:bg-error-200 border-error-300"
               >
                 <Trash2 className="w-4 h-4 mr-1" />
                 Delete
-              </button>
+              </Button>
             </div>
           </div>
         </div>
@@ -589,7 +580,7 @@ export function UserListTable() {
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="flex items-center">
                       <div className="h-10 w-10 flex-shrink-0">
-                        <div className="h-10 w-10 rounded-full bg-primary-blue flex items-center justify-center">
+                        <div className="h-10 w-10 rounded-full bg-primary-500 flex items-center justify-center">
                           <User className="h-5 w-5 text-white" />
                         </div>
                       </div>
@@ -604,9 +595,9 @@ export function UserListTable() {
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getPlanBadgeColor(user.plan)}`}>
+                    <Badge variant={getPlanBadgeVariant(user.plan)}>
                       {user.plan}
-                    </span>
+                    </Badge>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                     {user.credits_remaining}
@@ -721,13 +712,14 @@ export function UserListTable() {
               of <span className="font-medium">{total}</span> results
             </div>
             <div className="flex items-center gap-2">
-              <button
+              <Button
+                variant="outline"
+                size="sm"
                 onClick={() => handlePageChange(params.page! - 1)}
                 disabled={params.page === 1}
-                className="px-3 py-1 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <ChevronLeft className="h-4 w-4" />
-              </button>
+              </Button>
               {[...Array(totalPages)].map((_, i) => {
                 const page = i + 1;
                 if (
@@ -736,30 +728,28 @@ export function UserListTable() {
                   (page >= params.page! - 1 && page <= params.page! + 1)
                 ) {
                   return (
-                    <button
+                    <Button
                       key={page}
+                      variant={page === params.page ? 'default' : 'outline'}
+                      size="sm"
                       onClick={() => handlePageChange(page)}
-                      className={`px-3 py-1 text-sm font-medium rounded-md ${
-                        page === params.page
-                          ? 'bg-primary-blue text-white'
-                          : 'text-gray-700 bg-white border border-gray-300 hover:bg-gray-50'
-                      }`}
                     >
                       {page}
-                    </button>
+                    </Button>
                   );
                 } else if (page === params.page! - 2 || page === params.page! + 2) {
                   return <span key={page} className="px-1">...</span>;
                 }
                 return null;
               })}
-              <button
+              <Button
+                variant="outline"
+                size="sm"
                 onClick={() => handlePageChange(params.page! + 1)}
                 disabled={params.page === totalPages}
-                className="px-3 py-1 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <ChevronRight className="h-4 w-4" />
-              </button>
+              </Button>
             </div>
           </div>
         </div>
