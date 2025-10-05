@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { AffiliateAdminNav } from '@/components/admin/affiliates/AffiliateAdminNav';
+import { Breadcrumb } from '@/components/ui/Breadcrumb';
 import {
   UsersRound,
   DollarSign,
@@ -177,6 +178,15 @@ export default function AdminAffiliatesPage() {
 
   return (
     <div className="p-6">
+      {/* Breadcrumb */}
+      <Breadcrumb
+        homeHref="/admin"
+        homeLabel="Admin Dashboard"
+        items={[
+          { label: 'Affiliates' }
+        ]}
+      />
+
       <AffiliateAdminNav />
 
       {/* Stats Grid */}

@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { AffiliateAdminNav } from '@/components/admin/affiliates/AffiliateAdminNav';
+import { Breadcrumb } from '@/components/ui/Breadcrumb';
 import { Button } from '@/components/ui/Button';
 import { TaxFormViewer } from '@/components/admin/affiliates/TaxFormViewer';
 import { toast } from 'react-hot-toast';
@@ -143,6 +144,16 @@ export default function AdminAffiliateApplicationsPage() {
 
   return (
     <div className="p-6">
+      {/* Breadcrumb */}
+      <Breadcrumb
+        homeHref="/admin"
+        homeLabel="Admin Dashboard"
+        items={[
+          { label: 'Affiliates', href: '/admin/affiliates' },
+          { label: 'Applications' }
+        ]}
+      />
+
       <AffiliateAdminNav />
 
       {/* Stats */}

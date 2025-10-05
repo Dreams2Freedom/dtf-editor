@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
+import { Breadcrumb } from '@/components/ui/Breadcrumb';
 import {
   Users,
   TrendingUp,
@@ -203,6 +204,16 @@ export default function AffiliateReferralsPage() {
 
   return (
     <div className="container mx-auto px-4 py-8 max-w-7xl">
+      {/* Breadcrumb */}
+      <Breadcrumb
+        homeHref="/admin"
+        homeLabel="Admin Dashboard"
+        items={[
+          { label: 'Affiliates', href: '/admin/affiliates' },
+          { label: 'Referrals' }
+        ]}
+      />
+
       {/* Header */}
       <div className="mb-8">
         <h1 className="text-3xl font-bold text-gray-900 mb-2">Affiliate Referrals</h1>

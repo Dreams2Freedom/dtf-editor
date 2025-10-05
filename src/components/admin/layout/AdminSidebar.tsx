@@ -117,6 +117,28 @@ export function AdminSidebar({ isOpen, onClose }: AdminSidebarProps) {
   const [isSuperAdmin, setIsSuperAdmin] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
+  // Auto-expand parent menu items when on child page
+  useEffect(() => {
+    const itemsToExpand: string[] = [];
+
+    menuItems.forEach(item => {
+      if (item.children) {
+        // Check if any child page is active
+        const hasActiveChild = item.children.some(child =>
+          pathname === child.href || pathname.startsWith(child.href + '/')
+        );
+
+        if (hasActiveChild) {
+          itemsToExpand.push(item.name);
+        }
+      }
+    });
+
+    if (itemsToExpand.length > 0) {
+      setExpandedItems(itemsToExpand);
+    }
+  }, [pathname]);
+
   useEffect(() => {
     const checkSuperAdmin = async () => {
       try {
