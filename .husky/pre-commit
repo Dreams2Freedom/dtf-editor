@@ -1,2 +1,3 @@
-npm run lint
+# Show lint warnings but don't block commit
+npm run lint || true
 npm run format

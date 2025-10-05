@@ -41,45 +41,23 @@ export default function AdminManagementPage() {
 
   async function fetchData() {
     try {
-      // Check current user's role
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        toast.error('Not authenticated');
-        return;
+      // Fetch admin users from API route
+      const response = await fetch('/api/admin/users/admins');
+
+      if (!response.ok) {
+        const error = await response.json();
+        if (response.status === 403) {
+          setCurrentUserRole('not_super_admin');
+          toast.error('Only super admins can manage admins');
+          setLoading(false);
+          return;
+        }
+        throw new Error(error.error || 'Failed to fetch admin users');
       }
 
-      // Get current user's admin role
-      const { data: roleData } = await supabase
-        .rpc('get_admin_role', { user_id: user.id });
-
-      setCurrentUserRole(roleData);
-
-      if (roleData !== 'super_admin') {
-        toast.error('Only super admins can manage admins');
-        return;
-      }
-
-      // Fetch all admins
-      const { data: adminData, error: adminError } = await supabase
-        .from('admin_users')
-        .select('*')
-        .order('created_at', { ascending: false });
-
-      if (adminError) throw adminError;
-
-      // Fetch user details for each admin
-      const adminsWithDetails = await Promise.all(
-        (adminData || []).map(async (admin) => {
-          const { data: authUser } = await supabase.auth.admin.getUserById(admin.user_id);
-          return {
-            ...admin,
-            user_email: authUser?.user?.email,
-            user_name: authUser?.user?.user_metadata?.full_name
-          };
-        })
-      );
-
-      setAdmins(adminsWithDetails);
+      const data = await response.json();
+      setAdmins(data.admins || []);
+      setCurrentUserRole('super_admin');
 
       // Fetch role presets
       const { data: presets, error: presetsError } = await supabase
@@ -89,7 +67,6 @@ export default function AdminManagementPage() {
 
       if (presetsError) throw presetsError;
       setRolePresets(presets || []);
-
     } catch (error) {
       console.error('Error fetching data:', error);
       toast.error('Failed to load admin data');
@@ -122,14 +99,12 @@ export default function AdminManagementPage() {
       }
 
       // Create admin user
-      const { error } = await supabase
-        .from('admin_users')
-        .insert({
-          user_id: targetUser.id,
-          role: selectedRole,
-          permissions: preset.default_permissions,
-          is_active: true
-        });
+      const { error } = await supabase.from('admin_users').insert({
+        user_id: targetUser.id,
+        role: selectedRole,
+        permissions: preset.default_permissions,
+        is_active: true,
+      });
 
       if (error) throw error;
 
@@ -137,7 +112,6 @@ export default function AdminManagementPage() {
       setShowAddModal(false);
       setNewAdminEmail('');
       fetchData();
-
     } catch (error: any) {
       console.error('Error creating admin:', error);
       toast.error(error.message || 'Failed to create admin');
@@ -195,7 +169,9 @@ export default function AdminManagementPage() {
           <CardContent className="p-8 text-center">
             <Shield className="h-12 w-12 text-error-600 mx-auto mb-4" />
             <h2 className="text-xl font-bold mb-2">Access Denied</h2>
-            <p className="text-gray-600">Only super administrators can manage admin users.</p>
+            <p className="text-gray-600">
+              Only super administrators can manage admin users.
+            </p>
           </CardContent>
         </Card>
       </div>
@@ -210,7 +186,9 @@ export default function AdminManagementPage() {
             <Shield className="h-6 w-6" />
             Admin Management
           </h1>
-          <p className="text-gray-600 mt-1">Manage administrator access and permissions</p>
+          <p className="text-gray-600 mt-1">
+            Manage administrator access and permissions
+          </p>
         </div>
         <Button onClick={() => setShowAddModal(true)}>
           <UserPlus className="h-4 w-4 mr-2" />
@@ -262,37 +240,59 @@ export default function AdminManagementPage() {
             <table className="min-w-full divide-y divide-gray-200">
               <thead>
                 <tr>
-                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">User</th>
-                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Role</th>
-                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
-                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Created</th>
-                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
+                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">
+                    User
+                  </th>
+                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">
+                    Role
+                  </th>
+                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">
+                    Status
+                  </th>
+                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">
+                    Created
+                  </th>
+                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">
+                    Actions
+                  </th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200">
-                {admins.map((admin) => (
+                {admins.map(admin => (
                   <tr key={admin.id}>
                     <td className="px-4 py-3">
                       <div>
-                        <div className="text-sm font-medium">{admin.user_email}</div>
+                        <div className="text-sm font-medium">
+                          {admin.user_email}
+                        </div>
                         {admin.user_name && (
-                          <div className="text-xs text-gray-500">{admin.user_name}</div>
+                          <div className="text-xs text-gray-500">
+                            {admin.user_name}
+                          </div>
                         )}
                       </div>
                     </td>
                     <td className="px-4 py-3">
-                      <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
-                        admin.role === 'super_admin' ? 'bg-purple-100 text-purple-800' :
-                        admin.role === 'admin' ? 'bg-blue-100 text-blue-800' :
-                        'bg-gray-100 text-gray-800'
-                      }`}>
+                      <span
+                        className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                          admin.role === 'super_admin'
+                            ? 'bg-purple-100 text-purple-800'
+                            : admin.role === 'admin'
+                              ? 'bg-blue-100 text-blue-800'
+                              : 'bg-gray-100 text-gray-800'
+                        }`}
+                      >
                         {admin.role.replace('_', ' ')}
                       </span>
                     </td>
                     <td className="px-4 py-3">
-                      <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
-                        admin.is_active ? 'bg-success-100 text-success-800' : 'bg-error-100 text-error-800'
-                      }`}>
+                      <span
+                        className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                          admin.is_active
+                            ? 'bg-success-100 text-success-800'
+                            : 'bg-error-100 text-error-800'
+                        }`}
+                      >
                         {admin.is_active ? 'Active' : 'Inactive'}
                       </span>
                     </td>
@@ -302,11 +302,17 @@ export default function AdminManagementPage() {
                     <td className="px-4 py-3">
                       <div className="flex gap-2">
                         <button
-                          onClick={() => toggleAdminStatus(admin.id, admin.is_active)}
+                          onClick={() =>
+                            toggleAdminStatus(admin.id, admin.is_active)
+                          }
                           className="text-blue-600 hover:text-blue-800"
                           title={admin.is_active ? 'Deactivate' : 'Activate'}
                         >
-                          {admin.is_active ? <X className="h-4 w-4" /> : <Check className="h-4 w-4" />}
+                          {admin.is_active ? (
+                            <X className="h-4 w-4" />
+                          ) : (
+                            <Check className="h-4 w-4" />
+                          )}
                         </button>
                         {admin.role !== 'super_admin' && (
                           <button
@@ -335,11 +341,13 @@ export default function AdminManagementPage() {
 
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium mb-1">User Email</label>
+                <label className="block text-sm font-medium mb-1">
+                  User Email
+                </label>
                 <input
                   type="email"
                   value={newAdminEmail}
-                  onChange={(e) => setNewAdminEmail(e.target.value)}
+                  onChange={e => setNewAdminEmail(e.target.value)}
                   className="w-full px-3 py-2 border rounded-lg"
                   placeholder="user@example.com"
                 />
@@ -349,18 +357,22 @@ export default function AdminManagementPage() {
                 <label className="block text-sm font-medium mb-1">Role</label>
                 <select
                   value={selectedRole}
-                  onChange={(e) => setSelectedRole(e.target.value)}
+                  onChange={e => setSelectedRole(e.target.value)}
                   className="w-full px-3 py-2 border rounded-lg"
                 >
-                  {rolePresets.map((preset) => (
+                  {rolePresets.map(preset => (
                     <option key={preset.role_name} value={preset.role_name}>
                       {preset.display_name}
                     </option>
                   ))}
                 </select>
-                {rolePresets.find(p => p.role_name === selectedRole)?.description && (
+                {rolePresets.find(p => p.role_name === selectedRole)
+                  ?.description && (
                   <p className="text-xs text-gray-500 mt-1">
-                    {rolePresets.find(p => p.role_name === selectedRole)?.description}
+                    {
+                      rolePresets.find(p => p.role_name === selectedRole)
+                        ?.description
+                    }
                   </p>
                 )}
               </div>

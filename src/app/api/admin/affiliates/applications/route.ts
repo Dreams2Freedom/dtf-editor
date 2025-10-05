@@ -6,7 +6,9 @@ export async function GET() {
   try {
     // First verify the request is from an authenticated admin
     const supabase = await createServerSupabaseClient();
-    const { data: { session } } = await supabase.auth.getSession();
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
 
     if (!session) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -20,7 +22,10 @@ export async function GET() {
       .single();
 
     if (!profile?.is_admin) {
-      return NextResponse.json({ error: 'Forbidden - Admin access required' }, { status: 403 });
+      return NextResponse.json(
+        { error: 'Forbidden - Admin access required' },
+        { status: 403 }
+      );
     }
 
     // Now use service role client to bypass RLS
@@ -39,18 +44,30 @@ export async function GET() {
 
     const { data: profiles, error: profilesError } = await serviceClient
       .from('profiles')
-      .select('id, email, full_name')
+      .select('id, email, full_name, first_name, last_name')
       .in('id', userIds);
 
     if (profilesError) throw profilesError;
 
-    // Map profiles to affiliates
-    const profilesMap = new Map(profiles?.map(p => [p.id, p]) || []);
+    // Map profiles to affiliates and construct full_name from first_name + last_name if needed
+    const profilesMap = new Map(
+      profiles?.map(p => [
+        p.id,
+        {
+          ...p,
+          full_name:
+            p.full_name ||
+            [p.first_name, p.last_name].filter(Boolean).join(' ') ||
+            null,
+        },
+      ]) || []
+    );
 
-    const affiliatesWithProfiles = affiliates?.map(affiliate => ({
-      ...affiliate,
-      user: profilesMap.get(affiliate.user_id)
-    })) || [];
+    const affiliatesWithProfiles =
+      affiliates?.map(affiliate => ({
+        ...affiliate,
+        user: profilesMap.get(affiliate.user_id),
+      })) || [];
 
     return NextResponse.json({ affiliates: affiliatesWithProfiles });
   } catch (error) {
