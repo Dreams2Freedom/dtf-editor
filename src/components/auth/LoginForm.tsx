@@ -119,13 +119,14 @@ export function LoginForm({ onSuccess, redirectTo }: LoginFormProps) {
         )}
 
         {/* Submit Button */}
-        <button 
-          type="submit" 
-          className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-4 rounded-lg shadow-sm border-2 border-blue-500"
+        <Button
+          type="submit"
+          fullWidth
+          loading={loading}
           disabled={loading}
         >
-          {loading ? 'Signing in...' : 'Sign in'}
-        </button>
+          Sign in
+        </Button>
 
         {/* Links */}
         <div className="flex items-center justify-between text-sm">

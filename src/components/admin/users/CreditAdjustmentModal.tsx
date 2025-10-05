@@ -5,6 +5,7 @@ import { X, CreditCard, Plus, Minus } from 'lucide-react';
 import { Modal } from '@/components/ui/Modal';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
+import { Textarea } from '@/components/ui/Textarea';
 import { toast } from '@/lib/toast';
 
 interface CreditAdjustmentModalProps {
@@ -170,20 +171,15 @@ export function CreditAdjustmentModal({
         </div>
 
         {/* Reason Input */}
-        <div>
-          <label htmlFor="reason" className="block text-sm font-medium text-gray-700 mb-1">
-            Reason for Adjustment
-          </label>
-          <textarea
-            id="reason"
-            value={reason}
-            onChange={(e) => setReason(e.target.value)}
-            placeholder="e.g., Customer support compensation, Refund for failed processing, etc."
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-blue focus:border-transparent"
-            rows={3}
-            required
-          />
-        </div>
+        <Textarea
+          id="reason"
+          label="Reason for Adjustment"
+          value={reason}
+          onChange={(e) => setReason(e.target.value)}
+          placeholder="e.g., Customer support compensation, Refund for failed processing, etc."
+          rows={3}
+          required
+        />
 
         {/* Actions */}
         <div className="flex justify-end gap-3 pt-4">

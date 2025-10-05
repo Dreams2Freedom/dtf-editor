@@ -5,6 +5,7 @@ import { X, User, Mail, CreditCard, Shield, Save } from 'lucide-react';
 import { toast } from '@/lib/toast';
 import { Modal } from '@/components/ui/Modal';
 import { Input } from '@/components/ui/Input';
+import { Select } from '@/components/ui/Select';
 import { Button } from '@/components/ui/Button';
 
 interface UserEditModalProps {
@@ -165,51 +166,33 @@ export function UserEditModal({ isOpen, onClose, user, onUpdate }: UserEditModal
           </div>
 
           {/* Plan */}
-          <div>
-            <label htmlFor="plan" className="block text-sm font-medium text-gray-700 mb-1">
-              Plan <span className="text-red-500">*</span>
-            </label>
-            <div className="relative">
-              <CreditCard className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
-              <select
-                id="plan"
-                name="plan"
-                value={formData.plan}
-                onChange={handleChange}
-                className="pl-10 pr-4 py-2 w-full border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-blue focus:border-transparent appearance-none"
-              >
-                <option value="free">Free</option>
-                <option value="basic">Basic ($9.99/mo)</option>
-                <option value="starter">Starter ($24.99/mo)</option>
-              </select>
-            </div>
-            {errors.plan && (
-              <p className="mt-1 text-sm text-red-600">{errors.plan}</p>
-            )}
-          </div>
+          <Select
+            id="plan"
+            name="plan"
+            label={<>Plan <span className="text-red-500">*</span></>}
+            value={formData.plan}
+            onChange={handleChange}
+            leftIcon={<CreditCard className="h-5 w-5" />}
+            error={errors.plan}
+          >
+            <option value="free">Free</option>
+            <option value="basic">Basic ($9.99/mo)</option>
+            <option value="starter">Starter ($24.99/mo)</option>
+          </Select>
 
           {/* Status */}
-          <div>
-            <label htmlFor="status" className="block text-sm font-medium text-gray-700 mb-1">
-              Status <span className="text-red-500">*</span>
-            </label>
-            <div className="relative">
-              <Shield className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
-              <select
-                id="status"
-                name="status"
-                value={formData.status}
-                onChange={handleChange}
-                className="pl-10 pr-4 py-2 w-full border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-blue focus:border-transparent appearance-none"
-              >
-                <option value="active">Active</option>
-                <option value="suspended">Suspended</option>
-              </select>
-            </div>
-            {errors.status && (
-              <p className="mt-1 text-sm text-red-600">{errors.status}</p>
-            )}
-          </div>
+          <Select
+            id="status"
+            name="status"
+            label={<>Status <span className="text-red-500">*</span></>}
+            value={formData.status}
+            onChange={handleChange}
+            leftIcon={<Shield className="h-5 w-5" />}
+            error={errors.status}
+          >
+            <option value="active">Active</option>
+            <option value="suspended">Suspended</option>
+          </Select>
 
           {/* Warning for status change */}
           {formData.status !== user.status && (
