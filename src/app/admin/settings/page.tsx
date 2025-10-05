@@ -6,6 +6,8 @@ import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/Button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
+import { Checkbox } from '@/components/ui/Checkbox';
+import { Input } from '@/components/ui/Input';
 import { toast } from '@/lib/toast';
 import {
   ArrowLeft,
@@ -118,11 +120,9 @@ export default function AdminSettingsPage() {
                   <p className="font-medium">New User Alerts</p>
                   <p className="text-sm text-gray-500">Get notified when new users sign up</p>
                 </div>
-                <input
-                  type="checkbox"
+                <Checkbox
                   checked={settings.new_user_alerts}
-                  onChange={(e) => setSettings({ ...settings, new_user_alerts: e.target.checked })}
-                  className="h-4 w-4 text-primary-blue rounded"
+                  onCheckedChange={(checked) => setSettings({ ...settings, new_user_alerts: checked as boolean })}
                 />
               </div>
               <div className="flex items-center justify-between">
@@ -130,11 +130,9 @@ export default function AdminSettingsPage() {
                   <p className="font-medium">Payment Alerts</p>
                   <p className="text-sm text-gray-500">Notifications for payments and subscriptions</p>
                 </div>
-                <input
-                  type="checkbox"
+                <Checkbox
                   checked={settings.payment_alerts}
-                  onChange={(e) => setSettings({ ...settings, payment_alerts: e.target.checked })}
-                  className="h-4 w-4 text-primary-blue rounded"
+                  onCheckedChange={(checked) => setSettings({ ...settings, payment_alerts: checked as boolean })}
                 />
               </div>
               <div className="flex items-center justify-between">
@@ -142,11 +140,9 @@ export default function AdminSettingsPage() {
                   <p className="font-medium">Error Alerts</p>
                   <p className="text-sm text-gray-500">Critical system errors and failures</p>
                 </div>
-                <input
-                  type="checkbox"
+                <Checkbox
                   checked={settings.error_alerts}
-                  onChange={(e) => setSettings({ ...settings, error_alerts: e.target.checked })}
-                  className="h-4 w-4 text-primary-blue rounded"
+                  onCheckedChange={(checked) => setSettings({ ...settings, error_alerts: checked as boolean })}
                 />
               </div>
               <div className="flex items-center justify-between">
@@ -154,11 +150,9 @@ export default function AdminSettingsPage() {
                   <p className="font-medium">Daily Summary</p>
                   <p className="text-sm text-gray-500">Receive daily activity summary</p>
                 </div>
-                <input
-                  type="checkbox"
+                <Checkbox
                   checked={settings.daily_summary}
-                  onChange={(e) => setSettings({ ...settings, daily_summary: e.target.checked })}
-                  className="h-4 w-4 text-primary-blue rounded"
+                  onCheckedChange={(checked) => setSettings({ ...settings, daily_summary: checked as boolean })}
                 />
               </div>
             </CardContent>
@@ -181,17 +175,14 @@ export default function AdminSettingsPage() {
                   <p className="font-medium">Require 2FA for Admins</p>
                   <p className="text-sm text-gray-500">Enforce two-factor authentication</p>
                 </div>
-                <Badge variant="gray">Coming Soon</Badge>
+                <Badge variant="secondary">Coming Soon</Badge>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Session Timeout (minutes)
-                </label>
-                <input
+                <Input
                   type="number"
+                  label="Session Timeout (minutes)"
                   value={settings.session_timeout}
                   onChange={(e) => setSettings({ ...settings, session_timeout: parseInt(e.target.value) })}
-                  className="w-full px-3 py-2 border rounded-lg"
                   min="15"
                   max="480"
                 />
@@ -201,7 +192,7 @@ export default function AdminSettingsPage() {
                   <p className="font-medium">IP Whitelist</p>
                   <p className="text-sm text-gray-500">Restrict admin access by IP</p>
                 </div>
-                <Badge variant="gray">Coming Soon</Badge>
+                <Badge variant="secondary">Coming Soon</Badge>
               </div>
             </CardContent>
           </Card>
@@ -225,16 +216,16 @@ export default function AdminSettingsPage() {
                 </div>
                 <div className="flex items-center">
                   {settings.maintenance_mode ? (
-                    <Badge variant="yellow">Active</Badge>
+                    <Badge variant="warning">Active</Badge>
                   ) : (
-                    <Badge variant="gray">Inactive</Badge>
+                    <Badge variant="secondary">Inactive</Badge>
                   )}
-                  <input
-                    type="checkbox"
-                    checked={settings.maintenance_mode}
-                    onChange={(e) => setSettings({ ...settings, maintenance_mode: e.target.checked })}
-                    className="ml-3 h-4 w-4 text-primary-blue rounded"
-                  />
+                  <div className="ml-3">
+                    <Checkbox
+                      checked={settings.maintenance_mode}
+                      onCheckedChange={(checked) => setSettings({ ...settings, maintenance_mode: checked as boolean })}
+                    />
+                  </div>
                 </div>
               </div>
               <div className="flex items-center justify-between">
@@ -242,22 +233,17 @@ export default function AdminSettingsPage() {
                   <p className="font-medium">Debug Mode</p>
                   <p className="text-sm text-gray-500">Enable detailed error logging</p>
                 </div>
-                <input
-                  type="checkbox"
+                <Checkbox
                   checked={settings.debug_mode}
-                  onChange={(e) => setSettings({ ...settings, debug_mode: e.target.checked })}
-                  className="h-4 w-4 text-primary-blue rounded"
+                  onCheckedChange={(checked) => setSettings({ ...settings, debug_mode: checked as boolean })}
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  API Rate Limit (requests/minute)
-                </label>
-                <input
+                <Input
                   type="number"
+                  label="API Rate Limit (requests/minute)"
                   value={settings.api_rate_limit}
                   onChange={(e) => setSettings({ ...settings, api_rate_limit: parseInt(e.target.value) })}
-                  className="w-full px-3 py-2 border rounded-lg"
                   min="10"
                   max="1000"
                 />
@@ -277,28 +263,18 @@ export default function AdminSettingsPage() {
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Support Email Address
-                </label>
-                <input
-                  type="email"
-                  value={settings.support_email}
-                  onChange={(e) => setSettings({ ...settings, support_email: e.target.value })}
-                  className="w-full px-3 py-2 border rounded-lg"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  From Email Address
-                </label>
-                <input
-                  type="email"
-                  value={settings.from_email}
-                  onChange={(e) => setSettings({ ...settings, from_email: e.target.value })}
-                  className="w-full px-3 py-2 border rounded-lg"
-                />
-              </div>
+              <Input
+                type="email"
+                label="Support Email Address"
+                value={settings.support_email}
+                onChange={(e) => setSettings({ ...settings, support_email: e.target.value })}
+              />
+              <Input
+                type="email"
+                label="From Email Address"
+                value={settings.from_email}
+                onChange={(e) => setSettings({ ...settings, from_email: e.target.value })}
+              />
             </CardContent>
           </Card>
         </div>
@@ -318,33 +294,33 @@ export default function AdminSettingsPage() {
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-              <div className="flex items-center justify-between p-3 bg-green-50 rounded-lg">
+              <div className="flex items-center justify-between p-3 bg-success-50 rounded-lg">
                 <div className="flex items-center">
-                  <Check className="w-5 h-5 text-green-600 mr-2" />
+                  <Check className="w-5 h-5 text-success-600 mr-2" />
                   <span className="font-medium">Database</span>
                 </div>
-                <Badge variant="green">Healthy</Badge>
+                <Badge variant="success">Healthy</Badge>
               </div>
-              <div className="flex items-center justify-between p-3 bg-green-50 rounded-lg">
+              <div className="flex items-center justify-between p-3 bg-success-50 rounded-lg">
                 <div className="flex items-center">
-                  <Check className="w-5 h-5 text-green-600 mr-2" />
+                  <Check className="w-5 h-5 text-success-600 mr-2" />
                   <span className="font-medium">Storage</span>
                 </div>
-                <Badge variant="green">Healthy</Badge>
+                <Badge variant="success">Healthy</Badge>
               </div>
-              <div className="flex items-center justify-between p-3 bg-green-50 rounded-lg">
+              <div className="flex items-center justify-between p-3 bg-success-50 rounded-lg">
                 <div className="flex items-center">
-                  <Check className="w-5 h-5 text-green-600 mr-2" />
+                  <Check className="w-5 h-5 text-success-600 mr-2" />
                   <span className="font-medium">APIs</span>
                 </div>
-                <Badge variant="green">Connected</Badge>
+                <Badge variant="success">Connected</Badge>
               </div>
-              <div className="flex items-center justify-between p-3 bg-yellow-50 rounded-lg">
+              <div className="flex items-center justify-between p-3 bg-warning-50 rounded-lg">
                 <div className="flex items-center">
-                  <AlertCircle className="w-5 h-5 text-yellow-600 mr-2" />
+                  <AlertCircle className="w-5 h-5 text-warning-600 mr-2" />
                   <span className="font-medium">Email</span>
                 </div>
-                <Badge variant="yellow">Not Configured</Badge>
+                <Badge variant="warning">Not Configured</Badge>
               </div>
             </div>
           </CardContent>
