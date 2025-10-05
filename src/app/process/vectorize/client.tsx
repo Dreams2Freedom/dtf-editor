@@ -417,7 +417,7 @@ export default function VectorizeClient() {
                             setProcessedImageId(null);
                             setSelectedFormat('svg');
                           }}
-                          variant="outline"
+                          variant="secondary"
                         >
                           Vectorize Again
                         </Button>

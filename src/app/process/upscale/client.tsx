@@ -1526,7 +1526,7 @@ export default function UpscaleClient() {
                             setSelectedScale('2');
                             setShowEnhancements(false);
                           }}
-                          variant="outline"
+                          variant="secondary"
                         >
                           Upscale Again
                         </Button>

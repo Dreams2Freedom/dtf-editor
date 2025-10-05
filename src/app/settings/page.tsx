@@ -642,8 +642,8 @@ function BillingSettings() {
               Manage Billing in Stripe
             </Button>
 
-            <Button 
-              variant="outline"
+            <Button
+              variant="secondary"
               onClick={() => router.push('/pricing')}
               className="w-full"
             >
@@ -739,9 +739,9 @@ function SecuritySettings() {
           <div className="pt-4 border-t">
             <h3 className="text-sm font-medium text-gray-700 mb-3">Data & Privacy</h3>
             <div className="space-y-3">
-              <Button 
-                variant="outline" 
-                className="w-full justify-start" 
+              <Button
+                variant="secondary"
+                className="w-full justify-start"
                 onClick={handleExportData}
                 disabled={exporting}
               >
@@ -751,7 +751,7 @@ function SecuritySettings() {
               <p className="text-xs text-gray-500 px-1">
                 Export all your personal data including profile information, images, transactions, and usage history.
               </p>
-              <Button variant="outline" className="w-full justify-start text-red-600 hover:text-red-700" disabled>
+              <Button variant="secondary" className="w-full justify-start text-red-600 hover:text-red-700" disabled>
                 Delete My Account (Contact Support)
               </Button>
             </div>

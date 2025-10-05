@@ -501,7 +501,7 @@ export default function HomePage() {
                   </li>
                 </ul>
                 <Link href="/auth/signup">
-                  <Button variant="outline" className="w-full">Start Free</Button>
+                  <Button variant="default" className="w-full">Start Free</Button>
                 </Link>
               </div>
 
@@ -531,7 +531,7 @@ export default function HomePage() {
                   </li>
                 </ul>
                 <Link href="/auth/signup">
-                  <Button variant="outline" className="w-full">Get Started</Button>
+                  <Button variant="default" className="w-full">Get Started</Button>
                 </Link>
               </div>
 

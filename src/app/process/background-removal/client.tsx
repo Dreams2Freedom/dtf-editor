@@ -642,7 +642,7 @@ export default function BackgroundRemovalClient() {
                       <p className="text-sm text-gray-600">The editor will open automatically...</p>
                       <Button
                         onClick={() => openEditor(uploadedImage)}
-                        variant="outline"
+                        variant="secondary"
                         size="sm"
                         className="mt-2"
                       >
@@ -718,7 +718,7 @@ export default function BackgroundRemovalClient() {
                         </Button>
                         <Button
                           onClick={() => openEditor(uploadedImage!)}
-                          variant="outline"
+                          variant="secondary"
                           className="flex items-center gap-2"
                         >
                           <Scissors className="w-4 h-4" />

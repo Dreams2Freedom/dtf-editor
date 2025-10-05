@@ -344,7 +344,7 @@ export default function DashboardPage() {
                 </Link>
                 
                 <Link href="/pricing">
-                  <Button variant="outline" className="w-full">
+                  <Button variant="secondary" className="w-full">
                     <CreditCard className="w-4 h-4 mr-2" />
                     Get More Credits
                   </Button>
@@ -352,17 +352,17 @@ export default function DashboardPage() {
                 
                 {hasActiveSubscription && (
                   <>
-                    <Button 
-                      variant="outline" 
-                      className="w-full" 
+                    <Button
+                      variant="secondary"
+                      className="w-full"
                       onClick={handleManageSubscription}
                     >
                       <Crown className="w-4 h-4 mr-2" />
                       Manage Subscription
                     </Button>
-                    <Button 
-                      variant="outline" 
-                      className="w-full text-red-600 hover:text-red-700 hover:border-red-300" 
+                    <Button
+                      variant="secondary"
+                      className="w-full text-red-600 hover:text-red-700 hover:border-red-300"
                       onClick={() => setShowCancellationFlow(true)}
                     >
                       Cancel Subscription
@@ -371,7 +371,7 @@ export default function DashboardPage() {
                 )}
                 
                 <Link href="/settings">
-                  <Button variant="outline" className="w-full">
+                  <Button variant="secondary" className="w-full">
                     <Settings className="w-4 h-4 mr-2" />
                     Settings
                   </Button>
