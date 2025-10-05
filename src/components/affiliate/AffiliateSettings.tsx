@@ -10,12 +10,29 @@ import type { Affiliate } from '@/types/affiliate';
 
 interface AffiliateSettingsProps {
   affiliate: Affiliate;
+  userProfile?: {
+    first_name?: string | null;
+    last_name?: string | null;
+  } | null;
 }
 
-export function AffiliateSettings({ affiliate }: AffiliateSettingsProps) {
+export function AffiliateSettings({ affiliate, userProfile }: AffiliateSettingsProps) {
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Generate default display name: "FirstName LastInitial"
+  const getDefaultDisplayName = () => {
+    if (affiliate.display_name) return affiliate.display_name;
+
+    if (userProfile?.first_name && userProfile?.last_name) {
+      const firstName = userProfile.first_name;
+      const lastInitial = userProfile.last_name.charAt(0).toUpperCase();
+      return `${firstName} ${lastInitial}`;
+    }
+
+    return '';
+  };
 
   // Payment Settings
   const [paymentMethod, setPaymentMethod] = useState<'paypal' | 'check'>(
@@ -26,7 +43,7 @@ export function AffiliateSettings({ affiliate }: AffiliateSettingsProps) {
   const [mailingAddress, setMailingAddress] = useState(affiliate.mailing_address || '');
 
   // Profile Settings
-  const [displayName, setDisplayName] = useState(affiliate.display_name || '');
+  const [displayName, setDisplayName] = useState(getDefaultDisplayName());
   const [websiteUrl, setWebsiteUrl] = useState(affiliate.website_url || '');
   const [socialMedia, setSocialMedia] = useState(affiliate.social_media || {
     twitter: '',
@@ -206,10 +223,10 @@ export function AffiliateSettings({ affiliate }: AffiliateSettingsProps) {
               type="text"
               value={displayName}
               onChange={(e) => setDisplayName(e.target.value)}
-              placeholder="How you'd like to appear on the leaderboard"
+              placeholder="e.g., John D"
             />
             <p className="text-xs text-gray-500 mt-1">
-              Leave blank to appear as "Anonymous"
+              Defaults to your first name and last initial. Leave blank to appear as "Anonymous".
             </p>
           </div>
 

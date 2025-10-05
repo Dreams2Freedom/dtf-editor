@@ -1,7 +1,7 @@
 import { redirect } from 'next/navigation';
 import { getServerUser } from '@/lib/auth';
 import { AffiliateSettings } from '@/components/affiliate/AffiliateSettings';
-import { getAffiliateByUserId } from '@/services/affiliate';
+import { getAffiliateByUserId, createServiceClient } from '@/services/affiliate';
 
 export default async function AffiliateSettingsPage() {
   const user = await getServerUser();
@@ -21,10 +21,21 @@ export default async function AffiliateSettingsPage() {
     redirect('/dashboard/affiliate');
   }
 
+  // Get user profile for name info
+  const supabase = createServiceClient();
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('first_name, last_name')
+    .eq('id', user.id)
+    .single();
+
   return (
     <div className="min-h-screen bg-gray-50 py-8 px-4">
       <div className="max-w-4xl mx-auto">
-        <AffiliateSettings affiliate={affiliate} />
+        <AffiliateSettings
+          affiliate={affiliate}
+          userProfile={profile}
+        />
       </div>
     </div>
   );
