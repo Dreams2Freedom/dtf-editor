@@ -35,85 +35,8 @@ export async function GET(request: NextRequest) {
     const sortBy = searchParams.get('sort') || 'created_at'; // created_at, conversion_value
     const sortOrder = searchParams.get('order') || 'desc'; // asc, desc
 
-    // Build time filter
-    let timeCondition = '';
-    const now = new Date();
-    if (timeFilter === '7days') {
-      const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-      timeCondition = `r.created_at >= '${sevenDaysAgo.toISOString()}'`;
-    } else if (timeFilter === '30days') {
-      const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
-      timeCondition = `r.created_at >= '${thirtyDaysAgo.toISOString()}'`;
-    } else if (timeFilter === 'quarter') {
-      const quarterAgo = new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000);
-      timeCondition = `r.created_at >= '${quarterAgo.toISOString()}'`;
-    } else if (timeFilter === 'year') {
-      const yearAgo = new Date(now.getTime() - 365 * 24 * 60 * 60 * 1000);
-      timeCondition = `r.created_at >= '${yearAgo.toISOString()}'`;
-    }
-
     // Use service role to fetch data
     const serviceClient = createServiceRoleClient();
-
-    // Build query
-    let query = `
-      SELECT
-        r.id,
-        r.affiliate_id,
-        r.referred_user_id,
-        r.referral_code,
-        r.status,
-        r.subscription_plan as initial_plan,
-        r.signed_up_at,
-        r.first_payment_at,
-        r.conversion_value,
-        r.created_at,
-        r.utm_source,
-        r.utm_campaign,
-        -- Affiliate info
-        a.user_id as affiliate_user_id,
-        affiliate_profile.email as affiliate_email,
-        affiliate_profile.first_name as affiliate_first_name,
-        affiliate_profile.last_name as affiliate_last_name,
-        a.display_name as affiliate_display_name,
-        -- Referred user info
-        p.email as user_email,
-        p.first_name as user_first_name,
-        p.last_name as user_last_name,
-        p.subscription_plan as current_plan,
-        p.subscription_status as current_status,
-        p.stripe_customer_id,
-        p.total_credits_purchased,
-        p.total_credits_used,
-        p.created_at as user_created_at
-      FROM referrals r
-      LEFT JOIN affiliates a ON r.affiliate_id = a.id
-      LEFT JOIN profiles affiliate_profile ON a.user_id = affiliate_profile.id
-      LEFT JOIN profiles p ON r.referred_user_id = p.id
-      WHERE 1=1
-    `;
-
-    // Add affiliate filter
-    if (affiliateId) {
-      query += ` AND r.affiliate_id = '${affiliateId}'`;
-    }
-
-    // Add time filter
-    if (timeCondition) {
-      query += ` AND ${timeCondition}`;
-    }
-
-    // Add plan filter based on CURRENT plan (not initial)
-    if (planFilter !== 'all') {
-      query += ` AND p.subscription_plan = '${planFilter}'`;
-    }
-
-    // Add sorting
-    query += ` ORDER BY r.${sortBy} ${sortOrder.toUpperCase()}`;
-
-    const { data: referrals, error } = await serviceClient.rpc('execute_sql', {
-      query: query
-    });
 
     // Use direct query with proper foreign key syntax
     const { data: referralsData, error: referralsError } = await serviceClient
