@@ -64,20 +64,21 @@ export function ImageGallery() {
     }
   }, [user, sortBy, filterType, currentPage, itemsPerPage]);
 
+  // Reset to page 1 when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [filterType, sortBy]);
+
   const fetchImages = async () => {
     try {
       setLoading(true);
       const supabase = createClientSupabaseClient();
 
-      // Calculate limit and offset for pagination
-      const limit = itemsPerPage === 'all' ? 1000 : itemsPerPage + 1; // Fetch one extra to check for more
-      const offset = itemsPerPage === 'all' ? 0 : (currentPage - 1) * itemsPerPage;
-
-      // Use RPC function to fetch images with pagination
+      // Fetch ALL images - we'll paginate client-side
       const { data, error } = await supabase.rpc('get_user_images', {
         p_user_id: user.id,
-        p_limit: limit,
-        p_offset: offset
+        p_limit: 1000,
+        p_offset: 0
       });
 
       if (error) {
@@ -86,30 +87,35 @@ export function ImageGallery() {
         return;
       }
 
-      let images = data || [];
+      let allImages = data || [];
 
       // Apply client-side filtering
       if (filterType !== 'all') {
-        images = images.filter(img => img.operation_type === filterType);
+        allImages = allImages.filter(img => img.operation_type === filterType);
       }
 
       // Apply client-side sorting
-      images.sort((a, b) => {
+      allImages.sort((a, b) => {
         const dateA = new Date(a.created_at).getTime();
         const dateB = new Date(b.created_at).getTime();
         return sortBy === 'oldest' ? dateA - dateB : dateB - dateA;
       });
 
-      // Check if there are more items for pagination
-      if (itemsPerPage !== 'all' && images.length > itemsPerPage) {
-        setHasMore(true);
-        setImages(images.slice(0, itemsPerPage)); // Remove the extra item
-      } else {
+      // Now apply pagination to the filtered/sorted results
+      if (itemsPerPage === 'all') {
+        setImages(allImages);
         setHasMore(false);
-        setImages(images);
-      }
+        console.log('[ImageGallery] Total images:', allImages.length, 'Showing all');
+      } else {
+        const startIndex = (currentPage - 1) * itemsPerPage;
+        const endIndex = startIndex + itemsPerPage;
+        const paginatedImages = allImages.slice(startIndex, endIndex);
+        const hasMorePages = endIndex < allImages.length;
 
-      console.log('[ImageGallery] Fetched:', images.length, 'Has more:', itemsPerPage !== 'all' && images.length > itemsPerPage);
+        setImages(paginatedImages);
+        setHasMore(hasMorePages);
+        console.log('[ImageGallery] Total images:', allImages.length, 'Page:', currentPage, 'Showing:', paginatedImages.length, 'Has more:', hasMorePages);
+      }
     } catch (error) {
       console.error('Error:', error);
       toast.error('Failed to load images');
