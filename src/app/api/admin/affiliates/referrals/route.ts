@@ -142,99 +142,122 @@ export async function GET(request: NextRequest) {
       .order(sortBy, { ascending: sortOrder === 'asc' });
 
     if (referralsError) {
-      console.error('[REFERRALS] Error fetching data:', referralsError);
-      return NextResponse.json({ error: 'Failed to fetch referrals' }, { status: 500 });
+      console.error('[REFERRALS] Error fetching data:', JSON.stringify(referralsError, null, 2));
+      return NextResponse.json({
+        error: 'Failed to fetch referrals',
+        details: referralsError.message || 'Unknown error'
+      }, { status: 500 });
     }
 
-    // Get unique affiliate user IDs
-    const affiliateUserIds = [...new Set(
-      (referralsData || [])
-        .map(r => r.affiliate?.user_id)
-        .filter(Boolean)
-    )];
+    console.log('[REFERRALS] Successfully fetched', (referralsData || []).length, 'referrals');
 
-    // Fetch affiliate user profiles
-    let affiliateProfiles: any = {};
-    if (affiliateUserIds.length > 0) {
-      const { data: profiles } = await serviceClient
-        .from('profiles')
-        .select('id, email, first_name, last_name')
-        .in('id', affiliateUserIds);
+    try {
+      // Get unique affiliate user IDs
+      const affiliateUserIds = [...new Set(
+        (referralsData || [])
+          .map(r => r.affiliate?.user_id)
+          .filter(Boolean)
+      )];
 
-      if (profiles) {
-        profiles.forEach(p => {
-          affiliateProfiles[p.id] = p;
-        });
-      }
-    }
+      console.log('[REFERRALS] Found', affiliateUserIds.length, 'unique affiliate users');
 
-    // Merge affiliate user data
-    const mergedData = (referralsData || []).map(r => ({
-      ...r,
-      affiliate: r.affiliate ? {
-        ...r.affiliate,
-        affiliate_user: affiliateProfiles[r.affiliate.user_id] || null
-      } : null
-    }));
+      // Fetch affiliate user profiles
+      let affiliateProfiles: any = {};
+      if (affiliateUserIds.length > 0) {
+        const { data: profiles, error: profilesError } = await serviceClient
+          .from('profiles')
+          .select('id, email, first_name, last_name')
+          .in('id', affiliateUserIds);
 
-    // Apply filters in JavaScript since Supabase query might not support all filters
-    let filteredData = mergedData;
-
-    // Filter by affiliate
-    if (affiliateId) {
-      filteredData = filteredData.filter(r => r.affiliate_id === affiliateId);
-    }
-
-    // Filter by time
-    if (timeFilter !== 'all') {
-      const now = new Date();
-      let cutoffDate: Date;
-
-      if (timeFilter === '7days') {
-        cutoffDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-      } else if (timeFilter === '30days') {
-        cutoffDate = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
-      } else if (timeFilter === 'quarter') {
-        cutoffDate = new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000);
-      } else { // year
-        cutoffDate = new Date(now.getTime() - 365 * 24 * 60 * 60 * 1000);
+        if (profilesError) {
+          console.error('[REFERRALS] Error fetching profiles:', profilesError);
+        } else if (profiles) {
+          profiles.forEach(p => {
+            affiliateProfiles[p.id] = p;
+          });
+          console.log('[REFERRALS] Fetched', profiles.length, 'affiliate profiles');
+        }
       }
 
-      filteredData = filteredData.filter(r => new Date(r.created_at) >= cutoffDate);
-    }
+      // Merge affiliate user data
+      const mergedData = (referralsData || []).map(r => ({
+        ...r,
+        affiliate: r.affiliate ? {
+          ...r.affiliate,
+          affiliate_user: affiliateProfiles[r.affiliate.user_id] || null
+        } : null
+      }));
 
-    // Filter by plan
-    if (planFilter !== 'all') {
-      filteredData = filteredData.filter(r =>
-        r.referred_user?.subscription_plan === planFilter
-      );
-    }
+      console.log('[REFERRALS] Merged data, total:', mergedData.length);
 
-    // Calculate summary stats
-    const stats = {
-      total_referrals: filteredData.length,
-      free_accounts: filteredData.filter(r => r.referred_user?.subscription_plan === 'free').length,
-      basic_accounts: filteredData.filter(r => r.referred_user?.subscription_plan === 'basic').length,
-      starter_accounts: filteredData.filter(r => r.referred_user?.subscription_plan === 'starter').length,
-      professional_accounts: filteredData.filter(r => r.referred_user?.subscription_plan === 'professional').length,
-      total_conversions: filteredData.filter(r => r.first_payment_at).length,
-      total_conversion_value: filteredData.reduce((sum, r) => sum + (parseFloat(r.conversion_value as string) || 0), 0),
-      conversion_rate: filteredData.length > 0
-        ? (filteredData.filter(r => r.first_payment_at).length / filteredData.length * 100).toFixed(1)
-        : '0.0'
-    };
+      // Apply filters in JavaScript since Supabase query might not support all filters
+      let filteredData = mergedData;
 
-    return NextResponse.json({
-      referrals: filteredData,
-      stats,
-      filters: {
-        plan: planFilter,
-        time: timeFilter,
-        affiliate_id: affiliateId,
-        sort_by: sortBy,
-        sort_order: sortOrder
+      // Filter by affiliate
+      if (affiliateId) {
+        filteredData = filteredData.filter(r => r.affiliate_id === affiliateId);
       }
-    });
+
+      // Filter by time
+      if (timeFilter !== 'all') {
+        const now = new Date();
+        let cutoffDate: Date;
+
+        if (timeFilter === '7days') {
+          cutoffDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+        } else if (timeFilter === '30days') {
+          cutoffDate = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+        } else if (timeFilter === 'quarter') {
+          cutoffDate = new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000);
+        } else { // year
+          cutoffDate = new Date(now.getTime() - 365 * 24 * 60 * 60 * 1000);
+        }
+
+        filteredData = filteredData.filter(r => new Date(r.created_at) >= cutoffDate);
+      }
+
+      // Filter by plan
+      if (planFilter !== 'all') {
+        filteredData = filteredData.filter(r =>
+          r.referred_user?.subscription_plan === planFilter
+        );
+      }
+
+      // Calculate summary stats
+      const stats = {
+        total_referrals: filteredData.length,
+        free_accounts: filteredData.filter(r => r.referred_user?.subscription_plan === 'free').length,
+        basic_accounts: filteredData.filter(r => r.referred_user?.subscription_plan === 'basic').length,
+        starter_accounts: filteredData.filter(r => r.referred_user?.subscription_plan === 'starter').length,
+        professional_accounts: filteredData.filter(r => r.referred_user?.subscription_plan === 'professional').length,
+        total_conversions: filteredData.filter(r => r.first_payment_at).length,
+        total_conversion_value: filteredData.reduce((sum, r) => sum + (parseFloat(r.conversion_value as string) || 0), 0),
+        conversion_rate: filteredData.length > 0
+          ? (filteredData.filter(r => r.first_payment_at).length / filteredData.length * 100).toFixed(1)
+          : '0.0'
+      };
+
+      console.log('[REFERRALS] Returning', filteredData.length, 'filtered referrals with stats');
+
+      return NextResponse.json({
+        referrals: filteredData,
+        stats,
+        filters: {
+          plan: planFilter,
+          time: timeFilter,
+          affiliate_id: affiliateId,
+          sort_by: sortBy,
+          sort_order: sortOrder
+        }
+      });
+
+    } catch (processingError: any) {
+      console.error('[REFERRALS] Error processing data:', processingError);
+      return NextResponse.json({
+        error: 'Failed to process referrals data',
+        details: processingError.message
+      }, { status: 500 });
+    }
 
   } catch (error) {
     console.error('[REFERRALS] Error:', error);
