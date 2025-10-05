@@ -6,7 +6,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { decrypt } from '@/lib/encryption';
-import { createAdminAuditLog } from '@/services/admin';
+import { createAdminAuditLog } from '@/services/adminAudit';
 
 export async function GET(request: NextRequest) {
   try {
