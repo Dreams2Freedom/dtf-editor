@@ -233,3 +233,42 @@ export class AdminAuditService {
 
 // Export singleton instance
 export const adminAudit = AdminAuditService.getInstance();
+
+/**
+ * Simple helper function for creating audit logs
+ * Used in API routes where we have basic parameters
+ */
+export async function createAdminAuditLog(params: {
+  admin_id: string;
+  action: string;
+  resource_type: string;
+  resource_id?: string;
+  details?: Record<string, any>;
+}) {
+  try {
+    const { createServiceRoleClient } = await import('@/lib/supabase/server');
+    const supabase = createServiceRoleClient();
+
+    const { error } = await supabase
+      .from('audit_logs')
+      .insert({
+        admin_id: params.admin_id,
+        action: params.action,
+        resource_type: params.resource_type,
+        resource_id: params.resource_id || null,
+        details: params.details || {},
+        created_at: new Date().toISOString()
+      });
+
+    if (error) {
+      console.error('[AUDIT] Failed to create audit log:', error);
+      return false;
+    }
+
+    console.log('[AUDIT] Logged action:', params.action, 'by', params.admin_id);
+    return true;
+  } catch (error) {
+    console.error('[AUDIT] Error creating audit log:', error);
+    return false;
+  }
+}
