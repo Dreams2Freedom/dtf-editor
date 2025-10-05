@@ -1,7 +1,7 @@
 "use client";
 
 import React from 'react';
-import { cn } from '@/utils/cn';
+import { cn } from '@/lib/utils';
 import { ChevronDown } from 'lucide-react';
 
 export interface SelectProps

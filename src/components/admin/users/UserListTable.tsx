@@ -153,7 +153,6 @@ export function UserListTable() {
       window.URL.revokeObjectURL(url);
 
       toast.success(`Exported ${scope === 'all' ? 'all users' : `${selectedUserIds.size} users`} as ${format.toUpperCase()}`);
-      setExportDropdownOpen(false);
     } catch (error) {
       console.error('Export error:', error);
       toast.error('Failed to export users');

@@ -157,7 +157,7 @@ export default function Admin2FAPage() {
             {/* Submit Button */}
             <Button
               onClick={() => handleSubmit()}
-              variant="primary"
+              variant="default"
               className="w-full"
               disabled={isLoading || code.some(digit => !digit)}
             >

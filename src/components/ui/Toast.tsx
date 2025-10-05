@@ -3,7 +3,7 @@
 import React from 'react';
 import * as ToastPrimitive from '@radix-ui/react-toast';
 import { X, CheckCircle, AlertCircle, Info, XCircle } from 'lucide-react';
-import { cn } from '@/utils/cn';
+import { cn } from '@/lib/utils';
 
 export interface ToastProps {
   open: boolean;
