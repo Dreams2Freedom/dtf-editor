@@ -4,7 +4,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { createServerSupabaseClient } from '@/lib/supabase/server';
+import { createServerSupabaseClient, createServiceRoleClient } from '@/lib/supabase/server';
 import { decrypt } from '@/lib/encryption';
 import { createAdminAuditLog } from '@/services/adminAudit';
 
@@ -46,8 +46,9 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Fetch affiliate tax form data
-    const { data: affiliate, error: affiliateError } = await supabase
+    // Fetch affiliate tax form data using service role to bypass RLS
+    const serviceClient = createServiceRoleClient();
+    const { data: affiliate, error: affiliateError } = await serviceClient
       .from('affiliates')
       .select('id, user_id, tax_form_type, tax_id_encrypted, tax_form_data, tax_form_completed_at')
       .eq('id', affiliateId)
