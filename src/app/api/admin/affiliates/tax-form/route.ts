@@ -5,7 +5,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabaseClient, createServiceRoleClient } from '@/lib/supabase/server';
-import { decrypt } from '@/lib/encryption';
+import { decryptSensitiveData, decryptTaxFormData } from '@/lib/encryption';
 import { createAdminAuditLog } from '@/services/adminAudit';
 
 export async function GET(request: NextRequest) {
@@ -79,15 +79,13 @@ export async function GET(request: NextRequest) {
 
       if (affiliate.tax_form_data?.encrypted) {
         console.log('[TAX FORM] Decrypting form data...');
-        const decrypted = decrypt(affiliate.tax_form_data.encrypted);
-        console.log('[TAX FORM] Form data decrypted, parsing JSON...');
-        decryptedData = JSON.parse(decrypted);
-        console.log('[TAX FORM] Form data parsed successfully');
+        decryptedData = decryptTaxFormData(affiliate.tax_form_data.encrypted);
+        console.log('[TAX FORM] Form data decrypted successfully');
       }
 
       if (affiliate.tax_id_encrypted) {
         console.log('[TAX FORM] Decrypting tax ID...');
-        decryptedTaxId = decrypt(affiliate.tax_id_encrypted);
+        decryptedTaxId = decryptSensitiveData(affiliate.tax_id_encrypted);
         console.log('[TAX FORM] Tax ID decrypted successfully');
       }
     } catch (decryptError: any) {
