@@ -107,24 +107,24 @@ export default function TransactionsPage() {
     setFilteredTransactions(filtered);
   }, [transactions, searchQuery, typeFilter, statusFilter]);
 
-  const getTypeColor = (type: string) => {
-    const colors = {
-      purchase: 'bg-green-100 text-green-800',
-      subscription: 'bg-blue-100 text-blue-800',
-      usage: 'bg-purple-100 text-purple-800',
-      refund: 'bg-red-100 text-red-800'
+  const getTypeVariant = (type: string): 'success' | 'info' | 'default' | 'error' | 'secondary' => {
+    const variants = {
+      purchase: 'success' as const,
+      subscription: 'info' as const,
+      usage: 'default' as const,
+      refund: 'error' as const
     };
-    return colors[type as keyof typeof colors] || 'bg-gray-100 text-gray-800';
+    return variants[type as keyof typeof variants] || 'secondary';
   };
 
-  const getStatusColor = (status: string) => {
-    const colors = {
-      completed: 'bg-green-100 text-green-800',
-      pending: 'bg-yellow-100 text-yellow-800',
-      failed: 'bg-red-100 text-red-800',
-      refunded: 'bg-orange-100 text-orange-800'
+  const getStatusVariant = (status: string): 'success' | 'warning' | 'error' | 'secondary' => {
+    const variants = {
+      completed: 'success' as const,
+      pending: 'warning' as const,
+      failed: 'error' as const,
+      refunded: 'warning' as const
     };
-    return colors[status as keyof typeof colors] || 'bg-gray-100 text-gray-800';
+    return variants[status as keyof typeof variants] || 'secondary';
   };
 
   const formatCurrency = (amount: number) => {
@@ -344,7 +344,7 @@ export default function TransactionsPage() {
                           </div>
                         </td>
                         <td className="py-3 px-4">
-                          <Badge className={getTypeColor(transaction.type)}>
+                          <Badge variant={getTypeVariant(transaction.type)}>
                             {transaction.type}
                           </Badge>
                         </td>
@@ -361,7 +361,7 @@ export default function TransactionsPage() {
                           {formatCurrency(transaction.amount)}
                         </td>
                         <td className="py-3 px-4 text-center">
-                          <Badge className={getStatusColor(transaction.status)}>
+                          <Badge variant={getStatusVariant(transaction.status)}>
                             {transaction.status}
                           </Badge>
                         </td>

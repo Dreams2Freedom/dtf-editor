@@ -351,7 +351,7 @@ export default function CouponsPage() {
                           </td>
                           <td className="py-3 px-4 text-sm">{coupon.description}</td>
                           <td className="py-3 px-4">
-                            <Badge className="bg-green-100 text-green-800">
+                            <Badge variant="success">
                               {formatDiscount(coupon.discount_type, coupon.discount_value)}
                             </Badge>
                           </td>
@@ -364,11 +364,11 @@ export default function CouponsPage() {
                           </td>
                           <td className="py-3 px-4 text-center">
                             {isExpired ? (
-                              <Badge className="bg-red-100 text-red-800">Expired</Badge>
+                              <Badge variant="error">Expired</Badge>
                             ) : coupon.is_active ? (
-                              <Badge className="bg-green-100 text-green-800">Active</Badge>
+                              <Badge variant="success">Active</Badge>
                             ) : (
-                              <Badge className="bg-gray-100 text-gray-800">Inactive</Badge>
+                              <Badge variant="secondary">Inactive</Badge>
                             )}
                           </td>
                           <td className="py-3 px-4">

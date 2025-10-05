@@ -93,15 +93,15 @@ export default function UserActivityPage() {
 
   const getStatusBadge = (status: string) => {
     const statusConfig = {
-      active: { color: 'bg-green-100 text-green-800', label: 'Active Now' },
-      today: { color: 'bg-blue-100 text-blue-800', label: 'Active Today' },
-      recent: { color: 'bg-yellow-100 text-yellow-800', label: 'This Week' },
-      inactive: { color: 'bg-gray-100 text-gray-800', label: 'Inactive' }
+      active: { variant: 'success' as const, label: 'Active Now' },
+      today: { variant: 'info' as const, label: 'Active Today' },
+      recent: { variant: 'warning' as const, label: 'This Week' },
+      inactive: { variant: 'secondary' as const, label: 'Inactive' }
     };
 
     const config = statusConfig[status as keyof typeof statusConfig] || statusConfig.inactive;
 
-    return <Badge className={config.color}>{config.label}</Badge>;
+    return <Badge variant={config.variant}>{config.label}</Badge>;
   };
 
   if (loading) {
@@ -265,7 +265,7 @@ export default function UserActivityPage() {
                           {getStatusBadge(user.status)}
                         </td>
                         <td className="py-3 px-4">
-                          <Badge className="bg-gray-100 text-gray-800">
+                          <Badge variant="secondary">
                             {user.plan}
                           </Badge>
                         </td>

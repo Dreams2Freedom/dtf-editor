@@ -123,7 +123,7 @@ export default function AdminProfilePage() {
                     <Shield className="w-4 h-4 inline mr-1" />
                     Admin Role
                   </label>
-                  <Badge variant="purple">Administrator</Badge>
+                  <Badge variant="default">Administrator</Badge>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -234,19 +234,19 @@ export default function AdminProfilePage() {
               <div className="space-y-2">
                 <div className="flex items-center justify-between py-2">
                   <span className="text-sm">User Management</span>
-                  <Badge variant="green">Full Access</Badge>
+                  <Badge variant="success">Full Access</Badge>
                 </div>
                 <div className="flex items-center justify-between py-2">
                   <span className="text-sm">Financial Management</span>
-                  <Badge variant="green">Full Access</Badge>
+                  <Badge variant="success">Full Access</Badge>
                 </div>
                 <div className="flex items-center justify-between py-2">
                   <span className="text-sm">Analytics & Reports</span>
-                  <Badge variant="green">Full Access</Badge>
+                  <Badge variant="success">Full Access</Badge>
                 </div>
                 <div className="flex items-center justify-between py-2">
                   <span className="text-sm">System Settings</span>
-                  <Badge variant="green">Full Access</Badge>
+                  <Badge variant="success">Full Access</Badge>
                 </div>
               </div>
             </CardContent>
