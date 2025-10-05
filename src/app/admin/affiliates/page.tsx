@@ -210,7 +210,7 @@ export default function AdminAffiliatesPage() {
                 <p className="text-sm text-gray-600">Active Affiliates</p>
                 <p className="text-2xl font-bold">{stats?.activeAffiliates || 0}</p>
               </div>
-              <CheckCircle className="h-8 w-8 text-green-600" />
+              <CheckCircle className="h-8 w-8 text-success-600" />
             </div>
           </CardContent>
         </Card>
@@ -222,7 +222,7 @@ export default function AdminAffiliatesPage() {
                 <p className="text-sm text-gray-600">Pending Applications</p>
                 <p className="text-2xl font-bold">{stats?.pendingApplications || 0}</p>
               </div>
-              <Clock className="h-8 w-8 text-yellow-600" />
+              <Clock className="h-8 w-8 text-warning-600" />
             </div>
             {stats?.pendingApplications > 0 && (
               <button
@@ -257,7 +257,7 @@ export default function AdminAffiliatesPage() {
                 <p className="text-sm text-gray-600">Total Commissions Earned</p>
                 <p className="text-3xl font-bold">${(stats?.totalCommissionsEarned || 0).toFixed(2)}</p>
               </div>
-              <DollarSign className="h-10 w-10 text-green-600" />
+              <DollarSign className="h-10 w-10 text-success-600" />
             </div>
           </CardContent>
         </Card>
@@ -287,7 +287,7 @@ export default function AdminAffiliatesPage() {
       <Card className="mb-6">
         <CardHeader>
           <CardTitle className="flex items-center">
-            <Trophy className="h-5 w-5 mr-2 text-yellow-500" />
+            <Trophy className="h-5 w-5 mr-2 text-warning-500" />
             Top Performers
           </CardTitle>
         </CardHeader>
@@ -344,7 +344,7 @@ export default function AdminAffiliatesPage() {
               <div key={index} className="flex items-center justify-between py-2 border-b last:border-0">
                 <div className="flex items-center">
                   {activity.type === 'application' && <UsersRound className="h-4 w-4 mr-2 text-blue-600" />}
-                  {activity.type === 'referral' && <ArrowUpRight className="h-4 w-4 mr-2 text-green-600" />}
+                  {activity.type === 'referral' && <ArrowUpRight className="h-4 w-4 mr-2 text-success-600" />}
                   {activity.type === 'commission' && <DollarSign className="h-4 w-4 mr-2 text-purple-600" />}
                   {activity.type === 'payout' && <ArrowDownRight className="h-4 w-4 mr-2 text-orange-600" />}
                   <span className="text-sm">{activity.description}</span>

@@ -133,7 +133,7 @@ export default function UserActivityPage() {
                     <p className="text-sm text-gray-600">Active Now</p>
                     <p className="text-2xl font-bold">{metrics.activeLastHour}</p>
                   </div>
-                  <Activity className="w-8 h-8 text-green-500" />
+                  <Activity className="w-8 h-8 text-success-500" />
                 </div>
               </CardContent>
             </Card>
@@ -157,7 +157,7 @@ export default function UserActivityPage() {
                     <p className="text-sm text-gray-600">This Week</p>
                     <p className="text-2xl font-bold">{metrics.activeThisWeek}</p>
                   </div>
-                  <Calendar className="w-8 h-8 text-yellow-500" />
+                  <Calendar className="w-8 h-8 text-warning-500" />
                 </div>
               </CardContent>
             </Card>
@@ -193,7 +193,7 @@ export default function UserActivityPage() {
                     <p className="text-sm text-gray-600">Never Active</p>
                     <p className="text-2xl font-bold">{metrics.neverActive}</p>
                   </div>
-                  <UserX className="w-8 h-8 text-red-500" />
+                  <UserX className="w-8 h-8 text-error-500" />
                 </div>
               </CardContent>
             </Card>

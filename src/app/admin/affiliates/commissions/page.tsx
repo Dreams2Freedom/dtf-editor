@@ -207,7 +207,7 @@ export default function AdminAffiliateCommissionsPage() {
                 <p className="text-sm text-gray-600">Pending Payout</p>
                 <p className="text-2xl font-bold">${stats.pendingAmount.toFixed(2)}</p>
               </div>
-              <Clock className="h-8 w-8 text-yellow-600" />
+              <Clock className="h-8 w-8 text-warning-600" />
             </div>
           </CardContent>
         </Card>
@@ -219,7 +219,7 @@ export default function AdminAffiliateCommissionsPage() {
                 <p className="text-sm text-gray-600">Total Paid</p>
                 <p className="text-2xl font-bold">${stats.paidAmount.toFixed(2)}</p>
               </div>
-              <CheckCircle className="h-8 w-8 text-green-600" />
+              <CheckCircle className="h-8 w-8 text-success-600" />
             </div>
           </CardContent>
         </Card>
@@ -337,10 +337,10 @@ export default function AdminAffiliateCommissionsPage() {
                     </td>
                     <td className="px-4 py-3">
                       <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
-                        commission.status === 'paid' ? 'bg-green-100 text-green-800' :
+                        commission.status === 'paid' ? 'bg-success-100 text-success-800' :
                         commission.status === 'approved' ? 'bg-blue-100 text-blue-800' :
-                        commission.status === 'cancelled' ? 'bg-red-100 text-red-800' :
-                        'bg-yellow-100 text-yellow-800'
+                        commission.status === 'cancelled' ? 'bg-error-100 text-error-800' :
+                        'bg-warning-100 text-warning-800'
                       }`}>
                         {commission.status === 'paid' && <CheckCircle className="h-3 w-3 mr-1" />}
                         {commission.status === 'cancelled' && <XCircle className="h-3 w-3 mr-1" />}
@@ -354,13 +354,13 @@ export default function AdminAffiliateCommissionsPage() {
                           <>
                             <button
                               onClick={() => updateCommissionStatus(commission.id, 'approved')}
-                              className="text-green-600 hover:text-green-800 text-sm"
+                              className="text-success-600 hover:text-success-800 text-sm"
                             >
                               Approve
                             </button>
                             <button
                               onClick={() => updateCommissionStatus(commission.id, 'cancelled')}
-                              className="text-red-600 hover:text-red-800 text-sm"
+                              className="text-error-600 hover:text-error-800 text-sm"
                             >
                               Cancel
                             </button>

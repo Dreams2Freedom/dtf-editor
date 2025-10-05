@@ -220,24 +220,24 @@ export default function AdminSupportPage() {
           <div className="text-2xl font-bold text-gray-900">{stats.total}</div>
           <div className="text-sm text-gray-600">Total Tickets</div>
         </Card>
-        <Card className="p-4 bg-yellow-50 border-yellow-200">
-          <div className="text-2xl font-bold text-yellow-700">{stats.waitingForAdmin}</div>
+        <Card className="p-4 bg-warning-50 border-warning-200">
+          <div className="text-2xl font-bold text-warning-700">{stats.waitingForAdmin}</div>
           <div className="text-sm text-gray-600">Awaiting Reply</div>
         </Card>
         <Card className="p-4">
-          <div className="text-2xl font-bold text-red-600">{stats.open}</div>
+          <div className="text-2xl font-bold text-error-600">{stats.open}</div>
           <div className="text-sm text-gray-600">Open</div>
         </Card>
         <Card className="p-4">
-          <div className="text-2xl font-bold text-yellow-600">{stats.inProgress}</div>
+          <div className="text-2xl font-bold text-warning-600">{stats.inProgress}</div>
           <div className="text-sm text-gray-600">In Progress</div>
         </Card>
         <Card className="p-4">
-          <div className="text-2xl font-bold text-green-600">{stats.resolved}</div>
+          <div className="text-2xl font-bold text-success-600">{stats.resolved}</div>
           <div className="text-sm text-gray-600">Resolved</div>
         </Card>
         <Card className="p-4">
-          <div className="text-2xl font-bold text-red-600">{stats.urgent}</div>
+          <div className="text-2xl font-bold text-error-600">{stats.urgent}</div>
           <div className="text-sm text-gray-600">Urgent</div>
         </Card>
       </div>
@@ -344,13 +344,13 @@ export default function AdminSupportPage() {
               <tbody className="bg-white divide-y divide-gray-200">
                 {filteredTickets.map(ticket => (
                   <tr key={ticket.id} className={`hover:bg-gray-50 ${
-                    ticket.waiting_for_admin ? 'bg-yellow-50 border-l-4 border-l-yellow-500' : ''
+                    ticket.waiting_for_admin ? 'bg-warning-50 border-l-4 border-l-yellow-500' : ''
                   }`}>
                     <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900">
                       <div className="flex items-center gap-2">
                         {ticket.ticket_number}
                         {ticket.waiting_for_admin && (
-                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-warning-100 text-warning-800">
                             Awaiting Reply
                           </span>
                         )}
@@ -413,7 +413,7 @@ export default function AdminSupportPage() {
                         variant={ticket.waiting_for_admin ? "default" : "outline"}
                         size="sm"
                         onClick={() => router.push(`/support/${ticket.id}`)}
-                        className={ticket.waiting_for_admin ? "bg-yellow-600 hover:bg-yellow-700" : ""}
+                        className={ticket.waiting_for_admin ? "bg-warning-600 hover:bg-warning-700" : ""}
                       >
                         <ChevronRight className="w-4 h-4" />
                         View

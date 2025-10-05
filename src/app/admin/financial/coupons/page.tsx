@@ -203,7 +203,7 @@ export default function CouponsPage() {
             <h1 className="text-2xl font-bold text-gray-900">Coupons</h1>
             <p className="text-gray-600 mt-1">Manage discount codes and promotional offers</p>
           </div>
-          <Button onClick={() => setShowCreateModal(true)} className="bg-blue-600 text-white hover:bg-blue-700">
+          <Button onClick={() => setShowCreateModal(true)} variant="default">
             <Plus className="w-4 h-4 mr-2" />
             Create Coupon
           </Button>
@@ -219,7 +219,7 @@ export default function CouponsPage() {
                     <p className="text-sm text-gray-600">Total Coupons</p>
                     <p className="text-xl font-bold">{metrics.total_coupons}</p>
                   </div>
-                  <Tag className="w-8 h-8 text-blue-500" />
+                  <Tag className="w-8 h-8 text-info-500" />
                 </div>
               </CardContent>
             </Card>
@@ -231,7 +231,7 @@ export default function CouponsPage() {
                     <p className="text-sm text-gray-600">Active</p>
                     <p className="text-xl font-bold">{metrics.active_coupons}</p>
                   </div>
-                  <CheckCircle className="w-8 h-8 text-green-500" />
+                  <CheckCircle className="w-8 h-8 text-success-500" />
                 </div>
               </CardContent>
             </Card>
@@ -243,7 +243,7 @@ export default function CouponsPage() {
                     <p className="text-sm text-gray-600">Expired</p>
                     <p className="text-xl font-bold">{metrics.expired_coupons}</p>
                   </div>
-                  <XCircle className="w-8 h-8 text-red-500" />
+                  <XCircle className="w-8 h-8 text-error-500" />
                 </div>
               </CardContent>
             </Card>
@@ -375,14 +375,14 @@ export default function CouponsPage() {
                             <div className="flex justify-end gap-2">
                               <button
                                 onClick={() => handleToggleStatus(coupon.id, coupon.is_active)}
-                                className="text-blue-600 hover:text-blue-800"
+                                className="text-primary-600 hover:text-primary-800"
                                 disabled={isExpired}
                               >
                                 {coupon.is_active ? 'Deactivate' : 'Activate'}
                               </button>
                               <button
                                 onClick={() => handleDeleteCoupon(coupon.id)}
-                                className="text-red-600 hover:text-red-800"
+                                className="text-error-600 hover:text-error-800"
                               >
                                 <Trash2 className="w-4 h-4" />
                               </button>
@@ -490,7 +490,7 @@ export default function CouponsPage() {
                 <Button variant="outline" onClick={() => setShowCreateModal(false)}>
                   Cancel
                 </Button>
-                <Button onClick={handleCreateCoupon} className="bg-blue-600 text-white hover:bg-blue-700">
+                <Button onClick={handleCreateCoupon} variant="default">
                   Create Coupon
                 </Button>
               </div>

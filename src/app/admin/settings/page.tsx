@@ -327,19 +327,19 @@ export default function AdminSettingsPage() {
         </Card>
 
         {/* Danger Zone */}
-        <Card className="mt-6 border-red-200">
+        <Card className="mt-6 border-error-200">
           <CardHeader>
-            <CardTitle className="text-red-600">Danger Zone</CardTitle>
+            <CardTitle className="text-error-600">Danger Zone</CardTitle>
             <CardDescription>
               Irreversible actions - proceed with caution
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
-            <Button variant="outline" className="text-red-600 border-red-300 hover:bg-red-50" disabled>
+            <Button variant="outline" className="text-error-600 border-error-300 hover:bg-error-50" disabled>
               <Database className="w-4 h-4 mr-2" />
               Reset Database (Disabled)
             </Button>
-            <Button variant="outline" className="text-red-600 border-red-300 hover:bg-red-50" disabled>
+            <Button variant="outline" className="text-error-600 border-error-300 hover:bg-error-50" disabled>
               <Users className="w-4 h-4 mr-2" />
               Clear All User Data (Disabled)
             </Button>

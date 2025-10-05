@@ -113,7 +113,7 @@ export default function UserDetailsPage() {
 
   const formatTransactionType = (type: string) => {
     const types: Record<string, { label: string; color: string }> = {
-      purchase: { label: 'Purchase', color: 'text-green-600' },
+      purchase: { label: 'Purchase', color: 'text-success-600' },
       usage: { label: 'Usage', color: 'text-blue-600' },
       refund: { label: 'Refund', color: 'text-orange-600' },
       reset: { label: 'Monthly Reset', color: 'text-purple-600' },
@@ -127,7 +127,7 @@ export default function UserDetailsPage() {
       case 'starter':
         return 'bg-blue-100 text-blue-800';
       case 'basic':
-        return 'bg-green-100 text-green-800';
+        return 'bg-success-100 text-success-800';
       case 'pro':
         return 'bg-purple-100 text-purple-800';
       default:
@@ -229,12 +229,12 @@ export default function UserDetailsPage() {
                     <label className="text-sm font-medium text-gray-500">Status</label>
                     <p className="mt-1">
                       {user.status === 'active' ? (
-                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-success-100 text-success-800">
                           <CheckCircle className="w-3 h-3 mr-1" />
                           Active
                         </span>
                       ) : (
-                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-error-100 text-error-800">
                           <Ban className="w-3 h-3 mr-1" />
                           Suspended
                         </span>
@@ -282,7 +282,7 @@ export default function UserDetailsPage() {
                               {formatDate(transaction.created_at)}
                             </p>
                           </div>
-                          <div className={`font-semibold ${transaction.amount > 0 ? 'text-green-600' : 'text-red-600'}`}>
+                          <div className={`font-semibold ${transaction.amount > 0 ? 'text-success-600' : 'text-error-600'}`}>
                             {transaction.amount > 0 ? '+' : ''}{transaction.amount} credits
                           </div>
                         </div>
@@ -329,10 +329,10 @@ export default function UserDetailsPage() {
                             <td className="px-4 py-2 text-sm">
                               <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${
                                 upload.status === 'completed' 
-                                  ? 'bg-green-100 text-green-800'
+                                  ? 'bg-success-100 text-success-800'
                                   : upload.status === 'failed'
-                                  ? 'bg-red-100 text-red-800'
-                                  : 'bg-yellow-100 text-yellow-800'
+                                  ? 'bg-error-100 text-error-800'
+                                  : 'bg-warning-100 text-warning-800'
                               }`}>
                                 {upload.status}
                               </span>

@@ -365,7 +365,7 @@ export default function AdminAffiliatePayoutsPage() {
                 <p className="text-sm text-gray-600">Pending Payouts</p>
                 <p className="text-2xl font-bold">${totalPending.toFixed(2)}</p>
               </div>
-              <Clock className="h-8 w-8 text-yellow-600" />
+              <Clock className="h-8 w-8 text-warning-600" />
             </div>
           </CardContent>
         </Card>
@@ -377,7 +377,7 @@ export default function AdminAffiliatePayoutsPage() {
                 <p className="text-sm text-gray-600">Total Paid Out</p>
                 <p className="text-2xl font-bold">${totalPaid.toFixed(2)}</p>
               </div>
-              <CheckCircle className="h-8 w-8 text-green-600" />
+              <CheckCircle className="h-8 w-8 text-success-600" />
             </div>
           </CardContent>
         </Card>
@@ -400,7 +400,7 @@ export default function AdminAffiliatePayoutsPage() {
         <Card className="mb-6">
           <CardHeader>
             <CardTitle className="flex items-center">
-              <AlertTriangle className="h-5 w-5 mr-2 text-yellow-500" />
+              <AlertTriangle className="h-5 w-5 mr-2 text-warning-500" />
               Affiliates with Pending Commissions
             </CardTitle>
           </CardHeader>
@@ -431,12 +431,12 @@ export default function AdminAffiliatePayoutsPage() {
                       </td>
                       <td className="px-4 py-3">
                         {pending.affiliate?.tax_form_completed ? (
-                          <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                          <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-success-100 text-success-800">
                             <CheckCircle className="h-3 w-3 mr-1" />
                             {pending.affiliate?.tax_form_type || 'On File'}
                           </span>
                         ) : (
-                          <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                          <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-error-100 text-error-800">
                             <XCircle className="h-3 w-3 mr-1" />
                             Missing
                           </span>
@@ -514,10 +514,10 @@ export default function AdminAffiliatePayoutsPage() {
                     </td>
                     <td className="px-4 py-3">
                       <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
-                        payout.status === 'completed' ? 'bg-green-100 text-green-800' :
-                        payout.status === 'failed' ? 'bg-red-100 text-red-800' :
+                        payout.status === 'completed' ? 'bg-success-100 text-success-800' :
+                        payout.status === 'failed' ? 'bg-error-100 text-error-800' :
                         payout.status === 'processing' ? 'bg-blue-100 text-blue-800' :
-                        'bg-yellow-100 text-yellow-800'
+                        'bg-warning-100 text-warning-800'
                       }`}>
                         {payout.status === 'completed' && <CheckCircle className="h-3 w-3 mr-1" />}
                         {payout.status === 'failed' && <XCircle className="h-3 w-3 mr-1" />}

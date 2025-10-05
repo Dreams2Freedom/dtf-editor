@@ -217,7 +217,7 @@ export default function TestTrackingPage() {
         <Card>
           <CardContent className="p-6">
             <div className="flex items-center mb-4">
-              <Database className="h-6 w-6 text-green-600 mr-2" />
+              <Database className="h-6 w-6 text-success-600 mr-2" />
               <h3 className="font-semibold">Check Database</h3>
             </div>
             <p className="text-sm text-gray-600 mb-4">
@@ -298,7 +298,7 @@ export default function TestTrackingPage() {
                       </span>
                     </div>
                     {result.status === 'success' && (
-                      <CheckCircle className="h-4 w-4 text-green-600" />
+                      <CheckCircle className="h-4 w-4 text-success-600" />
                     )}
                   </div>
                   <p className="text-sm text-gray-600 mb-2">{result.action}</p>

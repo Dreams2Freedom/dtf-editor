@@ -84,7 +84,7 @@ export default function CheckSessionPage() {
           <div className="space-y-2">
             <div className="flex gap-2">
               <span className="font-semibold">Has Session:</span>
-              <span className={sessionInfo?.hasSession ? 'text-green-600' : 'text-red-600'}>
+              <span className={sessionInfo?.hasSession ? 'text-success-600' : 'text-error-600'}>
                 {sessionInfo?.hasSession ? '✅ YES' : '❌ NO'}
               </span>
             </div>
@@ -97,7 +97,7 @@ export default function CheckSessionPage() {
               <span className="font-mono text-xs">{sessionInfo?.userId || 'N/A'}</span>
             </div>
             {sessionInfo?.error && (
-              <div className="text-red-600">
+              <div className="text-error-600">
                 <span className="font-semibold">Session Error:</span> {sessionInfo.error.message}
               </div>
             )}
@@ -115,7 +115,7 @@ export default function CheckSessionPage() {
             <div className="space-y-2">
               <div className="flex gap-2">
                 <span className="font-semibold">Is Admin:</span>
-                <span className={profileInfo.data.is_admin ? 'text-green-600' : 'text-red-600'}>
+                <span className={profileInfo.data.is_admin ? 'text-success-600' : 'text-error-600'}>
                   {profileInfo.data.is_admin ? '✅ YES' : '❌ NO'}
                 </span>
               </div>
@@ -134,7 +134,7 @@ export default function CheckSessionPage() {
             </div>
           )}
           {profileInfo?.error && (
-            <div className="text-red-600 mt-2">
+            <div className="text-error-600 mt-2">
               <span className="font-semibold">Profile Error:</span> {profileInfo.error.message}
             </div>
           )}
@@ -150,7 +150,7 @@ export default function CheckSessionPage() {
           <div className="space-y-2">
             <div className="flex gap-2">
               <span className="font-semibold">Can Query Affiliates:</span>
-              <span className={affiliatesCount !== null ? 'text-green-600' : 'text-red-600'}>
+              <span className={affiliatesCount !== null ? 'text-success-600' : 'text-error-600'}>
                 {affiliatesCount !== null ? '✅ YES' : '❌ NO'}
               </span>
             </div>
@@ -161,7 +161,7 @@ export default function CheckSessionPage() {
               </div>
             )}
             {error && (
-              <div className="text-red-600 mt-2">
+              <div className="text-error-600 mt-2">
                 <div className="font-semibold">Error Details:</div>
                 <div className="text-sm mt-1">Message: {error.message}</div>
                 <div className="text-sm">Code: {error.code}</div>
@@ -181,7 +181,7 @@ export default function CheckSessionPage() {
         <CardContent>
           <ol className="list-decimal list-inside space-y-2">
             {!sessionInfo?.hasSession && (
-              <li className="text-red-600 font-semibold">
+              <li className="text-error-600 font-semibold">
                 ❌ You are NOT logged in. Go to <a href="/auth/login" className="text-blue-600 underline">/auth/login</a>
               </li>
             )}
@@ -191,17 +191,17 @@ export default function CheckSessionPage() {
               </li>
             )}
             {sessionInfo?.hasSession && !profileInfo?.data?.is_admin && (
-              <li className="text-red-600 font-semibold">
+              <li className="text-error-600 font-semibold">
                 ❌ Your profile does not have admin access. Contact system administrator.
               </li>
             )}
             {sessionInfo?.hasSession && profileInfo?.data?.is_admin && error && (
-              <li className="text-red-600 font-semibold">
+              <li className="text-error-600 font-semibold">
                 ❌ RLS policies may be blocking access. Run FIX_AFFILIATE_ADMIN_ACCESS_NOW.sql in Supabase
               </li>
             )}
             {sessionInfo?.hasSession && profileInfo?.data?.is_admin && !error && (
-              <li className="text-green-600 font-semibold">
+              <li className="text-success-600 font-semibold">
                 ✅ Everything looks good! You should be able to access affiliate data.
               </li>
             )}

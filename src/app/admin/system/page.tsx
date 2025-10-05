@@ -194,22 +194,22 @@ export default function SystemPage() {
   const getStatusIcon = (status: string) => {
     switch (status) {
       case 'connected':
-        return <CheckCircle className="w-5 h-5 text-green-500" />;
+        return <CheckCircle className="w-5 h-5 text-success-500" />;
       case 'not_configured':
-        return <AlertCircle className="w-5 h-5 text-yellow-500" />;
+        return <AlertCircle className="w-5 h-5 text-warning-500" />;
       default:
-        return <XCircle className="w-5 h-5 text-red-500" />;
+        return <XCircle className="w-5 h-5 text-error-500" />;
     }
   };
 
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'connected':
-        return 'text-green-600';
+        return 'text-success-600';
       case 'not_configured':
-        return 'text-yellow-600';
+        return 'text-warning-600';
       default:
-        return 'text-red-600';
+        return 'text-error-600';
     }
   };
 
@@ -249,9 +249,9 @@ export default function SystemPage() {
 
       {/* Error State */}
       {error && (
-        <Card className="mb-6 border-red-200 bg-red-50">
+        <Card className="mb-6 border-error-200 bg-error-50">
           <CardContent className="py-4">
-            <div className="flex items-center gap-2 text-red-600">
+            <div className="flex items-center gap-2 text-error-600">
               <XCircle className="w-5 h-5" />
               <span>{error}</span>
             </div>
@@ -287,10 +287,10 @@ export default function SystemPage() {
 
               {/* Warning */}
               {rateLimitStats.warning && (
-                <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
+                <div className="bg-warning-50 border border-warning-200 rounded-lg p-3">
                   <div className="flex items-start gap-2">
-                    <AlertCircle className="w-5 h-5 text-yellow-600 mt-0.5" />
-                    <p className="text-sm text-yellow-800">{rateLimitStats.warning}</p>
+                    <AlertCircle className="w-5 h-5 text-warning-600 mt-0.5" />
+                    <p className="text-sm text-warning-800">{rateLimitStats.warning}</p>
                   </div>
                 </div>
               )}
@@ -386,7 +386,7 @@ export default function SystemPage() {
                   <ul className="space-y-2">
                     {rateLimitStats.recommendations.map((rec, idx) => (
                       <li key={idx} className="flex items-start gap-2">
-                        <CheckCircle className="w-4 h-4 text-green-500 mt-0.5" />
+                        <CheckCircle className="w-4 h-4 text-success-500 mt-0.5" />
                         <span className="text-sm">{rec}</span>
                       </li>
                     ))}
@@ -410,28 +410,28 @@ export default function SystemPage() {
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            <div className="bg-green-50 rounded-lg p-4">
+            <div className="bg-success-50 rounded-lg p-4">
               <div className="flex items-center justify-between">
                 <span className="text-sm text-gray-600">API Status</span>
-                <CheckCircle className="w-4 h-4 text-green-500" />
+                <CheckCircle className="w-4 h-4 text-success-500" />
               </div>
               <p className="text-lg font-semibold mt-1">Operational</p>
             </div>
 
-            <div className="bg-green-50 rounded-lg p-4">
+            <div className="bg-success-50 rounded-lg p-4">
               <div className="flex items-center justify-between">
                 <span className="text-sm text-gray-600">Database</span>
-                <CheckCircle className="w-4 h-4 text-green-500" />
+                <CheckCircle className="w-4 h-4 text-success-500" />
               </div>
               <p className="text-lg font-semibold mt-1">Connected</p>
             </div>
 
-            <div className={`${rateLimitStats?.status === 'connected' ? 'bg-green-50' : 'bg-yellow-50'} rounded-lg p-4`}>
+            <div className={`${rateLimitStats?.status === 'connected' ? 'bg-success-50' : 'bg-warning-50'} rounded-lg p-4`}>
               <div className="flex items-center justify-between">
                 <span className="text-sm text-gray-600">Rate Limiting</span>
                 {rateLimitStats?.status === 'connected' ? 
-                  <CheckCircle className="w-4 h-4 text-green-500" /> :
-                  <AlertCircle className="w-4 h-4 text-yellow-500" />
+                  <CheckCircle className="w-4 h-4 text-success-500" /> :
+                  <AlertCircle className="w-4 h-4 text-warning-500" />
                 }
               </div>
               <p className="text-lg font-semibold mt-1">
@@ -439,10 +439,10 @@ export default function SystemPage() {
               </p>
             </div>
 
-            <div className="bg-green-50 rounded-lg p-4">
+            <div className="bg-success-50 rounded-lg p-4">
               <div className="flex items-center justify-between">
                 <span className="text-sm text-gray-600">Storage</span>
-                <CheckCircle className="w-4 h-4 text-green-500" />
+                <CheckCircle className="w-4 h-4 text-success-500" />
               </div>
               <p className="text-lg font-semibold mt-1">Available</p>
             </div>
@@ -483,9 +483,9 @@ export default function SystemPage() {
                 </p>
               </div>
 
-              <div className="bg-green-50 rounded-lg p-4">
+              <div className="bg-success-50 rounded-lg p-4">
                 <div className="flex items-center gap-2 mb-2">
-                  <CreditCard className="w-4 h-4 text-green-600" />
+                  <CreditCard className="w-4 h-4 text-success-600" />
                   <span className="text-sm text-gray-600">Payments</span>
                 </div>
                 <p className="text-2xl font-bold">{databaseStats.tables.payments.total}</p>
@@ -518,7 +518,7 @@ export default function SystemPage() {
                 </div>
                 <div className="text-right">
                   <p className="text-sm text-gray-600">24h Growth</p>
-                  <p className="font-semibold text-green-600">
+                  <p className="font-semibold text-success-600">
                     +{databaseStats.summary.growth_rate_24h.toFixed(2)}%
                   </p>
                 </div>
@@ -551,11 +551,11 @@ export default function SystemPage() {
                     <div className="flex items-center gap-2">
                       {systemHealth.services.database.status === 'healthy' ? (
                         <>
-                          <CheckCircle className="w-4 h-4 text-green-500" />
+                          <CheckCircle className="w-4 h-4 text-success-500" />
                           <span className="text-sm text-gray-500">{systemHealth.services.database.latency}ms</span>
                         </>
                       ) : (
-                        <XCircle className="w-4 h-4 text-red-500" />
+                        <XCircle className="w-4 h-4 text-error-500" />
                       )}
                     </div>
                   </div>
@@ -566,9 +566,9 @@ export default function SystemPage() {
                       <span>Storage</span>
                     </div>
                     {systemHealth.services.storage.status === 'healthy' ? (
-                      <CheckCircle className="w-4 h-4 text-green-500" />
+                      <CheckCircle className="w-4 h-4 text-success-500" />
                     ) : (
-                      <XCircle className="w-4 h-4 text-red-500" />
+                      <XCircle className="w-4 h-4 text-error-500" />
                     )}
                   </div>
 
@@ -578,11 +578,11 @@ export default function SystemPage() {
                       <span>Redis</span>
                     </div>
                     {systemHealth.services.redis.status === 'healthy' ? (
-                      <CheckCircle className="w-4 h-4 text-green-500" />
+                      <CheckCircle className="w-4 h-4 text-success-500" />
                     ) : systemHealth.services.redis.status === 'warning' ? (
-                      <AlertCircle className="w-4 h-4 text-yellow-500" />
+                      <AlertCircle className="w-4 h-4 text-warning-500" />
                     ) : (
-                      <XCircle className="w-4 h-4 text-red-500" />
+                      <XCircle className="w-4 h-4 text-error-500" />
                     )}
                   </div>
 
@@ -594,11 +594,11 @@ export default function SystemPage() {
                     <div className="flex items-center gap-2">
                       {systemHealth.services.stripe.status === 'healthy' ? (
                         <>
-                          <CheckCircle className="w-4 h-4 text-green-500" />
+                          <CheckCircle className="w-4 h-4 text-success-500" />
                           <span className="text-xs text-gray-500">{systemHealth.services.stripe.message}</span>
                         </>
                       ) : (
-                        <XCircle className="w-4 h-4 text-red-500" />
+                        <XCircle className="w-4 h-4 text-error-500" />
                       )}
                     </div>
                   </div>
@@ -611,11 +611,11 @@ export default function SystemPage() {
                     <div className="flex items-center gap-2">
                       {systemHealth.services.email.status === 'healthy' ? (
                         <>
-                          <CheckCircle className="w-4 h-4 text-green-500" />
+                          <CheckCircle className="w-4 h-4 text-success-500" />
                           <span className="text-xs text-gray-500">{systemHealth.services.email.provider}</span>
                         </>
                       ) : (
-                        <AlertCircle className="w-4 h-4 text-yellow-500" />
+                        <AlertCircle className="w-4 h-4 text-warning-500" />
                       )}
                     </div>
                   </div>
@@ -629,36 +629,36 @@ export default function SystemPage() {
                   <div className="flex items-center justify-between p-3 border rounded-lg">
                     <span>OpenAI (GPT-4)</span>
                     {systemHealth.configuration.ai_services.openai ? (
-                      <CheckCircle className="w-4 h-4 text-green-500" />
+                      <CheckCircle className="w-4 h-4 text-success-500" />
                     ) : (
-                      <XCircle className="w-4 h-4 text-red-500" />
+                      <XCircle className="w-4 h-4 text-error-500" />
                     )}
                   </div>
 
                   <div className="flex items-center justify-between p-3 border rounded-lg">
                     <span>Deep-Image.ai</span>
                     {systemHealth.configuration.ai_services.deepImage ? (
-                      <CheckCircle className="w-4 h-4 text-green-500" />
+                      <CheckCircle className="w-4 h-4 text-success-500" />
                     ) : (
-                      <XCircle className="w-4 h-4 text-red-500" />
+                      <XCircle className="w-4 h-4 text-error-500" />
                     )}
                   </div>
 
                   <div className="flex items-center justify-between p-3 border rounded-lg">
                     <span>ClippingMagic</span>
                     {systemHealth.configuration.ai_services.clippingMagic ? (
-                      <CheckCircle className="w-4 h-4 text-green-500" />
+                      <CheckCircle className="w-4 h-4 text-success-500" />
                     ) : (
-                      <XCircle className="w-4 h-4 text-red-500" />
+                      <XCircle className="w-4 h-4 text-error-500" />
                     )}
                   </div>
 
                   <div className="flex items-center justify-between p-3 border rounded-lg">
                     <span>Vectorizer.ai</span>
                     {systemHealth.configuration.ai_services.vectorizer ? (
-                      <CheckCircle className="w-4 h-4 text-green-500" />
+                      <CheckCircle className="w-4 h-4 text-success-500" />
                     ) : (
-                      <XCircle className="w-4 h-4 text-red-500" />
+                      <XCircle className="w-4 h-4 text-error-500" />
                     )}
                   </div>
                 </div>

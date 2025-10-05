@@ -36,10 +36,10 @@ export default function TestAffiliatePage() {
         <pre className="text-sm">{JSON.stringify(user, null, 2)}</pre>
       </div>
 
-      <div className="mb-4 p-4 bg-green-50 rounded">
+      <div className="mb-4 p-4 bg-success-50 rounded">
         <h2 className="font-bold">Affiliates Data:</h2>
         {error ? (
-          <div className="text-red-600">
+          <div className="text-error-600">
             Error: {error.message}
             <br />
             Code: {error.code}

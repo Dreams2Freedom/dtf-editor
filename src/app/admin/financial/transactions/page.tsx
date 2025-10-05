@@ -191,7 +191,7 @@ export default function TransactionsPage() {
                     <p className="text-sm text-gray-600">Total Revenue</p>
                     <p className="text-xl font-bold">{formatCurrency(metrics.total_revenue)}</p>
                   </div>
-                  <DollarSign className="w-8 h-8 text-green-500" />
+                  <DollarSign className="w-8 h-8 text-success-500" />
                 </div>
               </CardContent>
             </Card>
@@ -215,7 +215,7 @@ export default function TransactionsPage() {
                     <p className="text-sm text-gray-600">Successful</p>
                     <p className="text-xl font-bold">{metrics.successful_transactions}</p>
                   </div>
-                  <TrendingUp className="w-8 h-8 text-green-500" />
+                  <TrendingUp className="w-8 h-8 text-success-500" />
                 </div>
               </CardContent>
             </Card>
@@ -227,7 +227,7 @@ export default function TransactionsPage() {
                     <p className="text-sm text-gray-600">Failed</p>
                     <p className="text-xl font-bold">{metrics.failed_transactions}</p>
                   </div>
-                  <TrendingDown className="w-8 h-8 text-red-500" />
+                  <TrendingDown className="w-8 h-8 text-error-500" />
                 </div>
               </CardContent>
             </Card>

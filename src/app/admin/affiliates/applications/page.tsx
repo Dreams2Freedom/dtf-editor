@@ -165,7 +165,7 @@ export default function AdminAffiliateApplicationsPage() {
                 <p className="text-sm text-gray-600">Pending Review</p>
                 <p className="text-2xl font-bold">{pendingApplications.length}</p>
               </div>
-              <Clock className="h-8 w-8 text-yellow-600" />
+              <Clock className="h-8 w-8 text-warning-600" />
             </div>
           </CardContent>
         </Card>
@@ -177,7 +177,7 @@ export default function AdminAffiliateApplicationsPage() {
                 <p className="text-sm text-gray-600">Approved</p>
                 <p className="text-2xl font-bold">{approvedApplications.length}</p>
               </div>
-              <CheckCircle className="h-8 w-8 text-green-600" />
+              <CheckCircle className="h-8 w-8 text-success-600" />
             </div>
           </CardContent>
         </Card>
@@ -189,7 +189,7 @@ export default function AdminAffiliateApplicationsPage() {
                 <p className="text-sm text-gray-600">Rejected</p>
                 <p className="text-2xl font-bold">{rejectedApplications.length}</p>
               </div>
-              <XCircle className="h-8 w-8 text-red-600" />
+              <XCircle className="h-8 w-8 text-error-600" />
             </div>
           </CardContent>
         </Card>
@@ -237,9 +237,9 @@ export default function AdminAffiliateApplicationsPage() {
                       <td className="px-4 py-3 text-sm">{app.audience_size || 'N/A'}</td>
                       <td className="px-4 py-3">
                         <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
-                          app.status === 'approved' ? 'bg-green-100 text-green-800' :
-                          app.status === 'rejected' ? 'bg-red-100 text-red-800' :
-                          'bg-yellow-100 text-yellow-800'
+                          app.status === 'approved' ? 'bg-success-100 text-success-800' :
+                          app.status === 'rejected' ? 'bg-error-100 text-error-800' :
+                          'bg-warning-100 text-warning-800'
                         }`}>
                           {app.status === 'approved' && <CheckCircle className="h-3 w-3 mr-1" />}
                           {app.status === 'rejected' && <XCircle className="h-3 w-3 mr-1" />}
@@ -388,7 +388,7 @@ export default function AdminAffiliateApplicationsPage() {
                       <Button
                         onClick={() => approveApplication(selectedApplication.id)}
                         disabled={processingId === selectedApplication.id}
-                        className="bg-green-600 hover:bg-green-700"
+                        className="bg-success-600 hover:bg-success-700"
                       >
                         {processingId === selectedApplication.id ? 'Processing...' : 'Approve Application'}
                       </Button>
@@ -396,7 +396,7 @@ export default function AdminAffiliateApplicationsPage() {
                         onClick={() => rejectApplication(selectedApplication.id)}
                         disabled={processingId === selectedApplication.id || !rejectionReason.trim()}
                         variant="secondary"
-                        className="bg-red-600 hover:bg-red-700 text-white"
+                        className="bg-error-600 hover:bg-error-700 text-white"
                       >
                         {processingId === selectedApplication.id ? 'Processing...' : 'Reject Application'}
                       </Button>
@@ -407,7 +407,7 @@ export default function AdminAffiliateApplicationsPage() {
                 {selectedApplication.status === 'rejected' && selectedApplication.rejection_reason && (
                   <div className="border-t pt-4">
                     <label className="text-sm font-medium text-gray-600">Rejection Reason</label>
-                    <p className="mt-1 text-sm text-red-600">{selectedApplication.rejection_reason}</p>
+                    <p className="mt-1 text-sm text-error-600">{selectedApplication.rejection_reason}</p>
                   </div>
                 )}
               </div>

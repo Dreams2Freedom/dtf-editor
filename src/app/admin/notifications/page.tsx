@@ -278,18 +278,18 @@ export default function AdminNotificationsPage() {
                 <div className={`
                   p-4 rounded-md border
                   ${formData.type === 'info' && 'bg-blue-50 border-blue-200'}
-                  ${formData.type === 'success' && 'bg-green-50 border-green-200'}
-                  ${formData.type === 'warning' && 'bg-yellow-50 border-yellow-200'}
-                  ${formData.type === 'error' && 'bg-red-50 border-red-200'}
+                  ${formData.type === 'success' && 'bg-success-50 border-green-200'}
+                  ${formData.type === 'warning' && 'bg-warning-50 border-warning-200'}
+                  ${formData.type === 'error' && 'bg-error-50 border-error-200'}
                   ${formData.type === 'announcement' && 'bg-purple-50 border-purple-200'}
                 `}>
                   <div className="flex items-start gap-3">
                     <AlertCircle className={`
                       h-5 w-5 flex-shrink-0 mt-0.5
                       ${formData.type === 'info' && 'text-blue-600'}
-                      ${formData.type === 'success' && 'text-green-600'}
-                      ${formData.type === 'warning' && 'text-yellow-600'}
-                      ${formData.type === 'error' && 'text-red-600'}
+                      ${formData.type === 'success' && 'text-success-600'}
+                      ${formData.type === 'warning' && 'text-warning-600'}
+                      ${formData.type === 'error' && 'text-error-600'}
                       ${formData.type === 'announcement' && 'text-purple-600'}
                     `} />
                     <div className="flex-1">

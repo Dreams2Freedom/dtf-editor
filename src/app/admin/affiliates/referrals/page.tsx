@@ -150,7 +150,7 @@ export default function AffiliateReferralsPage() {
       case 'starter':
         return 'bg-purple-100 text-purple-700';
       case 'professional':
-        return 'bg-green-100 text-green-700';
+        return 'bg-success-100 text-success-700';
       default:
         return 'bg-gray-100 text-gray-700';
     }
@@ -242,8 +242,8 @@ export default function AffiliateReferralsPage() {
                 <p className="text-3xl font-bold text-gray-900 mt-2">{stats.total_conversions}</p>
                 <p className="text-xs text-gray-500 mt-1">{stats.conversion_rate}% conversion rate</p>
               </div>
-              <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
-                <TrendingUp className="w-6 h-6 text-green-600" />
+              <div className="w-12 h-12 bg-success-100 rounded-lg flex items-center justify-center">
+                <TrendingUp className="w-6 h-6 text-success-600" />
               </div>
             </div>
           </Card>
@@ -404,7 +404,7 @@ export default function AffiliateReferralsPage() {
             </div>
           ) : error ? (
             <div className="p-12 text-center">
-              <p className="text-red-600">{error}</p>
+              <p className="text-error-600">{error}</p>
               <Button onClick={fetchReferrals} className="mt-4">
                 Try Again
               </Button>

@@ -30,7 +30,7 @@ export default function AdminError({
       <Card className="max-w-md w-full">
         <div className="p-6 text-center">
           <div className="flex justify-center mb-4">
-            <Shield className="h-12 w-12 text-red-500" />
+            <Shield className="h-12 w-12 text-error-500" />
           </div>
           
           <h1 className="text-2xl font-bold text-gray-900 mb-2">
@@ -42,8 +42,8 @@ export default function AdminError({
           </p>
 
           {process.env.NODE_ENV === 'development' && error.message && (
-            <div className="mb-6 p-4 bg-red-50 rounded-lg text-left">
-              <p className="text-sm font-mono text-red-800">
+            <div className="mb-6 p-4 bg-error-50 rounded-lg text-left">
+              <p className="text-sm font-mono text-error-800">
                 {error.message}
               </p>
             </div>

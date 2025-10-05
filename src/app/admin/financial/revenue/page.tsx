@@ -157,18 +157,18 @@ export default function RevenuePage() {
                     <div className="flex items-center mt-1">
                       {metrics.growthRate > 0 ? (
                         <>
-                          <ArrowUp className="w-4 h-4 text-green-500 mr-1" />
-                          <span className="text-sm text-green-500">{formatPercentage(metrics.growthRate)}</span>
+                          <ArrowUp className="w-4 h-4 text-success-500 mr-1" />
+                          <span className="text-sm text-success-500">{formatPercentage(metrics.growthRate)}</span>
                         </>
                       ) : (
                         <>
-                          <ArrowDown className="w-4 h-4 text-red-500 mr-1" />
-                          <span className="text-sm text-red-500">{formatPercentage(Math.abs(metrics.growthRate))}</span>
+                          <ArrowDown className="w-4 h-4 text-error-500 mr-1" />
+                          <span className="text-sm text-error-500">{formatPercentage(Math.abs(metrics.growthRate))}</span>
                         </>
                       )}
                     </div>
                   </div>
-                  <DollarSign className="w-8 h-8 text-green-500" />
+                  <DollarSign className="w-8 h-8 text-success-500" />
                 </div>
               </CardContent>
             </Card>
@@ -287,7 +287,7 @@ export default function RevenuePage() {
                 <div className="space-y-4">
                   <div className="flex justify-between items-center">
                     <span className="text-sm text-gray-600">Subscriptions</span>
-                    <span className="font-bold text-green-600">{formatCurrency(breakdown.subscriptions)}</span>
+                    <span className="font-bold text-success-600">{formatCurrency(breakdown.subscriptions)}</span>
                   </div>
                   <div className="flex justify-between items-center">
                     <span className="text-sm text-gray-600">One-time Purchases</span>
@@ -295,7 +295,7 @@ export default function RevenuePage() {
                   </div>
                   <div className="flex justify-between items-center">
                     <span className="text-sm text-gray-600">Refunds</span>
-                    <span className="font-bold text-red-600">-{formatCurrency(breakdown.refunds)}</span>
+                    <span className="font-bold text-error-600">-{formatCurrency(breakdown.refunds)}</span>
                   </div>
                   <div className="pt-4 border-t">
                     <div className="flex justify-between items-center">

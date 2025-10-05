@@ -193,7 +193,7 @@ export default function AdminManagementPage() {
       <div className="p-6">
         <Card>
           <CardContent className="p-8 text-center">
-            <Shield className="h-12 w-12 text-red-600 mx-auto mb-4" />
+            <Shield className="h-12 w-12 text-error-600 mx-auto mb-4" />
             <h2 className="text-xl font-bold mb-2">Access Denied</h2>
             <p className="text-gray-600">Only super administrators can manage admin users.</p>
           </CardContent>
@@ -229,7 +229,7 @@ export default function AdminManagementPage() {
         <Card>
           <CardContent className="p-4">
             <p className="text-sm text-gray-600">Active</p>
-            <p className="text-2xl font-bold text-green-600">
+            <p className="text-2xl font-bold text-success-600">
               {admins.filter(a => a.is_active).length}
             </p>
           </CardContent>
@@ -291,7 +291,7 @@ export default function AdminManagementPage() {
                     </td>
                     <td className="px-4 py-3">
                       <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
-                        admin.is_active ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                        admin.is_active ? 'bg-success-100 text-success-800' : 'bg-error-100 text-error-800'
                       }`}>
                         {admin.is_active ? 'Active' : 'Inactive'}
                       </span>
@@ -311,7 +311,7 @@ export default function AdminManagementPage() {
                         {admin.role !== 'super_admin' && (
                           <button
                             onClick={() => deleteAdmin(admin.id)}
-                            className="text-red-600 hover:text-red-800"
+                            className="text-error-600 hover:text-error-800"
                             title="Delete"
                           >
                             <Trash2 className="h-4 w-4" />
