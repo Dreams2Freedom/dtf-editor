@@ -32,7 +32,10 @@ async function handlePreviewUpscale(
   targetSize?: string,
   targetQuality?: string
 ): Promise<NextResponse> {
-  console.log('[Generate Image API] Preview upscale requested:', { previewId, userId: user.id });
+  console.log('[Generate Image API] Preview upscale requested:', {
+    previewId,
+    userId: user.id,
+  });
 
   try {
     // Initialize Redis
@@ -55,7 +58,9 @@ async function handlePreviewUpscale(
 
     if (!metadataStr) {
       return NextResponse.json(
-        { error: 'Preview not found or expired. Please generate a new preview.' },
+        {
+          error: 'Preview not found or expired. Please generate a new preview.',
+        },
         { status: 404 }
       );
     }
@@ -96,7 +101,10 @@ async function handlePreviewUpscale(
       );
 
       if (deductError || newBalance === null) {
-        console.error('[Generate Image API] Credit deduction failed:', deductError);
+        console.error(
+          '[Generate Image API] Credit deduction failed:',
+          deductError
+        );
         return NextResponse.json(
           {
             error: `Insufficient credits. You need ${creditsRequired} credits but only have ${profile.credits_remaining}`,
@@ -108,7 +116,10 @@ async function handlePreviewUpscale(
       }
 
       creditsDeducted = true;
-      console.log('[Generate Image API] Credits deducted. New balance:', newBalance);
+      console.log(
+        '[Generate Image API] Credits deducted. New balance:',
+        newBalance
+      );
 
       // Log credit transaction
       await serviceClient.from('credit_transactions').insert({
@@ -126,12 +137,16 @@ async function handlePreviewUpscale(
     }
 
     // Get the original unwatermarked image from storage
-    const { data: imageData, error: downloadError } = await serviceClient.storage
-      .from('ai-preview-originals')
-      .download(metadata.originalPath);
+    const { data: imageData, error: downloadError } =
+      await serviceClient.storage
+        .from('ai-preview-originals')
+        .download(metadata.originalPath);
 
     if (downloadError) {
-      console.error('[Generate Image API] Failed to download original:', downloadError);
+      console.error(
+        '[Generate Image API] Failed to download original:',
+        downloadError
+      );
 
       // Refund credits on failure
       if (creditsDeducted) {
@@ -162,7 +177,10 @@ async function handlePreviewUpscale(
       });
 
     if (tempUploadError) {
-      console.error('[Generate Image API] Failed to upload temp:', tempUploadError);
+      console.error(
+        '[Generate Image API] Failed to upload temp:',
+        tempUploadError
+      );
 
       if (creditsDeducted) {
         await serviceClient.rpc('refund_credits_atomic', {
@@ -184,17 +202,23 @@ async function handlePreviewUpscale(
 
     // Upscale using Deep-Image.ai (CRITICAL: Preserves PNG transparency)
     console.log('[Generate Image API] Upscaling preview with Deep-Image...');
-    const upscaleResult = await deepImageService.upscaleImage(tempUrlData.publicUrl, {
-      scale: 4, // 4x upscale for maximum quality
-      processingMode: 'generative_upscale', // Best quality for print
-      faceEnhance: false,
-    });
+    const upscaleResult = await deepImageService.upscaleImage(
+      tempUrlData.publicUrl,
+      {
+        scale: 4, // 4x upscale for maximum quality
+        processingMode: 'generative_upscale', // Best quality for print
+        faceEnhance: false,
+      }
+    );
 
     // Clean up temp file
     await serviceClient.storage.from('user-uploads').remove([tempPath]);
 
     if (upscaleResult.status === 'error') {
-      console.error('[Generate Image API] Upscale failed:', upscaleResult.error);
+      console.error(
+        '[Generate Image API] Upscale failed:',
+        upscaleResult.error
+      );
 
       if (creditsDeducted) {
         await serviceClient.rpc('refund_credits_atomic', {
@@ -313,7 +337,8 @@ async function handlePreviewUpscale(
     return NextResponse.json(
       {
         error: error.message || 'Failed to upscale preview',
-        details: process.env.NODE_ENV === 'development' ? error.stack : undefined,
+        details:
+          process.env.NODE_ENV === 'development' ? error.stack : undefined,
       },
       { status: 500 }
     );
@@ -463,7 +488,14 @@ async function handlePost(request: NextRequest) {
 
     // PREVIEW-TO-DOWNLOAD FLOW: If previewId is provided, upscale the preview instead of generating new
     if (previewId) {
-      return await handlePreviewUpscale(previewId, user, profile, serviceClient, size, quality);
+      return await handlePreviewUpscale(
+        previewId,
+        user,
+        profile,
+        serviceClient,
+        size,
+        quality
+      );
     }
 
     if (!prompt) {

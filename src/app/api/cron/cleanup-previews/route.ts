@@ -79,34 +79,53 @@ async function handleGet(request: NextRequest) {
               .remove([metadata.originalPath]);
 
             if (originalDeleteError) {
-              console.error('[Cron: Cleanup Previews] Failed to delete original:', originalDeleteError);
+              console.error(
+                '[Cron: Cleanup Previews] Failed to delete original:',
+                originalDeleteError
+              );
               stats.failed++;
-              stats.errors.push(`Failed to delete original: ${metadata.originalPath}`);
+              stats.errors.push(
+                `Failed to delete original: ${metadata.originalPath}`
+              );
             }
 
             // Delete watermarked from ai-preview-watermarked bucket
-            const { error: watermarkedDeleteError } = await serviceClient.storage
-              .from('ai-preview-watermarked')
-              .remove([metadata.watermarkedPath]);
+            const { error: watermarkedDeleteError } =
+              await serviceClient.storage
+                .from('ai-preview-watermarked')
+                .remove([metadata.watermarkedPath]);
 
             if (watermarkedDeleteError) {
-              console.error('[Cron: Cleanup Previews] Failed to delete watermarked:', watermarkedDeleteError);
+              console.error(
+                '[Cron: Cleanup Previews] Failed to delete watermarked:',
+                watermarkedDeleteError
+              );
               stats.failed++;
-              stats.errors.push(`Failed to delete watermarked: ${metadata.watermarkedPath}`);
+              stats.errors.push(
+                `Failed to delete watermarked: ${metadata.watermarkedPath}`
+              );
             }
 
             // Delete metadata from Redis
             await redis.del(key);
             stats.deleted++;
 
-            console.log('[Cron: Cleanup Previews] Cleaned up expired preview:', {
-              userId: metadata.userId,
-              previewId: metadata.previewId,
-              age: Math.round((now - metadata.createdAt) / 60000) + ' minutes',
-            });
+            console.log(
+              '[Cron: Cleanup Previews] Cleaned up expired preview:',
+              {
+                userId: metadata.userId,
+                previewId: metadata.previewId,
+                age:
+                  Math.round((now - metadata.createdAt) / 60000) + ' minutes',
+              }
+            );
           }
         } catch (error: any) {
-          console.error('[Cron: Cleanup Previews] Error processing key:', key, error);
+          console.error(
+            '[Cron: Cleanup Previews] Error processing key:',
+            key,
+            error
+          );
           stats.failed++;
           stats.errors.push(`Error processing ${key}: ${error.message}`);
         }

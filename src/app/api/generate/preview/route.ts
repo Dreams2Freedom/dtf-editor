@@ -35,7 +35,9 @@ async function handlePost(request: NextRequest) {
         token: env.UPSTASH_REDIS_REST_TOKEN,
       });
     } else {
-      console.warn('[Preview API] Redis not configured - previews will not be stored');
+      console.warn(
+        '[Preview API] Redis not configured - previews will not be stored'
+      );
       return NextResponse.json(
         { error: 'Preview service temporarily unavailable' },
         { status: 503 }
@@ -137,7 +139,10 @@ async function handlePost(request: NextRequest) {
       });
 
     if (originalUploadError) {
-      console.error('[Preview API] Failed to upload original:', originalUploadError);
+      console.error(
+        '[Preview API] Failed to upload original:',
+        originalUploadError
+      );
       return NextResponse.json(
         { error: 'Failed to store preview image' },
         { status: 500 }
@@ -154,7 +159,10 @@ async function handlePost(request: NextRequest) {
       });
 
     if (watermarkedUploadError) {
-      console.error('[Preview API] Failed to upload watermarked:', watermarkedUploadError);
+      console.error(
+        '[Preview API] Failed to upload watermarked:',
+        watermarkedUploadError
+      );
       // Cleanup original
       await serviceClient.storage
         .from('ai-preview-originals')
@@ -206,7 +214,8 @@ async function handlePost(request: NextRequest) {
     return NextResponse.json(
       {
         error: error.message || 'Internal server error',
-        details: process.env.NODE_ENV === 'development' ? error.stack : undefined,
+        details:
+          process.env.NODE_ENV === 'development' ? error.stack : undefined,
       },
       { status: 500 }
     );

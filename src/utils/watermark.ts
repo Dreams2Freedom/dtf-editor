@@ -17,12 +17,16 @@ export async function addWatermark(imageBuffer: Buffer): Promise<Buffer> {
     // Font size scales with image size (3-6% of image width)
     const fontSize = Math.max(24, Math.min(72, width * 0.04));
 
-    // Create semi-transparent watermark SVG that scales with image
+    // Create highly visible watermark SVG with stroke for contrast
+    // Uses white text with black stroke - visible on ANY background
     const watermarkSvg = Buffer.from(`
       <svg width="${width}" height="${height}">
         <style>
           .watermark {
-            fill: rgba(255, 255, 255, 0.4);
+            fill: rgba(255, 255, 255, 0.9);
+            stroke: rgba(0, 0, 0, 0.8);
+            stroke-width: 3px;
+            paint-order: stroke fill;
             font-size: ${fontSize}px;
             font-family: Arial, sans-serif;
             font-weight: bold;
@@ -60,7 +64,9 @@ export async function addWatermark(imageBuffer: Buffer): Promise<Buffer> {
       })
       .toBuffer();
 
-    console.log('[Watermark] Successfully added watermark, preserving transparency');
+    console.log(
+      '[Watermark] Successfully added watermark, preserving transparency'
+    );
     return watermarked;
   } catch (error) {
     console.error('[Watermark] Error adding watermark:', error);

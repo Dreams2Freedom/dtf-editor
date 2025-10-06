@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createServerSupabaseClient, createServiceRoleClient } from '@/lib/supabase/server';
+import {
+  createServerSupabaseClient,
+  createServiceRoleClient,
+} from '@/lib/supabase/server';
 import { Redis } from '@upstash/redis';
 import { env } from '@/config/env';
 
@@ -32,14 +35,14 @@ export async function POST(request: NextRequest) {
 
     // Get authenticated user
     const supabase = await createServerSupabaseClient();
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
 
     if (authError || !user) {
       console.error('[Preview Cleanup] Auth error:', authError);
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     // Parse request body
@@ -72,7 +75,10 @@ export async function POST(request: NextRequest) {
         const metadataStr = await redis.get(key);
 
         if (!metadataStr) {
-          console.warn('[Preview Cleanup] Preview not found in Redis:', previewId);
+          console.warn(
+            '[Preview Cleanup] Preview not found in Redis:',
+            previewId
+          );
           results.failed.push(previewId);
           continue;
         }
@@ -91,10 +97,7 @@ export async function POST(request: NextRequest) {
         }
 
         // Delete both files from storage
-        const filesToDelete = [
-          metadata.originalPath,
-          metadata.watermarkedPath,
-        ];
+        const filesToDelete = [metadata.originalPath, metadata.watermarkedPath];
 
         // Delete original from ai-preview-originals bucket
         const { error: originalDeleteError } = await serviceClient.storage
@@ -102,7 +105,10 @@ export async function POST(request: NextRequest) {
           .remove([metadata.originalPath]);
 
         if (originalDeleteError) {
-          console.error('[Preview Cleanup] Failed to delete original:', originalDeleteError);
+          console.error(
+            '[Preview Cleanup] Failed to delete original:',
+            originalDeleteError
+          );
         }
 
         // Delete watermarked from ai-preview-watermarked bucket
@@ -111,16 +117,26 @@ export async function POST(request: NextRequest) {
           .remove([metadata.watermarkedPath]);
 
         if (watermarkedDeleteError) {
-          console.error('[Preview Cleanup] Failed to delete watermarked:', watermarkedDeleteError);
+          console.error(
+            '[Preview Cleanup] Failed to delete watermarked:',
+            watermarkedDeleteError
+          );
         }
 
         // Delete metadata from Redis
         await redis.del(key);
 
-        console.log('[Preview Cleanup] Successfully cleaned up preview:', previewId);
+        console.log(
+          '[Preview Cleanup] Successfully cleaned up preview:',
+          previewId
+        );
         results.success.push(previewId);
       } catch (error) {
-        console.error('[Preview Cleanup] Error cleaning up preview:', previewId, error);
+        console.error(
+          '[Preview Cleanup] Error cleaning up preview:',
+          previewId,
+          error
+        );
         results.failed.push(previewId);
       }
     }

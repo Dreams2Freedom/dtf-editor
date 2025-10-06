@@ -180,7 +180,9 @@ export function GenerationConfigStep({
 
       if (!response.ok) {
         if (response.status === 429) {
-          toast.error('Rate limit exceeded. Please wait a few minutes and try again.');
+          toast.error(
+            'Rate limit exceeded. Please wait a few minutes and try again.'
+          );
         } else {
           toast.error(data.error || 'Failed to generate preview');
         }
@@ -197,7 +199,10 @@ export function GenerationConfigStep({
 
       // Scroll to preview
       setTimeout(() => {
-        resultsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        resultsRef.current?.scrollIntoView({
+          behavior: 'smooth',
+          block: 'start',
+        });
       }, 100);
     } catch (error) {
       console.error('Preview generation error:', error);
@@ -439,7 +444,8 @@ export function GenerationConfigStep({
                 )}
               </Button>
               <p className="text-xs text-gray-600 text-center">
-                🎉 Try unlimited low-quality watermarked previews for free before purchasing!
+                🎉 Try unlimited low-quality watermarked previews for free
+                before purchasing!
               </p>
             </div>
 
@@ -529,15 +535,17 @@ export function GenerationConfigStep({
                         FREE Preview Generated!
                       </h4>
                       <p className="text-xs text-green-700">
-                        This is a low-quality watermarked preview. Like what you see?
-                        Download the high-quality print-ready version below.
+                        This is a low-quality watermarked preview. Like what you
+                        see? Download the high-quality print-ready version
+                        below.
                       </p>
                     </div>
                   </div>
 
                   <div className="pt-2 border-t border-green-200">
                     <p className="text-xs text-green-600 mb-3">
-                      ⏱️ Preview expires in {Math.floor(previewData.expiresIn / 60)} minutes
+                      ⏱️ Preview expires in{' '}
+                      {Math.floor(previewData.expiresIn / 60)} minutes
                     </p>
 
                     {/* Download Print-Ready Button */}
@@ -556,7 +564,11 @@ export function GenerationConfigStep({
                       ) : (
                         <>
                           <Zap className="w-5 h-5 mr-2" />
-                          Download Print-Ready ({generationOptions.size === '1024x1024' ? '1' : '2'} credits)
+                          Download Print-Ready (
+                          {generationOptions.size === '1024x1024'
+                            ? '1'
+                            : '2'}{' '}
+                          credits)
                         </>
                       )}
                     </Button>
@@ -582,17 +594,20 @@ export function GenerationConfigStep({
           )}
 
           {/* Empty State */}
-          {!previewData && generatedImages.length === 0 && !isGenerating && !isGeneratingPreview && (
-            <div className="flex flex-col items-center justify-center py-16 text-gray-400">
-              <ImageIcon className="w-16 h-16 mb-4" />
-              <p className="text-center text-sm">
-                Your generated images will appear here
-              </p>
-              <p className="text-xs text-center mt-2 max-w-xs">
-                All images automatically include transparent backgrounds
-              </p>
-            </div>
-          )}
+          {!previewData &&
+            generatedImages.length === 0 &&
+            !isGenerating &&
+            !isGeneratingPreview && (
+              <div className="flex flex-col items-center justify-center py-16 text-gray-400">
+                <ImageIcon className="w-16 h-16 mb-4" />
+                <p className="text-center text-sm">
+                  Your generated images will appear here
+                </p>
+                <p className="text-xs text-center mt-2 max-w-xs">
+                  All images automatically include transparent backgrounds
+                </p>
+              </div>
+            )}
 
           {/* Loading States */}
           {isGeneratingPreview && (

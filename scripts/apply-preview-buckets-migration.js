@@ -45,7 +45,9 @@ async function applyMigration() {
     // Execute the migration
     // Note: Supabase client doesn't support raw SQL execution directly
     // We need to use the Postgres REST API or execute via psql
-    console.log('⚠️  This migration needs to be applied manually via Supabase Dashboard or psql');
+    console.log(
+      '⚠️  This migration needs to be applied manually via Supabase Dashboard or psql'
+    );
     console.log('\nOption 1: Supabase Dashboard SQL Editor');
     console.log('  1. Go to https://app.supabase.com/project/YOUR_PROJECT/sql');
     console.log('  2. Paste the contents of the migration file');
