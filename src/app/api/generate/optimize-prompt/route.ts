@@ -31,26 +31,9 @@ async function handlePost(request: NextRequest) {
       );
     }
 
-    // Check user profile for access to AI features (paid users only)
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('subscription_tier, is_admin')
-      .eq('id', user.id)
-      .single();
-
-    const isAdmin = Boolean(profile?.is_admin);
-    const isPaidUser =
-      profile?.subscription_tier && profile.subscription_tier !== 'free';
-
-    if (!isPaidUser && !isAdmin) {
-      return NextResponse.json(
-        {
-          error: 'AI image generation is only available for paid subscribers',
-          requiresUpgrade: true,
-        },
-        { status: 403 }
-      );
-    }
+    // Prompt optimization is FREE for all authenticated users
+    // (Only actual image generation in Step 3 costs credits)
+    // No need to check subscription tier - just verify user is authenticated (already done above)
 
     // Parse request body
     const body = await request.json();
