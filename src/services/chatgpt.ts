@@ -32,8 +32,8 @@ export type ImageEditResult = ImageGenerationResult;
 
 // Credit costs for GPT-Image-1 (Beta pricing - based on size)
 const CREDIT_COSTS = {
-  '256x256': 1, // Small size uses 1 credit
-  '512x512': 1, // Medium size uses 1 credit
+  '256x256': 1,   // Small size uses 1 credit
+  '512x512': 1,   // Medium size uses 1 credit  
   '1024x1024': 1, // Large size uses 1 credit (Beta pricing)
 };
 
@@ -42,37 +42,28 @@ export class ChatGPTService {
    * Generate images using OpenAI's GPT-Image-1 model
    * This method should only be called from server-side code (API routes)
    */
-  async generateImage(
-    options: ImageGenerationOptions
-  ): Promise<ImageGenerationResult> {
+  async generateImage(options: ImageGenerationOptions): Promise<ImageGenerationResult> {
     try {
       console.log('[ChatGPT Service] Starting image generation...');
-
+      
       // Only import and initialize OpenAI on the server
       if (typeof window !== 'undefined') {
         throw new Error('ChatGPT service can only be used server-side');
       }
-
+      
       // Dynamically import OpenAI to prevent client-side loading
       console.log('[ChatGPT Service] Importing OpenAI library...');
       const OpenAI = (await import('openai')).default;
-
+      
       // Validate API key
       const apiKey = process.env.OPENAI_API_KEY || env.OPENAI_API_KEY;
-      console.log(
-        '[ChatGPT Service] API key status:',
-        apiKey ? 'Found' : 'Missing'
-      );
-
+      console.log('[ChatGPT Service] API key status:', apiKey ? 'Found' : 'Missing');
+      
       if (!apiKey) {
-        console.error(
-          '[ChatGPT Service] OpenAI API key is not configured in environment'
-        );
-        throw new Error(
-          'OpenAI API key is not configured. Please set OPENAI_API_KEY in environment variables.'
-        );
+        console.error('[ChatGPT Service] OpenAI API key is not configured in environment');
+        throw new Error('OpenAI API key is not configured. Please set OPENAI_API_KEY in environment variables.');
       }
-
+      
       // Initialize OpenAI client (server-side only)
       console.log('[ChatGPT Service] Initializing OpenAI client...');
       const openai = new OpenAI({
@@ -80,73 +71,58 @@ export class ChatGPTService {
       });
 
       // Default options
-      const { prompt, size = '1024x1024', n = 1 } = options;
+      const {
+        prompt,
+        size = '1024x1024',
+        n = 1,
+      } = options;
 
       // GPT-Image-1 image count
       const imageCount = Math.min(Math.max(n, 1), 10);
 
-      console.log('[ChatGPT Service] Generating image with GPT-Image-1 Tool:', {
+      console.log('[ChatGPT Service] Generating image with GPT-Image-1:', {
         prompt: prompt.substring(0, 100) + '...',
         size,
         n: imageCount,
       });
 
-      // Make the API call to generate image using tool-based API
-      console.log('[ChatGPT Service] Calling OpenAI responses.create API...');
+      // Make the API call to generate image
+      console.log('[ChatGPT Service] Calling OpenAI API...');
       let response;
       try {
-        // Use GPT-5 with image_generation tool (new API)
-        // Based on: https://platform.openai.com/docs/guides/image-generation?image-generation-model=gpt-image-1
-        const cleanedPrompt = prompt.replace('[IMAGE-TO-IMAGE]', ''); // Remove marker if present
-
-        // Build the request parameters
-        // Note: We may need to pass size/quality/style differently with tool API
-        // For now, we'll include them in the prompt and log the response structure
-        const requestParams: any = {
-          model: 'gpt-5', // Model that supports image_generation tool
-          input: cleanedPrompt,
-          tools: [{ type: 'image_generation' }],
+        // Use GPT-Image-1 for image generation
+        const generateParams: any = {
+          model: 'gpt-image-1',
+          prompt: prompt.replace('[IMAGE-TO-IMAGE]', ''), // Remove marker if present
+          size,
+          n: imageCount,
         };
-
-        console.log('[ChatGPT Service] Request params:', JSON.stringify(requestParams, null, 2));
-
-        response = await openai.responses.create(requestParams);
+        
+        // Add quality parameter if specified
+        if (options.quality) {
+          generateParams.quality = options.quality === 'hd' ? 'high' : 'low';
+        }
+        
+        response = await openai.images.generate(generateParams);
         console.log('[ChatGPT Service] OpenAI API call successful');
-        console.log(
-          '[ChatGPT Service] Full response:',
-          JSON.stringify(response, null, 2)
-        );
+        console.log('[ChatGPT Service] Response data:', JSON.stringify(response, null, 2));
       } catch (apiError: unknown) {
         console.error('[ChatGPT Service] OpenAI API error:', apiError);
         const err = apiError as Error;
-        console.error(
-          '[ChatGPT Service] Error details:',
-          (err as Error & { response?: { data?: unknown } }).response?.data ||
-            err.message
-        );
-        throw new Error(
-          `OpenAI API error: ${(apiError as Error).message || 'Failed to generate image'}`
-        );
+        console.error('[ChatGPT Service] Error details:', (err as Error & {response?: {data?: unknown}}).response?.data || err.message);
+        throw new Error(`OpenAI API error: ${(apiError as Error).message || 'Failed to generate image'}`);
       }
 
-      // Extract the generated images from tool outputs
-      console.log('[ChatGPT Service] Extracting images from response.output...');
-      console.log('[ChatGPT Service] response.output:', response.output);
-
-      // Filter for image_generation_call outputs and extract base64 data
-      const imageData = (response.output as any[])?.filter(
-        output => output.type === 'image_generation_call'
-      ).map(output => output.result) || [];
-
-      console.log('[ChatGPT Service] Found image data:', imageData.length);
-
-      // Convert base64 data to data URLs
-      const images: GeneratedImage[] = imageData.map((base64: string) => ({
-        url: `data:image/png;base64,${base64}`,
+      // Extract the generated images
+      console.log('[ChatGPT Service] Extracting images from response...');
+      console.log('[ChatGPT Service] response.data:', response.data);
+      
+      // Extract images - gpt-image-1 returns b64_json directly
+      const images: GeneratedImage[] = response.data?.map(image => ({
+        url: image.b64_json ? `data:image/png;base64,${image.b64_json}` : image.url || '',
         revised_prompt: undefined, // GPT-Image-1 doesn't revise prompts
-      }));
-
-      console.log('[ChatGPT Service] Extracted images:', images.length);
+      })) || [];
+      console.log('[ChatGPT Service] Extracted images:', images);
 
       // Calculate credits used based on size and count
       const creditsPerImage = CREDIT_COSTS[size] || 2;
@@ -170,8 +146,7 @@ export class ChatGPTService {
       // Handle specific OpenAI errors
       if (error.response) {
         const statusCode = error.response.status;
-        const errorMessage =
-          error.response.data?.error?.message || error.message;
+        const errorMessage = error.response.data?.error?.message || error.message;
 
         if (statusCode === 401) {
           return {
@@ -188,8 +163,7 @@ export class ChatGPTService {
           if (errorMessage.includes('content policy')) {
             return {
               success: false,
-              error:
-                'Your prompt violates OpenAI content policy. Please modify your prompt.',
+              error: 'Your prompt violates OpenAI content policy. Please modify your prompt.',
             };
           }
           return {
@@ -199,8 +173,7 @@ export class ChatGPTService {
         } else if (statusCode === 500 || statusCode === 503) {
           return {
             success: false,
-            error:
-              'OpenAI service is temporarily unavailable. Please try again later.',
+            error: 'OpenAI service is temporarily unavailable. Please try again later.',
           };
         }
       }
@@ -228,10 +201,10 @@ export class ChatGPTService {
 
       // For more than 10 images, we need multiple requests
       console.log(`Generating ${count} images with multiple API calls...`);
-
+      
       const batches = [];
       let remaining = count;
-
+      
       while (remaining > 0) {
         const batchSize = Math.min(remaining, 10);
         batches.push(this.generateImage({ ...options, n: batchSize }));
@@ -239,7 +212,7 @@ export class ChatGPTService {
       }
 
       const results = await Promise.all(batches);
-
+      
       // Combine all successful results
       const allImages: GeneratedImage[] = [];
       let totalCreditsUsed = 0;
@@ -285,32 +258,25 @@ export class ChatGPTService {
   async editImage(options: ImageEditOptions): Promise<ImageEditResult> {
     try {
       console.log('[ChatGPT Service] Starting image editing...');
-
+      
       // Only import and initialize OpenAI on the server
       if (typeof window !== 'undefined') {
         throw new Error('ChatGPT service can only be used server-side');
       }
-
+      
       // Dynamically import OpenAI to prevent client-side loading
       console.log('[ChatGPT Service] Importing OpenAI library...');
       const { default: OpenAI, toFile } = await import('openai');
-
+      
       // Validate API key
       const apiKey = process.env.OPENAI_API_KEY || env.OPENAI_API_KEY;
-      console.log(
-        '[ChatGPT Service] API key status:',
-        apiKey ? 'Found' : 'Missing'
-      );
-
+      console.log('[ChatGPT Service] API key status:', apiKey ? 'Found' : 'Missing');
+      
       if (!apiKey) {
-        console.error(
-          '[ChatGPT Service] OpenAI API key is not configured in environment'
-        );
-        throw new Error(
-          'OpenAI API key is not configured. Please set OPENAI_API_KEY in environment variables.'
-        );
+        console.error('[ChatGPT Service] OpenAI API key is not configured in environment');
+        throw new Error('OpenAI API key is not configured. Please set OPENAI_API_KEY in environment variables.');
       }
-
+      
       // Initialize OpenAI client (server-side only)
       console.log('[ChatGPT Service] Initializing OpenAI client...');
       const openai = new OpenAI({
@@ -318,83 +284,79 @@ export class ChatGPTService {
       });
 
       // Default options
-      const { prompt, image, mask, size = '1024x1024', n = 1 } = options;
+      const {
+        prompt,
+        image,
+        mask,
+        size = '1024x1024',
+        n = 1,
+      } = options;
 
       const imageCount = Math.min(Math.max(n, 1), 10);
 
-      console.log('[ChatGPT Service] Editing image with GPT-Image-1 Tool:', {
+      console.log('[ChatGPT Service] Editing image with GPT-Image-1:', {
         prompt: prompt.substring(0, 100) + '...',
         size,
         n: imageCount,
         hasMask: !!mask,
       });
 
-      // Note: Image editing with tool-based API might work differently
-      // For now, we'll convert the image to base64 and include it in the input
-      let imageBase64: string;
+      // Convert image to File object if it's a Buffer or base64 string
+      let imageFile;
       if (Buffer.isBuffer(image)) {
-        imageBase64 = image.toString('base64');
+        imageFile = await toFile(image, 'image.png', { type: 'image/png' });
       } else if (typeof image === 'string') {
-        // If it's already a base64 string, extract it
-        imageBase64 = image.replace(/^data:image\/\w+;base64,/, '');
+        // If it's a base64 string, convert to Buffer first
+        const buffer = Buffer.from(image.replace(/^data:image\/\w+;base64,/, ''), 'base64');
+        imageFile = await toFile(buffer, 'image.png', { type: 'image/png' });
       } else {
-        throw new Error(
-          'Invalid image format. Expected Buffer or base64 string.'
-        );
+        throw new Error('Invalid image format. Expected Buffer or base64 string.');
       }
 
-      // Make the API call to edit image using tool-based API
-      console.log('[ChatGPT Service] Calling OpenAI responses.create API for edit...');
+      // Convert mask to File object if provided
+      let maskFile;
+      if (mask) {
+        if (Buffer.isBuffer(mask)) {
+          maskFile = await toFile(mask, 'mask.png', { type: 'image/png' });
+        } else if (typeof mask === 'string') {
+          const buffer = Buffer.from(mask.replace(/^data:image\/\w+;base64,/, ''), 'base64');
+          maskFile = await toFile(buffer, 'mask.png', { type: 'image/png' });
+        }
+      }
+
+      // Make the API call to edit image
+      console.log('[ChatGPT Service] Calling OpenAI API for image edit...');
       let response;
       try {
-        // TODO: Verify how image editing works with tool-based API
-        // This is a best guess implementation that may need adjustment
-        const requestParams: any = {
-          model: 'gpt-5',
-          input: `${prompt}\n\n[Image to edit provided as base64]`,
-          tools: [{ type: 'image_generation' }],
-          // May need to pass image data differently
+        const editParams: any = {
+          model: 'gpt-image-1',
+          image: imageFile,
+          prompt,
+          size,
+          n: imageCount,
         };
 
-        console.log('[ChatGPT Service] Edit request params:', JSON.stringify(requestParams, null, 2));
+        if (maskFile) {
+          editParams.mask = maskFile;
+        }
 
-        response = await openai.responses.create(requestParams);
+        response = await openai.images.edit(editParams);
         console.log('[ChatGPT Service] OpenAI API call successful');
-        console.log(
-          '[ChatGPT Service] Full response:',
-          JSON.stringify(response, null, 2)
-        );
       } catch (apiError: unknown) {
         console.error('[ChatGPT Service] OpenAI API error:', apiError);
         const err = apiError as Error;
-        console.error(
-          '[ChatGPT Service] Error details:',
-          (err as Error & { response?: { data?: unknown } }).response?.data ||
-            err.message
-        );
-        throw new Error(
-          `OpenAI API error: ${(apiError as Error).message || 'Failed to edit image'}`
-        );
+        console.error('[ChatGPT Service] Error details:', (err as Error & {response?: {data?: unknown}}).response?.data || err.message);
+        throw new Error(`OpenAI API error: ${(apiError as Error).message || 'Failed to edit image'}`);
       }
 
-      // Extract the edited images from tool outputs
-      console.log(
-        '[ChatGPT Service] Extracting edited images from response.output...'
-      );
-      console.log('[ChatGPT Service] response.output:', response.output);
-
-      // Filter for image_generation_call outputs and extract base64 data
-      const imageData = (response.output as any[])?.filter(
-        output => output.type === 'image_generation_call'
-      ).map(output => output.result) || [];
-
-      console.log('[ChatGPT Service] Found edited image data:', imageData.length);
-
-      // Convert base64 data to data URLs
-      const images: GeneratedImage[] = imageData.map((base64: string) => ({
-        url: `data:image/png;base64,${base64}`,
+      // Extract the edited images
+      console.log('[ChatGPT Service] Extracting edited images from response...');
+      
+      // Convert base64 images to data URLs
+      const images: GeneratedImage[] = response.data?.map(img => ({
+        url: img.b64_json ? `data:image/png;base64,${img.b64_json}` : img.url!,
         revised_prompt: undefined,
-      }));
+      })) || [];
 
       // Calculate credits used based on size and count
       const creditsPerImage = CREDIT_COSTS[size] || 2;
@@ -413,16 +375,12 @@ export class ChatGPTService {
       };
     } catch (error: unknown) {
       console.error('[ChatGPT Service] Image editing error:', error);
-
+      
       // Handle specific OpenAI errors
-      const errorWithResponse = error as Error & {
-        response?: { status: number; data?: { error?: { message?: string } } };
-      };
+      const errorWithResponse = error as Error & {response?: {status: number; data?: {error?: {message?: string}}}};
       if (errorWithResponse.response) {
         const statusCode = errorWithResponse.response.status;
-        const errorMessage =
-          errorWithResponse.response.data?.error?.message ||
-          (error as Error).message;
+        const errorMessage = errorWithResponse.response.data?.error?.message || (error as Error).message;
 
         if (statusCode === 401) {
           return {
@@ -438,8 +396,7 @@ export class ChatGPTService {
           if (errorMessage.includes('content policy')) {
             return {
               success: false,
-              error:
-                'Your prompt violates OpenAI content policy. Please modify your prompt.',
+              error: 'Your prompt violates OpenAI content policy. Please modify your prompt.',
             };
           }
           return {
@@ -452,11 +409,11 @@ export class ChatGPTService {
       // Generic error
       return {
         success: false,
-        error:
-          (error as Error).message || 'Failed to edit image. Please try again.',
+        error: (error as Error).message || 'Failed to edit image. Please try again.',
       };
     }
   }
+
 }
 
 // Export singleton instance
