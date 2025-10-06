@@ -2,9 +2,9 @@ import { env } from '@/config/env';
 
 export interface ImageGenerationOptions {
   prompt: string;
-  size?: '256x256' | '512x512' | '1024x1024'; // GPT-Image-1 sizes
-  quality?: 'standard' | 'hd'; // Keep for backwards compatibility
-  style?: 'vivid' | 'natural'; // Keep for backwards compatibility
+  size?: '1024x1024' | '1024x1536' | '1536x1024'; // GPT-Image-1 sizes via Responses API
+  quality?: 'low' | 'standard' | 'high' | 'hd'; // Quality levels (hd and high both map to API "high")
+  style?: 'vivid' | 'natural'; // Style preference
   n?: number; // Number of images to generate
 }
 
@@ -12,7 +12,9 @@ export interface ImageEditOptions {
   prompt: string;
   image: Buffer | string; // Base64 string or Buffer of the image to edit
   mask?: Buffer | string; // Optional mask for selective editing
-  size?: '256x256' | '512x512' | '1024x1024';
+  size?: '1024x1024' | '1024x1536' | '1536x1024';
+  quality?: 'low' | 'standard' | 'high' | 'hd';
+  style?: 'vivid' | 'natural';
   n?: number;
 }
 
@@ -30,11 +32,13 @@ export interface ImageGenerationResult {
 
 export type ImageEditResult = ImageGenerationResult;
 
-// Credit costs for GPT-Image-1 (Beta pricing - based on size)
-const CREDIT_COSTS = {
-  '256x256': 1, // Small size uses 1 credit
-  '512x512': 1, // Medium size uses 1 credit
-  '1024x1024': 1, // Large size uses 1 credit (Beta pricing)
+// Credit costs for GPT-Image-1 using Responses API (based on quality)
+// Tool-based API only supports "medium" and "high" quality
+const CREDIT_COSTS_BY_QUALITY = {
+  low: 1, // Maps to "medium" quality in API
+  standard: 1, // Maps to "medium" quality in API
+  hd: 2, // Maps to "high" quality in API
+  high: 2, // Maps to "high" quality in API
 };
 
 export class ChatGPTService {
@@ -80,7 +84,13 @@ export class ChatGPTService {
       });
 
       // Default options
-      const { prompt, size = '1024x1024', n = 1 } = options;
+      const {
+        prompt,
+        size = '1024x1024',
+        quality = 'standard',
+        style = 'vivid',
+        n = 1,
+      } = options;
 
       // GPT-Image-1 image count
       const imageCount = Math.min(Math.max(n, 1), 10);
@@ -88,6 +98,8 @@ export class ChatGPTService {
       console.log('[ChatGPT Service] Generating image with GPT-Image-1 Tool:', {
         prompt: prompt.substring(0, 100) + '...',
         size,
+        quality,
+        style,
         n: imageCount,
       });
 
@@ -99,16 +111,50 @@ export class ChatGPTService {
         // Based on: https://platform.openai.com/docs/guides/image-generation?image-generation-model=gpt-image-1
         const cleanedPrompt = prompt.replace('[IMAGE-TO-IMAGE]', ''); // Remove marker if present
 
-        // Build the request parameters
-        // Note: We may need to pass size/quality/style differently with tool API
-        // For now, we'll include them in the prompt and log the response structure
+        // Map quality to API values (API only supports "medium" and "high")
+        // Our UI has: low (1 credit), standard (1 credit), high (2 credits)
+        const apiQuality =
+          quality === 'hd' || quality === 'high' ? 'high' : 'medium';
+
+        // Since tool-based API doesn't have size/style parameters, include them as hints in prompt
+        let enhancedPrompt = cleanedPrompt;
+
+        // Add size hint if not default
+        if (size !== '1024x1024') {
+          const sizeHint =
+            size === '1024x1536'
+              ? 'portrait orientation'
+              : size === '1536x1024'
+                ? 'landscape orientation'
+                : '';
+          if (sizeHint) {
+            enhancedPrompt = `${cleanedPrompt} (${sizeHint})`;
+          }
+        }
+
+        // Add style hint if specified
+        if (style === 'natural') {
+          enhancedPrompt = `${enhancedPrompt}. Use a natural, photorealistic style.`;
+        } else if (style === 'vivid') {
+          enhancedPrompt = `${enhancedPrompt}. Use a vivid, highly detailed style.`;
+        }
+
+        // Build the request parameters with quality
         const requestParams: any = {
           model: 'gpt-5', // Model that supports image_generation tool
-          input: cleanedPrompt,
-          tools: [{ type: 'image_generation' }],
+          input: enhancedPrompt,
+          tools: [
+            {
+              type: 'image_generation',
+              quality: apiQuality, // Pass quality to the tool
+            },
+          ],
         };
 
-        console.log('[ChatGPT Service] Request params:', JSON.stringify(requestParams, null, 2));
+        console.log(
+          '[ChatGPT Service] Request params:',
+          JSON.stringify(requestParams, null, 2)
+        );
 
         response = await openai.responses.create(requestParams);
         console.log('[ChatGPT Service] OpenAI API call successful');
@@ -130,13 +176,16 @@ export class ChatGPTService {
       }
 
       // Extract the generated images from tool outputs
-      console.log('[ChatGPT Service] Extracting images from response.output...');
+      console.log(
+        '[ChatGPT Service] Extracting images from response.output...'
+      );
       console.log('[ChatGPT Service] response.output:', response.output);
 
       // Filter for image_generation_call outputs and extract base64 data
-      const imageData = (response.output as any[])?.filter(
-        output => output.type === 'image_generation_call'
-      ).map(output => output.result) || [];
+      const imageData =
+        (response.output as any[])
+          ?.filter(output => output.type === 'image_generation_call')
+          .map(output => output.result) || [];
 
       console.log('[ChatGPT Service] Found image data:', imageData.length);
 
@@ -148,8 +197,9 @@ export class ChatGPTService {
 
       console.log('[ChatGPT Service] Extracted images:', images.length);
 
-      // Calculate credits used based on size and count
-      const creditsPerImage = CREDIT_COSTS[size] || 2;
+      // Calculate credits used based on quality and count
+      const creditsPerImage =
+        CREDIT_COSTS_BY_QUALITY[quality] || CREDIT_COSTS_BY_QUALITY['standard'];
       const creditsUsed = creditsPerImage * imageCount;
 
       console.log('Image generation successful:', {
@@ -318,7 +368,15 @@ export class ChatGPTService {
       });
 
       // Default options
-      const { prompt, image, mask, size = '1024x1024', n = 1 } = options;
+      const {
+        prompt,
+        image,
+        mask,
+        size = '1024x1024',
+        quality = 'standard',
+        style = 'vivid',
+        n = 1,
+      } = options;
 
       const imageCount = Math.min(Math.max(n, 1), 10);
 
@@ -344,7 +402,9 @@ export class ChatGPTService {
       }
 
       // Make the API call to edit image using tool-based API
-      console.log('[ChatGPT Service] Calling OpenAI responses.create API for edit...');
+      console.log(
+        '[ChatGPT Service] Calling OpenAI responses.create API for edit...'
+      );
       let response;
       try {
         // TODO: Verify how image editing works with tool-based API
@@ -356,7 +416,10 @@ export class ChatGPTService {
           // May need to pass image data differently
         };
 
-        console.log('[ChatGPT Service] Edit request params:', JSON.stringify(requestParams, null, 2));
+        console.log(
+          '[ChatGPT Service] Edit request params:',
+          JSON.stringify(requestParams, null, 2)
+        );
 
         response = await openai.responses.create(requestParams);
         console.log('[ChatGPT Service] OpenAI API call successful');
@@ -384,11 +447,15 @@ export class ChatGPTService {
       console.log('[ChatGPT Service] response.output:', response.output);
 
       // Filter for image_generation_call outputs and extract base64 data
-      const imageData = (response.output as any[])?.filter(
-        output => output.type === 'image_generation_call'
-      ).map(output => output.result) || [];
+      const imageData =
+        (response.output as any[])
+          ?.filter(output => output.type === 'image_generation_call')
+          .map(output => output.result) || [];
 
-      console.log('[ChatGPT Service] Found edited image data:', imageData.length);
+      console.log(
+        '[ChatGPT Service] Found edited image data:',
+        imageData.length
+      );
 
       // Convert base64 data to data URLs
       const images: GeneratedImage[] = imageData.map((base64: string) => ({
@@ -396,14 +463,15 @@ export class ChatGPTService {
         revised_prompt: undefined,
       }));
 
-      // Calculate credits used based on size and count
-      const creditsPerImage = CREDIT_COSTS[size] || 2;
+      // Calculate credits used based on quality and count
+      const creditsPerImage =
+        CREDIT_COSTS_BY_QUALITY[quality] || CREDIT_COSTS_BY_QUALITY['standard'];
       const creditsUsed = creditsPerImage * imageCount;
 
       console.log('Image editing successful:', {
         count: images.length,
         creditsUsed,
-        size,
+        quality,
       });
 
       return {
