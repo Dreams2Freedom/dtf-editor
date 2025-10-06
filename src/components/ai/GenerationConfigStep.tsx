@@ -58,7 +58,8 @@ export function GenerationConfigStep({
 
   // Use Boolean() to safely handle any truthy value (true, 1, 'true', etc.)
   const isAdmin = Boolean(profile?.is_admin);
-  const hasEnoughCredits = isAdmin || (profile?.credits_remaining || 0) >= totalCost;
+  const hasEnoughCredits =
+    isAdmin || (profile?.credits_remaining || 0) >= totalCost;
 
   const handleGenerate = async () => {
     if (!hasEnoughCredits && !isAdmin) {
@@ -365,8 +366,8 @@ export function GenerationConfigStep({
 
           {!hasEnoughCredits && !isAdmin && (
             <p className="text-xs text-error-600 mt-2 text-center">
-              Insufficient credits. You have {profile?.credits_remaining || 0} but need{' '}
-              {totalCost}.
+              Insufficient credits. You have {profile?.credits_remaining || 0}{' '}
+              but need {totalCost}.
             </p>
           )}
         </Card>
