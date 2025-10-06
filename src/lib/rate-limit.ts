@@ -46,6 +46,11 @@ export const RATE_LIMITS = {
     requests: 100,
     window: '1 m', // 100 checks per minute per IP (marketing/conversion tool)
   },
+  // AI Preview generation - free watermarked previews
+  aiPreview: {
+    requests: 15,
+    window: '5 m', // 15 previews per 5 minutes (prevents abuse while allowing experimentation)
+  },
 } as const;
 
 // Create Redis client (using in-memory for now, should use Upstash Redis in production)

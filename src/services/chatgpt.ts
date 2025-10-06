@@ -105,16 +105,14 @@ export class ChatGPTService {
         const cleanedPrompt = prompt.replace('[IMAGE-TO-IMAGE]', ''); // Remove marker if present
 
         // Build the request parameters for Images API
-        // gpt-image-1 supports: model, prompt, n, size, quality, background, moderation
-        // Does NOT support: style (DALL-E 3 only) or response_format
+        // gpt-image-1 supports: model, prompt, size, quality, background, moderation
+        // Does NOT support: style (DALL-E 3 only), n (single image only), response_format (always base64)
         const requestParams: any = {
           model: 'gpt-image-1', // Dedicated image generation model
           prompt: cleanedPrompt,
-          n: imageCount,
           size: size, // '1024x1024' | '1024x1792' | '1792x1024'
           quality: quality, // 'low' | 'medium' | 'high' | 'auto'
           background: 'transparent', // CRITICAL for DTF printing - enables transparent backgrounds
-          // response_format removed - will return URLs by default
         };
 
         console.log(

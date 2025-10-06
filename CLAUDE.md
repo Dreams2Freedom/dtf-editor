@@ -321,3 +321,4 @@ When implementing Stripe subscriptions, Supabase features, or any API integratio
 - [ ] Commit changes with clear message
 - shannon@S2Transfers.com is the super admin for this project
 - remeber dont make breaking changes without a detailed plan to fix the features that are broken by the change
+- allways deploy via github

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useRef, useEffect } from 'react';
+import React, { useRef, useEffect, useState } from 'react';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import {
@@ -15,12 +15,20 @@ import {
   Image as ImageIcon,
   Edit3,
   ArrowLeft,
+  Eye,
+  Zap,
 } from 'lucide-react';
 import { useAuthStore } from '@/stores/authStore';
 import { toast } from 'react-hot-toast';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import type { GenerationOptions, GeneratedImage } from './PromptWizard';
+
+interface PreviewData {
+  previewId: string;
+  watermarkedUrl: string;
+  expiresIn: number;
+}
 
 interface GenerationConfigStepProps {
   finalPrompt: string;
@@ -51,6 +59,11 @@ export function GenerationConfigStep({
   const router = useRouter();
   const resultsRef = useRef<HTMLDivElement>(null);
 
+  // Preview state
+  const [previewData, setPreviewData] = useState<PreviewData | null>(null);
+  const [isGeneratingPreview, setIsGeneratingPreview] = useState(false);
+  const [previewIds, setPreviewIds] = useState<string[]>([]);
+
   // Scroll to results when generation starts
   useEffect(() => {
     if (isGenerating && resultsRef.current) {
@@ -61,10 +74,26 @@ export function GenerationConfigStep({
     }
   }, [isGenerating]);
 
+  // Cleanup previews on unmount
+  useEffect(() => {
+    return () => {
+      if (previewIds.length > 0) {
+        // Cleanup all previews when component unmounts
+        fetch('/api/generate/preview/cleanup', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({ previewIds }),
+        }).catch(err => console.error('Preview cleanup error:', err));
+      }
+    };
+  }, [previewIds]);
+
   // Calculate credit cost
   // Always using 'high' quality for best transparent backgrounds = 2 credits per image
+  // Note: gpt-image-1 only generates one image per call
   const creditCost = 2;
-  const totalCost = creditCost * generationOptions.count;
+  const totalCost = creditCost;
 
   // Use Boolean() to safely handle any truthy value (true, 1, 'true', etc.)
   const isAdmin = Boolean(profile?.is_admin);
@@ -91,7 +120,6 @@ export function GenerationConfigStep({
           prompt: finalPrompt,
           size: generationOptions.size,
           quality: 'high', // Always use high quality for best transparent backgrounds
-          count: generationOptions.count,
           enhanceForDTF: true, // Always enhance for DTF
         }),
       });
@@ -127,6 +155,111 @@ export function GenerationConfigStep({
     } catch (error) {
       console.error('Generation error:', error);
       toast.error('Failed to generate image. Please try again.');
+    } finally {
+      onGeneratingChange(false);
+    }
+  };
+
+  // Generate FREE preview (low-quality watermarked)
+  const handleGeneratePreview = async () => {
+    setIsGeneratingPreview(true);
+    setPreviewData(null);
+
+    try {
+      const response = await fetch('/api/generate/preview', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          prompt: finalPrompt,
+          size: generationOptions.size,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        if (response.status === 429) {
+          toast.error('Rate limit exceeded. Please wait a few minutes and try again.');
+        } else {
+          toast.error(data.error || 'Failed to generate preview');
+        }
+        return;
+      }
+
+      setPreviewData({
+        previewId: data.previewId,
+        watermarkedUrl: data.watermarkedUrl,
+        expiresIn: data.expiresIn,
+      });
+      setPreviewIds(prev => [...prev, data.previewId]);
+      toast.success('FREE preview generated! No credits charged.');
+
+      // Scroll to preview
+      setTimeout(() => {
+        resultsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }, 100);
+    } catch (error) {
+      console.error('Preview generation error:', error);
+      toast.error('Failed to generate preview. Please try again.');
+    } finally {
+      setIsGeneratingPreview(false);
+    }
+  };
+
+  // Download print-ready image (upscales preview and charges credits)
+  const handleDownloadPrintReady = async () => {
+    if (!previewData) return;
+
+    const size = generationOptions.size;
+    const isLargeSize = size === '1792x1024' || size === '1024x1792';
+    const creditsRequired = isLargeSize ? 2 : 1;
+
+    if (!isAdmin && (profile?.credits_remaining || 0) < creditsRequired) {
+      toast.error(
+        `You need ${creditsRequired} credits but only have ${profile?.credits_remaining || 0}`
+      );
+      return;
+    }
+
+    onGeneratingChange(true);
+
+    try {
+      const response = await fetch('/api/generate/image', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          previewId: previewData.previewId,
+          size: generationOptions.size,
+          quality: 'high',
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        toast.error(data.error || 'Failed to generate print-ready image');
+        return;
+      }
+
+      onImagesGenerated(data.images || []);
+      toast.success(
+        `Print-ready image generated! ${data.creditsUsed} credits used. Preview cleaned up.`
+      );
+
+      // Clear preview after successful download
+      setPreviewData(null);
+
+      // Refresh profile
+      try {
+        await useAuthStore.getState().refreshProfile();
+      } catch (refreshError) {
+        console.error('Failed to refresh profile:', refreshError);
+      }
+    } catch (error) {
+      console.error('Download error:', error);
+      toast.error('Failed to generate print-ready image. Please try again.');
     } finally {
       onGeneratingChange(false);
     }
@@ -261,63 +394,6 @@ export function GenerationConfigStep({
             </div>
           </div> */}
 
-          {/* Count Selection */}
-          <div className="mb-4">
-            <label className="block text-sm font-medium mb-2">
-              Number of Images
-            </label>
-            <div className="grid grid-cols-4 gap-2">
-              <button
-                onClick={() =>
-                  onOptionsChange({ ...generationOptions, count: 1 })
-                }
-                className={`p-3 rounded-lg border text-sm font-medium transition-all ${
-                  generationOptions.count === 1
-                    ? 'border-primary-600 bg-primary-50 text-primary-700 ring-2 ring-primary-200'
-                    : 'border-gray-300 hover:border-gray-400'
-                }`}
-              >
-                1
-              </button>
-              <button
-                onClick={() =>
-                  onOptionsChange({ ...generationOptions, count: 2 })
-                }
-                className={`p-3 rounded-lg border text-sm font-medium transition-all ${
-                  generationOptions.count === 2
-                    ? 'border-primary-600 bg-primary-50 text-primary-700 ring-2 ring-primary-200'
-                    : 'border-gray-300 hover:border-gray-400'
-                }`}
-              >
-                2
-              </button>
-              <button
-                onClick={() =>
-                  onOptionsChange({ ...generationOptions, count: 3 })
-                }
-                className={`p-3 rounded-lg border text-sm font-medium transition-all ${
-                  generationOptions.count === 3
-                    ? 'border-primary-600 bg-primary-50 text-primary-700 ring-2 ring-primary-200'
-                    : 'border-gray-300 hover:border-gray-400'
-                }`}
-              >
-                3
-              </button>
-              <button
-                onClick={() =>
-                  onOptionsChange({ ...generationOptions, count: 4 })
-                }
-                className={`p-3 rounded-lg border text-sm font-medium transition-all ${
-                  generationOptions.count === 4
-                    ? 'border-primary-600 bg-primary-50 text-primary-700 ring-2 ring-primary-200'
-                    : 'border-gray-300 hover:border-gray-400'
-                }`}
-              >
-                4
-              </button>
-            </div>
-          </div>
-
           {/* Cost Summary */}
           <div className="bg-gray-50 rounded-lg p-4 space-y-2">
             <div className="flex items-center justify-between text-sm">
@@ -339,33 +415,72 @@ export function GenerationConfigStep({
             </div>
           </div>
 
-          {/* Generate Button */}
-          <Button
-            variant="default"
-            size="lg"
-            className="w-full mt-4"
-            onClick={handleGenerate}
-            disabled={!hasEnoughCredits || isGenerating}
-          >
-            {isGenerating ? (
-              <>
-                <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                Generating...
-              </>
-            ) : (
-              <>
-                <Sparkles className="w-5 h-5 mr-2" />
-                Generate Image{generationOptions.count > 1 ? 's' : ''}
-              </>
-            )}
-          </Button>
+          {/* Preview-Then-Purchase Options */}
+          <div className="mt-4 space-y-3">
+            {/* FREE Preview Button */}
+            <div className="space-y-2">
+              <Button
+                variant="secondary"
+                size="lg"
+                className="w-full border-2 border-green-500 bg-green-50 hover:bg-green-100 text-green-700 font-semibold"
+                onClick={handleGeneratePreview}
+                disabled={isGeneratingPreview || isGenerating}
+              >
+                {isGeneratingPreview ? (
+                  <>
+                    <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                    Generating Preview...
+                  </>
+                ) : (
+                  <>
+                    <Eye className="w-5 h-5 mr-2" />
+                    Generate Preview (FREE - No Credits)
+                  </>
+                )}
+              </Button>
+              <p className="text-xs text-gray-600 text-center">
+                🎉 Try unlimited low-quality watermarked previews for free before purchasing!
+              </p>
+            </div>
 
-          {!hasEnoughCredits && !isAdmin && (
-            <p className="text-xs text-error-600 mt-2 text-center">
-              Insufficient credits. You have {profile?.credits_remaining || 0}{' '}
-              but need {totalCost}.
-            </p>
-          )}
+            {/* Divider */}
+            <div className="relative">
+              <div className="absolute inset-0 flex items-center">
+                <div className="w-full border-t border-gray-300"></div>
+              </div>
+              <div className="relative flex justify-center text-xs">
+                <span className="bg-white px-2 text-gray-500">or</span>
+              </div>
+            </div>
+
+            {/* Full Quality Generate Button */}
+            <Button
+              variant="default"
+              size="lg"
+              className="w-full"
+              onClick={handleGenerate}
+              disabled={!hasEnoughCredits || isGenerating}
+            >
+              {isGenerating ? (
+                <>
+                  <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                  Generating...
+                </>
+              ) : (
+                <>
+                  <Sparkles className="w-5 h-5 mr-2" />
+                  Generate Full Quality ({totalCost} credits)
+                </>
+              )}
+            </Button>
+
+            {!hasEnoughCredits && !isAdmin && (
+              <p className="text-xs text-error-600 mt-2 text-center">
+                Insufficient credits. You have {profile?.credits_remaining || 0}{' '}
+                but need {totalCost}.
+              </p>
+            )}
+          </div>
 
           {/* Loading time notice */}
           {isGenerating && (
@@ -382,9 +497,92 @@ export function GenerationConfigStep({
       {/* Right Column - Results */}
       <div ref={resultsRef}>
         <Card className="p-6 min-h-[500px]">
-          <h3 className="font-semibold mb-4">Generated Images</h3>
+          <h3 className="font-semibold mb-4">
+            {previewData ? 'Preview Image' : 'Generated Images'}
+          </h3>
 
-          {generatedImages.length === 0 && !isGenerating && (
+          {/* Preview Display */}
+          {previewData && !generatedImages.length && (
+            <div className="space-y-4">
+              <div className="relative aspect-square rounded-lg overflow-hidden bg-gray-100 border-2 border-green-400">
+                <Image
+                  src={previewData.watermarkedUrl}
+                  alt="Preview image"
+                  fill
+                  className="object-contain"
+                />
+                {/* Watermark Badge Overlay */}
+                <div className="absolute top-2 right-2">
+                  <div className="bg-yellow-500 text-yellow-900 px-3 py-1 rounded-full text-xs font-bold shadow-lg">
+                    PREVIEW
+                  </div>
+                </div>
+              </div>
+
+              {/* Preview Info Card */}
+              <Card className="p-4 bg-gradient-to-r from-green-50 to-blue-50 border-green-200">
+                <div className="space-y-3">
+                  <div className="flex items-start gap-3">
+                    <Eye className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
+                    <div className="flex-1">
+                      <h4 className="text-sm font-semibold text-green-900 mb-1">
+                        FREE Preview Generated!
+                      </h4>
+                      <p className="text-xs text-green-700">
+                        This is a low-quality watermarked preview. Like what you see?
+                        Download the high-quality print-ready version below.
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="pt-2 border-t border-green-200">
+                    <p className="text-xs text-green-600 mb-3">
+                      ⏱️ Preview expires in {Math.floor(previewData.expiresIn / 60)} minutes
+                    </p>
+
+                    {/* Download Print-Ready Button */}
+                    <Button
+                      variant="default"
+                      size="lg"
+                      className="w-full bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700"
+                      onClick={handleDownloadPrintReady}
+                      disabled={isGenerating}
+                    >
+                      {isGenerating ? (
+                        <>
+                          <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                          Upscaling to Print Quality...
+                        </>
+                      ) : (
+                        <>
+                          <Zap className="w-5 h-5 mr-2" />
+                          Download Print-Ready ({generationOptions.size === '1024x1024' ? '1' : '2'} credits)
+                        </>
+                      )}
+                    </Button>
+                    <p className="text-xs text-gray-600 mt-2 text-center">
+                      4x upscaled, no watermark, maintains transparency
+                    </p>
+                  </div>
+                </div>
+              </Card>
+
+              {/* Generate New Preview Button */}
+              <Button
+                variant="secondary"
+                size="sm"
+                className="w-full"
+                onClick={handleGeneratePreview}
+                disabled={isGeneratingPreview}
+              >
+                <Eye className="w-4 h-4 mr-2" />
+                Generate New Preview (Still FREE!)
+              </Button>
+            </div>
+          )}
+
+          {/* Empty State */}
+          {!previewData && generatedImages.length === 0 && !isGenerating && !isGeneratingPreview && (
             <div className="flex flex-col items-center justify-center py-16 text-gray-400">
               <ImageIcon className="w-16 h-16 mb-4" />
               <p className="text-center text-sm">
@@ -396,11 +594,27 @@ export function GenerationConfigStep({
             </div>
           )}
 
-          {isGenerating && (
+          {/* Loading States */}
+          {isGeneratingPreview && (
+            <div className="flex flex-col items-center justify-center py-16">
+              <Loader2 className="w-12 h-12 animate-spin text-green-600 mb-4" />
+              <p className="text-gray-700 font-medium">
+                Generating FREE preview...
+              </p>
+              <p className="text-sm text-gray-500 mt-2">
+                No credits will be charged
+              </p>
+              <div className="mt-4 text-xs text-gray-600 bg-gray-50 px-4 py-2 rounded-lg">
+                <TransparentBackgroundInline />
+              </div>
+            </div>
+          )}
+
+          {isGenerating && !previewData && (
             <div className="flex flex-col items-center justify-center py-16">
               <Loader2 className="w-12 h-12 animate-spin text-purple-600 mb-4" />
               <p className="text-gray-700 font-medium">
-                Creating your image{generationOptions.count > 1 ? 's' : ''}...
+                Creating your image...
               </p>
               <p className="text-sm text-gray-500 mt-2">
                 This may take up to 30 seconds

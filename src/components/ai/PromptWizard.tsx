@@ -22,7 +22,7 @@ export interface GenerationOptions {
   size: '1024x1024' | '1024x1792' | '1792x1024';
   quality: 'low' | 'medium' | 'high' | 'auto';
   style?: 'vivid' | 'natural'; // Not supported by gpt-image-1, but kept for compatibility
-  count: number;
+  // Note: gpt-image-1 only generates one image per call, so count is removed
 }
 
 export interface OptimizedPrompt {
@@ -70,7 +70,6 @@ export function PromptWizard() {
     {
       size: '1024x1024',
       quality: 'high', // Always use high quality for best transparent backgrounds
-      count: 1,
     }
   );
   const [isGenerating, setIsGenerating] = useState(false);
