@@ -13,8 +13,8 @@ export async function addWatermark(imageBuffer: Buffer): Promise<Buffer> {
     const width = metadata.width || 1024;
     const height = metadata.height || 1024;
 
-    // Calculate font size based on image dimensions (2-4% of width)
-    const fontSize = Math.max(32, Math.min(80, width * 0.035));
+    // Calculate font size based on image dimensions (5% of width, larger for visibility)
+    const fontSize = Math.max(40, Math.min(120, width * 0.05));
 
     console.log('[Watermark] Creating text overlay:', {
       imageSize: `${width}x${height}`,
@@ -23,15 +23,15 @@ export async function addWatermark(imageBuffer: Buffer): Promise<Buffer> {
 
     // Create text image using Sharp's native text API (vips_text)
     // Uses Pango markup for styling with stroke for visibility on all backgrounds
-    const textWidth = Math.floor(width * 0.4); // Text tile is 40% of image width
+    const textWidth = Math.floor(width * 0.5); // Text tile is 50% of image width
 
     // Use Pango markup for styled text with background for contrast
-    // White text with semi-transparency, visible on all backgrounds
+    // White text with more transparency (30%) for subtle watermark effect
     // NOTE: Cannot use both dpi and height - Sharp only allows one
     // NOTE: Pango markup uses named colors and alpha attribute, not rgba()
     const textBuffer = await sharp({
       text: {
-        text: `<span foreground="white" background="black" alpha="50%"> PREVIEW </span>`,
+        text: `<span foreground="white" background="black" alpha="30%"> PREVIEW </span>`,
         font: 'sans-serif',
         fontfile: undefined, // Let Sharp use system fonts
         width: textWidth,
