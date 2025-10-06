@@ -2,8 +2,8 @@ import { env } from '@/config/env';
 
 export interface ImageGenerationOptions {
   prompt: string;
-  size?: '1024x1024' | '1024x1536' | '1536x1024'; // GPT-Image-1 sizes via Responses API
-  quality?: 'low' | 'standard' | 'high' | 'hd'; // Quality levels (hd and high both map to API "high")
+  size?: '1024x1024' | '1024x1792' | '1792x1024'; // GPT-Image-1 sizes via Images API
+  quality?: 'standard' | 'hd'; // Images API quality levels
   style?: 'vivid' | 'natural'; // Style preference
   n?: number; // Number of images to generate
 }
@@ -12,8 +12,8 @@ export interface ImageEditOptions {
   prompt: string;
   image: Buffer | string; // Base64 string or Buffer of the image to edit
   mask?: Buffer | string; // Optional mask for selective editing
-  size?: '1024x1024' | '1024x1536' | '1536x1024';
-  quality?: 'low' | 'standard' | 'high' | 'hd';
+  size?: '1024x1024' | '1024x1792' | '1792x1024';
+  quality?: 'standard' | 'hd';
   style?: 'vivid' | 'natural';
   n?: number;
 }
@@ -32,13 +32,11 @@ export interface ImageGenerationResult {
 
 export type ImageEditResult = ImageGenerationResult;
 
-// Credit costs for GPT-Image-1 using Responses API (based on quality)
-// Tool-based API only supports "medium" and "high" quality
+// Credit costs for GPT-Image-1 using Images API (based on quality)
+// Images API supports "standard" and "hd" quality
 const CREDIT_COSTS_BY_QUALITY = {
-  low: 1, // Maps to "medium" quality in API
-  standard: 1, // Maps to "medium" quality in API
-  hd: 2, // Maps to "high" quality in API
-  high: 2, // Maps to "high" quality in API
+  standard: 1, // Standard quality uses 1 credit
+  hd: 2, // HD quality uses 2 credits
 };
 
 export class ChatGPTService {
@@ -92,10 +90,10 @@ export class ChatGPTService {
         n = 1,
       } = options;
 
-      // GPT-Image-1 image count
+      // Images API supports up to 10 images per request
       const imageCount = Math.min(Math.max(n, 1), 10);
 
-      console.log('[ChatGPT Service] Generating image with GPT-Image-1 Tool:', {
+      console.log('[ChatGPT Service] Generating image with GPT-Image-1:', {
         prompt: prompt.substring(0, 100) + '...',
         size,
         quality,
@@ -103,52 +101,23 @@ export class ChatGPTService {
         n: imageCount,
       });
 
-      // Make the API call to generate image using tool-based API
-      console.log('[ChatGPT Service] Calling OpenAI responses.create API...');
+      // Make the API call to generate image using Images API
+      console.log('[ChatGPT Service] Calling OpenAI images.generate API...');
       let response;
       try {
-        // Use GPT-5 with image_generation tool (new API)
-        // Based on: https://platform.openai.com/docs/guides/image-generation?image-generation-model=gpt-image-1
+        // Use gpt-image-1 model via Images API (direct endpoint)
+        // This will show up in the "Images" section of OpenAI dashboard
         const cleanedPrompt = prompt.replace('[IMAGE-TO-IMAGE]', ''); // Remove marker if present
 
-        // Map quality to API values (API only supports "medium" and "high")
-        // Our UI has: low (1 credit), standard (1 credit), high (2 credits)
-        const apiQuality =
-          quality === 'hd' || quality === 'high' ? 'high' : 'medium';
-
-        // Since tool-based API doesn't have size/style parameters, include them as hints in prompt
-        let enhancedPrompt = cleanedPrompt;
-
-        // Add size hint if not default
-        if (size !== '1024x1024') {
-          const sizeHint =
-            size === '1024x1536'
-              ? 'portrait orientation'
-              : size === '1536x1024'
-                ? 'landscape orientation'
-                : '';
-          if (sizeHint) {
-            enhancedPrompt = `${cleanedPrompt} (${sizeHint})`;
-          }
-        }
-
-        // Add style hint if specified
-        if (style === 'natural') {
-          enhancedPrompt = `${enhancedPrompt}. Use a natural, photorealistic style.`;
-        } else if (style === 'vivid') {
-          enhancedPrompt = `${enhancedPrompt}. Use a vivid, highly detailed style.`;
-        }
-
-        // Build the request parameters with quality
+        // Build the request parameters for Images API
         const requestParams: any = {
-          model: 'gpt-5', // Model that supports image_generation tool
-          input: enhancedPrompt,
-          tools: [
-            {
-              type: 'image_generation',
-              quality: apiQuality, // Pass quality to the tool
-            },
-          ],
+          model: 'gpt-image-1', // Dedicated image generation model
+          prompt: cleanedPrompt,
+          n: imageCount,
+          size: size, // Direct size parameter support
+          quality: quality, // Direct quality parameter: "standard" or "hd"
+          style: style, // Direct style parameter: "vivid" or "natural"
+          response_format: 'b64_json', // Get base64 encoded images
         };
 
         console.log(
@@ -156,7 +125,7 @@ export class ChatGPTService {
           JSON.stringify(requestParams, null, 2)
         );
 
-        response = await openai.responses.create(requestParams);
+        response = await openai.images.generate(requestParams);
         console.log('[ChatGPT Service] OpenAI API call successful');
         console.log(
           '[ChatGPT Service] Full response:',
@@ -175,24 +144,18 @@ export class ChatGPTService {
         );
       }
 
-      // Extract the generated images from tool outputs
+      // Extract the generated images from response.data array
       console.log(
-        '[ChatGPT Service] Extracting images from response.output...'
+        '[ChatGPT Service] Extracting images from response.data...'
       );
-      console.log('[ChatGPT Service] response.output:', response.output);
+      console.log('[ChatGPT Service] response.data:', response.data);
 
-      // Filter for image_generation_call outputs and extract base64 data
-      const imageData =
-        (response.output as any[])
-          ?.filter(output => output.type === 'image_generation_call')
-          .map(output => output.result) || [];
-
-      console.log('[ChatGPT Service] Found image data:', imageData.length);
-
-      // Convert base64 data to data URLs
-      const images: GeneratedImage[] = imageData.map((base64: string) => ({
-        url: `data:image/png;base64,${base64}`,
-        revised_prompt: undefined, // GPT-Image-1 doesn't revise prompts
+      // Images API returns data as array of image objects with b64_json or url
+      const images: GeneratedImage[] = (response.data || []).map((imageData: any) => ({
+        url: imageData.b64_json
+          ? `data:image/png;base64,${imageData.b64_json}`
+          : imageData.url || '',
+        revised_prompt: imageData.revised_prompt, // gpt-image-1 may provide revised prompts
       }));
 
       console.log('[ChatGPT Service] Extracted images:', images.length);
@@ -206,6 +169,8 @@ export class ChatGPTService {
         count: images.length,
         creditsUsed,
         size,
+        quality,
+        style,
       });
 
       return {
@@ -215,13 +180,15 @@ export class ChatGPTService {
       };
     } catch (error: unknown) {
       console.error('[ChatGPT Service] Image generation error:', error);
-      console.error('[ChatGPT Service] Error stack:', error.stack);
+      const err = error as Error & { stack?: string };
+      console.error('[ChatGPT Service] Error stack:', err.stack);
 
       // Handle specific OpenAI errors
-      if (error.response) {
-        const statusCode = error.response.status;
+      const errorWithResponse = error as Error & { response?: { status: number; data?: { error?: { message?: string } } } };
+      if (errorWithResponse.response) {
+        const statusCode = errorWithResponse.response.status;
         const errorMessage =
-          error.response.data?.error?.message || error.message;
+          errorWithResponse.response.data?.error?.message || (error as Error).message;
 
         if (statusCode === 401) {
           return {
@@ -258,7 +225,7 @@ export class ChatGPTService {
       // Generic error
       return {
         success: false,
-        error: error.message || 'Failed to generate image. Please try again.',
+        error: (error as Error).message || 'Failed to generate image. Please try again.',
       };
     }
   }

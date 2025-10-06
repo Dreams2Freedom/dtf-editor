@@ -19,8 +19,8 @@ import { GenerationConfigStep } from './GenerationConfigStep';
 
 // Types
 export interface GenerationOptions {
-  size: '1024x1024' | '1024x1536' | '1536x1024';
-  quality: 'low' | 'standard' | 'high';
+  size: '1024x1024' | '1024x1792' | '1792x1024';
+  quality: 'standard' | 'hd';
   style: 'vivid' | 'natural';
   count: number;
 }

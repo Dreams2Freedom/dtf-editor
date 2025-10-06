@@ -63,9 +63,8 @@ export function GenerationConfigStep({
 
   // Calculate credit cost
   const qualityCredits = {
-    low: 1,
     standard: 1,
-    high: 2,
+    hd: 2,
   };
   const creditCost = qualityCredits[generationOptions.quality] || 1;
   const totalCost = creditCost * generationOptions.count;
@@ -203,31 +202,31 @@ export function GenerationConfigStep({
               </button>
               <button
                 onClick={() =>
-                  onOptionsChange({ ...generationOptions, size: '1024x1536' })
+                  onOptionsChange({ ...generationOptions, size: '1024x1792' })
                 }
                 className={`p-2 rounded-lg border text-sm transition-all ${
-                  generationOptions.size === '1024x1536'
+                  generationOptions.size === '1024x1792'
                     ? 'border-primary-600 bg-primary-50 text-primary-700 ring-2 ring-primary-200'
                     : 'border-gray-300 hover:border-gray-400'
                 }`}
               >
                 Portrait
                 <br />
-                1024×1536
+                1024×1792
               </button>
               <button
                 onClick={() =>
-                  onOptionsChange({ ...generationOptions, size: '1536x1024' })
+                  onOptionsChange({ ...generationOptions, size: '1792x1024' })
                 }
                 className={`p-2 rounded-lg border text-sm transition-all ${
-                  generationOptions.size === '1536x1024'
+                  generationOptions.size === '1792x1024'
                     ? 'border-primary-600 bg-primary-50 text-primary-700 ring-2 ring-primary-200'
                     : 'border-gray-300 hover:border-gray-400'
                 }`}
               >
                 Landscape
                 <br />
-                1536×1024
+                1792×1024
               </button>
             </div>
           </div>
@@ -235,20 +234,7 @@ export function GenerationConfigStep({
           {/* Quality Selection */}
           <div className="mb-4">
             <label className="block text-sm font-medium mb-2">Quality</label>
-            <div className="grid grid-cols-3 gap-2">
-              <button
-                onClick={() =>
-                  onOptionsChange({ ...generationOptions, quality: 'low' })
-                }
-                className={`p-3 rounded-lg border text-sm transition-all ${
-                  generationOptions.quality === 'low'
-                    ? 'border-primary-600 bg-primary-50 text-primary-700 ring-2 ring-primary-200'
-                    : 'border-gray-300 hover:border-gray-400'
-                }`}
-              >
-                <div className="font-medium">Low</div>
-                <div className="text-xs text-gray-600">1 credit</div>
-              </button>
+            <div className="grid grid-cols-2 gap-2">
               <button
                 onClick={() =>
                   onOptionsChange({ ...generationOptions, quality: 'standard' })
@@ -264,15 +250,15 @@ export function GenerationConfigStep({
               </button>
               <button
                 onClick={() =>
-                  onOptionsChange({ ...generationOptions, quality: 'high' })
+                  onOptionsChange({ ...generationOptions, quality: 'hd' })
                 }
                 className={`p-3 rounded-lg border text-sm transition-all ${
-                  generationOptions.quality === 'high'
+                  generationOptions.quality === 'hd'
                     ? 'border-primary-600 bg-primary-50 text-primary-700 ring-2 ring-primary-200'
                     : 'border-gray-300 hover:border-gray-400'
                 }`}
               >
-                <div className="font-medium">High</div>
+                <div className="font-medium">HD</div>
                 <div className="text-xs text-gray-600">2 credits</div>
               </button>
             </div>

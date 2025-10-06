@@ -141,15 +141,17 @@ async function handlePost(request: NextRequest) {
     const isPaidUser =
       profile.subscription_tier && profile.subscription_tier !== 'free';
 
-    if (!isPaidUser && !isAdmin) {
-      return NextResponse.json(
-        {
-          error: 'AI image generation is only available for paid subscribers',
-          requiresUpgrade: true,
-        },
-        { status: 403 }
-      );
-    }
+    // BETA: Temporarily allow all users to test AI image generation
+    // TODO: Re-enable paid check before production launch
+    // if (!isPaidUser && !isAdmin) {
+    //   return NextResponse.json(
+    //     {
+    //       error: 'AI image generation is only available for paid subscribers',
+    //       requiresUpgrade: true,
+    //     },
+    //     { status: 403 }
+    //   );
+    // }
 
     // Parse request body
     const body = await request.json();
