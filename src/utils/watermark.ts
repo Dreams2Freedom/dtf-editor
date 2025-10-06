@@ -24,20 +24,19 @@ export async function addWatermark(imageBuffer: Buffer): Promise<Buffer> {
     // Create text image using Sharp's native text API (vips_text)
     // Uses Pango markup for styling with stroke for visibility on all backgrounds
     const textWidth = Math.floor(width * 0.4); // Text tile is 40% of image width
-    const textHeight = Math.floor(fontSize * 2); // Height based on font size
 
     // Use Pango markup for styled text with background for contrast
     // White text with semi-transparency, visible on all backgrounds
+    // NOTE: Cannot use both dpi and height - Sharp only allows one
     const textBuffer = await sharp({
       text: {
         text: `<span foreground="white" background="rgba(0,0,0,0.5)"> PREVIEW </span>`,
         font: 'sans-serif',
         fontfile: undefined, // Let Sharp use system fonts
         width: textWidth,
-        height: textHeight,
         align: 'center',
         rgba: true, // Enable RGBA for transparency
-        dpi: Math.floor(fontSize * 2), // DPI affects text size
+        dpi: Math.floor(fontSize * 2), // DPI controls text size (cannot use with height)
       },
     })
       .png({ compressionLevel: 6, alpha: true })
