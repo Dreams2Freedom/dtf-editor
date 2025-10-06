@@ -18,7 +18,8 @@ async function checkUsers() {
 
   try {
     // Check auth.users table using admin API
-    const { data: authUsers, error: authError } = await supabase.auth.admin.listUsers();
+    const { data: authUsers, error: authError } =
+      await supabase.auth.admin.listUsers();
 
     if (authError) {
       console.error('❌ Error fetching auth.users:', authError);
@@ -29,7 +30,9 @@ async function checkUsers() {
           console.log(`   ${index + 1}. ${user.email}`);
           console.log(`      ID: ${user.id}`);
           console.log(`      Created: ${user.created_at}`);
-          console.log(`      Email Confirmed: ${user.email_confirmed_at || 'No'}`);
+          console.log(
+            `      Email Confirmed: ${user.email_confirmed_at || 'No'}`
+          );
           console.log(`      Last Sign In: ${user.last_sign_in_at || 'Never'}`);
           console.log('');
         });
@@ -41,7 +44,9 @@ async function checkUsers() {
     // Check profiles table
     const { data: profiles, error: profilesError } = await supabase
       .from('profiles')
-      .select('id, email, first_name, last_name, credits_remaining, subscription_status, created_at')
+      .select(
+        'id, email, first_name, last_name, credits_remaining, subscription_status, created_at'
+      )
       .order('created_at', { ascending: false })
       .limit(10);
 
@@ -53,7 +58,9 @@ async function checkUsers() {
         profiles.forEach((profile, index) => {
           console.log(`   ${index + 1}. ${profile.email}`);
           console.log(`      ID: ${profile.id}`);
-          console.log(`      Name: ${profile.first_name || 'N/A'} ${profile.last_name || 'N/A'}`);
+          console.log(
+            `      Name: ${profile.first_name || 'N/A'} ${profile.last_name || 'N/A'}`
+          );
           console.log(`      Credits: ${profile.credits_remaining}`);
           console.log(`      Subscription: ${profile.subscription_status}`);
           console.log(`      Created: ${profile.created_at}`);
@@ -63,7 +70,6 @@ async function checkUsers() {
         console.log('   No profiles found');
       }
     }
-
   } catch (error) {
     console.error('❌ Unexpected error:', error);
   }
@@ -77,16 +83,17 @@ async function createTestUser() {
 
   try {
     // Create user in auth.users
-    const { data: authData, error: authError } = await supabase.auth.admin.createUser({
-      email: testEmail,
-      password: testPassword,
-      email_confirm: true,
-      user_metadata: {
-        first_name: 'Test',
-        last_name: 'User',
-        company: 'Test Company'
-      }
-    });
+    const { data: authData, error: authError } =
+      await supabase.auth.admin.createUser({
+        email: testEmail,
+        password: testPassword,
+        email_confirm: true,
+        user_metadata: {
+          first_name: 'Test',
+          last_name: 'User',
+          company: 'Test Company',
+        },
+      });
 
     if (authError) {
       console.error('❌ Error creating auth user:', authError);
@@ -107,7 +114,7 @@ async function createTestUser() {
 
     if (profileError) {
       console.log('⚠️  Profile not found, creating manually...');
-      
+
       // Create profile manually
       const { error: createProfileError } = await supabase
         .from('profiles')
@@ -120,7 +127,7 @@ async function createTestUser() {
           credits_remaining: 5,
           subscription_status: 'free',
           subscription_plan: 'free',
-          is_admin: false
+          is_admin: false,
         });
 
       if (createProfileError) {
@@ -136,7 +143,6 @@ async function createTestUser() {
     console.log('   You can now login with:');
     console.log(`   Email: ${testEmail}`);
     console.log(`   Password: ${testPassword}`);
-
   } catch (error) {
     console.error('❌ Error creating test user:', error);
   }
@@ -154,10 +160,14 @@ async function main() {
       break;
     default:
       console.log('Usage:');
-      console.log('  node scripts/check-users.js check    - Check existing users');
-      console.log('  node scripts/check-users.js create   - Create a test user');
+      console.log(
+        '  node scripts/check-users.js check    - Check existing users'
+      );
+      console.log(
+        '  node scripts/check-users.js create   - Create a test user'
+      );
       break;
   }
 }
 
-main().catch(console.error); 
+main().catch(console.error);

@@ -24,7 +24,7 @@ async function checkBalance() {
     .select('credits_remaining')
     .eq('id', 'f689bb22-89dd-4c3c-a941-d77feb84428d')
     .single();
-  
+
   console.log('Current credits:', data?.credits_remaining);
 }
 

@@ -6,7 +6,10 @@ import { withRateLimit } from '@/lib/rate-limit';
 async function handleGet(request: NextRequest) {
   try {
     const supabase = await createServerSupabaseClient();
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
 
     if (authError || !user) {
       return NextResponse.json(
@@ -23,32 +26,34 @@ async function handleGet(request: NextRequest) {
       .single();
 
     if (profileError || !profile) {
-      return NextResponse.json(
-        { error: 'Profile not found' },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: 'Profile not found' }, { status: 404 });
     }
 
     // Check if user has active subscription
     // Note: subscription_status might contain the plan name instead of 'active'
-    const hasActiveSubscription = profile.stripe_customer_id && 
-      profile.stripe_subscription_id && 
-      profile.subscription_status && 
-      !['free', 'cancelled', 'cancelling'].includes(profile.subscription_status);
-      
+    const hasActiveSubscription =
+      profile.stripe_customer_id &&
+      profile.stripe_subscription_id &&
+      profile.subscription_status &&
+      !['free', 'cancelled', 'cancelling'].includes(
+        profile.subscription_status
+      );
+
     if (!hasActiveSubscription) {
       return NextResponse.json({
         eligible: false,
         reason: 'No active subscription found',
         canPause: false,
-        canUseDiscount: false
+        canUseDiscount: false,
       });
     }
 
     // Check pause eligibility
     console.log('Checking pause eligibility for user:', user.id);
-    const { data: pauseEligibility, error: pauseError } = await supabase
-      .rpc('check_pause_eligibility', { p_user_id: user.id });
+    const { data: pauseEligibility, error: pauseError } = await supabase.rpc(
+      'check_pause_eligibility',
+      { p_user_id: user.id }
+    );
 
     console.log('Pause eligibility result:', pauseEligibility);
     if (pauseError) {
@@ -57,8 +62,8 @@ async function handleGet(request: NextRequest) {
 
     // Check discount eligibility
     console.log('Checking discount eligibility for user:', user.id);
-    const { data: discountEligibility, error: discountError } = await supabase
-      .rpc('check_discount_eligibility', { p_user_id: user.id });
+    const { data: discountEligibility, error: discountError } =
+      await supabase.rpc('check_discount_eligibility', { p_user_id: user.id });
 
     console.log('Discount eligibility result:', discountEligibility);
     if (discountError) {
@@ -87,7 +92,9 @@ async function handleGet(request: NextRequest) {
     let currentPeriodEnd = new Date();
     if (profile.stripe_subscription_id) {
       try {
-        const subscription = await getStripeService().getSubscription(profile.stripe_subscription_id);
+        const subscription = await getStripeService().getSubscription(
+          profile.stripe_subscription_id
+        );
         currentPeriodEnd = new Date(subscription.current_period_end * 1000);
       } catch (err) {
         console.error('Failed to get subscription period:', err);
@@ -102,33 +109,41 @@ async function handleGet(request: NextRequest) {
         duration: '2_weeks',
         label: '2 Weeks',
         description: 'Extend your billing by 2 weeks',
-        resumeDate: new Date(currentPeriodEnd.getTime() + 14 * 24 * 60 * 60 * 1000),
-        currentPeriodEnd: currentPeriodEnd
+        resumeDate: new Date(
+          currentPeriodEnd.getTime() + 14 * 24 * 60 * 60 * 1000
+        ),
+        currentPeriodEnd: currentPeriodEnd,
       },
       {
         duration: '1_month',
         label: '1 Month',
         description: 'Extend your billing by 1 month',
-        resumeDate: new Date(currentPeriodEnd.getTime() + 30 * 24 * 60 * 60 * 1000),
-        currentPeriodEnd: currentPeriodEnd
+        resumeDate: new Date(
+          currentPeriodEnd.getTime() + 30 * 24 * 60 * 60 * 1000
+        ),
+        currentPeriodEnd: currentPeriodEnd,
       },
       {
         duration: '2_months',
         label: '2 Months',
         description: 'Extend your billing by 2 months',
-        resumeDate: new Date(currentPeriodEnd.getTime() + 60 * 24 * 60 * 60 * 1000),
-        currentPeriodEnd: currentPeriodEnd
-      }
+        resumeDate: new Date(
+          currentPeriodEnd.getTime() + 60 * 24 * 60 * 60 * 1000
+        ),
+        currentPeriodEnd: currentPeriodEnd,
+      },
     ];
 
     // Extract the first result from the arrays if they exist
-    const pauseResult = Array.isArray(pauseEligibility) && pauseEligibility.length > 0 
-      ? pauseEligibility[0] 
-      : pauseEligibility;
-    
-    const discountResult = Array.isArray(discountEligibility) && discountEligibility.length > 0 
-      ? discountEligibility[0] 
-      : discountEligibility;
+    const pauseResult =
+      Array.isArray(pauseEligibility) && pauseEligibility.length > 0
+        ? pauseEligibility[0]
+        : pauseEligibility;
+
+    const discountResult =
+      Array.isArray(discountEligibility) && discountEligibility.length > 0
+        ? discountEligibility[0]
+        : discountEligibility;
 
     console.log('Extracted pause result:', pauseResult);
     console.log('Extracted discount result:', discountResult);
@@ -144,9 +159,8 @@ async function handleGet(request: NextRequest) {
       discountHistory: discountHistory || [],
       currentPlan: profile.subscription_plan,
       pauseCount: pauseResult?.pause_count || 0,
-      discountCount: discountResult?.discount_used_count || 0
+      discountCount: discountResult?.discount_used_count || 0,
     });
-
   } catch (error) {
     console.error('Error checking retention eligibility:', error);
     return NextResponse.json(

@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
-import { 
+import {
   Users,
   Activity,
   Clock,
@@ -10,7 +10,7 @@ import {
   Calendar,
   BarChart3,
   UserCheck,
-  Globe
+  Globe,
 } from 'lucide-react';
 import { toast } from '@/lib/toast';
 
@@ -32,10 +32,10 @@ interface ActiveUserData {
     bounceRate: number;
     returningUsers: number;
   };
-  geographic: Array<{ 
-    country: string; 
-    count: number; 
-    percentage: number 
+  geographic: Array<{
+    country: string;
+    count: number;
+    percentage: number;
   }>;
 }
 
@@ -51,9 +51,12 @@ export function ActiveUserMetrics() {
   const fetchActiveUserData = async () => {
     setLoading(true);
     try {
-      const response = await fetch(`/api/admin/analytics/active-users?range=${timeRange}`, {
-        credentials: 'include'
-      });
+      const response = await fetch(
+        `/api/admin/analytics/active-users?range=${timeRange}`,
+        {
+          credentials: 'include',
+        }
+      );
 
       if (!response.ok) {
         throw new Error('Failed to fetch active user data');
@@ -72,7 +75,7 @@ export function ActiveUserMetrics() {
   const formatDuration = (seconds: number) => {
     const minutes = Math.floor(seconds / 60);
     const hours = Math.floor(minutes / 60);
-    
+
     if (hours > 0) {
       return `${hours}h ${minutes % 60}m`;
     }
@@ -95,11 +98,17 @@ export function ActiveUserMetrics() {
   }
 
   // Simple bar visualization
-  const ActivityBar = ({ value, maxValue }: { value: number; maxValue: number }) => {
+  const ActivityBar = ({
+    value,
+    maxValue,
+  }: {
+    value: number;
+    maxValue: number;
+  }) => {
     const percentage = maxValue > 0 ? (value / maxValue) * 100 : 0;
     return (
       <div className="w-full bg-gray-200 rounded-full h-2">
-        <div 
+        <div
           className="bg-primary-blue h-2 rounded-full transition-all duration-300"
           style={{ width: `${percentage}%` }}
         />
@@ -111,7 +120,9 @@ export function ActiveUserMetrics() {
     <div className="space-y-6">
       {/* Header with Time Range Selector */}
       <div className="flex justify-between items-center">
-        <h2 className="text-xl font-semibold text-gray-900">Active User Metrics</h2>
+        <h2 className="text-xl font-semibold text-gray-900">
+          Active User Metrics
+        </h2>
         <div className="flex gap-2">
           {(['24h', '7d', '30d'] as const).map(range => (
             <button
@@ -123,7 +134,11 @@ export function ActiveUserMetrics() {
                   : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
               }`}
             >
-              {range === '24h' ? '24 Hours' : range === '7d' ? '7 Days' : '30 Days'}
+              {range === '24h'
+                ? '24 Hours'
+                : range === '7d'
+                  ? '7 Days'
+                  : '30 Days'}
             </button>
           ))}
         </div>
@@ -136,7 +151,9 @@ export function ActiveUserMetrics() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-gray-600">Active Now</p>
-                <p className="text-2xl font-bold text-gray-900">{data.current.activeNow}</p>
+                <p className="text-2xl font-bold text-gray-900">
+                  {data.current.activeNow}
+                </p>
                 <p className="text-xs text-gray-500 mt-1">Last 5 minutes</p>
               </div>
               <Activity className="w-8 h-8 text-green-500" />
@@ -149,7 +166,9 @@ export function ActiveUserMetrics() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-gray-600">Today</p>
-                <p className="text-2xl font-bold text-gray-900">{data.current.activeToday}</p>
+                <p className="text-2xl font-bold text-gray-900">
+                  {data.current.activeToday}
+                </p>
                 <p className="text-xs text-gray-500 mt-1">Unique users</p>
               </div>
               <Clock className="w-8 h-8 text-blue-500" />
@@ -162,7 +181,9 @@ export function ActiveUserMetrics() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-gray-600">This Week</p>
-                <p className="text-2xl font-bold text-gray-900">{data.current.activeThisWeek}</p>
+                <p className="text-2xl font-bold text-gray-900">
+                  {data.current.activeThisWeek}
+                </p>
                 <p className="text-xs text-gray-500 mt-1">7-day active</p>
               </div>
               <Calendar className="w-8 h-8 text-purple-500" />
@@ -175,7 +196,9 @@ export function ActiveUserMetrics() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-gray-600">This Month</p>
-                <p className="text-2xl font-bold text-gray-900">{data.current.activeThisMonth}</p>
+                <p className="text-2xl font-bold text-gray-900">
+                  {data.current.activeThisMonth}
+                </p>
                 <p className="text-xs text-gray-500 mt-1">30-day active</p>
               </div>
               <Users className="w-8 h-8 text-orange-500" />
@@ -199,15 +222,21 @@ export function ActiveUserMetrics() {
             </div>
             <div>
               <p className="text-sm text-gray-600">Avg Page Views</p>
-              <p className="text-xl font-semibold mt-1">{data.engagement.avgPageViews.toFixed(1)}</p>
+              <p className="text-xl font-semibold mt-1">
+                {data.engagement.avgPageViews.toFixed(1)}
+              </p>
             </div>
             <div>
               <p className="text-sm text-gray-600">Bounce Rate</p>
-              <p className="text-xl font-semibold mt-1">{data.engagement.bounceRate.toFixed(1)}%</p>
+              <p className="text-xl font-semibold mt-1">
+                {data.engagement.bounceRate.toFixed(1)}%
+              </p>
             </div>
             <div>
               <p className="text-sm text-gray-600">Returning Users</p>
-              <p className="text-xl font-semibold mt-1">{data.engagement.returningUsers}%</p>
+              <p className="text-xl font-semibold mt-1">
+                {data.engagement.returningUsers}%
+              </p>
             </div>
           </div>
         </CardContent>
@@ -222,12 +251,16 @@ export function ActiveUserMetrics() {
           <CardContent>
             <div className="space-y-3">
               {data.trends.dailyActive.slice(-7).map((day, index) => {
-                const maxCount = Math.max(...data.trends.dailyActive.map(d => d.count));
+                const maxCount = Math.max(
+                  ...data.trends.dailyActive.map(d => d.count)
+                );
                 return (
                   <div key={index}>
                     <div className="flex justify-between items-center mb-1">
                       <span className="text-sm text-gray-600">{day.date}</span>
-                      <span className="text-sm font-medium">{day.count} users</span>
+                      <span className="text-sm font-medium">
+                        {day.count} users
+                      </span>
                     </div>
                     <ActivityBar value={day.count} maxValue={maxCount} />
                   </div>
@@ -244,22 +277,31 @@ export function ActiveUserMetrics() {
           </CardHeader>
           <CardContent>
             <div className="space-y-2">
-              <div className="grid grid-cols-24 gap-1" style={{ gridTemplateColumns: 'repeat(24, 1fr)' }}>
+              <div
+                className="grid grid-cols-24 gap-1"
+                style={{ gridTemplateColumns: 'repeat(24, 1fr)' }}
+              >
                 {data.trends.hourlyDistribution.map((hour, index) => {
-                  const maxCount = Math.max(...data.trends.hourlyDistribution.map(h => h.count));
-                  const height = maxCount > 0 ? (hour.count / maxCount) * 100 : 0;
-                  
+                  const maxCount = Math.max(
+                    ...data.trends.hourlyDistribution.map(h => h.count)
+                  );
+                  const height =
+                    maxCount > 0 ? (hour.count / maxCount) * 100 : 0;
+
                   return (
                     <div key={index} className="relative group">
-                      <div className="w-full bg-gray-200 rounded-t" style={{ height: '60px' }}>
-                        <div 
+                      <div
+                        className="w-full bg-gray-200 rounded-t"
+                        style={{ height: '60px' }}
+                      >
+                        <div
                           className="w-full bg-primary-blue rounded-t transition-all duration-300 hover:bg-blue-600"
-                          style={{ 
+                          style={{
                             height: `${height}%`,
                             position: 'absolute',
                             bottom: 0,
                             left: 0,
-                            right: 0
+                            right: 0,
                           }}
                         />
                       </div>
@@ -273,7 +315,9 @@ export function ActiveUserMetrics() {
                   );
                 })}
               </div>
-              <p className="text-xs text-gray-500 text-center">Hour of day (24h format)</p>
+              <p className="text-xs text-gray-500 text-center">
+                Hour of day (24h format)
+              </p>
             </div>
           </CardContent>
         </Card>
@@ -290,17 +334,21 @@ export function ActiveUserMetrics() {
               {data.trends.deviceTypes.map((device, index) => (
                 <div key={index}>
                   <div className="flex justify-between items-center mb-1">
-                    <span className="text-sm font-medium capitalize">{device.type}</span>
+                    <span className="text-sm font-medium capitalize">
+                      {device.type}
+                    </span>
                     <span className="text-sm text-gray-600">
                       {device.count} ({device.percentage.toFixed(1)}%)
                     </span>
                   </div>
                   <div className="w-full bg-gray-200 rounded-full h-2">
-                    <div 
+                    <div
                       className={`h-2 rounded-full transition-all duration-300 ${
-                        device.type === 'desktop' ? 'bg-blue-500' :
-                        device.type === 'mobile' ? 'bg-green-500' :
-                        'bg-purple-500'
+                        device.type === 'desktop'
+                          ? 'bg-blue-500'
+                          : device.type === 'mobile'
+                            ? 'bg-green-500'
+                            : 'bg-purple-500'
                       }`}
                       style={{ width: `${device.percentage}%` }}
                     />
@@ -331,7 +379,9 @@ export function ActiveUserMetrics() {
                   </div>
                   <div className="text-right">
                     <p className="font-semibold">{country.count}</p>
-                    <p className="text-xs text-gray-500">{country.percentage.toFixed(1)}%</p>
+                    <p className="text-xs text-gray-500">
+                      {country.percentage.toFixed(1)}%
+                    </p>
                   </div>
                 </div>
               ))}

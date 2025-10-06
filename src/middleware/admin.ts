@@ -6,7 +6,7 @@ import { env } from '@/config/env';
 // Admin route protection middleware
 export async function adminMiddleware(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
-  
+
   // Allow access to login pages
   if (pathname.startsWith('/admin/login')) {
     return NextResponse.next();
@@ -20,31 +20,29 @@ export async function adminMiddleware(request: NextRequest) {
   });
 
   // Create Supabase client
-  const supabase = createServerClient(
-    env.SUPABASE_URL,
-    env.SUPABASE_ANON_KEY,
-    {
-      cookies: {
-        getAll() {
-          return request.cookies.getAll();
-        },
-        setAll(cookiesToSet) {
-          cookiesToSet.forEach(({ name, value }) =>
-            request.cookies.set(name, value)
-          );
-          response = NextResponse.next({
-            request,
-          });
-          cookiesToSet.forEach(({ name, value, options }) =>
-            response.cookies.set(name, value, options)
-          );
-        },
+  const supabase = createServerClient(env.SUPABASE_URL, env.SUPABASE_ANON_KEY, {
+    cookies: {
+      getAll() {
+        return request.cookies.getAll();
       },
-    }
-  );
+      setAll(cookiesToSet) {
+        cookiesToSet.forEach(({ name, value }) =>
+          request.cookies.set(name, value)
+        );
+        response = NextResponse.next({
+          request,
+        });
+        cookiesToSet.forEach(({ name, value, options }) =>
+          response.cookies.set(name, value, options)
+        );
+      },
+    },
+  });
 
   // Check if user is authenticated
-  const { data: { user } } = await supabase.auth.getUser();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
 
   if (!user) {
     return NextResponse.redirect(new URL('/admin/login', request.url));
@@ -65,6 +63,6 @@ export async function adminMiddleware(request: NextRequest) {
   // User is authenticated and is admin, allow access
   response.headers.set('x-user-id', user.id);
   response.headers.set('x-is-admin', 'true');
-  
+
   return response;
 }

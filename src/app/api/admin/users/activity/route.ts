@@ -8,7 +8,9 @@ async function handleGet(request: NextRequest) {
     const supabase = await createServerSupabaseClient();
 
     // Check if user is admin
-    const { data: { user } } = await supabase.auth.getUser();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
@@ -20,7 +22,10 @@ async function handleGet(request: NextRequest) {
       .single();
 
     if (!profile?.is_admin) {
-      return NextResponse.json({ error: 'Admin access required' }, { status: 403 });
+      return NextResponse.json(
+        { error: 'Admin access required' },
+        { status: 403 }
+      );
     }
 
     // Use service role client for data access
@@ -29,7 +34,9 @@ async function handleGet(request: NextRequest) {
     // Get all users with their activity data
     const { data: users, error } = await serviceClient
       .from('profiles')
-      .select('id, email, first_name, last_name, last_activity_at, created_at, subscription_plan')
+      .select(
+        'id, email, first_name, last_name, last_activity_at, created_at, subscription_plan'
+      )
       .order('last_activity_at', { ascending: false, nullsFirst: false });
 
     if (error) {
@@ -47,43 +54,62 @@ async function handleGet(request: NextRequest) {
     const activeUsers = users?.filter(u => u.last_activity_at) || [];
 
     const metrics = {
-      activeLastHour: activeUsers.filter(u => new Date(u.last_activity_at) >= oneHourAgo).length,
-      activeToday: activeUsers.filter(u => new Date(u.last_activity_at) >= oneDayAgo).length,
-      activeThisWeek: activeUsers.filter(u => new Date(u.last_activity_at) >= oneWeekAgo).length,
-      activeThisMonth: activeUsers.filter(u => new Date(u.last_activity_at) >= oneMonthAgo).length,
+      activeLastHour: activeUsers.filter(
+        u => new Date(u.last_activity_at) >= oneHourAgo
+      ).length,
+      activeToday: activeUsers.filter(
+        u => new Date(u.last_activity_at) >= oneDayAgo
+      ).length,
+      activeThisWeek: activeUsers.filter(
+        u => new Date(u.last_activity_at) >= oneWeekAgo
+      ).length,
+      activeThisMonth: activeUsers.filter(
+        u => new Date(u.last_activity_at) >= oneMonthAgo
+      ).length,
       totalUsers: users?.length || 0,
-      neverActive: users?.filter(u => !u.last_activity_at).length || 0
+      neverActive: users?.filter(u => !u.last_activity_at).length || 0,
     };
 
     // Format user activity data
-    const userActivity = users?.map(user => {
-      const lastActivity = user.last_activity_at ? new Date(user.last_activity_at) : null;
-      const timeSinceActivity = lastActivity ? now.getTime() - lastActivity.getTime() : null;
+    const userActivity =
+      users?.map(user => {
+        const lastActivity = user.last_activity_at
+          ? new Date(user.last_activity_at)
+          : null;
+        const timeSinceActivity = lastActivity
+          ? now.getTime() - lastActivity.getTime()
+          : null;
 
-      let activityStatus = 'inactive';
-      if (timeSinceActivity !== null) {
-        if (timeSinceActivity < 60 * 60 * 1000) activityStatus = 'active'; // Last hour
-        else if (timeSinceActivity < 24 * 60 * 60 * 1000) activityStatus = 'today'; // Today
-        else if (timeSinceActivity < 7 * 24 * 60 * 60 * 1000) activityStatus = 'recent'; // This week
-      }
+        let activityStatus = 'inactive';
+        if (timeSinceActivity !== null) {
+          if (timeSinceActivity < 60 * 60 * 1000)
+            activityStatus = 'active'; // Last hour
+          else if (timeSinceActivity < 24 * 60 * 60 * 1000)
+            activityStatus = 'today'; // Today
+          else if (timeSinceActivity < 7 * 24 * 60 * 60 * 1000)
+            activityStatus = 'recent'; // This week
+        }
 
-      return {
-        id: user.id,
-        email: user.email,
-        name: `${user.first_name || ''} ${user.last_name || ''}`.trim() || 'Unknown',
-        lastActivity: user.last_activity_at,
-        lastActivityFormatted: lastActivity ? formatTimeAgo(lastActivity) : 'Never',
-        status: activityStatus,
-        plan: user.subscription_plan || 'free',
-        joinedAt: user.created_at
-      };
-    }) || [];
+        return {
+          id: user.id,
+          email: user.email,
+          name:
+            `${user.first_name || ''} ${user.last_name || ''}`.trim() ||
+            'Unknown',
+          lastActivity: user.last_activity_at,
+          lastActivityFormatted: lastActivity
+            ? formatTimeAgo(lastActivity)
+            : 'Never',
+          status: activityStatus,
+          plan: user.subscription_plan || 'free',
+          joinedAt: user.created_at,
+        };
+      }) || [];
 
     return NextResponse.json({
       metrics,
-      users: userActivity
+      users: userActivity,
     });
-
   } catch (error) {
     console.error('Error in user activity API:', error);
     return NextResponse.json(

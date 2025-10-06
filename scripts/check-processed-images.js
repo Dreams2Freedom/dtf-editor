@@ -18,13 +18,13 @@ async function checkProcessedImages(imageId = null) {
     // If specific ID provided, check for it
     if (imageId) {
       console.log(`Looking for image ID: ${imageId}\n`);
-      
+
       const { data: image, error } = await supabase
         .from('processed_images')
         .select('*')
         .eq('id', imageId)
         .single();
-      
+
       if (error) {
         console.error('❌ Error finding image:', error);
       } else if (image) {
@@ -45,7 +45,9 @@ async function checkProcessedImages(imageId = null) {
     // Get recent processed images
     const { data: recentImages, error: recentError } = await supabase
       .from('processed_images')
-      .select('id, user_id, original_filename, operation_type, storage_url, created_at')
+      .select(
+        'id, user_id, original_filename, operation_type, storage_url, created_at'
+      )
       .order('created_at', { ascending: false })
       .limit(10);
 
@@ -55,7 +57,9 @@ async function checkProcessedImages(imageId = null) {
       console.log('\n📷 Recent Processed Images:');
       if (recentImages && recentImages.length > 0) {
         recentImages.forEach((img, index) => {
-          console.log(`\n   ${index + 1}. ${img.original_filename || 'Unknown'}`);
+          console.log(
+            `\n   ${index + 1}. ${img.original_filename || 'Unknown'}`
+          );
           console.log(`      ID: ${img.id}`);
           console.log(`      User: ${img.user_id}`);
           console.log(`      Operation: ${img.operation_type}`);
@@ -66,7 +70,6 @@ async function checkProcessedImages(imageId = null) {
         console.log('   No processed images found');
       }
     }
-
   } catch (error) {
     console.error('❌ Unexpected error:', error);
   }

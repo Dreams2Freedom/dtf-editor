@@ -4,20 +4,26 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { createServerSupabaseClient, createServiceRoleClient } from '@/lib/supabase/server';
-import { getAffiliateByUserId, getAffiliateDashboardStats } from '@/services/affiliate';
+import {
+  createServerSupabaseClient,
+  createServiceRoleClient,
+} from '@/lib/supabase/server';
+import {
+  getAffiliateByUserId,
+  getAffiliateDashboardStats,
+} from '@/services/affiliate';
 
 export async function GET(request: NextRequest) {
   try {
     // Validate session server-side
     const supabase = await createServerSupabaseClient();
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
 
     if (authError || !user) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     // Get affiliate account (uses service role internally)
@@ -34,7 +40,8 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({
         affiliate,
         status: 'pending',
-        message: 'Your application is under review. We\'ll notify you within 24-48 hours.'
+        message:
+          "Your application is under review. We'll notify you within 24-48 hours.",
       });
     }
 
@@ -42,7 +49,8 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({
         affiliate,
         status: 'rejected',
-        message: affiliate.rejection_reason || 'Your application was not approved.'
+        message:
+          affiliate.rejection_reason || 'Your application was not approved.',
       });
     }
 
@@ -50,7 +58,9 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({
         affiliate,
         status: 'suspended',
-        message: affiliate.suspended_reason || 'Your affiliate account has been suspended.'
+        message:
+          affiliate.suspended_reason ||
+          'Your affiliate account has been suspended.',
       });
     }
 
@@ -61,14 +71,24 @@ export async function GET(request: NextRequest) {
     const serviceClient = createServiceRoleClient();
 
     // Test service role access
-    console.log('[DASHBOARD API] Testing service role - checking all profiles count');
+    console.log(
+      '[DASHBOARD API] Testing service role - checking all profiles count'
+    );
     const { count: profileCount, error: countError } = await serviceClient
       .from('profiles')
       .select('*', { count: 'exact', head: true });
-    console.log('[DASHBOARD API] Service role can see profiles count:', profileCount, 'Error:', countError);
+    console.log(
+      '[DASHBOARD API] Service role can see profiles count:',
+      profileCount,
+      'Error:',
+      countError
+    );
 
     // Get recent referrals
-    console.log('[DASHBOARD API] Fetching referrals for affiliate:', affiliate.id);
+    console.log(
+      '[DASHBOARD API] Fetching referrals for affiliate:',
+      affiliate.id
+    );
     const { data: rawReferrals, error: referralsError } = await serviceClient
       .from('referrals')
       .select('*')
@@ -77,13 +97,20 @@ export async function GET(request: NextRequest) {
       .limit(20);
 
     if (referralsError) {
-      console.error('[DASHBOARD API] Error fetching referrals:', referralsError);
+      console.error(
+        '[DASHBOARD API] Error fetching referrals:',
+        referralsError
+      );
     }
 
-    console.log('[DASHBOARD API] Raw referrals:', JSON.stringify(rawReferrals, null, 2));
+    console.log(
+      '[DASHBOARD API] Raw referrals:',
+      JSON.stringify(rawReferrals, null, 2)
+    );
 
     // Get user profiles for referrals
-    const userIds = rawReferrals?.map(r => r.referred_user_id).filter(Boolean) || [];
+    const userIds =
+      rawReferrals?.map(r => r.referred_user_id).filter(Boolean) || [];
     console.log('[DASHBOARD API] User IDs to fetch:', userIds);
 
     let profiles = null;
@@ -100,10 +127,16 @@ export async function GET(request: NextRequest) {
       profilesError = result.error;
 
       if (profilesError) {
-        console.error('[DASHBOARD API] Error fetching profiles:', profilesError);
+        console.error(
+          '[DASHBOARD API] Error fetching profiles:',
+          profilesError
+        );
       }
 
-      console.log('[DASHBOARD API] Profiles fetched:', JSON.stringify(profiles, null, 2));
+      console.log(
+        '[DASHBOARD API] Profiles fetched:',
+        JSON.stringify(profiles, null, 2)
+      );
     } else {
       console.log('[DASHBOARD API] No user IDs to fetch');
     }
@@ -112,16 +145,23 @@ export async function GET(request: NextRequest) {
     const profilesMap = new Map(profiles?.map(p => [p.id, p]) || []);
     console.log('[DASHBOARD API] Profiles map size:', profilesMap.size);
 
-    const recentReferrals = rawReferrals?.map(ref => {
-      const profile = profilesMap.get(ref.referred_user_id);
-      console.log(`[DASHBOARD API] Mapping referral ${ref.id}: user_id=${ref.referred_user_id}, profile found:`, !!profile);
-      return {
-        ...ref,
-        referred_user: profile || null
-      };
-    }) || [];
+    const recentReferrals =
+      rawReferrals?.map(ref => {
+        const profile = profilesMap.get(ref.referred_user_id);
+        console.log(
+          `[DASHBOARD API] Mapping referral ${ref.id}: user_id=${ref.referred_user_id}, profile found:`,
+          !!profile
+        );
+        return {
+          ...ref,
+          referred_user: profile || null,
+        };
+      }) || [];
 
-    console.log('[DASHBOARD API] Final recent referrals count:', recentReferrals.length);
+    console.log(
+      '[DASHBOARD API] Final recent referrals count:',
+      recentReferrals.length
+    );
 
     // Get recent commissions
     const { data: recentCommissions } = await serviceClient
@@ -146,9 +186,8 @@ export async function GET(request: NextRequest) {
       recentCommissions,
       payouts,
       referralLink: `${process.env.NEXT_PUBLIC_APP_URL}/?ref=${affiliate.referral_code}`,
-      status: 'approved'
+      status: 'approved',
     });
-
   } catch (error) {
     console.error('Error fetching affiliate dashboard:', error);
     return NextResponse.json(

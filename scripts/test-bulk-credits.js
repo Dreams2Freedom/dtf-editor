@@ -36,13 +36,13 @@ async function testBulkCredits() {
 
     // Test adding credits
     console.log(`\nAdding ${creditAmount} credits to each user...`);
-    
+
     // Update credits directly
     const { data: updatedUsers, error: updateError } = await supabase
       .from('profiles')
-      .update({ 
+      .update({
         credits_remaining: users[0].credits_remaining + creditAmount,
-        updated_at: new Date().toISOString()
+        updated_at: new Date().toISOString(),
       })
       .in('id', userIds)
       .select('id, email, credits_remaining');
@@ -59,18 +59,19 @@ async function testBulkCredits() {
 
     // Also test the RPC function if it exists
     console.log('\nTesting add_credits_bulk RPC...');
-    const { data: rpcResult, error: rpcError } = await supabase
-      .rpc('add_credits_bulk', {
+    const { data: rpcResult, error: rpcError } = await supabase.rpc(
+      'add_credits_bulk',
+      {
         user_ids: userIds,
-        credit_amount: creditAmount
-      });
+        credit_amount: creditAmount,
+      }
+    );
 
     if (rpcError) {
       console.log('RPC error (function may not exist):', rpcError.message);
     } else {
       console.log('RPC result:', rpcResult);
     }
-
   } catch (error) {
     console.error('Error:', error);
   }

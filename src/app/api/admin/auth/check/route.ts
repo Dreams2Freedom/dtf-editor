@@ -29,7 +29,9 @@ async function handleGet(request: NextRequest) {
     );
 
     // Get the current user
-    const { data: { user } } = await supabase.auth.getUser();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
 
     if (!user) {
       return NextResponse.json(
@@ -66,9 +68,9 @@ async function handleGet(request: NextRequest) {
           id: user.id,
           email: profile.email,
           full_name: profile.full_name,
-          is_admin: profile.is_admin
-        }
-      }
+          is_admin: profile.is_admin,
+        },
+      },
     });
   } catch (error) {
     return NextResponse.json(

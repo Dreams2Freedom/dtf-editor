@@ -31,12 +31,15 @@ export default function CheckSessionPage() {
     async function checkSession() {
       try {
         // Check session
-        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+        const {
+          data: { session },
+          error: sessionError,
+        } = await supabase.auth.getSession();
         setSessionInfo({
           hasSession: !!session,
           userEmail: session?.user?.email,
           userId: session?.user?.id,
-          error: sessionError
+          error: sessionError,
         });
 
         if (session?.user?.id) {
@@ -49,7 +52,7 @@ export default function CheckSessionPage() {
 
           setProfileInfo({
             data: profile,
-            error: profileError
+            error: profileError,
           });
 
           // Try to count affiliates
@@ -84,7 +87,13 @@ export default function CheckSessionPage() {
           <div className="space-y-2">
             <div className="flex gap-2">
               <span className="font-semibold">Has Session:</span>
-              <span className={sessionInfo?.hasSession ? 'text-success-600' : 'text-error-600'}>
+              <span
+                className={
+                  sessionInfo?.hasSession
+                    ? 'text-success-600'
+                    : 'text-error-600'
+                }
+              >
                 {sessionInfo?.hasSession ? '✅ YES' : '❌ NO'}
               </span>
             </div>
@@ -94,11 +103,14 @@ export default function CheckSessionPage() {
             </div>
             <div className="flex gap-2">
               <span className="font-semibold">User ID:</span>
-              <span className="font-mono text-xs">{sessionInfo?.userId || 'N/A'}</span>
+              <span className="font-mono text-xs">
+                {sessionInfo?.userId || 'N/A'}
+              </span>
             </div>
             {sessionInfo?.error && (
               <div className="text-error-600">
-                <span className="font-semibold">Session Error:</span> {sessionInfo.error.message}
+                <span className="font-semibold">Session Error:</span>{' '}
+                {sessionInfo.error.message}
               </div>
             )}
           </div>
@@ -115,7 +127,13 @@ export default function CheckSessionPage() {
             <div className="space-y-2">
               <div className="flex gap-2">
                 <span className="font-semibold">Is Admin:</span>
-                <span className={profileInfo.data.is_admin ? 'text-success-600' : 'text-error-600'}>
+                <span
+                  className={
+                    profileInfo.data.is_admin
+                      ? 'text-success-600'
+                      : 'text-error-600'
+                  }
+                >
                   {profileInfo.data.is_admin ? '✅ YES' : '❌ NO'}
                 </span>
               </div>
@@ -135,7 +153,8 @@ export default function CheckSessionPage() {
           )}
           {profileInfo?.error && (
             <div className="text-error-600 mt-2">
-              <span className="font-semibold">Profile Error:</span> {profileInfo.error.message}
+              <span className="font-semibold">Profile Error:</span>{' '}
+              {profileInfo.error.message}
             </div>
           )}
         </CardContent>
@@ -150,7 +169,13 @@ export default function CheckSessionPage() {
           <div className="space-y-2">
             <div className="flex gap-2">
               <span className="font-semibold">Can Query Affiliates:</span>
-              <span className={affiliatesCount !== null ? 'text-success-600' : 'text-error-600'}>
+              <span
+                className={
+                  affiliatesCount !== null
+                    ? 'text-success-600'
+                    : 'text-error-600'
+                }
+              >
                 {affiliatesCount !== null ? '✅ YES' : '❌ NO'}
               </span>
             </div>
@@ -165,8 +190,12 @@ export default function CheckSessionPage() {
                 <div className="font-semibold">Error Details:</div>
                 <div className="text-sm mt-1">Message: {error.message}</div>
                 <div className="text-sm">Code: {error.code}</div>
-                {error.details && <div className="text-sm">Details: {error.details}</div>}
-                {error.hint && <div className="text-sm">Hint: {error.hint}</div>}
+                {error.details && (
+                  <div className="text-sm">Details: {error.details}</div>
+                )}
+                {error.hint && (
+                  <div className="text-sm">Hint: {error.hint}</div>
+                )}
               </div>
             )}
           </div>
@@ -182,29 +211,41 @@ export default function CheckSessionPage() {
           <ol className="list-decimal list-inside space-y-2">
             {!sessionInfo?.hasSession && (
               <li className="text-error-600 font-semibold">
-                ❌ You are NOT logged in. Go to <a href="/auth/login" className="text-blue-600 underline">/auth/login</a>
+                ❌ You are NOT logged in. Go to{' '}
+                <a href="/auth/login" className="text-blue-600 underline">
+                  /auth/login
+                </a>
               </li>
             )}
-            {sessionInfo?.hasSession && sessionInfo?.userEmail !== 'Shannon@S2Transfers.com' && (
-              <li className="text-orange-600 font-semibold">
-                ⚠️ You are logged in as {sessionInfo.userEmail}. The primary admin is Shannon@S2Transfers.com
-              </li>
-            )}
+            {sessionInfo?.hasSession &&
+              sessionInfo?.userEmail !== 'Shannon@S2Transfers.com' && (
+                <li className="text-orange-600 font-semibold">
+                  ⚠️ You are logged in as {sessionInfo.userEmail}. The primary
+                  admin is Shannon@S2Transfers.com
+                </li>
+              )}
             {sessionInfo?.hasSession && !profileInfo?.data?.is_admin && (
               <li className="text-error-600 font-semibold">
-                ❌ Your profile does not have admin access. Contact system administrator.
+                ❌ Your profile does not have admin access. Contact system
+                administrator.
               </li>
             )}
-            {sessionInfo?.hasSession && profileInfo?.data?.is_admin && error && (
-              <li className="text-error-600 font-semibold">
-                ❌ RLS policies may be blocking access. Run FIX_AFFILIATE_ADMIN_ACCESS_NOW.sql in Supabase
-              </li>
-            )}
-            {sessionInfo?.hasSession && profileInfo?.data?.is_admin && !error && (
-              <li className="text-success-600 font-semibold">
-                ✅ Everything looks good! You should be able to access affiliate data.
-              </li>
-            )}
+            {sessionInfo?.hasSession &&
+              profileInfo?.data?.is_admin &&
+              error && (
+                <li className="text-error-600 font-semibold">
+                  ❌ RLS policies may be blocking access. Run
+                  FIX_AFFILIATE_ADMIN_ACCESS_NOW.sql in Supabase
+                </li>
+              )}
+            {sessionInfo?.hasSession &&
+              profileInfo?.data?.is_admin &&
+              !error && (
+                <li className="text-success-600 font-semibold">
+                  ✅ Everything looks good! You should be able to access
+                  affiliate data.
+                </li>
+              )}
           </ol>
         </CardContent>
       </Card>

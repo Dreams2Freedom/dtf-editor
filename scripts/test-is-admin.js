@@ -12,8 +12,7 @@ const supabase = createClient(
   const userId = 'fcc1b251-6307-457c-ac1e-064aa43b2449'; // shannonherod@gmail.com
 
   // Test the is_admin function
-  const { data, error } = await supabase
-    .rpc('is_admin', { user_id: userId });
+  const { data, error } = await supabase.rpc('is_admin', { user_id: userId });
 
   if (error) {
     console.error('❌ Error calling is_admin():', error.message);

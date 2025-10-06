@@ -1,7 +1,9 @@
 # Subscription Retention & Pause Feature Plan
 
 ## Overview
+
 Implement a retention flow when users attempt to cancel their subscription, offering:
+
 1. **Pause Options**: 2 weeks, 1 month, or 2 months
 2. **Discount Offer**: 50% off next month if they decline pause
 3. **Safeguards**: Prevent abuse of discount system
@@ -9,6 +11,7 @@ Implement a retention flow when users attempt to cancel their subscription, offe
 ## Database Schema Changes
 
 ### 1. Add to `profiles` table:
+
 ```sql
 -- Subscription pause tracking
 ALTER TABLE profiles ADD COLUMN subscription_paused_until TIMESTAMP WITH TIME ZONE;
@@ -22,6 +25,7 @@ ALTER TABLE profiles ADD COLUMN next_eligible_discount_date TIMESTAMP WITH TIME 
 ```
 
 ### 2. Create `subscription_events` table:
+
 ```sql
 CREATE TABLE subscription_events (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
@@ -37,6 +41,7 @@ CREATE TABLE subscription_events (
 ### Phase 1: UI Components
 
 #### 1. Create Cancellation Flow Modal
+
 ```typescript
 // src/components/subscription/CancellationFlow.tsx
 interface CancellationFlowProps {
@@ -53,6 +58,7 @@ interface CancellationFlowProps {
 ```
 
 #### 2. Pause Options Component
+
 ```typescript
 // src/components/subscription/PauseOptions.tsx
 interface PauseOption {
@@ -66,6 +72,7 @@ interface PauseOption {
 ### Phase 2: API Endpoints
 
 #### 1. Check Eligibility
+
 ```typescript
 // /api/subscription/check-retention-eligibility
 // Returns:
@@ -76,6 +83,7 @@ interface PauseOption {
 ```
 
 #### 2. Pause Subscription
+
 ```typescript
 // /api/subscription/pause
 // Input: { duration: '2_weeks' | '1_month' | '2_months' }
@@ -87,6 +95,7 @@ interface PauseOption {
 ```
 
 #### 3. Apply Retention Discount
+
 ```typescript
 // /api/subscription/apply-retention-discount
 // Actions:
@@ -99,17 +108,19 @@ interface PauseOption {
 ### Phase 3: Stripe Integration
 
 #### 1. Pause Implementation
+
 ```typescript
 // Using Stripe's pause_collection feature
 await stripe.subscriptions.update(subscriptionId, {
   pause_collection: {
     behavior: 'void',
-    resumes_at: resumeTimestamp
-  }
+    resumes_at: resumeTimestamp,
+  },
 });
 ```
 
 #### 2. Discount Implementation
+
 ```typescript
 // Create one-time 50% coupon
 const coupon = await stripe.coupons.create({
@@ -118,20 +129,22 @@ const coupon = await stripe.coupons.create({
   max_redemptions: 1,
   metadata: {
     type: 'retention_offer',
-    user_id: userId
-  }
+    user_id: userId,
+  },
 });
 ```
 
 ### Phase 4: Business Rules & Safeguards
 
 #### Pause Rules:
+
 1. **Frequency Limit**: Max 2 pauses per rolling 12-month period
 2. **Duration Limit**: Total pause time cannot exceed 3 months per year
 3. **Timing**: Cannot pause within 7 days of resume date
 4. **Credits**: Keep existing credits during pause
 
 #### Discount Rules:
+
 1. **Frequency Limit**: Max 1 discount every 6 months
 2. **New User Block**: No discount in first 2 months
 3. **History Check**: Track all discount usage
@@ -191,6 +204,7 @@ graph TD
 ## Revenue Impact Tracking
 
 Track these metrics:
+
 - Cancellation rate before/after
 - Pause-to-resume conversion rate
 - Discount-to-retention rate

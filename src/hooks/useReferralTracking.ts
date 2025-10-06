@@ -19,16 +19,25 @@ export function useReferralTracking() {
         .then(response => response.json())
         .then(data => {
           if (data.success) {
-            console.log('[REFERRAL TRACKING] ✅ Affiliate referral tracked successfully:', {
-              refCode,
-              cookieId: data.cookieId
-            });
+            console.log(
+              '[REFERRAL TRACKING] ✅ Affiliate referral tracked successfully:',
+              {
+                refCode,
+                cookieId: data.cookieId,
+              }
+            );
           } else {
-            console.error('[REFERRAL TRACKING] ❌ Failed to track referral:', data.error || 'Unknown error');
+            console.error(
+              '[REFERRAL TRACKING] ❌ Failed to track referral:',
+              data.error || 'Unknown error'
+            );
           }
         })
         .catch(error => {
-          console.error('[REFERRAL TRACKING] ❌ Error tracking referral:', error);
+          console.error(
+            '[REFERRAL TRACKING] ❌ Error tracking referral:',
+            error
+          );
         });
     }
   }, []); // Run once on mount

@@ -14,7 +14,9 @@ export default function PricingClient() {
   useReferralTracking();
 
   const searchParams = useSearchParams();
-  const [activeTab, setActiveTab] = useState<'subscription' | 'payg'>('subscription');
+  const [activeTab, setActiveTab] = useState<'subscription' | 'payg'>(
+    'subscription'
+  );
 
   useEffect(() => {
     // Check if tab parameter is set to 'payasyougo'
@@ -33,8 +35,9 @@ export default function PricingClient() {
             Choose Your Plan
           </h1>
           <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-            Whether you need ongoing access or just a few credits, we have the perfect option for you.
-            All plans include our advanced AI-powered image processing features.
+            Whether you need ongoing access or just a few credits, we have the
+            perfect option for you. All plans include our advanced AI-powered
+            image processing features.
           </p>
         </div>
 
@@ -75,7 +78,6 @@ export default function PricingClient() {
           )}
         </div>
 
-
         {/* Features Comparison */}
         <div className="mt-16">
           <div className="text-center mb-8">
@@ -83,7 +85,8 @@ export default function PricingClient() {
               All Plans Include
             </h2>
             <p className="text-lg text-gray-600">
-              Powerful AI-powered image processing features available on every plan
+              Powerful AI-powered image processing features available on every
+              plan
             </p>
           </div>
 
@@ -96,7 +99,8 @@ export default function PricingClient() {
                 AI Image Upscaling
               </h3>
               <p className="text-gray-600">
-                Upscale images up to 4x with advanced AI algorithms including auto-enhancement and generative upscaling.
+                Upscale images up to 4x with advanced AI algorithms including
+                auto-enhancement and generative upscaling.
               </p>
             </Card>
 
@@ -108,7 +112,8 @@ export default function PricingClient() {
                 Background Removal
               </h3>
               <p className="text-gray-600">
-                Remove backgrounds from images with precision using our advanced AI models.
+                Remove backgrounds from images with precision using our advanced
+                AI models.
               </p>
             </Card>
 
@@ -120,7 +125,8 @@ export default function PricingClient() {
                 Secure Processing
               </h3>
               <p className="text-gray-600">
-                Your images are processed securely and deleted after processing. We never store your original images.
+                Your images are processed securely and deleted after processing.
+                We never store your original images.
               </p>
             </Card>
           </div>
@@ -140,8 +146,9 @@ export default function PricingClient() {
                 What's the difference between subscription and pay-as-you-go?
               </h3>
               <p className="text-gray-600">
-                Subscriptions provide a set number of credits each month at a discounted rate, perfect for regular users. 
-                Pay-as-you-go lets you purchase credits as needed without any recurring charges.
+                Subscriptions provide a set number of credits each month at a
+                discounted rate, perfect for regular users. Pay-as-you-go lets
+                you purchase credits as needed without any recurring charges.
               </p>
             </Card>
 
@@ -150,7 +157,9 @@ export default function PricingClient() {
                 Do credits expire?
               </h3>
               <p className="text-gray-600">
-                Pay-as-you-go credits never expire. Subscription credits are refreshed monthly and don't carry over to the next billing period.
+                Pay-as-you-go credits never expire. Subscription credits are
+                refreshed monthly and don't carry over to the next billing
+                period.
               </p>
             </Card>
 
@@ -159,7 +168,9 @@ export default function PricingClient() {
                 Can I cancel my subscription anytime?
               </h3>
               <p className="text-gray-600">
-                Yes, you can cancel your subscription at any time. You'll continue to have access to your plan features until the end of your current billing period.
+                Yes, you can cancel your subscription at any time. You'll
+                continue to have access to your plan features until the end of
+                your current billing period.
               </p>
             </Card>
 
@@ -168,7 +179,8 @@ export default function PricingClient() {
                 What payment methods do you accept?
               </h3>
               <p className="text-gray-600">
-                We accept all major credit cards, debit cards, and digital wallets through our secure Stripe payment processing.
+                We accept all major credit cards, debit cards, and digital
+                wallets through our secure Stripe payment processing.
               </p>
             </Card>
           </div>
@@ -179,24 +191,39 @@ export default function PricingClient() {
           <Card className="p-8 bg-gradient-to-r from-green-50 to-emerald-50 border-green-200">
             <div className="text-center">
               <div className="inline-flex items-center justify-center w-16 h-16 bg-green-100 rounded-full mb-4">
-                <svg className="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                <svg
+                  className="w-8 h-8 text-green-600"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                  />
                 </svg>
               </div>
               <h2 className="text-2xl font-bold text-gray-900 mb-4">
                 Earn 20% Recurring Commissions
               </h2>
               <p className="text-gray-600 mb-6 max-w-2xl mx-auto">
-                Join our affiliate program and earn generous commissions by referring customers to DTF Editor.
-                Get 20% recurring revenue for 24 months, then 10% lifetime on all referred customers!
+                Join our affiliate program and earn generous commissions by
+                referring customers to DTF Editor. Get 20% recurring revenue for
+                24 months, then 10% lifetime on all referred customers!
               </p>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 max-w-3xl mx-auto mb-6">
                 <div className="text-center">
-                  <div className="text-2xl font-bold text-green-600">20-25%</div>
+                  <div className="text-2xl font-bold text-green-600">
+                    20-25%
+                  </div>
                   <p className="text-sm text-gray-600">Commission Rate</p>
                 </div>
                 <div className="text-center">
-                  <div className="text-2xl font-bold text-green-600">30 Days</div>
+                  <div className="text-2xl font-bold text-green-600">
+                    30 Days
+                  </div>
                   <p className="text-sm text-gray-600">Cookie Duration</p>
                 </div>
                 <div className="text-center">
@@ -223,9 +250,7 @@ export default function PricingClient() {
         {/* CTA Section */}
         <div className="mt-16 text-center">
           <Card className="p-8 bg-gradient-to-r from-blue-600 to-purple-600 text-white">
-            <h2 className="text-3xl font-bold mb-4">
-              Ready to Get Started?
-            </h2>
+            <h2 className="text-3xl font-bold mb-4">Ready to Get Started?</h2>
             <p className="text-xl mb-6 opacity-90">
               Join thousands of users who trust our AI-powered image processing
             </p>
@@ -241,4 +266,4 @@ export default function PricingClient() {
       </div>
     </div>
   );
-} 
+}

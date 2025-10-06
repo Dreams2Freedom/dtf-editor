@@ -6,26 +6,27 @@ async function handleGet(request: NextRequest) {
   try {
     const cookieStore = await cookies();
     const impersonationCookie = cookieStore.get('impersonation_session');
-    
+
     if (!impersonationCookie) {
       return NextResponse.json({
-        isImpersonating: false
+        isImpersonating: false,
       });
     }
 
     try {
       const impersonationData = JSON.parse(impersonationCookie.value);
-      
+
       // Check if expired
       const startedAt = new Date(impersonationData.startedAt);
       const now = new Date();
-      const hoursSinceStart = (now.getTime() - startedAt.getTime()) / (1000 * 60 * 60);
-      
+      const hoursSinceStart =
+        (now.getTime() - startedAt.getTime()) / (1000 * 60 * 60);
+
       if (hoursSinceStart > 2) {
         // Expired
         return NextResponse.json({
           isImpersonating: false,
-          expired: true
+          expired: true,
         });
       }
 
@@ -35,12 +36,12 @@ async function handleGet(request: NextRequest) {
         impersonatedUserEmail: impersonationData.impersonatedUserEmail,
         originalAdminEmail: impersonationData.originalAdminEmail,
         startedAt: impersonationData.startedAt,
-        remainingMinutes: Math.floor((2 * 60) - (hoursSinceStart * 60))
+        remainingMinutes: Math.floor(2 * 60 - hoursSinceStart * 60),
       });
     } catch (error) {
       console.error('Error parsing impersonation session:', error);
       return NextResponse.json({
-        isImpersonating: false
+        isImpersonating: false,
       });
     }
   } catch (error) {

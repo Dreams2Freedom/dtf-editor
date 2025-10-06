@@ -2,14 +2,13 @@
 const nextConfig = {
   // Disable error overlay in development
   reactStrictMode: false,
-  
-  
+
   // Temporarily allow build with ESLint warnings for testing
   // TODO: Set to false once all ESLint errors are fixed
   eslint: {
     ignoreDuringBuilds: true,
   },
-  
+
   // Temporarily allow build with TypeScript errors for testing
   // TODO: Set to false once all TypeScript errors are fixed
   typescript: {
@@ -17,19 +16,19 @@ const nextConfig = {
   },
   onDemandEntries: {
     // Disable error overlay
-    maxInactiveAge: 1000 * 60 * 60
+    maxInactiveAge: 1000 * 60 * 60,
   },
-  
+
   // Performance optimizations
   experimental: {
     optimizePackageImports: [
       'lucide-react',
       '@radix-ui/react-dialog',
       '@radix-ui/react-dropdown-menu',
-      '@radix-ui/react-toast'
+      '@radix-ui/react-toast',
     ],
   },
-  
+
   // Image optimization
   images: {
     formats: ['image/webp', 'image/avif'],
@@ -54,14 +53,15 @@ const nextConfig = {
       },
     ],
   },
-  
+
   // Bundle analyzer (for development)
   webpack: (config, { dev, isServer }) => {
     // Disable error overlay completely
     if (dev) {
       // Disable React error overlay
-      config.resolve.alias['react-error-overlay'] = require.resolve('./src/lib/noop.js');
-      
+      config.resolve.alias['react-error-overlay'] =
+        require.resolve('./src/lib/noop.js');
+
       // Disable webpack hot dev client overlay
       const ReactRefreshWebpackPlugin = config.plugins.find(
         plugin => plugin.constructor.name === 'ReactRefreshWebpackPlugin'
@@ -70,7 +70,7 @@ const nextConfig = {
         ReactRefreshWebpackPlugin.options.overlay = false;
       }
     }
-    
+
     // Optimize bundle in production
     if (!dev && !isServer) {
       config.optimization.splitChunks = {
@@ -91,25 +91,25 @@ const nextConfig = {
         },
       };
     }
-    
+
     return config;
   },
-  
+
   // Compression
   compress: true,
-  
+
   // PoweredBy header removal
   poweredByHeader: false,
-  
+
   // Generate ETags for better caching
   generateEtags: true,
-  
+
   // API configuration
   serverRuntimeConfig: {
     // Will only be available on the server-side
     bodySizeLimit: '50mb',
   },
-  
+
   // Experimental features for API routes
   experimental: {
     // ... existing experimental config ...
@@ -117,7 +117,7 @@ const nextConfig = {
       'lucide-react',
       '@radix-ui/react-dialog',
       '@radix-ui/react-dropdown-menu',
-      '@radix-ui/react-toast'
+      '@radix-ui/react-toast',
     ],
   },
 };

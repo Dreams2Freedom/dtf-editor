@@ -17,7 +17,9 @@ const supabase = createClient(
 
   if (error) {
     console.error('❌ Error querying affiliates table:', error.message);
-    console.log('\nThe affiliates table does not exist. Migration needs to be applied.');
+    console.log(
+      '\nThe affiliates table does not exist. Migration needs to be applied.'
+    );
   } else {
     console.log('✅ Affiliates table exists!');
     console.log(`   Total records: ${count || 0}`);
@@ -38,7 +40,9 @@ const supabase = createClient(
   console.log('\n=== Checking auth.users table ===\n');
 
   // Check if current user exists and their admin status
-  const { data: { user } } = await supabase.auth.getUser();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
 
   if (user) {
     console.log('Current user:', user.email);
@@ -56,17 +60,23 @@ const supabase = createClient(
     console.log('Cannot check admin status via RPC, trying direct query...');
 
     // Direct query using service role
-    const { data: authUsers, error: authError } = await supabase.auth.admin.listUsers();
+    const { data: authUsers, error: authError } =
+      await supabase.auth.admin.listUsers();
 
     if (authError) {
       console.error('Error listing users:', authError.message);
     } else {
-      const adminUser = authUsers.users.find(u => u.email === 'shannonherod@gmail.com');
+      const adminUser = authUsers.users.find(
+        u => u.email === 'shannonherod@gmail.com'
+      );
       if (adminUser) {
         console.log('\nAdmin user found:');
         console.log('  Email:', adminUser.email);
         console.log('  ID:', adminUser.id);
-        console.log('  Metadata:', JSON.stringify(adminUser.user_metadata, null, 2));
+        console.log(
+          '  Metadata:',
+          JSON.stringify(adminUser.user_metadata, null, 2)
+        );
       }
     }
   }

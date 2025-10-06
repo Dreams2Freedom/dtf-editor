@@ -16,13 +16,13 @@ async function fixProductionAuth() {
   console.log('1️⃣ Checking APP_URL configuration...');
   const envPath = join(rootDir, 'src/config/env.ts');
   const envContent = await fs.readFile(envPath, 'utf-8');
-  
+
   if (envContent.includes("'http://localhost:3000'")) {
     issues.push('APP_URL defaults to localhost:3000');
     fixes.push({
       file: 'src/config/env.ts',
       issue: 'APP_URL fallback is localhost',
-      fix: 'Remove localhost fallback or ensure NEXT_PUBLIC_APP_URL is set in production'
+      fix: 'Remove localhost fallback or ensure NEXT_PUBLIC_APP_URL is set in production',
     });
   }
 
@@ -30,13 +30,13 @@ async function fixProductionAuth() {
   console.log('2️⃣ Checking cookie configurations...');
   const testCookiePath = join(rootDir, 'src/app/api/test-cookie/route.ts');
   const testCookieContent = await fs.readFile(testCookiePath, 'utf-8');
-  
+
   if (testCookieContent.includes('secure: false')) {
     issues.push('Test cookie route has hardcoded secure: false');
     fixes.push({
       file: 'src/app/api/test-cookie/route.ts',
       issue: 'Hardcoded secure: false',
-      fix: "Change to: secure: process.env.NODE_ENV === 'production'"
+      fix: "Change to: secure: process.env.NODE_ENV === 'production'",
     });
   }
 
@@ -44,7 +44,7 @@ async function fixProductionAuth() {
   console.log('3️⃣ Checking environment variables...');
   const clientPath = join(rootDir, 'src/lib/supabase/client.ts');
   const clientContent = await fs.readFile(clientPath, 'utf-8');
-  
+
   if (clientContent.includes('process.env.NEXT_PUBLIC_')) {
     console.log('✅ Using NEXT_PUBLIC_ prefixed variables for client-side');
   } else {
@@ -55,13 +55,13 @@ async function fixProductionAuth() {
   console.log('4️⃣ Checking Supabase configuration...');
   const supabaseConfigPath = join(rootDir, 'supabase/config.toml');
   const supabaseConfig = await fs.readFile(supabaseConfigPath, 'utf-8');
-  
+
   if (supabaseConfig.includes('site_url = "http://localhost:3000"')) {
     issues.push('Supabase config has localhost site_url');
     fixes.push({
       file: 'supabase/config.toml',
       issue: 'site_url is set to localhost',
-      fix: 'This is only for local development, production uses dashboard settings'
+      fix: 'This is only for local development, production uses dashboard settings',
     });
   }
 
@@ -69,14 +69,14 @@ async function fixProductionAuth() {
   console.log('5️⃣ Checking for SSR/CSR issues...');
   const middlewarePath = join(rootDir, 'src/middleware.ts');
   const middlewareContent = await fs.readFile(middlewarePath, 'utf-8');
-  
+
   if (middlewareContent.includes('createMiddlewareClient')) {
     console.log('✅ Using middleware-specific Supabase client');
   }
 
   // Report findings
   console.log('\n📊 ANALYSIS COMPLETE\n');
-  
+
   if (issues.length === 0) {
     console.log('✅ No critical issues found!');
   } else {
@@ -84,7 +84,7 @@ async function fixProductionAuth() {
     issues.forEach((issue, i) => {
       console.log(`  ${i + 1}. ${issue}`);
     });
-    
+
     console.log('\n🔧 REQUIRED FIXES:\n');
     fixes.forEach((fix, i) => {
       console.log(`${i + 1}. File: ${fix.file}`);

@@ -18,8 +18,8 @@ interface ImageToImageUploadProps {
   };
 }
 
-export function ImageToImageUpload({ 
-  onPromptGenerated
+export function ImageToImageUpload({
+  onPromptGenerated,
 }: ImageToImageUploadProps) {
   const [uploadedImage, setUploadedImage] = useState<string | null>(null);
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
@@ -27,7 +27,8 @@ export function ImageToImageUpload({
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analysisResult, setAnalysisResult] = useState<string>('');
   const [modifiedPrompt, setModifiedPrompt] = useState<string>('');
-  const [modificationInstructions, setModificationInstructions] = useState<string>('');
+  const [modificationInstructions, setModificationInstructions] =
+    useState<string>('');
 
   const handleDragOver = useCallback((e: React.DragEvent) => {
     e.preventDefault();
@@ -42,10 +43,10 @@ export function ImageToImageUpload({
   const handleDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault();
     setIsDragging(false);
-    
+
     const files = Array.from(e.dataTransfer.files);
     const imageFile = files.find(file => file.type.startsWith('image/'));
-    
+
     if (imageFile) {
       handleImageFile(imageFile);
     } else {
@@ -61,13 +62,14 @@ export function ImageToImageUpload({
   };
 
   const handleImageFile = (file: File) => {
-    if (file.size > 50 * 1024 * 1024) { // 50MB limit
+    if (file.size > 50 * 1024 * 1024) {
+      // 50MB limit
       toast.error('Image must be less than 50MB');
       return;
     }
 
     const reader = new FileReader();
-    reader.onload = (e) => {
+    reader.onload = e => {
       const dataUrl = e.target?.result as string;
       setUploadedImage(dataUrl);
       setUploadedFile(file);
@@ -89,9 +91,9 @@ export function ImageToImageUpload({
         body: JSON.stringify({
           imageUrl: uploadedImage,
           analysisType: 'describe_for_recreation',
-          customInstructions: modificationInstructions 
+          customInstructions: modificationInstructions
             ? `IMPORTANT MODIFICATIONS REQUIRED: ${modificationInstructions}. Analyze the image and create a prompt that incorporates these specific changes.`
-            : 'Describe this image in detail for accurate recreation.'
+            : 'Describe this image in detail for accurate recreation.',
         }),
       });
 
@@ -102,7 +104,7 @@ export function ImageToImageUpload({
       }
 
       setAnalysisResult(data.analysis);
-      
+
       // Use the recreation prompt directly - it should already include modifications
       const prompt = data.recreationPrompt || data.analysis;
       setModifiedPrompt(prompt);
@@ -140,9 +142,10 @@ export function ImageToImageUpload({
           onDrop={handleDrop}
           className={`
             border-2 border-dashed rounded-lg p-8 text-center transition-colors
-            ${isDragging 
-              ? 'border-purple-500 bg-purple-50' 
-              : 'border-gray-300 hover:border-gray-400'
+            ${
+              isDragging
+                ? 'border-purple-500 bg-purple-50'
+                : 'border-gray-300 hover:border-gray-400'
             }
           `}
         >
@@ -197,7 +200,7 @@ export function ImageToImageUpload({
             </p>
             <textarea
               value={modificationInstructions}
-              onChange={(e) => setModificationInstructions(e.target.value)}
+              onChange={e => setModificationInstructions(e.target.value)}
               placeholder="Examples:
 • Replace 'MOM' with 'GRANDMA'
 • Remove the palm tree in the background
@@ -209,7 +212,8 @@ export function ImageToImageUpload({
               rows={6}
             />
             <div className="mt-2 text-xs text-gray-500">
-              Leave empty to recreate the image as-is, or describe specific changes you want.
+              Leave empty to recreate the image as-is, or describe specific
+              changes you want.
             </div>
           </Card>
 
@@ -240,7 +244,7 @@ export function ImageToImageUpload({
               <h4 className="font-medium mb-3">Generated Prompt</h4>
               <textarea
                 value={modifiedPrompt}
-                onChange={(e) => setModifiedPrompt(e.target.value)}
+                onChange={e => setModifiedPrompt(e.target.value)}
                 className="w-full px-3 py-2 border rounded-lg resize-none text-sm"
                 rows={6}
               />
@@ -252,11 +256,7 @@ export function ImageToImageUpload({
                 >
                   Use This Prompt
                 </Button>
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  onClick={analyzeImage}
-                >
+                <Button variant="secondary" size="sm" onClick={analyzeImage}>
                   Re-analyze
                 </Button>
               </div>
@@ -272,7 +272,9 @@ export function ImageToImageUpload({
         </h4>
         <ul className="text-xs text-amber-700 space-y-1">
           <li>• Upload any design and describe what you want to change</li>
-          <li>• Be specific: "Replace MOM with GRANDMA" or "Remove the palm tree"</li>
+          <li>
+            • Be specific: "Replace MOM with GRANDMA" or "Remove the palm tree"
+          </li>
           <li>• You can request multiple changes at once</li>
           <li>• AI will preserve the style while making your modifications</li>
           <li>• Edit the generated prompt for fine-tuning</li>

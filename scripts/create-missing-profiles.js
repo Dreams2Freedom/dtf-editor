@@ -17,7 +17,8 @@ async function createMissingProfiles() {
 
   try {
     // Get all auth users
-    const { data: authData, error: authError } = await supabase.auth.admin.listUsers();
+    const { data: authData, error: authError } =
+      await supabase.auth.admin.listUsers();
 
     if (authError) {
       console.error('Error fetching users:', authError);
@@ -43,18 +44,20 @@ async function createMissingProfiles() {
         // Profile doesn't exist, create it
         console.log(`Creating profile for ${user.email}...`);
 
-        const { error: insertError } = await supabase
-          .from('profiles')
-          .insert({
-            id: user.id,
-            email: user.email,
-            full_name: user.user_metadata?.full_name || user.user_metadata?.name || null,
-            created_at: user.created_at,
-            updated_at: new Date().toISOString()
-          });
+        const { error: insertError } = await supabase.from('profiles').insert({
+          id: user.id,
+          email: user.email,
+          full_name:
+            user.user_metadata?.full_name || user.user_metadata?.name || null,
+          created_at: user.created_at,
+          updated_at: new Date().toISOString(),
+        });
 
         if (insertError) {
-          console.error(`  ❌ Failed to create profile for ${user.email}:`, insertError.message);
+          console.error(
+            `  ❌ Failed to create profile for ${user.email}:`,
+            insertError.message
+          );
           failed++;
         } else {
           console.log(`  ✅ Created profile for ${user.email}`);
@@ -63,7 +66,10 @@ async function createMissingProfiles() {
       } else if (profile) {
         existing++;
       } else if (checkError) {
-        console.error(`Error checking profile for ${user.email}:`, checkError.message);
+        console.error(
+          `Error checking profile for ${user.email}:`,
+          checkError.message
+        );
         failed++;
       }
     }
@@ -76,9 +82,7 @@ async function createMissingProfiles() {
 
     // Now check affiliates again
     console.log('\n🔍 Checking affiliates with profiles:');
-    const { data: affiliates } = await supabase
-      .from('affiliates')
-      .select(`
+    const { data: affiliates } = await supabase.from('affiliates').select(`
         *,
         profiles:user_id (
           email,
@@ -88,10 +92,11 @@ async function createMissingProfiles() {
 
     if (affiliates && affiliates.length > 0) {
       affiliates.forEach(aff => {
-        console.log(`  ${aff.referral_code}: ${aff.profiles?.email || 'No profile'}`);
+        console.log(
+          `  ${aff.referral_code}: ${aff.profiles?.email || 'No profile'}`
+        );
       });
     }
-
   } catch (error) {
     console.error('Unexpected error:', error);
   }

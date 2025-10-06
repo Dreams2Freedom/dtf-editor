@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createServerSupabaseClient, createServiceRoleClient } from '@/lib/supabase/server';
+import {
+  createServerSupabaseClient,
+  createServiceRoleClient,
+} from '@/lib/supabase/server';
 import { chatGPTService } from '@/services/chatgpt';
 import { enhancePromptForDTF } from '@/utils/promptHelpers';
 import { v4 as uuidv4 } from 'uuid';
@@ -15,7 +18,10 @@ async function handlePost(request: NextRequest) {
   try {
     // Get authenticated user
     const supabase = await createServerSupabaseClient();
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
 
     if (authError || !user) {
       return NextResponse.json(
@@ -34,11 +40,12 @@ async function handlePost(request: NextRequest) {
 
     // Check access
     const isAdmin = profile?.is_admin === true;
-    const isPaidUser = profile?.subscription_tier && profile?.subscription_tier !== 'free';
-    
+    const isPaidUser =
+      profile?.subscription_tier && profile?.subscription_tier !== 'free';
+
     if (!isPaidUser && !isAdmin) {
       return NextResponse.json(
-        { 
+        {
           error: 'AI image generation is only available for paid subscribers',
           requiresUpgrade: true,
         },
@@ -49,11 +56,12 @@ async function handlePost(request: NextRequest) {
     // Parse FormData instead of JSON
     const formData = await request.formData();
     const imageFile = formData.get('image') as File;
-    const modifications = formData.get('modifications') as string || undefined;
-    const size = formData.get('size') as string || '1024x1024';
-    const quality = formData.get('quality') as string || 'standard';
-    const style = formData.get('style') as string || 'vivid';
-    const count = parseInt(formData.get('count') as string || '1');
+    const modifications =
+      (formData.get('modifications') as string) || undefined;
+    const size = (formData.get('size') as string) || '1024x1024';
+    const quality = (formData.get('quality') as string) || 'standard';
+    const style = (formData.get('style') as string) || 'vivid';
+    const count = parseInt((formData.get('count') as string) || '1');
 
     if (!imageFile) {
       return NextResponse.json(
@@ -69,7 +77,9 @@ async function handlePost(request: NextRequest) {
     const mimeType = imageFile.type || 'image/png';
     const imageUrl = `data:${mimeType};base64,${base64}`;
 
-    console.log('[Generate From Image API] Step 1: Analyzing image with GPT-4o Vision...');
+    console.log(
+      '[Generate From Image API] Step 1: Analyzing image with GPT-4o Vision...'
+    );
 
     // Step 1: Analyze the image with GPT-4o Vision (GPT-4o can analyze images but not generate them)
     // GPT-4o has vision capabilities to understand and describe images
@@ -96,35 +106,38 @@ async function handlePost(request: NextRequest) {
     }
 
     const visionResponse = await openai.chat.completions.create({
-      model: "gpt-4o",
+      model: 'gpt-4o',
       messages: [
         {
-          role: "system",
-          content: "You are an expert at creating detailed GPT-Image-1 prompts from images. Your prompts should be specific and comprehensive to ensure accurate recreation."
+          role: 'system',
+          content:
+            'You are an expert at creating detailed GPT-Image-1 prompts from images. Your prompts should be specific and comprehensive to ensure accurate recreation.',
         },
         {
-          role: "user",
+          role: 'user',
           content: [
-            { type: "text", text: analysisPrompt },
-            { 
-              type: "image_url", 
-              image_url: { 
+            { type: 'text', text: analysisPrompt },
+            {
+              type: 'image_url',
+              image_url: {
                 url: imageUrl,
-                detail: "high"
-              } 
-            }
-          ]
-        }
+                detail: 'high',
+              },
+            },
+          ],
+        },
       ],
       max_tokens: 1000,
     });
 
     const generatedPrompt = visionResponse.choices[0]?.message?.content || '';
-    
+
     // Enhance for DTF
     const enhancedPrompt = enhancePromptForDTF(generatedPrompt);
 
-    console.log('[Generate From Image API] Step 2: Generating image with GPT-Image-1...');
+    console.log(
+      '[Generate From Image API] Step 2: Generating image with GPT-Image-1...'
+    );
 
     // Step 2: Generate the image with GPT-Image-1 (OpenAI's image generation model)
     // Note: GPT-4o can analyze images but cannot generate them - only GPT-Image-1 generates images
@@ -180,12 +193,13 @@ async function handlePost(request: NextRequest) {
 
         const filename = `ai-generated/${user.id}/${uuidv4()}.png`;
 
-        const { data: uploadData, error: uploadError } = await serviceClient.storage
-          .from('user-uploads')
-          .upload(filename, buffer, {
-            contentType: 'image/png',
-            upsert: false,
-          });
+        const { data: uploadData, error: uploadError } =
+          await serviceClient.storage
+            .from('user-uploads')
+            .upload(filename, buffer, {
+              contentType: 'image/png',
+              upsert: false,
+            });
 
         if (!uploadError) {
           const { data: urlData } = serviceClient.storage
@@ -195,9 +209,8 @@ async function handlePost(request: NextRequest) {
           // Save to processed_images via RPC so it appears in My Images (bypasses RLS/grant issues)
           const widthVal = parseInt(size.split('x')[0]);
           const heightVal = parseInt(size.split('x')[1]);
-          const { data: insertedId, error: recordError } = await serviceClient.rpc(
-            'insert_processed_image',
-            {
+          const { data: insertedId, error: recordError } =
+            await serviceClient.rpc('insert_processed_image', {
               p_user_id: user.id,
               p_original_filename: `ai-generated-${Date.now()}.png`,
               p_processed_filename: filename.split('/').pop() || filename,
@@ -218,10 +231,9 @@ async function handlePost(request: NextRequest) {
                 credits_used: creditsPerImage,
                 width: widthVal,
                 height: heightVal,
-                storage_path: filename
-              }
-            }
-          );
+                storage_path: filename,
+              },
+            });
 
           if (recordError) {
             console.error('Error saving to processed_images:', recordError);
@@ -242,17 +254,18 @@ async function handlePost(request: NextRequest) {
       success: true,
       images: storedImages,
       creditsUsed: totalCreditsUsed,
-      creditsRemaining: profile ? (profile.credits || 0) - totalCreditsUsed : null,
+      creditsRemaining: profile
+        ? (profile.credits || 0) - totalCreditsUsed
+        : null,
       generatedPrompt: enhancedPrompt,
       analysis: generatedPrompt, // The original analysis before DTF enhancement
     });
-
   } catch (error: unknown) {
     console.error('[Generate From Image API] Error:', error);
     return NextResponse.json(
-      { 
+      {
         error: 'Failed to generate image from reference',
-        details: error instanceof Error ? error.message : 'Unknown error'
+        details: error instanceof Error ? error.message : 'Unknown error',
       },
       { status: 500 }
     );

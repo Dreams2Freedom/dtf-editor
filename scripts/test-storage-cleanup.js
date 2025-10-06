@@ -30,7 +30,9 @@ async function testStorageCleanup() {
       return;
     }
 
-    console.log(`Found ${expiringImages?.length || 0} images with expiration dates:`);
+    console.log(
+      `Found ${expiringImages?.length || 0} images with expiration dates:`
+    );
     expiringImages?.forEach(img => {
       const expiresIn = new Date(img.expires_at) - new Date();
       const hours = Math.floor(expiresIn / (1000 * 60 * 60));
@@ -53,14 +55,17 @@ async function testStorageCleanup() {
 
     console.log(`Found ${expiredImages?.length || 0} expired images`);
     expiredImages?.forEach(img => {
-      console.log(`  - ${img.original_filename} (expired ${new Date(img.expires_at).toLocaleString()})`);
+      console.log(
+        `  - ${img.original_filename} (expired ${new Date(img.expires_at).toLocaleString()})`
+      );
     });
 
     // 3. Test cleanup function
     if (expiredImages && expiredImages.length > 0) {
       console.log('\n3. Testing cleanup function...');
-      const { data: cleanupResult, error: cleanupError } = await supabase
-        .rpc('cleanup_expired_images');
+      const { data: cleanupResult, error: cleanupError } = await supabase.rpc(
+        'cleanup_expired_images'
+      );
 
       if (cleanupError) {
         console.error('Error running cleanup:', cleanupError);
@@ -73,13 +78,15 @@ async function testStorageCleanup() {
     console.log('\n4. Checking user storage patterns...');
     const { data: userStats, error: statsError } = await supabase
       .from('profiles')
-      .select(`
+      .select(
+        `
         user_id,
         subscription_plan,
         subscription_status,
         last_credit_purchase_at,
         processed_images!inner(count)
-      `)
+      `
+      )
       .limit(5);
 
     if (statsError) {
@@ -98,7 +105,7 @@ async function testStorageCleanup() {
 
     // 5. Test expiration calculation
     console.log('\n5. Testing expiration calculation...');
-    
+
     // Get a test user
     const { data: testUser } = await supabase
       .from('profiles')
@@ -108,11 +115,13 @@ async function testStorageCleanup() {
       .single();
 
     if (testUser) {
-      const { data: expirationTest, error: expError } = await supabase
-        .rpc('calculate_image_expiration', {
+      const { data: expirationTest, error: expError } = await supabase.rpc(
+        'calculate_image_expiration',
+        {
           p_user_id: testUser.user_id,
-          p_created_at: new Date().toISOString()
-        });
+          p_created_at: new Date().toISOString(),
+        }
+      );
 
       if (expError) {
         console.error('Error calculating expiration:', expError);
@@ -122,7 +131,6 @@ async function testStorageCleanup() {
     }
 
     console.log('\n✅ Storage cleanup system test complete!');
-
   } catch (error) {
     console.error('Test failed:', error);
   }

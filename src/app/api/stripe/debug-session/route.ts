@@ -10,14 +10,17 @@ async function handleGet(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams;
     const sessionId = searchParams.get('session_id');
-    
+
     if (!sessionId) {
-      return NextResponse.json({ error: 'Session ID required' }, { status: 400 });
+      return NextResponse.json(
+        { error: 'Session ID required' },
+        { status: 400 }
+      );
     }
 
     const stripeService = getStripeService();
     const session = await stripeService.getCheckoutSession(sessionId);
-    
+
     if (!session) {
       return NextResponse.json({ error: 'Session not found' }, { status: 404 });
     }
@@ -25,7 +28,9 @@ async function handleGet(request: NextRequest) {
     // Get subscription details if it exists
     let subscription = null;
     if (session.subscription) {
-      subscription = await stripeService.getSubscription(session.subscription as string);
+      subscription = await stripeService.getSubscription(
+        session.subscription as string
+      );
     }
 
     return NextResponse.json({
@@ -39,17 +44,19 @@ async function handleGet(request: NextRequest) {
         metadata: session.metadata,
         amount_total: session.amount_total,
       },
-      subscription: subscription ? {
-        id: subscription.id,
-        status: subscription.status,
-        current_period_start: subscription.current_period_start,
-        current_period_end: subscription.current_period_end,
-        items: subscription.items.data.map(item => ({
-          price_id: item.price.id,
-          product_id: item.price.product,
-        })),
-        metadata: subscription.metadata,
-      } : null,
+      subscription: subscription
+        ? {
+            id: subscription.id,
+            status: subscription.status,
+            current_period_start: subscription.current_period_start,
+            current_period_end: subscription.current_period_end,
+            items: subscription.items.data.map(item => ({
+              price_id: item.price.id,
+              product_id: item.price.product,
+            })),
+            metadata: subscription.metadata,
+          }
+        : null,
     });
   } catch (error: any) {
     return NextResponse.json(

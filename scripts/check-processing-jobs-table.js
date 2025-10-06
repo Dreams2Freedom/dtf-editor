@@ -17,7 +17,10 @@ async function checkTable() {
       .limit(1);
 
     if (error) {
-      if (error.message.includes('does not exist') || error.message.includes('relation')) {
+      if (
+        error.message.includes('does not exist') ||
+        error.message.includes('relation')
+      ) {
         console.log('❌ Table "processing_jobs" does not exist!');
         console.log('   This is why the async upscaler is failing.\n');
         console.log('Solution: We need to create the processing_jobs table.');
@@ -40,7 +43,9 @@ async function checkTable() {
     if (recentJobs && recentJobs.length > 0) {
       console.log(`\nFound ${recentJobs.length} recent job(s):`);
       recentJobs.forEach(job => {
-        console.log(`  - ${job.job_type} (${job.status}): Created ${new Date(job.created_at).toLocaleString()}`);
+        console.log(
+          `  - ${job.job_type} (${job.status}): Created ${new Date(job.created_at).toLocaleString()}`
+        );
       });
     } else {
       console.log('\nNo jobs found in the table.');
@@ -55,7 +60,9 @@ async function checkTable() {
 
 checkTable().then(exists => {
   if (!exists) {
-    console.log('\n📝 To fix this issue, we need to run a migration to create the processing_jobs table.');
+    console.log(
+      '\n📝 To fix this issue, we need to run a migration to create the processing_jobs table.'
+    );
   }
   process.exit(exists ? 0 : 1);
 });

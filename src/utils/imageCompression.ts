@@ -24,7 +24,7 @@ export async function compressImage(
     maxSizeMB = 10, // Default 10MB max
     maxWidthOrHeight = 4096, // Default max dimension
     quality = 0.9,
-    format = 'jpeg'
+    format = 'jpeg',
   } = options;
 
   const maxSizeBytes = maxSizeMB * 1024 * 1024;
@@ -34,14 +34,17 @@ export async function compressImage(
     originalSize: `${(file.size / 1024 / 1024).toFixed(2)}MB`,
     originalType: file.type,
     maxSizeMB,
-    maxWidthOrHeight
+    maxWidthOrHeight,
   });
 
   // Check if compression is needed
   if (file.size <= maxSizeBytes) {
     // Check dimensions
     const dimensions = await getImageDimensions(file);
-    if (dimensions.width <= maxWidthOrHeight && dimensions.height <= maxWidthOrHeight) {
+    if (
+      dimensions.width <= maxWidthOrHeight &&
+      dimensions.height <= maxWidthOrHeight
+    ) {
       console.log('[ImageCompression] No compression needed');
       return file;
     }
@@ -61,13 +64,18 @@ export async function compressImage(
       try {
         // Calculate new dimensions
         let { width, height } = img;
-        
+
         // Scale down if exceeds max dimensions
         if (width > maxWidthOrHeight || height > maxWidthOrHeight) {
-          const scale = Math.min(maxWidthOrHeight / width, maxWidthOrHeight / height);
+          const scale = Math.min(
+            maxWidthOrHeight / width,
+            maxWidthOrHeight / height
+          );
           width = Math.floor(width * scale);
           height = Math.floor(height * scale);
-          console.log(`[ImageCompression] Resizing from ${img.width}x${img.height} to ${width}x${height}`);
+          console.log(
+            `[ImageCompression] Resizing from ${img.width}x${img.height} to ${width}x${height}`
+          );
         }
 
         canvas.width = width;
@@ -83,9 +91,9 @@ export async function compressImage(
         const maxAttempts = 5;
 
         while (attempts < maxAttempts) {
-          const blob = await new Promise<Blob | null>((resolve) => {
+          const blob = await new Promise<Blob | null>(resolve => {
             canvas.toBlob(
-              (blob) => resolve(blob),
+              blob => resolve(blob),
               `image/${format}`,
               currentQuality
             );
@@ -95,9 +103,13 @@ export async function compressImage(
             throw new Error('Failed to compress image');
           }
 
-          compressedFile = new File([blob], file.name, { type: `image/${format}` });
+          compressedFile = new File([blob], file.name, {
+            type: `image/${format}`,
+          });
 
-          console.log(`[ImageCompression] Attempt ${attempts + 1}: Quality ${currentQuality}, Size ${(compressedFile.size / 1024 / 1024).toFixed(2)}MB`);
+          console.log(
+            `[ImageCompression] Attempt ${attempts + 1}: Quality ${currentQuality}, Size ${(compressedFile.size / 1024 / 1024).toFixed(2)}MB`
+          );
 
           if (compressedFile.size <= maxSizeBytes) {
             break;
@@ -109,13 +121,15 @@ export async function compressImage(
         }
 
         if (!compressedFile || compressedFile.size > maxSizeBytes) {
-          console.warn('[ImageCompression] Could not achieve target size, returning best effort');
+          console.warn(
+            '[ImageCompression] Could not achieve target size, returning best effort'
+          );
         }
 
         console.log('[ImageCompression] Compression complete:', {
           finalSize: `${(compressedFile!.size / 1024 / 1024).toFixed(2)}MB`,
           finalDimensions: `${width}x${height}`,
-          compressionRatio: `${((1 - compressedFile!.size / file.size) * 100).toFixed(1)}%`
+          compressionRatio: `${((1 - compressedFile!.size / file.size) * 100).toFixed(1)}%`,
         });
 
         resolve(compressedFile!);
@@ -131,7 +145,7 @@ export async function compressImage(
 
     // Load image
     const reader = new FileReader();
-    reader.onload = (e) => {
+    reader.onload = e => {
       img.src = e.target?.result as string;
     };
     reader.onerror = () => {
@@ -144,7 +158,9 @@ export async function compressImage(
 /**
  * Get image dimensions from a file
  */
-export async function getImageDimensions(file: File): Promise<{ width: number; height: number }> {
+export async function getImageDimensions(
+  file: File
+): Promise<{ width: number; height: number }> {
   return new Promise((resolve, reject) => {
     const img = new Image();
     img.onload = () => {
@@ -155,7 +171,7 @@ export async function getImageDimensions(file: File): Promise<{ width: number; h
     };
 
     const reader = new FileReader();
-    reader.onload = (e) => {
+    reader.onload = e => {
       img.src = e.target?.result as string;
     };
     reader.onerror = () => {
@@ -168,7 +184,10 @@ export async function getImageDimensions(file: File): Promise<{ width: number; h
 /**
  * Convert a URL to a File object
  */
-export async function urlToFile(url: string, filename: string = 'image'): Promise<File> {
+export async function urlToFile(
+  url: string,
+  filename: string = 'image'
+): Promise<File> {
   const response = await fetch(url);
   const blob = await response.blob();
   const contentType = blob.type || 'image/jpeg';
@@ -185,7 +204,7 @@ export async function needsCompression(
   maxDimension: number = 4096
 ): Promise<boolean> {
   const maxSizeBytes = maxSizeMB * 1024 * 1024;
-  
+
   if (file.size > maxSizeBytes) {
     return true;
   }

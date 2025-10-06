@@ -272,7 +272,9 @@ export function PromptOptimizationStep({
 
             {onRegenerateFromEdit && (
               <p className="text-xs text-blue-700 mt-2">
-                <strong>Tip:</strong> Click "Re-Generate" to get 4 new AI-optimized variations based on your edits, or "Use This" to use your edited prompt as-is.
+                <strong>Tip:</strong> Click "Re-Generate" to get 4 new
+                AI-optimized variations based on your edits, or "Use This" to
+                use your edited prompt as-is.
               </p>
             )}
           </div>

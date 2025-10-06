@@ -11,14 +11,14 @@ export async function GET(request: NextRequest) {
     }
 
     const supabase = createServiceRoleClient();
-    
+
     // Get the date range for the past week
     const now = new Date();
     const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
 
     // Get all active users who have logged in within the past month
     const monthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
-    
+
     const { data: activeUsers, error: usersError } = await supabase
       .from('profiles')
       .select('id, email, first_name, last_sign_in_at')
@@ -27,7 +27,10 @@ export async function GET(request: NextRequest) {
 
     if (usersError) {
       console.error('Error fetching active users:', usersError);
-      return NextResponse.json({ error: 'Failed to fetch users' }, { status: 500 });
+      return NextResponse.json(
+        { error: 'Failed to fetch users' },
+        { status: 500 }
+      );
     }
 
     let emailsSent = 0;
@@ -37,7 +40,7 @@ export async function GET(request: NextRequest) {
     for (const user of activeUsers || []) {
       try {
         // Get user's activity stats for the past week
-        
+
         // Count logins (approximated by auth logs or session updates)
         const { count: loginsCount } = await supabase
           .from('profiles')
@@ -60,7 +63,9 @@ export async function GET(request: NextRequest) {
           .gte('created_at', weekAgo.toISOString())
           .lt('amount', 0); // Only deductions
 
-        const creditsUsed = creditTransactions?.reduce((sum, t) => sum + Math.abs(t.amount), 0) || 0;
+        const creditsUsed =
+          creditTransactions?.reduce((sum, t) => sum + Math.abs(t.amount), 0) ||
+          0;
 
         // Calculate storage used
         const { data: storageData } = await supabase
@@ -69,7 +74,8 @@ export async function GET(request: NextRequest) {
           .eq('user_id', user.id)
           .not('deleted_at', 'is', null);
 
-        const totalBytes = storageData?.reduce((sum, u) => sum + (u.file_size || 0), 0) || 0;
+        const totalBytes =
+          storageData?.reduce((sum, u) => sum + (u.file_size || 0), 0) || 0;
         const storageUsed = formatBytes(totalBytes);
 
         // Get most used feature
@@ -80,13 +86,18 @@ export async function GET(request: NextRequest) {
           .gte('created_at', weekAgo.toISOString())
           .not('processing_type', 'is', null);
 
-        const featureCounts = featureUsage?.reduce((acc, u) => {
-          acc[u.processing_type] = (acc[u.processing_type] || 0) + 1;
-          return acc;
-        }, {} as Record<string, number>) || {};
+        const featureCounts =
+          featureUsage?.reduce(
+            (acc, u) => {
+              acc[u.processing_type] = (acc[u.processing_type] || 0) + 1;
+              return acc;
+            },
+            {} as Record<string, number>
+          ) || {};
 
-        const mostUsedFeature = Object.entries(featureCounts)
-          .sort(([, a], [, b]) => b - a)[0]?.[0] || null;
+        const mostUsedFeature =
+          Object.entries(featureCounts).sort(([, a], [, b]) => b - a)[0]?.[0] ||
+          null;
 
         // Only send email if there was activity
         if (imagesProcessed > 0 || creditsUsed > 0) {
@@ -99,7 +110,9 @@ export async function GET(request: NextRequest) {
               imagesProcessed: imagesProcessed || 0,
               creditsUsed,
               storageUsed,
-              lastLogin: user.last_sign_in_at ? new Date(user.last_sign_in_at) : undefined,
+              lastLogin: user.last_sign_in_at
+                ? new Date(user.last_sign_in_at)
+                : undefined,
               mostUsedFeature: formatFeatureName(mostUsedFeature),
             },
           });
@@ -139,19 +152,19 @@ function formatBytes(bytes: number): string {
   const k = 1024;
   const sizes = ['Bytes', 'KB', 'MB', 'GB'];
   const i = Math.floor(Math.log(bytes) / Math.log(k));
-  return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i];
+  return Math.round((bytes / Math.pow(k, i)) * 100) / 100 + ' ' + sizes[i];
 }
 
 function formatFeatureName(feature: string | null): string | undefined {
   if (!feature) return undefined;
-  
+
   const featureNames: Record<string, string> = {
-    'upscale': 'Image Upscaling',
+    upscale: 'Image Upscaling',
     'background-removal': 'Background Removal',
-    'vectorize': 'Vectorization',
-    'generate': 'AI Image Generation',
-    'edit': 'AI Image Editing',
+    vectorize: 'Vectorization',
+    generate: 'AI Image Generation',
+    edit: 'AI Image Editing',
   };
-  
+
   return featureNames[feature] || feature;
 }

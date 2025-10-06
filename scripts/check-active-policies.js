@@ -32,9 +32,11 @@ async function checkActivePolicies() {
 
     if (error) {
       console.error('❌ Error fetching policies:', error);
-      
+
       // Try alternative approach
-      console.log('\n📋 Alternative: Please run this query in Supabase SQL Editor:\n');
+      console.log(
+        '\n📋 Alternative: Please run this query in Supabase SQL Editor:\n'
+      );
       console.log(`SELECT 
   policyname,
   cmd,
@@ -56,26 +58,26 @@ ORDER BY bucket, policyname;`);
     if (!policies || policies.length === 0) {
       console.log('⚠️  No storage policies found!');
       console.log('\nThis might mean:');
-      console.log('1. The policies haven\'t been applied yet');
+      console.log("1. The policies haven't been applied yet");
       console.log('2. RLS is not enabled on storage.objects');
       console.log('3. The policies were applied to a different schema\n');
-      
+
       console.log('To enable RLS on storage.objects, run:');
       console.log('ALTER TABLE storage.objects ENABLE ROW LEVEL SECURITY;');
       return;
     }
 
     console.log(`✅ Found ${policies.length} storage policies:\n`);
-    
+
     // Group by bucket
     const bucketPolicies = {};
-    
+
     policies.forEach(policy => {
       let bucket = 'unknown';
       if (policy.qual?.includes('images')) bucket = 'images';
       else if (policy.qual?.includes('user-images')) bucket = 'user-images';
       else if (policy.qual?.includes('user-uploads')) bucket = 'user-uploads';
-      
+
       if (!bucketPolicies[bucket]) bucketPolicies[bucket] = [];
       bucketPolicies[bucket].push(policy);
     });
@@ -90,7 +92,6 @@ ORDER BY bucket, policyname;`);
       });
       console.log('');
     });
-
   } catch (error) {
     console.error('❌ Error checking policies:', error);
   }
@@ -99,7 +100,7 @@ ORDER BY bucket, policyname;`);
 // Check if RLS is enabled
 async function checkRLSEnabled() {
   console.log('\n🔒 Checking if RLS is enabled on storage.objects...\n');
-  
+
   const query = `
     SELECT 
       schemaname,
@@ -109,7 +110,7 @@ async function checkRLSEnabled() {
     WHERE schemaname = 'storage' 
       AND tablename = 'objects';
   `;
-  
+
   console.log('Please run this query in Supabase SQL Editor:');
   console.log(query);
   console.log('\nIf rowsecurity is FALSE, enable it with:');

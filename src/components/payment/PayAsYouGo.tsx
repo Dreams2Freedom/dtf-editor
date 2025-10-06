@@ -11,7 +11,9 @@ interface PayAsYouGoProps {
   onPurchaseComplete?: () => void;
 }
 
-export const PayAsYouGo: React.FC<PayAsYouGoProps> = ({ onPurchaseComplete }) => {
+export const PayAsYouGo: React.FC<PayAsYouGoProps> = ({
+  onPurchaseComplete,
+}) => {
   const { user } = useAuthContext();
   const [selectedPackage, setSelectedPackage] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -68,7 +70,7 @@ export const PayAsYouGo: React.FC<PayAsYouGoProps> = ({ onPurchaseComplete }) =>
       }
 
       const { url } = await response.json();
-      
+
       // Redirect to Stripe Checkout
       if (url) {
         window.location.href = url;
@@ -94,9 +96,17 @@ export const PayAsYouGo: React.FC<PayAsYouGoProps> = ({ onPurchaseComplete }) =>
 
   const getPackageBadge = (credits: number) => {
     if (credits >= 50) {
-      return <span className="bg-purple-100 text-purple-800 text-xs font-medium px-2.5 py-0.5 rounded">Best Value</span>;
+      return (
+        <span className="bg-purple-100 text-purple-800 text-xs font-medium px-2.5 py-0.5 rounded">
+          Best Value
+        </span>
+      );
     } else if (credits >= 20) {
-      return <span className="bg-blue-100 text-blue-800 text-xs font-medium px-2.5 py-0.5 rounded">Popular</span>;
+      return (
+        <span className="bg-blue-100 text-blue-800 text-xs font-medium px-2.5 py-0.5 rounded">
+          Popular
+        </span>
+      );
     }
     return null;
   };
@@ -123,69 +133,73 @@ export const PayAsYouGo: React.FC<PayAsYouGoProps> = ({ onPurchaseComplete }) =>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {packages.map((pkg) => (
-          <Card
-            key={pkg.id}
-            className={`relative p-6 transition-all duration-200 hover:shadow-lg ${
-              selectedPackage === pkg.id ? 'ring-2 ring-blue-500' : ''
-            }`}
-          >
-            {getPackageBadge(pkg.credits) && (
-              <div className="absolute -top-2 left-1/2 transform -translate-x-1/2">
-                {getPackageBadge(pkg.credits)}
-              </div>
-            )}
-
-            <div className="text-center mb-6">
-              <div className="flex justify-center mb-4">
-                {getPackageIcon(pkg.credits)}
-              </div>
-              <h3 className="text-xl font-semibold text-gray-900 mb-2">{pkg.name}</h3>
-              <div className="text-3xl font-bold text-gray-900 mb-1">
-                ${pkg.price}
-              </div>
-              <p className="text-sm text-gray-600">
-                {pkg.credits} credits
-              </p>
-              <p className="text-xs text-gray-500 mt-1">
-                ${(pkg.price / pkg.credits).toFixed(2)} per credit
-              </p>
-            </div>
-
-            <ul className="space-y-2 mb-6">
-              <li className="flex items-center">
-                <Check className="w-4 h-4 text-green-500 mr-2" />
-                <span className="text-sm text-gray-700">One-time purchase</span>
-              </li>
-              <li className="flex items-center">
-                <Check className="w-4 h-4 text-green-500 mr-2" />
-                <span className="text-sm text-gray-700">No recurring charges</span>
-              </li>
-              <li className="flex items-center">
-                <Check className="w-4 h-4 text-green-500 mr-2" />
-                <span className="text-sm text-gray-700">Credits never expire</span>
-              </li>
-            </ul>
-
-            <Button
-              onClick={() => handlePurchase(pkg)}
-              disabled={isLoading}
-              className={`w-full ${
-                pkg.credits >= 50
-                  ? 'bg-purple-600 hover:bg-purple-700'
-                  : pkg.credits >= 20
-                  ? 'bg-blue-600 hover:bg-blue-700'
-                  : 'bg-green-600 hover:bg-green-700'
+          {packages.map(pkg => (
+            <Card
+              key={pkg.id}
+              className={`relative p-6 transition-all duration-200 hover:shadow-lg ${
+                selectedPackage === pkg.id ? 'ring-2 ring-blue-500' : ''
               }`}
             >
-              {isLoading && selectedPackage === pkg.id ? (
-                'Processing...'
-              ) : (
-                `Buy ${pkg.credits} Credits`
+              {getPackageBadge(pkg.credits) && (
+                <div className="absolute -top-2 left-1/2 transform -translate-x-1/2">
+                  {getPackageBadge(pkg.credits)}
+                </div>
               )}
-            </Button>
-          </Card>
-        ))}
+
+              <div className="text-center mb-6">
+                <div className="flex justify-center mb-4">
+                  {getPackageIcon(pkg.credits)}
+                </div>
+                <h3 className="text-xl font-semibold text-gray-900 mb-2">
+                  {pkg.name}
+                </h3>
+                <div className="text-3xl font-bold text-gray-900 mb-1">
+                  ${pkg.price}
+                </div>
+                <p className="text-sm text-gray-600">{pkg.credits} credits</p>
+                <p className="text-xs text-gray-500 mt-1">
+                  ${(pkg.price / pkg.credits).toFixed(2)} per credit
+                </p>
+              </div>
+
+              <ul className="space-y-2 mb-6">
+                <li className="flex items-center">
+                  <Check className="w-4 h-4 text-green-500 mr-2" />
+                  <span className="text-sm text-gray-700">
+                    One-time purchase
+                  </span>
+                </li>
+                <li className="flex items-center">
+                  <Check className="w-4 h-4 text-green-500 mr-2" />
+                  <span className="text-sm text-gray-700">
+                    No recurring charges
+                  </span>
+                </li>
+                <li className="flex items-center">
+                  <Check className="w-4 h-4 text-green-500 mr-2" />
+                  <span className="text-sm text-gray-700">
+                    Credits never expire
+                  </span>
+                </li>
+              </ul>
+
+              <Button
+                onClick={() => handlePurchase(pkg)}
+                disabled={isLoading}
+                className={`w-full ${
+                  pkg.credits >= 50
+                    ? 'bg-purple-600 hover:bg-purple-700'
+                    : pkg.credits >= 20
+                      ? 'bg-blue-600 hover:bg-blue-700'
+                      : 'bg-green-600 hover:bg-green-700'
+                }`}
+              >
+                {isLoading && selectedPackage === pkg.id
+                  ? 'Processing...'
+                  : `Buy ${pkg.credits} Credits`}
+              </Button>
+            </Card>
+          ))}
         </div>
       )}
 
@@ -195,4 +209,4 @@ export const PayAsYouGo: React.FC<PayAsYouGoProps> = ({ onPurchaseComplete }) =>
       </div>
     </div>
   );
-}; 
+};

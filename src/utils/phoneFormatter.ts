@@ -5,10 +5,10 @@
 export function formatPhoneNumber(value: string): string {
   // Remove all non-digit characters
   const phoneNumber = value.replace(/\D/g, '');
-  
+
   // Limit to 10 digits for US/Canada
   const limitedNumber = phoneNumber.slice(0, 10);
-  
+
   // Format based on length
   if (limitedNumber.length === 0) {
     return '';
@@ -42,12 +42,12 @@ export function validatePhoneNumber(value: string): boolean {
  */
 export function displayPhoneNumber(value: string | null | undefined): string {
   if (!value) return '';
-  
+
   // If it's already formatted, return as is
   if (value.includes('(') || value.includes('-')) {
     return value;
   }
-  
+
   // Format unformatted number
   return formatPhoneNumber(value);
 }

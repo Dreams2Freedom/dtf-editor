@@ -79,14 +79,19 @@ export function SignupForm({ onSuccess, redirectTo }: SignupFormProps) {
     console.log('[SIGNUP FORM] Step 2: Signup result:', result);
 
     if (result.success) {
-      console.log('[SIGNUP FORM] Step 3: Signup successful, waiting 2 seconds before redirect');
+      console.log(
+        '[SIGNUP FORM] Step 3: Signup successful, waiting 2 seconds before redirect'
+      );
       onSuccess?.();
-      
+
       // Add a 2-second delay to ensure the welcome email fetch completes
       // This is a temporary fix to diagnose the issue
       await new Promise(resolve => setTimeout(resolve, 2000));
-      
-      console.log('[SIGNUP FORM] Step 4: Redirecting to:', redirectTo || '/dashboard');
+
+      console.log(
+        '[SIGNUP FORM] Step 4: Redirecting to:',
+        redirectTo || '/dashboard'
+      );
       if (redirectTo) {
         window.location.href = redirectTo;
       } else {

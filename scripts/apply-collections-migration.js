@@ -15,13 +15,13 @@ const supabase = createClient(supabaseUrl, supabaseServiceKey);
 async function applyMigration() {
   try {
     console.log('🚀 Starting collections migration...\n');
-    
+
     // Check if tables already exist
     const { data: existingTables } = await supabase
       .from('image_collections')
       .select('id')
       .limit(1);
-    
+
     if (existingTables) {
       console.log('⚠️  Tables already exist. Migration may have been applied.');
       const { count } = await supabase
@@ -30,7 +30,7 @@ async function applyMigration() {
       console.log(`   Found ${count} collections`);
       return;
     }
-    
+
     console.log('❌ Migration not yet applied.');
     console.log('\n📋 Please apply the migration manually:');
     console.log('\n1. Go to your Supabase Dashboard');
@@ -45,11 +45,12 @@ async function applyMigration() {
     console.log('   - Add primary_collection_id to processed_images');
     console.log('   - Set up RLS policies');
     console.log('   - Create default collections for all users');
-    
   } catch (error) {
     if (error.code === 'PGRST204') {
       console.log('❌ Tables do not exist yet.');
-      console.log('\n📋 Please apply the migration manually (see instructions above)');
+      console.log(
+        '\n📋 Please apply the migration manually (see instructions above)'
+      );
     } else {
       console.error('Error checking migration status:', error);
     }

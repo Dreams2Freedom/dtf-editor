@@ -7,23 +7,27 @@ The automatic storage cleanup system is now fully operational. Free user images 
 ## What's Active
 
 ### 1. Database Infrastructure
+
 - ✅ `expires_at` column added to `processed_images` table
 - ✅ Automatic expiration calculation on image upload
 - ✅ Triggers update expiration when user plans change
 - ✅ Cleanup function removes expired images
 
 ### 2. Expiration Rules
+
 - **Free Users**: Images expire 48 hours after upload
 - **Pay-as-you-go**: Images expire 90 days after last credit purchase
 - **Subscribers**: Images never expire (permanent storage)
 
 ### 3. Automatic Cleanup
+
 - **Job ID**: 1
 - **Schedule**: Every hour at minute 0 (1:00, 2:00, 3:00, etc.)
 - **Status**: Active ✅
 - **Command**: `SELECT cleanup_expired_images()`
 
 ### 4. UI Updates
+
 - Gallery shows expiration warnings
 - "Expires in X hours" for urgent cases
 - "Expired" label for past-due images
@@ -32,8 +36,9 @@ The automatic storage cleanup system is now fully operational. Free user images 
 ## Monitoring the System
 
 ### Check Recent Cleanup Runs
+
 ```sql
-SELECT 
+SELECT
   runid,
   status,
   return_message,
@@ -46,9 +51,10 @@ LIMIT 10;
 ```
 
 ### View Current Image Status
+
 ```sql
-SELECT 
-  CASE 
+SELECT
+  CASE
     WHEN expires_at IS NULL THEN 'Permanent'
     WHEN expires_at < NOW() THEN 'Expired (awaiting cleanup)'
     WHEN expires_at < NOW() + INTERVAL '24 hours' THEN 'Expiring Soon'
@@ -60,6 +66,7 @@ GROUP BY status;
 ```
 
 ### Manual Cleanup (if needed)
+
 ```sql
 SELECT cleanup_expired_images();
 ```
@@ -67,11 +74,13 @@ SELECT cleanup_expired_images();
 ## User Experience
 
 ### For Free Users
+
 - Clear 48-hour expiration warning on all images
 - Countdown timer when less than 24 hours remain
 - Encouragement to upgrade for permanent storage
 
 ### For Paying Users
+
 - No expiration dates shown
 - Peace of mind with permanent storage
 - Seamless experience
@@ -86,11 +95,13 @@ SELECT cleanup_expired_images();
 ## Troubleshooting
 
 ### If images aren't being cleaned up:
+
 1. Check if cron job is active: `SELECT * FROM cron.job WHERE jobid = 1;`
 2. View job errors: `SELECT * FROM cron.job_run_details WHERE jobid = 1 AND status != 'succeeded';`
 3. Run manual cleanup: `SELECT cleanup_expired_images();`
 
 ### To temporarily disable cleanup:
+
 ```sql
 SELECT cron.unschedule(1);
 -- or
@@ -98,6 +109,7 @@ SELECT cron.unschedule('cleanup-expired-images');
 ```
 
 ### To re-enable:
+
 ```sql
 SELECT cron.schedule(
   'cleanup-expired-images',

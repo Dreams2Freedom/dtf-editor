@@ -25,24 +25,21 @@ async function handlePost(request: NextRequest) {
       .single();
 
     if (userError || !user) {
-      return NextResponse.json(
-        { error: 'User not found' },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
     const stripeService = getStripeService();
-    
+
     // Create or get Stripe customer
     let customerId = user.stripe_customer_id;
-    
+
     if (!customerId) {
       const customer = await stripeService.createCustomer(
         user.email,
         user.full_name || undefined
       );
       customerId = customer.id;
-      
+
       // Update user with Stripe customer ID
       await supabase
         .from('users')
@@ -53,12 +50,9 @@ async function handlePost(request: NextRequest) {
     // Get the price from Stripe to get the amount
     const stripe = require('stripe')(env.STRIPE_SECRET_KEY);
     const price = await stripe.prices.retrieve(priceId);
-    
+
     if (!price) {
-      return NextResponse.json(
-        { error: 'Invalid price ID' },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: 'Invalid price ID' }, { status: 400 });
     }
 
     // Create payment intent
@@ -85,7 +79,7 @@ async function handlePost(request: NextRequest) {
       { status: 500 }
     );
   }
-} 
+}
 
 // Apply rate limiting
 export const POST = withRateLimit(handlePost, 'payment');

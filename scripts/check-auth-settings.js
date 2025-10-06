@@ -26,13 +26,13 @@ async function testAuth() {
     console.log('URL:', supabaseUrl);
     console.log('Using anon key');
     console.log('---');
-    
+
     // Test sign in
     const { data, error } = await supabase.auth.signInWithPassword({
       email: 'shannonherod@gmail.com',
-      password: 'TestPassword123!'
+      password: 'TestPassword123!',
     });
-    
+
     if (error) {
       console.error('Sign in failed:', error.message);
       console.error('Error code:', error.code);
@@ -44,7 +44,6 @@ async function testAuth() {
       console.log('Email:', data.user?.email);
       console.log('Session:', !!data.session);
     }
-    
   } catch (error) {
     console.error('Test error:', error);
   }

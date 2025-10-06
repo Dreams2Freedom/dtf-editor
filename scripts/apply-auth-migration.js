@@ -24,13 +24,19 @@ async function applyMigration() {
   const supabase = createClient(supabaseUrl, supabaseServiceKey, {
     auth: {
       autoRefreshToken: false,
-      persistSession: false
-    }
+      persistSession: false,
+    },
   });
 
   try {
     // Read the migration file
-    const migrationPath = path.join(__dirname, '..', 'supabase', 'migrations', '004_consolidated_auth_fix_v2.sql');
+    const migrationPath = path.join(
+      __dirname,
+      '..',
+      'supabase',
+      'migrations',
+      '004_consolidated_auth_fix_v2.sql'
+    );
     const migrationSql = fs.readFileSync(migrationPath, 'utf8');
 
     console.log('📄 Applying migration: 004_consolidated_auth_fix_v2.sql');
@@ -38,13 +44,15 @@ async function applyMigration() {
 
     // Execute the migration
     const { data, error } = await supabase.rpc('exec_sql', {
-      sql: migrationSql
+      sql: migrationSql,
     });
 
     if (error) {
       // If exec_sql doesn't exist, try direct execution
-      console.log('⚠️  exec_sql function not found, trying alternative method...');
-      
+      console.log(
+        '⚠️  exec_sql function not found, trying alternative method...'
+      );
+
       // Split the migration into individual statements
       const statements = migrationSql
         .split(';')
@@ -56,11 +64,13 @@ async function applyMigration() {
           // Skip SELECT statements as they're just for verification
           continue;
         }
-        
+
         console.log(`Executing: ${statement.substring(0, 50)}...`);
-        
+
         // This is a workaround - you may need to run these manually
-        console.log('⚠️  Direct SQL execution not available via Supabase JS client');
+        console.log(
+          '⚠️  Direct SQL execution not available via Supabase JS client'
+        );
         console.log('Please run the migration manually in Supabase SQL Editor');
         break;
       }
@@ -87,10 +97,11 @@ async function applyMigration() {
       console.log('✅ Profile access working!');
       console.log('\n🎉 Auth fix complete! Please refresh your browser.');
     }
-
   } catch (error) {
     console.error('❌ Error applying migration:', error.message);
-    console.error('\nPlease apply the migration manually in Supabase SQL Editor');
+    console.error(
+      '\nPlease apply the migration manually in Supabase SQL Editor'
+    );
   }
 }
 

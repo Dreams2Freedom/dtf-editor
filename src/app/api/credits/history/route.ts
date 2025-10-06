@@ -5,7 +5,10 @@ import { withRateLimit } from '@/lib/rate-limit';
 async function handleGet(request: NextRequest) {
   try {
     const supabase = await createServerSupabaseClient();
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
 
     if (authError || !user) {
       return NextResponse.json(
@@ -75,16 +78,15 @@ async function handleGet(request: NextRequest) {
           active_credits: 0,
           rollover_credits: 0,
           next_expiration_date: null,
-          active_purchases: 0
+          active_purchases: 0,
         },
         pagination: {
           limit,
           offset,
-          hasMore: transactions?.length === limit
-        }
-      }
+          hasMore: transactions?.length === limit,
+        },
+      },
     });
-
   } catch (error) {
     console.error('Credit history error:', error);
     return NextResponse.json(

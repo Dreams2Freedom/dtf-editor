@@ -32,7 +32,9 @@ async function handlePost(request: NextRequest) {
     }
 
     // Get user email from auth
-    const { data: { user: authUser } } = await supabase.auth.admin.getUserById(userId);
+    const {
+      data: { user: authUser },
+    } = await supabase.auth.admin.getUserById(userId);
     if (!authUser) {
       return NextResponse.json(
         { error: 'Auth user not found' },
@@ -41,17 +43,19 @@ async function handlePost(request: NextRequest) {
     }
 
     const stripeService = getStripeService();
-    
+
     // Create or get Stripe customer
     let customerId = profile.stripe_customer_id;
-    
+
     if (!customerId) {
       const customer = await stripeService.createCustomer(
         authUser.email!,
-        profile.first_name ? `${profile.first_name} ${profile.last_name || ''}`.trim() : undefined
+        profile.first_name
+          ? `${profile.first_name} ${profile.last_name || ''}`.trim()
+          : undefined
       );
       customerId = customer.id;
-      
+
       // Update profile with Stripe customer ID
       await supabase
         .from('profiles')
@@ -70,7 +74,8 @@ async function handlePost(request: NextRequest) {
     });
 
     // Get the client secret from the payment intent
-    const clientSecret = (subscription.latest_invoice as any)?.payment_intent?.client_secret;
+    const clientSecret = (subscription.latest_invoice as any)?.payment_intent
+      ?.client_secret;
 
     return NextResponse.json({
       subscriptionId: subscription.id,
@@ -83,7 +88,7 @@ async function handlePost(request: NextRequest) {
       { status: 500 }
     );
   }
-} 
+}
 
 // Apply rate limiting
 export const POST = withRateLimit(handlePost, 'payment');

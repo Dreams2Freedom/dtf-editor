@@ -8,14 +8,14 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { KPIDashboard } from '@/components/admin/analytics/KPIDashboard';
 import { toast } from '@/lib/toast';
-import { 
-  Users, 
-  DollarSign, 
-  CreditCard, 
+import {
+  Users,
+  DollarSign,
+  CreditCard,
   Activity,
   ArrowUp,
   ArrowDown,
-  TrendingUp
+  TrendingUp,
 } from 'lucide-react';
 import type { AdminDashboardStats } from '@/types/admin';
 
@@ -31,17 +31,17 @@ export default function AdminDashboard() {
       if (!user) {
         await initialize();
       }
-      
+
       // Get fresh state after initialization
       const state = useAuthStore.getState();
-      
+
       // Check if user is authenticated
       if (!state.user) {
         toast.error('Please login to access admin dashboard');
         router.push('/admin/login');
         return;
       }
-      
+
       // Check if user is admin
       if (!state.isAdmin) {
         toast.error('Access denied. Admin privileges required.');
@@ -50,21 +50,21 @@ export default function AdminDashboard() {
         router.push('/dashboard');
         return;
       }
-      
+
       // User is authenticated and is admin
       toast.success('Welcome to Admin Dashboard');
-      
+
       // Fetch real stats from API
       fetchDashboardStats();
     };
-    
+
     checkAuth();
   }, [router, initialize]);
 
   const fetchDashboardStats = async () => {
     try {
       const response = await fetch('/api/admin/dashboard/stats', {
-        credentials: 'include'
+        credentials: 'include',
       });
 
       if (!response.ok) {
@@ -90,14 +90,14 @@ export default function AdminDashboard() {
     }).format(amount);
   };
 
-  const StatCard = ({ 
-    title, 
-    value, 
-    change, 
-    icon: Icon, 
+  const StatCard = ({
+    title,
+    value,
+    change,
+    icon: Icon,
     trend = 'up',
     prefix = '',
-    suffix = ''
+    suffix = '',
   }: {
     title: string;
     value: number | string;
@@ -113,12 +113,16 @@ export default function AdminDashboard() {
           <div>
             <p className="text-sm font-medium text-gray-600">{title}</p>
             <p className="text-2xl font-bold text-gray-900 mt-2">
-              {prefix}{typeof value === 'number' ? value.toLocaleString() : value}{suffix}
+              {prefix}
+              {typeof value === 'number' ? value.toLocaleString() : value}
+              {suffix}
             </p>
             {change !== undefined && (
-              <p className={`text-sm mt-2 flex items-center ${
-                trend === 'up' ? 'text-success-600' : 'text-error-600'
-              }`}>
+              <p
+                className={`text-sm mt-2 flex items-center ${
+                  trend === 'up' ? 'text-success-600' : 'text-error-600'
+                }`}
+              >
                 {trend === 'up' ? (
                   <ArrowUp className="w-4 h-4 mr-1" />
                 ) : (
@@ -128,12 +132,16 @@ export default function AdminDashboard() {
               </p>
             )}
           </div>
-          <div className={`p-3 rounded-full ${
-            trend === 'up' ? 'bg-success-100' : 'bg-info-100'
-          }`}>
-            <Icon className={`w-6 h-6 ${
-              trend === 'up' ? 'text-success-600' : 'text-info-600'
-            }`} />
+          <div
+            className={`p-3 rounded-full ${
+              trend === 'up' ? 'bg-success-100' : 'bg-info-100'
+            }`}
+          >
+            <Icon
+              className={`w-6 h-6 ${
+                trend === 'up' ? 'text-success-600' : 'text-info-600'
+              }`}
+            />
           </div>
         </div>
       </CardContent>
@@ -157,11 +165,15 @@ export default function AdminDashboard() {
 
   return (
     <AdminLayout>
-        <div className="space-y-8">
+      <div className="space-y-8">
         {/* Page Header */}
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Dashboard Overview</h1>
-          <p className="text-gray-600">Welcome back! Here's what's happening with your platform.</p>
+          <h1 className="text-2xl font-bold text-gray-900">
+            Dashboard Overview
+          </h1>
+          <p className="text-gray-600">
+            Welcome back! Here's what's happening with your platform.
+          </p>
         </div>
 
         {/* Stats Grid */}
@@ -206,20 +218,28 @@ export default function AdminDashboard() {
               <div className="space-y-4">
                 <div className="flex justify-between items-center">
                   <span className="text-gray-600">Today</span>
-                  <span className="font-semibold">{formatCurrency(stats.revenue.today)}</span>
+                  <span className="font-semibold">
+                    {formatCurrency(stats.revenue.today)}
+                  </span>
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-gray-600">This Week</span>
-                  <span className="font-semibold">{formatCurrency(stats.revenue.week)}</span>
+                  <span className="font-semibold">
+                    {formatCurrency(stats.revenue.week)}
+                  </span>
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-gray-600">This Month</span>
-                  <span className="font-semibold">{formatCurrency(stats.revenue.month)}</span>
+                  <span className="font-semibold">
+                    {formatCurrency(stats.revenue.month)}
+                  </span>
                 </div>
                 <div className="pt-4 border-t">
                   <div className="flex justify-between items-center">
                     <span className="text-gray-600">Annual Recurring</span>
-                    <span className="font-bold text-lg">{formatCurrency(stats.revenue.arr)}</span>
+                    <span className="font-bold text-lg">
+                      {formatCurrency(stats.revenue.arr)}
+                    </span>
                   </div>
                 </div>
               </div>
@@ -235,20 +255,28 @@ export default function AdminDashboard() {
               <div className="space-y-4">
                 <div className="flex justify-between items-center">
                   <span className="text-gray-600">Images Today</span>
-                  <span className="font-semibold">{stats.processing.images_today}</span>
+                  <span className="font-semibold">
+                    {stats.processing.images_today}
+                  </span>
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-gray-600">Images This Week</span>
-                  <span className="font-semibold">{stats.processing.images_week}</span>
+                  <span className="font-semibold">
+                    {stats.processing.images_week}
+                  </span>
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-gray-600">Avg Processing Time</span>
-                  <span className="font-semibold">{stats.processing.avg_processing_time}s</span>
+                  <span className="font-semibold">
+                    {stats.processing.avg_processing_time}s
+                  </span>
                 </div>
                 <div className="pt-4 border-t">
                   <div className="flex justify-between items-center">
                     <span className="text-gray-600">Success Rate</span>
-                    <span className="font-bold text-lg text-success-600">{stats.processing.success_rate}%</span>
+                    <span className="font-bold text-lg text-success-600">
+                      {stats.processing.success_rate}%
+                    </span>
                   </div>
                 </div>
               </div>

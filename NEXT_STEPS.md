@@ -10,6 +10,7 @@
 ### **Today's Focus: Credit Reset Logic (4.1.1)**
 
 1. **Create credit_transactions table** (30 min)
+
    ```sql
    CREATE TABLE credit_transactions (
      id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -23,8 +24,9 @@
    ```
 
 2. **Add last_credit_reset to profiles** (15 min)
+
    ```sql
-   ALTER TABLE profiles 
+   ALTER TABLE profiles
    ADD COLUMN last_credit_reset TIMESTAMP DEFAULT NOW();
    ```
 
@@ -51,18 +53,21 @@
 ## 📋 **This Week's Overview**
 
 ### **Monday-Tuesday: Payment Foundation**
+
 - ✓ Credit reset logic
 - Credit purchase history
 - Credit expiration tracking
 - Enhanced credit display
 
 ### **Wednesday-Thursday: Stripe Subscriptions**
+
 - Create Stripe products
 - Build subscription flow
 - Handle webhooks
 - Update dashboard
 
 ### **Friday: Pay-as-You-Go**
+
 - Credit packages setup
 - Purchase interface
 - Payment processing
@@ -80,6 +85,7 @@
 6. **Update tracking docs** after completion
 
 ### **Context7 Quick Searches for Today's Tasks:**
+
 ```
 // For credit reset logic:
 "Supabase scheduled functions"

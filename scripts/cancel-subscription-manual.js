@@ -14,34 +14,39 @@ const supabase = createClient(supabaseUrl, supabaseServiceKey);
 async function cancelSubscription(email) {
   try {
     console.log(`\n🚫 Cancelling subscription for: ${email}`);
-    
+
     // Find user by email
-    const { data: { users }, error: userError } = await supabase.auth.admin.listUsers();
+    const {
+      data: { users },
+      error: userError,
+    } = await supabase.auth.admin.listUsers();
     if (userError) throw userError;
-    
-    const user = users.find(u => u.email?.toLowerCase() === email.toLowerCase());
+
+    const user = users.find(
+      u => u.email?.toLowerCase() === email.toLowerCase()
+    );
     if (!user) {
       console.error('❌ User not found');
       return;
     }
-    
+
     console.log(`✅ Found user: ${user.id}`);
-    
+
     // Get current profile
     const { data: profile, error: profileError } = await supabase
       .from('profiles')
       .select('*')
       .eq('id', user.id)
       .single();
-      
+
     if (profileError) throw profileError;
-    
+
     console.log('📊 Current profile:');
     console.log('- Plan:', profile.subscription_plan || 'free');
     console.log('- Status:', profile.subscription_status || 'free');
     console.log('- Credits:', profile.credits_remaining);
     console.log('- Stripe Customer:', profile.stripe_customer_id);
-    
+
     // Update to cancelled/free
     const { error: updateError } = await supabase
       .from('profiles')
@@ -50,18 +55,17 @@ async function cancelSubscription(email) {
         subscription_status: 'cancelled',
         subscription_canceled_at: new Date().toISOString(),
         // Keep existing credits
-        updated_at: new Date().toISOString()
+        updated_at: new Date().toISOString(),
       })
       .eq('id', user.id);
-      
+
     if (updateError) throw updateError;
-    
+
     console.log('✅ Subscription cancelled successfully!');
     console.log('🎉 User now has:');
     console.log('- Free plan active');
     console.log('- Status: cancelled');
     console.log('- Keeping existing credits:', profile.credits_remaining);
-    
   } catch (error) {
     console.error('❌ Error:', error.message);
   }

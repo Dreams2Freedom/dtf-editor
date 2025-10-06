@@ -15,7 +15,7 @@ export default function AdminLoginPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState({
     email: '',
-    password: ''
+    password: '',
   });
 
   const { user, isAdmin, signIn, initialize } = useAuthStore();
@@ -25,14 +25,14 @@ export default function AdminLoginPage() {
     const checkAuth = async () => {
       console.log('Admin login page - checking auth...');
       await initialize();
-      
+
       const state = useAuthStore.getState();
       console.log('Auth state:', {
         user: state.user?.email,
         isAdmin: state.isAdmin,
-        profile: state.profile
+        profile: state.profile,
       });
-      
+
       if (state.user && state.isAdmin) {
         // Already logged in as admin, redirect to dashboard
         console.log('User is admin, redirecting...');
@@ -44,7 +44,7 @@ export default function AdminLoginPage() {
         router.push('/dashboard');
       }
     };
-    
+
     checkAuth();
   }, [router, initialize]);
 
@@ -63,10 +63,10 @@ export default function AdminLoginPage() {
 
       // Wait a moment for the store to update
       await new Promise(resolve => setTimeout(resolve, 100));
-      
+
       // Re-initialize to get fresh data
       await initialize();
-      
+
       // Check if user is admin
       const store = useAuthStore.getState();
       if (!store.isAdmin) {
@@ -77,7 +77,7 @@ export default function AdminLoginPage() {
 
       // Login successful
       toast.success('Login successful! Redirecting...');
-      
+
       // Redirect to admin dashboard
       setTimeout(() => {
         router.push('/admin');
@@ -89,7 +89,10 @@ export default function AdminLoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4" suppressHydrationWarning>
+    <div
+      className="min-h-screen bg-gray-50 flex items-center justify-center px-4"
+      suppressHydrationWarning
+    >
       <div className="max-w-md w-full">
         {/* Logo and Title */}
         <div className="text-center mb-8">
@@ -116,13 +119,18 @@ export default function AdminLoginPage() {
               <AlertCircle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
               <div className="text-sm">
                 <p className="text-amber-800 font-medium">Restricted Access</p>
-                <p className="text-amber-700">This area is for authorized administrators only.</p>
+                <p className="text-amber-700">
+                  This area is for authorized administrators only.
+                </p>
               </div>
             </div>
 
             {/* Email Input */}
             <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
+              <label
+                htmlFor="email"
+                className="block text-sm font-medium text-gray-700 mb-1"
+              >
                 Email Address
               </label>
               <div className="relative">
@@ -131,7 +139,9 @@ export default function AdminLoginPage() {
                   id="email"
                   type="email"
                   value={formData.email}
-                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                  onChange={e =>
+                    setFormData({ ...formData, email: e.target.value })
+                  }
                   className="pl-10"
                   placeholder="admin@example.com"
                   required
@@ -143,7 +153,10 @@ export default function AdminLoginPage() {
 
             {/* Password Input */}
             <div>
-              <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
+              <label
+                htmlFor="password"
+                className="block text-sm font-medium text-gray-700 mb-1"
+              >
                 Password
               </label>
               <div className="relative">
@@ -152,7 +165,9 @@ export default function AdminLoginPage() {
                   id="password"
                   type="password"
                   value={formData.password}
-                  onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                  onChange={e =>
+                    setFormData({ ...formData, password: e.target.value })
+                  }
                   className="pl-10"
                   placeholder="••••••••"
                   required
@@ -161,7 +176,6 @@ export default function AdminLoginPage() {
                 />
               </div>
             </div>
-
 
             {/* Submit Button */}
             <Button

@@ -11,7 +11,9 @@ async function handlePatch(
     const supabase = await createServerSupabaseClient();
 
     // Check if user is admin
-    const { data: { user } } = await supabase.auth.getUser();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
@@ -23,7 +25,10 @@ async function handlePatch(
       .single();
 
     if (!profile?.is_admin) {
-      return NextResponse.json({ error: 'Admin access required' }, { status: 403 });
+      return NextResponse.json(
+        { error: 'Admin access required' },
+        { status: 403 }
+      );
     }
 
     const body = await request.json();
@@ -49,7 +54,6 @@ async function handlePatch(
     }
 
     return NextResponse.json({ coupon });
-
   } catch (error) {
     console.error('Error in update coupon API:', error);
     return NextResponse.json(
@@ -67,7 +71,9 @@ async function handleDelete(
     const supabase = await createServerSupabaseClient();
 
     // Check if user is admin
-    const { data: { user } } = await supabase.auth.getUser();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
@@ -79,7 +85,10 @@ async function handleDelete(
       .single();
 
     if (!profile?.is_admin) {
-      return NextResponse.json({ error: 'Admin access required' }, { status: 403 });
+      return NextResponse.json(
+        { error: 'Admin access required' },
+        { status: 403 }
+      );
     }
 
     const serviceClient = createServiceRoleSupabaseClient();
@@ -102,7 +111,6 @@ async function handleDelete(
     }
 
     return NextResponse.json({ success: true });
-
   } catch (error) {
     console.error('Error in delete coupon API:', error);
     return NextResponse.json(

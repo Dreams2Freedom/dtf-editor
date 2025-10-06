@@ -17,13 +17,18 @@ async function runMigration() {
     const sql = fs.readFileSync(sqlPath, 'utf8');
 
     // Execute the SQL
-    const { data, error } = await supabase.rpc('exec_sql', {
-      query: sql
-    }).single();
+    const { data, error } = await supabase
+      .rpc('exec_sql', {
+        query: sql,
+      })
+      .single();
 
     if (error) {
       // If exec_sql doesn't exist, try direct approach
-      if (error.message.includes('function') || error.message.includes('does not exist')) {
+      if (
+        error.message.includes('function') ||
+        error.message.includes('does not exist')
+      ) {
         console.log('Direct RPC not available, trying alternative method...\n');
 
         // Split SQL into individual statements and execute them
@@ -47,9 +52,15 @@ async function runMigration() {
         }
 
         console.log('\n⚠️ Cannot execute SQL directly via API.');
-        console.log('Please run the following SQL manually in Supabase Dashboard:\n');
-        console.log('1. Go to: https://supabase.com/dashboard/project/pbqmwtbxdxnqtwxhekbj/sql/new');
-        console.log('2. Copy and paste the contents of: scripts/create-processing-jobs-table.sql');
+        console.log(
+          'Please run the following SQL manually in Supabase Dashboard:\n'
+        );
+        console.log(
+          '1. Go to: https://supabase.com/dashboard/project/pbqmwtbxdxnqtwxhekbj/sql/new'
+        );
+        console.log(
+          '2. Copy and paste the contents of: scripts/create-processing-jobs-table.sql'
+        );
         console.log('3. Click "Run" to execute the migration\n');
 
         return false;

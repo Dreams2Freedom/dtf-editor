@@ -12,13 +12,13 @@ const colors = {
   green: '\x1b[32m',
   red: '\x1b[31m',
   yellow: '\x1b[33m',
-  cyan: '\x1b[36m'
+  cyan: '\x1b[36m',
 };
 
 async function testEndpoints() {
   const apiKey = process.env.GOHIGHLEVEL_API_KEY;
   const locationId = process.env.GOHIGHLEVEL_LOCATION_ID;
-  
+
   if (!apiKey || !locationId) {
     console.error('Missing API credentials');
     return;
@@ -31,7 +31,7 @@ async function testEndpoints() {
     'https://rest.gohighlevel.com/v1',
     'https://api.gohighlevel.com/v2',
     'https://services.leadconnectorhq.com',
-    'https://api.leadconnectorhq.com'
+    'https://api.leadconnectorhq.com',
   ];
 
   // Different endpoints to test
@@ -40,34 +40,37 @@ async function testEndpoints() {
     '/location/{locationId}',
     '/contacts',
     '/contacts/',
-    '/users/search'
+    '/users/search',
   ];
 
   for (const baseUrl of baseUrls) {
     console.log(`${colors.cyan}Testing base URL: ${baseUrl}${colors.reset}`);
-    
+
     for (const endpoint of endpoints) {
       const url = `${baseUrl}${endpoint.replace('{locationId}', locationId)}`;
       process.stdout.write(`  ${endpoint}: `);
-      
+
       try {
         const response = await fetch(url, {
           method: 'GET',
           headers: {
-            'Authorization': `Bearer ${apiKey}`,
-            'Accept': 'application/json',
-            'Content-Type': 'application/json'
+            Authorization: `Bearer ${apiKey}`,
+            Accept: 'application/json',
+            'Content-Type': 'application/json',
           },
-          timeout: 3000
+          timeout: 3000,
         });
-        
+
         if (response.ok) {
           console.log(`${colors.green}✓ 200 OK${colors.reset}`);
-          
+
           // Try to get a sample of the response
           try {
             const data = await response.json();
-            console.log(`    Response sample:`, JSON.stringify(data).substring(0, 100));
+            console.log(
+              `    Response sample:`,
+              JSON.stringify(data).substring(0, 100)
+            );
           } catch (e) {
             // Ignore JSON parse errors
           }
@@ -81,7 +84,9 @@ async function testEndpoints() {
             console.log(`${colors.red}401 Unauthorized${colors.reset}`);
           }
         } else {
-          console.log(`${colors.red}${response.status} ${response.statusText}${colors.reset}`);
+          console.log(
+            `${colors.red}${response.status} ${response.statusText}${colors.reset}`
+          );
         }
       } catch (error) {
         console.log(`${colors.red}Network error${colors.reset}`);
@@ -91,24 +96,29 @@ async function testEndpoints() {
   }
 
   // Test with different auth headers
-  console.log(`${colors.cyan}Testing different auth methods with services.leadconnectorhq.com${colors.reset}`);
+  console.log(
+    `${colors.cyan}Testing different auth methods with services.leadconnectorhq.com${colors.reset}`
+  );
   const authMethods = [
-    { name: 'Bearer', header: { 'Authorization': `Bearer ${apiKey}` } },
+    { name: 'Bearer', header: { Authorization: `Bearer ${apiKey}` } },
     { name: 'Api-Key', header: { 'Api-Key': apiKey } },
-    { name: 'X-API-Key', header: { 'X-API-Key': apiKey } }
+    { name: 'X-API-Key', header: { 'X-API-Key': apiKey } },
   ];
 
   for (const method of authMethods) {
     process.stdout.write(`  ${method.name}: `);
     try {
-      const response = await fetch(`https://services.leadconnectorhq.com/locations/${locationId}`, {
-        headers: {
-          ...method.header,
-          'Accept': 'application/json'
-        },
-        timeout: 3000
-      });
-      
+      const response = await fetch(
+        `https://services.leadconnectorhq.com/locations/${locationId}`,
+        {
+          headers: {
+            ...method.header,
+            Accept: 'application/json',
+          },
+          timeout: 3000,
+        }
+      );
+
       if (response.ok) {
         console.log(`${colors.green}✓ Works!${colors.reset}`);
       } else {

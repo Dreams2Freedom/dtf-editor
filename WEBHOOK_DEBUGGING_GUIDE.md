@@ -24,10 +24,13 @@
 ### 3. Common Issues and Solutions
 
 #### Issue: Webhook returns 401 Unauthorized
+
 **Solution**: Update `STRIPE_WEBHOOK_SECRET` in Vercel with the signing secret from Stripe
 
 #### Issue: Webhook returns 200 but data not updated
+
 **Possible Causes**:
+
 - userId not in metadata
 - Customer ID not linked to user profile
 - Database permission issues
@@ -35,6 +38,7 @@
 **Check**: Look at the webhook response body in Stripe dashboard for error messages
 
 #### Issue: Webhook not triggered at all
+
 **Solution**: Ensure events are selected in Stripe webhook configuration
 
 ### 4. Testing Webhook Manually
@@ -52,6 +56,7 @@ Should return: `{"error":"Missing stripe-signature header"}`
 ### 5. Required Webhook Events
 
 Make sure these events are enabled in Stripe:
+
 - `checkout.session.completed` ✅
 - `customer.subscription.created` ✅
 - `customer.subscription.updated` ✅
@@ -99,6 +104,7 @@ node scripts/check-users.js check
 ### 8. Next Steps for Permanent Fix
 
 The webhook handler has been updated to:
+
 1. Look up userId by customer ID when metadata is missing
 2. Add detailed logging for debugging
 3. Handle all subscription states properly

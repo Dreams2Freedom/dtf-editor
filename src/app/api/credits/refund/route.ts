@@ -5,7 +5,10 @@ import { withRateLimit } from '@/lib/rate-limit';
 async function handlePost(request: NextRequest) {
   try {
     const supabase = await createServerSupabaseClient();
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
 
     if (authError || !user) {
       return NextResponse.json(
@@ -52,21 +55,18 @@ async function handlePost(request: NextRequest) {
     }
 
     // Log the refund
-    await supabase
-      .from('credit_transactions')
-      .insert({
-        user_id: user.id,
-        amount: credits,
-        type: 'refund',
-        description: reason || 'Credit refund',
-        balance_after: newCredits
-      });
+    await supabase.from('credit_transactions').insert({
+      user_id: user.id,
+      amount: credits,
+      type: 'refund',
+      description: reason || 'Credit refund',
+      balance_after: newCredits,
+    });
 
     return NextResponse.json({
       success: true,
-      credits_remaining: newCredits
+      credits_remaining: newCredits,
     });
-
   } catch (error) {
     console.error('Credit refund error:', error);
     return NextResponse.json(

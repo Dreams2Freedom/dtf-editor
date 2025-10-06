@@ -106,8 +106,8 @@ export function ForgotPasswordForm({ onSuccess }: ForgotPasswordFormProps) {
         />
 
         {/* Submit Button */}
-        <button 
-          type="submit" 
+        <button
+          type="submit"
           className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-4 rounded-lg shadow-sm border-2 border-blue-500"
           disabled={loading}
         >

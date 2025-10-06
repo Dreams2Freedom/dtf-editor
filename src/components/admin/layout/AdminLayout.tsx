@@ -14,13 +14,11 @@ export function AdminLayout({ children }: AdminLayoutProps) {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Admin Header */}
-      <AdminHeader 
-        onMenuToggle={() => setSidebarOpen(!sidebarOpen)}
-      />
+      <AdminHeader onMenuToggle={() => setSidebarOpen(!sidebarOpen)} />
 
       <div className="flex">
         {/* Admin Sidebar */}
-        <AdminSidebar 
+        <AdminSidebar
           isOpen={sidebarOpen}
           onClose={() => setSidebarOpen(false)}
         />
@@ -31,9 +29,7 @@ export function AdminLayout({ children }: AdminLayoutProps) {
             sidebarOpen ? 'ml-0 lg:ml-64' : 'ml-0'
           }`}
         >
-          <div className="p-4 lg:p-8">
-            {children}
-          </div>
+          <div className="p-4 lg:p-8">{children}</div>
         </main>
       </div>
     </div>

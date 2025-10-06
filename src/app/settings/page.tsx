@@ -6,11 +6,21 @@ import { useEffect, useState } from 'react';
 import { ClientOnly } from '@/components/auth/ClientOnly';
 import { LoadingPage } from '@/components/ui/LoadingPage';
 import { Button } from '@/components/ui/Button';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/Card';
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from '@/components/ui/Card';
 import { Input } from '@/components/ui/Input';
 import { Checkbox } from '@/components/ui/Checkbox';
 import { toast } from '@/lib/toast';
-import { formatPhoneNumber, cleanPhoneNumber, displayPhoneNumber } from '@/utils/phoneFormatter';
+import {
+  formatPhoneNumber,
+  cleanPhoneNumber,
+  displayPhoneNumber,
+} from '@/utils/phoneFormatter';
 import {
   ArrowLeft,
   User,
@@ -21,7 +31,7 @@ import {
   Shield,
   Save,
   AlertCircle,
-  Download
+  Download,
 } from 'lucide-react';
 import Link from 'next/link';
 import { Breadcrumb } from '@/components/ui/Breadcrumb';
@@ -30,7 +40,7 @@ export default function SettingsPage() {
   const { user, profile, loading, initialize, refreshProfile } = useAuthStore();
   const router = useRouter();
   const [activeTab, setActiveTab] = useState('profile');
-  
+
   useEffect(() => {
     initialize();
   }, [initialize]);
@@ -67,7 +77,7 @@ export default function SettingsPage() {
           <div className="mb-6">
             <Breadcrumb items={[{ label: 'Settings' }]} />
           </div>
-          
+
           {/* Page Header */}
           <div className="mb-8">
             <h1 className="text-2xl font-bold text-gray-900">Settings</h1>
@@ -77,7 +87,7 @@ export default function SettingsPage() {
             {/* Sidebar Navigation */}
             <div className="lg:col-span-1">
               <nav className="space-y-1">
-                {tabs.map((tab) => {
+                {tabs.map(tab => {
                   const Icon = tab.icon;
                   return (
                     <button
@@ -146,7 +156,7 @@ function ProfileSettings() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           ...formData,
-          phone: cleanPhoneNumber(formData.phone) // Store clean number in database
+          phone: cleanPhoneNumber(formData.phone), // Store clean number in database
         }),
       });
 
@@ -182,7 +192,9 @@ function ProfileSettings() {
               <Input
                 type="text"
                 value={formData.first_name}
-                onChange={(e) => setFormData({ ...formData, first_name: e.target.value })}
+                onChange={e =>
+                  setFormData({ ...formData, first_name: e.target.value })
+                }
                 placeholder="John"
               />
             </div>
@@ -193,7 +205,9 @@ function ProfileSettings() {
               <Input
                 type="text"
                 value={formData.last_name}
-                onChange={(e) => setFormData({ ...formData, last_name: e.target.value })}
+                onChange={e =>
+                  setFormData({ ...formData, last_name: e.target.value })
+                }
                 placeholder="Doe"
               />
             </div>
@@ -206,7 +220,9 @@ function ProfileSettings() {
             <Input
               type="text"
               value={formData.company_name}
-              onChange={(e) => setFormData({ ...formData, company_name: e.target.value })}
+              onChange={e =>
+                setFormData({ ...formData, company_name: e.target.value })
+              }
               placeholder="Acme Corp"
             />
           </div>
@@ -218,7 +234,7 @@ function ProfileSettings() {
             <Input
               type="tel"
               value={formData.phone}
-              onChange={(e) => {
+              onChange={e => {
                 const formatted = formatPhoneNumber(e.target.value);
                 setFormData({ ...formData, phone: formatted });
               }}
@@ -264,7 +280,9 @@ function AccountSettings() {
         throw new Error('Failed to update email');
       }
 
-      toast.success('Email update initiated. Please check your new email for verification.');
+      toast.success(
+        'Email update initiated. Please check your new email for verification.'
+      );
       setEmailData({ ...emailData, new_email: '', password: '' });
     } catch (error) {
       toast.error('Failed to update email');
@@ -302,7 +320,9 @@ function AccountSettings() {
             <Input
               type="email"
               value={emailData.new_email}
-              onChange={(e) => setEmailData({ ...emailData, new_email: e.target.value })}
+              onChange={e =>
+                setEmailData({ ...emailData, new_email: e.target.value })
+              }
               placeholder="newemail@example.com"
               required
             />
@@ -315,7 +335,9 @@ function AccountSettings() {
             <Input
               type="password"
               value={emailData.password}
-              onChange={(e) => setEmailData({ ...emailData, password: e.target.value })}
+              onChange={e =>
+                setEmailData({ ...emailData, password: e.target.value })
+              }
               placeholder="Enter your current password"
               required
             />
@@ -326,13 +348,19 @@ function AccountSettings() {
               <AlertCircle className="w-5 h-5 text-amber-600 mt-0.5 mr-3 flex-shrink-0" />
               <div className="text-sm text-amber-700">
                 <p className="font-medium">Important:</p>
-                <p>Changing your email will require verification. You'll need to confirm the change via email sent to your new address.</p>
+                <p>
+                  Changing your email will require verification. You'll need to
+                  confirm the change via email sent to your new address.
+                </p>
               </div>
             </div>
           </div>
 
           <div className="flex justify-end">
-            <Button type="submit" disabled={loading || !emailData.new_email || !emailData.password}>
+            <Button
+              type="submit"
+              disabled={loading || !emailData.new_email || !emailData.password}
+            >
               <Save className="w-4 h-4 mr-2" />
               {loading ? 'Updating...' : 'Update Email'}
             </Button>
@@ -370,7 +398,7 @@ function PasswordSettings() {
 
   const handlePasswordChange = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!validatePassword()) {
       return;
     }
@@ -398,7 +426,9 @@ function PasswordSettings() {
         confirm_password: '',
       });
     } catch (error) {
-      toast.error('Failed to update password. Please check your current password.');
+      toast.error(
+        'Failed to update password. Please check your current password.'
+      );
     } finally {
       setLoading(false);
     }
@@ -421,7 +451,12 @@ function PasswordSettings() {
             <Input
               type="password"
               value={passwordData.current_password}
-              onChange={(e) => setPasswordData({ ...passwordData, current_password: e.target.value })}
+              onChange={e =>
+                setPasswordData({
+                  ...passwordData,
+                  current_password: e.target.value,
+                })
+              }
               required
             />
           </div>
@@ -433,7 +468,12 @@ function PasswordSettings() {
             <Input
               type="password"
               value={passwordData.new_password}
-              onChange={(e) => setPasswordData({ ...passwordData, new_password: e.target.value })}
+              onChange={e =>
+                setPasswordData({
+                  ...passwordData,
+                  new_password: e.target.value,
+                })
+              }
               required
               error={errors.new_password}
             />
@@ -449,16 +489,26 @@ function PasswordSettings() {
             <Input
               type="password"
               value={passwordData.confirm_password}
-              onChange={(e) => setPasswordData({ ...passwordData, confirm_password: e.target.value })}
+              onChange={e =>
+                setPasswordData({
+                  ...passwordData,
+                  confirm_password: e.target.value,
+                })
+              }
               required
               error={errors.confirm_password}
             />
           </div>
 
           <div className="flex justify-end">
-            <Button 
-              type="submit" 
-              disabled={loading || !passwordData.current_password || !passwordData.new_password || !passwordData.confirm_password}
+            <Button
+              type="submit"
+              disabled={
+                loading ||
+                !passwordData.current_password ||
+                !passwordData.new_password ||
+                !passwordData.confirm_password
+              }
             >
               <Lock className="w-4 h-4 mr-2" />
               {loading ? 'Updating...' : 'Update Password'}
@@ -518,55 +568,92 @@ function NotificationSettings() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="font-medium text-gray-900">Product Updates</p>
-                <p className="text-sm text-gray-500">Get notified about new features and improvements</p>
+                <p className="text-sm text-gray-500">
+                  Get notified about new features and improvements
+                </p>
               </div>
               <Checkbox
                 checked={preferences.email_updates}
-                onCheckedChange={(checked) => setPreferences({ ...preferences, email_updates: checked as boolean })}
+                onCheckedChange={checked =>
+                  setPreferences({
+                    ...preferences,
+                    email_updates: checked as boolean,
+                  })
+                }
               />
             </div>
 
             <div className="flex items-center justify-between">
               <div>
                 <p className="font-medium text-gray-900">Tips & Tutorials</p>
-                <p className="text-sm text-gray-500">Helpful tips to get the most out of DTF Editor</p>
+                <p className="text-sm text-gray-500">
+                  Helpful tips to get the most out of DTF Editor
+                </p>
               </div>
               <Checkbox
                 checked={preferences.email_tips}
-                onCheckedChange={(checked) => setPreferences({ ...preferences, email_tips: checked as boolean })}
+                onCheckedChange={checked =>
+                  setPreferences({
+                    ...preferences,
+                    email_tips: checked as boolean,
+                  })
+                }
               />
             </div>
 
             <div className="flex items-center justify-between">
               <div>
                 <p className="font-medium text-gray-900">Credit Alerts</p>
-                <p className="text-sm text-gray-500">Notifications when credits are low or expiring</p>
+                <p className="text-sm text-gray-500">
+                  Notifications when credits are low or expiring
+                </p>
               </div>
               <Checkbox
                 checked={preferences.credit_alerts}
-                onCheckedChange={(checked) => setPreferences({ ...preferences, credit_alerts: checked as boolean })}
+                onCheckedChange={checked =>
+                  setPreferences({
+                    ...preferences,
+                    credit_alerts: checked as boolean,
+                  })
+                }
               />
             </div>
 
             <div className="flex items-center justify-between">
               <div>
-                <p className="font-medium text-gray-900">Subscription Reminders</p>
-                <p className="text-sm text-gray-500">Billing and renewal notifications</p>
+                <p className="font-medium text-gray-900">
+                  Subscription Reminders
+                </p>
+                <p className="text-sm text-gray-500">
+                  Billing and renewal notifications
+                </p>
               </div>
               <Checkbox
                 checked={preferences.subscription_reminders}
-                onCheckedChange={(checked) => setPreferences({ ...preferences, subscription_reminders: checked as boolean })}
+                onCheckedChange={checked =>
+                  setPreferences({
+                    ...preferences,
+                    subscription_reminders: checked as boolean,
+                  })
+                }
               />
             </div>
 
             <div className="flex items-center justify-between">
               <div>
                 <p className="font-medium text-gray-900">Marketing Emails</p>
-                <p className="text-sm text-gray-500">Special offers and promotions</p>
+                <p className="text-sm text-gray-500">
+                  Special offers and promotions
+                </p>
               </div>
               <Checkbox
                 checked={preferences.email_marketing}
-                onCheckedChange={(checked) => setPreferences({ ...preferences, email_marketing: checked as boolean })}
+                onCheckedChange={checked =>
+                  setPreferences({
+                    ...preferences,
+                    email_marketing: checked as boolean,
+                  })
+                }
               />
             </div>
           </div>
@@ -619,25 +706,25 @@ function BillingSettings() {
       <CardContent>
         <div className="space-y-6">
           <div>
-            <h3 className="text-sm font-medium text-gray-700 mb-2">Current Plan</h3>
+            <h3 className="text-sm font-medium text-gray-700 mb-2">
+              Current Plan
+            </h3>
             <div className="bg-gray-50 rounded-lg p-4">
-              <p className="font-medium text-lg capitalize">{profile?.subscription_plan || 'Free'} Plan</p>
+              <p className="font-medium text-lg capitalize">
+                {profile?.subscription_plan || 'Free'} Plan
+              </p>
               <p className="text-sm text-gray-600 mt-1">
-                {profile?.subscription_plan === 'free' 
+                {profile?.subscription_plan === 'free'
                   ? '2 credits per month'
                   : profile?.subscription_plan === 'basic'
-                  ? '20 credits per month'
-                  : '60 credits per month'
-                }
+                    ? '20 credits per month'
+                    : '60 credits per month'}
               </p>
             </div>
           </div>
 
           <div className="space-y-3">
-            <Button 
-              onClick={handleManageSubscription}
-              className="w-full"
-            >
+            <Button onClick={handleManageSubscription} className="w-full">
               <CreditCard className="w-4 h-4 mr-2" />
               Manage Billing in Stripe
             </Button>
@@ -663,11 +750,11 @@ function SecuritySettings() {
 
   const handleExportData = async () => {
     if (!user?.id) return;
-    
+
     setExporting(true);
     try {
       const response = await fetch(`/api/users/${user.id}/export`, {
-        credentials: 'include'
+        credentials: 'include',
       });
 
       if (!response.ok) {
@@ -710,19 +797,22 @@ function SecuritySettings() {
       <CardContent>
         <div className="space-y-6">
           <div>
-            <h3 className="text-sm font-medium text-gray-700 mb-2">Account ID</h3>
+            <h3 className="text-sm font-medium text-gray-700 mb-2">
+              Account ID
+            </h3>
             <p className="font-mono text-sm text-gray-600 bg-gray-50 p-3 rounded">
               {user?.id}
             </p>
           </div>
 
           <div>
-            <h3 className="text-sm font-medium text-gray-700 mb-2">Last Sign In</h3>
+            <h3 className="text-sm font-medium text-gray-700 mb-2">
+              Last Sign In
+            </h3>
             <p className="text-gray-600">
-              {user?.last_sign_in_at 
+              {user?.last_sign_in_at
                 ? new Date(user.last_sign_in_at).toLocaleString()
-                : 'Never'
-              }
+                : 'Never'}
             </p>
           </div>
 
@@ -731,13 +821,18 @@ function SecuritySettings() {
               <Shield className="w-5 h-5 text-blue-600 mt-0.5 mr-3 flex-shrink-0" />
               <div className="text-sm text-blue-700">
                 <p className="font-medium">Two-Factor Authentication</p>
-                <p>Two-factor authentication is not yet available but will be added soon for enhanced security.</p>
+                <p>
+                  Two-factor authentication is not yet available but will be
+                  added soon for enhanced security.
+                </p>
               </div>
             </div>
           </div>
 
           <div className="pt-4 border-t">
-            <h3 className="text-sm font-medium text-gray-700 mb-3">Data & Privacy</h3>
+            <h3 className="text-sm font-medium text-gray-700 mb-3">
+              Data & Privacy
+            </h3>
             <div className="space-y-3">
               <Button
                 variant="secondary"
@@ -749,9 +844,14 @@ function SecuritySettings() {
                 {exporting ? 'Exporting...' : 'Download My Data (GDPR)'}
               </Button>
               <p className="text-xs text-gray-500 px-1">
-                Export all your personal data including profile information, images, transactions, and usage history.
+                Export all your personal data including profile information,
+                images, transactions, and usage history.
               </p>
-              <Button variant="secondary" className="w-full justify-start text-red-600 hover:text-red-700" disabled>
+              <Button
+                variant="secondary"
+                className="w-full justify-start text-red-600 hover:text-red-700"
+                disabled
+              >
                 Delete My Account (Contact Support)
               </Button>
             </div>

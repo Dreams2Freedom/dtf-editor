@@ -11,7 +11,9 @@ const supabase = createClient(
 
   // First, verify the function works
   const userId = 'fcc1b251-6307-457c-ac1e-064aa43b2449';
-  const { data: isAdminResult } = await supabase.rpc('is_admin', { check_user_id: userId });
+  const { data: isAdminResult } = await supabase.rpc('is_admin', {
+    check_user_id: userId,
+  });
   console.log('is_admin(check_user_id):', isAdminResult);
 
   // Query affiliates with service role (should always work)
@@ -38,7 +40,9 @@ const supabase = createClient(
 
   console.log('\nThe issue might be:');
   console.log('1. The function parameter mismatch (check_user_id vs user_id)');
-  console.log('2. The RLS policy might be calling is_admin(auth.uid()) with wrong param name');
+  console.log(
+    '2. The RLS policy might be calling is_admin(auth.uid()) with wrong param name'
+  );
   console.log('3. The client-side query might not be authenticated properly');
 
   console.log('\nLet me check what the affiliate admin page is doing...');

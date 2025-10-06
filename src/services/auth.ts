@@ -15,7 +15,7 @@ export interface UserProfile {
   first_name?: string;
   last_name?: string;
   email?: string;
-  company_name?: string;  // Changed from company to company_name to match database
+  company_name?: string; // Changed from company to company_name to match database
   phone?: string;
   avatar_url?: string;
   credits_remaining: number;
@@ -52,13 +52,13 @@ export class AuthService {
         credentials: 'include',
         headers: {
           'Content-Type': 'application/json',
-        }
+        },
       });
-      
+
       if (response.ok) {
         const data = await response.json();
         console.log('Effective user response:', data);
-        
+
         if (data.user) {
           // If impersonating, use the impersonated user data
           // Otherwise use the regular user data
@@ -66,22 +66,22 @@ export class AuthService {
             user: data.user,
             session: data.isImpersonating ? null : await this.getSession(),
             loading: false,
-            error: null
+            error: null,
           };
         }
       } else {
         console.error('Effective user endpoint failed:', response.status);
       }
-      
+
       // Fallback to regular auth if endpoint fails
       const session = await this.getSession();
       const user = session?.user || null;
-      
+
       return {
         user,
         session,
         loading: false,
-        error: null
+        error: null,
       };
     } catch (error) {
       console.error('Error getting auth state:', error);
@@ -89,7 +89,7 @@ export class AuthService {
         user: null,
         session: null,
         loading: false,
-        error: error instanceof Error ? error.message : 'Unknown error'
+        error: error instanceof Error ? error.message : 'Unknown error',
       };
     }
   }
@@ -129,9 +129,9 @@ export class AuthService {
           credentials: 'include',
           headers: {
             'Content-Type': 'application/json',
-          }
+          },
         });
-        
+
         if (response.ok) {
           const data = await response.json();
           console.log('Effective user profile data:', data);
@@ -139,10 +139,13 @@ export class AuthService {
             return data.profile;
           }
         } else {
-          console.error('Failed to get effective user profile:', response.status);
+          console.error(
+            'Failed to get effective user profile:',
+            response.status
+          );
         }
       }
-      
+
       // Fallback to regular profile fetch
       const user = userId ? { id: userId } : await this.getUser();
       if (!user) return null;
@@ -154,12 +157,12 @@ export class AuthService {
         .single();
 
       if (error) throw error;
-      
+
       // Map credits field for backward compatibility
       if (data && 'credits' in data && !('credits_remaining' in data)) {
         data.credits_remaining = data.credits;
       }
-      
+
       return data;
     } catch (error) {
       console.error('Error getting user profile:', error);
@@ -201,7 +204,7 @@ export class AuthService {
   ): Promise<{ user: User | null; error: AuthError | null }> {
     try {
       console.log('[AuthService] Attempting sign in for:', email);
-      
+
       const { data, error } = await this.getSupabase().auth.signInWithPassword({
         email,
         password,
@@ -238,9 +241,12 @@ export class AuthService {
   // Reset password
   async resetPassword(email: string): Promise<{ error: AuthError | null }> {
     try {
-      const { error } = await this.getSupabase().auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/auth/reset-password`,
-      });
+      const { error } = await this.getSupabase().auth.resetPasswordForEmail(
+        email,
+        {
+          redirectTo: `${window.location.origin}/auth/reset-password`,
+        }
+      );
 
       if (error) throw error;
 

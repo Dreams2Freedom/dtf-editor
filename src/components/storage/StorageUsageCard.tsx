@@ -2,11 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
-import { 
-  Image as ImageIcon,
-  Clock,
-  Shield
-} from 'lucide-react';
+import { Image as ImageIcon, Clock, Shield } from 'lucide-react';
 import Link from 'next/link';
 import { useAuthStore } from '@/stores/authStore';
 
@@ -42,7 +38,7 @@ export function StorageUsageCard() {
     try {
       setLoading(true);
       const response = await fetch('/api/storage/stats');
-      
+
       if (!response.ok) {
         throw new Error('Failed to fetch storage stats');
       }
@@ -77,13 +73,17 @@ export function StorageUsageCard() {
 
   // Determine user status and image expiration rules
   const hasExpiringImages = stats.expiringImages > 0;
-  const isPaidUser = profile?.subscription_plan && profile.subscription_plan !== 'free';
-  const hasCredits = profile?.credits_remaining && profile.credits_remaining > 0;
-  const hasPurchasedCredits = profile?.credit_expires_at ? new Date(profile.credit_expires_at) > new Date() : false;
-  
+  const isPaidUser =
+    profile?.subscription_plan && profile.subscription_plan !== 'free';
+  const hasCredits =
+    profile?.credits_remaining && profile.credits_remaining > 0;
+  const hasPurchasedCredits = profile?.credit_expires_at
+    ? new Date(profile.credit_expires_at) > new Date()
+    : false;
+
   // Determine actual expiration policy
   const hasExtendedStorage = isPaidUser || hasPurchasedCredits || hasCredits; // Also check if they have credits
-  
+
   // For users with extended storage and no expiring images, don't show anything
   if (hasExtendedStorage && !hasExpiringImages) {
     return null;
@@ -112,15 +112,19 @@ export function StorageUsageCard() {
                 <Clock className="w-4 h-4 text-amber-600 mt-0.5" />
                 <div className="text-sm">
                   <p className="font-medium text-amber-900">
-                    {stats.expiringImages} image{stats.expiringImages > 1 ? 's' : ''} expiring soon
+                    {stats.expiringImages} image
+                    {stats.expiringImages > 1 ? 's' : ''} expiring soon
                   </p>
                   <p className="text-amber-700">
-                    {hasExtendedStorage 
-                      ? 'Images will be deleted automatically' 
+                    {hasExtendedStorage
+                      ? 'Images will be deleted automatically'
                       : 'Free plan images expire after 48 hours'}
                   </p>
                   {!hasExtendedStorage && (
-                    <Link href="/pricing" className="font-medium text-amber-900 underline mt-1 inline-block">
+                    <Link
+                      href="/pricing"
+                      className="font-medium text-amber-900 underline mt-1 inline-block"
+                    >
                       Upgrade to keep images permanently
                     </Link>
                   )}
@@ -130,45 +134,57 @@ export function StorageUsageCard() {
           )}
 
           {/* Storage policy notice - Show accurate message */}
-          {!hasExtendedStorage && !hasExpiringImages && stats.totalImages > 0 && (
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
-              <div className="flex items-start gap-2">
-                <Shield className="w-4 h-4 text-blue-600 mt-0.5" />
-                <div className="text-sm">
-                  <p className="text-blue-700">
-                    Images on free plan expire after 48 hours.
-                    <Link href="/pricing" className="font-medium underline ml-1">
-                      Upgrade for permanent storage
-                    </Link>
-                  </p>
+          {!hasExtendedStorage &&
+            !hasExpiringImages &&
+            stats.totalImages > 0 && (
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                <div className="flex items-start gap-2">
+                  <Shield className="w-4 h-4 text-blue-600 mt-0.5" />
+                  <div className="text-sm">
+                    <p className="text-blue-700">
+                      Images on free plan expire after 48 hours.
+                      <Link
+                        href="/pricing"
+                        className="font-medium underline ml-1"
+                      >
+                        Upgrade for permanent storage
+                      </Link>
+                    </p>
+                  </div>
                 </div>
               </div>
-            </div>
-          )}
-          
+            )}
+
           {/* Show extended storage notice for users with purchased credits */}
-          {(hasPurchasedCredits || hasCredits) && !isPaidUser && stats.totalImages > 0 && (
-            <div className="bg-green-50 border border-green-200 rounded-lg p-3">
-              <div className="flex items-start gap-2">
-                <Shield className="w-4 h-4 text-green-600 mt-0.5" />
-                <div className="text-sm">
-                  <p className="text-green-700">
-                    Your images are protected for 90 days from your credit purchase.
-                    {profile?.credit_expires_at && (
-                      <span className="block mt-1 text-green-600">
-                        Extended storage until: {new Date(profile.credit_expires_at).toLocaleDateString()}
-                      </span>
-                    )}
-                    {!profile?.credit_expires_at && hasCredits && (
-                      <span className="block mt-1 text-green-600">
-                        You have {profile.credits_remaining} credit{profile.credits_remaining !== 1 ? 's' : ''} remaining
-                      </span>
-                    )}
-                  </p>
+          {(hasPurchasedCredits || hasCredits) &&
+            !isPaidUser &&
+            stats.totalImages > 0 && (
+              <div className="bg-green-50 border border-green-200 rounded-lg p-3">
+                <div className="flex items-start gap-2">
+                  <Shield className="w-4 h-4 text-green-600 mt-0.5" />
+                  <div className="text-sm">
+                    <p className="text-green-700">
+                      Your images are protected for 90 days from your credit
+                      purchase.
+                      {profile?.credit_expires_at && (
+                        <span className="block mt-1 text-green-600">
+                          Extended storage until:{' '}
+                          {new Date(
+                            profile.credit_expires_at
+                          ).toLocaleDateString()}
+                        </span>
+                      )}
+                      {!profile?.credit_expires_at && hasCredits && (
+                        <span className="block mt-1 text-green-600">
+                          You have {profile.credits_remaining} credit
+                          {profile.credits_remaining !== 1 ? 's' : ''} remaining
+                        </span>
+                      )}
+                    </p>
+                  </div>
                 </div>
               </div>
-            </div>
-          )}
+            )}
         </div>
       </CardContent>
     </Card>

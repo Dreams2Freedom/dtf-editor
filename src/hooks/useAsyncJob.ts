@@ -24,7 +24,7 @@ export function useAsyncJob(options: UseAsyncJobOptions = {}) {
     onError,
     onProgress,
     pollInterval = 2000, // Poll every 2 seconds by default
-    maxRetries = 3
+    maxRetries = 3,
   } = options;
 
   const [jobId, setJobId] = useState<string | null>(null);
@@ -36,33 +36,36 @@ export function useAsyncJob(options: UseAsyncJobOptions = {}) {
   const isPollingRef = useRef(false);
 
   // Check job status
-  const checkJobStatus = useCallback(async (id: string): Promise<JobStatus | null> => {
-    try {
-      const response = await fetch(`/api/jobs/${id}`, {
-        credentials: 'include'
-      });
+  const checkJobStatus = useCallback(
+    async (id: string): Promise<JobStatus | null> => {
+      try {
+        const response = await fetch(`/api/jobs/${id}`, {
+          credentials: 'include',
+        });
 
-      if (!response.ok) {
-        throw new Error('Failed to get job status');
+        if (!response.ok) {
+          throw new Error('Failed to get job status');
+        }
+
+        const data = await response.json();
+        return data.job;
+      } catch (error) {
+        console.error('Failed to check job status:', error);
+
+        // Retry logic with exponential backoff
+        if (retryCount < maxRetries) {
+          const backoffDelay = Math.min(1000 * Math.pow(2, retryCount), 10000);
+          setRetryCount(prev => prev + 1);
+
+          await new Promise(resolve => setTimeout(resolve, backoffDelay));
+          return checkJobStatus(id);
+        }
+
+        return null;
       }
-
-      const data = await response.json();
-      return data.job;
-    } catch (error) {
-      console.error('Failed to check job status:', error);
-
-      // Retry logic with exponential backoff
-      if (retryCount < maxRetries) {
-        const backoffDelay = Math.min(1000 * Math.pow(2, retryCount), 10000);
-        setRetryCount(prev => prev + 1);
-
-        await new Promise(resolve => setTimeout(resolve, backoffDelay));
-        return checkJobStatus(id);
-      }
-
-      return null;
-    }
-  }, [retryCount, maxRetries]);
+    },
+    [retryCount, maxRetries]
+  );
 
   // Start polling for a job
   const startPolling = useCallback((id: string) => {
@@ -90,12 +93,12 @@ export function useAsyncJob(options: UseAsyncJobOptions = {}) {
     try {
       const response = await fetch(`/api/jobs/${jobId}`, {
         method: 'DELETE',
-        credentials: 'include'
+        credentials: 'include',
       });
 
       if (response.ok) {
         stopPolling();
-        setJobStatus(prev => prev ? { ...prev, status: 'cancelled' } : null);
+        setJobStatus(prev => (prev ? { ...prev, status: 'cancelled' } : null));
       }
     } catch (error) {
       console.error('Failed to cancel job:', error);
@@ -140,10 +143,12 @@ export function useAsyncJob(options: UseAsyncJobOptions = {}) {
           ? Date.now() - new Date(status.createdAt).getTime()
           : 0;
 
-        if (jobAge > 30000) { // After 30 seconds
+        if (jobAge > 30000) {
+          // After 30 seconds
           nextPollInterval = 5000; // Poll every 5 seconds
         }
-        if (jobAge > 60000) { // After 1 minute
+        if (jobAge > 60000) {
+          // After 1 minute
           nextPollInterval = 10000; // Poll every 10 seconds
         }
 
@@ -158,7 +163,16 @@ export function useAsyncJob(options: UseAsyncJobOptions = {}) {
         clearTimeout(pollTimeoutRef.current);
       }
     };
-  }, [jobId, isPolling, pollInterval, checkJobStatus, onComplete, onError, onProgress, stopPolling]);
+  }, [
+    jobId,
+    isPolling,
+    pollInterval,
+    checkJobStatus,
+    onComplete,
+    onError,
+    onProgress,
+    stopPolling,
+  ]);
 
   // Cleanup on unmount
   useEffect(() => {
@@ -173,6 +187,6 @@ export function useAsyncJob(options: UseAsyncJobOptions = {}) {
     isPolling,
     startPolling,
     stopPolling,
-    cancelJob
+    cancelJob,
   };
 }

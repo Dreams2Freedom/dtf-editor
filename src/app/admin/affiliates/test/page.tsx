@@ -12,7 +12,9 @@ export default function TestAffiliatePage() {
   useEffect(() => {
     async function fetchData() {
       // Get current user
-      const { data: { user: currentUser } } = await supabase.auth.getUser();
+      const {
+        data: { user: currentUser },
+      } = await supabase.auth.getUser();
       setUser(currentUser);
 
       // Try to fetch affiliates

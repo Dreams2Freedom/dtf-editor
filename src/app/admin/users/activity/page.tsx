@@ -13,7 +13,7 @@ import {
   UserCheck,
   UserX,
   TrendingUp,
-  Calendar
+  Calendar,
 } from 'lucide-react';
 import { toast } from '@/lib/toast';
 
@@ -96,10 +96,12 @@ export default function UserActivityPage() {
       active: { variant: 'success' as const, label: 'Active Now' },
       today: { variant: 'info' as const, label: 'Active Today' },
       recent: { variant: 'warning' as const, label: 'This Week' },
-      inactive: { variant: 'secondary' as const, label: 'Inactive' }
+      inactive: { variant: 'secondary' as const, label: 'Inactive' },
     };
 
-    const config = statusConfig[status as keyof typeof statusConfig] || statusConfig.inactive;
+    const config =
+      statusConfig[status as keyof typeof statusConfig] ||
+      statusConfig.inactive;
 
     return <Badge variant={config.variant}>{config.label}</Badge>;
   };
@@ -120,7 +122,9 @@ export default function UserActivityPage() {
         {/* Header */}
         <div>
           <h1 className="text-2xl font-bold text-gray-900">User Activity</h1>
-          <p className="text-gray-600 mt-1">Monitor user engagement and activity patterns</p>
+          <p className="text-gray-600 mt-1">
+            Monitor user engagement and activity patterns
+          </p>
         </div>
 
         {/* Metrics Cards */}
@@ -131,7 +135,9 @@ export default function UserActivityPage() {
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm text-gray-600">Active Now</p>
-                    <p className="text-2xl font-bold">{metrics.activeLastHour}</p>
+                    <p className="text-2xl font-bold">
+                      {metrics.activeLastHour}
+                    </p>
                   </div>
                   <Activity className="w-8 h-8 text-success-500" />
                 </div>
@@ -155,7 +161,9 @@ export default function UserActivityPage() {
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm text-gray-600">This Week</p>
-                    <p className="text-2xl font-bold">{metrics.activeThisWeek}</p>
+                    <p className="text-2xl font-bold">
+                      {metrics.activeThisWeek}
+                    </p>
                   </div>
                   <Calendar className="w-8 h-8 text-warning-500" />
                 </div>
@@ -167,7 +175,9 @@ export default function UserActivityPage() {
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm text-gray-600">This Month</p>
-                    <p className="text-2xl font-bold">{metrics.activeThisMonth}</p>
+                    <p className="text-2xl font-bold">
+                      {metrics.activeThisMonth}
+                    </p>
                   </div>
                   <TrendingUp className="w-8 h-8 text-purple-500" />
                 </div>
@@ -207,7 +217,7 @@ export default function UserActivityPage() {
             <Input
               placeholder="Search by email or name..."
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+              onChange={e => setSearchQuery(e.target.value)}
               className="pl-10"
             />
           </div>
@@ -215,7 +225,7 @@ export default function UserActivityPage() {
           <select
             className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
             value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
+            onChange={e => setStatusFilter(e.target.value)}
           >
             <option value="all">All Status</option>
             <option value="active">Active Now</option>
@@ -245,29 +255,34 @@ export default function UserActivityPage() {
                 <tbody>
                   {filteredUsers.length === 0 ? (
                     <tr>
-                      <td colSpan={5} className="text-center py-8 text-gray-500">
+                      <td
+                        colSpan={5}
+                        className="text-center py-8 text-gray-500"
+                      >
                         No users found matching your criteria
                       </td>
                     </tr>
                   ) : (
-                    filteredUsers.map((user) => (
+                    filteredUsers.map(user => (
                       <tr key={user.id} className="border-b hover:bg-gray-50">
                         <td className="py-3 px-4">
                           <div>
                             <div className="font-medium">{user.name}</div>
-                            <div className="text-sm text-gray-500">{user.email}</div>
+                            <div className="text-sm text-gray-500">
+                              {user.email}
+                            </div>
                           </div>
                         </td>
                         <td className="py-3 px-4">
-                          <span className="text-sm">{user.lastActivityFormatted}</span>
+                          <span className="text-sm">
+                            {user.lastActivityFormatted}
+                          </span>
                         </td>
                         <td className="py-3 px-4">
                           {getStatusBadge(user.status)}
                         </td>
                         <td className="py-3 px-4">
-                          <Badge variant="secondary">
-                            {user.plan}
-                          </Badge>
+                          <Badge variant="secondary">{user.plan}</Badge>
                         </td>
                         <td className="py-3 px-4 text-sm text-gray-500">
                           {new Date(user.joinedAt).toLocaleDateString()}

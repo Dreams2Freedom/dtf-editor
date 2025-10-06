@@ -26,19 +26,19 @@ export function ProcessingHistory({ limit = 20 }: ProcessingHistoryProps) {
     try {
       setLoading(true);
       setError(null);
-      
+
       // Check cache first
       const cacheKey = cacheKeys.processingHistory('current_user', limit);
       const cached = cache.get<ProcessingJob[]>(cacheKey);
-      
+
       if (cached) {
         setHistory(cached);
         setLoading(false);
         return;
       }
-      
+
       const response = await fetch(`/api/process?limit=${limit}`, {
-        credentials: 'include' // Include cookies for authentication
+        credentials: 'include', // Include cookies for authentication
       });
       const result = await response.json();
 
@@ -61,13 +61,13 @@ export function ProcessingHistory({ limit = 20 }: ProcessingHistoryProps) {
       const response = await fetch(url);
       const blob = await response.blob();
       const downloadUrl = window.URL.createObjectURL(blob);
-      
+
       const a = document.createElement('a');
       a.href = downloadUrl;
       a.download = filename;
       document.body.appendChild(a);
       a.click();
-      
+
       window.URL.revokeObjectURL(downloadUrl);
       document.body.removeChild(a);
     } catch (error) {
@@ -153,15 +153,13 @@ export function ProcessingHistory({ limit = 20 }: ProcessingHistoryProps) {
           </div>
         ) : (
           <div className="space-y-4">
-            {history.map((job) => (
+            {history.map(job => (
               <div
                 key={job.id}
                 className="border rounded-lg p-4 flex items-center gap-4"
               >
                 {/* Status Icon */}
-                <div className="flex-shrink-0">
-                  {getStatusIcon(job.status)}
-                </div>
+                <div className="flex-shrink-0">{getStatusIcon(job.status)}</div>
 
                 {/* Image Previews */}
                 <div className="flex gap-3">
@@ -193,24 +191,27 @@ export function ProcessingHistory({ limit = 20 }: ProcessingHistoryProps) {
                     <h3 className="font-medium text-gray-900">
                       {formatOperation(job.operation)}
                     </h3>
-                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                      job.status === 'completed' 
-                        ? 'bg-green-100 text-green-800'
-                        : job.status === 'failed'
-                        ? 'bg-red-100 text-red-800'
-                        : 'bg-blue-100 text-blue-800'
-                    }`}>
+                    <span
+                      className={`px-2 py-1 rounded-full text-xs font-medium ${
+                        job.status === 'completed'
+                          ? 'bg-green-100 text-green-800'
+                          : job.status === 'failed'
+                            ? 'bg-red-100 text-red-800'
+                            : 'bg-blue-100 text-blue-800'
+                      }`}
+                    >
                       {job.status}
                     </span>
                   </div>
-                  
+
                   <div className="flex items-center gap-4 text-sm text-gray-600">
                     <span className="flex items-center gap-1">
                       <Coins className="w-3 h-3" />
                       {job.creditsUsed} credits
                     </span>
                     <span>
-                      {job.createdAt.toLocaleDateString()} {job.createdAt.toLocaleTimeString()}
+                      {job.createdAt.toLocaleDateString()}{' '}
+                      {job.createdAt.toLocaleTimeString()}
                     </span>
                   </div>
 
@@ -225,10 +226,12 @@ export function ProcessingHistory({ limit = 20 }: ProcessingHistoryProps) {
                     <Button
                       size="sm"
                       variant="outline"
-                      onClick={() => downloadImage(
-                        job.processedImageUrl!,
-                        `processed_${job.operation}_${job.id}.jpg`
-                      )}
+                      onClick={() =>
+                        downloadImage(
+                          job.processedImageUrl!,
+                          `processed_${job.operation}_${job.id}.jpg`
+                        )
+                      }
                     >
                       <Download className="w-4 h-4 mr-1" />
                       Download

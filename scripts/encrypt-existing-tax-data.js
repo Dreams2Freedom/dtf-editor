@@ -44,7 +44,7 @@ function encryptSensitiveData(text) {
     const combined = Buffer.concat([
       iv,
       authTag,
-      Buffer.from(encrypted, 'hex')
+      Buffer.from(encrypted, 'hex'),
     ]);
 
     return combined.toString('base64');
@@ -72,7 +72,9 @@ async function migrateAffiliateData() {
     }
 
     if (!affiliates || affiliates.length === 0) {
-      console.log('✅ No affiliates with tax_id field found. Migration not needed.');
+      console.log(
+        '✅ No affiliates with tax_id field found. Migration not needed.'
+      );
       return;
     }
 
@@ -95,7 +97,9 @@ async function migrateAffiliateData() {
 
       // Check if tax_id looks like it might already be encrypted
       if (affiliate.tax_id && affiliate.tax_id.length > 50) {
-        console.log(`  ⚠️  tax_id appears to already be encrypted (length: ${affiliate.tax_id.length}), skipping.`);
+        console.log(
+          `  ⚠️  tax_id appears to already be encrypted (length: ${affiliate.tax_id.length}), skipping.`
+        );
         alreadyEncrypted++;
         continue;
       }
@@ -116,7 +120,7 @@ async function migrateAffiliateData() {
           .update({
             tax_id_encrypted: encrypted,
             tax_id: null, // Clear the plain text field
-            updated_at: new Date().toISOString()
+            updated_at: new Date().toISOString(),
           })
           .eq('id', affiliate.id);
 
@@ -140,12 +144,13 @@ async function migrateAffiliateData() {
     console.log(`📋 Total processed: ${affiliates.length}`);
 
     if (failed > 0) {
-      console.log('\n⚠️  WARNING: Some records failed to migrate. Please review manually.');
+      console.log(
+        '\n⚠️  WARNING: Some records failed to migrate. Please review manually.'
+      );
       process.exit(1);
     }
 
     console.log('\n✨ Migration completed successfully!');
-
   } catch (error) {
     console.error('Migration error:', error);
     process.exit(1);
@@ -155,10 +160,14 @@ async function migrateAffiliateData() {
 // Add safety check
 async function confirmMigration() {
   console.log('⚠️  WARNING: This script will encrypt existing tax data.');
-  console.log('This should only be run ONCE during the encryption deployment.\n');
+  console.log(
+    'This should only be run ONCE during the encryption deployment.\n'
+  );
 
   if (!ENCRYPTION_KEY) {
-    console.error('❌ ERROR: ENCRYPTION_KEY is not set in environment variables!');
+    console.error(
+      '❌ ERROR: ENCRYPTION_KEY is not set in environment variables!'
+    );
     console.error('Please set ENCRYPTION_KEY in your .env.local file first.');
     process.exit(1);
   }

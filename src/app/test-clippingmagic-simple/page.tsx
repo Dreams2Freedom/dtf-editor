@@ -4,11 +4,14 @@ export default function TestClippingMagicSimple() {
   return (
     <div className="p-8 max-w-4xl mx-auto">
       <h1 className="text-2xl font-bold mb-4">ClippingMagic Simple Test</h1>
-      
+
       <div className="mb-8 p-4 bg-yellow-50 border border-yellow-200 rounded">
-        <p className="font-semibold text-yellow-800 mb-2">Testing ClippingMagic Integration</p>
+        <p className="font-semibold text-yellow-800 mb-2">
+          Testing ClippingMagic Integration
+        </p>
         <p className="text-sm text-yellow-700 mb-4">
-          This page tests the ClippingMagic white label editor with hardcoded values from their example.
+          This page tests the ClippingMagic white label editor with hardcoded
+          values from their example.
         </p>
       </div>
 
@@ -23,13 +26,21 @@ export default function TestClippingMagicSimple() {
       </div>
 
       <div className="p-4 bg-gray-100 rounded">
-        <p className="text-sm font-semibold mb-2">View the page source to see the implementation</p>
-        <p className="text-xs text-gray-600">The ClippingMagic code is embedded directly in the HTML</p>
+        <p className="text-sm font-semibold mb-2">
+          View the page source to see the implementation
+        </p>
+        <p className="text-xs text-gray-600">
+          The ClippingMagic code is embedded directly in the HTML
+        </p>
       </div>
 
-      <script src="https://clippingmagic.com/api/v1/ClippingMagic.js" type="text/javascript"></script>
-      <script dangerouslySetInnerHTML={{
-        __html: `
+      <script
+        src="https://clippingmagic.com/api/v1/ClippingMagic.js"
+        type="text/javascript"
+      ></script>
+      <script
+        dangerouslySetInnerHTML={{
+          __html: `
           function myCallback(opts) {
             console.log('ClippingMagic callback:', opts);
             switch (opts.event) {
@@ -81,8 +92,9 @@ export default function TestClippingMagicSimple() {
               alert('ClippingMagic script failed to load');
             }
           });
-        `
-      }} />
+        `,
+        }}
+      />
     </div>
   );
 }

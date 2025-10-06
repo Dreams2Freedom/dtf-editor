@@ -2,18 +2,14 @@ import { createClient } from '@supabase/supabase-js';
 import { env } from '@/config/env';
 
 // Initialize Supabase client for logging
-const supabase = createClient(
-  env.SUPABASE_URL,
-  env.SUPABASE_SERVICE_ROLE_KEY,
-  {
-    auth: {
-      autoRefreshToken: false,
-      persistSession: false,
-    },
-  }
-);
+const supabase = createClient(env.SUPABASE_URL, env.SUPABASE_SERVICE_ROLE_KEY, {
+  auth: {
+    autoRefreshToken: false,
+    persistSession: false,
+  },
+});
 
-export type AdminAction = 
+export type AdminAction =
   | 'user.view'
   | 'user.update'
   | 'user.delete'
@@ -35,7 +31,7 @@ export type AdminAction =
   | 'system.config'
   | 'security.alert';
 
-export type ResourceType = 
+export type ResourceType =
   | 'user'
   | 'profile'
   | 'subscription'
@@ -93,9 +89,7 @@ export async function logAdminAction(options: LogOptions): Promise<void> {
     };
 
     // Insert into audit_logs table
-    const { error } = await supabase
-      .from('audit_logs')
-      .insert(logEntry);
+    const { error } = await supabase.from('audit_logs').insert(logEntry);
 
     if (error) {
       console.error('Failed to write audit log:', error);
@@ -115,12 +109,12 @@ export function getClientIp(request: Request): string {
   if (forwarded) {
     return forwarded.split(',')[0].trim();
   }
-  
+
   const realIp = request.headers.get('x-real-ip');
   if (realIp) {
     return realIp;
   }
-  
+
   // Fallback for development
   return '127.0.0.1';
 }
@@ -153,9 +147,7 @@ export async function logAdminActionBatch(
       created_at: new Date().toISOString(),
     }));
 
-    const { error } = await supabase
-      .from('audit_logs')
-      .insert(logEntries);
+    const { error } = await supabase.from('audit_logs').insert(logEntries);
 
     if (error) {
       console.error('Failed to write batch audit logs:', error);
@@ -186,7 +178,7 @@ export async function logSecurityAction(
     ipAddress,
     success: true,
   });
-  
+
   // For security actions, also log to console for immediate visibility
   console.warn(`[SECURITY ACTION] Admin ${adminId}: ${action}`, details);
 }
@@ -194,7 +186,10 @@ export async function logSecurityAction(
 /**
  * Create a middleware function for automatic logging
  */
-export function createAdminLogger(action: AdminAction, resourceType: ResourceType) {
+export function createAdminLogger(
+  action: AdminAction,
+  resourceType: ResourceType
+) {
   return async (
     request: Request,
     adminId: string,

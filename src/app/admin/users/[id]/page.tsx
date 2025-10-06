@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { AdminLayout } from '@/components/admin/layout/AdminLayout';
 import { UserEditModal } from '@/components/admin/users/UserEditModal';
-import { 
+import {
   ArrowLeft,
   User,
   Mail,
@@ -18,7 +18,7 @@ import {
   Download,
   RefreshCw,
   Clock,
-  DollarSign
+  DollarSign,
 } from 'lucide-react';
 import { toast } from '@/lib/toast';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
@@ -72,7 +72,7 @@ export default function UserDetailsPage() {
   const fetchUserDetails = async () => {
     try {
       const response = await fetch(`/api/admin/users/${params.id}`, {
-        credentials: 'include'
+        credentials: 'include',
       });
 
       if (!response.ok) {
@@ -92,13 +92,17 @@ export default function UserDetailsPage() {
 
   const handleUserUpdate = (updatedUser: any) => {
     // Update user data
-    setUser(prev => prev ? {
-      ...prev,
-      email: updatedUser.email,
-      full_name: updatedUser.full_name,
-      plan: updatedUser.plan,
-      status: updatedUser.status
-    } : null);
+    setUser(prev =>
+      prev
+        ? {
+            ...prev,
+            email: updatedUser.email,
+            full_name: updatedUser.full_name,
+            plan: updatedUser.plan,
+            status: updatedUser.status,
+          }
+        : null
+    );
   };
 
   const formatDate = (date: string) => {
@@ -107,7 +111,7 @@ export default function UserDetailsPage() {
       month: 'short',
       day: 'numeric',
       hour: '2-digit',
-      minute: '2-digit'
+      minute: '2-digit',
     });
   };
 
@@ -117,7 +121,7 @@ export default function UserDetailsPage() {
       usage: { label: 'Usage', color: 'text-blue-600' },
       refund: { label: 'Refund', color: 'text-orange-600' },
       reset: { label: 'Monthly Reset', color: 'text-purple-600' },
-      manual: { label: 'Manual Adjustment', color: 'text-gray-600' }
+      manual: { label: 'Manual Adjustment', color: 'text-gray-600' },
     };
     return types[type] || { label: type, color: 'text-gray-600' };
   };
@@ -183,11 +187,16 @@ export default function UserDetailsPage() {
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <button onClick={() => setEditModalOpen(true)} className="btn btn-secondary">
+            <button
+              onClick={() => setEditModalOpen(true)}
+              className="btn btn-secondary"
+            >
               <Edit className="h-4 w-4 mr-2" />
               Edit
             </button>
-            <button className={`btn ${user.status === 'active' ? 'btn-danger' : 'btn-primary'}`}>
+            <button
+              className={`btn ${user.status === 'active' ? 'btn-danger' : 'btn-primary'}`}
+            >
               {user.status === 'active' ? (
                 <>
                   <Ban className="h-4 w-4 mr-2" />
@@ -214,19 +223,31 @@ export default function UserDetailsPage() {
               <CardContent>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
-                    <label className="text-sm font-medium text-gray-500">Full Name</label>
-                    <p className="mt-1 text-gray-900">{user.full_name || 'Not provided'}</p>
+                    <label className="text-sm font-medium text-gray-500">
+                      Full Name
+                    </label>
+                    <p className="mt-1 text-gray-900">
+                      {user.full_name || 'Not provided'}
+                    </p>
                   </div>
                   <div>
-                    <label className="text-sm font-medium text-gray-500">Email</label>
+                    <label className="text-sm font-medium text-gray-500">
+                      Email
+                    </label>
                     <p className="mt-1 text-gray-900">{user.email}</p>
                   </div>
                   <div>
-                    <label className="text-sm font-medium text-gray-500">User ID</label>
-                    <p className="mt-1 text-gray-900 font-mono text-sm">{user.id}</p>
+                    <label className="text-sm font-medium text-gray-500">
+                      User ID
+                    </label>
+                    <p className="mt-1 text-gray-900 font-mono text-sm">
+                      {user.id}
+                    </p>
                   </div>
                   <div>
-                    <label className="text-sm font-medium text-gray-500">Status</label>
+                    <label className="text-sm font-medium text-gray-500">
+                      Status
+                    </label>
                     <p className="mt-1">
                       {user.status === 'active' ? (
                         <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-success-100 text-success-800">
@@ -242,13 +263,21 @@ export default function UserDetailsPage() {
                     </p>
                   </div>
                   <div>
-                    <label className="text-sm font-medium text-gray-500">Joined</label>
-                    <p className="mt-1 text-gray-900">{formatDate(user.created_at)}</p>
+                    <label className="text-sm font-medium text-gray-500">
+                      Joined
+                    </label>
+                    <p className="mt-1 text-gray-900">
+                      {formatDate(user.created_at)}
+                    </p>
                   </div>
                   <div>
-                    <label className="text-sm font-medium text-gray-500">Last Sign In</label>
+                    <label className="text-sm font-medium text-gray-500">
+                      Last Sign In
+                    </label>
                     <p className="mt-1 text-gray-900">
-                      {user.last_sign_in_at ? formatDate(user.last_sign_in_at) : 'Never'}
+                      {user.last_sign_in_at
+                        ? formatDate(user.last_sign_in_at)
+                        : 'Never'}
                     </p>
                   </div>
                 </div>
@@ -267,23 +296,37 @@ export default function UserDetailsPage() {
               </CardHeader>
               <CardContent>
                 {user.credit_transactions.length === 0 ? (
-                  <p className="text-gray-500 text-center py-8">No transactions yet</p>
+                  <p className="text-gray-500 text-center py-8">
+                    No transactions yet
+                  </p>
                 ) : (
                   <div className="space-y-3">
-                    {user.credit_transactions.map((transaction) => {
-                      const { label, color } = formatTransactionType(transaction.type);
+                    {user.credit_transactions.map(transaction => {
+                      const { label, color } = formatTransactionType(
+                        transaction.type
+                      );
                       return (
-                        <div key={transaction.id} className="flex items-center justify-between py-3 border-b last:border-0">
+                        <div
+                          key={transaction.id}
+                          className="flex items-center justify-between py-3 border-b last:border-0"
+                        >
                           <div className="flex-1">
-                            <p className="font-medium text-gray-900">{transaction.description}</p>
+                            <p className="font-medium text-gray-900">
+                              {transaction.description}
+                            </p>
                             <p className="text-sm text-gray-500">
-                              <span className={`font-medium ${color}`}>{label}</span>
+                              <span className={`font-medium ${color}`}>
+                                {label}
+                              </span>
                               {' • '}
                               {formatDate(transaction.created_at)}
                             </p>
                           </div>
-                          <div className={`font-semibold ${transaction.amount > 0 ? 'text-success-600' : 'text-error-600'}`}>
-                            {transaction.amount > 0 ? '+' : ''}{transaction.amount} credits
+                          <div
+                            className={`font-semibold ${transaction.amount > 0 ? 'text-success-600' : 'text-error-600'}`}
+                          >
+                            {transaction.amount > 0 ? '+' : ''}
+                            {transaction.amount} credits
                           </div>
                         </div>
                       );
@@ -305,20 +348,30 @@ export default function UserDetailsPage() {
               </CardHeader>
               <CardContent>
                 {user.recent_uploads.length === 0 ? (
-                  <p className="text-gray-500 text-center py-8">No uploads yet</p>
+                  <p className="text-gray-500 text-center py-8">
+                    No uploads yet
+                  </p>
                 ) : (
                   <div className="overflow-x-auto">
                     <table className="min-w-full divide-y divide-gray-200">
                       <thead>
                         <tr>
-                          <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">File</th>
-                          <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Type</th>
-                          <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
-                          <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Date</th>
+                          <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">
+                            File
+                          </th>
+                          <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">
+                            Type
+                          </th>
+                          <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">
+                            Status
+                          </th>
+                          <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">
+                            Date
+                          </th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-gray-200">
-                        {user.recent_uploads.map((upload) => (
+                        {user.recent_uploads.map(upload => (
                           <tr key={upload.id}>
                             <td className="px-4 py-2 text-sm text-gray-900 truncate max-w-xs">
                               {upload.filename}
@@ -327,13 +380,15 @@ export default function UserDetailsPage() {
                               {upload.file_type}
                             </td>
                             <td className="px-4 py-2 text-sm">
-                              <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${
-                                upload.status === 'completed' 
-                                  ? 'bg-success-100 text-success-800'
-                                  : upload.status === 'failed'
-                                  ? 'bg-error-100 text-error-800'
-                                  : 'bg-warning-100 text-warning-800'
-                              }`}>
+                              <span
+                                className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${
+                                  upload.status === 'completed'
+                                    ? 'bg-success-100 text-success-800'
+                                    : upload.status === 'failed'
+                                      ? 'bg-error-100 text-error-800'
+                                      : 'bg-warning-100 text-warning-800'
+                                }`}
+                              >
                                 {upload.status}
                               </span>
                             </td>
@@ -359,16 +414,24 @@ export default function UserDetailsPage() {
               </CardHeader>
               <CardContent className="space-y-4">
                 <div>
-                  <label className="text-sm font-medium text-gray-500">Current Plan</label>
+                  <label className="text-sm font-medium text-gray-500">
+                    Current Plan
+                  </label>
                   <p className="mt-1">
-                    <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${getPlanBadgeColor(user.plan)}`}>
+                    <span
+                      className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${getPlanBadgeColor(user.plan)}`}
+                    >
                       {user.plan}
                     </span>
                   </p>
                 </div>
                 <div>
-                  <label className="text-sm font-medium text-gray-500">Credits Remaining</label>
-                  <p className="mt-1 text-2xl font-bold text-gray-900">{user.credits_remaining}</p>
+                  <label className="text-sm font-medium text-gray-500">
+                    Credits Remaining
+                  </label>
+                  <p className="mt-1 text-2xl font-bold text-gray-900">
+                    {user.credits_remaining}
+                  </p>
                 </div>
                 <div className="pt-4 space-y-2">
                   <button className="btn btn-primary w-full">
@@ -392,12 +455,20 @@ export default function UserDetailsPage() {
               </CardHeader>
               <CardContent className="space-y-4">
                 <div>
-                  <label className="text-sm font-medium text-gray-500">Credits Used (30 days)</label>
-                  <p className="mt-1 text-xl font-semibold text-gray-900">{user.usage_stats.last_30_days}</p>
+                  <label className="text-sm font-medium text-gray-500">
+                    Credits Used (30 days)
+                  </label>
+                  <p className="mt-1 text-xl font-semibold text-gray-900">
+                    {user.usage_stats.last_30_days}
+                  </p>
                 </div>
                 <div>
-                  <label className="text-sm font-medium text-gray-500">Total Uploads</label>
-                  <p className="mt-1 text-xl font-semibold text-gray-900">{user.usage_stats.total_uploads}</p>
+                  <label className="text-sm font-medium text-gray-500">
+                    Total Uploads
+                  </label>
+                  <p className="mt-1 text-xl font-semibold text-gray-900">
+                    {user.usage_stats.total_uploads}
+                  </p>
                 </div>
               </CardContent>
             </Card>

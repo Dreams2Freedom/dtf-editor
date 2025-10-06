@@ -44,14 +44,17 @@ async function verifyColumns() {
     const columnsToCheck = [
       'notification_preferences',
       'company_name',
-      'phone'
+      'phone',
     ];
 
     columnsToCheck.forEach(column => {
       if (column in profile) {
         console.log(`  ✓ ${column}: exists`);
         if (column === 'notification_preferences' && profile[column]) {
-          console.log(`    Default value:`, JSON.stringify(profile[column], null, 2));
+          console.log(
+            `    Default value:`,
+            JSON.stringify(profile[column], null, 2)
+          );
         }
       } else {
         console.log(`  ✗ ${column}: NOT FOUND`);
@@ -59,7 +62,6 @@ async function verifyColumns() {
     });
 
     console.log('\n🎉 Settings columns are ready to use!');
-
   } catch (error) {
     console.error('❌ Error:', error);
   }

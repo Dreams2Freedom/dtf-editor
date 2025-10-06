@@ -6,7 +6,13 @@ import { supportService } from '@/services/support';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Modal } from '@/components/ui/Modal';
-import { Bug, Sparkles, CreditCard, AlertCircle, HelpCircle } from 'lucide-react';
+import {
+  Bug,
+  Sparkles,
+  CreditCard,
+  AlertCircle,
+  HelpCircle,
+} from 'lucide-react';
 import type { TicketCategory, TicketPriority } from '@/types/support';
 
 interface CreateTicketModalProps {
@@ -15,54 +21,67 @@ interface CreateTicketModalProps {
   onSuccess: () => void;
 }
 
-export function CreateTicketModal({ isOpen, onClose, onSuccess }: CreateTicketModalProps) {
+export function CreateTicketModal({
+  isOpen,
+  onClose,
+  onSuccess,
+}: CreateTicketModalProps) {
   const { user } = useAuthStore();
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     subject: '',
     category: 'technical' as TicketCategory,
     priority: 'medium' as TicketPriority,
-    message: ''
+    message: '',
   });
 
-  const categories: Array<{ value: TicketCategory; label: string; icon: React.ReactNode; description: string }> = [
-    { 
-      value: 'bug', 
-      label: 'Bug Report', 
+  const categories: Array<{
+    value: TicketCategory;
+    label: string;
+    icon: React.ReactNode;
+    description: string;
+  }> = [
+    {
+      value: 'bug',
+      label: 'Bug Report',
       icon: <Bug className="w-5 h-5" />,
-      description: 'Something isn\'t working correctly'
+      description: "Something isn't working correctly",
     },
-    { 
-      value: 'feature_request', 
-      label: 'Feature Request', 
+    {
+      value: 'feature_request',
+      label: 'Feature Request',
       icon: <Sparkles className="w-5 h-5" />,
-      description: 'Suggest a new feature or improvement'
+      description: 'Suggest a new feature or improvement',
     },
-    { 
-      value: 'billing', 
-      label: 'Billing Issue', 
+    {
+      value: 'billing',
+      label: 'Billing Issue',
       icon: <CreditCard className="w-5 h-5" />,
-      description: 'Questions about payments or subscriptions'
+      description: 'Questions about payments or subscriptions',
     },
-    { 
-      value: 'technical', 
-      label: 'Technical Help', 
+    {
+      value: 'technical',
+      label: 'Technical Help',
       icon: <AlertCircle className="w-5 h-5" />,
-      description: 'Need help using the platform'
+      description: 'Need help using the platform',
     },
-    { 
-      value: 'other', 
-      label: 'Other', 
+    {
+      value: 'other',
+      label: 'Other',
       icon: <HelpCircle className="w-5 h-5" />,
-      description: 'General questions or feedback'
-    }
+      description: 'General questions or feedback',
+    },
   ];
 
-  const priorities: Array<{ value: TicketPriority; label: string; color: string }> = [
+  const priorities: Array<{
+    value: TicketPriority;
+    label: string;
+    color: string;
+  }> = [
     { value: 'low', label: 'Low', color: 'text-green-600' },
     { value: 'medium', label: 'Medium', color: 'text-yellow-600' },
     { value: 'high', label: 'High', color: 'text-orange-600' },
-    { value: 'urgent', label: 'Urgent', color: 'text-red-600' }
+    { value: 'urgent', label: 'Urgent', color: 'text-red-600' },
   ];
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -73,15 +92,15 @@ export function CreateTicketModal({ isOpen, onClose, onSuccess }: CreateTicketMo
     try {
       const ticket = await supportService.createTicket(user.id, formData);
       console.log('Ticket created successfully:', ticket);
-      
+
       // Reset form first
       setFormData({
         subject: '',
         category: 'technical',
         priority: 'medium',
-        message: ''
+        message: '',
       });
-      
+
       // Then call success callback which should close modal and refresh
       onSuccess();
     } catch (error) {
@@ -93,9 +112,9 @@ export function CreateTicketModal({ isOpen, onClose, onSuccess }: CreateTicketMo
   };
 
   return (
-    <Modal 
-      open={isOpen} 
-      onOpenChange={(open) => !open && onClose()} 
+    <Modal
+      open={isOpen}
+      onOpenChange={open => !open && onClose()}
       title="Create Support Ticket"
       size="lg"
     >
@@ -109,7 +128,9 @@ export function CreateTicketModal({ isOpen, onClose, onSuccess }: CreateTicketMo
             required
             placeholder="Brief description of your issue"
             value={formData.subject}
-            onChange={(e) => setFormData({ ...formData, subject: e.target.value })}
+            onChange={e =>
+              setFormData({ ...formData, subject: e.target.value })
+            }
           />
         </div>
 
@@ -123,7 +144,9 @@ export function CreateTicketModal({ isOpen, onClose, onSuccess }: CreateTicketMo
               <button
                 key={cat.value}
                 type="button"
-                onClick={() => setFormData({ ...formData, category: cat.value })}
+                onClick={() =>
+                  setFormData({ ...formData, category: cat.value })
+                }
                 className={`p-3 border rounded-lg text-left transition-colors ${
                   formData.category === cat.value
                     ? 'border-[#366494] bg-blue-50'
@@ -131,12 +154,20 @@ export function CreateTicketModal({ isOpen, onClose, onSuccess }: CreateTicketMo
                 }`}
               >
                 <div className="flex items-start gap-2">
-                  <div className={formData.category === cat.value ? 'text-[#366494]' : 'text-gray-500'}>
+                  <div
+                    className={
+                      formData.category === cat.value
+                        ? 'text-[#366494]'
+                        : 'text-gray-500'
+                    }
+                  >
                     {cat.icon}
                   </div>
                   <div>
                     <div className="font-medium text-sm">{cat.label}</div>
-                    <div className="text-xs text-gray-500 mt-0.5">{cat.description}</div>
+                    <div className="text-xs text-gray-500 mt-0.5">
+                      {cat.description}
+                    </div>
                   </div>
                 </div>
               </button>
@@ -154,14 +185,22 @@ export function CreateTicketModal({ isOpen, onClose, onSuccess }: CreateTicketMo
               <button
                 key={priority.value}
                 type="button"
-                onClick={() => setFormData({ ...formData, priority: priority.value })}
+                onClick={() =>
+                  setFormData({ ...formData, priority: priority.value })
+                }
                 className={`px-4 py-2 border rounded-lg font-medium text-sm transition-colors ${
                   formData.priority === priority.value
                     ? 'border-[#366494] bg-blue-50'
                     : 'border-gray-300 hover:border-gray-400'
                 }`}
               >
-                <span className={formData.priority === priority.value ? 'text-[#366494]' : priority.color}>
+                <span
+                  className={
+                    formData.priority === priority.value
+                      ? 'text-[#366494]'
+                      : priority.color
+                  }
+                >
                   {priority.label}
                 </span>
               </button>
@@ -179,7 +218,9 @@ export function CreateTicketModal({ isOpen, onClose, onSuccess }: CreateTicketMo
             rows={6}
             placeholder="Please describe your issue in detail. Include any error messages, steps to reproduce, or relevant information."
             value={formData.message}
-            onChange={(e) => setFormData({ ...formData, message: e.target.value })}
+            onChange={e =>
+              setFormData({ ...formData, message: e.target.value })
+            }
             className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#366494] focus:border-transparent"
           />
         </div>

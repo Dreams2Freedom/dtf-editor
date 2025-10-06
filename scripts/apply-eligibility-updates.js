@@ -87,8 +87,10 @@ async function applyEligibilityUpdates() {
   try {
     // Execute pause eligibility update
     console.log('Updating pause eligibility function...');
-    const { error: pauseError } = await supabase.rpc('query', { query: pauseSQL });
-    
+    const { error: pauseError } = await supabase.rpc('query', {
+      query: pauseSQL,
+    });
+
     if (pauseError) {
       console.error('Error updating pause eligibility:', pauseError);
     } else {
@@ -97,38 +99,44 @@ async function applyEligibilityUpdates() {
 
     // Execute discount eligibility update
     console.log('\nUpdating discount eligibility function...');
-    const { error: discountError } = await supabase.rpc('query', { query: discountSQL });
-    
+    const { error: discountError } = await supabase.rpc('query', {
+      query: discountSQL,
+    });
+
     if (discountError) {
       console.error('Error updating discount eligibility:', discountError);
     } else {
       console.log('✅ Discount eligibility function updated');
     }
-
   } catch (error) {
     console.error('Error:', error);
   }
 
   // Test the updated functions
   console.log('\n=== TESTING UPDATED FUNCTIONS ===');
-  
+
   // Get user ID
   const { data: authUsers } = await supabase.auth.admin.listUsers();
-  const authUser = authUsers.users.find(u => u.email === 'snsmarketing@gmail.com');
-  
+  const authUser = authUsers.users.find(
+    u => u.email === 'snsmarketing@gmail.com'
+  );
+
   if (authUser) {
     // Test pause eligibility
-    const { data: pauseElig } = await supabase
-      .rpc('check_pause_eligibility', { p_user_id: authUser.id });
-    
+    const { data: pauseElig } = await supabase.rpc('check_pause_eligibility', {
+      p_user_id: authUser.id,
+    });
+
     console.log('\nPause Eligibility:');
     console.log('Can Pause:', pauseElig?.can_pause);
     console.log('Reason:', pauseElig?.reason);
 
     // Test discount eligibility
-    const { data: discountElig } = await supabase
-      .rpc('check_discount_eligibility', { p_user_id: authUser.id });
-    
+    const { data: discountElig } = await supabase.rpc(
+      'check_discount_eligibility',
+      { p_user_id: authUser.id }
+    );
+
     console.log('\nDiscount Eligibility:');
     console.log('Can Use Discount:', discountElig?.can_use_discount);
     console.log('Reason:', discountElig?.reason);

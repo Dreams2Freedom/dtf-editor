@@ -7,27 +7,31 @@ import { supportService } from '@/services/support';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
-import { 
-  ArrowLeft, 
-  Send, 
-  Clock, 
-  CheckCircle, 
+import {
+  ArrowLeft,
+  Send,
+  Clock,
+  CheckCircle,
   AlertCircle,
   MessageSquare,
   User,
-  Shield
+  Shield,
 } from 'lucide-react';
-import type { SupportTicket, SupportMessage, TicketStatus } from '@/types/support';
+import type {
+  SupportTicket,
+  SupportMessage,
+  TicketStatus,
+} from '@/types/support';
 
 export default function TicketDetailPage() {
   const params = useParams();
   const router = useRouter();
   const { user, profile, loading: authLoading } = useAuthStore();
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  
+
   // Check if user is admin
   const isAdmin = profile?.is_admin === true;
-  
+
   const [ticket, setTicket] = useState<SupportTicket | null>(null);
   const [messages, setMessages] = useState<SupportMessage[]>([]);
   const [newMessage, setNewMessage] = useState('');
@@ -54,7 +58,7 @@ export default function TicketDetailPage() {
 
   const fetchTicketData = async () => {
     if (!params.id || typeof params.id !== 'string') return;
-    
+
     try {
       setLoading(true);
       const data = await supportService.getTicket(params.id);
@@ -74,22 +78,28 @@ export default function TicketDetailPage() {
 
     setSending(true);
     try {
-      const message = await supportService.addMessage({
-        ticket_id: ticket.id,
-        message: newMessage.trim()
-      }, user.id);
+      const message = await supportService.addMessage(
+        {
+          ticket_id: ticket.id,
+          message: newMessage.trim(),
+        },
+        user.id
+      );
 
       // Add to messages list with user info
-      setMessages([...messages, {
-        ...message,
-        author: {
-          name: 'You',
-          email: user.email || ''
-        }
-      }]);
-      
+      setMessages([
+        ...messages,
+        {
+          ...message,
+          author: {
+            name: 'You',
+            email: user.email || '',
+          },
+        },
+      ]);
+
       setNewMessage('');
-      
+
       // Update ticket status if it was closed
       if (ticket.status === 'closed' || ticket.status === 'resolved') {
         setTicket({ ...ticket, status: 'open' });
@@ -104,7 +114,7 @@ export default function TicketDetailPage() {
 
   const updateStatus = async (newStatus: TicketStatus) => {
     if (!ticket) return;
-    
+
     try {
       await supportService.updateTicketStatus(ticket.id, newStatus);
       setTicket({ ...ticket, status: newStatus });
@@ -129,7 +139,9 @@ export default function TicketDetailPage() {
     }
   };
 
-  const getStatusColor = (status: TicketStatus): "default" | "success" | "warning" | "error" => {
+  const getStatusColor = (
+    status: TicketStatus
+  ): 'default' | 'success' | 'warning' | 'error' => {
     switch (status) {
       case 'open':
         return 'default';
@@ -151,7 +163,7 @@ export default function TicketDetailPage() {
       day: 'numeric',
       year: 'numeric',
       hour: '2-digit',
-      minute: '2-digit'
+      minute: '2-digit',
     });
   };
 
@@ -222,11 +234,11 @@ export default function TicketDetailPage() {
                     {ticket.category.replace('_', ' ')}
                   </Badge>
                 </div>
-                
+
                 <h1 className="text-2xl font-bold text-gray-900 mb-2">
                   {ticket.subject}
                 </h1>
-                
+
                 <p className="text-sm text-gray-500">
                   Created {formatDate(ticket.created_at)}
                 </p>
@@ -271,9 +283,9 @@ export default function TicketDetailPage() {
         {/* Messages */}
         <Card className="p-6 mb-6">
           <h2 className="text-lg font-semibold mb-4">Conversation</h2>
-          
+
           <div className="space-y-4 max-h-[500px] overflow-y-auto">
-            {messages.map((message) => (
+            {messages.map(message => (
               <div
                 key={message.id}
                 className={`flex gap-3 ${message.is_admin ? 'bg-blue-50 -mx-4 px-4 py-3 rounded-lg' : ''}`}
@@ -289,11 +301,12 @@ export default function TicketDetailPage() {
                     </div>
                   )}
                 </div>
-                
+
                 <div className="flex-1">
                   <div className="flex items-center gap-2 mb-1">
                     <span className="font-medium text-sm">
-                      {message.author?.name || (message.is_admin ? 'Support Team' : 'You')}
+                      {message.author?.name ||
+                        (message.is_admin ? 'Support Team' : 'You')}
                     </span>
                     {message.is_admin && (
                       <Badge variant="default" className="text-xs">
@@ -304,7 +317,7 @@ export default function TicketDetailPage() {
                       {formatDate(message.created_at)}
                     </span>
                   </div>
-                  
+
                   <div className="text-gray-700 whitespace-pre-wrap">
                     {message.message}
                   </div>
@@ -322,7 +335,7 @@ export default function TicketDetailPage() {
               <div className="flex gap-3">
                 <textarea
                   value={newMessage}
-                  onChange={(e) => setNewMessage(e.target.value)}
+                  onChange={e => setNewMessage(e.target.value)}
                   placeholder="Type your message..."
                   rows={3}
                   className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#366494] focus:border-transparent resize-none"
@@ -344,7 +357,7 @@ export default function TicketDetailPage() {
         {ticket.status === 'closed' && (
           <Card className="p-6 bg-gray-50">
             <p className="text-center text-gray-600">
-              This ticket has been closed. 
+              This ticket has been closed.
               <Button
                 variant="link"
                 onClick={() => updateStatus('open')}

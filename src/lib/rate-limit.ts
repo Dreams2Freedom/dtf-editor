@@ -55,13 +55,17 @@ let redis: Redis | null = null;
 class InMemoryRateLimiter {
   private store: Map<string, { count: number; resetAt: number }> = new Map();
 
-  async limit(identifier: string, requests: number, window: string): Promise<{ success: boolean; remaining: number }> {
+  async limit(
+    identifier: string,
+    requests: number,
+    window: string
+  ): Promise<{ success: boolean; remaining: number }> {
     const now = Date.now();
     const windowMs = this.parseWindow(window);
     const key = identifier;
-    
+
     const record = this.store.get(key);
-    
+
     if (!record || now > record.resetAt) {
       // Create new record
       this.store.set(key, {
@@ -70,11 +74,11 @@ class InMemoryRateLimiter {
       });
       return { success: true, remaining: requests - 1 };
     }
-    
+
     if (record.count >= requests) {
       return { success: false, remaining: 0 };
     }
-    
+
     record.count++;
     return { success: true, remaining: requests - record.count };
   }
@@ -82,16 +86,21 @@ class InMemoryRateLimiter {
   private parseWindow(window: string): number {
     const match = window.match(/^(\d+)\s*([smhd])$/);
     if (!match) throw new Error(`Invalid window format: ${window}`);
-    
+
     const [, num, unit] = match;
     const value = parseInt(num);
-    
+
     switch (unit) {
-      case 's': return value * 1000;
-      case 'm': return value * 60 * 1000;
-      case 'h': return value * 60 * 60 * 1000;
-      case 'd': return value * 24 * 60 * 60 * 1000;
-      default: throw new Error(`Invalid time unit: ${unit}`);
+      case 's':
+        return value * 1000;
+      case 'm':
+        return value * 60 * 1000;
+      case 'h':
+        return value * 60 * 60 * 1000;
+      case 'd':
+        return value * 24 * 60 * 60 * 1000;
+      default:
+        throw new Error(`Invalid time unit: ${unit}`);
     }
   }
 }
@@ -107,19 +116,23 @@ function getRateLimiter() {
         url: env.UPSTASH_REDIS_REST_URL,
         token: env.UPSTASH_REDIS_REST_TOKEN,
       });
-      
+
       rateLimiter = new Ratelimit({
         redis,
         limiter: Ratelimit.slidingWindow(60, '1 m'),
         analytics: true,
         prefix: 'dtf-editor',
       });
-      
+
       console.log('✅ Using Upstash Redis for rate limiting');
     } else {
       // Use in-memory rate limiter for development
-      console.warn('⚠️ Using in-memory rate limiter. Configure Upstash Redis for production.');
-      console.warn('Add UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN to your environment variables.');
+      console.warn(
+        '⚠️ Using in-memory rate limiter. Configure Upstash Redis for production.'
+      );
+      console.warn(
+        'Add UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN to your environment variables.'
+      );
       rateLimiter = new InMemoryRateLimiter();
     }
   }
@@ -131,10 +144,12 @@ export function getClientIdentifier(request: NextRequest): string {
   // Try to get authenticated user ID first
   const userId = request.headers.get('x-user-id');
   if (userId) return `user:${userId}`;
-  
+
   // Fall back to IP address
   const forwarded = request.headers.get('x-forwarded-for');
-  const ip = forwarded ? forwarded.split(',')[0] : request.headers.get('x-real-ip') || 'unknown';
+  const ip = forwarded
+    ? forwarded.split(',')[0]
+    : request.headers.get('x-real-ip') || 'unknown';
   return `ip:${ip}`;
 }
 
@@ -147,9 +162,14 @@ export async function rateLimit(
     const limiter = getRateLimiter();
     const identifier = getClientIdentifier(request);
     const config = RATE_LIMITS[type];
-    
-    let result: { success: boolean; remaining: number; reset?: number; limit?: number };
-    
+
+    let result: {
+      success: boolean;
+      remaining: number;
+      reset?: number;
+      limit?: number;
+    };
+
     if (limiter instanceof Ratelimit) {
       const rateLimiter = new Ratelimit({
         redis: redis!,
@@ -157,13 +177,13 @@ export async function rateLimit(
         analytics: true,
         prefix: `dtf-editor:${type}`,
       });
-      
+
       result = await rateLimiter.limit(identifier);
     } else {
       // In-memory limiter
       result = await limiter.limit(identifier, config.requests, config.window);
     }
-    
+
     if (!result.success) {
       return NextResponse.json(
         {
@@ -177,12 +197,16 @@ export async function rateLimit(
             'X-RateLimit-Limit': String(result.limit || config.requests),
             'X-RateLimit-Remaining': String(result.remaining),
             'X-RateLimit-Reset': String(result.reset || Date.now() + 60000),
-            'Retry-After': String(Math.ceil(((result.reset || Date.now() + 60000) - Date.now()) / 1000)),
+            'Retry-After': String(
+              Math.ceil(
+                ((result.reset || Date.now() + 60000) - Date.now()) / 1000
+              )
+            ),
           },
         }
       );
     }
-    
+
     // Add rate limit headers to successful responses
     const headers = new Headers();
     headers.set('X-RateLimit-Limit', String(result.limit || config.requests));
@@ -190,7 +214,7 @@ export async function rateLimit(
     if (result.reset) {
       headers.set('X-RateLimit-Reset', String(result.reset));
     }
-    
+
     return null; // Continue to endpoint
   } catch (error) {
     console.error('Rate limiting error:', error);

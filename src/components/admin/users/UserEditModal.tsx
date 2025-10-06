@@ -21,12 +21,17 @@ interface UserEditModalProps {
   onUpdate: (updatedUser: any) => void;
 }
 
-export function UserEditModal({ isOpen, onClose, user, onUpdate }: UserEditModalProps) {
+export function UserEditModal({
+  isOpen,
+  onClose,
+  user,
+  onUpdate,
+}: UserEditModalProps) {
   const [formData, setFormData] = useState({
     full_name: user.full_name || '',
     email: user.email,
     plan: user.plan,
-    status: user.status
+    status: user.status,
   });
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -37,7 +42,7 @@ export function UserEditModal({ isOpen, onClose, user, onUpdate }: UserEditModal
       full_name: user.full_name || '',
       email: user.email,
       plan: user.plan,
-      status: user.status
+      status: user.status,
     });
     setErrors({});
   }, [user]);
@@ -78,7 +83,7 @@ export function UserEditModal({ isOpen, onClose, user, onUpdate }: UserEditModal
           'Content-Type': 'application/json',
         },
         body: JSON.stringify(formData),
-        credentials: 'include'
+        credentials: 'include',
       });
 
       if (!response.ok) {
@@ -92,13 +97,17 @@ export function UserEditModal({ isOpen, onClose, user, onUpdate }: UserEditModal
       onClose();
     } catch (error) {
       console.error('Error updating user:', error);
-      toast.error(error instanceof Error ? error.message : 'Failed to update user');
+      toast.error(
+        error instanceof Error ? error.message : 'Failed to update user'
+      );
     } finally {
       setLoading(false);
     }
   };
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+  const handleChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
+  ) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
     // Clear error for this field
@@ -108,7 +117,12 @@ export function UserEditModal({ isOpen, onClose, user, onUpdate }: UserEditModal
   };
 
   return (
-    <Modal open={isOpen} onOpenChange={(open) => !open && onClose()} size="sm" showCloseButton={false}>
+    <Modal
+      open={isOpen}
+      onOpenChange={open => !open && onClose()}
+      size="sm"
+      showCloseButton={false}
+    >
       <div>
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
@@ -125,7 +139,10 @@ export function UserEditModal({ isOpen, onClose, user, onUpdate }: UserEditModal
         <form onSubmit={handleSubmit} className="space-y-4">
           {/* Full Name */}
           <div>
-            <label htmlFor="full_name" className="block text-sm font-medium text-gray-700 mb-1">
+            <label
+              htmlFor="full_name"
+              className="block text-sm font-medium text-gray-700 mb-1"
+            >
               Full Name
             </label>
             <div className="relative">
@@ -144,7 +161,10 @@ export function UserEditModal({ isOpen, onClose, user, onUpdate }: UserEditModal
 
           {/* Email */}
           <div>
-            <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
+            <label
+              htmlFor="email"
+              className="block text-sm font-medium text-gray-700 mb-1"
+            >
               Email <span className="text-red-500">*</span>
             </label>
             <div className="relative">
@@ -169,7 +189,11 @@ export function UserEditModal({ isOpen, onClose, user, onUpdate }: UserEditModal
           <Select
             id="plan"
             name="plan"
-            label={<>Plan <span className="text-red-500">*</span></>}
+            label={
+              <>
+                Plan <span className="text-red-500">*</span>
+              </>
+            }
             value={formData.plan}
             onChange={handleChange}
             leftIcon={<CreditCard className="h-5 w-5" />}
@@ -184,7 +208,11 @@ export function UserEditModal({ isOpen, onClose, user, onUpdate }: UserEditModal
           <Select
             id="status"
             name="status"
-            label={<>Status <span className="text-red-500">*</span></>}
+            label={
+              <>
+                Status <span className="text-red-500">*</span>
+              </>
+            }
             value={formData.status}
             onChange={handleChange}
             leftIcon={<Shield className="h-5 w-5" />}
@@ -196,15 +224,16 @@ export function UserEditModal({ isOpen, onClose, user, onUpdate }: UserEditModal
 
           {/* Warning for status change */}
           {formData.status !== user.status && (
-            <div className={`p-3 rounded-lg text-sm ${
-              formData.status === 'suspended' 
-                ? 'bg-red-50 text-red-700' 
-                : 'bg-green-50 text-green-700'
-            }`}>
-              {formData.status === 'suspended' 
+            <div
+              className={`p-3 rounded-lg text-sm ${
+                formData.status === 'suspended'
+                  ? 'bg-red-50 text-red-700'
+                  : 'bg-green-50 text-green-700'
+              }`}
+            >
+              {formData.status === 'suspended'
                 ? '⚠️ Suspending this user will prevent them from accessing their account.'
-                : '✓ Activating this user will restore their account access.'
-              }
+                : '✓ Activating this user will restore their account access.'}
             </div>
           )}
 

@@ -31,7 +31,7 @@ async function addCredits(email, creditsToAdd) {
 
     // Update the user's credits
     const newCredits = (users.credits_remaining || 0) + creditsToAdd;
-    
+
     const { data: updated, error: updateError } = await supabase
       .from('profiles')
       .update({ credits_remaining: newCredits })
@@ -48,7 +48,6 @@ async function addCredits(email, creditsToAdd) {
     console.log('Previous credits:', users.credits_remaining || 0);
     console.log('Credits added:', creditsToAdd);
     console.log('New credit balance:', updated.credits_remaining);
-
   } catch (error) {
     console.error('Unexpected error:', error);
   }

@@ -4,7 +4,10 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { createServerSupabaseClient, createServiceRoleClient } from '@/lib/supabase/server';
+import {
+  createServerSupabaseClient,
+  createServiceRoleClient,
+} from '@/lib/supabase/server';
 import { decryptSensitiveData, decryptTaxFormData } from '@/lib/encryption';
 import { createAdminAuditLog } from '@/services/adminAudit';
 
@@ -12,13 +15,13 @@ export async function GET(request: NextRequest) {
   try {
     // Verify admin access
     const supabase = await createServerSupabaseClient();
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
 
     if (authError || !user) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     // Check if user is admin
@@ -50,7 +53,9 @@ export async function GET(request: NextRequest) {
     const serviceClient = createServiceRoleClient();
     const { data: affiliate, error: affiliateError } = await serviceClient
       .from('affiliates')
-      .select('id, user_id, tax_form_type, tax_id_encrypted, tax_form_data, tax_form_completed_at')
+      .select(
+        'id, user_id, tax_form_type, tax_id_encrypted, tax_form_data, tax_form_completed_at'
+      )
       .eq('id', affiliateId)
       .single();
 
@@ -74,17 +79,28 @@ export async function GET(request: NextRequest) {
 
     try {
       console.log('[TAX FORM] Starting decryption');
-      console.log('[TAX FORM] ENCRYPTION_KEY available:', !!(process.env.ENCRYPTION_KEY || process.env.NEXT_PUBLIC_ENCRYPTION_KEY));
+      console.log(
+        '[TAX FORM] ENCRYPTION_KEY available:',
+        !!(process.env.ENCRYPTION_KEY || process.env.NEXT_PUBLIC_ENCRYPTION_KEY)
+      );
       console.log('[TAX FORM] Has tax_form_data:', !!affiliate.tax_form_data);
-      console.log('[TAX FORM] Has tax_id_encrypted:', !!affiliate.tax_id_encrypted);
+      console.log(
+        '[TAX FORM] Has tax_id_encrypted:',
+        !!affiliate.tax_id_encrypted
+      );
 
       if (affiliate.tax_form_data?.encrypted) {
         console.log('[TAX FORM] Decrypting form data...');
-        console.log('[TAX FORM] Encrypted data length:', affiliate.tax_form_data.encrypted.length);
+        console.log(
+          '[TAX FORM] Encrypted data length:',
+          affiliate.tax_form_data.encrypted.length
+        );
         decryptedData = decryptTaxFormData(affiliate.tax_form_data.encrypted);
 
         if (!decryptedData) {
-          throw new Error('Form data decryption returned null - check encryption key and data format');
+          throw new Error(
+            'Form data decryption returned null - check encryption key and data format'
+          );
         }
 
         console.log('[TAX FORM] Form data decrypted successfully');
@@ -92,11 +108,16 @@ export async function GET(request: NextRequest) {
 
       if (affiliate.tax_id_encrypted) {
         console.log('[TAX FORM] Decrypting tax ID...');
-        console.log('[TAX FORM] Encrypted tax ID length:', affiliate.tax_id_encrypted.length);
+        console.log(
+          '[TAX FORM] Encrypted tax ID length:',
+          affiliate.tax_id_encrypted.length
+        );
         decryptedTaxId = decryptSensitiveData(affiliate.tax_id_encrypted);
 
         if (!decryptedTaxId) {
-          throw new Error('Tax ID decryption returned null - check encryption key and data format');
+          throw new Error(
+            'Tax ID decryption returned null - check encryption key and data format'
+          );
         }
 
         console.log('[TAX FORM] Tax ID decrypted successfully');
@@ -119,8 +140,8 @@ export async function GET(request: NextRequest) {
       resource_id: affiliateId,
       details: {
         affiliate_id: affiliateId,
-        tax_form_type: affiliate.tax_form_type
-      }
+        tax_form_type: affiliate.tax_form_type,
+      },
     });
 
     return NextResponse.json({
@@ -129,9 +150,8 @@ export async function GET(request: NextRequest) {
       tax_form_type: affiliate.tax_form_type,
       tax_id: decryptedTaxId,
       form_data: decryptedData,
-      completed_at: affiliate.tax_form_completed_at
+      completed_at: affiliate.tax_form_completed_at,
     });
-
   } catch (error) {
     console.error('[TAX FORM] Error:', error);
     return NextResponse.json(

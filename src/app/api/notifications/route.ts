@@ -18,8 +18,11 @@ async function handleGet(request: NextRequest) {
 
     // Verify the user
     const token = authHeader.replace('Bearer ', '');
-    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
-    
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser(token);
+
     if (authError || !user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
@@ -27,14 +30,14 @@ async function handleGet(request: NextRequest) {
     // Try to get user's notifications through the view, fallback to empty if it doesn't exist
     let notifications = [];
     let unreadCount = 0;
-    
+
     try {
       // Try to query the view first
       const { data, error } = await supabase
         .from('user_notifications_view')
         .select('*')
         .order('created_at', { ascending: false });
-      
+
       if (!error && data) {
         notifications = data;
       }
@@ -45,11 +48,10 @@ async function handleGet(request: NextRequest) {
 
     try {
       // Try to get unread count
-      const { data } = await supabase
-        .rpc('get_unread_notification_count', {
-          p_user_id: user.id
-        });
-      
+      const { data } = await supabase.rpc('get_unread_notification_count', {
+        p_user_id: user.id,
+      });
+
       if (data !== null && data !== undefined) {
         unreadCount = data;
       }
@@ -60,9 +62,8 @@ async function handleGet(request: NextRequest) {
 
     return NextResponse.json({
       notifications,
-      unreadCount
+      unreadCount,
     });
-
   } catch (error: any) {
     console.error('Error in get notifications:', error);
     return NextResponse.json(
@@ -87,8 +88,11 @@ async function handlePatch(request: NextRequest) {
 
     // Verify the user
     const token = authHeader.replace('Bearer ', '');
-    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
-    
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser(token);
+
     if (authError || !user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
@@ -108,18 +112,15 @@ async function handlePatch(request: NextRequest) {
       if (action === 'read') {
         await supabase.rpc('mark_notification_read', {
           p_notification_id: notificationId,
-          p_user_id: user.id
+          p_user_id: user.id,
         });
       } else if (action === 'dismiss') {
         await supabase.rpc('dismiss_notification', {
           p_notification_id: notificationId,
-          p_user_id: user.id
+          p_user_id: user.id,
         });
       } else {
-        return NextResponse.json(
-          { error: 'Invalid action' },
-          { status: 400 }
-        );
+        return NextResponse.json({ error: 'Invalid action' }, { status: 400 });
       }
     } catch (e) {
       // If the RPC functions don't exist, just return success
@@ -127,7 +128,6 @@ async function handlePatch(request: NextRequest) {
     }
 
     return NextResponse.json({ success: true });
-
   } catch (error: any) {
     console.error('Error updating notification:', error);
     return NextResponse.json(

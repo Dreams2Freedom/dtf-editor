@@ -1,8 +1,18 @@
 import { createClient } from '@supabase/supabase-js';
 import { env } from '@/config/env';
 
-export type ApiProvider = 'deep_image' | 'clipping_magic' | 'vectorizer' | 'openai' | 'stripe';
-export type ApiOperation = 'upscale' | 'background_removal' | 'vectorization' | 'image_generation' | 'payment_processing';
+export type ApiProvider =
+  | 'deep_image'
+  | 'clipping_magic'
+  | 'vectorizer'
+  | 'openai'
+  | 'stripe';
+export type ApiOperation =
+  | 'upscale'
+  | 'background_removal'
+  | 'vectorization'
+  | 'image_generation'
+  | 'payment_processing';
 
 interface ApiCostConfig {
   provider: ApiProvider;
@@ -37,8 +47,7 @@ export class CostTrackingService {
    * Get current API costs from configuration
    */
   async getCurrentApiCosts(): Promise<ApiCostConfig[]> {
-    const { data, error } = await this.supabase
-      .rpc('get_current_api_costs');
+    const { data, error } = await this.supabase.rpc('get_current_api_costs');
 
     if (error) {
       console.error('Error fetching API costs:', error);
@@ -58,32 +67,32 @@ export class CostTrackingService {
         provider: 'deep_image',
         operation: 'upscale',
         costPerUnit: 0.08, // Actual Deep-Image.ai cost
-        unitDescription: 'per image'
+        unitDescription: 'per image',
       },
       {
         provider: 'clipping_magic',
         operation: 'background_removal',
         costPerUnit: 0.125, // Actual ClippingMagic cost
-        unitDescription: 'per image'
+        unitDescription: 'per image',
       },
       {
         provider: 'vectorizer',
         operation: 'vectorization',
-        costPerUnit: 0.20, // Actual Vectorizer.ai cost
-        unitDescription: 'per image'
+        costPerUnit: 0.2, // Actual Vectorizer.ai cost
+        unitDescription: 'per image',
       },
       {
         provider: 'openai',
         operation: 'image_generation',
         costPerUnit: 0.04, // DALL-E 3 Standard Quality 1024x1024
-        unitDescription: 'per image (1024x1024 standard)'
+        unitDescription: 'per image (1024x1024 standard)',
       },
       {
         provider: 'stripe',
         operation: 'payment_processing',
         costPerUnit: 0.029, // 2.9% + $0.30 fixed fee
-        unitDescription: 'per transaction'
-      }
+        unitDescription: 'per transaction',
+      },
     ];
   }
 
@@ -95,7 +104,7 @@ export class CostTrackingService {
     const creditPackages = {
       10: 7.99,
       20: 14.99,
-      50: 29.99
+      50: 29.99,
     };
 
     // Calculate per-credit value
@@ -141,7 +150,9 @@ export class CostTrackingService {
     try {
       // Get current API cost
       const costs = await this.getCurrentApiCosts();
-      const costConfig = costs.find(c => c.provider === provider && c.operation === operation);
+      const costConfig = costs.find(
+        c => c.provider === provider && c.operation === operation
+      );
       const apiCost = costConfig?.costPerUnit || 0;
 
       // Calculate credit value
@@ -158,7 +169,7 @@ export class CostTrackingService {
         creditValue,
         processingTimeMs: options?.processingTimeMs,
         errorMessage: options?.errorMessage,
-        metadata: options?.metadata
+        metadata: options?.metadata,
       };
 
       const { error } = await this.supabase
@@ -177,11 +188,10 @@ export class CostTrackingService {
    * Get profitability report for date range
    */
   async getProfitabilityReport(startDate: Date, endDate: Date) {
-    const { data, error } = await this.supabase
-      .rpc('calculate_profitability', {
-        p_start_date: startDate.toISOString().split('T')[0],
-        p_end_date: endDate.toISOString().split('T')[0]
-      });
+    const { data, error } = await this.supabase.rpc('calculate_profitability', {
+      p_start_date: startDate.toISOString().split('T')[0],
+      p_end_date: endDate.toISOString().split('T')[0],
+    });
 
     if (error) {
       console.error('Error fetching profitability report:', error);
@@ -217,25 +227,28 @@ export class CostTrackingService {
    */
   async getCostBreakdownByProvider(days: number = 30) {
     const summaries = await this.getApiUsageSummary(days);
-    
-    const breakdown = summaries.reduce((acc, summary) => {
-      const provider = summary.provider;
-      if (!acc[provider]) {
-        acc[provider] = {
-          totalCost: 0,
-          totalRevenue: 0,
-          totalRequests: 0,
-          grossProfit: 0
-        };
-      }
-      
-      acc[provider].totalCost += parseFloat(summary.total_api_cost);
-      acc[provider].totalRevenue += parseFloat(summary.total_revenue);
-      acc[provider].totalRequests += summary.total_requests;
-      acc[provider].grossProfit += parseFloat(summary.gross_profit);
-      
-      return acc;
-    }, {} as Record<string, any>);
+
+    const breakdown = summaries.reduce(
+      (acc, summary) => {
+        const provider = summary.provider;
+        if (!acc[provider]) {
+          acc[provider] = {
+            totalCost: 0,
+            totalRevenue: 0,
+            totalRequests: 0,
+            grossProfit: 0,
+          };
+        }
+
+        acc[provider].totalCost += parseFloat(summary.total_api_cost);
+        acc[provider].totalRevenue += parseFloat(summary.total_revenue);
+        acc[provider].totalRequests += summary.total_requests;
+        acc[provider].grossProfit += parseFloat(summary.gross_profit);
+
+        return acc;
+      },
+      {} as Record<string, any>
+    );
 
     return breakdown;
   }
@@ -271,7 +284,7 @@ export class CostTrackingService {
           operation,
           cost_per_unit: newCostPerUnit,
           unit_description: 'per image',
-          notes
+          notes,
         });
 
       if (insertError) {

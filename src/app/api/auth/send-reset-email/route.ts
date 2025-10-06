@@ -6,13 +6,13 @@ import { withRateLimit } from '@/lib/rate-limit';
 async function handlePost(request: NextRequest) {
   try {
     const { email } = await request.json();
-    
+
     if (!email) {
       return NextResponse.json({ error: 'Email is required' }, { status: 400 });
     }
 
     const supabase = await createServerSupabaseClient();
-    
+
     // Check if user exists
     const { data: user } = await supabase
       .from('users')
@@ -22,8 +22,9 @@ async function handlePost(request: NextRequest) {
 
     if (!user) {
       // Don't reveal if user exists or not for security
-      return NextResponse.json({ 
-        message: 'If an account exists with this email, you will receive a password reset link.' 
+      return NextResponse.json({
+        message:
+          'If an account exists with this email, you will receive a password reset link.',
       });
     }
 
@@ -34,7 +35,10 @@ async function handlePost(request: NextRequest) {
 
     if (error) {
       console.error('Error generating reset token:', error);
-      return NextResponse.json({ error: 'Failed to generate reset link' }, { status: 500 });
+      return NextResponse.json(
+        { error: 'Failed to generate reset link' },
+        { status: 500 }
+      );
     }
 
     // Get the reset link from Supabase response
@@ -51,15 +55,22 @@ async function handlePost(request: NextRequest) {
     });
 
     if (!emailSent) {
-      return NextResponse.json({ error: 'Failed to send email' }, { status: 500 });
+      return NextResponse.json(
+        { error: 'Failed to send email' },
+        { status: 500 }
+      );
     }
 
-    return NextResponse.json({ 
-      message: 'If an account exists with this email, you will receive a password reset link.' 
+    return NextResponse.json({
+      message:
+        'If an account exists with this email, you will receive a password reset link.',
     });
   } catch (error) {
     console.error('Error in password reset:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return NextResponse.json(
+      { error: 'Internal server error' },
+      { status: 500 }
+    );
   }
 }
 

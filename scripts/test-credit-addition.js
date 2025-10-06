@@ -8,7 +8,7 @@ const supabase = createClient(
 
 async function testCreditAddition() {
   const userId = 'f689bb22-89dd-4c3c-a941-d77feb84428d';
-  
+
   try {
     console.log('Testing credit addition...\n');
 
@@ -29,8 +29,8 @@ async function testCreditAddition() {
       p_description: '10 credits purchase',
       p_metadata: {
         stripe_payment_intent_id: 'pi_3RqE2YPHFzf1GpIr29m1Wh1p',
-        price_paid: 799 // $7.99 in cents
-      }
+        price_paid: 799, // $7.99 in cents
+      },
     });
 
     if (error) {
@@ -63,10 +63,9 @@ async function testCreditAddition() {
         amount: transactions[0].amount,
         type: transactions[0].type,
         balance_after: transactions[0].balance_after,
-        created_at: transactions[0].created_at
+        created_at: transactions[0].created_at,
       });
     }
-
   } catch (error) {
     console.error('Error:', error);
   }

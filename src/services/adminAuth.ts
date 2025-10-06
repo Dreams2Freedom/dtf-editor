@@ -1,12 +1,12 @@
 import { createBrowserClient } from '@supabase/ssr';
 import { env } from '@/config/env';
-import type { 
-  AdminSession, 
-  AdminLoginRequest, 
+import type {
+  AdminSession,
+  AdminLoginRequest,
   AdminLoginResponse,
   Admin2FAVerifyRequest,
   AdminUserWithRole,
-  AdminApiResponse
+  AdminApiResponse,
 } from '@/types/admin';
 
 class AdminAuthService {
@@ -22,7 +22,11 @@ class AdminAuthService {
   /**
    * Admin login - separate from regular user login
    */
-  async login({ email, password, remember = false }: AdminLoginRequest): Promise<AdminApiResponse<AdminLoginResponse>> {
+  async login({
+    email,
+    password,
+    remember = false,
+  }: AdminLoginRequest): Promise<AdminApiResponse<AdminLoginResponse>> {
     try {
       const response = await fetch('/api/admin/auth/login', {
         method: 'POST',
@@ -38,16 +42,22 @@ class AdminAuthService {
       if (!result.success) {
         return {
           success: false,
-          error: result.error || 'Login failed'
+          error: result.error || 'Login failed',
         };
       }
 
       // Store admin session in local storage
       if (result.data && result.data.session) {
         if (remember) {
-          localStorage.setItem('admin_session', JSON.stringify(result.data.session));
+          localStorage.setItem(
+            'admin_session',
+            JSON.stringify(result.data.session)
+          );
         } else {
-          sessionStorage.setItem('admin_session', JSON.stringify(result.data.session));
+          sessionStorage.setItem(
+            'admin_session',
+            JSON.stringify(result.data.session)
+          );
         }
       }
 
@@ -55,7 +65,7 @@ class AdminAuthService {
     } catch (error) {
       return {
         success: false,
-        error: 'An error occurred during login'
+        error: 'An error occurred during login',
       };
     }
   }
@@ -63,16 +73,19 @@ class AdminAuthService {
   /**
    * Verify 2FA code
    */
-  async verify2FA({ code, session_token }: Admin2FAVerifyRequest): Promise<AdminApiResponse<AdminSession>> {
+  async verify2FA({
+    code,
+    session_token,
+  }: Admin2FAVerifyRequest): Promise<AdminApiResponse<AdminSession>> {
     try {
       // Verify TOTP code against stored secret
       const response = await fetch('/api/admin/auth/2fa-verify', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session_token}`
+          Authorization: `Bearer ${session_token}`,
         },
-        body: JSON.stringify({ code })
+        body: JSON.stringify({ code }),
       });
 
       const result = await response.json();
@@ -80,23 +93,25 @@ class AdminAuthService {
       if (!result.success) {
         return {
           success: false,
-          error: result.error || 'Invalid 2FA code'
+          error: result.error || 'Invalid 2FA code',
         };
       }
 
       // Update session
       const session = result.data.session;
-      const storage = localStorage.getItem('admin_session') ? localStorage : sessionStorage;
+      const storage = localStorage.getItem('admin_session')
+        ? localStorage
+        : sessionStorage;
       storage.setItem('admin_session', JSON.stringify(session));
 
       return {
         success: true,
-        data: session
+        data: session,
       };
     } catch (error) {
       return {
         success: false,
-        error: 'Failed to verify 2FA code'
+        error: 'Failed to verify 2FA code',
       };
     }
   }
@@ -105,12 +120,14 @@ class AdminAuthService {
    * Get current admin session
    */
   getSession(): AdminSession | null {
-    const stored = localStorage.getItem('admin_session') || sessionStorage.getItem('admin_session');
+    const stored =
+      localStorage.getItem('admin_session') ||
+      sessionStorage.getItem('admin_session');
     if (!stored) return null;
 
     try {
       const session = JSON.parse(stored) as AdminSession;
-      
+
       // Check if session is expired
       if (new Date(session.expires_at) < new Date()) {
         this.clearSession();
@@ -131,7 +148,7 @@ class AdminAuthService {
     if (!session) return false;
 
     let current: any = session.user.role_permissions;
-    
+
     for (const segment of permissionPath) {
       if (!current || typeof current !== 'object') return false;
       current = current[segment];
@@ -149,10 +166,9 @@ class AdminAuthService {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-        }
+        },
       });
-    } catch (error) {
-    }
+    } catch (error) {}
 
     // Clear admin session
     this.clearSession();
@@ -170,8 +186,8 @@ class AdminAuthService {
    * Log admin action for audit trail
    */
   private async logAdminAction(
-    action: string, 
-    resourceType: string, 
+    action: string,
+    resourceType: string,
     resourceId?: string,
     details?: Record<string, any>
   ): Promise<void> {
@@ -183,37 +199,38 @@ class AdminAuthService {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session.token}`
+          Authorization: `Bearer ${session.token}`,
         },
         body: JSON.stringify({
           action,
           resource_type: resourceType,
           resource_id: resourceId,
-          details
-        })
+          details,
+        }),
       });
-    } catch (error) {
-    }
+    } catch (error) {}
   }
 
   /**
    * Setup 2FA for admin account
    */
-  async setup2FA(): Promise<AdminApiResponse<{ qrCode: string; secret: string }>> {
+  async setup2FA(): Promise<
+    AdminApiResponse<{ qrCode: string; secret: string }>
+  > {
     try {
       const session = this.getSession();
       if (!session) {
         return {
           success: false,
-          error: 'No active session'
+          error: 'No active session',
         };
       }
 
       const response = await fetch('/api/admin/auth/2fa-setup', {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${session.token}`
-        }
+          Authorization: `Bearer ${session.token}`,
+        },
       });
 
       const result = await response.json();
@@ -221,7 +238,7 @@ class AdminAuthService {
     } catch (error) {
       return {
         success: false,
-        error: 'Failed to setup 2FA'
+        error: 'Failed to setup 2FA',
       };
     }
   }
@@ -252,13 +269,16 @@ class AdminAuthService {
    */
   async refreshSession(): Promise<AdminApiResponse<AdminSession>> {
     try {
-      const { data: { session }, error } = await this.supabase.auth.getSession();
-      
+      const {
+        data: { session },
+        error,
+      } = await this.supabase.auth.getSession();
+
       if (error || !session) {
         this.clearSession();
         return {
           success: false,
-          error: 'Session expired'
+          error: 'Session expired',
         };
       }
 
@@ -273,28 +293,30 @@ class AdminAuthService {
         this.clearSession();
         return {
           success: false,
-          error: 'Admin privileges revoked'
+          error: 'Admin privileges revoked',
         };
       }
 
       const newSession: AdminSession = {
         user: adminUser as AdminUserWithRole,
         token: session.access_token,
-        expires_at: session.expires_at || ''
+        expires_at: session.expires_at || '',
       };
 
       // Update stored session
-      const storage = localStorage.getItem('admin_session') ? localStorage : sessionStorage;
+      const storage = localStorage.getItem('admin_session')
+        ? localStorage
+        : sessionStorage;
       storage.setItem('admin_session', JSON.stringify(newSession));
 
       return {
         success: true,
-        data: newSession
+        data: newSession,
       };
     } catch (error) {
       return {
         success: false,
-        error: 'Failed to refresh session'
+        error: 'Failed to refresh session',
       };
     }
   }

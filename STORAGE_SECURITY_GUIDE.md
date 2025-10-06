@@ -7,18 +7,21 @@ DTF Editor uses Supabase Storage for managing user-uploaded and processed images
 ## Storage Buckets
 
 ### 1. `images` (Public Bucket)
+
 - **Purpose**: Stores processed images after AI operations
 - **Access**: Public bucket, but with RLS policies to restrict access
 - **Path Structure**: `{user_id}/{filename}`
 - **Security**: Users can only access files in their own user folder
 
 ### 2. `user-images` (Private Bucket)
+
 - **Purpose**: Temporary storage for image processing
 - **Access**: Private bucket, authenticated users only
 - **Path Structure**: `{user_id}/{filename}`
 - **Security**: Strict user isolation
 
 ### 3. `user-uploads` (Public Bucket)
+
 - **Purpose**: Initial uploads before processing
 - **Access**: Public bucket with RLS policies
 - **Path Structure**: `{user_id}/{filename}`
@@ -27,6 +30,7 @@ DTF Editor uses Supabase Storage for managing user-uploaded and processed images
 ## Security Issues Found
 
 ### 🚨 Critical Issue: User File Access
+
 During verification, we found that users can access other users' files in the public `images` bucket. This needs to be fixed by applying proper RLS policies.
 
 ## How to Fix Storage Policies
@@ -48,12 +52,14 @@ node scripts/verify-storage-policies.js
 ```
 
 Expected output:
+
 - ✅ User isolation working: User 2 cannot access User 1's files
 - ✅ Anonymous users cannot read processed_images
 
 ## Storage Best Practices
 
 ### 1. File Organization
+
 ```
 images/
 ├── {user_id}/
@@ -62,6 +68,7 @@ images/
 ```
 
 ### 2. URL Generation
+
 ```javascript
 // For private images - use signed URLs
 const { data: signedUrl } = await supabase.storage
@@ -75,23 +82,25 @@ const publicUrl = supabase.storage
 ```
 
 ### 3. Upload Security
+
 Always prefix uploads with the authenticated user's ID:
+
 ```javascript
 const filePath = `${user.id}/${filename}`;
-const { error } = await supabase.storage
-  .from('images')
-  .upload(filePath, file);
+const { error } = await supabase.storage.from('images').upload(filePath, file);
 ```
 
 ## Verification Scripts
 
 ### 1. `verify-storage-policies.js`
+
 - Tests bucket access controls
 - Verifies user isolation
 - Checks RLS policies on database tables
 - Creates temporary test users for thorough testing
 
 ### 2. `apply-storage-policies.js`
+
 - Shows current bucket configuration
 - Provides SQL to fix policies
 - Instructions for manual application
@@ -99,6 +108,7 @@ const { error } = await supabase.storage
 ## Database RLS Policies
 
 The `processed_images` table also has RLS policies:
+
 - Users can only see their own images
 - Anonymous users have no access
 - Service role bypasses RLS for admin operations

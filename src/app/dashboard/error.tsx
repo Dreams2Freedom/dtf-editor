@@ -36,14 +36,14 @@ export default function DashboardError({
           <div className="flex justify-center mb-4">
             <AlertCircle className="h-12 w-12 text-red-500" />
           </div>
-          
+
           <h1 className="text-2xl font-bold text-gray-900 mb-2">
             Dashboard Error
           </h1>
-          
+
           <p className="text-gray-600 mb-6">
-            We're having trouble loading your dashboard. This might be a temporary issue. 
-            Please try refreshing the page or logging in again.
+            We're having trouble loading your dashboard. This might be a
+            temporary issue. Please try refreshing the page or logging in again.
           </p>
 
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
@@ -54,7 +54,7 @@ export default function DashboardError({
               <RefreshCw className="w-4 h-4" />
               Try Again
             </Button>
-            
+
             <Button
               variant="outline"
               onClick={handleLogout}

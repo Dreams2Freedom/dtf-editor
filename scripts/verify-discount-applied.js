@@ -9,7 +9,7 @@ const supabase = createClient(
 );
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
-  apiVersion: '2024-11-20.acacia'
+  apiVersion: '2024-11-20.acacia',
 });
 
 async function verifyDiscountApplied() {
@@ -17,8 +17,10 @@ async function verifyDiscountApplied() {
 
   // Get the user
   const { data: authUsers } = await supabase.auth.admin.listUsers();
-  const authUser = authUsers.users.find(u => u.email === 'snsmarketing@gmail.com');
-  
+  const authUser = authUsers.users.find(
+    u => u.email === 'snsmarketing@gmail.com'
+  );
+
   const { data: user } = await supabase
     .from('profiles')
     .select('*')
@@ -62,20 +64,23 @@ async function verifyDiscountApplied() {
   // Check Stripe for active discounts
   if (user.stripe_customer_id) {
     console.log('\n=== STRIPE DISCOUNT STATUS ===');
-    
+
     try {
       // Check customer
       const customer = await stripe.customers.retrieve(user.stripe_customer_id);
-      
+
       if (customer.discount) {
         console.log('\n✅ CUSTOMER HAS ACTIVE DISCOUNT!');
         console.log('Coupon ID:', customer.discount.coupon.id);
         console.log('Percent Off:', customer.discount.coupon.percent_off + '%');
         console.log('Duration:', customer.discount.coupon.duration);
         console.log('Valid:', customer.discount.coupon.valid);
-        
+
         if (customer.discount.end) {
-          console.log('Expires:', new Date(customer.discount.end * 1000).toLocaleString());
+          console.log(
+            'Expires:',
+            new Date(customer.discount.end * 1000).toLocaleString()
+          );
         }
       } else {
         console.log('No discount on customer object');
@@ -83,41 +88,64 @@ async function verifyDiscountApplied() {
 
       // Check subscription
       if (user.stripe_subscription_id) {
-        const subscription = await stripe.subscriptions.retrieve(user.stripe_subscription_id);
-        
+        const subscription = await stripe.subscriptions.retrieve(
+          user.stripe_subscription_id
+        );
+
         console.log('\n=== SUBSCRIPTION STATUS ===');
         console.log('Subscription ID:', subscription.id);
         console.log('Status:', subscription.status);
-        console.log('Current Period End:', new Date(subscription.current_period_end * 1000).toLocaleDateString());
-        
+        console.log(
+          'Current Period End:',
+          new Date(subscription.current_period_end * 1000).toLocaleDateString()
+        );
+
         if (subscription.discount) {
           console.log('\n✅ SUBSCRIPTION HAS DISCOUNT!');
           console.log('Coupon:', subscription.discount.coupon.id);
-          console.log('Percent Off:', subscription.discount.coupon.percent_off + '%');
+          console.log(
+            'Percent Off:',
+            subscription.discount.coupon.percent_off + '%'
+          );
           console.log('Duration:', subscription.discount.coupon.duration);
-          
+
           if (subscription.discount.end) {
-            console.log('Discount ends:', new Date(subscription.discount.end * 1000).toLocaleDateString());
+            console.log(
+              'Discount ends:',
+              new Date(subscription.discount.end * 1000).toLocaleDateString()
+            );
           }
         }
 
         // Get upcoming invoice to see the discount effect
         try {
           const upcomingInvoice = await stripe.invoices.retrieveUpcoming({
-            customer: user.stripe_customer_id
+            customer: user.stripe_customer_id,
           });
-          
+
           console.log('\n=== NEXT INVOICE PREVIEW ===');
-          console.log('Next Billing Date:', new Date(upcomingInvoice.period_end * 1000).toLocaleDateString());
-          console.log('Subtotal:', '$' + (upcomingInvoice.subtotal / 100).toFixed(2));
-          
-          if (upcomingInvoice.total_discount_amounts && upcomingInvoice.total_discount_amounts.length > 0) {
-            const totalDiscount = upcomingInvoice.total_discount_amounts.reduce((sum, d) => sum + d.amount, 0);
+          console.log(
+            'Next Billing Date:',
+            new Date(upcomingInvoice.period_end * 1000).toLocaleDateString()
+          );
+          console.log(
+            'Subtotal:',
+            '$' + (upcomingInvoice.subtotal / 100).toFixed(2)
+          );
+
+          if (
+            upcomingInvoice.total_discount_amounts &&
+            upcomingInvoice.total_discount_amounts.length > 0
+          ) {
+            const totalDiscount = upcomingInvoice.total_discount_amounts.reduce(
+              (sum, d) => sum + d.amount,
+              0
+            );
             console.log('Discount:', '-$' + (totalDiscount / 100).toFixed(2));
           }
-          
+
           console.log('Total:', '$' + (upcomingInvoice.total / 100).toFixed(2));
-          
+
           // Check if discount is applied
           if (upcomingInvoice.discount) {
             console.log('\n✅ Discount will be applied to next invoice!');
@@ -126,14 +154,17 @@ async function verifyDiscountApplied() {
           console.log('\nCould not retrieve upcoming invoice');
         }
       }
-      
+
       // List all coupons on the subscription
       if (user.stripe_subscription_id) {
         console.log('\n=== ALL SUBSCRIPTION DISCOUNTS ===');
-        const subscription = await stripe.subscriptions.retrieve(user.stripe_subscription_id, {
-          expand: ['discounts']
-        });
-        
+        const subscription = await stripe.subscriptions.retrieve(
+          user.stripe_subscription_id,
+          {
+            expand: ['discounts'],
+          }
+        );
+
         if (subscription.discounts && subscription.discounts.length > 0) {
           subscription.discounts.forEach((discount, idx) => {
             console.log(`\nDiscount ${idx + 1}:`);
@@ -144,7 +175,6 @@ async function verifyDiscountApplied() {
           console.log('No discounts array on subscription');
         }
       }
-      
     } catch (stripeErr) {
       console.error('Stripe Error:', stripeErr.message);
     }

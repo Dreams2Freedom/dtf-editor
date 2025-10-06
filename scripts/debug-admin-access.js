@@ -21,7 +21,8 @@ async function debugAdminAccess() {
     const { data: users } = await supabase.auth.admin.listUsers();
 
     const adminEmails = ['shannon@s2transfers.com', 'shannonherod@gmail.com'];
-    const adminUsers = users?.users?.filter(u => adminEmails.includes(u.email)) || [];
+    const adminUsers =
+      users?.users?.filter(u => adminEmails.includes(u.email)) || [];
 
     console.log(`   Found ${adminUsers.length} admin user(s):`);
     adminUsers.forEach(u => {
@@ -41,8 +42,12 @@ async function debugAdminAccess() {
       if (affiliates) {
         for (const aff of affiliates) {
           // Get user email for this affiliate
-          const { data: user } = await supabase.auth.admin.getUserById(aff.user_id);
-          console.log(`   - Code: ${aff.referral_code}, Status: ${aff.status}, User: ${user?.email || 'Unknown'}`);
+          const { data: user } = await supabase.auth.admin.getUserById(
+            aff.user_id
+          );
+          console.log(
+            `   - Code: ${aff.referral_code}, Status: ${aff.status}, User: ${user?.email || 'Unknown'}`
+          );
         }
       }
     }
@@ -50,10 +55,13 @@ async function debugAdminAccess() {
     // 3. Test the is_admin function for each admin user
     console.log('\n3. Testing is_admin function:');
     for (const adminUser of adminUsers) {
-      const { data: isAdminResult } = await supabase
-        .rpc('is_admin', { user_id: adminUser.id });
+      const { data: isAdminResult } = await supabase.rpc('is_admin', {
+        user_id: adminUser.id,
+      });
 
-      console.log(`   ${adminUser.email}: ${isAdminResult ? '✅ IS ADMIN' : '❌ NOT ADMIN'}`);
+      console.log(
+        `   ${adminUser.email}: ${isAdminResult ? '✅ IS ADMIN' : '❌ NOT ADMIN'}`
+      );
     }
 
     // 4. Check if RLS is enabled
@@ -64,11 +72,16 @@ async function debugAdminAccess() {
       .eq('schemaname', 'public')
       .in('tablename', ['affiliates', 'referrals', 'commissions', 'payouts']);
 
-    console.log('   Tables with potential RLS:', tables?.map(t => t.tablename).join(', '));
+    console.log(
+      '   Tables with potential RLS:',
+      tables?.map(t => t.tablename).join(', ')
+    );
 
     // 5. Test query as if you're shannon@s2transfers.com
     console.log('\n5. Testing affiliate query for shannon@s2transfers.com:');
-    const shannonUser = adminUsers.find(u => u.email === 'shannon@s2transfers.com');
+    const shannonUser = adminUsers.find(
+      u => u.email === 'shannon@s2transfers.com'
+    );
 
     if (shannonUser) {
       // This simulates what the admin page should see
@@ -100,13 +113,14 @@ async function debugAdminAccess() {
         console.log(`   - ${p.policyname} (${p.cmd})`);
       });
     }
-
   } catch (error) {
     console.error('Unexpected error:', error);
   }
 
   console.log('\n✨ Debug complete!');
-  console.log('\n💡 If you see "RLS is blocking access", run the admin access migration.');
+  console.log(
+    '\n💡 If you see "RLS is blocking access", run the admin access migration.'
+  );
   console.log('   If is_admin returns false, the function needs updating.');
 }
 

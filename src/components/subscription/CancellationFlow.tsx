@@ -17,16 +17,28 @@ interface CancellationFlowProps {
   };
 }
 
-type FlowStep = 'survey' | 'pause_offer' | 'discount_offer' | 'confirm_cancel' | 'complete';
+type FlowStep =
+  | 'survey'
+  | 'pause_offer'
+  | 'discount_offer'
+  | 'confirm_cancel'
+  | 'complete';
 
-export function CancellationFlow({ isOpen, onClose, onComplete, subscription }: CancellationFlowProps) {
+export function CancellationFlow({
+  isOpen,
+  onClose,
+  onComplete,
+  subscription,
+}: CancellationFlowProps) {
   const [currentStep, setCurrentStep] = useState<FlowStep>('survey');
   const [loading, setLoading] = useState(false);
   const [eligibilityLoading, setEligibilityLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [eligibility, setEligibility] = useState<any>(null);
   const [cancellationReason, setCancellationReason] = useState('');
-  const [completedAction, setCompletedAction] = useState<'paused' | 'discounted' | 'cancelled' | null>(null);
+  const [completedAction, setCompletedAction] = useState<
+    'paused' | 'discounted' | 'cancelled' | null
+  >(null);
 
   // Check retention eligibility when modal opens
   useEffect(() => {
@@ -40,7 +52,9 @@ export function CancellationFlow({ isOpen, onClose, onComplete, subscription }: 
     setEligibilityLoading(true);
     try {
       console.log('Fetching eligibility from API...');
-      const response = await fetch('/api/subscription/check-retention-eligibility');
+      const response = await fetch(
+        '/api/subscription/check-retention-eligibility'
+      );
       const data = await response.json();
       console.log('Full eligibility response:', data); // Debug log
       console.log('canPause:', data.canPause);
@@ -57,21 +71,21 @@ export function CancellationFlow({ isOpen, onClose, onComplete, subscription }: 
             duration: '2_weeks',
             label: '2 Weeks',
             description: 'Take a short break',
-            resumeDate: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000)
+            resumeDate: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000),
           },
           {
             duration: '1_month',
             label: '1 Month',
             description: 'Take a month off',
-            resumeDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
+            resumeDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
           },
           {
             duration: '2_months',
             label: '2 Months',
             description: 'Extended break',
-            resumeDate: new Date(Date.now() + 60 * 24 * 60 * 60 * 1000)
-          }
-        ]
+            resumeDate: new Date(Date.now() + 60 * 24 * 60 * 60 * 1000),
+          },
+        ],
       });
     } finally {
       setEligibilityLoading(false);
@@ -87,7 +101,7 @@ export function CancellationFlow({ isOpen, onClose, onComplete, subscription }: 
       const response = await fetch('/api/subscription/pause', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ duration })
+        body: JSON.stringify({ duration }),
       });
 
       const data = await response.json();
@@ -114,9 +128,12 @@ export function CancellationFlow({ isOpen, onClose, onComplete, subscription }: 
     setError(null);
 
     try {
-      const response = await fetch('/api/subscription/apply-retention-discount', {
-        method: 'POST'
-      });
+      const response = await fetch(
+        '/api/subscription/apply-retention-discount',
+        {
+          method: 'POST',
+        }
+      );
 
       const data = await response.json();
 
@@ -145,7 +162,7 @@ export function CancellationFlow({ isOpen, onClose, onComplete, subscription }: 
       const response = await fetch('/api/subscription/cancel', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ reason: cancellationReason })
+        body: JSON.stringify({ reason: cancellationReason }),
       });
 
       if (response.ok) {
@@ -170,8 +187,10 @@ export function CancellationFlow({ isOpen, onClose, onComplete, subscription }: 
         return (
           <div className="space-y-4">
             <h3 className="text-lg font-semibold">We're sorry to see you go</h3>
-            <p className="text-gray-600">Before you cancel, please let us know why you're leaving:</p>
-            
+            <p className="text-gray-600">
+              Before you cancel, please let us know why you're leaving:
+            </p>
+
             <div className="space-y-2">
               {[
                 'Too expensive',
@@ -179,14 +198,14 @@ export function CancellationFlow({ isOpen, onClose, onComplete, subscription }: 
                 'Found a better alternative',
                 'Missing features I need',
                 'Technical issues',
-                'Other'
-              ].map((reason) => (
+                'Other',
+              ].map(reason => (
                 <label key={reason} className="flex items-center gap-2">
                   <input
                     type="radio"
                     name="reason"
                     value={reason}
-                    onChange={(e) => setCancellationReason(e.target.value)}
+                    onChange={e => setCancellationReason(e.target.value)}
                     className="rounded border-gray-300"
                   />
                   <span>{reason}</span>
@@ -198,15 +217,23 @@ export function CancellationFlow({ isOpen, onClose, onComplete, subscription }: 
               <Button variant="outline" onClick={onClose}>
                 Keep Subscription
               </Button>
-              <Button 
+              <Button
                 onClick={() => {
-                  console.log('Survey submitted with reason:', cancellationReason);
+                  console.log(
+                    'Survey submitted with reason:',
+                    cancellationReason
+                  );
                   console.log('Current eligibility state:', eligibility); // Debug log
                   console.log('eligibility?.canPause:', eligibility?.canPause);
-                  console.log('eligibility?.canUseDiscount:', eligibility?.canUseDiscount);
-                  const nextStep = eligibility?.canPause ? 'pause_offer' : 
-                                  eligibility?.canUseDiscount ? 'discount_offer' : 
-                                  'confirm_cancel';
+                  console.log(
+                    'eligibility?.canUseDiscount:',
+                    eligibility?.canUseDiscount
+                  );
+                  const nextStep = eligibility?.canPause
+                    ? 'pause_offer'
+                    : eligibility?.canUseDiscount
+                      ? 'discount_offer'
+                      : 'confirm_cancel';
                   console.log('Determined next step:', nextStep); // Debug log
                   setCurrentStep(nextStep);
                 }}
@@ -229,14 +256,18 @@ export function CancellationFlow({ isOpen, onClose, onComplete, subscription }: 
               </p>
               {eligibility?.pauseOptions?.[0]?.currentPeriodEnd && (
                 <p className="text-sm text-gray-500 mt-2">
-                  Your current billing cycle ends on {format(new Date(eligibility.pauseOptions[0].currentPeriodEnd), 'MMM d, yyyy')}
+                  Your current billing cycle ends on{' '}
+                  {format(
+                    new Date(eligibility.pauseOptions[0].currentPeriodEnd),
+                    'MMM d, yyyy'
+                  )}
                 </p>
               )}
             </div>
 
             <div className="space-y-3">
               {eligibility?.pauseOptions?.map((option: any) => (
-                <Card 
+                <Card
                   key={option.duration}
                   className="cursor-pointer hover:border-blue-500 transition-colors"
                   onClick={() => handlePauseSubscription(option.duration)}
@@ -245,11 +276,15 @@ export function CancellationFlow({ isOpen, onClose, onComplete, subscription }: 
                     <div className="flex justify-between items-center">
                       <div>
                         <p className="font-medium">{option.label}</p>
-                        <p className="text-sm text-gray-500">{option.description}</p>
+                        <p className="text-sm text-gray-500">
+                          {option.description}
+                        </p>
                       </div>
                       <div className="text-right">
                         <p className="text-sm text-gray-600">Next billing</p>
-                        <p className="font-medium">{format(new Date(option.resumeDate), 'MMM d, yyyy')}</p>
+                        <p className="font-medium">
+                          {format(new Date(option.resumeDate), 'MMM d, yyyy')}
+                        </p>
                       </div>
                     </div>
                   </CardContent>
@@ -258,9 +293,15 @@ export function CancellationFlow({ isOpen, onClose, onComplete, subscription }: 
             </div>
 
             <div className="flex gap-3 pt-2">
-              <Button 
-                variant="outline" 
-                onClick={() => setCurrentStep(eligibility?.canUseDiscount ? 'discount_offer' : 'confirm_cancel')}
+              <Button
+                variant="outline"
+                onClick={() =>
+                  setCurrentStep(
+                    eligibility?.canUseDiscount
+                      ? 'discount_offer'
+                      : 'confirm_cancel'
+                  )
+                }
                 disabled={loading}
               >
                 No Thanks
@@ -291,25 +332,32 @@ export function CancellationFlow({ isOpen, onClose, onComplete, subscription }: 
               <CardContent className="p-4">
                 <div className="text-center">
                   <p className="text-2xl font-bold text-green-700">50% OFF</p>
-                  <p className="text-sm text-green-600 mt-1">Applied to your next bill only</p>
+                  <p className="text-sm text-green-600 mt-1">
+                    Applied to your next bill only
+                  </p>
                   <p className="text-lg mt-2">
-                    Next bill: <span className="line-through text-gray-500">${getPlanPrice(subscription.plan)}</span>{' '}
-                    <span className="font-bold text-green-700">${getPlanPrice(subscription.plan) / 2}</span>
+                    Next bill:{' '}
+                    <span className="line-through text-gray-500">
+                      ${getPlanPrice(subscription.plan)}
+                    </span>{' '}
+                    <span className="font-bold text-green-700">
+                      ${getPlanPrice(subscription.plan) / 2}
+                    </span>
                   </p>
                 </div>
               </CardContent>
             </Card>
 
             <div className="space-y-3">
-              <Button 
+              <Button
                 onClick={handleApplyDiscount}
                 disabled={loading}
                 className="w-full"
               >
                 {loading ? 'Applying Discount...' : 'Accept 50% Off'}
               </Button>
-              <Button 
-                variant="outline" 
+              <Button
+                variant="outline"
                 onClick={() => setCurrentStep('confirm_cancel')}
                 disabled={loading}
                 className="w-full"
@@ -351,14 +399,10 @@ export function CancellationFlow({ isOpen, onClose, onComplete, subscription }: 
             </Card>
 
             <div className="space-y-3">
-              <Button 
-                variant="outline" 
-                onClick={onClose}
-                className="w-full"
-              >
+              <Button variant="outline" onClick={onClose} className="w-full">
                 Keep My Subscription
               </Button>
-              <Button 
+              <Button
                 variant="destructive"
                 onClick={handleFinalCancellation}
                 disabled={loading}
@@ -383,9 +427,12 @@ export function CancellationFlow({ isOpen, onClose, onComplete, subscription }: 
             <CheckCircle className="w-16 h-16 text-green-600 mx-auto" />
             <h3 className="text-lg font-semibold">All Set!</h3>
             <p className="text-gray-600">
-              {completedAction === 'paused' && 'Your subscription has been paused.'}
-              {completedAction === 'discounted' && 'Your 50% discount has been applied!'}
-              {completedAction === 'cancelled' && 'Your subscription has been cancelled.'}
+              {completedAction === 'paused' &&
+                'Your subscription has been paused.'}
+              {completedAction === 'discounted' &&
+                'Your 50% discount has been applied!'}
+              {completedAction === 'cancelled' &&
+                'Your subscription has been cancelled.'}
             </p>
           </div>
         );
@@ -393,16 +440,19 @@ export function CancellationFlow({ isOpen, onClose, onComplete, subscription }: 
   };
 
   return (
-    <Modal 
-      open={isOpen} 
-      onOpenChange={(open) => !open && onClose()}
+    <Modal
+      open={isOpen}
+      onOpenChange={open => !open && onClose()}
       showCloseButton={false}
       size="md"
     >
       <div className="max-w-md mx-auto">
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-xl font-semibold">Cancel Subscription</h2>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
+          <button
+            onClick={onClose}
+            className="text-gray-400 hover:text-gray-600"
+          >
             <X className="w-5 h-5" />
           </button>
         </div>
@@ -417,7 +467,7 @@ function getPlanPrice(plan: string): number {
   const prices: Record<string, number> = {
     basic: 5,
     starter: 15,
-    professional: 30
+    professional: 30,
   };
   return prices[plan] || 0;
 }

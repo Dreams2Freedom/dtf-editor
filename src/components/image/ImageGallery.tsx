@@ -16,7 +16,7 @@ import {
   List,
   Search,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
 } from 'lucide-react';
 import { toast } from '@/lib/toast';
 import Image from 'next/image';
@@ -43,7 +43,7 @@ interface ProcessedImage {
 }
 
 const ITEMS_PER_PAGE_OPTIONS = [8, 16, 32, 64, 'all'] as const;
-type ItemsPerPageOption = typeof ITEMS_PER_PAGE_OPTIONS[number];
+type ItemsPerPageOption = (typeof ITEMS_PER_PAGE_OPTIONS)[number];
 
 export function ImageGallery() {
   const { user, profile } = useAuthStore();
@@ -77,7 +77,7 @@ export function ImageGallery() {
       const { data, error } = await supabase.rpc('get_user_images', {
         p_user_id: user.id,
         p_limit: 1000,
-        p_offset: 0
+        p_offset: 0,
       });
 
       if (error) {
@@ -104,7 +104,11 @@ export function ImageGallery() {
       if (itemsPerPage === 'all') {
         setImages(allImages);
         setHasMore(false);
-        console.log('[ImageGallery] Total images:', allImages.length, 'Showing all');
+        console.log(
+          '[ImageGallery] Total images:',
+          allImages.length,
+          'Showing all'
+        );
       } else {
         const startIndex = (currentPage - 1) * itemsPerPage;
         const endIndex = startIndex + itemsPerPage;
@@ -113,7 +117,16 @@ export function ImageGallery() {
 
         setImages(paginatedImages);
         setHasMore(hasMorePages);
-        console.log('[ImageGallery] Total images:', allImages.length, 'Page:', currentPage, 'Showing:', paginatedImages.length, 'Has more:', hasMorePages);
+        console.log(
+          '[ImageGallery] Total images:',
+          allImages.length,
+          'Page:',
+          currentPage,
+          'Showing:',
+          paginatedImages.length,
+          'Has more:',
+          hasMorePages
+        );
       }
     } catch (error) {
       console.error('Error:', error);
@@ -154,10 +167,13 @@ export function ImageGallery() {
 
     try {
       const supabase = createClientSupabaseClient();
-      const { data: deleted, error } = await supabase.rpc('delete_processed_image', {
-        p_image_id: imageId,
-        p_user_id: user.id
-      });
+      const { data: deleted, error } = await supabase.rpc(
+        'delete_processed_image',
+        {
+          p_image_id: imageId,
+          p_user_id: user.id,
+        }
+      );
 
       if (error) {
         throw error;
@@ -184,19 +200,19 @@ export function ImageGallery() {
       return {
         text: 'Your images are stored permanently',
         icon: <ImageIcon className="w-4 h-4 text-green-600" />,
-        color: 'text-green-600'
+        color: 'text-green-600',
       };
     } else if (isPayAsYouGo) {
       return {
         text: 'Images stored for 90 days after last credit purchase',
         icon: <Clock className="w-4 h-4 text-amber-600" />,
-        color: 'text-amber-600'
+        color: 'text-amber-600',
       };
     } else {
       return {
         text: 'Free plan: Images deleted after 48 hours',
         icon: <AlertCircle className="w-4 h-4 text-red-600" />,
-        color: 'text-red-600'
+        color: 'text-red-600',
       };
     }
   };
@@ -209,28 +225,29 @@ export function ImageGallery() {
 
   const getOperationLabel = (type: string) => {
     const labels: Record<string, string> = {
-      'upscale': 'Upscaled',
+      upscale: 'Upscaled',
       'background-removal': 'Background Removed',
-      'vectorize': 'Vectorized',
-      'generate': 'AI Generated'
+      vectorize: 'Vectorized',
+      generate: 'AI Generated',
     };
     return labels[type] || type;
   };
 
   const getOperationColor = (type: string) => {
     const colors: Record<string, string> = {
-      'upscale': 'bg-blue-100 text-blue-800',
+      upscale: 'bg-blue-100 text-blue-800',
       'background-removal': 'bg-purple-100 text-purple-800',
-      'vectorize': 'bg-orange-100 text-orange-800',
-      'generate': 'bg-green-100 text-green-800'
+      vectorize: 'bg-orange-100 text-orange-800',
+      generate: 'bg-green-100 text-green-800',
     };
     return colors[type] || 'bg-gray-100 text-gray-800';
   };
 
-  const filteredImages = images.filter(img => 
-    searchTerm === '' || 
-    img.original_filename.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    img.processed_filename?.toLowerCase().includes(searchTerm.toLowerCase())
+  const filteredImages = images.filter(
+    img =>
+      searchTerm === '' ||
+      img.original_filename.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      img.processed_filename?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   const storageInfo = getStorageInfo();
@@ -261,12 +278,16 @@ export function ImageGallery() {
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
             <CardTitle>My Images</CardTitle>
-            <div className={`flex items-center gap-2 mt-2 text-sm ${storageInfo.color}`}>
+            <div
+              className={`flex items-center gap-2 mt-2 text-sm ${storageInfo.color}`}
+            >
               {storageInfo.icon}
               <span>{storageInfo.text}</span>
             </div>
             {/* Version indicator - v2 with native buttons */}
-            <div className="text-xs text-gray-400 mt-1">Gallery v2.2 - Fixed Aug 26 7:56PM</div>
+            <div className="text-xs text-gray-400 mt-1">
+              Gallery v2.2 - Fixed Aug 26 7:56PM
+            </div>
           </div>
           <div className="flex items-center gap-2">
             <Button
@@ -274,7 +295,11 @@ export function ImageGallery() {
               size="sm"
               onClick={() => setViewMode(viewMode === 'grid' ? 'list' : 'grid')}
             >
-              {viewMode === 'grid' ? <List className="w-4 h-4" /> : <Grid className="w-4 h-4" />}
+              {viewMode === 'grid' ? (
+                <List className="w-4 h-4" />
+              ) : (
+                <Grid className="w-4 h-4" />
+              )}
             </Button>
           </div>
         </div>
@@ -289,7 +314,7 @@ export function ImageGallery() {
               type="text"
               placeholder="Search images..."
               value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
+              onChange={e => setSearchTerm(e.target.value)}
               className="pl-10 pr-4 py-2 w-full border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-blue focus:border-transparent"
             />
           </div>
@@ -297,7 +322,7 @@ export function ImageGallery() {
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
             <select
               value={filterType}
-              onChange={(e) => setFilterType(e.target.value)}
+              onChange={e => setFilterType(e.target.value)}
               className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-blue focus:border-transparent"
             >
               <option value="all">All Types</option>
@@ -308,7 +333,7 @@ export function ImageGallery() {
             </select>
             <select
               value={sortBy}
-              onChange={(e) => setSortBy(e.target.value as 'newest' | 'oldest')}
+              onChange={e => setSortBy(e.target.value as 'newest' | 'oldest')}
               className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-blue focus:border-transparent"
             >
               <option value="newest">Newest First</option>
@@ -322,16 +347,21 @@ export function ImageGallery() {
           <div className="text-center py-12">
             <ImageIcon className="w-12 h-12 text-gray-400 mx-auto mb-4" />
             <p className="text-gray-600 mb-4">
-              {searchTerm ? 'No images found matching your search' : 'No processed images yet'}
+              {searchTerm
+                ? 'No images found matching your search'
+                : 'No processed images yet'}
             </p>
-            <Button onClick={() => window.location.href = '/process'}>
+            <Button onClick={() => (window.location.href = '/process')}>
               Process Your First Image
             </Button>
           </div>
         ) : viewMode === 'grid' ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-            {filteredImages.map((image) => (
-              <div key={image.id} className="bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow overflow-hidden">
+            {filteredImages.map(image => (
+              <div
+                key={image.id}
+                className="bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow overflow-hidden"
+              >
                 <div className="aspect-square relative bg-gray-100">
                   {image.thumbnail_url ? (
                     <Image
@@ -351,7 +381,9 @@ export function ImageGallery() {
                     {image.original_filename}
                   </p>
                   <div className="flex items-center justify-between mt-2">
-                    <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${getOperationColor(image.operation_type)}`}>
+                    <span
+                      className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${getOperationColor(image.operation_type)}`}
+                    >
                       {getOperationLabel(image.operation_type)}
                     </span>
                     <span className="text-xs text-gray-500">
@@ -393,8 +425,11 @@ export function ImageGallery() {
           </div>
         ) : (
           <div className="space-y-2">
-            {filteredImages.map((image) => (
-              <div key={image.id} className="flex items-center justify-between p-4 bg-white rounded-lg border hover:bg-gray-50">
+            {filteredImages.map(image => (
+              <div
+                key={image.id}
+                className="flex items-center justify-between p-4 bg-white rounded-lg border hover:bg-gray-50"
+              >
                 <div className="flex items-center gap-4">
                   <div className="w-16 h-16 relative bg-gray-100 rounded">
                     {image.thumbnail_url ? (
@@ -411,16 +446,23 @@ export function ImageGallery() {
                     )}
                   </div>
                   <div>
-                    <p className="font-medium text-gray-900">{image.original_filename}</p>
+                    <p className="font-medium text-gray-900">
+                      {image.original_filename}
+                    </p>
                     <div className="flex items-center gap-4 mt-1 text-sm text-gray-500">
-                      <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${getOperationColor(image.operation_type)}`}>
+                      <span
+                        className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${getOperationColor(image.operation_type)}`}
+                      >
                         {getOperationLabel(image.operation_type)}
                       </span>
                       <span>{formatFileSize(image.file_size)}</span>
-                      <span>{new Date(image.created_at).toLocaleDateString()}</span>
+                      <span>
+                        {new Date(image.created_at).toLocaleDateString()}
+                      </span>
                       {image.expires_at && (
                         <span className="text-red-600">
-                          Expires {new Date(image.expires_at).toLocaleDateString()}
+                          Expires{' '}
+                          {new Date(image.expires_at).toLocaleDateString()}
                         </span>
                       )}
                     </div>
@@ -448,65 +490,68 @@ export function ImageGallery() {
         )}
 
         {/* Pagination Controls */}
-        {filteredImages.length > 0 && (currentPage > 1 || hasMore || itemsPerPage !== 'all') && (
-          <div className="flex flex-col sm:flex-row items-center justify-between border-t pt-4 mt-6 gap-4">
-            <div className="text-sm text-gray-600">
-              {itemsPerPage === 'all' ? (
-                `Showing all ${filteredImages.length} images`
-              ) : (
-                `Showing ${(currentPage - 1) * (typeof itemsPerPage === 'number' ? itemsPerPage : 0) + 1} to ${(currentPage - 1) * (typeof itemsPerPage === 'number' ? itemsPerPage : 0) + filteredImages.length} images`
-              )}
-            </div>
-            <div className="flex items-center gap-3">
-              {/* Items per page dropdown */}
-              <div className="flex items-center gap-2">
-                <span className="text-sm text-gray-600">Show:</span>
-                <select
-                  value={itemsPerPage}
-                  onChange={(e) => {
-                    const value = e.target.value;
-                    setItemsPerPage(value === 'all' ? 'all' : parseInt(value));
-                    setCurrentPage(1); // Reset to first page when changing items per page
-                  }}
-                  className="border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                >
-                  {ITEMS_PER_PAGE_OPTIONS.map(option => (
-                    <option key={option} value={option}>
-                      {option === 'all' ? 'All' : option} images
-                    </option>
-                  ))}
-                </select>
+        {filteredImages.length > 0 &&
+          (currentPage > 1 || hasMore || itemsPerPage !== 'all') && (
+            <div className="flex flex-col sm:flex-row items-center justify-between border-t pt-4 mt-6 gap-4">
+              <div className="text-sm text-gray-600">
+                {itemsPerPage === 'all'
+                  ? `Showing all ${filteredImages.length} images`
+                  : `Showing ${(currentPage - 1) * (typeof itemsPerPage === 'number' ? itemsPerPage : 0) + 1} to ${(currentPage - 1) * (typeof itemsPerPage === 'number' ? itemsPerPage : 0) + filteredImages.length} images`}
               </div>
-
-              {/* Page navigation - only show if not viewing all */}
-              {itemsPerPage !== 'all' && (
+              <div className="flex items-center gap-3">
+                {/* Items per page dropdown */}
                 <div className="flex items-center gap-2">
-                  <Button
-                    variant="secondary"
-                    size="sm"
-                    onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
-                    disabled={currentPage === 1}
+                  <span className="text-sm text-gray-600">Show:</span>
+                  <select
+                    value={itemsPerPage}
+                    onChange={e => {
+                      const value = e.target.value;
+                      setItemsPerPage(
+                        value === 'all' ? 'all' : parseInt(value)
+                      );
+                      setCurrentPage(1); // Reset to first page when changing items per page
+                    }}
+                    className="border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                   >
-                    <ChevronLeft className="w-4 h-4 mr-1" />
-                    Previous
-                  </Button>
-                  <span className="text-sm text-gray-600 px-3">
-                    Page {currentPage}
-                  </span>
-                  <Button
-                    variant="secondary"
-                    size="sm"
-                    onClick={() => setCurrentPage(prev => prev + 1)}
-                    disabled={!hasMore}
-                  >
-                    Next
-                    <ChevronRight className="w-4 h-4 ml-1" />
-                  </Button>
+                    {ITEMS_PER_PAGE_OPTIONS.map(option => (
+                      <option key={option} value={option}>
+                        {option === 'all' ? 'All' : option} images
+                      </option>
+                    ))}
+                  </select>
                 </div>
-              )}
+
+                {/* Page navigation - only show if not viewing all */}
+                {itemsPerPage !== 'all' && (
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      onClick={() =>
+                        setCurrentPage(prev => Math.max(1, prev - 1))
+                      }
+                      disabled={currentPage === 1}
+                    >
+                      <ChevronLeft className="w-4 h-4 mr-1" />
+                      Previous
+                    </Button>
+                    <span className="text-sm text-gray-600 px-3">
+                      Page {currentPage}
+                    </span>
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      onClick={() => setCurrentPage(prev => prev + 1)}
+                      disabled={!hasMore}
+                    >
+                      Next
+                      <ChevronRight className="w-4 h-4 ml-1" />
+                    </Button>
+                  </div>
+                )}
+              </div>
             </div>
-          </div>
-        )}
+          )}
       </CardContent>
     </Card>
   );

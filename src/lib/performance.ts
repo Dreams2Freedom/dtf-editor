@@ -10,12 +10,14 @@ class PerformanceTracker {
 
   // Measure the time between two marks
   measure(name: string, startMark?: string, endMark?: string): number {
-    const end = endMark ? this.marks.get(endMark) || performance.now() : performance.now();
+    const end = endMark
+      ? this.marks.get(endMark) || performance.now()
+      : performance.now();
     const start = startMark ? this.marks.get(startMark) || 0 : 0;
-    
+
     const duration = end - start;
     this.measures.set(name, duration);
-    
+
     return duration;
   }
 
@@ -57,9 +59,9 @@ export function measurePerformance(name: string) {
       return descriptor;
     }
 
-    descriptor.value = (async function (this: unknown, ...args: unknown[]) {
+    descriptor.value = async function (this: unknown, ...args: unknown[]) {
       perf.mark(`${name}_start`);
-      
+
       try {
         const result = await originalMethod.apply(this, args);
         perf.measure(name, `${name}_start`);
@@ -70,7 +72,7 @@ export function measurePerformance(name: string) {
         perf.log(`${name}_error`);
         throw error;
       }
-    }) as T;
+    } as T;
 
     return descriptor;
   };
@@ -81,16 +83,16 @@ export function trackWebVitals() {
   if (typeof window === 'undefined') return;
 
   // Track Largest Contentful Paint (LCP)
-  new PerformanceObserver((list) => {
+  new PerformanceObserver(list => {
     const entries = list.getEntries();
     const lastEntry = entries[entries.length - 1];
     console.log('LCP:', lastEntry.startTime);
   }).observe({ entryTypes: ['largest-contentful-paint'] });
 
   // Track First Input Delay (FID)
-  new PerformanceObserver((list) => {
+  new PerformanceObserver(list => {
     const entries = list.getEntries();
-    entries.forEach((entry) => {
+    entries.forEach(entry => {
       const fidEntry = entry as any; // FID entries have processingStart
       console.log('FID:', fidEntry.processingStart - fidEntry.startTime);
     });
@@ -98,9 +100,9 @@ export function trackWebVitals() {
 
   // Track Cumulative Layout Shift (CLS)
   let clsValue = 0;
-  new PerformanceObserver((list) => {
+  new PerformanceObserver(list => {
     const entries = list.getEntries();
-    entries.forEach((entry) => {
+    entries.forEach(entry => {
       if (!(entry as any).hadRecentInput) {
         clsValue += (entry as any).value;
       }
@@ -126,23 +128,29 @@ export function analyzeResourceTiming(): void {
   if (typeof window === 'undefined') return;
 
   const resources = performance.getEntriesByType('resource');
-  const analysis = resources.reduce((acc, resource) => {
-    const resourceEntry = resource as any; // Resource entries have initiatorType
-    const type = resourceEntry.initiatorType;
-    if (!acc[type]) {
-      acc[type] = { count: 0, totalDuration: 0, totalSize: 0 };
-    }
-    
-    acc[type].count++;
-    acc[type].totalDuration += resource.duration;
-    
-    // Add transfer size if available
-    if ('transferSize' in resourceEntry) {
-      acc[type].totalSize += resourceEntry.transferSize;
-    }
-    
-    return acc;
-  }, {} as Record<string, { count: number; totalDuration: number; totalSize: number }>);
+  const analysis = resources.reduce(
+    (acc, resource) => {
+      const resourceEntry = resource as any; // Resource entries have initiatorType
+      const type = resourceEntry.initiatorType;
+      if (!acc[type]) {
+        acc[type] = { count: 0, totalDuration: 0, totalSize: 0 };
+      }
+
+      acc[type].count++;
+      acc[type].totalDuration += resource.duration;
+
+      // Add transfer size if available
+      if ('transferSize' in resourceEntry) {
+        acc[type].totalSize += resourceEntry.transferSize;
+      }
+
+      return acc;
+    },
+    {} as Record<
+      string,
+      { count: number; totalDuration: number; totalSize: number }
+    >
+  );
 
   console.table(analysis);
 }
@@ -150,6 +158,8 @@ export function analyzeResourceTiming(): void {
 // Bundle size analysis helper
 export function logBundleInfo(): void {
   if (process.env.NODE_ENV === 'development') {
-    console.log('📦 Bundle Analysis - Check Next.js build output for detailed bundle sizes');
+    console.log(
+      '📦 Bundle Analysis - Check Next.js build output for detailed bundle sizes'
+    );
   }
 }

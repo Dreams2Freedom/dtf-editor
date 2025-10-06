@@ -1,7 +1,13 @@
 'use client';
 
 import { useState } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/Dialog';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from '@/components/ui/Dialog';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { useAuthStore } from '@/stores/authStore';
@@ -14,7 +20,11 @@ interface SignupModalProps {
   feature?: string;
 }
 
-export function SignupModal({ isOpen, onClose, feature = 'this feature' }: SignupModalProps) {
+export function SignupModal({
+  isOpen,
+  onClose,
+  feature = 'this feature',
+}: SignupModalProps) {
   const { signUp, signIn } = useAuthStore();
   const [isSignup, setIsSignup] = useState(true);
   const [email, setEmail] = useState('');
@@ -36,12 +46,12 @@ export function SignupModal({ isOpen, onClose, feature = 'this feature' }: Signu
         if (password.length < 6) {
           throw new Error('Password must be at least 6 characters');
         }
-        
+
         const result = await signUp(email, password);
         if (!result.success) {
           throw new Error(result.error || 'Failed to sign up');
         }
-        
+
         // Close modal on successful signup
         onClose();
       } else {
@@ -49,7 +59,7 @@ export function SignupModal({ isOpen, onClose, feature = 'this feature' }: Signu
         if (!result.success) {
           throw new Error(result.error || 'Failed to sign in');
         }
-        
+
         // Close modal on successful login
         onClose();
       }
@@ -68,21 +78,22 @@ export function SignupModal({ isOpen, onClose, feature = 'this feature' }: Signu
             {isSignup ? 'Start Creating with AI' : 'Welcome Back'}
           </DialogTitle>
           <DialogDescription className="text-center mt-2">
-            {isSignup 
+            {isSignup
               ? `Sign up to unlock ${feature} and get 2 free credits every month!`
-              : `Log in to continue using ${feature}`
-            }
+              : `Log in to continue using ${feature}`}
           </DialogDescription>
         </DialogHeader>
 
         {/* Benefits for signup */}
         {isSignup && (
           <div className="bg-[#366494]/5 rounded-lg p-4 mb-4">
-            <p className="text-sm font-semibold text-[#366494] mb-2">Free Account Includes:</p>
+            <p className="text-sm font-semibold text-[#366494] mb-2">
+              Free Account Includes:
+            </p>
             <ul className="space-y-1">
               <li className="flex items-center text-sm text-gray-700">
-                <Check className="w-4 h-4 text-green-500 mr-2" />
-                2 free credits every month
+                <Check className="w-4 h-4 text-green-500 mr-2" />2 free credits
+                every month
               </li>
               <li className="flex items-center text-sm text-gray-700">
                 <Check className="w-4 h-4 text-green-500 mr-2" />
@@ -103,14 +114,17 @@ export function SignupModal({ isOpen, onClose, feature = 'this feature' }: Signu
         {/* Form */}
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
+            <label
+              htmlFor="email"
+              className="block text-sm font-medium text-gray-700 mb-1"
+            >
               Email
             </label>
             <Input
               id="email"
               type="email"
               value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              onChange={e => setEmail(e.target.value)}
               placeholder="you@example.com"
               required
               autoFocus
@@ -118,29 +132,37 @@ export function SignupModal({ isOpen, onClose, feature = 'this feature' }: Signu
           </div>
 
           <div>
-            <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
+            <label
+              htmlFor="password"
+              className="block text-sm font-medium text-gray-700 mb-1"
+            >
               Password
             </label>
             <Input
               id="password"
               type="password"
               value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder={isSignup ? "At least 6 characters" : "Enter your password"}
+              onChange={e => setPassword(e.target.value)}
+              placeholder={
+                isSignup ? 'At least 6 characters' : 'Enter your password'
+              }
               required
             />
           </div>
 
           {isSignup && (
             <div>
-              <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700 mb-1">
+              <label
+                htmlFor="confirmPassword"
+                className="block text-sm font-medium text-gray-700 mb-1"
+              >
                 Confirm Password
               </label>
               <Input
                 id="confirmPassword"
                 type="password"
                 value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
+                onChange={e => setConfirmPassword(e.target.value)}
                 placeholder="Confirm your password"
                 required
               />

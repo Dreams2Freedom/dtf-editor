@@ -13,7 +13,7 @@ function verifyTOTP(secret: string, token: string): boolean {
     // Accept a test code in development
     return token === '123456' || token === secret.substring(0, 6);
   }
-  
+
   // Placeholder for production TOTP verification
   // TODO: Implement proper TOTP verification
   return false;
@@ -41,7 +41,7 @@ async function handlePost(request: NextRequest) {
     }
 
     const session: AdminSession = JSON.parse(sessionCookie.value);
-    
+
     if (!session.requires_2fa) {
       return NextResponse.json(
         { success: false, error: '2FA not required for this session' },
@@ -78,7 +78,7 @@ async function handlePost(request: NextRequest) {
 
     // For development, if no secret is set, accept test code
     const secret = adminUser.two_factor_secret || 'DEVELOPMENT_SECRET';
-    
+
     // Verify TOTP code
     const verified = verifyTOTP(secret, code);
 
@@ -89,7 +89,7 @@ async function handlePost(request: NextRequest) {
         p_action: 'admin.2fa_failed',
         p_resource_type: 'admin_user',
         p_resource_id: adminUser.id,
-        p_details: { reason: 'Invalid code' }
+        p_details: { reason: 'Invalid code' },
       });
 
       return NextResponse.json(
@@ -106,20 +106,20 @@ async function handlePost(request: NextRequest) {
       p_admin_id: adminUser.id,
       p_action: 'admin.2fa_success',
       p_resource_type: 'admin_user',
-      p_resource_id: adminUser.id
+      p_resource_id: adminUser.id,
     });
 
     // Update session cookie
     const response = NextResponse.json({
       success: true,
-      data: { session }
+      data: { session },
     });
 
     response.cookies.set('admin_session', JSON.stringify(session), {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
-      path: '/'
+      path: '/',
     });
 
     return response;

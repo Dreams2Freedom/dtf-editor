@@ -93,7 +93,7 @@ export function OptimizedImage({
           <div className="w-8 h-8 border-2 border-gray-300 border-t-gray-600 rounded-full animate-spin" />
         </div>
       )}
-      
+
       <Image
         src={src}
         alt={alt}
@@ -124,21 +124,22 @@ export function OptimizedImage({
 
 // Utility function to create optimized blur placeholder
 export function createBlurDataURL(width: number, height: number): string {
-  const canvas = typeof window !== 'undefined' ? document.createElement('canvas') : null;
+  const canvas =
+    typeof window !== 'undefined' ? document.createElement('canvas') : null;
   if (!canvas) return '';
-  
+
   canvas.width = width;
   canvas.height = height;
-  
+
   const ctx = canvas.getContext('2d');
   if (!ctx) return '';
-  
+
   const gradient = ctx.createLinearGradient(0, 0, width, height);
   gradient.addColorStop(0, '#f3f4f6');
   gradient.addColorStop(1, '#e5e7eb');
-  
+
   ctx.fillStyle = gradient;
   ctx.fillRect(0, 0, width, height);
-  
+
   return canvas.toDataURL();
 }

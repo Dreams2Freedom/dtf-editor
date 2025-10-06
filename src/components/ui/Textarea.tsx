@@ -1,4 +1,4 @@
-"use client";
+'use client';
 
 import React from 'react';
 import { cn } from '@/lib/utils';
@@ -11,18 +11,9 @@ export interface TextareaProps
 }
 
 const Textarea = React.forwardRef<HTMLTextAreaElement, TextareaProps>(
-  (
-    {
-      className,
-      label,
-      error,
-      helperText,
-      id,
-      ...props
-    },
-    ref
-  ) => {
-    const textareaId = id || `textarea-${Math.random().toString(36).substr(2, 9)}`;
+  ({ className, label, error, helperText, id, ...props }, ref) => {
+    const textareaId =
+      id || `textarea-${Math.random().toString(36).substr(2, 9)}`;
 
     return (
       <div className="w-full">

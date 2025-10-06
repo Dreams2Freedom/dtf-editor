@@ -40,10 +40,11 @@ async function handlePost(request: NextRequest) {
     );
 
     // Authenticate user
-    const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
+    const { data: authData, error: authError } =
+      await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
 
     if (authError || !authData.user) {
       // Log failed login attempt
@@ -52,16 +53,16 @@ async function handlePost(request: NextRequest) {
         action: 'user.view' as any,
         resourceType: 'user',
         resourceId: email,
-        details: { 
+        details: {
           action: 'login_failed',
-          reason: authError?.message || 'Invalid credentials'
+          reason: authError?.message || 'Invalid credentials',
         },
         ipAddress: getClientIp(request),
         userAgent: getUserAgent(request),
         success: false,
-        errorMessage: 'Invalid email or password'
+        errorMessage: 'Invalid email or password',
       });
-      
+
       return NextResponse.json(
         { success: false, error: 'Invalid email or password' },
         { status: 401 }
@@ -97,7 +98,7 @@ async function handlePost(request: NextRequest) {
           system: { settings: true },
           analytics: { view: true },
           support: { view: true },
-          admin: { manage: true }
+          admin: { manage: true },
         },
         user_email: profile.email,
         user_full_name: profile.full_name,
@@ -105,11 +106,11 @@ async function handlePost(request: NextRequest) {
         ip_whitelist: [],
         last_login_at: new Date().toISOString(),
         created_at: profile.created_at,
-        updated_at: profile.updated_at
+        updated_at: profile.updated_at,
       },
       token: authData.session.access_token,
       expires_at: authData.session.expires_at || '',
-      requires_2fa: false // Always false for now, will be configurable later
+      requires_2fa: false, // Always false for now, will be configurable later
     };
 
     // Update last activity
@@ -117,7 +118,7 @@ async function handlePost(request: NextRequest) {
       .from('profiles')
       .update({ last_activity_at: new Date().toISOString() })
       .eq('id', authData.user.id);
-    
+
     // Log successful login
     await logAdminAction({
       adminId: authData.user.id,
@@ -128,11 +129,11 @@ async function handlePost(request: NextRequest) {
       details: {
         action: 'login_success',
         remember_me: remember,
-        ip: getClientIp(request)
+        ip: getClientIp(request),
       },
       ipAddress: getClientIp(request),
       userAgent: getUserAgent(request),
-      success: true
+      success: true,
     });
 
     // Set admin session cookie first
@@ -141,26 +142,34 @@ async function handlePost(request: NextRequest) {
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax' as const,
       path: '/',
-      maxAge: remember ? 30 * 24 * 60 * 60 : 24 * 60 * 60 // 30 days if remember me, 1 day otherwise
+      maxAge: remember ? 30 * 24 * 60 * 60 : 24 * 60 * 60, // 30 days if remember me, 1 day otherwise
     };
 
     // Set cookie using the cookies() function
-    cookieStore.set('admin_session', JSON.stringify(adminSession), cookieOptions);
-    
+    cookieStore.set(
+      'admin_session',
+      JSON.stringify(adminSession),
+      cookieOptions
+    );
+
     // Also set a simple flag cookie for middleware
     cookieStore.set('admin_logged_in', 'true', {
       ...cookieOptions,
-      httpOnly: true // This one can be httpOnly
+      httpOnly: true, // This one can be httpOnly
     });
 
     // Also set Supabase auth cookies properly
     const supabaseAuthCookies = await supabase.auth.getSession();
     if (supabaseAuthCookies.data.session) {
       // Ensure Supabase cookies are also set
-      cookieStore.set('sb-auth-token', supabaseAuthCookies.data.session.access_token, {
-        ...cookieOptions,
-        httpOnly: false // Supabase needs to read this client-side
-      });
+      cookieStore.set(
+        'sb-auth-token',
+        supabaseAuthCookies.data.session.access_token,
+        {
+          ...cookieOptions,
+          httpOnly: false, // Supabase needs to read this client-side
+        }
+      );
     }
 
     // Create response
@@ -169,12 +178,16 @@ async function handlePost(request: NextRequest) {
       data: {
         session: adminSession,
         requires_2fa: false,
-        cookieSet: true // Debug flag
-      }
+        cookieSet: true, // Debug flag
+      },
     });
 
     // Double-check by also setting on response
-    response.cookies.set('admin_session', JSON.stringify(adminSession), cookieOptions);
+    response.cookies.set(
+      'admin_session',
+      JSON.stringify(adminSession),
+      cookieOptions
+    );
 
     // Add debug headers
     response.headers.set('X-Admin-Login', 'success');

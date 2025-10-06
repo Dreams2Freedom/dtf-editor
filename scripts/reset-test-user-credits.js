@@ -30,11 +30,14 @@ async function resetTestUserCredits() {
     console.log('\nResetting credits to 2 for testing...');
     const { data: updatedUsers, error: updateError } = await supabase
       .from('profiles')
-      .update({ 
+      .update({
         credits_remaining: 2,
-        updated_at: new Date().toISOString()
+        updated_at: new Date().toISOString(),
       })
-      .in('id', users.map(u => u.id))
+      .in(
+        'id',
+        users.map(u => u.id)
+      )
       .select('id, email, credits_remaining');
 
     if (updateError) {
@@ -46,7 +49,6 @@ async function resetTestUserCredits() {
     updatedUsers.forEach(user => {
       console.log(`- ${user.email}: ${user.credits_remaining} credits`);
     });
-
   } catch (error) {
     console.error('Error:', error);
   }

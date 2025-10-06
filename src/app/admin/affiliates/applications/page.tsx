@@ -16,7 +16,7 @@ import {
   FileText,
   Calendar,
   Eye,
-  DollarSign
+  DollarSign,
 } from 'lucide-react';
 
 interface Application {
@@ -43,14 +43,17 @@ interface Application {
 export default function AdminAffiliateApplicationsPage() {
   const [applications, setApplications] = useState<Application[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selectedApplication, setSelectedApplication] = useState<Application | null>(null);
+  const [selectedApplication, setSelectedApplication] =
+    useState<Application | null>(null);
   const [processingId, setProcessingId] = useState<string | null>(null);
   const [rejectionReason, setRejectionReason] = useState('');
-  const [viewingTaxForm, setViewingTaxForm] = useState<{ id: string; name: string } | null>(null);
+  const [viewingTaxForm, setViewingTaxForm] = useState<{
+    id: string;
+    name: string;
+  } | null>(null);
 
   useEffect(() => {
     fetchApplications();
-     
   }, []);
 
   async function fetchApplications() {
@@ -79,9 +82,12 @@ export default function AdminAffiliateApplicationsPage() {
   async function approveApplication(applicationId: string) {
     setProcessingId(applicationId);
     try {
-      const response = await fetch(`/api/admin/affiliates/${applicationId}/approve`, {
-        method: 'POST'
-      });
+      const response = await fetch(
+        `/api/admin/affiliates/${applicationId}/approve`,
+        {
+          method: 'POST',
+        }
+      );
 
       if (!response.ok) {
         const error = await response.json();
@@ -107,11 +113,14 @@ export default function AdminAffiliateApplicationsPage() {
 
     setProcessingId(applicationId);
     try {
-      const response = await fetch(`/api/admin/affiliates/${applicationId}/reject`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ rejectionReason })
-      });
+      const response = await fetch(
+        `/api/admin/affiliates/${applicationId}/reject`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ rejectionReason }),
+        }
+      );
 
       if (!response.ok) {
         const error = await response.json();
@@ -139,8 +148,12 @@ export default function AdminAffiliateApplicationsPage() {
   }
 
   const pendingApplications = applications.filter(a => a.status === 'pending');
-  const approvedApplications = applications.filter(a => a.status === 'approved');
-  const rejectedApplications = applications.filter(a => a.status === 'rejected');
+  const approvedApplications = applications.filter(
+    a => a.status === 'approved'
+  );
+  const rejectedApplications = applications.filter(
+    a => a.status === 'rejected'
+  );
 
   return (
     <div className="p-6">
@@ -150,7 +163,7 @@ export default function AdminAffiliateApplicationsPage() {
         homeLabel="Admin Dashboard"
         items={[
           { label: 'Affiliates', href: '/admin/affiliates' },
-          { label: 'Applications' }
+          { label: 'Applications' },
         ]}
       />
 
@@ -163,7 +176,9 @@ export default function AdminAffiliateApplicationsPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-gray-600">Pending Review</p>
-                <p className="text-2xl font-bold">{pendingApplications.length}</p>
+                <p className="text-2xl font-bold">
+                  {pendingApplications.length}
+                </p>
               </div>
               <Clock className="h-8 w-8 text-warning-600" />
             </div>
@@ -175,7 +190,9 @@ export default function AdminAffiliateApplicationsPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-gray-600">Approved</p>
-                <p className="text-2xl font-bold">{approvedApplications.length}</p>
+                <p className="text-2xl font-bold">
+                  {approvedApplications.length}
+                </p>
               </div>
               <CheckCircle className="h-8 w-8 text-success-600" />
             </div>
@@ -187,7 +204,9 @@ export default function AdminAffiliateApplicationsPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-gray-600">Rejected</p>
-                <p className="text-2xl font-bold">{rejectedApplications.length}</p>
+                <p className="text-2xl font-bold">
+                  {rejectedApplications.length}
+                </p>
               </div>
               <XCircle className="h-8 w-8 text-error-600" />
             </div>
@@ -205,45 +224,83 @@ export default function AdminAffiliateApplicationsPage() {
             <table className="min-w-full divide-y divide-gray-200">
               <thead>
                 <tr>
-                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Applicant</th>
-                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Code</th>
-                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Audience</th>
-                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
-                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Applied</th>
-                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
+                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">
+                    Applicant
+                  </th>
+                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">
+                    Code
+                  </th>
+                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">
+                    Audience
+                  </th>
+                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">
+                    Status
+                  </th>
+                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">
+                    Applied
+                  </th>
+                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">
+                    Actions
+                  </th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200">
                 {applications.length === 0 ? (
                   <tr>
-                    <td colSpan={6} className="px-4 py-8 text-center text-gray-500">
+                    <td
+                      colSpan={6}
+                      className="px-4 py-8 text-center text-gray-500"
+                    >
                       <div className="flex flex-col items-center gap-2">
                         <FileText className="h-12 w-12 text-gray-400" />
-                        <p className="text-lg font-medium">No affiliate applications found</p>
-                        <p className="text-sm">Applications will appear here when users apply to the affiliate program</p>
+                        <p className="text-lg font-medium">
+                          No affiliate applications found
+                        </p>
+                        <p className="text-sm">
+                          Applications will appear here when users apply to the
+                          affiliate program
+                        </p>
                       </div>
                     </td>
                   </tr>
                 ) : (
-                  applications.map((app) => (
+                  applications.map(app => (
                     <tr key={app.id}>
                       <td className="px-4 py-3">
                         <div>
-                          <div className="text-sm font-medium text-gray-900">{app.user?.full_name || 'N/A'}</div>
-                          <div className="text-xs text-gray-500">{app.user?.email}</div>
+                          <div className="text-sm font-medium text-gray-900">
+                            {app.user?.full_name || 'N/A'}
+                          </div>
+                          <div className="text-xs text-gray-500">
+                            {app.user?.email}
+                          </div>
                         </div>
                       </td>
-                      <td className="px-4 py-3 text-sm font-mono">{app.referral_code}</td>
-                      <td className="px-4 py-3 text-sm">{app.audience_size || 'N/A'}</td>
+                      <td className="px-4 py-3 text-sm font-mono">
+                        {app.referral_code}
+                      </td>
+                      <td className="px-4 py-3 text-sm">
+                        {app.audience_size || 'N/A'}
+                      </td>
                       <td className="px-4 py-3">
-                        <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
-                          app.status === 'approved' ? 'bg-success-100 text-success-800' :
-                          app.status === 'rejected' ? 'bg-error-100 text-error-800' :
-                          'bg-warning-100 text-warning-800'
-                        }`}>
-                          {app.status === 'approved' && <CheckCircle className="h-3 w-3 mr-1" />}
-                          {app.status === 'rejected' && <XCircle className="h-3 w-3 mr-1" />}
-                          {app.status === 'pending' && <Clock className="h-3 w-3 mr-1" />}
+                        <span
+                          className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                            app.status === 'approved'
+                              ? 'bg-success-100 text-success-800'
+                              : app.status === 'rejected'
+                                ? 'bg-error-100 text-error-800'
+                                : 'bg-warning-100 text-warning-800'
+                          }`}
+                        >
+                          {app.status === 'approved' && (
+                            <CheckCircle className="h-3 w-3 mr-1" />
+                          )}
+                          {app.status === 'rejected' && (
+                            <XCircle className="h-3 w-3 mr-1" />
+                          )}
+                          {app.status === 'pending' && (
+                            <Clock className="h-3 w-3 mr-1" />
+                          )}
                           {app.status}
                         </span>
                       </td>
@@ -277,13 +334,23 @@ export default function AdminAffiliateApplicationsPage() {
               <div className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="text-sm font-medium text-gray-600">Applicant</label>
-                    <p className="font-medium">{selectedApplication.user?.full_name || 'N/A'}</p>
-                    <p className="text-sm text-gray-500">{selectedApplication.user?.email}</p>
+                    <label className="text-sm font-medium text-gray-600">
+                      Applicant
+                    </label>
+                    <p className="font-medium">
+                      {selectedApplication.user?.full_name || 'N/A'}
+                    </p>
+                    <p className="text-sm text-gray-500">
+                      {selectedApplication.user?.email}
+                    </p>
                   </div>
                   <div>
-                    <label className="text-sm font-medium text-gray-600">Referral Code</label>
-                    <p className="font-mono">{selectedApplication.referral_code}</p>
+                    <label className="text-sm font-medium text-gray-600">
+                      Referral Code
+                    </label>
+                    <p className="font-mono">
+                      {selectedApplication.referral_code}
+                    </p>
                   </div>
                 </div>
 
@@ -293,7 +360,9 @@ export default function AdminAffiliateApplicationsPage() {
                       <Globe className="inline h-4 w-4 mr-1" />
                       Website
                     </label>
-                    <p className="text-blue-600">{selectedApplication.website_url}</p>
+                    <p className="text-blue-600">
+                      {selectedApplication.website_url}
+                    </p>
                   </div>
                 )}
 
@@ -309,13 +378,20 @@ export default function AdminAffiliateApplicationsPage() {
 
                 {selectedApplication.promotional_methods && (
                   <div>
-                    <label className="text-sm font-medium text-gray-600">Promotional Methods</label>
+                    <label className="text-sm font-medium text-gray-600">
+                      Promotional Methods
+                    </label>
                     <div className="flex flex-wrap gap-2 mt-1">
-                      {selectedApplication.promotional_methods.map((method, index) => (
-                        <span key={index} className="px-2 py-1 bg-gray-100 rounded text-sm">
-                          {method}
-                        </span>
-                      ))}
+                      {selectedApplication.promotional_methods.map(
+                        (method, index) => (
+                          <span
+                            key={index}
+                            className="px-2 py-1 bg-gray-100 rounded text-sm"
+                          >
+                            {method}
+                          </span>
+                        )
+                      )}
                     </div>
                   </div>
                 )}
@@ -326,7 +402,9 @@ export default function AdminAffiliateApplicationsPage() {
                       <FileText className="inline h-4 w-4 mr-1" />
                       Application Reason
                     </label>
-                    <p className="mt-1 text-sm">{selectedApplication.application_reason}</p>
+                    <p className="mt-1 text-sm">
+                      {selectedApplication.application_reason}
+                    </p>
                   </div>
                 )}
 
@@ -336,10 +414,15 @@ export default function AdminAffiliateApplicationsPage() {
                       <DollarSign className="inline h-4 w-4 mr-1" />
                       Payment Method
                     </label>
-                    <p className="capitalize">{selectedApplication.payment_method}</p>
-                    {selectedApplication.payment_method === 'paypal' && selectedApplication.paypal_email && (
-                      <p className="text-sm text-gray-500">{selectedApplication.paypal_email}</p>
-                    )}
+                    <p className="capitalize">
+                      {selectedApplication.payment_method}
+                    </p>
+                    {selectedApplication.payment_method === 'paypal' &&
+                      selectedApplication.paypal_email && (
+                        <p className="text-sm text-gray-500">
+                          {selectedApplication.paypal_email}
+                        </p>
+                      )}
                   </div>
                 )}
 
@@ -348,7 +431,9 @@ export default function AdminAffiliateApplicationsPage() {
                     <Calendar className="inline h-4 w-4 mr-1" />
                     Applied On
                   </label>
-                  <p>{new Date(selectedApplication.created_at).toLocaleString()}</p>
+                  <p>
+                    {new Date(selectedApplication.created_at).toLocaleString()}
+                  </p>
                 </div>
 
                 {/* Tax Form Button */}
@@ -357,7 +442,7 @@ export default function AdminAffiliateApplicationsPage() {
                     onClick={() => {
                       setViewingTaxForm({
                         id: selectedApplication.id,
-                        name: selectedApplication.user?.full_name || 'Unknown'
+                        name: selectedApplication.user?.full_name || 'Unknown',
                       });
                       setSelectedApplication(null);
                     }}
@@ -377,7 +462,7 @@ export default function AdminAffiliateApplicationsPage() {
                       </label>
                       <textarea
                         value={rejectionReason}
-                        onChange={(e) => setRejectionReason(e.target.value)}
+                        onChange={e => setRejectionReason(e.target.value)}
                         className="mt-1 w-full px-3 py-2 border rounded-lg"
                         rows={3}
                         placeholder="Provide a reason for rejection..."
@@ -386,30 +471,46 @@ export default function AdminAffiliateApplicationsPage() {
 
                     <div className="flex gap-3">
                       <Button
-                        onClick={() => approveApplication(selectedApplication.id)}
+                        onClick={() =>
+                          approveApplication(selectedApplication.id)
+                        }
                         disabled={processingId === selectedApplication.id}
                         className="bg-success-600 hover:bg-success-700"
                       >
-                        {processingId === selectedApplication.id ? 'Processing...' : 'Approve Application'}
+                        {processingId === selectedApplication.id
+                          ? 'Processing...'
+                          : 'Approve Application'}
                       </Button>
                       <Button
-                        onClick={() => rejectApplication(selectedApplication.id)}
-                        disabled={processingId === selectedApplication.id || !rejectionReason.trim()}
+                        onClick={() =>
+                          rejectApplication(selectedApplication.id)
+                        }
+                        disabled={
+                          processingId === selectedApplication.id ||
+                          !rejectionReason.trim()
+                        }
                         variant="secondary"
                         className="bg-error-600 hover:bg-error-700 text-white"
                       >
-                        {processingId === selectedApplication.id ? 'Processing...' : 'Reject Application'}
+                        {processingId === selectedApplication.id
+                          ? 'Processing...'
+                          : 'Reject Application'}
                       </Button>
                     </div>
                   </>
                 )}
 
-                {selectedApplication.status === 'rejected' && selectedApplication.rejection_reason && (
-                  <div className="border-t pt-4">
-                    <label className="text-sm font-medium text-gray-600">Rejection Reason</label>
-                    <p className="mt-1 text-sm text-error-600">{selectedApplication.rejection_reason}</p>
-                  </div>
-                )}
+                {selectedApplication.status === 'rejected' &&
+                  selectedApplication.rejection_reason && (
+                    <div className="border-t pt-4">
+                      <label className="text-sm font-medium text-gray-600">
+                        Rejection Reason
+                      </label>
+                      <p className="mt-1 text-sm text-error-600">
+                        {selectedApplication.rejection_reason}
+                      </p>
+                    </div>
+                  )}
               </div>
 
               <div className="mt-6 flex justify-end">

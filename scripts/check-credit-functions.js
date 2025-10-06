@@ -23,7 +23,6 @@ async function checkFunctions() {
       .eq('table_name', 'credit_transactions');
 
     console.log('\nCredit transactions columns:', columns);
-
   } catch (error) {
     console.error('Error:', error);
   }

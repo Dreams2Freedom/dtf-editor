@@ -5,6 +5,7 @@ This guide explains how to apply the collections migration to enable the collect
 ## What This Migration Does
 
 The migration creates:
+
 1. **`image_collections` table** - Stores user-created collections
 2. **`collection_items` table** - Links images to collections (many-to-many)
 3. **RLS policies** - Ensures users can only see/modify their own collections
@@ -47,13 +48,14 @@ Once the migration is applied, you need to enable the collections feature in the
 
 1. Open `/src/components/image/ImageGalleryEnhanced.tsx`
 2. Uncomment the following:
-   - Line ~83: `fetchCollections();` 
+   - Line ~83: `fetchCollections();`
    - The collections dropdown in the filter menu (around line 540-555)
    - Add `selectedCollection` back to the useEffect dependency array
 
 ## What Happens Next
 
 After the migration:
+
 - All existing users will automatically get a default "All Images" collection
 - New users will get this collection when they sign up
 - Users can create custom collections to organize their images
@@ -62,6 +64,7 @@ After the migration:
 ## Troubleshooting
 
 If you encounter errors:
+
 1. Make sure you're using the service role key (not anon key) if running scripts
 2. Check that RLS is enabled on the new tables
 3. Verify the auth.users table exists (it should if you have users)

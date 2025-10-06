@@ -25,17 +25,18 @@ async function listAllUsers() {
     }
 
     console.log(`Found ${profiles.length} user(s):\n`);
-    
+
     profiles.forEach((profile, index) => {
       console.log(`${index + 1}. ${profile.email}`);
       console.log(`   - ID: ${profile.id}`);
       console.log(`   - Name: ${profile.full_name || 'Not set'}`);
       console.log(`   - Admin: ${profile.is_admin ? '✅ Yes' : '❌ No'}`);
       console.log(`   - Plan: ${profile.subscription_plan || 'free'}`);
-      console.log(`   - Created: ${new Date(profile.created_at).toLocaleDateString()}`);
+      console.log(
+        `   - Created: ${new Date(profile.created_at).toLocaleDateString()}`
+      );
       console.log('');
     });
-
   } catch (error) {
     console.error('Error:', error);
   } finally {

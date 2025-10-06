@@ -81,6 +81,7 @@ node scripts/fix-cost-tracking.js
 ```
 
 Expected output:
+
 ```
 🚀 DTF Editor - Cost Tracking System Fix
 ==================================================
@@ -106,6 +107,7 @@ Found 150 processed images in last 30 days
 Visit: `/admin/analytics`
 
 You'll now see:
+
 - **Cost by Provider**: Breakdown of spending per API service
 - **Profit Margins**: Real-time profitability percentages
 - **User Analysis**: Free vs Paid user cost/revenue
@@ -114,12 +116,14 @@ You'll now see:
 ## 📊 Metrics You'll Track
 
 ### **Revenue Metrics**
+
 - **MRR** (Monthly Recurring Revenue)
 - **ARPU** (Average Revenue Per User)
 - **LTV** (Lifetime Value)
 - **Revenue by Plan Tier**
 
 ### **Cost Metrics**
+
 - **API Costs by Provider**
   - Deep-Image: $0.08/image
   - ClippingMagic: $0.125/image
@@ -130,6 +134,7 @@ You'll now see:
 - **Processing Volume Trends**
 
 ### **Profitability Metrics**
+
 - **Gross Profit** = Revenue - API Costs
 - **Profit Margin** = (Profit / Revenue) × 100
 - **Unit Economics per Operation**
@@ -138,7 +143,9 @@ You'll now see:
 ## 🎯 Business Intelligence Features
 
 ### **1. Real-time Cost Tracking**
+
 Every API call is tracked with:
+
 - Exact cost
 - User attribution
 - Success/failure status
@@ -146,6 +153,7 @@ Every API call is tracked with:
 - Credit value
 
 ### **2. Profitability Analysis**
+
 ```sql
 -- Example Query (Already implemented)
 SELECT
@@ -163,6 +171,7 @@ ORDER BY gross_profit DESC;
 ```
 
 ### **3. User Segmentation**
+
 - **Free Users**: Track cost burden
 - **Basic ($9.99)**: 20 credits/month profitability
 - **Starter ($9.99)**: 20 credits/month profitability
@@ -170,6 +179,7 @@ ORDER BY gross_profit DESC;
 - **Pay-as-you-go**: Per-package profitability
 
 ### **4. Custom Reporting**
+
 - Date range selection
 - Provider filtering
 - User tier filtering
@@ -181,14 +191,16 @@ ORDER BY gross_profit DESC;
 Based on current pricing and API costs:
 
 ### **Profit Margins by Operation**
-| Operation | API Cost | Credit Price | Margin |
-|-----------|----------|--------------|--------|
-| Upscale | $0.08 | $0.40-0.80 | 80-90% |
-| Background | $0.125 | $0.40-0.80 | 69-84% |
-| Vectorize | $0.20 | $0.80-1.60 | 75-88% |
-| AI Generate | $0.04 | $0.40-0.80 | 90-95% |
+
+| Operation   | API Cost | Credit Price | Margin |
+| ----------- | -------- | ------------ | ------ |
+| Upscale     | $0.08    | $0.40-0.80   | 80-90% |
+| Background  | $0.125   | $0.40-0.80   | 69-84% |
+| Vectorize   | $0.20    | $0.80-1.60   | 75-88% |
+| AI Generate | $0.04    | $0.40-0.80   | 90-95% |
 
 ### **Break-even Analysis**
+
 - **Free Users**: Loss of ~$0.16/month (2 credits)
 - **Basic/Starter**: Profit of ~$6-8/month
 - **Pro Plan**: Profit of ~$10-15/month
@@ -197,18 +209,20 @@ Based on current pricing and API costs:
 ## 🚨 Monitoring & Alerts
 
 ### **Cost Spike Detection**
+
 ```javascript
 // Already implemented in ApiCostTracker
 if (dailyCost > DAILY_COST_THRESHOLD) {
   sendAlert('High API costs detected', {
     date: today,
     cost: dailyCost,
-    threshold: DAILY_COST_THRESHOLD
+    threshold: DAILY_COST_THRESHOLD,
   });
 }
 ```
 
 ### **Margin Alerts**
+
 - Alert when margin drops below 40%
 - Alert when free user costs exceed threshold
 - Alert on unusual usage patterns
@@ -216,12 +230,14 @@ if (dailyCost > DAILY_COST_THRESHOLD) {
 ## 🔄 Ongoing Optimization
 
 ### **Cost Reduction Strategies**
+
 1. **Cache frequent operations** - Reduce duplicate API calls
 2. **Batch processing** - Group operations for volume discounts
 3. **Smart routing** - Use cheapest provider when quality similar
 4. **Free tier limits** - Consider reducing to 1 credit/month
 
 ### **Revenue Optimization**
+
 1. **Dynamic pricing** - Adjust based on actual costs
 2. **Usage-based tiers** - More granular plans
 3. **Bundle offerings** - Package deals for heavy users
@@ -237,6 +253,7 @@ if (dailyCost > DAILY_COST_THRESHOLD) {
 ## 🎉 Success Metrics
 
 Once implemented, you'll have:
+
 - ✅ Complete visibility into API costs
 - ✅ Real-time profitability tracking
 - ✅ User segment analysis
@@ -260,4 +277,4 @@ Once implemented, you'll have:
 
 ---
 
-*This system is production-ready and will immediately start tracking all API operations once the table is created.*
+_This system is production-ready and will immediately start tracking all API operations once the table is created._

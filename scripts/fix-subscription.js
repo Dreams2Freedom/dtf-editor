@@ -8,9 +8,12 @@ const supabase = createClient(
 
 async function fixSubscription() {
   const userEmail = 'snsmarketing@gmail.com';
-  
+
   // Get user
-  const { data: { users }, error: usersError } = await supabase.auth.admin.listUsers();
+  const {
+    data: { users },
+    error: usersError,
+  } = await supabase.auth.admin.listUsers();
   if (usersError) {
     console.error('Error fetching users:', usersError);
     return;
@@ -43,7 +46,7 @@ async function fixSubscription() {
     p_user_id: user.id,
     p_amount: 20,
     p_type: 'subscription',
-    p_description: 'Basic plan subscription'
+    p_description: 'Basic plan subscription',
   });
 
   if (creditError) {
@@ -51,7 +54,9 @@ async function fixSubscription() {
     return;
   }
 
-  console.log('Successfully updated subscription to Basic plan and added 20 credits');
+  console.log(
+    'Successfully updated subscription to Basic plan and added 20 credits'
+  );
 }
 
 fixSubscription();

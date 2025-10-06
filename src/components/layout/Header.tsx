@@ -6,9 +6,9 @@ import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/stores/authStore';
 import { Button } from '@/components/ui/Button';
-import { 
-  Menu, 
-  X, 
+import {
+  Menu,
+  X,
   Home,
   Images,
   Upload,
@@ -24,7 +24,7 @@ import {
   ChevronDown,
   HelpCircle,
   Shield,
-  Ruler
+  Ruler,
 } from 'lucide-react';
 import { CreditDisplay } from '@/components/ui/CreditDisplay';
 import { NotificationBell } from '@/components/notifications/NotificationBell';
@@ -54,31 +54,39 @@ export function Header() {
   // Check if user is admin
   const isAdmin = profile?.is_admin === true;
 
-  const navigation: NavItem[] = user ? [
-    { name: 'Dashboard', href: '/dashboard', icon: Home },
-    { 
-      name: 'Create', 
-      icon: Sparkles,
-      submenu: [
-        { name: 'Process Image', href: '/process', icon: Upload },
-        { name: 'Generate Image', href: '/generate', icon: Sparkles },
-        { name: 'DPI Checker', href: '/free-dpi-checker', icon: Ruler },
+  const navigation: NavItem[] = user
+    ? [
+        { name: 'Dashboard', href: '/dashboard', icon: Home },
+        {
+          name: 'Create',
+          icon: Sparkles,
+          submenu: [
+            { name: 'Process Image', href: '/process', icon: Upload },
+            { name: 'Generate Image', href: '/generate', icon: Sparkles },
+            { name: 'DPI Checker', href: '/free-dpi-checker', icon: Ruler },
+          ],
+        },
+        { name: 'My Images', href: '/dashboard#my-images', icon: Images },
+        { name: 'Pricing', href: '/pricing', icon: DollarSign },
       ]
-    },
-    { name: 'My Images', href: '/dashboard#my-images', icon: Images },
-    { name: 'Pricing', href: '/pricing', icon: DollarSign },
-  ] : [
-    { name: 'Home', href: '/', icon: Home },
-    { name: 'Pricing', href: '/pricing', icon: DollarSign },
-    { name: 'DPI Checker', href: '/free-dpi-checker', icon: Ruler },
-  ];
+    : [
+        { name: 'Home', href: '/', icon: Home },
+        { name: 'Pricing', href: '/pricing', icon: DollarSign },
+        { name: 'DPI Checker', href: '/free-dpi-checker', icon: Ruler },
+      ];
 
   const userNavigation = [
-    ...(isAdmin ? [{ name: 'Admin Dashboard', href: '/admin', icon: Shield }] : []),
+    ...(isAdmin
+      ? [{ name: 'Admin Dashboard', href: '/admin', icon: Shield }]
+      : []),
     { name: 'Affiliate Dashboard', href: '/dashboard/affiliate', icon: Crown },
     { name: 'Storage', href: '/storage', icon: HardDrive },
     { name: 'Settings', href: '/settings', icon: Settings },
-    { name: 'Support', href: isAdmin ? '/admin/support' : '/support', icon: HelpCircle },
+    {
+      name: 'Support',
+      href: isAdmin ? '/admin/support' : '/support',
+      icon: HelpCircle,
+    },
     { name: 'FAQ', href: '/faq', icon: HelpCircle },
   ];
 
@@ -89,11 +97,14 @@ export function Header() {
           {/* Logo and Desktop Navigation */}
           <div className="flex">
             <div className="flex flex-shrink-0 items-center">
-              <Link href={user ? '/dashboard' : '/'} className="flex items-center">
-                <Image 
-                  src="/logo-horizontal.png" 
-                  alt="DTF Editor" 
-                  width={150} 
+              <Link
+                href={user ? '/dashboard' : '/'}
+                className="flex items-center"
+              >
+                <Image
+                  src="/logo-horizontal.png"
+                  alt="DTF Editor"
+                  width={150}
                   height={40}
                   className="h-10 w-auto"
                   priority
@@ -101,12 +112,16 @@ export function Header() {
               </Link>
             </div>
             <div className="hidden sm:ml-6 sm:flex sm:space-x-8">
-              {navigation.map((item) => (
+              {navigation.map(item =>
                 item.submenu ? (
                   <div key={item.name} className="relative">
                     <button
                       className="inline-flex items-center border-b-2 border-transparent px-1 pt-1 text-sm font-medium text-gray-500 hover:border-gray-300 hover:text-gray-700 h-full"
-                      onClick={() => setOpenDropdown(openDropdown === item.name ? null : item.name)}
+                      onClick={() =>
+                        setOpenDropdown(
+                          openDropdown === item.name ? null : item.name
+                        )
+                      }
                       onMouseEnter={() => setOpenDropdown(item.name)}
                     >
                       <item.icon className="w-4 h-4 mr-1" />
@@ -114,12 +129,12 @@ export function Header() {
                       <ChevronDown className="w-3 h-3 ml-1" />
                     </button>
                     {openDropdown === item.name && (
-                      <div 
+                      <div
                         className="absolute left-0 mt-2 w-48 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 z-50"
                         onMouseLeave={() => setOpenDropdown(null)}
                       >
                         <div className="py-1">
-                          {item.submenu.map((subitem) => (
+                          {item.submenu.map(subitem => (
                             <Link
                               key={subitem.name}
                               href={subitem.href}
@@ -144,7 +159,7 @@ export function Header() {
                     {item.name}
                   </Link>
                 ) : null
-              ))}
+              )}
             </div>
           </div>
 
@@ -157,14 +172,16 @@ export function Header() {
                 <div className="relative ml-3">
                   <button
                     className="flex items-center p-2 text-sm rounded-full hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-blue"
-                    onClick={() => setOpenDropdown(openDropdown === 'user' ? null : 'user')}
+                    onClick={() =>
+                      setOpenDropdown(openDropdown === 'user' ? null : 'user')
+                    }
                     onMouseEnter={() => setOpenDropdown('user')}
                   >
                     <User className="h-6 w-6 text-gray-500" />
                     <ChevronDown className="ml-1 h-4 w-4 text-gray-500" />
                   </button>
                   {openDropdown === 'user' && (
-                    <div 
+                    <div
                       className="absolute right-0 mt-2 w-48 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 z-50"
                       onMouseLeave={() => setOpenDropdown(null)}
                     >
@@ -172,7 +189,7 @@ export function Header() {
                         <div className="px-4 py-2 text-xs text-gray-500 border-b">
                           {profile?.email || user.email}
                         </div>
-                        {userNavigation.map((item) => (
+                        {userNavigation.map(item => (
                           <Link
                             key={item.name}
                             href={item.href}
@@ -235,7 +252,7 @@ export function Header() {
       {/* Mobile menu */}
       <div className={`sm:hidden ${mobileMenuOpen ? 'block' : 'hidden'}`}>
         <div className="space-y-1 pb-3 pt-2">
-          {navigation.map((item) => (
+          {navigation.map(item =>
             item.submenu ? (
               <div key={item.name}>
                 <div className="block border-l-4 border-transparent py-2 pl-3 pr-4 text-base font-medium text-gray-700 bg-gray-50">
@@ -244,7 +261,7 @@ export function Header() {
                     {item.name}
                   </div>
                 </div>
-                {item.submenu.map((subitem) => (
+                {item.submenu.map(subitem => (
                   <Link
                     key={subitem.name}
                     href={subitem.href}
@@ -271,7 +288,7 @@ export function Header() {
                 </div>
               </Link>
             ) : null
-          ))}
+          )}
         </div>
         {user && (
           <>
@@ -290,7 +307,7 @@ export function Header() {
                 </div>
               </div>
               <div className="mt-3 space-y-1">
-                {userNavigation.map((item) => (
+                {userNavigation.map(item => (
                   <Link
                     key={item.name}
                     href={item.href}
@@ -320,12 +337,19 @@ export function Header() {
           <div className="border-t border-gray-200 pb-3 pt-4">
             <div className="flex items-center px-4 space-x-3">
               <Link href="/auth/login" className="flex-1">
-                <Button variant="outline" className="w-full" onClick={() => setMobileMenuOpen(false)}>
+                <Button
+                  variant="outline"
+                  className="w-full"
+                  onClick={() => setMobileMenuOpen(false)}
+                >
                   Sign In
                 </Button>
               </Link>
               <Link href="/auth/signup" className="flex-1">
-                <Button className="w-full" onClick={() => setMobileMenuOpen(false)}>
+                <Button
+                  className="w-full"
+                  onClick={() => setMobileMenuOpen(false)}
+                >
                   Get Started
                 </Button>
               </Link>

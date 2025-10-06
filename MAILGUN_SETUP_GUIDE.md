@@ -26,26 +26,31 @@ MAILGUN_WEBHOOK_SIGNING_KEY=your_webhook_signing_key_here
 The DTF Editor sends the following transactional emails:
 
 ### 1. Welcome Email
+
 - Sent when a new user signs up
 - Contains getting started information
 - Includes current plan details
 
 ### 2. Purchase Confirmation
+
 - Sent after successful payment
 - Includes purchase details (credits/subscription)
 - Contains invoice link if available
 
 ### 3. Credit Expiration Warning
+
 - Sent when credits are about to expire
 - Three urgency levels: info, warning, critical
 - Includes expiration date and remaining credits
 
 ### 4. Subscription Updates
+
 - Sent for subscription changes (created, updated, cancelled, paused, resumed)
 - Includes next billing date
 - Shows pause duration if applicable
 
 ### 5. Admin Notifications
+
 - Custom emails sent by admins to users
 - Supports HTML content
 - Personalized with user's name
@@ -81,6 +86,7 @@ curl -X POST http://localhost:3000/api/auth/welcome-email \
 ### Mailgun Sandbox
 
 For testing without a verified domain:
+
 1. Use Mailgun's sandbox domain
 2. Add authorized recipients in Mailgun dashboard
 3. Update `MAILGUN_DOMAIN` to sandbox domain
@@ -101,6 +107,7 @@ Emails are automatically sent in these scenarios:
 Monitor email delivery at: https://app.mailgun.com/app/sending/domains/YOUR_DOMAIN
 
 Key metrics:
+
 - Delivery rate
 - Open rate
 - Click rate
@@ -110,6 +117,7 @@ Key metrics:
 ### Application Logs
 
 Email sending is logged with:
+
 - Success: "Welcome email sent: [messageId]"
 - Failure: "Error sending welcome email: [error]"
 
@@ -139,7 +147,7 @@ Enable debug logging:
 // In email service constructor
 console.log('Mailgun config:', {
   domain: env.MAILGUN_DOMAIN,
-  apiKey: env.MAILGUN_API_KEY ? 'SET' : 'NOT SET'
+  apiKey: env.MAILGUN_API_KEY ? 'SET' : 'NOT SET',
 });
 ```
 
@@ -155,6 +163,7 @@ If migrating from SendGrid:
 ## Cost Considerations
 
 Mailgun pricing:
+
 - First 1,000 emails/month free
 - Pay-as-you-go after that
 - Consider monthly plans for higher volume
@@ -182,10 +191,12 @@ Mailgun pricing:
 ## Support
 
 For Mailgun-specific issues:
+
 - Documentation: https://documentation.mailgun.com
 - Support: https://help.mailgun.com
 
 For DTF Editor email issues:
+
 - Check application logs
 - Review this guide
 - Contact development team

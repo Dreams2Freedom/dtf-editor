@@ -1,6 +1,16 @@
-export type TicketCategory = 'bug' | 'feature_request' | 'billing' | 'technical' | 'other';
+export type TicketCategory =
+  | 'bug'
+  | 'feature_request'
+  | 'billing'
+  | 'technical'
+  | 'other';
 export type TicketPriority = 'low' | 'medium' | 'high' | 'urgent';
-export type TicketStatus = 'open' | 'in_progress' | 'waiting_on_user' | 'resolved' | 'closed';
+export type TicketStatus =
+  | 'open'
+  | 'in_progress'
+  | 'waiting_on_user'
+  | 'resolved'
+  | 'closed';
 
 export interface SupportTicket {
   id: string;

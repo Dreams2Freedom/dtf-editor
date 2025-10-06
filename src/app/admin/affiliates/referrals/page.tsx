@@ -13,7 +13,7 @@ import {
   Search,
   ExternalLink,
   Calendar,
-  CreditCard
+  CreditCard,
 } from 'lucide-react';
 
 interface ReferralData {
@@ -89,7 +89,7 @@ export default function AffiliateReferralsPage() {
         plan: planFilter,
         time: timeFilter,
         sort: sortBy,
-        order: sortOrder
+        order: sortOrder,
       });
 
       const response = await fetch(`/api/admin/affiliates/referrals?${params}`);
@@ -112,16 +112,21 @@ export default function AffiliateReferralsPage() {
     if (!searchQuery) return true;
 
     const query = searchQuery.toLowerCase();
-    const affiliateName = `${referral.affiliate?.affiliate_user?.first_name || ''} ${referral.affiliate?.affiliate_user?.last_name || ''}`.toLowerCase();
-    const affiliateEmail = referral.affiliate?.affiliate_user?.email?.toLowerCase() || '';
-    const userName = `${referral.referred_user?.first_name || ''} ${referral.referred_user?.last_name || ''}`.toLowerCase();
+    const affiliateName =
+      `${referral.affiliate?.affiliate_user?.first_name || ''} ${referral.affiliate?.affiliate_user?.last_name || ''}`.toLowerCase();
+    const affiliateEmail =
+      referral.affiliate?.affiliate_user?.email?.toLowerCase() || '';
+    const userName =
+      `${referral.referred_user?.first_name || ''} ${referral.referred_user?.last_name || ''}`.toLowerCase();
     const userEmail = referral.referred_user?.email?.toLowerCase() || '';
 
-    return affiliateName.includes(query) ||
-           affiliateEmail.includes(query) ||
-           userName.includes(query) ||
-           userEmail.includes(query) ||
-           referral.referral_code?.toLowerCase().includes(query);
+    return (
+      affiliateName.includes(query) ||
+      affiliateEmail.includes(query) ||
+      userName.includes(query) ||
+      userEmail.includes(query) ||
+      referral.referral_code?.toLowerCase().includes(query)
+    );
   });
 
   const formatDate = (dateString: string) => {
@@ -129,7 +134,7 @@ export default function AffiliateReferralsPage() {
     return new Date(dateString).toLocaleDateString('en-US', {
       year: 'numeric',
       month: 'short',
-      day: 'numeric'
+      day: 'numeric',
     });
   };
 
@@ -137,7 +142,7 @@ export default function AffiliateReferralsPage() {
     if (!value) return '$0.00';
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
-      currency: 'USD'
+      currency: 'USD',
     }).format(value);
   };
 
@@ -170,7 +175,7 @@ export default function AffiliateReferralsPage() {
       'First Payment',
       'Conversion Value',
       'Credits Purchased',
-      'Credits Used'
+      'Credits Used',
     ];
 
     const rows = filteredReferrals.map(r => [
@@ -186,12 +191,12 @@ export default function AffiliateReferralsPage() {
       r.first_payment_at ? formatDate(r.first_payment_at) : 'Not yet',
       r.conversion_value || '0',
       r.referred_user?.total_credits_purchased || '0',
-      r.referred_user?.total_credits_used || '0'
+      r.referred_user?.total_credits_used || '0',
     ]);
 
     const csv = [
       headers.join(','),
-      ...rows.map(row => row.map(cell => `"${cell}"`).join(','))
+      ...rows.map(row => row.map(cell => `"${cell}"`).join(',')),
     ].join('\n');
 
     const blob = new Blob([csv], { type: 'text/csv' });
@@ -210,14 +215,18 @@ export default function AffiliateReferralsPage() {
         homeLabel="Admin Dashboard"
         items={[
           { label: 'Affiliates', href: '/admin/affiliates' },
-          { label: 'Referrals' }
+          { label: 'Referrals' },
         ]}
       />
 
       {/* Header */}
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">Affiliate Referrals</h1>
-        <p className="text-gray-600">Track all accounts referred by affiliates</p>
+        <h1 className="text-3xl font-bold text-gray-900 mb-2">
+          Affiliate Referrals
+        </h1>
+        <p className="text-gray-600">
+          Track all accounts referred by affiliates
+        </p>
       </div>
 
       {/* Stats Cards */}
@@ -226,8 +235,12 @@ export default function AffiliateReferralsPage() {
           <Card className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600">Total Referrals</p>
-                <p className="text-3xl font-bold text-gray-900 mt-2">{stats.total_referrals}</p>
+                <p className="text-sm font-medium text-gray-600">
+                  Total Referrals
+                </p>
+                <p className="text-3xl font-bold text-gray-900 mt-2">
+                  {stats.total_referrals}
+                </p>
               </div>
               <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
                 <Users className="w-6 h-6 text-blue-600" />
@@ -238,9 +251,15 @@ export default function AffiliateReferralsPage() {
           <Card className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600">Paid Conversions</p>
-                <p className="text-3xl font-bold text-gray-900 mt-2">{stats.total_conversions}</p>
-                <p className="text-xs text-gray-500 mt-1">{stats.conversion_rate}% conversion rate</p>
+                <p className="text-sm font-medium text-gray-600">
+                  Paid Conversions
+                </p>
+                <p className="text-3xl font-bold text-gray-900 mt-2">
+                  {stats.total_conversions}
+                </p>
+                <p className="text-xs text-gray-500 mt-1">
+                  {stats.conversion_rate}% conversion rate
+                </p>
               </div>
               <div className="w-12 h-12 bg-success-100 rounded-lg flex items-center justify-center">
                 <TrendingUp className="w-6 h-6 text-success-600" />
@@ -251,7 +270,9 @@ export default function AffiliateReferralsPage() {
           <Card className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600">Conversion Value</p>
+                <p className="text-sm font-medium text-gray-600">
+                  Conversion Value
+                </p>
                 <p className="text-3xl font-bold text-gray-900 mt-2">
                   {formatCurrency(stats.total_conversion_value)}
                 </p>
@@ -265,12 +286,30 @@ export default function AffiliateReferralsPage() {
           <Card className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600">Plan Distribution</p>
+                <p className="text-sm font-medium text-gray-600">
+                  Plan Distribution
+                </p>
                 <div className="mt-2 space-y-1">
-                  <p className="text-sm"><span className="font-medium">{stats.free_accounts}</span> Free</p>
-                  <p className="text-sm"><span className="font-medium">{stats.basic_accounts}</span> Basic</p>
-                  <p className="text-sm"><span className="font-medium">{stats.starter_accounts}</span> Starter</p>
-                  <p className="text-sm"><span className="font-medium">{stats.professional_accounts}</span> Pro</p>
+                  <p className="text-sm">
+                    <span className="font-medium">{stats.free_accounts}</span>{' '}
+                    Free
+                  </p>
+                  <p className="text-sm">
+                    <span className="font-medium">{stats.basic_accounts}</span>{' '}
+                    Basic
+                  </p>
+                  <p className="text-sm">
+                    <span className="font-medium">
+                      {stats.starter_accounts}
+                    </span>{' '}
+                    Starter
+                  </p>
+                  <p className="text-sm">
+                    <span className="font-medium">
+                      {stats.professional_accounts}
+                    </span>{' '}
+                    Pro
+                  </p>
                 </div>
               </div>
               <div className="w-12 h-12 bg-amber-100 rounded-lg flex items-center justify-center">
@@ -299,7 +338,7 @@ export default function AffiliateReferralsPage() {
               <input
                 type="text"
                 value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
+                onChange={e => setSearchQuery(e.target.value)}
                 placeholder="Name, email, code..."
                 className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               />
@@ -313,7 +352,7 @@ export default function AffiliateReferralsPage() {
             </label>
             <select
               value={planFilter}
-              onChange={(e) => setPlanFilter(e.target.value)}
+              onChange={e => setPlanFilter(e.target.value)}
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             >
               <option value="all">All Plans</option>
@@ -331,7 +370,7 @@ export default function AffiliateReferralsPage() {
             </label>
             <select
               value={timeFilter}
-              onChange={(e) => setTimeFilter(e.target.value)}
+              onChange={e => setTimeFilter(e.target.value)}
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             >
               <option value="all">All Time</option>
@@ -350,7 +389,7 @@ export default function AffiliateReferralsPage() {
             <div className="flex gap-2">
               <select
                 value={sortBy}
-                onChange={(e) => setSortBy(e.target.value)}
+                onChange={e => setSortBy(e.target.value)}
                 className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               >
                 <option value="created_at">Date</option>
@@ -359,7 +398,9 @@ export default function AffiliateReferralsPage() {
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
+                onClick={() =>
+                  setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')
+                }
                 className="px-3"
               >
                 {sortOrder === 'asc' ? '↑' : '↓'}
@@ -442,7 +483,7 @@ export default function AffiliateReferralsPage() {
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {filteredReferrals.map((referral) => (
+                {filteredReferrals.map(referral => (
                   <tr key={referral.id} className="hover:bg-gray-50">
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center text-sm">
@@ -453,35 +494,55 @@ export default function AffiliateReferralsPage() {
                     <td className="px-6 py-4">
                       <div className="text-sm">
                         <p className="font-medium text-gray-900">
-                          {referral.affiliate?.affiliate_user?.first_name} {referral.affiliate?.affiliate_user?.last_name}
+                          {referral.affiliate?.affiliate_user?.first_name}{' '}
+                          {referral.affiliate?.affiliate_user?.last_name}
                         </p>
-                        <p className="text-gray-500">{referral.affiliate?.affiliate_user?.email}</p>
-                        <p className="text-xs text-gray-400 mt-1">Code: {referral.referral_code}</p>
+                        <p className="text-gray-500">
+                          {referral.affiliate?.affiliate_user?.email}
+                        </p>
+                        <p className="text-xs text-gray-400 mt-1">
+                          Code: {referral.referral_code}
+                        </p>
                       </div>
                     </td>
                     <td className="px-6 py-4">
                       <div className="text-sm">
                         <p className="font-medium text-gray-900">
-                          {referral.referred_user?.first_name} {referral.referred_user?.last_name}
+                          {referral.referred_user?.first_name}{' '}
+                          {referral.referred_user?.last_name}
                         </p>
-                        <p className="text-gray-500">{referral.referred_user?.email}</p>
+                        <p className="text-gray-500">
+                          {referral.referred_user?.email}
+                        </p>
                         <p className="text-xs text-gray-400 mt-1">
-                          Joined: {formatDate(referral.referred_user?.created_at)}
+                          Joined:{' '}
+                          {formatDate(referral.referred_user?.created_at)}
                         </p>
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`inline-flex px-3 py-1 text-xs font-medium rounded-full ${getPlanBadgeColor(referral.referred_user?.subscription_plan || 'free')}`}>
-                        {(referral.referred_user?.subscription_plan || 'free').charAt(0).toUpperCase() + (referral.referred_user?.subscription_plan || 'free').slice(1)}
+                      <span
+                        className={`inline-flex px-3 py-1 text-xs font-medium rounded-full ${getPlanBadgeColor(referral.referred_user?.subscription_plan || 'free')}`}
+                      >
+                        {(referral.referred_user?.subscription_plan || 'free')
+                          .charAt(0)
+                          .toUpperCase() +
+                          (
+                            referral.referred_user?.subscription_plan || 'free'
+                          ).slice(1)}
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="text-sm">
                         <p className="text-gray-900">
-                          {referral.first_payment_at ? '✓ Converted' : 'Free User'}
+                          {referral.first_payment_at
+                            ? '✓ Converted'
+                            : 'Free User'}
                         </p>
                         {referral.first_payment_at && (
-                          <p className="text-xs text-gray-500">{formatDate(referral.first_payment_at)}</p>
+                          <p className="text-xs text-gray-500">
+                            {formatDate(referral.first_payment_at)}
+                          </p>
                         )}
                       </div>
                     </td>
@@ -491,7 +552,8 @@ export default function AffiliateReferralsPage() {
                           {formatCurrency(referral.conversion_value)}
                         </p>
                         <p className="text-xs text-gray-500">
-                          {referral.referred_user?.total_credits_purchased || 0} credits
+                          {referral.referred_user?.total_credits_purchased || 0}{' '}
+                          credits
                         </p>
                       </div>
                     </td>

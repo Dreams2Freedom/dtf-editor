@@ -6,7 +6,9 @@ export async function GET() {
   try {
     // First verify the request is from an authenticated admin
     const supabase = await createServerSupabaseClient();
-    const { data: { session } } = await supabase.auth.getSession();
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
 
     if (!session) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -20,7 +22,10 @@ export async function GET() {
       .single();
 
     if (!profile?.is_admin) {
-      return NextResponse.json({ error: 'Forbidden - Admin access required' }, { status: 403 });
+      return NextResponse.json(
+        { error: 'Forbidden - Admin access required' },
+        { status: 403 }
+      );
     }
 
     // Now use service role client to bypass RLS
@@ -62,15 +67,21 @@ export async function GET() {
     // Calculate stats
     const stats = {
       totalAffiliates: affiliates?.length || 0,
-      activeAffiliates: affiliates?.filter(a => a.status === 'approved').length || 0,
-      pendingApplications: affiliates?.filter(a => a.status === 'pending').length || 0,
+      activeAffiliates:
+        affiliates?.filter(a => a.status === 'approved').length || 0,
+      pendingApplications:
+        affiliates?.filter(a => a.status === 'pending').length || 0,
       totalReferrals: referrals?.length || 0,
-      totalCommissionsEarned: commissions?.reduce((sum, c) => sum + parseFloat(c.amount || 0), 0) || 0,
-      pendingPayouts: commissions?.filter(c => c.status === 'pending' || c.status === 'approved')
-        .reduce((sum, c) => sum + parseFloat(c.amount || 0), 0) || 0,
+      totalCommissionsEarned:
+        commissions?.reduce((sum, c) => sum + parseFloat(c.amount || 0), 0) ||
+        0,
+      pendingPayouts:
+        commissions
+          ?.filter(c => c.status === 'pending' || c.status === 'approved')
+          .reduce((sum, c) => sum + parseFloat(c.amount || 0), 0) || 0,
       affiliates,
       referrals,
-      commissions
+      commissions,
     };
 
     return NextResponse.json(stats);

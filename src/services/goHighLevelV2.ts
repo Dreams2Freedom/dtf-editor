@@ -27,9 +27,13 @@ class GoHighLevelV2Service {
 
   constructor() {
     // V2 API uses a different base URL
-    this.baseUrl = process.env.NEXT_PUBLIC_GHL_API_URL || 'https://services.leadconnectorhq.com';
-    this.apiKey = process.env.GOHIGHLEVEL_API_KEY || process.env.GHL_API_KEY || '';
-    this.locationId = process.env.GOHIGHLEVEL_LOCATION_ID || process.env.GHL_LOCATION_ID || '';
+    this.baseUrl =
+      process.env.NEXT_PUBLIC_GHL_API_URL ||
+      'https://services.leadconnectorhq.com';
+    this.apiKey =
+      process.env.GOHIGHLEVEL_API_KEY || process.env.GHL_API_KEY || '';
+    this.locationId =
+      process.env.GOHIGHLEVEL_LOCATION_ID || process.env.GHL_LOCATION_ID || '';
   }
 
   /**
@@ -48,10 +52,10 @@ class GoHighLevelV2Service {
       const response = await fetch(`${this.baseUrl}/contacts/`, {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${this.apiKey}`,
+          Authorization: `Bearer ${this.apiKey}`,
           'Content-Type': 'application/json',
-          'Version': '2021-07-28', // V2 API version header
-          'Accept': 'application/json'
+          Version: '2021-07-28', // V2 API version header
+          Accept: 'application/json',
         },
         body: JSON.stringify({
           firstName: contact.firstName,
@@ -61,14 +65,14 @@ class GoHighLevelV2Service {
           locationId: this.locationId,
           tags: contact.tags || ['dtf-tool-signup', 'website-lead'],
           customField: contact.customFields || {},
-          source: contact.source || 'DTF Editor Website'
-        })
+          source: contact.source || 'DTF Editor Website',
+        }),
       });
 
       if (!response.ok) {
         const errorData = await response.text();
         console.error('GoHighLevel API v2 error:', response.status, errorData);
-        
+
         // Parse error if JSON
         try {
           const errorJson = JSON.parse(errorData);
@@ -76,28 +80,27 @@ class GoHighLevelV2Service {
         } catch (e) {
           // Not JSON, use raw text
         }
-        
+
         // Don't throw - we don't want to block signup if GHL fails
-        return { 
-          success: false, 
-          error: `GHL API error: ${response.status}` 
+        return {
+          success: false,
+          error: `GHL API error: ${response.status}`,
         };
       }
 
       const data = await response.json();
       console.log('GoHighLevel contact created:', data.contact?.id || data.id);
-      
-      return { 
-        success: true, 
-        contact: data.contact || data 
-      };
 
+      return {
+        success: true,
+        contact: data.contact || data,
+      };
     } catch (error) {
       console.error('Error creating GoHighLevel contact:', error);
       // Don't throw - we don't want to block signup if GHL fails
-      return { 
-        success: false, 
-        error: error instanceof Error ? error.message : 'Unknown error' 
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error',
       };
     }
   }
@@ -117,33 +120,32 @@ class GoHighLevelV2Service {
         {
           method: 'GET',
           headers: {
-            'Authorization': `Bearer ${this.apiKey}`,
-            'Version': '2021-07-28',
-            'Accept': 'application/json'
-          }
+            Authorization: `Bearer ${this.apiKey}`,
+            Version: '2021-07-28',
+            Accept: 'application/json',
+          },
         }
       );
 
       if (!response.ok) {
         const errorData = await response.text();
         console.error('GoHighLevel lookup error:', errorData);
-        return { 
-          success: false, 
-          error: `Failed to lookup contact: ${response.status}` 
+        return {
+          success: false,
+          error: `Failed to lookup contact: ${response.status}`,
         };
       }
 
       const data = await response.json();
-      return { 
-        success: true, 
-        contact: data.contacts?.[0] || data.contact || null 
+      return {
+        success: true,
+        contact: data.contacts?.[0] || data.contact || null,
       };
-
     } catch (error) {
       console.error('Error looking up contact:', error);
-      return { 
-        success: false, 
-        error: error instanceof Error ? error.message : 'Unknown error' 
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error',
       };
     }
   }
@@ -151,7 +153,10 @@ class GoHighLevelV2Service {
   /**
    * Update an existing contact
    */
-  async updateContact(contactId: string, updates: Partial<GHLContact>): Promise<GHLResponse> {
+  async updateContact(
+    contactId: string,
+    updates: Partial<GHLContact>
+  ): Promise<GHLResponse> {
     try {
       if (!this.apiKey || !this.locationId) {
         return { success: false, error: 'GoHighLevel not configured' };
@@ -161,37 +166,36 @@ class GoHighLevelV2Service {
       const response = await fetch(`${this.baseUrl}/contacts/${contactId}`, {
         method: 'PUT',
         headers: {
-          'Authorization': `Bearer ${this.apiKey}`,
+          Authorization: `Bearer ${this.apiKey}`,
           'Content-Type': 'application/json',
-          'Version': '2021-07-28',
-          'Accept': 'application/json'
+          Version: '2021-07-28',
+          Accept: 'application/json',
         },
         body: JSON.stringify({
           ...updates,
-          locationId: this.locationId
-        })
+          locationId: this.locationId,
+        }),
       });
 
       if (!response.ok) {
         const errorData = await response.text();
         console.error('GoHighLevel update error:', errorData);
-        return { 
-          success: false, 
-          error: `Failed to update contact: ${response.status}` 
+        return {
+          success: false,
+          error: `Failed to update contact: ${response.status}`,
         };
       }
 
       const data = await response.json();
-      return { 
-        success: true, 
-        contact: data.contact || data 
+      return {
+        success: true,
+        contact: data.contact || data,
       };
-
     } catch (error) {
       console.error('Error updating contact:', error);
-      return { 
-        success: false, 
-        error: error instanceof Error ? error.message : 'Unknown error' 
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error',
       };
     }
   }
@@ -199,40 +203,45 @@ class GoHighLevelV2Service {
   /**
    * Add tags to a contact
    */
-  async addTagsToContact(contactId: string, tags: string[]): Promise<GHLResponse> {
+  async addTagsToContact(
+    contactId: string,
+    tags: string[]
+  ): Promise<GHLResponse> {
     try {
       if (!this.apiKey || !this.locationId) {
         return { success: true }; // Don't block if GHL isn't configured
       }
 
       // V2 API - add tags to contact
-      const response = await fetch(`${this.baseUrl}/contacts/${contactId}/tags`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${this.apiKey}`,
-          'Content-Type': 'application/json',
-          'Version': '2021-07-28',
-          'Accept': 'application/json'
-        },
-        body: JSON.stringify({ tags })
-      });
+      const response = await fetch(
+        `${this.baseUrl}/contacts/${contactId}/tags`,
+        {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${this.apiKey}`,
+            'Content-Type': 'application/json',
+            Version: '2021-07-28',
+            Accept: 'application/json',
+          },
+          body: JSON.stringify({ tags }),
+        }
+      );
 
       if (!response.ok) {
         const errorData = await response.text();
         console.error('GoHighLevel add tags error:', errorData);
-        return { 
-          success: false, 
-          error: `Failed to add tags: ${response.status}` 
+        return {
+          success: false,
+          error: `Failed to add tags: ${response.status}`,
         };
       }
 
       return { success: true };
-
     } catch (error) {
       console.error('Error adding tags to contact:', error);
-      return { 
-        success: false, 
-        error: error instanceof Error ? error.message : 'Unknown error' 
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error',
       };
     }
   }
@@ -245,19 +254,19 @@ class GoHighLevelV2Service {
     try {
       // First, try to find the contact by email
       const lookupResult = await this.getContactByEmail(contact.email);
-      
+
       if (lookupResult.success && lookupResult.contact) {
         // Contact exists, update it
         const contactId = lookupResult.contact.id || lookupResult.contact._id;
         console.log(`Updating existing contact: ${contactId}`);
-        
+
         const updateResult = await this.updateContact(contactId, contact);
-        
+
         // Add new tags if provided
         if (updateResult.success && contact.tags?.length) {
           await this.addTagsToContact(contactId, contact.tags);
         }
-        
+
         return updateResult;
       } else {
         // Contact doesn't exist, create it
@@ -266,9 +275,9 @@ class GoHighLevelV2Service {
       }
     } catch (error) {
       console.error('Error upserting contact:', error);
-      return { 
-        success: false, 
-        error: error instanceof Error ? error.message : 'Unknown error' 
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error',
       };
     }
   }
@@ -276,7 +285,11 @@ class GoHighLevelV2Service {
   /**
    * Track an event for a contact
    */
-  async trackEvent(email: string, eventName: string, eventData?: any): Promise<void> {
+  async trackEvent(
+    email: string,
+    eventName: string,
+    eventData?: any
+  ): Promise<void> {
     try {
       if (!this.apiKey || !this.locationId) {
         return; // Skip if not configured
@@ -284,20 +297,20 @@ class GoHighLevelV2Service {
 
       // Find the contact
       const lookupResult = await this.getContactByEmail(email);
-      
+
       if (lookupResult.success && lookupResult.contact) {
         const contactId = lookupResult.contact.id || lookupResult.contact._id;
-        
+
         // Add event as a tag and custom field
         await this.addTagsToContact(contactId, [`event:${eventName}`]);
-        
+
         // Update custom fields with event data
         await this.updateContact(contactId, {
           customFields: {
             lastEvent: eventName,
             lastEventDate: new Date().toISOString(),
-            [`event_${eventName}_data`]: JSON.stringify(eventData || {})
-          }
+            [`event_${eventName}_data`]: JSON.stringify(eventData || {}),
+          },
         });
       }
     } catch (error) {
@@ -319,39 +332,43 @@ class GoHighLevelV2Service {
   async testConnection(): Promise<{ success: boolean; message: string }> {
     try {
       if (!this.isConfigured()) {
-        return { 
-          success: false, 
-          message: 'GoHighLevel API key or Location ID not configured' 
+        return {
+          success: false,
+          message: 'GoHighLevel API key or Location ID not configured',
         };
       }
 
       // Try to fetch location details as a connection test
-      const response = await fetch(`${this.baseUrl}/locations/${this.locationId}`, {
-        method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${this.apiKey}`,
-          'Version': '2021-07-28',
-          'Accept': 'application/json'
+      const response = await fetch(
+        `${this.baseUrl}/locations/${this.locationId}`,
+        {
+          method: 'GET',
+          headers: {
+            Authorization: `Bearer ${this.apiKey}`,
+            Version: '2021-07-28',
+            Accept: 'application/json',
+          },
         }
-      });
+      );
 
       if (response.ok) {
         const data = await response.json();
-        return { 
-          success: true, 
-          message: `Connected to location: ${data.name || data.companyName || this.locationId}` 
+        return {
+          success: true,
+          message: `Connected to location: ${data.name || data.companyName || this.locationId}`,
         };
       } else {
         const errorText = await response.text();
-        return { 
-          success: false, 
-          message: `API test failed: ${response.status} - ${errorText.substring(0, 100)}` 
+        return {
+          success: false,
+          message: `API test failed: ${response.status} - ${errorText.substring(0, 100)}`,
         };
       }
     } catch (error) {
-      return { 
-        success: false, 
-        message: error instanceof Error ? error.message : 'Connection test failed' 
+      return {
+        success: false,
+        message:
+          error instanceof Error ? error.message : 'Connection test failed',
       };
     }
   }

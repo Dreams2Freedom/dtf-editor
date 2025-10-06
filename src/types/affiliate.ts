@@ -6,11 +6,35 @@ export type AffiliateTier = 'standard' | 'silver' | 'gold';
 export type AffiliateStatus = 'pending' | 'approved' | 'rejected' | 'suspended';
 export type PaymentMethod = 'paypal' | 'check';
 export type TaxFormType = 'W9' | 'W8BEN';
-export type CommissionStatus = 'pending' | 'approved' | 'paid' | 'reversed' | 'held';
-export type PayoutStatus = 'pending' | 'processing' | 'completed' | 'failed' | 'cancelled';
-export type ReferralStatus = 'pending' | 'signed_up' | 'converted' | 'expired' | 'invalid';
-export type TransactionType = 'subscription' | 'one_time' | 'renewal' | 'upgrade';
-export type ReversalReason = 'refund' | 'chargeback' | 'fraud' | 'violation' | 'error';
+export type CommissionStatus =
+  | 'pending'
+  | 'approved'
+  | 'paid'
+  | 'reversed'
+  | 'held';
+export type PayoutStatus =
+  | 'pending'
+  | 'processing'
+  | 'completed'
+  | 'failed'
+  | 'cancelled';
+export type ReferralStatus =
+  | 'pending'
+  | 'signed_up'
+  | 'converted'
+  | 'expired'
+  | 'invalid';
+export type TransactionType =
+  | 'subscription'
+  | 'one_time'
+  | 'renewal'
+  | 'upgrade';
+export type ReversalReason =
+  | 'refund'
+  | 'chargeback'
+  | 'fraud'
+  | 'violation'
+  | 'error';
 
 export interface Affiliate {
   id: string;

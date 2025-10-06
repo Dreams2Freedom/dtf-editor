@@ -16,7 +16,9 @@ async function verifyAdmin() {
   try {
     // Find shannon@s2transfers.com
     const { data: users } = await supabase.auth.admin.listUsers();
-    const shannonUser = users?.users?.find(u => u.email === 'shannon@s2transfers.com');
+    const shannonUser = users?.users?.find(
+      u => u.email === 'shannon@s2transfers.com'
+    );
 
     if (!shannonUser) {
       console.log('❌ User shannon@s2transfers.com not found in auth.users');
@@ -40,23 +42,21 @@ async function verifyAdmin() {
       console.log('📝 Creating super admin record...');
 
       // Create the admin record
-      const { error: insertError } = await supabase
-        .from('admin_users')
-        .insert({
-          user_id: shannonUser.id,
-          role: 'super_admin',
-          permissions: {
-            view_all_users: true,
-            edit_users: true,
-            view_financials: true,
-            manage_affiliates: true,
-            manage_support: true,
-            manage_admins: true,
-            system_settings: true
-          },
-          is_active: true,
-          notes: 'Super Administrator - Full system access'
-        });
+      const { error: insertError } = await supabase.from('admin_users').insert({
+        user_id: shannonUser.id,
+        role: 'super_admin',
+        permissions: {
+          view_all_users: true,
+          edit_users: true,
+          view_financials: true,
+          manage_affiliates: true,
+          manage_support: true,
+          manage_admins: true,
+          system_settings: true,
+        },
+        is_active: true,
+        notes: 'Super Administrator - Full system access',
+      });
 
       if (insertError) {
         console.log('❌ Error creating admin:', insertError.message);
@@ -69,12 +69,17 @@ async function verifyAdmin() {
     console.log('✅ Admin record exists:');
     console.log('   Role:', adminRecord.role);
     console.log('   Active:', adminRecord.is_active);
-    console.log('   Permissions:', JSON.stringify(adminRecord.permissions, null, 2));
+    console.log(
+      '   Permissions:',
+      JSON.stringify(adminRecord.permissions, null, 2)
+    );
     console.log('');
 
     // Test the is_admin function
-    const { data: isAdminResult, error: isAdminError } = await supabase
-      .rpc('is_admin', { user_id: shannonUser.id });
+    const { data: isAdminResult, error: isAdminError } = await supabase.rpc(
+      'is_admin',
+      { user_id: shannonUser.id }
+    );
 
     if (isAdminError) {
       console.log('❌ is_admin() error:', isAdminError.message);
@@ -83,8 +88,10 @@ async function verifyAdmin() {
     }
 
     // Test the is_super_admin function
-    const { data: isSuperAdmin, error: superError } = await supabase
-      .rpc('is_super_admin', { user_id: shannonUser.id });
+    const { data: isSuperAdmin, error: superError } = await supabase.rpc(
+      'is_super_admin',
+      { user_id: shannonUser.id }
+    );
 
     if (superError) {
       console.log('❌ is_super_admin() error:', superError.message);
@@ -93,8 +100,10 @@ async function verifyAdmin() {
     }
 
     // Test the get_admin_role function
-    const { data: role, error: roleError } = await supabase
-      .rpc('get_admin_role', { user_id: shannonUser.id });
+    const { data: role, error: roleError } = await supabase.rpc(
+      'get_admin_role',
+      { user_id: shannonUser.id }
+    );
 
     if (roleError) {
       console.log('❌ get_admin_role() error:', roleError.message);
@@ -120,7 +129,6 @@ async function verifyAdmin() {
     console.log('  3. Try incognito/private window');
     console.log('');
     console.log('='.repeat(60));
-
   } catch (error) {
     console.error('❌ Unexpected error:', error);
   }

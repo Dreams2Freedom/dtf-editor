@@ -15,7 +15,7 @@ export function UserStatsCards() {
     total: 0,
     active: 0,
     paid: 0,
-    suspended: 0
+    suspended: 0,
   });
   const [loading, setLoading] = useState(true);
 
@@ -26,7 +26,7 @@ export function UserStatsCards() {
   const fetchStats = async () => {
     try {
       const response = await fetch('/api/admin/users/stats', {
-        credentials: 'include'
+        credentials: 'include',
       });
 
       if (!response.ok) {
@@ -48,29 +48,29 @@ export function UserStatsCards() {
       value: stats.total,
       icon: Users,
       bgColor: 'bg-blue-100',
-      iconColor: 'text-blue-600'
+      iconColor: 'text-blue-600',
     },
     {
       label: 'Active Users',
       value: stats.active,
       icon: UserCheck,
       bgColor: 'bg-green-100',
-      iconColor: 'text-green-600'
+      iconColor: 'text-green-600',
     },
     {
       label: 'Paid Users',
       value: stats.paid,
       icon: CreditCard,
       bgColor: 'bg-purple-100',
-      iconColor: 'text-purple-600'
+      iconColor: 'text-purple-600',
     },
     {
       label: 'Suspended',
       value: stats.suspended,
       icon: UserX,
       bgColor: 'bg-red-100',
-      iconColor: 'text-red-600'
-    }
+      iconColor: 'text-red-600',
+    },
   ];
 
   return (
@@ -78,10 +78,15 @@ export function UserStatsCards() {
       {statsConfig.map((stat, index) => {
         const Icon = stat.icon;
         return (
-          <div key={index} className="bg-white rounded-lg shadow-sm p-6 border border-gray-200">
+          <div
+            key={index}
+            className="bg-white rounded-lg shadow-sm p-6 border border-gray-200"
+          >
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600">{stat.label}</p>
+                <p className="text-sm font-medium text-gray-600">
+                  {stat.label}
+                </p>
                 <p className="text-2xl font-bold text-gray-900 mt-1">
                   {loading ? (
                     <span className="animate-pulse">-</span>

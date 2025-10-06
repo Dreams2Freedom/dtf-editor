@@ -8,11 +8,11 @@ async function checkSubscription() {
     // List all subscriptions for the customer
     const subscriptions = await stripeClient.subscriptions.list({
       customer: 'cus_SljqE25ffokLaJ',
-      limit: 10
+      limit: 10,
     });
 
     console.log(`Found ${subscriptions.data.length} subscriptions:`);
-    
+
     subscriptions.data.forEach((sub, index) => {
       console.log(`\nSubscription ${index + 1}:`);
       console.log('ID:', sub.id);
@@ -21,7 +21,6 @@ async function checkSubscription() {
       console.log('Product ID:', sub.items.data[0]?.price.product);
       console.log('Amount:', sub.items.data[0]?.price.unit_amount / 100);
     });
-    
   } catch (error) {
     console.error('Error:', error.message);
   }

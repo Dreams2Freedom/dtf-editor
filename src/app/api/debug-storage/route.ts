@@ -5,9 +5,11 @@ import { withRateLimit } from '@/lib/rate-limit';
 async function handleGet(request: NextRequest) {
   try {
     const supabase = await createServerSupabaseClient();
-    
+
     // Get current user
-    const { data: { user } } = await supabase.auth.getUser();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
     if (!user) {
       return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
     }
@@ -17,14 +19,17 @@ async function handleGet(request: NextRequest) {
       .from('user-uploads')
       .list(`users/${user.id}`, {
         limit: 100,
-        sortBy: { column: 'created_at', order: 'desc' }
+        sortBy: { column: 'created_at', order: 'desc' },
       });
 
     if (error) {
-      return NextResponse.json({ 
-        error: 'Failed to list files', 
-        details: error 
-      }, { status: 500 });
+      return NextResponse.json(
+        {
+          error: 'Failed to list files',
+          details: error,
+        },
+        { status: 500 }
+      );
     }
 
     // Get sample URL if files exist
@@ -39,26 +44,29 @@ async function handleGet(request: NextRequest) {
       success: true,
       userId: user.id,
       fileCount: files?.length || 0,
-      files: files?.map(f => ({
-        name: f.name,
-        id: f.id,
-        created_at: f.created_at,
-        updated_at: f.updated_at,
-        metadata: f.metadata
-      })) || [],
+      files:
+        files?.map(f => ({
+          name: f.name,
+          id: f.id,
+          created_at: f.created_at,
+          updated_at: f.updated_at,
+          metadata: f.metadata,
+        })) || [],
       sampleUrl,
       debug: {
         bucketName: 'user-uploads',
-        userPath: `users/${user.id}`
-      }
+        userPath: `users/${user.id}`,
+      },
     });
-
   } catch (error) {
     console.error('Debug storage error:', error);
-    return NextResponse.json({ 
-      error: 'Internal server error',
-      details: error instanceof Error ? error.message : 'Unknown error'
-    }, { status: 500 });
+    return NextResponse.json(
+      {
+        error: 'Internal server error',
+        details: error instanceof Error ? error.message : 'Unknown error',
+      },
+      { status: 500 }
+    );
   }
 }
 

@@ -4,20 +4,23 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { createServerSupabaseClient, createServiceRoleClient } from '@/lib/supabase/server';
+import {
+  createServerSupabaseClient,
+  createServiceRoleClient,
+} from '@/lib/supabase/server';
 import { getAffiliateByUserId } from '@/services/affiliate';
 
 export async function PUT(request: NextRequest) {
   try {
     // Validate session
     const supabase = await createServerSupabaseClient();
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
 
     if (authError || !user) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     // Get affiliate account
@@ -47,7 +50,7 @@ export async function PUT(request: NextRequest) {
       display_name,
       website_url,
       social_media,
-      email_notifications
+      email_notifications,
     } = body;
 
     // Validate payment method
@@ -70,7 +73,10 @@ export async function PUT(request: NextRequest) {
     if (payment_method === 'check') {
       if (!check_payable_to || !mailing_address) {
         return NextResponse.json(
-          { error: 'Check payable to and mailing address are required for check payments' },
+          {
+            error:
+              'Check payable to and mailing address are required for check payments',
+          },
           { status: 400 }
         );
       }
@@ -89,14 +95,17 @@ export async function PUT(request: NextRequest) {
         website_url,
         social_media,
         email_notifications,
-        updated_at: new Date().toISOString()
+        updated_at: new Date().toISOString(),
       })
       .eq('id', affiliate.id)
       .select()
       .single();
 
     if (updateError) {
-      console.error('[AFFILIATE SETTINGS] Error updating affiliate:', updateError);
+      console.error(
+        '[AFFILIATE SETTINGS] Error updating affiliate:',
+        updateError
+      );
       return NextResponse.json(
         { error: 'Failed to update settings' },
         { status: 500 }
@@ -105,9 +114,8 @@ export async function PUT(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      affiliate: updatedAffiliate
+      affiliate: updatedAffiliate,
     });
-
   } catch (error) {
     console.error('Error updating affiliate settings:', error);
     return NextResponse.json(

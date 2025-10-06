@@ -12,7 +12,10 @@ require('dotenv').config({ path: '.env' });
 const apiId = process.env.VECTORIZER_API_KEY;
 const apiSecret = process.env.VECTORIZER_API_SECRET;
 
-console.log('VECTORIZER_API_KEY:', apiId ? `✅ Set (${apiId.substring(0, 8)}...)` : '❌ NOT SET');
+console.log(
+  'VECTORIZER_API_KEY:',
+  apiId ? `✅ Set (${apiId.substring(0, 8)}...)` : '❌ NOT SET'
+);
 console.log('VECTORIZER_API_SECRET:', apiSecret ? '✅ Set' : '❌ NOT SET');
 
 if (!apiId || !apiSecret) {
@@ -31,12 +34,13 @@ console.log('\n🧪 Testing API connection...');
 
 const testApiConnection = async () => {
   try {
-    const authHeader = 'Basic ' + Buffer.from(`${apiId}:${apiSecret}`).toString('base64');
-    
+    const authHeader =
+      'Basic ' + Buffer.from(`${apiId}:${apiSecret}`).toString('base64');
+
     const response = await fetch('https://vectorizer.ai/api/v1/account', {
       headers: {
-        'Authorization': authHeader
-      }
+        Authorization: authHeader,
+      },
     });
 
     if (response.ok) {
@@ -44,7 +48,11 @@ const testApiConnection = async () => {
       console.log('✅ API connection successful!');
       console.log('Account info:', data);
     } else {
-      console.log('❌ API connection failed:', response.status, response.statusText);
+      console.log(
+        '❌ API connection failed:',
+        response.status,
+        response.statusText
+      );
       const errorText = await response.text();
       console.log('Error:', errorText);
     }

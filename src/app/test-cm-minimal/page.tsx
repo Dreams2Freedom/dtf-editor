@@ -55,15 +55,18 @@ export default function TestCMMinimal() {
   const openEditor = () => {
     if (window.cmReady && window.ClippingMagic) {
       console.log('Opening editor...');
-      window.ClippingMagic.edit({
-        "image": {
-          "id": 207794051,
-          "secret": "g5rssaot702277tqfdpufdmqjtkc2u8j9h9t7fhro879csnbmtv"
+      window.ClippingMagic.edit(
+        {
+          image: {
+            id: 207794051,
+            secret: 'g5rssaot702277tqfdpufdmqjtkc2u8j9h9t7fhro879csnbmtv',
+          },
+          useStickySettings: true,
+          hideBottomToolbar: false,
+          locale: 'en-US',
         },
-        "useStickySettings": true,
-        "hideBottomToolbar": false,
-        "locale": "en-US"
-      }, window.myCallback);
+        window.myCallback
+      );
     } else {
       alert('ClippingMagic not ready yet');
     }
@@ -72,18 +75,23 @@ export default function TestCMMinimal() {
   return (
     <div className="p-8">
       <h1 className="text-2xl font-bold mb-4">ClippingMagic Minimal Test</h1>
-      
-      <button 
+
+      <button
         onClick={openEditor}
         className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
       >
         Open Editor
       </button>
 
-      <script src="https://clippingmagic.com/api/v1/ClippingMagic.js" type="text/javascript" />
+      <script
+        src="https://clippingmagic.com/api/v1/ClippingMagic.js"
+        type="text/javascript"
+      />
 
       <div className="mt-8 p-4 bg-gray-100 rounded">
-        <p className="text-sm">This page loads ClippingMagic exactly like the working test page</p>
+        <p className="text-sm">
+          This page loads ClippingMagic exactly like the working test page
+        </p>
       </div>
     </div>
   );

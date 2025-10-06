@@ -1,11 +1,28 @@
 'use client';
 
 import { useState, useCallback } from 'react';
-import { Upload, Calculator, AlertCircle, CheckCircle, XCircle, Info, Loader2, Lock, Unlock, Wand2, Shirt } from 'lucide-react';
+import {
+  Upload,
+  Calculator,
+  AlertCircle,
+  CheckCircle,
+  XCircle,
+  Info,
+  Loader2,
+  Lock,
+  Unlock,
+  Wand2,
+  Shirt,
+} from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Card } from '@/components/ui/Card';
-import { calculateDPI, getImageDimensions, getQualityColor, type DPICalculationResult } from '@/utils/dpiCalculator';
+import {
+  calculateDPI,
+  getImageDimensions,
+  getQualityColor,
+  type DPICalculationResult,
+} from '@/utils/dpiCalculator';
 import { useAuthStore } from '@/stores/authStore';
 import { useRouter } from 'next/navigation';
 
@@ -14,12 +31,18 @@ interface DPICheckerProps {
   onSignupComplete?: () => void;
 }
 
-export function DPIChecker({ showSignupForm = true, onSignupComplete }: DPICheckerProps) {
+export function DPIChecker({
+  showSignupForm = true,
+  onSignupComplete,
+}: DPICheckerProps) {
   const router = useRouter();
   const { user } = useAuthStore();
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string>('');
-  const [imageDimensions, setImageDimensions] = useState<{ width: number; height: number } | null>(null);
+  const [imageDimensions, setImageDimensions] = useState<{
+    width: number;
+    height: number;
+  } | null>(null);
   const [printWidth, setPrintWidth] = useState<string>('');
   const [printHeight, setPrintHeight] = useState<string>('');
   const [aspectRatio, setAspectRatio] = useState<number | null>(null);
@@ -27,7 +50,7 @@ export function DPIChecker({ showSignupForm = true, onSignupComplete }: DPICheck
   const [showResult, setShowResult] = useState(false);
   const [dpiResult, setDpiResult] = useState<DPICalculationResult | null>(null);
   const [showSignup, setShowSignup] = useState(false);
-  
+
   // Signup form state
   const [signupData, setSignupData] = useState({
     email: '',
@@ -35,116 +58,127 @@ export function DPIChecker({ showSignupForm = true, onSignupComplete }: DPICheck
     confirmPassword: '',
     firstName: '',
     lastName: '',
-    phone: ''
+    phone: '',
   });
   const [signupLoading, setSignupLoading] = useState(false);
   const [signupError, setSignupError] = useState('');
 
   // Handle width change and auto-calculate height if maintaining aspect ratio
-  const handleWidthChange = useCallback((value: string) => {
-    setPrintWidth(value);
-    
-    if (maintainAspectRatio && aspectRatio && value) {
-      const width = parseFloat(value);
-      if (!isNaN(width) && width > 0) {
-        const calculatedHeight = width / aspectRatio;
-        setPrintHeight(calculatedHeight.toFixed(2));
+  const handleWidthChange = useCallback(
+    (value: string) => {
+      setPrintWidth(value);
+
+      if (maintainAspectRatio && aspectRatio && value) {
+        const width = parseFloat(value);
+        if (!isNaN(width) && width > 0) {
+          const calculatedHeight = width / aspectRatio;
+          setPrintHeight(calculatedHeight.toFixed(2));
+        }
       }
-    }
-  }, [maintainAspectRatio, aspectRatio]);
+    },
+    [maintainAspectRatio, aspectRatio]
+  );
 
   // Handle height change and auto-calculate width if maintaining aspect ratio
-  const handleHeightChange = useCallback((value: string) => {
-    setPrintHeight(value);
-    
-    if (maintainAspectRatio && aspectRatio && value) {
-      const height = parseFloat(value);
-      if (!isNaN(height) && height > 0) {
-        const calculatedWidth = height * aspectRatio;
-        setPrintWidth(calculatedWidth.toFixed(2));
+  const handleHeightChange = useCallback(
+    (value: string) => {
+      setPrintHeight(value);
+
+      if (maintainAspectRatio && aspectRatio && value) {
+        const height = parseFloat(value);
+        if (!isNaN(height) && height > 0) {
+          const calculatedWidth = height * aspectRatio;
+          setPrintWidth(calculatedWidth.toFixed(2));
+        }
       }
-    }
-  }, [maintainAspectRatio, aspectRatio]);
+    },
+    [maintainAspectRatio, aspectRatio]
+  );
 
-  const handleImageUpload = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+  const handleImageUpload = useCallback(
+    async (e: React.ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0];
+      if (!file) return;
 
-    // Validate file type
-    if (!file.type.startsWith('image/')) {
-      alert('Please upload an image file');
-      return;
-    }
+      // Validate file type
+      if (!file.type.startsWith('image/')) {
+        alert('Please upload an image file');
+        return;
+      }
 
-    // Check if image needs compression and notify user
-    const { needsCompression } = await import('@/utils/imageCompression');
-    const needsCompress = await needsCompression(file, 10, 4096);
-    
-    if (needsCompress) {
-      console.log('[DPIChecker] Large image detected:', {
-        size: `${(file.size / 1024 / 1024).toFixed(2)}MB`,
-        message: 'Image will be automatically compressed before processing'
-      });
-    }
+      // Check if image needs compression and notify user
+      const { needsCompression } = await import('@/utils/imageCompression');
+      const needsCompress = await needsCompression(file, 10, 4096);
 
-    setImageFile(file);
-    
-    // Create preview
-    const url = URL.createObjectURL(file);
-    setImagePreview(url);
+      if (needsCompress) {
+        console.log('[DPIChecker] Large image detected:', {
+          size: `${(file.size / 1024 / 1024).toFixed(2)}MB`,
+          message: 'Image will be automatically compressed before processing',
+        });
+      }
 
-    // Get dimensions
-    try {
-      const dimensions = await getImageDimensions(file);
-      setImageDimensions(dimensions);
-      
-      // Calculate aspect ratio
-      const ratio = dimensions.width / dimensions.height;
-      setAspectRatio(ratio);
-      
-      // Set default print dimensions - minimum 10 inches wide for realistic print sizes
-      // This shows users the actual DPI quality at common DTF print sizes
-      const currentWidthAt300DPI = dimensions.width / 300;
+      setImageFile(file);
 
-      // Use 10 inches minimum width, or larger if the image supports it
-      const defaultWidth = Math.max(10, currentWidthAt300DPI);
-      const defaultHeight = defaultWidth / ratio; // Maintain aspect ratio
+      // Create preview
+      const url = URL.createObjectURL(file);
+      setImagePreview(url);
 
-      // Round to 2 decimal places
-      setPrintWidth(defaultWidth.toFixed(2));
-      setPrintHeight(defaultHeight.toFixed(2));
+      // Get dimensions
+      try {
+        const dimensions = await getImageDimensions(file);
+        setImageDimensions(dimensions);
 
-      // Log the actual DPI at the default print size
-      const actualDPI = Math.min(
-        dimensions.width / defaultWidth,
-        dimensions.height / defaultHeight
-      );
-      console.log(`Default print size: ${defaultWidth.toFixed(2)}" × ${defaultHeight.toFixed(2)}"`);
-      console.log(`Image quality at this size: ${Math.round(actualDPI)} DPI`);
-      
-      // Clear previous results when new image is uploaded
-      setShowResult(false);
-      setDpiResult(null);
-    } catch (error) {
-      console.error('Error getting image dimensions:', error);
-      alert('Error reading image. Please try another file.');
-    }
-  }, []);
+        // Calculate aspect ratio
+        const ratio = dimensions.width / dimensions.height;
+        setAspectRatio(ratio);
+
+        // Set default print dimensions - minimum 10 inches wide for realistic print sizes
+        // This shows users the actual DPI quality at common DTF print sizes
+        const currentWidthAt300DPI = dimensions.width / 300;
+
+        // Use 10 inches minimum width, or larger if the image supports it
+        const defaultWidth = Math.max(10, currentWidthAt300DPI);
+        const defaultHeight = defaultWidth / ratio; // Maintain aspect ratio
+
+        // Round to 2 decimal places
+        setPrintWidth(defaultWidth.toFixed(2));
+        setPrintHeight(defaultHeight.toFixed(2));
+
+        // Log the actual DPI at the default print size
+        const actualDPI = Math.min(
+          dimensions.width / defaultWidth,
+          dimensions.height / defaultHeight
+        );
+        console.log(
+          `Default print size: ${defaultWidth.toFixed(2)}" × ${defaultHeight.toFixed(2)}"`
+        );
+        console.log(`Image quality at this size: ${Math.round(actualDPI)} DPI`);
+
+        // Clear previous results when new image is uploaded
+        setShowResult(false);
+        setDpiResult(null);
+      } catch (error) {
+        console.error('Error getting image dimensions:', error);
+        alert('Error reading image. Please try another file.');
+      }
+    },
+    []
+  );
 
   // Calculate DPI in real-time for display (no longer needed for a button)
   const calculateCurrentDPI = useCallback(() => {
     if (!imageDimensions || !printWidth || !printHeight) return null;
-    
+
     const width = parseFloat(printWidth);
     const height = parseFloat(printHeight);
-    
+
     if (isNaN(width) || isNaN(height) || width <= 0 || height <= 0) return null;
-    
+
     return calculateDPI({
       imageWidth: imageDimensions.width,
       imageHeight: imageDimensions.height,
       printWidth: width,
-      printHeight: height
+      printHeight: height,
     });
   }, [imageDimensions, printWidth, printHeight]);
 
@@ -154,48 +188,54 @@ export function DPIChecker({ showSignupForm = true, onSignupComplete }: DPICheck
       if (imageFile) {
         try {
           // Import compression utilities
-          const { compressImage, needsCompression } = await import('@/utils/imageCompression');
-          
+          const { compressImage, needsCompression } = await import(
+            '@/utils/imageCompression'
+          );
+
           // Check if compression is needed (>10MB or >4096px)
           let finalFile = imageFile;
           if (await needsCompression(imageFile, 10, 4096)) {
-            console.log('[DPIChecker] Compressing large image before upload...');
+            console.log(
+              '[DPIChecker] Compressing large image before upload...'
+            );
             finalFile = await compressImage(imageFile, {
               maxSizeMB: 10,
               maxWidthOrHeight: 4096,
-              quality: 0.9
+              quality: 0.9,
             });
             console.log('[DPIChecker] Compression complete:', {
               originalSize: `${(imageFile.size / 1024 / 1024).toFixed(2)}MB`,
-              compressedSize: `${(finalFile.size / 1024 / 1024).toFixed(2)}MB`
+              compressedSize: `${(finalFile.size / 1024 / 1024).toFixed(2)}MB`,
             });
           }
-          
+
           const uploadFormData = new FormData();
           uploadFormData.append('file', finalFile);
-          
+
           const uploadResponse = await fetch('/api/upload', {
             method: 'POST',
             body: uploadFormData,
-            credentials: 'include'
+            credentials: 'include',
           });
-          
+
           const uploadData = await uploadResponse.json();
-          
+
           // Check for authentication error specifically
           if (uploadResponse.status === 401) {
-            alert('Your session has expired. Please sign in again to continue.');
+            alert(
+              'Your session has expired. Please sign in again to continue.'
+            );
             // Clear the auth state and redirect to login
             router.push('/auth/login?redirect=/free-dpi-checker');
             return;
           }
-          
+
           if (!uploadResponse.ok) {
             const errorMessage = uploadData.error || 'Failed to upload image';
             alert(`Upload failed: ${errorMessage}`);
             return;
           }
-          
+
           if (uploadData.success && uploadData.imageId) {
             const params = new URLSearchParams();
             params.append('imageId', uploadData.imageId);
@@ -207,7 +247,9 @@ export function DPIChecker({ showSignupForm = true, onSignupComplete }: DPICheck
           }
         } catch (uploadError) {
           console.error('Upload error:', uploadError);
-          alert('An unexpected error occurred. Please check your connection and try again.');
+          alert(
+            'An unexpected error occurred. Please check your connection and try again.'
+          );
         }
       }
     } else {
@@ -217,7 +259,7 @@ export function DPIChecker({ showSignupForm = true, onSignupComplete }: DPICheck
         localStorage.setItem('dpi_tool_filename', imageFile.name);
         localStorage.setItem('dpi_tool_printWidth', printWidth || '');
         localStorage.setItem('dpi_tool_printHeight', printHeight || '');
-        
+
         // Convert to base64 if needed
         if (!imagePreview.startsWith('data:')) {
           const reader = new FileReader();
@@ -229,7 +271,7 @@ export function DPIChecker({ showSignupForm = true, onSignupComplete }: DPICheck
           localStorage.setItem('dpi_tool_image', imagePreview);
         }
       }
-      
+
       // Show signup form for non-logged-in users
       setShowSignup(true);
     }
@@ -258,7 +300,7 @@ export function DPIChecker({ showSignupForm = true, onSignupComplete }: DPICheck
       const response = await fetch('/api/dpi-tool/signup', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(signupData)
+        body: JSON.stringify(signupData),
       });
 
       const data = await response.json();
@@ -276,14 +318,14 @@ export function DPIChecker({ showSignupForm = true, onSignupComplete }: DPICheck
           localStorage.setItem('dpi_tool_filename', imageFile.name);
           localStorage.setItem('dpi_tool_printWidth', printWidth || '');
           localStorage.setItem('dpi_tool_printHeight', printHeight || '');
-          
+
           // Convert file to base64 if needed and store
           if (!imagePreview.startsWith('data:')) {
             const reader = new FileReader();
             reader.onloadend = () => {
               const base64String = reader.result as string;
               localStorage.setItem('dpi_tool_image', base64String);
-              
+
               // Now redirect - use replace to prevent back button issues
               window.location.replace('/process/upscale?fromDpiTool=true');
             };
@@ -291,7 +333,7 @@ export function DPIChecker({ showSignupForm = true, onSignupComplete }: DPICheck
           } else {
             // Already base64
             localStorage.setItem('dpi_tool_image', imagePreview);
-            
+
             // Now redirect - use replace to prevent back button issues
             window.location.replace('/process/upscale?fromDpiTool=true');
           }
@@ -305,7 +347,6 @@ export function DPIChecker({ showSignupForm = true, onSignupComplete }: DPICheck
         localStorage.setItem('dpi_tool_redirect', 'true');
         window.location.replace('/process/upscale');
       }
-
     } catch (error) {
       setSignupError(error instanceof Error ? error.message : 'Signup failed');
     } finally {
@@ -318,18 +359,20 @@ export function DPIChecker({ showSignupForm = true, onSignupComplete }: DPICheck
       excellent: 'bg-green-100 text-green-800 border-green-200',
       good: 'bg-blue-100 text-blue-800 border-blue-200',
       fair: 'bg-yellow-100 text-yellow-800 border-yellow-200',
-      poor: 'bg-red-100 text-red-800 border-red-200'
+      poor: 'bg-red-100 text-red-800 border-red-200',
     };
 
     const icons: Record<string, React.ReactNode> = {
       excellent: <CheckCircle className="w-4 h-4" />,
       good: <Info className="w-4 h-4" />,
       fair: <AlertCircle className="w-4 h-4" />,
-      poor: <XCircle className="w-4 h-4" />
+      poor: <XCircle className="w-4 h-4" />,
     };
 
     return (
-      <span className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm font-medium border ${colors[level]}`}>
+      <span
+        className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm font-medium border ${colors[level]}`}
+      >
         {icons[level]}
         {level.charAt(0).toUpperCase() + level.slice(1)}
       </span>
@@ -341,8 +384,12 @@ export function DPIChecker({ showSignupForm = true, onSignupComplete }: DPICheck
       {/* Upload Section */}
       <Card className="p-8 mb-6">
         <div className="text-center mb-6">
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">Check Your Image DPI</h2>
-          <p className="text-gray-600">Upload your image and enter your desired print size to calculate DPI</p>
+          <h2 className="text-2xl font-bold text-gray-900 mb-2">
+            Check Your Image DPI
+          </h2>
+          <p className="text-gray-600">
+            Upload your image and enter your desired print size to calculate DPI
+          </p>
         </div>
 
         <div className="space-y-6">
@@ -357,9 +404,14 @@ export function DPIChecker({ showSignupForm = true, onSignupComplete }: DPICheck
             />
             {imagePreview ? (
               <div>
-                <img src={imagePreview} alt="Preview" className="max-h-48 mx-auto mb-4 rounded" />
+                <img
+                  src={imagePreview}
+                  alt="Preview"
+                  className="max-h-48 mx-auto mb-4 rounded"
+                />
                 <p className="text-sm text-gray-600">
-                  Dimensions: {imageDimensions?.width} × {imageDimensions?.height} pixels
+                  Dimensions: {imageDimensions?.width} ×{' '}
+                  {imageDimensions?.height} pixels
                 </p>
                 <label htmlFor="image-upload">
                   <span className="inline-block mt-2 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 cursor-pointer transition-colors">
@@ -371,9 +423,13 @@ export function DPIChecker({ showSignupForm = true, onSignupComplete }: DPICheck
               <label htmlFor="image-upload" className="cursor-pointer">
                 <div>
                   <Upload className="w-12 h-12 mx-auto mb-4 text-gray-400" />
-                  <p className="text-lg font-medium text-gray-700">Click to upload image</p>
+                  <p className="text-lg font-medium text-gray-700">
+                    Click to upload image
+                  </p>
                   <p className="text-sm text-gray-500 mt-1">or drag and drop</p>
-                  <p className="text-xs text-gray-400 mt-2">PNG, JPG, GIF up to 10MB</p>
+                  <p className="text-xs text-gray-400 mt-2">
+                    PNG, JPG, GIF up to 10MB
+                  </p>
                 </div>
               </label>
             )}
@@ -386,33 +442,54 @@ export function DPIChecker({ showSignupForm = true, onSignupComplete }: DPICheck
               <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm text-blue-700 font-medium">Image Information:</p>
+                    <p className="text-sm text-blue-700 font-medium">
+                      Image Information:
+                    </p>
                     <p className="text-xs text-blue-600 mt-1">
                       {imageDimensions.width} × {imageDimensions.height} pixels
                     </p>
                     <p className="text-xs text-blue-600">
-                      Optimal print size: {(imageDimensions.width / 300).toFixed(2)}" × {(imageDimensions.height / 300).toFixed(2)}" at 300 DPI
+                      Optimal print size:{' '}
+                      {(imageDimensions.width / 300).toFixed(2)}" ×{' '}
+                      {(imageDimensions.height / 300).toFixed(2)}" at 300 DPI
                     </p>
                   </div>
                   <div className="text-right">
                     {(() => {
-                      const currentDPI = printWidth && printHeight 
-                        ? Math.round(Math.min(imageDimensions.width / parseFloat(printWidth), imageDimensions.height / parseFloat(printHeight)))
-                        : 300;
-                      const quality = currentDPI >= 300 ? 'excellent' : currentDPI >= 200 ? 'good' : currentDPI >= 150 ? 'fair' : 'poor';
+                      const currentDPI =
+                        printWidth && printHeight
+                          ? Math.round(
+                              Math.min(
+                                imageDimensions.width / parseFloat(printWidth),
+                                imageDimensions.height / parseFloat(printHeight)
+                              )
+                            )
+                          : 300;
+                      const quality =
+                        currentDPI >= 300
+                          ? 'excellent'
+                          : currentDPI >= 200
+                            ? 'good'
+                            : currentDPI >= 150
+                              ? 'fair'
+                              : 'poor';
                       const colors = {
                         excellent: 'text-green-700',
                         good: 'text-blue-700',
                         fair: 'text-yellow-700',
-                        poor: 'text-red-700'
+                        poor: 'text-red-700',
                       };
-                      
+
                       return (
                         <>
-                          <p className={`text-3xl font-bold ${colors[quality]}`}>
+                          <p
+                            className={`text-3xl font-bold ${colors[quality]}`}
+                          >
                             {currentDPI} DPI
                           </p>
-                          <p className={`text-xs ${colors[quality]} capitalize`}>
+                          <p
+                            className={`text-xs ${colors[quality]} capitalize`}
+                          >
                             {quality} Quality
                           </p>
                         </>
@@ -425,7 +502,11 @@ export function DPIChecker({ showSignupForm = true, onSignupComplete }: DPICheck
               {/* Aspect Ratio Lock */}
               <div className="flex items-center justify-between mb-3">
                 <label className="text-sm font-medium text-gray-700 flex items-center gap-2">
-                  {maintainAspectRatio ? <Lock className="w-4 h-4" /> : <Unlock className="w-4 h-4" />}
+                  {maintainAspectRatio ? (
+                    <Lock className="w-4 h-4" />
+                  ) : (
+                    <Unlock className="w-4 h-4" />
+                  )}
                   Maintain Aspect Ratio
                 </label>
                 <button
@@ -454,7 +535,7 @@ export function DPIChecker({ showSignupForm = true, onSignupComplete }: DPICheck
                     min="0.1"
                     placeholder="e.g., 11"
                     value={printWidth}
-                    onChange={(e) => handleWidthChange(e.target.value)}
+                    onChange={e => handleWidthChange(e.target.value)}
                   />
                 </div>
                 <div>
@@ -467,7 +548,7 @@ export function DPIChecker({ showSignupForm = true, onSignupComplete }: DPICheck
                     min="0.1"
                     placeholder="e.g., 14"
                     value={printHeight}
-                    onChange={(e) => handleHeightChange(e.target.value)}
+                    onChange={e => handleHeightChange(e.target.value)}
                   />
                 </div>
               </div>
@@ -479,7 +560,9 @@ export function DPIChecker({ showSignupForm = true, onSignupComplete }: DPICheck
             <div className="bg-gray-50 rounded-lg p-4">
               <div className="flex items-center gap-2 mb-3">
                 <Shirt className="w-4 h-4 text-gray-600" />
-                <p className="text-sm font-medium text-gray-700">Common DTF widths by shirt size:</p>
+                <p className="text-sm font-medium text-gray-700">
+                  Common DTF widths by shirt size:
+                </p>
               </div>
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2">
                 {[
@@ -487,14 +570,18 @@ export function DPIChecker({ showSignupForm = true, onSignupComplete }: DPICheck
                   { label: '8"', width: 8, description: 'Youth' },
                   { label: '10"', width: 10, description: 'S-M Adult' },
                   { label: '11"', width: 11, description: 'L-XL Adult' },
-                  { label: '12"', width: 12, description: '2XL+' }
+                  { label: '12"', width: 12, description: '2XL+' },
                 ].map(size => {
                   // Calculate what the DPI would be for this width
-                  const height = aspectRatio ? size.width / aspectRatio : size.width;
-                  const wouldBeDPI = Math.round(Math.min(
-                    imageDimensions.width / size.width,
-                    imageDimensions.height / height
-                  ));
+                  const height = aspectRatio
+                    ? size.width / aspectRatio
+                    : size.width;
+                  const wouldBeDPI = Math.round(
+                    Math.min(
+                      imageDimensions.width / size.width,
+                      imageDimensions.height / height
+                    )
+                  );
 
                   const isGoodQuality = wouldBeDPI >= 300;
                   const isFairQuality = wouldBeDPI >= 150 && wouldBeDPI < 300;
@@ -512,23 +599,41 @@ export function DPIChecker({ showSignupForm = true, onSignupComplete }: DPICheck
                       }}
                       className={`
                         relative overflow-hidden rounded-lg border-2 p-3 transition-all hover:shadow-md
-                        ${isGoodQuality ? 'border-green-200 bg-green-50 hover:border-green-300' :
-                          isFairQuality ? 'border-yellow-200 bg-yellow-50 hover:border-yellow-300' :
-                          'border-red-200 bg-red-50 hover:border-red-300'}
+                        ${
+                          isGoodQuality
+                            ? 'border-green-200 bg-green-50 hover:border-green-300'
+                            : isFairQuality
+                              ? 'border-yellow-200 bg-yellow-50 hover:border-yellow-300'
+                              : 'border-red-200 bg-red-50 hover:border-red-300'
+                        }
                       `}
                     >
                       <div className="flex flex-col items-center space-y-1">
-                        <span className="text-lg font-bold text-gray-900">{size.label}</span>
-                        <span className="text-xs text-gray-600">{size.description}</span>
-                        <div className={`
+                        <span className="text-lg font-bold text-gray-900">
+                          {size.label}
+                        </span>
+                        <span className="text-xs text-gray-600">
+                          {size.description}
+                        </span>
+                        <div
+                          className={`
                           inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold
-                          ${isGoodQuality ? 'bg-green-100 text-green-700' :
-                            isFairQuality ? 'bg-yellow-100 text-yellow-700' :
-                            'bg-red-100 text-red-700'}
-                        `}>
-                          {isGoodQuality ? <CheckCircle className="w-3 h-3" /> :
-                           isFairQuality ? <AlertCircle className="w-3 h-3" /> :
-                           <XCircle className="w-3 h-3" />}
+                          ${
+                            isGoodQuality
+                              ? 'bg-green-100 text-green-700'
+                              : isFairQuality
+                                ? 'bg-yellow-100 text-yellow-700'
+                                : 'bg-red-100 text-red-700'
+                          }
+                        `}
+                        >
+                          {isGoodQuality ? (
+                            <CheckCircle className="w-3 h-3" />
+                          ) : isFairQuality ? (
+                            <AlertCircle className="w-3 h-3" />
+                          ) : (
+                            <XCircle className="w-3 h-3" />
+                          )}
                           {wouldBeDPI} DPI
                         </div>
                       </div>
@@ -540,8 +645,9 @@ export function DPIChecker({ showSignupForm = true, onSignupComplete }: DPICheck
                 <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 mt-3">
                   <p className="text-xs text-amber-700">
                     <Info className="w-3 h-3 inline mr-1" />
-                    Showing quality for {printWidth}" width (minimum 10" for realistic assessment).
-                    Most DTF prints are 10-13 inches wide.
+                    Showing quality for {printWidth}" width (minimum 10" for
+                    realistic assessment). Most DTF prints are 10-13 inches
+                    wide.
                   </p>
                 </div>
               )}
@@ -549,43 +655,58 @@ export function DPIChecker({ showSignupForm = true, onSignupComplete }: DPICheck
           )}
 
           {/* Upscale Button with Quality Message */}
-          {imageDimensions && printWidth && printHeight && (() => {
-            const currentDPI = Math.round(Math.min(
-              imageDimensions.width / parseFloat(printWidth), 
-              imageDimensions.height / parseFloat(printHeight)
-            ));
-            const quality = currentDPI >= 300 ? 'excellent' : 
-                          currentDPI >= 200 ? 'good' : 
-                          currentDPI >= 150 ? 'fair' : 'poor';
-            
-            return (
-              <div className="space-y-3">
-                {currentDPI < 300 && (
-                  <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 text-sm">
-                    <p className="text-yellow-800">
-                      <AlertCircle className="w-4 h-4 inline mr-1" />
-                      Your image is currently {currentDPI} DPI. We recommend upscaling to achieve 300 DPI for professional print quality.
-                    </p>
-                  </div>
-                )}
-                {currentDPI >= 300 && (
-                  <div className="bg-green-50 border border-green-200 rounded-lg p-3 text-sm">
-                    <p className="text-green-800">
-                      <CheckCircle className="w-4 h-4 inline mr-1" />
-                      Your image already meets 300 DPI quality! Upscaling is optional.
-                    </p>
-                  </div>
-                )}
-                <Button
-                  onClick={handleUpscaleClick}
-                  className={`w-full ${currentDPI >= 300 ? 'bg-green-600 hover:bg-green-700' : 'bg-[#366494] hover:bg-[#233E5C]'}`}
-                >
-                  <Wand2 className="w-5 h-5 mr-2" />
-                  {currentDPI >= 300 ? 'Process Image Anyway' : 'Upscale to 300 DPI'}
-                </Button>
-              </div>
-            );
-          })()}
+          {imageDimensions &&
+            printWidth &&
+            printHeight &&
+            (() => {
+              const currentDPI = Math.round(
+                Math.min(
+                  imageDimensions.width / parseFloat(printWidth),
+                  imageDimensions.height / parseFloat(printHeight)
+                )
+              );
+              const quality =
+                currentDPI >= 300
+                  ? 'excellent'
+                  : currentDPI >= 200
+                    ? 'good'
+                    : currentDPI >= 150
+                      ? 'fair'
+                      : 'poor';
+
+              return (
+                <div className="space-y-3">
+                  {currentDPI < 300 && (
+                    <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 text-sm">
+                      <p className="text-yellow-800">
+                        <AlertCircle className="w-4 h-4 inline mr-1" />
+                        Your image is currently {currentDPI} DPI. We recommend
+                        upscaling to achieve 300 DPI for professional print
+                        quality.
+                      </p>
+                    </div>
+                  )}
+                  {currentDPI >= 300 && (
+                    <div className="bg-green-50 border border-green-200 rounded-lg p-3 text-sm">
+                      <p className="text-green-800">
+                        <CheckCircle className="w-4 h-4 inline mr-1" />
+                        Your image already meets 300 DPI quality! Upscaling is
+                        optional.
+                      </p>
+                    </div>
+                  )}
+                  <Button
+                    onClick={handleUpscaleClick}
+                    className={`w-full ${currentDPI >= 300 ? 'bg-green-600 hover:bg-green-700' : 'bg-[#366494] hover:bg-[#233E5C]'}`}
+                  >
+                    <Wand2 className="w-5 h-5 mr-2" />
+                    {currentDPI >= 300
+                      ? 'Process Image Anyway'
+                      : 'Upscale to 300 DPI'}
+                  </Button>
+                </div>
+              );
+            })()}
         </div>
       </Card>
 
@@ -599,13 +720,14 @@ export function DPIChecker({ showSignupForm = true, onSignupComplete }: DPICheck
             >
               <XCircle className="w-6 h-6" />
             </button>
-            
+
             <div className="text-center mb-6">
               <h3 className="text-2xl font-bold text-gray-900 mb-2">
                 Create Your Free Account
               </h3>
               <p className="text-gray-600">
-                Sign up to upscale your image and get 2 free credits for our AI tools
+                Sign up to upscale your image and get 2 free credits for our AI
+                tools
               </p>
             </div>
 
@@ -615,12 +737,16 @@ export function DPIChecker({ showSignupForm = true, onSignupComplete }: DPICheck
                   placeholder="First Name *"
                   required
                   value={signupData.firstName}
-                  onChange={(e) => setSignupData({ ...signupData, firstName: e.target.value })}
+                  onChange={e =>
+                    setSignupData({ ...signupData, firstName: e.target.value })
+                  }
                 />
                 <Input
                   placeholder="Last Name"
                   value={signupData.lastName}
-                  onChange={(e) => setSignupData({ ...signupData, lastName: e.target.value })}
+                  onChange={e =>
+                    setSignupData({ ...signupData, lastName: e.target.value })
+                  }
                 />
               </div>
 
@@ -629,7 +755,9 @@ export function DPIChecker({ showSignupForm = true, onSignupComplete }: DPICheck
                 placeholder="Email Address *"
                 required
                 value={signupData.email}
-                onChange={(e) => setSignupData({ ...signupData, email: e.target.value })}
+                onChange={e =>
+                  setSignupData({ ...signupData, email: e.target.value })
+                }
               />
 
               <Input
@@ -638,7 +766,9 @@ export function DPIChecker({ showSignupForm = true, onSignupComplete }: DPICheck
                 required
                 minLength={8}
                 value={signupData.password}
-                onChange={(e) => setSignupData({ ...signupData, password: e.target.value })}
+                onChange={e =>
+                  setSignupData({ ...signupData, password: e.target.value })
+                }
               />
 
               <Input
@@ -647,14 +777,21 @@ export function DPIChecker({ showSignupForm = true, onSignupComplete }: DPICheck
                 required
                 minLength={8}
                 value={signupData.confirmPassword}
-                onChange={(e) => setSignupData({ ...signupData, confirmPassword: e.target.value })}
+                onChange={e =>
+                  setSignupData({
+                    ...signupData,
+                    confirmPassword: e.target.value,
+                  })
+                }
               />
 
               <Input
                 type="tel"
                 placeholder="Phone Number (optional)"
                 value={signupData.phone}
-                onChange={(e) => setSignupData({ ...signupData, phone: e.target.value })}
+                onChange={e =>
+                  setSignupData({ ...signupData, phone: e.target.value })
+                }
               />
 
               {signupError && (
@@ -697,7 +834,9 @@ export function DPIChecker({ showSignupForm = true, onSignupComplete }: DPICheck
       {showResult && dpiResult && (
         <Card className="p-8">
           <div className="text-center mb-6">
-            <h3 className="text-2xl font-bold text-gray-900 mb-2">Your DPI Results</h3>
+            <h3 className="text-2xl font-bold text-gray-900 mb-2">
+              Your DPI Results
+            </h3>
             <div className="flex items-center justify-center gap-4 mb-4">
               <div className="text-5xl font-bold text-[#366494]">
                 {dpiResult.averageDPI}
@@ -716,34 +855,46 @@ export function DPIChecker({ showSignupForm = true, onSignupComplete }: DPICheck
 
             <div className="grid md:grid-cols-2 gap-4">
               <div className="bg-blue-50 rounded-lg p-4">
-                <h4 className="font-medium text-gray-900 mb-2">Detailed Results</h4>
+                <h4 className="font-medium text-gray-900 mb-2">
+                  Detailed Results
+                </h4>
                 <div className="space-y-1 text-sm">
                   <p className="text-gray-600">
-                    Horizontal DPI: <span className="font-medium text-gray-900">{dpiResult.horizontalDPI}</span>
+                    Horizontal DPI:{' '}
+                    <span className="font-medium text-gray-900">
+                      {dpiResult.horizontalDPI}
+                    </span>
                   </p>
                   <p className="text-gray-600">
-                    Vertical DPI: <span className="font-medium text-gray-900">{dpiResult.verticalDPI}</span>
+                    Vertical DPI:{' '}
+                    <span className="font-medium text-gray-900">
+                      {dpiResult.verticalDPI}
+                    </span>
                   </p>
                 </div>
               </div>
 
               <div className="bg-green-50 rounded-lg p-4">
-                <h4 className="font-medium text-gray-900 mb-2">Optimal Print Size</h4>
+                <h4 className="font-medium text-gray-900 mb-2">
+                  Optimal Print Size
+                </h4>
                 <p className="text-sm text-gray-600">
                   For 300 DPI quality:{' '}
                   <span className="font-medium text-gray-900">
-                    {dpiResult.printSizeAtOptimalDPI.width}" × {dpiResult.printSizeAtOptimalDPI.height}"
+                    {dpiResult.printSizeAtOptimalDPI.width}" ×{' '}
+                    {dpiResult.printSizeAtOptimalDPI.height}"
                   </span>
                 </p>
               </div>
             </div>
 
-            <div className={`${dpiResult.qualityLevel === 'excellent' ? 'bg-green-50' : 'bg-[#E88B4B]/10'} rounded-lg p-4 text-center`}>
+            <div
+              className={`${dpiResult.qualityLevel === 'excellent' ? 'bg-green-50' : 'bg-[#E88B4B]/10'} rounded-lg p-4 text-center`}
+            >
               <p className="text-gray-700 mb-3">
-                {dpiResult.qualityLevel === 'excellent' 
+                {dpiResult.qualityLevel === 'excellent'
                   ? `Your image already meets 300 DPI for ${printWidth}" × ${printHeight}" printing!`
-                  : `Need to improve your image quality for ${printWidth}" × ${printHeight}" printing?`
-                }
+                  : `Need to improve your image quality for ${printWidth}" × ${printHeight}" printing?`}
               </p>
               <div className="flex gap-2 justify-center">
                 <Button
@@ -755,15 +906,23 @@ export function DPIChecker({ showSignupForm = true, onSignupComplete }: DPICheck
                     params.append('printHeight', printHeight);
                     router.push(`/process/upscale?${params.toString()}`);
                   }}
-                  className={dpiResult.qualityLevel === 'excellent' ? 'bg-green-600 hover:bg-green-700' : 'bg-[#E88B4B] hover:bg-[#d67a3a]'}
+                  className={
+                    dpiResult.qualityLevel === 'excellent'
+                      ? 'bg-green-600 hover:bg-green-700'
+                      : 'bg-[#E88B4B] hover:bg-[#d67a3a]'
+                  }
                 >
-                  {dpiResult.qualityLevel === 'excellent' ? 'Process Anyway' : 'Upscale to 300 DPI'}
+                  {dpiResult.qualityLevel === 'excellent'
+                    ? 'Process Anyway'
+                    : 'Upscale to 300 DPI'}
                 </Button>
                 {imagePreview && (
                   <Button
                     onClick={() => {
                       // Just send the image without dimensions to background removal
-                      router.push(`/process/background-removal?imageUrl=${encodeURIComponent(imagePreview)}`);
+                      router.push(
+                        `/process/background-removal?imageUrl=${encodeURIComponent(imagePreview)}`
+                      );
                     }}
                     variant="outline"
                   >

@@ -51,12 +51,16 @@ export function CardHeader({ className, children, ...props }: CardHeaderProps) {
   );
 }
 
-export interface CardTitleProps extends React.HTMLAttributes<HTMLHeadingElement> {}
+export interface CardTitleProps
+  extends React.HTMLAttributes<HTMLHeadingElement> {}
 
 export function CardTitle({ className, children, ...props }: CardTitleProps) {
   return (
     <h3
-      className={cn('text-lg font-semibold leading-none tracking-tight', className)}
+      className={cn(
+        'text-lg font-semibold leading-none tracking-tight',
+        className
+      )}
       {...props}
     >
       {children}
@@ -64,9 +68,14 @@ export function CardTitle({ className, children, ...props }: CardTitleProps) {
   );
 }
 
-export interface CardDescriptionProps extends React.HTMLAttributes<HTMLParagraphElement> {}
+export interface CardDescriptionProps
+  extends React.HTMLAttributes<HTMLParagraphElement> {}
 
-export function CardDescription({ className, children, ...props }: CardDescriptionProps) {
+export function CardDescription({
+  className,
+  children,
+  ...props
+}: CardDescriptionProps) {
   return (
     <p className={cn('text-sm text-gray-500', className)} {...props}>
       {children}
@@ -74,9 +83,14 @@ export function CardDescription({ className, children, ...props }: CardDescripti
   );
 }
 
-export interface CardContentProps extends React.HTMLAttributes<HTMLDivElement> {}
+export interface CardContentProps
+  extends React.HTMLAttributes<HTMLDivElement> {}
 
-export function CardContent({ className, children, ...props }: CardContentProps) {
+export function CardContent({
+  className,
+  children,
+  ...props
+}: CardContentProps) {
   return (
     <div className={cn('pt-0', className)} {...props}>
       {children}
@@ -92,4 +106,4 @@ export function CardFooter({ className, children, ...props }: CardFooterProps) {
       {children}
     </div>
   );
-} 
+}

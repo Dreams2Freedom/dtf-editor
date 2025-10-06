@@ -18,6 +18,7 @@ Based on the logs, your Stripe payment is successful but the webhook endpoint is
 ### Step 2: Select Events to Listen For
 
 Select the following events (minimum required):
+
 - ✅ `checkout.session.completed` (Critical for both subscriptions and one-time payments)
 - ✅ `customer.subscription.created`
 - ✅ `customer.subscription.updated`
@@ -49,11 +50,13 @@ Select the following events (minimum required):
 ## Testing the Webhook
 
 ### Option 1: Test with Real Payment
+
 1. Make a small test purchase
 2. Check Stripe Dashboard → Developers → Webhooks → Your endpoint
 3. You should see successful webhook deliveries
 
 ### Option 2: Test with Stripe CLI (Local Development)
+
 ```bash
 # Install Stripe CLI
 brew install stripe/stripe-cli/stripe

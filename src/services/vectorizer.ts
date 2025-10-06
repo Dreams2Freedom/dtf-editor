@@ -42,7 +42,10 @@ export class VectorizerService {
     options: VectorizerOptions = {}
   ): Promise<VectorizerResult> {
     if (!this.apiId || !this.apiSecret) {
-      return { status: 'error', error: 'Vectorizer.ai API credentials are not configured' };
+      return {
+        status: 'error',
+        error: 'Vectorizer.ai API credentials are not configured',
+      };
     }
 
     const startTime = Date.now();
@@ -56,7 +59,9 @@ export class VectorizerService {
       // Download the image first
       const imageResponse = await fetch(imageUrl);
       if (!imageResponse.ok) {
-        throw new Error(`Failed to download image: ${imageResponse.statusText}`);
+        throw new Error(
+          `Failed to download image: ${imageResponse.statusText}`
+        );
       }
 
       const imageBlob = await imageResponse.blob();
@@ -65,7 +70,7 @@ export class VectorizerService {
       // Prepare form data for Vectorizer.ai API
       const formData = new FormData();
       formData.append('image', imageBlob, 'image.jpg');
-      
+
       // Add options - for PNG, we request SVG and convert later
       const requestFormat = options.format === 'png' ? 'svg' : options.format;
       if (requestFormat) {
@@ -79,16 +84,28 @@ export class VectorizerService {
       // Add processing options if provided
       if (options.processing_options) {
         if (options.processing_options.corner_threshold !== undefined) {
-          formData.append('processing.corner_threshold', options.processing_options.corner_threshold.toString());
+          formData.append(
+            'processing.corner_threshold',
+            options.processing_options.corner_threshold.toString()
+          );
         }
         if (options.processing_options.length_threshold !== undefined) {
-          formData.append('processing.length_threshold', options.processing_options.length_threshold.toString());
+          formData.append(
+            'processing.length_threshold',
+            options.processing_options.length_threshold.toString()
+          );
         }
         if (options.processing_options.max_iterations !== undefined) {
-          formData.append('processing.max_iterations', options.processing_options.max_iterations.toString());
+          formData.append(
+            'processing.max_iterations',
+            options.processing_options.max_iterations.toString()
+          );
         }
         if (options.processing_options.splice_threshold !== undefined) {
-          formData.append('processing.splice_threshold', options.processing_options.splice_threshold.toString());
+          formData.append(
+            'processing.splice_threshold',
+            options.processing_options.splice_threshold.toString()
+          );
         }
       }
 
@@ -96,7 +113,9 @@ export class VectorizerService {
       const response = await fetch(`${this.baseUrl}/vectorize`, {
         method: 'POST',
         headers: {
-          'Authorization': 'Basic ' + Buffer.from(`${this.apiId}:${this.apiSecret}`).toString('base64'),
+          Authorization:
+            'Basic ' +
+            Buffer.from(`${this.apiId}:${this.apiSecret}`).toString('base64'),
         },
         body: formData,
       });
@@ -105,34 +124,36 @@ export class VectorizerService {
 
       if (!response.ok) {
         const errorData = await response.text();
-        throw new Error(`Vectorizer.ai API error: ${response.status} - ${errorData}`);
+        throw new Error(
+          `Vectorizer.ai API error: ${response.status} - ${errorData}`
+        );
       }
 
       // For Vectorizer.ai, the response is the processed vector file directly
       const resultBuffer = await response.arrayBuffer();
-      
+
       // If PNG was requested, convert SVG to PNG
       if (options.format === 'png') {
         try {
           // Import sharp dynamically to avoid client-side issues
           const sharp = require('sharp');
-          
+
           // Convert SVG to PNG with 4x scaling and transparency
           const svgBuffer = Buffer.from(resultBuffer);
-          
+
           // First, we need to get the dimensions from the SVG
           // Sharp will handle the 4x scaling automatically based on density
           const pngBuffer = await sharp(svgBuffer, { density: 288 }) // 72 * 4 = 288 DPI for 4x scaling
-            .png({ 
+            .png({
               compressionLevel: 9,
               quality: 100,
-              force: true 
+              force: true,
             })
             .toBuffer();
-          
+
           const pngBase64 = pngBuffer.toString('base64');
           const pngUrl = `data:image/png;base64,${pngBase64}`;
-          
+
           return {
             status: 'success',
             url: pngUrl,
@@ -148,7 +169,7 @@ export class VectorizerService {
           // Fallback to returning the SVG if conversion fails
           const resultBase64 = Buffer.from(resultBuffer).toString('base64');
           const resultUrl = `data:image/svg+xml;base64,${resultBase64}`;
-          
+
           return {
             status: 'error',
             error: 'Failed to convert to PNG, returning SVG instead',
@@ -162,10 +183,11 @@ export class VectorizerService {
           };
         }
       }
-      
+
       // For SVG and PDF, return as before
       const resultBase64 = Buffer.from(resultBuffer).toString('base64');
-      const mimeType = options.format === 'pdf' ? 'application/pdf' : 'image/svg+xml';
+      const mimeType =
+        options.format === 'pdf' ? 'application/pdf' : 'image/svg+xml';
       const resultUrl = `data:${mimeType};base64,${resultBase64}`;
 
       return {
@@ -178,7 +200,6 @@ export class VectorizerService {
           format: options.format || 'svg',
         },
       };
-
     } catch (error) {
       return {
         status: 'error',
@@ -193,7 +214,6 @@ export class VectorizerService {
     }
   }
 
-
   /**
    * Get account info from Vectorizer.ai (for credit checking)
    */
@@ -204,7 +224,9 @@ export class VectorizerService {
     try {
       const response = await fetch(`${this.baseUrl}/account`, {
         headers: {
-          'Authorization': 'Basic ' + Buffer.from(`${this.apiId}:${this.apiSecret}`).toString('base64'),
+          Authorization:
+            'Basic ' +
+            Buffer.from(`${this.apiId}:${this.apiSecret}`).toString('base64'),
         },
       });
 
@@ -227,7 +249,13 @@ export class VectorizerService {
    */
   async validateImage(file: File): Promise<{ valid: boolean; error?: string }> {
     // Check file type
-    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/bmp'];
+    const allowedTypes = [
+      'image/jpeg',
+      'image/jpg',
+      'image/png',
+      'image/webp',
+      'image/bmp',
+    ];
     if (!allowedTypes.includes(file.type)) {
       return {
         valid: false,
@@ -245,7 +273,7 @@ export class VectorizerService {
     }
 
     // Check minimum dimensions
-    return new Promise((resolve) => {
+    return new Promise(resolve => {
       const img = new Image();
       img.onload = () => {
         if (img.width < 32 || img.height < 32) {

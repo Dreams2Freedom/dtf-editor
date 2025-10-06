@@ -18,9 +18,12 @@ export default function AdminError({
   useEffect(() => {
     // Log the error to an error reporting service
     console.error('Admin panel error:', error);
-    
+
     // Log to admin audit log if critical
-    if (error.message?.includes('Security') || error.message?.includes('Auth')) {
+    if (
+      error.message?.includes('Security') ||
+      error.message?.includes('Auth')
+    ) {
       console.error('SECURITY ERROR IN ADMIN PANEL:', error);
     }
   }, [error]);
@@ -32,13 +35,14 @@ export default function AdminError({
           <div className="flex justify-center mb-4">
             <Shield className="h-12 w-12 text-error-500" />
           </div>
-          
+
           <h1 className="text-2xl font-bold text-gray-900 mb-2">
             Admin Panel Error
           </h1>
-          
+
           <p className="text-gray-600 mb-6">
-            An error occurred in the admin panel. This incident has been logged for review.
+            An error occurred in the admin panel. This incident has been logged
+            for review.
           </p>
 
           {process.env.NODE_ENV === 'development' && error.message && (
@@ -57,7 +61,7 @@ export default function AdminError({
               <RefreshCw className="w-4 h-4" />
               Try Again
             </Button>
-            
+
             <Button
               variant="outline"
               onClick={() => router.push('/admin')}

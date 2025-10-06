@@ -13,7 +13,7 @@ import {
   Download,
   Upload,
   Globe,
-  Flag
+  Flag,
 } from 'lucide-react';
 
 interface TaxFormData {
@@ -50,7 +50,7 @@ export default function TaxFormsPage() {
     postal_code: '',
     signature_name: '',
     signature_date: new Date().toISOString().split('T')[0],
-    certified: false
+    certified: false,
   });
   const [submitting, setSubmitting] = useState(false);
   const router = useRouter();
@@ -116,15 +116,15 @@ export default function TaxFormsPage() {
       const response = await fetch('/api/affiliate/tax-form', {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
         },
         body: JSON.stringify({
           affiliateId: affiliate.id,
           taxFormData: {
             ...taxFormData,
-            submitted_at: new Date().toISOString()
-          }
-        })
+            submitted_at: new Date().toISOString(),
+          },
+        }),
       });
 
       const result = await response.json();
@@ -163,10 +163,17 @@ export default function TaxFormsPage() {
                 Your {formType} form has been submitted and is on file.
               </p>
               <div className="bg-gray-50 p-4 rounded-lg text-left max-w-md mx-auto">
-                <p className="text-sm font-medium text-gray-700 mb-2">Important Information:</p>
+                <p className="text-sm font-medium text-gray-700 mb-2">
+                  Important Information:
+                </p>
                 <ul className="text-sm text-gray-600 space-y-1">
                   <li>• Form Type: {formType}</li>
-                  <li>• Submitted: {new Date(affiliate.tax_form_completed_at).toLocaleDateString()}</li>
+                  <li>
+                    • Submitted:{' '}
+                    {new Date(
+                      affiliate.tax_form_completed_at
+                    ).toLocaleDateString()}
+                  </li>
                   <li>• Tax ID: ***-**-****</li>
                   {formType === 'W9' && (
                     <li>• 1099-MISC will be issued if earnings exceed $600</li>
@@ -201,11 +208,21 @@ export default function TaxFormsPage() {
               <div className="flex items-start">
                 <AlertCircle className="h-5 w-5 text-yellow-600 mt-0.5 mr-2" />
                 <div className="text-sm">
-                  <p className="font-medium text-yellow-800">Why we need this information:</p>
+                  <p className="font-medium text-yellow-800">
+                    Why we need this information:
+                  </p>
                   <ul className="mt-1 text-yellow-700 space-y-1">
-                    <li>• IRS regulations require tax reporting for affiliate earnings</li>
-                    <li>• US affiliates earning $600+ will receive a 1099-MISC</li>
-                    <li>• International affiliates may be eligible for tax treaty benefits</li>
+                    <li>
+                      • IRS regulations require tax reporting for affiliate
+                      earnings
+                    </li>
+                    <li>
+                      • US affiliates earning $600+ will receive a 1099-MISC
+                    </li>
+                    <li>
+                      • International affiliates may be eligible for tax treaty
+                      benefits
+                    </li>
                     <li>• This information is securely encrypted and stored</li>
                   </ul>
                 </div>
@@ -214,12 +231,18 @@ export default function TaxFormsPage() {
 
             {!formType ? (
               <div className="space-y-4">
-                <h2 className="text-lg font-semibold">Select Your Tax Status:</h2>
+                <h2 className="text-lg font-semibold">
+                  Select Your Tax Status:
+                </h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <button
                     onClick={() => {
                       setFormType('W9');
-                      setTaxFormData(prev => ({ ...prev, form_type: 'W9', country: 'US' }));
+                      setTaxFormData(prev => ({
+                        ...prev,
+                        form_type: 'W9',
+                        country: 'US',
+                      }));
                     }}
                     className="p-6 border-2 border-gray-200 rounded-lg hover:border-blue-500 transition-colors"
                   >
@@ -234,7 +257,11 @@ export default function TaxFormsPage() {
                   <button
                     onClick={() => {
                       setFormType('W8BEN');
-                      setTaxFormData(prev => ({ ...prev, form_type: 'W8BEN', country: '' }));
+                      setTaxFormData(prev => ({
+                        ...prev,
+                        form_type: 'W8BEN',
+                        country: '',
+                      }));
                     }}
                     className="p-6 border-2 border-gray-200 rounded-lg hover:border-blue-500 transition-colors"
                   >
@@ -263,7 +290,12 @@ export default function TaxFormsPage() {
                       type="text"
                       required
                       value={taxFormData.legal_name}
-                      onChange={(e) => setTaxFormData(prev => ({ ...prev, legal_name: e.target.value }))}
+                      onChange={e =>
+                        setTaxFormData(prev => ({
+                          ...prev,
+                          legal_name: e.target.value,
+                        }))
+                      }
                       className="w-full px-3 py-2 border rounded-lg"
                     />
                   </div>
@@ -276,7 +308,12 @@ export default function TaxFormsPage() {
                       <input
                         type="text"
                         value={taxFormData.business_name || ''}
-                        onChange={(e) => setTaxFormData(prev => ({ ...prev, business_name: e.target.value }))}
+                        onChange={e =>
+                          setTaxFormData(prev => ({
+                            ...prev,
+                            business_name: e.target.value,
+                          }))
+                        }
                         className="w-full px-3 py-2 border rounded-lg"
                       />
                     </div>
@@ -290,9 +327,16 @@ export default function TaxFormsPage() {
                       type="text"
                       required
                       value={taxFormData.tax_id}
-                      onChange={(e) => setTaxFormData(prev => ({ ...prev, tax_id: e.target.value }))}
+                      onChange={e =>
+                        setTaxFormData(prev => ({
+                          ...prev,
+                          tax_id: e.target.value,
+                        }))
+                      }
                       className="w-full px-3 py-2 border rounded-lg"
-                      placeholder={formType === 'W9' ? 'XXX-XX-XXXX or XX-XXXXXXX' : ''}
+                      placeholder={
+                        formType === 'W9' ? 'XXX-XX-XXXX or XX-XXXXXXX' : ''
+                      }
                     />
                   </div>
 
@@ -304,7 +348,12 @@ export default function TaxFormsPage() {
                       type="text"
                       required
                       value={taxFormData.address}
-                      onChange={(e) => setTaxFormData(prev => ({ ...prev, address: e.target.value }))}
+                      onChange={e =>
+                        setTaxFormData(prev => ({
+                          ...prev,
+                          address: e.target.value,
+                        }))
+                      }
                       className="w-full px-3 py-2 border rounded-lg"
                     />
                   </div>
@@ -317,7 +366,12 @@ export default function TaxFormsPage() {
                       type="text"
                       required
                       value={taxFormData.city}
-                      onChange={(e) => setTaxFormData(prev => ({ ...prev, city: e.target.value }))}
+                      onChange={e =>
+                        setTaxFormData(prev => ({
+                          ...prev,
+                          city: e.target.value,
+                        }))
+                      }
                       className="w-full px-3 py-2 border rounded-lg"
                     />
                   </div>
@@ -331,7 +385,12 @@ export default function TaxFormsPage() {
                         type="text"
                         required
                         value={taxFormData.state || ''}
-                        onChange={(e) => setTaxFormData(prev => ({ ...prev, state: e.target.value }))}
+                        onChange={e =>
+                          setTaxFormData(prev => ({
+                            ...prev,
+                            state: e.target.value,
+                          }))
+                        }
                         className="w-full px-3 py-2 border rounded-lg"
                         maxLength={2}
                         placeholder="XX"
@@ -348,7 +407,12 @@ export default function TaxFormsPage() {
                         type="text"
                         required
                         value={taxFormData.country}
-                        onChange={(e) => setTaxFormData(prev => ({ ...prev, country: e.target.value }))}
+                        onChange={e =>
+                          setTaxFormData(prev => ({
+                            ...prev,
+                            country: e.target.value,
+                          }))
+                        }
                         className="w-full px-3 py-2 border rounded-lg"
                       />
                     </div>
@@ -362,7 +426,12 @@ export default function TaxFormsPage() {
                       type="text"
                       required
                       value={taxFormData.postal_code}
-                      onChange={(e) => setTaxFormData(prev => ({ ...prev, postal_code: e.target.value }))}
+                      onChange={e =>
+                        setTaxFormData(prev => ({
+                          ...prev,
+                          postal_code: e.target.value,
+                        }))
+                      }
                       className="w-full px-3 py-2 border rounded-lg"
                     />
                   </div>
@@ -370,23 +439,36 @@ export default function TaxFormsPage() {
 
                 {formType === 'W8BEN' && (
                   <div className="mt-4 p-4 bg-blue-50 rounded-lg">
-                    <p className="text-sm font-medium text-blue-800 mb-2">Tax Treaty Information (Optional)</p>
+                    <p className="text-sm font-medium text-blue-800 mb-2">
+                      Tax Treaty Information (Optional)
+                    </p>
                     <p className="text-xs text-blue-700 mb-3">
-                      If your country has a tax treaty with the US, you may be eligible for reduced withholding.
+                      If your country has a tax treaty with the US, you may be
+                      eligible for reduced withholding.
                     </p>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                       <input
                         type="text"
                         placeholder="Treaty Country"
                         value={taxFormData.treaty_country || ''}
-                        onChange={(e) => setTaxFormData(prev => ({ ...prev, treaty_country: e.target.value }))}
+                        onChange={e =>
+                          setTaxFormData(prev => ({
+                            ...prev,
+                            treaty_country: e.target.value,
+                          }))
+                        }
                         className="px-3 py-2 border rounded text-sm"
                       />
                       <input
                         type="text"
                         placeholder="Treaty Article"
                         value={taxFormData.treaty_article || ''}
-                        onChange={(e) => setTaxFormData(prev => ({ ...prev, treaty_article: e.target.value }))}
+                        onChange={e =>
+                          setTaxFormData(prev => ({
+                            ...prev,
+                            treaty_article: e.target.value,
+                          }))
+                        }
                         className="px-3 py-2 border rounded text-sm"
                       />
                     </div>
@@ -394,7 +476,9 @@ export default function TaxFormsPage() {
                 )}
 
                 <div className="mt-6 p-4 bg-gray-50 rounded-lg">
-                  <h3 className="font-medium mb-3">Certification & Signature</h3>
+                  <h3 className="font-medium mb-3">
+                    Certification & Signature
+                  </h3>
 
                   <div className="mb-4">
                     <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -404,7 +488,12 @@ export default function TaxFormsPage() {
                       type="text"
                       required
                       value={taxFormData.signature_name}
-                      onChange={(e) => setTaxFormData(prev => ({ ...prev, signature_name: e.target.value }))}
+                      onChange={e =>
+                        setTaxFormData(prev => ({
+                          ...prev,
+                          signature_name: e.target.value,
+                        }))
+                      }
                       className="w-full px-3 py-2 border rounded-lg"
                       placeholder="Enter your full legal name"
                     />
@@ -415,19 +504,29 @@ export default function TaxFormsPage() {
                       type="checkbox"
                       id="certify"
                       checked={taxFormData.certified}
-                      onChange={(e) => setTaxFormData(prev => ({ ...prev, certified: e.target.checked }))}
+                      onChange={e =>
+                        setTaxFormData(prev => ({
+                          ...prev,
+                          certified: e.target.checked,
+                        }))
+                      }
                       className="mt-1 mr-2"
                       required
                     />
                     <label htmlFor="certify" className="text-sm text-gray-700">
                       Under penalties of perjury, I certify that:
                       <ul className="mt-1 ml-4 space-y-1">
-                        <li>• The information provided is true, correct, and complete</li>
+                        <li>
+                          • The information provided is true, correct, and
+                          complete
+                        </li>
                         <li>• I am the person/entity named above</li>
                         {formType === 'W9' && (
                           <>
                             <li>• I am not subject to backup withholding</li>
-                            <li>• I am a U.S. citizen or U.S. resident alien</li>
+                            <li>
+                              • I am a U.S. citizen or U.S. resident alien
+                            </li>
                           </>
                         )}
                         {formType === 'W8BEN' && (
@@ -463,9 +562,11 @@ export default function TaxFormsPage() {
 
             <div className="mt-6 p-4 bg-gray-50 rounded-lg">
               <p className="text-xs text-gray-600">
-                <strong>Privacy Notice:</strong> Your tax information is encrypted and stored securely.
-                It will only be used for tax reporting purposes as required by law. We will never share
-                your tax information with third parties except as required for tax reporting.
+                <strong>Privacy Notice:</strong> Your tax information is
+                encrypted and stored securely. It will only be used for tax
+                reporting purposes as required by law. We will never share your
+                tax information with third parties except as required for tax
+                reporting.
               </p>
             </div>
           </CardContent>

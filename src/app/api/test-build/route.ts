@@ -7,7 +7,7 @@ async function handleGet() {
     message: 'Build test v3',
     timestamp: new Date().toISOString(),
     hasUpscaleSave: true,
-    env: process.env.NODE_ENV
+    env: process.env.NODE_ENV,
   });
 }
 

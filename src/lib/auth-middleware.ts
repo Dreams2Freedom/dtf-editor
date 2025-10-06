@@ -13,12 +13,15 @@ const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
 export async function verifyAuth(request: NextRequest) {
   try {
     const supabase = await createServerSupabaseClient();
-    const { data: { user }, error } = await supabase.auth.getUser();
-    
+    const {
+      data: { user },
+      error,
+    } = await supabase.auth.getUser();
+
     if (error || !user) {
       return null;
     }
-    
+
     return user;
   } catch (error) {
     console.error('Auth verification error:', error);
@@ -37,26 +40,26 @@ export async function verifyAdmin(userId: string): Promise<boolean> {
     if (cached && cached.expiresAt > Date.now()) {
       return cached.isAdmin;
     }
-    
+
     const supabase = await createServerSupabaseClient();
-    
+
     const { data: profile, error } = await supabase
       .from('profiles')
       .select('is_admin')
       .eq('id', userId)
       .single();
-    
+
     if (error || !profile) {
       console.error('Admin verification error:', error);
       return false;
     }
-    
+
     // Cache the result
     adminCache.set(userId, {
       isAdmin: profile.is_admin === true,
       expiresAt: Date.now() + CACHE_DURATION,
     });
-    
+
     return profile.is_admin === true;
   } catch (error) {
     console.error('Admin verification error:', error);
@@ -68,19 +71,21 @@ export async function verifyAdmin(userId: string): Promise<boolean> {
  * Authentication middleware
  * Ensures user is authenticated
  */
-export async function requireAuth(request: NextRequest): Promise<NextResponse | null> {
+export async function requireAuth(
+  request: NextRequest
+): Promise<NextResponse | null> {
   const user = await verifyAuth(request);
-  
+
   if (!user) {
     return NextResponse.json(
       { error: 'Authentication required' },
       { status: 401 }
     );
   }
-  
+
   // Add user ID to headers for rate limiting
   request.headers.set('x-user-id', user.id);
-  
+
   return null;
 }
 
@@ -88,9 +93,11 @@ export async function requireAuth(request: NextRequest): Promise<NextResponse | 
  * Admin authorization middleware
  * Ensures user is authenticated AND is an admin
  */
-export async function requireAdmin(request: NextRequest): Promise<NextResponse | null> {
+export async function requireAdmin(
+  request: NextRequest
+): Promise<NextResponse | null> {
   const user = await verifyAuth(request);
-  
+
   if (!user) {
     console.error('requireAdmin: No authenticated user');
     return NextResponse.json(
@@ -98,25 +105,27 @@ export async function requireAdmin(request: NextRequest): Promise<NextResponse |
       { status: 401 }
     );
   }
-  
+
   console.log('requireAdmin: Checking admin status for:', user.email);
   const isAdmin = await verifyAdmin(user.id);
   console.log('requireAdmin: isAdmin result:', isAdmin);
-  
+
   if (!isAdmin) {
     // Log unauthorized admin access attempts
-    console.warn(`⚠️ Unauthorized admin access attempt by user: ${user.email} (${user.id})`);
-    
+    console.warn(
+      `⚠️ Unauthorized admin access attempt by user: ${user.email} (${user.id})`
+    );
+
     return NextResponse.json(
       { error: 'Admin access required' },
       { status: 403 }
     );
   }
-  
+
   // Add user ID to headers for rate limiting
   request.headers.set('x-user-id', user.id);
   request.headers.set('x-is-admin', 'true');
-  
+
   return null;
 }
 
@@ -128,14 +137,14 @@ export function withAuth(
 ) {
   return async (request: NextRequest): Promise<NextResponse> => {
     const user = await verifyAuth(request);
-    
+
     if (!user) {
       return NextResponse.json(
         { error: 'Authentication required' },
         { status: 401 }
       );
     }
-    
+
     return handler(request, user);
   };
 }
@@ -148,24 +157,26 @@ export function withAdmin(
 ) {
   return async (request: NextRequest): Promise<NextResponse> => {
     const user = await verifyAuth(request);
-    
+
     if (!user) {
       return NextResponse.json(
         { error: 'Authentication required' },
         { status: 401 }
       );
     }
-    
+
     const isAdmin = await verifyAdmin(user.id);
-    
+
     if (!isAdmin) {
-      console.warn(`⚠️ Unauthorized admin access attempt by user: ${user.email} (${user.id})`);
+      console.warn(
+        `⚠️ Unauthorized admin access attempt by user: ${user.email} (${user.id})`
+      );
       return NextResponse.json(
         { error: 'Admin access required' },
         { status: 403 }
       );
     }
-    
+
     return handler(request, user);
   };
 }
@@ -180,13 +191,19 @@ export function addSecurityHeaders(response: NextResponse): NextResponse {
   response.headers.set('X-Frame-Options', 'DENY');
   response.headers.set('X-XSS-Protection', '1; mode=block');
   response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
-  response.headers.set('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
-  
+  response.headers.set(
+    'Permissions-Policy',
+    'camera=(), microphone=(), geolocation=()'
+  );
+
   // Only add HSTS in production
   if (process.env.NODE_ENV === 'production') {
-    response.headers.set('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
+    response.headers.set(
+      'Strict-Transport-Security',
+      'max-age=31536000; includeSubDomains'
+    );
   }
-  
+
   // Content Security Policy (adjust as needed)
   const csp = [
     "default-src 'self'",
@@ -201,8 +218,8 @@ export function addSecurityHeaders(response: NextResponse): NextResponse {
     "form-action 'self'",
     "frame-ancestors 'none'",
   ].join('; ');
-  
+
   response.headers.set('Content-Security-Policy', csp);
-  
+
   return response;
 }

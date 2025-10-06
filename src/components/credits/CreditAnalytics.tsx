@@ -30,7 +30,7 @@ export function CreditAnalytics() {
     if (!user) return;
 
     const supabase = createClientSupabaseClient();
-    
+
     // Fetch transaction summary
     const { data: transactions, error } = await supabase
       .from('credit_transactions')
@@ -44,7 +44,7 @@ export function CreditAnalytics() {
         totalRefunded: 0,
         currentBalance: profile.credits_remaining || 0,
         lastResetDate: profile.last_credit_reset || null,
-        subscriptionStatus: profile.subscription_status || 'free'
+        subscriptionStatus: profile.subscription_status || 'free',
       };
 
       transactions.forEach(t => {
@@ -95,21 +95,21 @@ export function CreditAnalytics() {
       value: stats.currentBalance,
       icon: Coins,
       color: 'text-blue-600',
-      bgColor: 'bg-blue-100'
+      bgColor: 'bg-blue-100',
     },
     {
       title: 'Total Used',
       value: stats.totalUsed,
       icon: TrendingDown,
       color: 'text-red-600',
-      bgColor: 'bg-red-100'
+      bgColor: 'bg-red-100',
     },
     {
       title: 'Total Earned',
       value: stats.totalPurchased,
       icon: TrendingUp,
       color: 'text-green-600',
-      bgColor: 'bg-green-100'
+      bgColor: 'bg-green-100',
     },
     {
       title: 'Subscription',
@@ -117,8 +117,8 @@ export function CreditAnalytics() {
       icon: Calendar,
       color: 'text-purple-600',
       bgColor: 'bg-purple-100',
-      isText: true
-    }
+      isText: true,
+    },
   ];
 
   return (

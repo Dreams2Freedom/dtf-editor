@@ -15,7 +15,7 @@ import {
   Clock,
   TrendingUp,
   Download,
-  Filter
+  Filter,
 } from 'lucide-react';
 
 interface Commission {
@@ -44,13 +44,15 @@ interface Commission {
 export default function AdminAffiliateCommissionsPage() {
   const [commissions, setCommissions] = useState<Commission[]>([]);
   const [loading, setLoading] = useState(true);
-  const [filter, setFilter] = useState<'all' | 'pending' | 'approved' | 'paid' | 'cancelled'>('all');
+  const [filter, setFilter] = useState<
+    'all' | 'pending' | 'approved' | 'paid' | 'cancelled'
+  >('all');
   const [selectedMonth, setSelectedMonth] = useState('');
   const [stats, setStats] = useState({
     totalCommissions: 0,
     pendingAmount: 0,
     paidAmount: 0,
-    averageCommission: 0
+    averageCommission: 0,
   });
 
   useEffect(() => {
@@ -73,12 +75,18 @@ export default function AdminAffiliateCommissionsPage() {
 
       // Apply client-side filters
       if (filter !== 'all') {
-        commissionsData = commissionsData.filter((c: any) => c.status === filter);
+        commissionsData = commissionsData.filter(
+          (c: any) => c.status === filter
+        );
       }
 
       if (selectedMonth) {
         const startDate = new Date(selectedMonth + '-01');
-        const endDate = new Date(startDate.getFullYear(), startDate.getMonth() + 1, 0);
+        const endDate = new Date(
+          startDate.getFullYear(),
+          startDate.getMonth() + 1,
+          0
+        );
         commissionsData = commissionsData.filter((c: any) => {
           const createdAt = new Date(c.created_at);
           return createdAt >= startDate && createdAt <= endDate;
@@ -101,7 +109,7 @@ export default function AdminAffiliateCommissionsPage() {
         totalCommissions: total,
         pendingAmount: pending,
         paidAmount: paid,
-        averageCommission: avg
+        averageCommission: avg,
       });
     } catch (error) {
       console.error('Error fetching commissions:', error);
@@ -111,13 +119,19 @@ export default function AdminAffiliateCommissionsPage() {
     }
   }
 
-  async function updateCommissionStatus(commissionId: string, newStatus: string) {
+  async function updateCommissionStatus(
+    commissionId: string,
+    newStatus: string
+  ) {
     try {
-      const response = await fetch(`/api/admin/affiliates/commissions/${commissionId}/update-status`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status: newStatus })
-      });
+      const response = await fetch(
+        `/api/admin/affiliates/commissions/${commissionId}/update-status`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ status: newStatus }),
+        }
+      );
 
       if (!response.ok) {
         const error = await response.json();
@@ -134,16 +148,26 @@ export default function AdminAffiliateCommissionsPage() {
 
   function exportCommissions() {
     const csv = [
-      ['Date', 'Affiliate', 'Email', 'Amount', 'Type', 'Status', 'Referral Email'].join(','),
-      ...commissions.map(c => [
-        new Date(c.created_at).toLocaleDateString(),
-        c.affiliate?.user?.full_name || '',
-        c.affiliate?.user?.email || '',
-        c.amount,
-        c.commission_type,
-        c.status,
-        c.referral?.user_email || ''
-      ].join(','))
+      [
+        'Date',
+        'Affiliate',
+        'Email',
+        'Amount',
+        'Type',
+        'Status',
+        'Referral Email',
+      ].join(','),
+      ...commissions.map(c =>
+        [
+          new Date(c.created_at).toLocaleDateString(),
+          c.affiliate?.user?.full_name || '',
+          c.affiliate?.user?.email || '',
+          c.amount,
+          c.commission_type,
+          c.status,
+          c.referral?.user_email || '',
+        ].join(',')
+      ),
     ].join('\n');
 
     const blob = new Blob([csv], { type: 'text/csv' });
@@ -170,7 +194,7 @@ export default function AdminAffiliateCommissionsPage() {
         homeLabel="Admin Dashboard"
         items={[
           { label: 'Affiliates', href: '/admin/affiliates' },
-          { label: 'Commissions' }
+          { label: 'Commissions' },
         ]}
       />
 
@@ -205,7 +229,9 @@ export default function AdminAffiliateCommissionsPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-gray-600">Pending Payout</p>
-                <p className="text-2xl font-bold">${stats.pendingAmount.toFixed(2)}</p>
+                <p className="text-2xl font-bold">
+                  ${stats.pendingAmount.toFixed(2)}
+                </p>
               </div>
               <Clock className="h-8 w-8 text-warning-600" />
             </div>
@@ -217,7 +243,9 @@ export default function AdminAffiliateCommissionsPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-gray-600">Total Paid</p>
-                <p className="text-2xl font-bold">${stats.paidAmount.toFixed(2)}</p>
+                <p className="text-2xl font-bold">
+                  ${stats.paidAmount.toFixed(2)}
+                </p>
               </div>
               <CheckCircle className="h-8 w-8 text-success-600" />
             </div>
@@ -229,7 +257,9 @@ export default function AdminAffiliateCommissionsPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-gray-600">Avg Commission</p>
-                <p className="text-2xl font-bold">${stats.averageCommission.toFixed(2)}</p>
+                <p className="text-2xl font-bold">
+                  ${stats.averageCommission.toFixed(2)}
+                </p>
               </div>
               <DollarSign className="h-8 w-8 text-purple-600" />
             </div>
@@ -247,7 +277,7 @@ export default function AdminAffiliateCommissionsPage() {
             </div>
             <select
               value={filter}
-              onChange={(e) => setFilter(e.target.value as any)}
+              onChange={e => setFilter(e.target.value as any)}
               className="px-3 py-1 border rounded-lg text-sm"
             >
               <option value="all">All Status</option>
@@ -259,7 +289,7 @@ export default function AdminAffiliateCommissionsPage() {
             <input
               type="month"
               value={selectedMonth}
-              onChange={(e) => setSelectedMonth(e.target.value)}
+              onChange={e => setSelectedMonth(e.target.value)}
               className="px-3 py-1 border rounded-lg text-sm"
               placeholder="Select month"
             />
@@ -288,17 +318,31 @@ export default function AdminAffiliateCommissionsPage() {
             <table className="min-w-full divide-y divide-gray-200">
               <thead>
                 <tr>
-                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Date</th>
-                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Affiliate</th>
-                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Referral</th>
-                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Amount</th>
-                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Type</th>
-                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
-                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
+                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">
+                    Date
+                  </th>
+                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">
+                    Affiliate
+                  </th>
+                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">
+                    Referral
+                  </th>
+                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">
+                    Amount
+                  </th>
+                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">
+                    Type
+                  </th>
+                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">
+                    Status
+                  </th>
+                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">
+                    Actions
+                  </th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200">
-                {commissions.map((commission) => (
+                {commissions.map(commission => (
                   <tr key={commission.id}>
                     <td className="px-4 py-3 text-sm text-gray-500">
                       {new Date(commission.created_at).toLocaleDateString()}
@@ -327,24 +371,37 @@ export default function AdminAffiliateCommissionsPage() {
                       ${parseFloat(commission.amount).toFixed(2)}
                     </td>
                     <td className="px-4 py-3">
-                      <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
-                        commission.commission_type === 'recurring'
-                          ? 'bg-purple-100 text-purple-800'
-                          : 'bg-blue-100 text-blue-800'
-                      }`}>
+                      <span
+                        className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                          commission.commission_type === 'recurring'
+                            ? 'bg-purple-100 text-purple-800'
+                            : 'bg-blue-100 text-blue-800'
+                        }`}
+                      >
                         {commission.commission_type}
                       </span>
                     </td>
                     <td className="px-4 py-3">
-                      <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
-                        commission.status === 'paid' ? 'bg-success-100 text-success-800' :
-                        commission.status === 'approved' ? 'bg-blue-100 text-blue-800' :
-                        commission.status === 'cancelled' ? 'bg-error-100 text-error-800' :
-                        'bg-warning-100 text-warning-800'
-                      }`}>
-                        {commission.status === 'paid' && <CheckCircle className="h-3 w-3 mr-1" />}
-                        {commission.status === 'cancelled' && <XCircle className="h-3 w-3 mr-1" />}
-                        {commission.status === 'pending' && <Clock className="h-3 w-3 mr-1" />}
+                      <span
+                        className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                          commission.status === 'paid'
+                            ? 'bg-success-100 text-success-800'
+                            : commission.status === 'approved'
+                              ? 'bg-blue-100 text-blue-800'
+                              : commission.status === 'cancelled'
+                                ? 'bg-error-100 text-error-800'
+                                : 'bg-warning-100 text-warning-800'
+                        }`}
+                      >
+                        {commission.status === 'paid' && (
+                          <CheckCircle className="h-3 w-3 mr-1" />
+                        )}
+                        {commission.status === 'cancelled' && (
+                          <XCircle className="h-3 w-3 mr-1" />
+                        )}
+                        {commission.status === 'pending' && (
+                          <Clock className="h-3 w-3 mr-1" />
+                        )}
                         {commission.status}
                       </span>
                     </td>
@@ -353,13 +410,23 @@ export default function AdminAffiliateCommissionsPage() {
                         {commission.status === 'pending' && (
                           <>
                             <button
-                              onClick={() => updateCommissionStatus(commission.id, 'approved')}
+                              onClick={() =>
+                                updateCommissionStatus(
+                                  commission.id,
+                                  'approved'
+                                )
+                              }
                               className="text-success-600 hover:text-success-800 text-sm"
                             >
                               Approve
                             </button>
                             <button
-                              onClick={() => updateCommissionStatus(commission.id, 'cancelled')}
+                              onClick={() =>
+                                updateCommissionStatus(
+                                  commission.id,
+                                  'cancelled'
+                                )
+                              }
                               className="text-error-600 hover:text-error-800 text-sm"
                             >
                               Cancel
@@ -368,7 +435,9 @@ export default function AdminAffiliateCommissionsPage() {
                         )}
                         {commission.status === 'approved' && (
                           <button
-                            onClick={() => updateCommissionStatus(commission.id, 'paid')}
+                            onClick={() =>
+                              updateCommissionStatus(commission.id, 'paid')
+                            }
                             className="text-blue-600 hover:text-blue-800 text-sm"
                           >
                             Mark Paid

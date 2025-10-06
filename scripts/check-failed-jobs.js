@@ -35,7 +35,9 @@ async function checkFailedJobs() {
       console.log(`  ID: ${job.id}`);
       console.log(`  Type: ${job.job_type}`);
       console.log(`  Created: ${new Date(job.created_at).toLocaleString()}`);
-      console.log(`  Error: ${job.error_message || 'No error message recorded'}`);
+      console.log(
+        `  Error: ${job.error_message || 'No error message recorded'}`
+      );
 
       if (job.input_data) {
         console.log(`  Input data:`, {
@@ -43,7 +45,7 @@ async function checkFailedJobs() {
           targetWidth: job.input_data.targetWidth,
           targetHeight: job.input_data.targetHeight,
           scale: job.input_data.scale,
-          originalFileName: job.input_data.originalFileName
+          originalFileName: job.input_data.originalFileName,
         });
       }
       console.log('');
@@ -59,11 +61,13 @@ async function checkFailedJobs() {
     if (processingJobs && processingJobs.length > 0) {
       console.log(`\n⏳ ${processingJobs.length} job(s) currently processing:`);
       processingJobs.forEach(job => {
-        const duration = Date.now() - new Date(job.started_at || job.created_at).getTime();
-        console.log(`  - ${job.job_type} (running for ${Math.round(duration / 1000)}s)`);
+        const duration =
+          Date.now() - new Date(job.started_at || job.created_at).getTime();
+        console.log(
+          `  - ${job.job_type} (running for ${Math.round(duration / 1000)}s)`
+        );
       });
     }
-
   } catch (err) {
     console.error('Unexpected error:', err);
   }

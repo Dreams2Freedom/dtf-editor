@@ -15,12 +15,16 @@ export default function AdminLayout({
         'iframe[src*="react-error-overlay"], [id*="error-overlay"], [class*="error-overlay"], nextjs-portal'
       );
       errorOverlays.forEach(el => el.remove());
-      
+
       // Remove any fixed position divs that might be overlays
       const fixedDivs = document.querySelectorAll('body > div');
       fixedDivs.forEach(div => {
         const style = window.getComputedStyle(div);
-        if (style.position === 'fixed' && style.zIndex && parseInt(style.zIndex) > 9000) {
+        if (
+          style.position === 'fixed' &&
+          style.zIndex &&
+          parseInt(style.zIndex) > 9000
+        ) {
           div.remove();
         }
       });

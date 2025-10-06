@@ -6,15 +6,16 @@ To enable payment functionality, you need to add the following environment varia
 
 ### 1. Core Stripe Keys
 
-| Variable Name | Description | Where to Find | Example Format |
-|--------------|-------------|---------------|----------------|
-| `STRIPE_SECRET_KEY` | Your Stripe secret API key | Stripe Dashboard → Developers → API keys | `sk_live_51H...` or `sk_test_51H...` |
-| `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` | Your public Stripe key | Stripe Dashboard → Developers → API keys | `pk_live_51H...` or `pk_test_51H...` |
-| `STRIPE_WEBHOOK_SECRET` | Webhook endpoint signing secret | Stripe Dashboard → Developers → Webhooks → Your endpoint | `whsec_...` |
+| Variable Name                        | Description                     | Where to Find                                            | Example Format                       |
+| ------------------------------------ | ------------------------------- | -------------------------------------------------------- | ------------------------------------ |
+| `STRIPE_SECRET_KEY`                  | Your Stripe secret API key      | Stripe Dashboard → Developers → API keys                 | `sk_live_51H...` or `sk_test_51H...` |
+| `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` | Your public Stripe key          | Stripe Dashboard → Developers → API keys                 | `pk_live_51H...` or `pk_test_51H...` |
+| `STRIPE_WEBHOOK_SECRET`              | Webhook endpoint signing secret | Stripe Dashboard → Developers → Webhooks → Your endpoint | `whsec_...`                          |
 
 ### 2. Price IDs (Already Configured)
 
 You already have these configured correctly:
+
 - `STRIPE_BASIC_PLAN_PRICE_ID`
 - `STRIPE_STARTER_PLAN_PRICE_ID`
 - `STRIPE_PAYG_10_CREDITS_PRICE_ID`
@@ -52,6 +53,7 @@ You already have these configured correctly:
 ### Step 4: Redeploy
 
 After adding all environment variables:
+
 1. Go to your Vercel project dashboard
 2. Click on "Redeploy" on the latest deployment
 3. Wait for deployment to complete
@@ -59,6 +61,7 @@ After adding all environment variables:
 ## Testing
 
 To verify everything is working:
+
 1. Try to purchase credits or subscribe to a plan
 2. Check that the Stripe checkout page loads properly
 3. Complete a test transaction (use Stripe test cards if in test mode)

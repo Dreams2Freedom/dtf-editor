@@ -25,7 +25,9 @@ console.log('━━━━━━━━━━━━━━━━━━━━━━�
 
 console.log('📋 Next Steps:');
 console.log('1. Copy the ENCRYPTION_KEY value above');
-console.log('2. Go to Vercel Dashboard → Your Project → Settings → Environment Variables');
+console.log(
+  '2. Go to Vercel Dashboard → Your Project → Settings → Environment Variables'
+);
 console.log('3. Add a new environment variable:');
 console.log('   - Name: ENCRYPTION_KEY');
 console.log('   - Value: (paste the key above)');
@@ -36,4 +38,6 @@ console.log('⚠️  SECURITY WARNING:');
 console.log('- Store this key securely');
 console.log('- Never commit this key to source control');
 console.log('- If this key is lost, encrypted data cannot be decrypted');
-console.log('- Rotating this key will invalidate all existing encrypted data\n');
+console.log(
+  '- Rotating this key will invalidate all existing encrypted data\n'
+);

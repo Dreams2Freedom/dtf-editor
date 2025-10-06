@@ -14,24 +14,26 @@ if (!SERVICE_KEY) {
 
 if (!TEST_USER_ID) {
   console.error('❌ Usage: node test-credit-reset-api.js <user-id>');
-  console.error('Example: node test-credit-reset-api.js 123e4567-e89b-12d3-a456-426614174000');
+  console.error(
+    'Example: node test-credit-reset-api.js 123e4567-e89b-12d3-a456-426614174000'
+  );
   process.exit(1);
 }
 
 async function testCreditReset() {
   console.log('🧪 Testing credit reset API...\n');
-  
+
   try {
     // Test single user reset
     console.log(`📝 Testing credit reset for user: ${TEST_USER_ID}`);
-    
+
     const response = await fetch(`${APP_URL}/api/credits/reset`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'x-api-key': SERVICE_KEY
+        'x-api-key': SERVICE_KEY,
       },
-      body: JSON.stringify({ userId: TEST_USER_ID })
+      body: JSON.stringify({ userId: TEST_USER_ID }),
     });
 
     if (!response.ok) {
@@ -54,10 +56,9 @@ async function testCreditReset() {
     //   },
     //   body: JSON.stringify({ resetAll: true })
     // });
-    
+
     // const resetAllResult = await resetAllResponse.json();
     // console.log('✅ Reset all response:', JSON.stringify(resetAllResult, null, 2));
-    
   } catch (error) {
     console.error('❌ Error testing credit reset:', error);
   }

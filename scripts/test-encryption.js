@@ -7,7 +7,9 @@
 const crypto = require('crypto');
 
 // Use the actual encryption key from Vercel
-const ENCRYPTION_KEY = process.env.ENCRYPTION_KEY || '6052ce223890b7991ab6d99fe8763ec56cfccdbfde47efd2be4a54e0b606f424';
+const ENCRYPTION_KEY =
+  process.env.ENCRYPTION_KEY ||
+  '6052ce223890b7991ab6d99fe8763ec56cfccdbfde47efd2be4a54e0b606f424';
 const ENCRYPTION_ALGORITHM = 'aes-256-gcm';
 
 console.log('\n🔐 Testing Encryption Format...\n');
@@ -44,7 +46,7 @@ function encryptSensitiveData(text) {
     const combined = Buffer.concat([
       iv,
       authTag,
-      Buffer.from(encrypted, 'hex')
+      Buffer.from(encrypted, 'hex'),
     ]);
 
     // Return base64 encoded
@@ -101,7 +103,11 @@ if (!isValid) {
   if (!encrypted) {
     console.log('  - Encryption returned null');
   } else if (encrypted.length < 64) {
-    console.log('  - Encrypted string too short:', encrypted.length, '< 64 characters');
+    console.log(
+      '  - Encrypted string too short:',
+      encrypted.length,
+      '< 64 characters'
+    );
   } else {
     console.log('  - Invalid base64 format');
   }

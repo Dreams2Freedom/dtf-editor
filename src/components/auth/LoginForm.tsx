@@ -119,12 +119,7 @@ export function LoginForm({ onSuccess, redirectTo }: LoginFormProps) {
         )}
 
         {/* Submit Button */}
-        <Button
-          type="submit"
-          fullWidth
-          loading={loading}
-          disabled={loading}
-        >
+        <Button type="submit" fullWidth loading={loading} disabled={loading}>
           Sign in
         </Button>
 

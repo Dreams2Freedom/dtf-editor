@@ -4,7 +4,15 @@ import React, { useState } from 'react';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { TransparentBackgroundNotice } from './TransparentBackgroundBadge';
-import { Lightbulb, Sparkles, ArrowRight, Loader2, PlayCircle, ChevronDown, ChevronUp } from 'lucide-react';
+import {
+  Lightbulb,
+  Sparkles,
+  ArrowRight,
+  Loader2,
+  PlayCircle,
+  ChevronDown,
+  ChevronUp,
+} from 'lucide-react';
 
 interface DescriptionStepProps {
   description: string;
@@ -49,9 +57,7 @@ export function DescriptionStep({
               <Sparkles className="w-5 h-5" />
             </div>
             <div>
-              <h3 className="text-lg font-bold text-blue-900">
-                How It Works
-              </h3>
+              <h3 className="text-lg font-bold text-blue-900">How It Works</h3>
               <p className="text-sm text-blue-700">
                 3 simple steps to create your perfect DTF design
               </p>
@@ -71,9 +77,13 @@ export function DescriptionStep({
                 1
               </div>
               <div>
-                <h4 className="font-semibold text-blue-900">Describe Your Image</h4>
+                <h4 className="font-semibold text-blue-900">
+                  Describe Your Image
+                </h4>
                 <p className="text-sm text-blue-700">
-                  Enter a simple description of what you want (e.g., "baseball themed design with 'Nana' text"). Don't worry about being too detailed - our AI will enhance it!
+                  Enter a simple description of what you want (e.g., "baseball
+                  themed design with 'Nana' text"). Don't worry about being too
+                  detailed - our AI will enhance it!
                 </p>
               </div>
             </div>
@@ -83,9 +93,13 @@ export function DescriptionStep({
                 2
               </div>
               <div>
-                <h4 className="font-semibold text-purple-900">Choose AI-Optimized Prompt</h4>
+                <h4 className="font-semibold text-purple-900">
+                  Choose AI-Optimized Prompt
+                </h4>
                 <p className="text-sm text-purple-700">
-                  Our AI generates 4 professional variations with rich details, colors, and styles. Pick your favorite or edit to customize further!
+                  Our AI generates 4 professional variations with rich details,
+                  colors, and styles. Pick your favorite or edit to customize
+                  further!
                 </p>
               </div>
             </div>
@@ -95,9 +109,12 @@ export function DescriptionStep({
                 3
               </div>
               <div>
-                <h4 className="font-semibold text-green-900">Generate & Download</h4>
+                <h4 className="font-semibold text-green-900">
+                  Generate & Download
+                </h4>
                 <p className="text-sm text-green-700">
-                  Configure size and quality, then generate your image with a transparent background - perfect for DTF printing!
+                  Configure size and quality, then generate your image with a
+                  transparent background - perfect for DTF printing!
                 </p>
               </div>
             </div>

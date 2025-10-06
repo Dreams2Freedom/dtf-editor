@@ -11,7 +11,7 @@ import {
   AlertCircle,
   Check,
   Edit2,
-  X
+  X,
 } from 'lucide-react';
 
 interface ApiCostConfig {
@@ -30,7 +30,7 @@ const PROVIDER_NAMES = {
   clipping_magic: 'ClippingMagic',
   vectorizer: 'Vectorizer.ai',
   openai: 'OpenAI',
-  stripe: 'Stripe'
+  stripe: 'Stripe',
 };
 
 const OPERATION_NAMES = {
@@ -38,7 +38,7 @@ const OPERATION_NAMES = {
   background_removal: 'Background Removal',
   vectorization: 'Vectorization',
   image_generation: 'AI Generation',
-  payment_processing: 'Payment Processing'
+  payment_processing: 'Payment Processing',
 };
 
 export default function ApiCostConfig() {
@@ -78,7 +78,7 @@ export default function ApiCostConfig() {
     setEditValues({
       cost_per_unit: config.cost_per_unit,
       unit_description: config.unit_description,
-      notes: config.notes
+      notes: config.notes,
     });
   };
 
@@ -99,10 +99,12 @@ export default function ApiCostConfig() {
         body: JSON.stringify({
           provider,
           operation,
-          cost_per_unit: parseFloat(editValues.cost_per_unit?.toString() || '0'),
+          cost_per_unit: parseFloat(
+            editValues.cost_per_unit?.toString() || '0'
+          ),
           unit_description: editValues.unit_description,
-          notes: editValues.notes
-        })
+          notes: editValues.notes,
+        }),
       });
 
       const data = await response.json();
@@ -137,13 +139,15 @@ export default function ApiCostConfig() {
         const response = await fetch('/api/admin/cost-config', {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ configs })
+          body: JSON.stringify({ configs }),
         });
 
         const data = await response.json();
 
         if (response.ok) {
-          setSuccessMessage(`Saved ${data.updated} configurations to database!`);
+          setSuccessMessage(
+            `Saved ${data.updated} configurations to database!`
+          );
           setIsDefault(false);
           await fetchConfigs();
           setTimeout(() => setSuccessMessage(''), 3000);
@@ -166,16 +170,17 @@ export default function ApiCostConfig() {
       background_removal: 300,
       vectorization: 200,
       image_generation: 100,
-      payment_processing: 150
+      payment_processing: 150,
     };
 
-    const volume = estimatedVolume[operation as keyof typeof estimatedVolume] || 100;
+    const volume =
+      estimatedVolume[operation as keyof typeof estimatedVolume] || 100;
     return (cost * volume).toFixed(2);
   };
 
   const calculateProfitMargin = (cost: number) => {
     // Average credit value is ~$0.50
-    const avgCreditValue = 0.50;
+    const avgCreditValue = 0.5;
     const margin = ((avgCreditValue - cost) / avgCreditValue) * 100;
     return margin.toFixed(1);
   };
@@ -185,7 +190,9 @@ export default function ApiCostConfig() {
       <Card className="p-6">
         <div className="flex items-center justify-center py-8">
           <RefreshCw className="h-6 w-6 animate-spin text-gray-400" />
-          <span className="ml-2 text-gray-600">Loading cost configurations...</span>
+          <span className="ml-2 text-gray-600">
+            Loading cost configurations...
+          </span>
         </div>
       </Card>
     );
@@ -211,7 +218,9 @@ export default function ApiCostConfig() {
             size="sm"
             disabled={isLoading}
           >
-            <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
+            <RefreshCw
+              className={`h-4 w-4 mr-2 ${isLoading ? 'animate-spin' : ''}`}
+            />
             Refresh
           </Button>
         </div>
@@ -236,9 +245,12 @@ export default function ApiCostConfig() {
             <div className="flex items-start">
               <AlertCircle className="h-4 w-4 mr-2 text-yellow-600 mt-0.5" />
               <div className="flex-1">
-                <p className="text-sm text-yellow-800 font-medium">Using Default Values</p>
+                <p className="text-sm text-yellow-800 font-medium">
+                  Using Default Values
+                </p>
                 <p className="text-xs text-yellow-700 mt-1">
-                  These are default costs. Click "Save All to Database" to persist them.
+                  These are default costs. Click "Save All to Database" to
+                  persist them.
                 </p>
               </div>
               <Button
@@ -262,17 +274,31 @@ export default function ApiCostConfig() {
           <table className="w-full">
             <thead>
               <tr className="border-b">
-                <th className="text-left py-3 px-4 font-medium text-gray-700">Provider</th>
-                <th className="text-left py-3 px-4 font-medium text-gray-700">Operation</th>
-                <th className="text-left py-3 px-4 font-medium text-gray-700">Cost per Unit</th>
-                <th className="text-left py-3 px-4 font-medium text-gray-700">Unit</th>
-                <th className="text-left py-3 px-4 font-medium text-gray-700">Est. Monthly</th>
-                <th className="text-left py-3 px-4 font-medium text-gray-700">Margin</th>
-                <th className="text-left py-3 px-4 font-medium text-gray-700">Actions</th>
+                <th className="text-left py-3 px-4 font-medium text-gray-700">
+                  Provider
+                </th>
+                <th className="text-left py-3 px-4 font-medium text-gray-700">
+                  Operation
+                </th>
+                <th className="text-left py-3 px-4 font-medium text-gray-700">
+                  Cost per Unit
+                </th>
+                <th className="text-left py-3 px-4 font-medium text-gray-700">
+                  Unit
+                </th>
+                <th className="text-left py-3 px-4 font-medium text-gray-700">
+                  Est. Monthly
+                </th>
+                <th className="text-left py-3 px-4 font-medium text-gray-700">
+                  Margin
+                </th>
+                <th className="text-left py-3 px-4 font-medium text-gray-700">
+                  Actions
+                </th>
               </tr>
             </thead>
             <tbody>
-              {configs.map((config) => {
+              {configs.map(config => {
                 const configId = `${config.provider}-${config.operation}`;
                 const isEditing = editingId === configId;
 
@@ -280,11 +306,15 @@ export default function ApiCostConfig() {
                   <tr key={configId} className="border-b hover:bg-gray-50">
                     <td className="py-3 px-4">
                       <span className="font-medium">
-                        {PROVIDER_NAMES[config.provider as keyof typeof PROVIDER_NAMES] || config.provider}
+                        {PROVIDER_NAMES[
+                          config.provider as keyof typeof PROVIDER_NAMES
+                        ] || config.provider}
                       </span>
                     </td>
                     <td className="py-3 px-4">
-                      {OPERATION_NAMES[config.operation as keyof typeof OPERATION_NAMES] || config.operation}
+                      {OPERATION_NAMES[
+                        config.operation as keyof typeof OPERATION_NAMES
+                      ] || config.operation}
                     </td>
                     <td className="py-3 px-4">
                       {isEditing ? (
@@ -292,14 +322,18 @@ export default function ApiCostConfig() {
                           type="number"
                           step="0.0001"
                           value={editValues.cost_per_unit || ''}
-                          onChange={(e) => setEditValues({
-                            ...editValues,
-                            cost_per_unit: parseFloat(e.target.value)
-                          })}
+                          onChange={e =>
+                            setEditValues({
+                              ...editValues,
+                              cost_per_unit: parseFloat(e.target.value),
+                            })
+                          }
                           className="w-24"
                         />
                       ) : (
-                        <span className="font-mono">${config.cost_per_unit.toFixed(4)}</span>
+                        <span className="font-mono">
+                          ${config.cost_per_unit.toFixed(4)}
+                        </span>
                       )}
                     </td>
                     <td className="py-3 px-4">
@@ -307,27 +341,39 @@ export default function ApiCostConfig() {
                         <Input
                           type="text"
                           value={editValues.unit_description || ''}
-                          onChange={(e) => setEditValues({
-                            ...editValues,
-                            unit_description: e.target.value
-                          })}
+                          onChange={e =>
+                            setEditValues({
+                              ...editValues,
+                              unit_description: e.target.value,
+                            })
+                          }
                           className="w-32"
                         />
                       ) : (
-                        <span className="text-sm text-gray-600">{config.unit_description}</span>
+                        <span className="text-sm text-gray-600">
+                          {config.unit_description}
+                        </span>
                       )}
                     </td>
                     <td className="py-3 px-4">
                       <span className="text-sm text-gray-600">
-                        ${calculateMonthlyCost(config.cost_per_unit, config.operation)}
+                        $
+                        {calculateMonthlyCost(
+                          config.cost_per_unit,
+                          config.operation
+                        )}
                       </span>
                     </td>
                     <td className="py-3 px-4">
-                      <span className={`text-sm font-medium ${
-                        parseFloat(calculateProfitMargin(config.cost_per_unit)) > 50
-                          ? 'text-green-600'
-                          : 'text-yellow-600'
-                      }`}>
+                      <span
+                        className={`text-sm font-medium ${
+                          parseFloat(
+                            calculateProfitMargin(config.cost_per_unit)
+                          ) > 50
+                            ? 'text-green-600'
+                            : 'text-yellow-600'
+                        }`}
+                      >
                         {calculateProfitMargin(config.cost_per_unit)}%
                       </span>
                     </td>
@@ -335,7 +381,9 @@ export default function ApiCostConfig() {
                       {isEditing ? (
                         <div className="flex gap-2">
                           <Button
-                            onClick={() => handleSave(config.provider, config.operation)}
+                            onClick={() =>
+                              handleSave(config.provider, config.operation)
+                            }
                             size="sm"
                             variant="success"
                             disabled={isSaving}
@@ -373,10 +421,19 @@ export default function ApiCostConfig() {
       <Card className="p-6">
         <h3 className="text-lg font-semibold mb-3">Cost Management Tips</h3>
         <div className="space-y-2 text-sm text-gray-600">
-          <p>• Update costs immediately when you negotiate new rates with providers</p>
-          <p>• Monitor profit margins regularly - aim for at least 50% margin</p>
-          <p>• Consider volume discounts from providers for popular operations</p>
-          <p>• Stripe costs include both percentage (2.9%) and fixed fee ($0.30)</p>
+          <p>
+            • Update costs immediately when you negotiate new rates with
+            providers
+          </p>
+          <p>
+            • Monitor profit margins regularly - aim for at least 50% margin
+          </p>
+          <p>
+            • Consider volume discounts from providers for popular operations
+          </p>
+          <p>
+            • Stripe costs include both percentage (2.9%) and fixed fee ($0.30)
+          </p>
           <p>• All changes are tracked in the audit log for accountability</p>
         </div>
       </Card>

@@ -7,7 +7,7 @@ if (env.SENDGRID_API_KEY) {
 }
 
 // Email template types
-export type EmailTemplate = 
+export type EmailTemplate =
   | 'welcome'
   | 'purchase'
   | 'creditWarning'
@@ -55,7 +55,9 @@ export class EmailService {
   constructor() {
     this.enabled = isFeatureAvailable('email');
     if (!this.enabled) {
-      console.warn('EmailService: SendGrid API key not configured. Emails will not be sent.');
+      console.warn(
+        'EmailService: SendGrid API key not configured. Emails will not be sent.'
+      );
     }
   }
 
@@ -141,12 +143,13 @@ export class EmailService {
 
       if (!msg.templateId) {
         // Fallback to plain email
-        const subject = data.purchaseType === 'subscription' 
-          ? `Subscription to ${data.planName} Plan Confirmed`
-          : `Purchase of ${data.credits} Credits Confirmed`;
-        
+        const subject =
+          data.purchaseType === 'subscription'
+            ? `Subscription to ${data.planName} Plan Confirmed`
+            : `Purchase of ${data.credits} Credits Confirmed`;
+
         const body = `Thank you for your purchase! Amount: $${(data.amount / 100).toFixed(2)}. View your dashboard at ${env.APP_URL}/dashboard`;
-        
+
         return this.sendPlainEmail(data.email, subject, body);
       }
 
@@ -164,7 +167,10 @@ export class EmailService {
    */
   async sendCreditWarningEmail(data: CreditWarningEmailData): Promise<boolean> {
     if (!this.enabled) {
-      console.log('EmailService: Would send credit warning email to', data.email);
+      console.log(
+        'EmailService: Would send credit warning email to',
+        data.email
+      );
       return true;
     }
 
@@ -181,7 +187,12 @@ export class EmailService {
           creditsRemaining: data.creditsRemaining,
           expiryDate: data.expiryDate?.toLocaleDateString(),
           urgencyLevel: data.urgencyLevel,
-          urgencyColor: data.urgencyLevel === 'critical' ? '#dc2626' : data.urgencyLevel === 'warning' ? '#d97706' : '#2563eb',
+          urgencyColor:
+            data.urgencyLevel === 'critical'
+              ? '#dc2626'
+              : data.urgencyLevel === 'warning'
+                ? '#d97706'
+                : '#2563eb',
           appUrl: env.APP_URL,
           currentYear: new Date().getFullYear(),
         },
@@ -192,7 +203,7 @@ export class EmailService {
         const urgencyText = data.urgencyLevel === 'critical' ? 'URGENT: ' : '';
         const subject = `${urgencyText}Your DTF Editor Credits are Expiring Soon`;
         const body = `You have ${data.creditsRemaining} credits expiring on ${data.expiryDate?.toLocaleDateString()}. Use them at ${env.APP_URL}/process`;
-        
+
         return this.sendPlainEmail(data.email, subject, body);
       }
 
@@ -246,14 +257,14 @@ export class EmailService {
         // Fallback to plain email
         const subject = `Subscription ${actionText[data.action]}: ${data.planName} Plan`;
         let body = `Your ${data.planName} subscription has been ${actionText[data.action]}.`;
-        
+
         if (data.nextBillingDate) {
           body += ` Next billing date: ${data.nextBillingDate.toLocaleDateString()}.`;
         }
         if (data.pauseUntil) {
           body += ` Paused until: ${data.pauseUntil.toLocaleDateString()}.`;
         }
-        
+
         return this.sendPlainEmail(data.email, subject, body);
       }
 
@@ -316,7 +327,11 @@ export class EmailService {
   /**
    * Send plain text email (fallback when templates not configured)
    */
-  private async sendPlainEmail(to: string, subject: string, text: string): Promise<boolean> {
+  private async sendPlainEmail(
+    to: string,
+    subject: string,
+    text: string
+  ): Promise<boolean> {
     try {
       const msg = {
         to,
@@ -347,7 +362,11 @@ export class EmailService {
     content: string
   ): Promise<{ sent: number; failed: number }> {
     if (!this.enabled) {
-      console.log('EmailService: Would send batch emails to', recipients.length, 'recipients');
+      console.log(
+        'EmailService: Would send batch emails to',
+        recipients.length,
+        'recipients'
+      );
       return { sent: recipients.length, failed: 0 };
     }
 
@@ -358,7 +377,7 @@ export class EmailService {
     const batchSize = 1000;
     for (let i = 0; i < recipients.length; i += batchSize) {
       const batch = recipients.slice(i, i + batchSize);
-      
+
       try {
         const msg = {
           to: batch,

@@ -14,7 +14,7 @@ const supabase = createClient(supabaseUrl, supabaseServiceKey);
 async function applyMigration() {
   try {
     console.log('Creating admin_audit_logs table...');
-    
+
     const migration = `
       -- Create admin audit logs table for tracking admin actions
       CREATE TABLE IF NOT EXISTS admin_audit_logs (
@@ -58,14 +58,16 @@ async function applyMigration() {
 
     if (error) {
       // Try executing directly if exec_sql doesn't exist
-      console.log('exec_sql not available, applying migration parts separately...');
-      
+      console.log(
+        'exec_sql not available, applying migration parts separately...'
+      );
+
       // Check if table exists
       const { data: tableExists } = await supabase
         .from('admin_audit_logs')
         .select('id')
         .limit(1);
-      
+
       if (!tableExists) {
         console.log('Table needs to be created manually in Supabase dashboard');
         console.log('Migration SQL:');
@@ -76,7 +78,6 @@ async function applyMigration() {
     } else {
       console.log('✅ Admin audit logs table created successfully');
     }
-
   } catch (error) {
     console.error('Error applying migration:', error);
     process.exit(1);

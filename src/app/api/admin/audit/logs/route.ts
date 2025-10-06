@@ -5,9 +5,11 @@ import { withRateLimit } from '@/lib/rate-limit';
 async function handleGet(request: NextRequest) {
   try {
     const supabase = await createServerSupabaseClient();
-    
+
     // Check if user is admin
-    const { data: { user } } = await supabase.auth.getUser();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
@@ -19,7 +21,10 @@ async function handleGet(request: NextRequest) {
       .single();
 
     if (!profile?.is_admin) {
-      return NextResponse.json({ error: 'Admin access required' }, { status: 403 });
+      return NextResponse.json(
+        { error: 'Admin access required' },
+        { status: 403 }
+      );
     }
 
     // Get query parameters
@@ -44,7 +49,9 @@ async function handleGet(request: NextRequest) {
 
     // Apply filters
     if (search) {
-      query = query.or(`action.ilike.%${search}%,resource_id.ilike.%${search}%,details::text.ilike.%${search}%`);
+      query = query.or(
+        `action.ilike.%${search}%,resource_id.ilike.%${search}%,details::text.ilike.%${search}%`
+      );
     }
 
     if (action) {
@@ -90,7 +97,7 @@ async function handleGet(request: NextRequest) {
 
       formattedLogs = logs.map(log => ({
         ...log,
-        admin_email: adminEmailMap.get(log.admin_id) || 'Unknown'
+        admin_email: adminEmailMap.get(log.admin_id) || 'Unknown',
       }));
     }
 
@@ -98,9 +105,8 @@ async function handleGet(request: NextRequest) {
       logs: formattedLogs,
       total: count || 0,
       page,
-      limit
+      limit,
     });
-
   } catch (error) {
     console.error('Error in audit logs API:', error);
     return NextResponse.json(
@@ -118,7 +124,7 @@ export async function logAdminAction({
   resourceId,
   details,
   ipAddress,
-  userAgent
+  userAgent,
 }: {
   adminId: string;
   action: string;
@@ -130,18 +136,16 @@ export async function logAdminAction({
 }) {
   try {
     const supabase = await createServerSupabaseClient();
-    
-    const { error } = await supabase
-      .from('admin_audit_logs')
-      .insert({
-        admin_id: adminId,
-        action,
-        resource_type: resourceType,
-        resource_id: resourceId,
-        details: details || {},
-        ip_address: ipAddress,
-        user_agent: userAgent
-      });
+
+    const { error } = await supabase.from('admin_audit_logs').insert({
+      admin_id: adminId,
+      action,
+      resource_type: resourceType,
+      resource_id: resourceId,
+      details: details || {},
+      ip_address: ipAddress,
+      user_agent: userAgent,
+    });
 
     if (error) {
       console.error('Error logging admin action:', error);

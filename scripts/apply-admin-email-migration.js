@@ -42,7 +42,9 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 
     // Unfortunately, Supabase client doesn't allow executing raw SQL
     // We need to use the Supabase Dashboard SQL Editor
-    console.log('⚠️  Direct SQL execution is not available via the client library.\n');
+    console.log(
+      '⚠️  Direct SQL execution is not available via the client library.\n'
+    );
     console.log('Please apply this migration by:\n');
     console.log('Method 1: Using Supabase Dashboard (Recommended)');
     console.log('  1. Go to https://supabase.com/dashboard');
@@ -73,8 +75,10 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
       console.log(`Found user: ${adminUser.email}`);
 
       // Test if is_admin function works
-      const { data: isAdmin, error: adminError } = await supabase
-        .rpc('is_admin', { user_id: adminUser.id });
+      const { data: isAdmin, error: adminError } = await supabase.rpc(
+        'is_admin',
+        { user_id: adminUser.id }
+      );
 
       if (adminError) {
         console.log('❌ is_admin function error:', adminError.message);
@@ -83,11 +87,12 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
         if (isAdmin) {
           console.log('✅ Admin access is already configured correctly!');
         } else {
-          console.log('⚠️  Admin access needs to be configured - run the migration above');
+          console.log(
+            '⚠️  Admin access needs to be configured - run the migration above'
+          );
         }
       }
     }
-
   } catch (error) {
     console.error('❌ Error:', error);
   }

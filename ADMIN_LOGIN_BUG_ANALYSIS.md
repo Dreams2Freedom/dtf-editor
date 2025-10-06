@@ -1,11 +1,13 @@
 # Admin Login Bug Analysis
 
 ## Bug Summary
+
 **Issue**: Admin can successfully authenticate (receives success toast) but cannot redirect to admin dashboard
 **Severity**: CRITICAL - Blocks all admin functionality
 **Date**: July 30, 2025
 
 ## Symptoms
+
 1. Login button shows "Signing in..." and successfully authenticates
 2. Success toast appears: "Login successful"
 3. No redirect occurs to /admin dashboard
@@ -14,6 +16,7 @@
 6. Browser console shows hydration errors from contentOverview extension
 
 ## Current State
+
 - Admin authentication API works correctly
 - Admin session is created in database
 - Cookie-based session management appears broken
@@ -23,12 +26,14 @@
 ## Investigation Plan
 
 ### 1. Authentication Flow Analysis
+
 - [ ] Trace complete flow from login form submission to dashboard access
 - [ ] Verify cookie creation and storage
 - [ ] Check session validation in middleware
 - [ ] Analyze redirect blocking mechanism
 
 ### 2. Technical Stack Review
+
 - Next.js 15 (App Router)
 - Supabase Auth
 - HTTP-only cookies for sessions
@@ -36,6 +41,7 @@
 - Client-side navigation (next/navigation)
 
 ### 3. Known Issues
+
 - Incorrect Supabase package imports (FIXED)
 - Console.log statements in production (FIXED)
 - 2FA requirement (DISABLED)
@@ -43,7 +49,9 @@
 - Cookie not being set/read properly
 
 ### 4. Hypothesis
+
 Primary suspects:
+
 1. Cookie domain/path mismatch
 2. SameSite cookie policy blocking
 3. Server/client state mismatch
@@ -53,6 +61,7 @@ Primary suspects:
 ## Debug Steps
 
 ### Step 1: Verify Current State
+
 ```bash
 # Check if admin user exists
 node scripts/check-users.js
@@ -62,23 +71,27 @@ node scripts/check-admin-sessions.js
 ```
 
 ### Step 2: Test Cookie Handling
+
 ```javascript
 // Browser console test
-document.cookie
+document.cookie;
 // Check for admin_session cookie
 ```
 
 ### Step 3: API Response Analysis
+
 - Check /api/admin/auth/login response headers
 - Verify Set-Cookie header presence
 - Check cookie attributes (HttpOnly, Secure, SameSite)
 
 ### Step 4: Middleware Investigation
+
 - Log all incoming requests
 - Check cookie parsing
 - Verify redirect logic
 
 ### Step 5: Client-Side Navigation
+
 - Test window.location methods
 - Check for JavaScript errors
 - Verify router.push behavior
@@ -106,6 +119,7 @@ document.cookie
    - Handle browser extension conflicts
 
 ## Next Immediate Actions
+
 1. Create test script to verify cookie functionality ✅
 2. Add comprehensive logging to auth flow ✅
 3. Test in incognito mode (no extensions) ⏳
@@ -121,7 +135,7 @@ After investigation, the issue appears to be:
 
 ## Discovered Issues
 
-1. **API Route Cookie Setting**: 
+1. **API Route Cookie Setting**:
    - Using `response.cookies.set()` in `/api/admin/auth/login/route.ts`
    - This may not properly set cookies in some Next.js 15 configurations
 
@@ -136,6 +150,7 @@ After investigation, the issue appears to be:
 ## Proposed Solution
 
 1. **Fix Cookie Setting**:
+
    ```typescript
    // Use cookies() from next/headers directly
    const cookieStore = await cookies();

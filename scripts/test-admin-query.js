@@ -11,10 +11,11 @@ const supabase = createClient(
   console.log('=== Testing Admin Query (as shannonherod@gmail.com) ===\n');
 
   // Sign in as the admin user
-  const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
-    email: 'shannonherod@gmail.com',
-    password: 'Test1234!!' // You'll need to provide the correct password
-  });
+  const { data: authData, error: authError } =
+    await supabase.auth.signInWithPassword({
+      email: 'shannonherod@gmail.com',
+      password: 'Test1234!!', // You'll need to provide the correct password
+    });
 
   if (authError) {
     console.error('❌ Error signing in:', authError.message);

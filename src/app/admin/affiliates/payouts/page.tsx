@@ -18,7 +18,7 @@ import {
   CreditCard,
   FileText,
   Download,
-  AlertTriangle
+  AlertTriangle,
 } from 'lucide-react';
 
 interface Payout {
@@ -65,12 +65,15 @@ export default function AdminAffiliatePayoutsPage() {
   async function fetchPayouts() {
     try {
       // Check session first
-      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      const {
+        data: { session },
+        error: sessionError,
+      } = await supabase.auth.getSession();
       console.log('Session check:', {
         hasSession: !!session,
         userEmail: session?.user?.email,
         userId: session?.user?.id,
-        sessionError
+        sessionError,
       });
 
       if (!session) {
@@ -89,7 +92,7 @@ export default function AdminAffiliatePayoutsPage() {
       console.log('Profile check:', {
         profile,
         profileError,
-        isAdmin: profile?.is_admin
+        isAdmin: profile?.is_admin,
       });
 
       if (!profile?.is_admin) {
@@ -102,7 +105,8 @@ export default function AdminAffiliatePayoutsPage() {
 
       const { data: payoutsData, error } = await supabase
         .from('payouts')
-        .select(`
+        .select(
+          `
           *,
           affiliates!inner (
             referral_code,
@@ -111,7 +115,8 @@ export default function AdminAffiliatePayoutsPage() {
             mailing_address,
             user_id
           )
-        `)
+        `
+        )
         .order('created_at', { ascending: false });
 
       if (error) throw error;
@@ -129,8 +134,8 @@ export default function AdminAffiliatePayoutsPage() {
             ...payout,
             affiliate: {
               ...payout.affiliates,
-              user: profile
-            }
+              user: profile,
+            },
           };
         })
       );
@@ -147,7 +152,8 @@ export default function AdminAffiliatePayoutsPage() {
       // Get approved commissions grouped by affiliate
       const { data: commissions, error } = await supabase
         .from('commissions')
-        .select(`
+        .select(
+          `
           *,
           affiliates!inner (
             id,
@@ -157,7 +163,8 @@ export default function AdminAffiliatePayoutsPage() {
             payment_method,
             user_id
           )
-        `)
+        `
+        )
         .eq('status', 'approved')
         .order('created_at', { ascending: false });
 
@@ -179,11 +186,11 @@ export default function AdminAffiliatePayoutsPage() {
             affiliate_id: affiliateId,
             affiliate: {
               ...commission.affiliates,
-              user: profile
+              user: profile,
             },
             total_amount: 0,
             commission_count: 0,
-            commissions: []
+            commissions: [],
           });
         }
 
@@ -233,7 +240,7 @@ export default function AdminAffiliatePayoutsPage() {
           amount: payoutAmount,
           status: 'pending',
           payment_method: pendingAffiliate.affiliate.payment_method || 'paypal',
-          notes: payoutNotes
+          notes: payoutNotes,
         })
         .select()
         .single();
@@ -246,7 +253,7 @@ export default function AdminAffiliatePayoutsPage() {
         .from('commissions')
         .update({
           status: 'paid',
-          payout_id: payout.id
+          payout_id: payout.id,
         })
         .in('id', commissionIds);
 
@@ -275,7 +282,7 @@ export default function AdminAffiliatePayoutsPage() {
         .update({
           status: 'completed',
           transaction_id: transactionId,
-          paid_at: new Date().toISOString()
+          paid_at: new Date().toISOString(),
         })
         .eq('id', payoutId);
 
@@ -293,16 +300,26 @@ export default function AdminAffiliatePayoutsPage() {
 
   function exportPayouts() {
     const csv = [
-      ['Date', 'Affiliate', 'Email', 'Amount', 'Method', 'Status', 'Transaction ID'].join(','),
-      ...payouts.map(p => [
-        new Date(p.created_at).toLocaleDateString(),
-        p.affiliate?.user?.full_name || '',
-        p.affiliate?.user?.email || '',
-        p.amount,
-        p.payment_method,
-        p.status,
-        p.transaction_id || ''
-      ].join(','))
+      [
+        'Date',
+        'Affiliate',
+        'Email',
+        'Amount',
+        'Method',
+        'Status',
+        'Transaction ID',
+      ].join(','),
+      ...payouts.map(p =>
+        [
+          new Date(p.created_at).toLocaleDateString(),
+          p.affiliate?.user?.full_name || '',
+          p.affiliate?.user?.email || '',
+          p.amount,
+          p.payment_method,
+          p.status,
+          p.transaction_id || '',
+        ].join(',')
+      ),
     ].join('\n');
 
     const blob = new Blob([csv], { type: 'text/csv' });
@@ -321,7 +338,10 @@ export default function AdminAffiliatePayoutsPage() {
     );
   }
 
-  const totalPending = pendingCommissions.reduce((sum, p) => sum + p.total_amount, 0);
+  const totalPending = pendingCommissions.reduce(
+    (sum, p) => sum + p.total_amount,
+    0
+  );
   const totalPaid = payouts
     .filter(p => p.status === 'completed')
     .reduce((sum, p) => sum + parseFloat(p.amount), 0);
@@ -334,7 +354,7 @@ export default function AdminAffiliatePayoutsPage() {
         homeLabel="Admin Dashboard"
         items={[
           { label: 'Affiliates', href: '/admin/affiliates' },
-          { label: 'Payouts' }
+          { label: 'Payouts' },
         ]}
       />
 
@@ -387,7 +407,9 @@ export default function AdminAffiliatePayoutsPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-gray-600">Affiliates to Pay</p>
-                <p className="text-2xl font-bold">{pendingCommissions.length}</p>
+                <p className="text-2xl font-bold">
+                  {pendingCommissions.length}
+                </p>
               </div>
               <User className="h-8 w-8 text-blue-600" />
             </div>
@@ -409,15 +431,25 @@ export default function AdminAffiliatePayoutsPage() {
               <table className="min-w-full divide-y divide-gray-200">
                 <thead>
                   <tr>
-                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Affiliate</th>
-                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Tax Form</th>
-                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Payment Method</th>
-                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Commissions</th>
-                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Total Amount</th>
+                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">
+                      Affiliate
+                    </th>
+                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">
+                      Tax Form
+                    </th>
+                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">
+                      Payment Method
+                    </th>
+                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">
+                      Commissions
+                    </th>
+                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">
+                      Total Amount
+                    </th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-200">
-                  {pendingCommissions.map((pending) => (
+                  {pendingCommissions.map(pending => (
                     <tr key={pending.affiliate_id}>
                       <td className="px-4 py-3">
                         <div>
@@ -444,7 +476,9 @@ export default function AdminAffiliatePayoutsPage() {
                       </td>
                       <td className="px-4 py-3">
                         <div className="text-sm">
-                          <span className="capitalize">{pending.affiliate?.payment_method || 'paypal'}</span>
+                          <span className="capitalize">
+                            {pending.affiliate?.payment_method || 'paypal'}
+                          </span>
                           {pending.affiliate?.payment_method === 'paypal' && (
                             <div className="text-xs text-gray-500">
                               {pending.affiliate?.paypal_email}
@@ -477,17 +511,31 @@ export default function AdminAffiliatePayoutsPage() {
             <table className="min-w-full divide-y divide-gray-200">
               <thead>
                 <tr>
-                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Date</th>
-                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Affiliate</th>
-                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Amount</th>
-                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Method</th>
-                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
-                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Transaction ID</th>
-                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
+                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">
+                    Date
+                  </th>
+                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">
+                    Affiliate
+                  </th>
+                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">
+                    Amount
+                  </th>
+                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">
+                    Method
+                  </th>
+                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">
+                    Status
+                  </th>
+                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">
+                    Transaction ID
+                  </th>
+                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">
+                    Actions
+                  </th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200">
-                {payouts.map((payout) => (
+                {payouts.map(payout => (
                   <tr key={payout.id}>
                     <td className="px-4 py-3 text-sm text-gray-500">
                       {new Date(payout.created_at).toLocaleDateString()}
@@ -507,21 +555,36 @@ export default function AdminAffiliatePayoutsPage() {
                     </td>
                     <td className="px-4 py-3">
                       <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
-                        {payout.payment_method === 'paypal' && <CreditCard className="h-3 w-3 mr-1" />}
-                        {payout.payment_method === 'check' && <FileText className="h-3 w-3 mr-1" />}
+                        {payout.payment_method === 'paypal' && (
+                          <CreditCard className="h-3 w-3 mr-1" />
+                        )}
+                        {payout.payment_method === 'check' && (
+                          <FileText className="h-3 w-3 mr-1" />
+                        )}
                         {payout.payment_method}
                       </span>
                     </td>
                     <td className="px-4 py-3">
-                      <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
-                        payout.status === 'completed' ? 'bg-success-100 text-success-800' :
-                        payout.status === 'failed' ? 'bg-error-100 text-error-800' :
-                        payout.status === 'processing' ? 'bg-blue-100 text-blue-800' :
-                        'bg-warning-100 text-warning-800'
-                      }`}>
-                        {payout.status === 'completed' && <CheckCircle className="h-3 w-3 mr-1" />}
-                        {payout.status === 'failed' && <XCircle className="h-3 w-3 mr-1" />}
-                        {payout.status === 'pending' && <Clock className="h-3 w-3 mr-1" />}
+                      <span
+                        className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                          payout.status === 'completed'
+                            ? 'bg-success-100 text-success-800'
+                            : payout.status === 'failed'
+                              ? 'bg-error-100 text-error-800'
+                              : payout.status === 'processing'
+                                ? 'bg-blue-100 text-blue-800'
+                                : 'bg-warning-100 text-warning-800'
+                        }`}
+                      >
+                        {payout.status === 'completed' && (
+                          <CheckCircle className="h-3 w-3 mr-1" />
+                        )}
+                        {payout.status === 'failed' && (
+                          <XCircle className="h-3 w-3 mr-1" />
+                        )}
+                        {payout.status === 'pending' && (
+                          <Clock className="h-3 w-3 mr-1" />
+                        )}
                         {payout.status}
                       </span>
                     </td>
@@ -562,9 +625,11 @@ export default function AdminAffiliatePayoutsPage() {
                 </label>
                 <select
                   value={selectedAffiliate}
-                  onChange={(e) => {
+                  onChange={e => {
                     setSelectedAffiliate(e.target.value);
-                    const pending = pendingCommissions.find(p => p.affiliate_id === e.target.value);
+                    const pending = pendingCommissions.find(
+                      p => p.affiliate_id === e.target.value
+                    );
                     if (pending) {
                       setPayoutAmount(pending.total_amount.toFixed(2));
                     }
@@ -572,9 +637,13 @@ export default function AdminAffiliatePayoutsPage() {
                   className="w-full px-3 py-2 border rounded-lg"
                 >
                   <option value="">Select...</option>
-                  {pendingCommissions.map((pending) => (
-                    <option key={pending.affiliate_id} value={pending.affiliate_id}>
-                      {pending.affiliate?.user?.full_name} - ${pending.total_amount.toFixed(2)}
+                  {pendingCommissions.map(pending => (
+                    <option
+                      key={pending.affiliate_id}
+                      value={pending.affiliate_id}
+                    >
+                      {pending.affiliate?.user?.full_name} - $
+                      {pending.total_amount.toFixed(2)}
                     </option>
                   ))}
                 </select>
@@ -588,7 +657,7 @@ export default function AdminAffiliatePayoutsPage() {
                   type="number"
                   step="0.01"
                   value={payoutAmount}
-                  onChange={(e) => setPayoutAmount(e.target.value)}
+                  onChange={e => setPayoutAmount(e.target.value)}
                   className="w-full px-3 py-2 border rounded-lg"
                   placeholder="0.00"
                 />
@@ -600,7 +669,7 @@ export default function AdminAffiliatePayoutsPage() {
                 </label>
                 <textarea
                   value={payoutNotes}
-                  onChange={(e) => setPayoutNotes(e.target.value)}
+                  onChange={e => setPayoutNotes(e.target.value)}
                   className="w-full px-3 py-2 border rounded-lg"
                   rows={3}
                   placeholder="Any notes about this payout..."
@@ -610,13 +679,16 @@ export default function AdminAffiliatePayoutsPage() {
               {selectedAffiliate && (
                 <div className="bg-gray-50 p-3 rounded-lg text-sm">
                   {(() => {
-                    const pending = pendingCommissions.find(p => p.affiliate_id === selectedAffiliate);
+                    const pending = pendingCommissions.find(
+                      p => p.affiliate_id === selectedAffiliate
+                    );
                     if (!pending) return null;
                     return (
                       <>
                         <p className="font-medium">Payment Details:</p>
                         <p className="text-gray-600">
-                          Method: {pending.affiliate?.payment_method || 'paypal'}
+                          Method:{' '}
+                          {pending.affiliate?.payment_method || 'paypal'}
                         </p>
                         {pending.affiliate?.payment_method === 'paypal' && (
                           <p className="text-gray-600">
@@ -645,7 +717,9 @@ export default function AdminAffiliatePayoutsPage() {
                 onClick={createPayout}
                 disabled={processingPayout === 'creating'}
               >
-                {processingPayout === 'creating' ? 'Creating...' : 'Create Payout'}
+                {processingPayout === 'creating'
+                  ? 'Creating...'
+                  : 'Create Payout'}
               </Button>
               <Button
                 onClick={() => {

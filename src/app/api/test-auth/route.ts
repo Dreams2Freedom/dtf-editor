@@ -12,12 +12,12 @@ async function handlePost(request: Request) {
 
     if (!supabaseUrl || !supabaseAnonKey) {
       return NextResponse.json(
-        { 
+        {
           error: 'Missing environment variables',
           details: {
             url: !!supabaseUrl,
-            key: !!supabaseAnonKey
-          }
+            key: !!supabaseAnonKey,
+          },
         },
         { status: 500 }
       );
@@ -29,19 +29,19 @@ async function handlePost(request: Request) {
     // Test authentication
     const { data, error } = await supabase.auth.signInWithPassword({
       email,
-      password
+      password,
     });
 
     if (error) {
       return NextResponse.json(
-        { 
+        {
           error: error.message,
           code: error.code,
           status: error.status,
           details: {
             apiUrl: supabaseUrl,
-            timestamp: new Date().toISOString()
-          }
+            timestamp: new Date().toISOString(),
+          },
         },
         { status: 400 }
       );
@@ -50,14 +50,13 @@ async function handlePost(request: Request) {
     return NextResponse.json({
       success: true,
       user: data.user,
-      session: !!data.session
+      session: !!data.session,
     });
-
   } catch (error) {
     return NextResponse.json(
-      { 
+      {
         error: error instanceof Error ? error.message : 'Unknown error',
-        type: 'server_error'
+        type: 'server_error',
       },
       { status: 500 }
     );

@@ -20,11 +20,12 @@ async function testUserCreation() {
   try {
     // 1. Create a test user
     console.log('1. Creating test user:', testEmail);
-    const { data: createData, error: createError } = await supabase.auth.admin.createUser({
-      email: testEmail,
-      password: testPassword,
-      email_confirm: true
-    });
+    const { data: createData, error: createError } =
+      await supabase.auth.admin.createUser({
+        email: testEmail,
+        password: testPassword,
+        email_confirm: true,
+      });
 
     if (createError) {
       console.error('Error creating user:', createError);
@@ -50,10 +51,11 @@ async function testUserCreation() {
 
     // 3. Try to sign in with the user
     console.log('\n3. Testing sign in...');
-    const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
-      email: testEmail,
-      password: testPassword
-    });
+    const { data: signInData, error: signInError } =
+      await supabase.auth.signInWithPassword({
+        email: testEmail,
+        password: testPassword,
+      });
 
     if (signInError) {
       console.error('Error signing in:', signInError);
@@ -64,30 +66,34 @@ async function testUserCreation() {
 
     // 4. List all users (first 10)
     console.log('\n4. Listing existing users...');
-    const { data: users, error: listError } = await supabase.auth.admin.listUsers({
-      page: 1,
-      perPage: 10
-    });
+    const { data: users, error: listError } =
+      await supabase.auth.admin.listUsers({
+        page: 1,
+        perPage: 10,
+      });
 
     if (listError) {
       console.error('Error listing users:', listError);
     } else {
       console.log(`Found ${users.users.length} users:`);
       users.users.forEach(user => {
-        console.log(`- ${user.email} (created: ${new Date(user.created_at).toLocaleDateString()})`);
+        console.log(
+          `- ${user.email} (created: ${new Date(user.created_at).toLocaleDateString()})`
+        );
       });
     }
 
     // 5. Clean up - delete test user
     console.log('\n5. Cleaning up test user...');
-    const { error: deleteError } = await supabase.auth.admin.deleteUser(createData.user.id);
-    
+    const { error: deleteError } = await supabase.auth.admin.deleteUser(
+      createData.user.id
+    );
+
     if (deleteError) {
       console.error('Error deleting test user:', deleteError);
     } else {
       console.log('✓ Test user deleted');
     }
-
   } catch (error) {
     console.error('Unexpected error:', error);
   }

@@ -4,13 +4,19 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { createServerSupabaseClient, createServiceRoleClient } from '@/lib/supabase/server';
+import {
+  createServerSupabaseClient,
+  createServiceRoleClient,
+} from '@/lib/supabase/server';
 
 export async function GET(request: NextRequest) {
   try {
     // Verify admin access
     const supabase = await createServerSupabaseClient();
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
 
     if (authError || !user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -24,7 +30,10 @@ export async function GET(request: NextRequest) {
       .single();
 
     if (!profile?.is_admin) {
-      return NextResponse.json({ error: 'Admin access required' }, { status: 403 });
+      return NextResponse.json(
+        { error: 'Admin access required' },
+        { status: 403 }
+      );
     }
 
     // Get query parameters
@@ -41,7 +50,8 @@ export async function GET(request: NextRequest) {
     // Fetch all referrals first
     const { data: referralsData, error: referralsError } = await serviceClient
       .from('referrals')
-      .select(`
+      .select(
+        `
         *,
         affiliate:affiliates (
           id,
@@ -49,35 +59,52 @@ export async function GET(request: NextRequest) {
           display_name,
           referral_code
         )
-      `)
+      `
+      )
       .order(sortBy, { ascending: sortOrder === 'asc' });
 
     if (referralsError) {
-      console.error('[REFERRALS] Error fetching data:', JSON.stringify(referralsError, null, 2));
-      return NextResponse.json({
-        error: 'Failed to fetch referrals',
-        details: referralsError.message || 'Unknown error'
-      }, { status: 500 });
+      console.error(
+        '[REFERRALS] Error fetching data:',
+        JSON.stringify(referralsError, null, 2)
+      );
+      return NextResponse.json(
+        {
+          error: 'Failed to fetch referrals',
+          details: referralsError.message || 'Unknown error',
+        },
+        { status: 500 }
+      );
     }
 
-    console.log('[REFERRALS] Successfully fetched', (referralsData || []).length, 'referrals');
+    console.log(
+      '[REFERRALS] Successfully fetched',
+      (referralsData || []).length,
+      'referrals'
+    );
 
     try {
       // Get unique affiliate user IDs
-      const affiliateUserIds = [...new Set(
-        (referralsData || [])
-          .map(r => r.affiliate?.user_id)
-          .filter(Boolean)
-      )];
+      const affiliateUserIds = [
+        ...new Set(
+          (referralsData || []).map(r => r.affiliate?.user_id).filter(Boolean)
+        ),
+      ];
 
       // Get unique referred user IDs
-      const referredUserIds = [...new Set(
-        (referralsData || [])
-          .map(r => r.referred_user_id)
-          .filter(Boolean)
-      )];
+      const referredUserIds = [
+        ...new Set(
+          (referralsData || []).map(r => r.referred_user_id).filter(Boolean)
+        ),
+      ];
 
-      console.log('[REFERRALS] Found', affiliateUserIds.length, 'unique affiliate users and', referredUserIds.length, 'referred users');
+      console.log(
+        '[REFERRALS] Found',
+        affiliateUserIds.length,
+        'unique affiliate users and',
+        referredUserIds.length,
+        'referred users'
+      );
 
       // Fetch affiliate user profiles
       const affiliateProfiles: any = {};
@@ -88,12 +115,19 @@ export async function GET(request: NextRequest) {
           .in('id', affiliateUserIds);
 
         if (profilesError) {
-          console.error('[REFERRALS] Error fetching affiliate profiles:', profilesError);
+          console.error(
+            '[REFERRALS] Error fetching affiliate profiles:',
+            profilesError
+          );
         } else if (profiles) {
           profiles.forEach(p => {
             affiliateProfiles[p.id] = p;
           });
-          console.log('[REFERRALS] Fetched', profiles.length, 'affiliate profiles');
+          console.log(
+            '[REFERRALS] Fetched',
+            profiles.length,
+            'affiliate profiles'
+          );
         }
       }
 
@@ -102,27 +136,38 @@ export async function GET(request: NextRequest) {
       if (referredUserIds.length > 0) {
         const { data: profiles, error: profilesError } = await serviceClient
           .from('profiles')
-          .select('id, email, first_name, last_name, subscription_plan, subscription_status, stripe_customer_id, total_credits_purchased, total_credits_used, created_at')
+          .select(
+            'id, email, first_name, last_name, subscription_plan, subscription_status, stripe_customer_id, total_credits_purchased, total_credits_used, created_at'
+          )
           .in('id', referredUserIds);
 
         if (profilesError) {
-          console.error('[REFERRALS] Error fetching referred user profiles:', profilesError);
+          console.error(
+            '[REFERRALS] Error fetching referred user profiles:',
+            profilesError
+          );
         } else if (profiles) {
           profiles.forEach(p => {
             referredUserProfiles[p.id] = p;
           });
-          console.log('[REFERRALS] Fetched', profiles.length, 'referred user profiles');
+          console.log(
+            '[REFERRALS] Fetched',
+            profiles.length,
+            'referred user profiles'
+          );
         }
       }
 
       // Merge affiliate user data and referred user data
       const mergedData = (referralsData || []).map(r => ({
         ...r,
-        affiliate: r.affiliate ? {
-          ...r.affiliate,
-          affiliate_user: affiliateProfiles[r.affiliate.user_id] || null
-        } : null,
-        referred_user: referredUserProfiles[r.referred_user_id] || null
+        affiliate: r.affiliate
+          ? {
+              ...r.affiliate,
+              affiliate_user: affiliateProfiles[r.affiliate.user_id] || null,
+            }
+          : null,
+        referred_user: referredUserProfiles[r.referred_user_id] || null,
       }));
 
       console.log('[REFERRALS] Merged data, total:', mergedData.length);
@@ -146,35 +191,58 @@ export async function GET(request: NextRequest) {
           cutoffDate = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
         } else if (timeFilter === 'quarter') {
           cutoffDate = new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000);
-        } else { // year
+        } else {
+          // year
           cutoffDate = new Date(now.getTime() - 365 * 24 * 60 * 60 * 1000);
         }
 
-        filteredData = filteredData.filter(r => new Date(r.created_at) >= cutoffDate);
+        filteredData = filteredData.filter(
+          r => new Date(r.created_at) >= cutoffDate
+        );
       }
 
       // Filter by plan
       if (planFilter !== 'all') {
-        filteredData = filteredData.filter(r =>
-          r.referred_user?.subscription_plan === planFilter
+        filteredData = filteredData.filter(
+          r => r.referred_user?.subscription_plan === planFilter
         );
       }
 
       // Calculate summary stats
       const stats = {
         total_referrals: filteredData.length,
-        free_accounts: filteredData.filter(r => r.referred_user?.subscription_plan === 'free').length,
-        basic_accounts: filteredData.filter(r => r.referred_user?.subscription_plan === 'basic').length,
-        starter_accounts: filteredData.filter(r => r.referred_user?.subscription_plan === 'starter').length,
-        professional_accounts: filteredData.filter(r => r.referred_user?.subscription_plan === 'professional').length,
+        free_accounts: filteredData.filter(
+          r => r.referred_user?.subscription_plan === 'free'
+        ).length,
+        basic_accounts: filteredData.filter(
+          r => r.referred_user?.subscription_plan === 'basic'
+        ).length,
+        starter_accounts: filteredData.filter(
+          r => r.referred_user?.subscription_plan === 'starter'
+        ).length,
+        professional_accounts: filteredData.filter(
+          r => r.referred_user?.subscription_plan === 'professional'
+        ).length,
         total_conversions: filteredData.filter(r => r.first_payment_at).length,
-        total_conversion_value: filteredData.reduce((sum, r) => sum + (parseFloat(r.conversion_value as string) || 0), 0),
-        conversion_rate: filteredData.length > 0
-          ? (filteredData.filter(r => r.first_payment_at).length / filteredData.length * 100).toFixed(1)
-          : '0.0'
+        total_conversion_value: filteredData.reduce(
+          (sum, r) => sum + (parseFloat(r.conversion_value as string) || 0),
+          0
+        ),
+        conversion_rate:
+          filteredData.length > 0
+            ? (
+                (filteredData.filter(r => r.first_payment_at).length /
+                  filteredData.length) *
+                100
+              ).toFixed(1)
+            : '0.0',
       };
 
-      console.log('[REFERRALS] Returning', filteredData.length, 'filtered referrals with stats');
+      console.log(
+        '[REFERRALS] Returning',
+        filteredData.length,
+        'filtered referrals with stats'
+      );
 
       return NextResponse.json({
         referrals: filteredData,
@@ -184,18 +252,19 @@ export async function GET(request: NextRequest) {
           time: timeFilter,
           affiliate_id: affiliateId,
           sort_by: sortBy,
-          sort_order: sortOrder
-        }
+          sort_order: sortOrder,
+        },
       });
-
     } catch (processingError: any) {
       console.error('[REFERRALS] Error processing data:', processingError);
-      return NextResponse.json({
-        error: 'Failed to process referrals data',
-        details: processingError.message
-      }, { status: 500 });
+      return NextResponse.json(
+        {
+          error: 'Failed to process referrals data',
+          details: processingError.message,
+        },
+        { status: 500 }
+      );
     }
-
   } catch (error) {
     console.error('[REFERRALS] Error:', error);
     return NextResponse.json(

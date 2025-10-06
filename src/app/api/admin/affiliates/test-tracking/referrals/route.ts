@@ -1,11 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createServerSupabaseClient, createServiceRoleClient } from '@/lib/supabase/server';
+import {
+  createServerSupabaseClient,
+  createServiceRoleClient,
+} from '@/lib/supabase/server';
 
 export async function GET(request: NextRequest) {
   try {
     // Validate admin session
     const supabase = await createServerSupabaseClient();
-    const { data: { user } } = await supabase.auth.getUser();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
 
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -26,7 +31,10 @@ export async function GET(request: NextRequest) {
     const referralCode = searchParams.get('code');
 
     if (!referralCode) {
-      return NextResponse.json({ error: 'Referral code required' }, { status: 400 });
+      return NextResponse.json(
+        { error: 'Referral code required' },
+        { status: 400 }
+      );
     }
 
     // Use service role to get data
@@ -40,7 +48,10 @@ export async function GET(request: NextRequest) {
       .single();
 
     if (!affiliate) {
-      return NextResponse.json({ error: 'Affiliate not found' }, { status: 404 });
+      return NextResponse.json(
+        { error: 'Affiliate not found' },
+        { status: 404 }
+      );
     }
 
     // Get referrals (all time)
@@ -52,7 +63,8 @@ export async function GET(request: NextRequest) {
       .limit(50);
 
     // Get profiles for referred users
-    const userIds = referrals?.map(r => r.referred_user_id).filter(Boolean) || [];
+    const userIds =
+      referrals?.map(r => r.referred_user_id).filter(Boolean) || [];
     const { data: profiles } = await serviceClient
       .from('profiles')
       .select('id, email, full_name')
@@ -62,16 +74,15 @@ export async function GET(request: NextRequest) {
 
     const referralsWithProfiles = referrals?.map(ref => ({
       ...ref,
-      user_email: profilesMap.get(ref.referred_user_id)?.email || 'Unknown'
+      user_email: profilesMap.get(ref.referred_user_id)?.email || 'Unknown',
     }));
 
     return NextResponse.json({
       referrals: referralsWithProfiles || [],
       count: referrals?.length || 0,
       affiliateId: affiliate.id,
-      referralCode
+      referralCode,
     });
-
   } catch (error) {
     console.error('Error fetching referrals:', error);
     return NextResponse.json(

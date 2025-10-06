@@ -32,7 +32,9 @@ async function handlePost(request: NextRequest) {
     }
 
     // Get user email from auth
-    const { data: { user: authUser } } = await supabase.auth.admin.getUserById(userId);
+    const {
+      data: { user: authUser },
+    } = await supabase.auth.admin.getUserById(userId);
     if (!authUser) {
       return NextResponse.json(
         { error: 'Auth user not found' },
@@ -41,17 +43,19 @@ async function handlePost(request: NextRequest) {
     }
 
     const stripeService = getStripeService();
-    
+
     // Create or get Stripe customer
     let customerId = profile.stripe_customer_id;
-    
+
     if (!customerId) {
       const customer = await stripeService.createCustomer(
         authUser.email!,
-        profile.first_name ? `${profile.first_name} ${profile.last_name || ''}`.trim() : undefined
+        profile.first_name
+          ? `${profile.first_name} ${profile.last_name || ''}`.trim()
+          : undefined
       );
       customerId = customer.id;
-      
+
       // Update profile with Stripe customer ID
       await supabase
         .from('profiles')
@@ -60,9 +64,10 @@ async function handlePost(request: NextRequest) {
     }
 
     // Determine success URL based on mode
-    const successUrl = mode === 'subscription' 
-      ? `${env.APP_URL}/dashboard?session_id={CHECKOUT_SESSION_ID}&subscription_success=true`
-      : `${env.APP_URL}/dashboard?session_id={CHECKOUT_SESSION_ID}&payment_success=true`;
+    const successUrl =
+      mode === 'subscription'
+        ? `${env.APP_URL}/dashboard?session_id={CHECKOUT_SESSION_ID}&subscription_success=true`
+        : `${env.APP_URL}/dashboard?session_id={CHECKOUT_SESSION_ID}&payment_success=true`;
 
     // Create checkout session configuration
     const sessionConfig: any = {
@@ -74,15 +79,17 @@ async function handlePost(request: NextRequest) {
       metadata: {
         userId,
         userEmail: authUser.email!,
-      }
+      },
     };
 
     if (mode === 'subscription') {
       // Subscription mode
-      sessionConfig.line_items = [{
-        price: priceId,
-        quantity: 1,
-      }];
+      sessionConfig.line_items = [
+        {
+          price: priceId,
+          quantity: 1,
+        },
+      ];
       sessionConfig.subscription_data = {
         metadata: {
           userId,
@@ -94,7 +101,7 @@ async function handlePost(request: NextRequest) {
       // Get the product details to add credits to metadata
       const price = await stripeService.getPrice(priceId);
       let credits = 0;
-      
+
       // Extract credits from price metadata or ID
       if (priceId === env.STRIPE_PAYG_10_CREDITS_PRICE_ID) {
         credits = 10;
@@ -107,10 +114,12 @@ async function handlePost(request: NextRequest) {
       // Add credits to session metadata too
       sessionConfig.metadata.credits = credits.toString();
 
-      sessionConfig.line_items = [{
-        price: priceId,
-        quantity: 1,
-      }];
+      sessionConfig.line_items = [
+        {
+          price: priceId,
+          quantity: 1,
+        },
+      ];
       sessionConfig.payment_intent_data = {
         metadata: {
           userId,

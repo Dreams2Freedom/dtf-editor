@@ -15,7 +15,7 @@ async function handlePost(request: NextRequest) {
       actionUrl,
       actionText,
       priority = 'normal',
-      expiresAt
+      expiresAt,
     } = body;
 
     // Validate required fields
@@ -28,8 +28,11 @@ async function handlePost(request: NextRequest) {
 
     // Get the authenticated user using server client
     const supabase = await createServerSupabaseClient();
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
-    
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
+
     if (authError || !user) {
       console.error('Auth error:', authError);
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -44,7 +47,10 @@ async function handlePost(request: NextRequest) {
 
     if (profileError || !profile?.is_admin) {
       console.error('Profile check error:', profileError);
-      return NextResponse.json({ error: 'Admin access required' }, { status: 403 });
+      return NextResponse.json(
+        { error: 'Admin access required' },
+        { status: 403 }
+      );
     }
 
     // For now, let's create a simple notification record
@@ -56,7 +62,7 @@ async function handlePost(request: NextRequest) {
       type,
       targetAudience,
       priority,
-      createdBy: user.id
+      createdBy: user.id,
     });
 
     // Try to create the notification
@@ -68,7 +74,7 @@ async function handlePost(request: NextRequest) {
 
     if (tableCheckError) {
       console.error('Notifications table check error:', tableCheckError);
-      
+
       // If the table doesn't exist or we don't have access,
       // we'll create a temporary success response
       return NextResponse.json({
@@ -81,10 +87,11 @@ async function handlePost(request: NextRequest) {
           target_audience: targetAudience,
           priority,
           created_at: new Date().toISOString(),
-          created_by: user.id
+          created_by: user.id,
         },
         usersNotified: 0,
-        warning: 'Notification system is not fully configured. Please run the setup script.'
+        warning:
+          'Notification system is not fully configured. Please run the setup script.',
       });
     }
 
@@ -102,14 +109,14 @@ async function handlePost(request: NextRequest) {
         priority,
         expires_at: expiresAt,
         created_by: user.id,
-        is_active: true
+        is_active: true,
       })
       .select()
       .single();
 
     if (notifError) {
       console.error('Error creating notification:', notifError);
-      
+
       // If we can't create due to permissions, try a different approach
       if (notifError.code === '42501') {
         // Permission denied - RLS is blocking even admins
@@ -124,13 +131,14 @@ async function handlePost(request: NextRequest) {
             target_audience: targetAudience,
             priority,
             created_at: new Date().toISOString(),
-            created_by: user.id
+            created_by: user.id,
           },
           usersNotified: 0,
-          warning: 'Notification created locally. Database permissions need to be configured.'
+          warning:
+            'Notification created locally. Database permissions need to be configured.',
         });
       }
-      
+
       return NextResponse.json(
         { error: 'Failed to create notification', details: notifError.message },
         { status: 500 }
@@ -139,26 +147,26 @@ async function handlePost(request: NextRequest) {
 
     // Try to distribute the notification
     let userCount = 0;
-    
+
     // First try the RPC function
-    const { data: rpcResult, error: rpcError } = await supabase
-      .rpc('send_notification_to_audience', {
-        p_notification_id: notification.id
-      });
-    
+    const { data: rpcResult, error: rpcError } = await supabase.rpc(
+      'send_notification_to_audience',
+      {
+        p_notification_id: notification.id,
+      }
+    );
+
     if (!rpcError) {
       userCount = rpcResult || 0;
     } else {
       console.log('RPC not available, trying manual distribution');
-      
+
       // Fallback: manually create user notifications
       try {
         let targetUsers = [];
-        
+
         if (targetAudience === 'all') {
-          const { data: users } = await supabase
-            .from('profiles')
-            .select('id');
+          const { data: users } = await supabase.from('profiles').select('id');
           targetUsers = users || [];
         } else if (targetAudience === 'free') {
           const { data: users } = await supabase
@@ -179,19 +187,19 @@ async function handlePost(request: NextRequest) {
             .eq('subscription_plan', 'starter');
           targetUsers = users || [];
         }
-        
+
         if (targetUsers.length > 0) {
           const userNotifications = targetUsers.map(u => ({
             notification_id: notification.id,
             user_id: u.id,
             is_read: false,
-            is_dismissed: false
+            is_dismissed: false,
           }));
-          
+
           const { error: insertError } = await supabase
             .from('user_notifications')
             .insert(userNotifications);
-          
+
           if (!insertError) {
             userCount = targetUsers.length;
           } else {
@@ -206,9 +214,8 @@ async function handlePost(request: NextRequest) {
     return NextResponse.json({
       success: true,
       notification,
-      usersNotified: userCount
+      usersNotified: userCount,
     });
-
   } catch (error: any) {
     console.error('Error in send notification:', error);
     return NextResponse.json(

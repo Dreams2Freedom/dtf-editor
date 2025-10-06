@@ -15,6 +15,7 @@ DEEP_IMAGE_API_KEY=73e72360-67b3-11f0-aac1-2d32901b6ec4-invalid_key_for_testing
    - Copy your actual API key
 
 2. **Update your `.env.local` file:**
+
    ```bash
    DEEP_IMAGE_API_KEY=your-actual-api-key-here
    ```
@@ -27,12 +28,14 @@ DEEP_IMAGE_API_KEY=73e72360-67b3-11f0-aac1-2d32901b6ec4-invalid_key_for_testing
 ## Temporary Workaround
 
 If you don't have a Deep-Image API key yet, you can:
+
 1. Sign up for a free account at https://deep-image.ai/
 2. Or temporarily comment out the upscaling feature
 
 ## What I Fixed
 
 I've already fixed the credit synchronization issues:
+
 - Updated `imageProcessing.ts` to check both `credits` and `credits_remaining` columns
 - Updated `authStore.ts` to handle both column names
 - Updated `CreditDisplay.tsx` to show correct credit balance

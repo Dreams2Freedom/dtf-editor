@@ -20,11 +20,11 @@ interface CreditAdjustmentModalProps {
   onUpdate: (updatedCredits: number) => void;
 }
 
-export function CreditAdjustmentModal({ 
-  isOpen, 
-  onClose, 
+export function CreditAdjustmentModal({
+  isOpen,
+  onClose,
   user,
-  onUpdate
+  onUpdate,
 }: CreditAdjustmentModalProps) {
   const [amount, setAmount] = useState<string>('');
   const [reason, setReason] = useState<string>('');
@@ -33,7 +33,7 @@ export function CreditAdjustmentModal({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     const numAmount = parseInt(amount);
     if (isNaN(numAmount) || numAmount <= 0) {
       toast.error('Please enter a valid amount');
@@ -63,8 +63,8 @@ export function CreditAdjustmentModal({
         credentials: 'include',
         body: JSON.stringify({
           amount: adjustmentAmount,
-          reason: reason.trim()
-        })
+          reason: reason.trim(),
+        }),
       });
 
       if (!response.ok) {
@@ -72,13 +72,13 @@ export function CreditAdjustmentModal({
       }
 
       const data = await response.json();
-      
+
       toast.success(
-        operation === 'add' 
+        operation === 'add'
           ? `Added ${numAmount} credits to ${user.email}`
           : `Removed ${numAmount} credits from ${user.email}`
       );
-      
+
       onUpdate(data.new_balance);
       onClose();
       resetForm();
@@ -101,11 +101,18 @@ export function CreditAdjustmentModal({
       <form onSubmit={handleSubmit} className="space-y-4">
         {/* User Info */}
         <div className="bg-gray-50 rounded-lg p-4">
-          <h3 className="text-sm font-medium text-gray-700">User Information</h3>
-          <p className="text-sm text-gray-600 mt-1">{user.full_name || 'No name'}</p>
+          <h3 className="text-sm font-medium text-gray-700">
+            User Information
+          </h3>
+          <p className="text-sm text-gray-600 mt-1">
+            {user.full_name || 'No name'}
+          </p>
           <p className="text-sm text-gray-500">{user.email}</p>
           <p className="text-sm font-medium text-gray-700 mt-2">
-            Current Balance: <span className="text-primary-blue">{user.credits_remaining} credits</span>
+            Current Balance:{' '}
+            <span className="text-primary-blue">
+              {user.credits_remaining} credits
+            </span>
           </p>
         </div>
 
@@ -144,7 +151,10 @@ export function CreditAdjustmentModal({
 
         {/* Amount Input */}
         <div>
-          <label htmlFor="amount" className="block text-sm font-medium text-gray-700 mb-1">
+          <label
+            htmlFor="amount"
+            className="block text-sm font-medium text-gray-700 mb-1"
+          >
             Amount
           </label>
           <div className="relative">
@@ -154,7 +164,7 @@ export function CreditAdjustmentModal({
               type="number"
               min="1"
               value={amount}
-              onChange={(e) => setAmount(e.target.value)}
+              onChange={e => setAmount(e.target.value)}
               placeholder="Enter number of credits"
               className="pl-10"
               required
@@ -162,9 +172,17 @@ export function CreditAdjustmentModal({
           </div>
           {amount && (
             <p className="text-sm text-gray-500 mt-1">
-              New balance will be: {' '}
-              <span className={operation === 'add' ? 'text-green-600' : 'text-red-600'}>
-                {user.credits_remaining + (operation === 'add' ? parseInt(amount) || 0 : -(parseInt(amount) || 0))} credits
+              New balance will be:{' '}
+              <span
+                className={
+                  operation === 'add' ? 'text-green-600' : 'text-red-600'
+                }
+              >
+                {user.credits_remaining +
+                  (operation === 'add'
+                    ? parseInt(amount) || 0
+                    : -(parseInt(amount) || 0))}{' '}
+                credits
               </span>
             </p>
           )}
@@ -175,7 +193,7 @@ export function CreditAdjustmentModal({
           id="reason"
           label="Reason for Adjustment"
           value={reason}
-          onChange={(e) => setReason(e.target.value)}
+          onChange={e => setReason(e.target.value)}
           placeholder="e.g., Customer support compensation, Refund for failed processing, etc."
           rows={3}
           required

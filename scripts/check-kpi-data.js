@@ -12,7 +12,9 @@ async function checkKPIData() {
   // 1. Check users and their subscription status
   const { data: users, error: usersError } = await supabase
     .from('profiles')
-    .select('id, created_at, subscription_plan, subscription_status, last_activity_at, email')
+    .select(
+      'id, created_at, subscription_plan, subscription_status, last_activity_at, email'
+    )
     .order('created_at', { ascending: false });
 
   if (usersError) {
@@ -24,23 +26,34 @@ async function checkKPIData() {
 
   // Count by subscription status - check by plan since status might not be set correctly
   const paidPlans = ['basic', 'starter', 'professional', 'pro'];
-  const paidUsers = users.filter(u =>
-    paidPlans.includes(u.subscription_plan) ||
-    u.subscription_status === 'active' ||
-    u.subscription_status === 'trialing'
+  const paidUsers = users.filter(
+    u =>
+      paidPlans.includes(u.subscription_plan) ||
+      u.subscription_status === 'active' ||
+      u.subscription_status === 'trialing'
   );
-  const freeUsers = users.filter(u =>
-    u.subscription_plan === 'free' || !u.subscription_plan ||
-    (!paidPlans.includes(u.subscription_plan) && u.subscription_status !== 'active' && u.subscription_status !== 'trialing')
+  const freeUsers = users.filter(
+    u =>
+      u.subscription_plan === 'free' ||
+      !u.subscription_plan ||
+      (!paidPlans.includes(u.subscription_plan) &&
+        u.subscription_status !== 'active' &&
+        u.subscription_status !== 'trialing')
   );
 
   console.log(`\n=== User Statistics ===`);
   console.log(`- Total users: ${users.length}`);
   console.log(`- Paid users (active or trialing): ${paidUsers.length}`);
   console.log(`- Free users: ${freeUsers.length}`);
-  console.log(`- Users with subscription_status 'active': ${users.filter(u => u.subscription_status === 'active').length}`);
-  console.log(`- Users with subscription_status 'trialing': ${users.filter(u => u.subscription_status === 'trialing').length}`);
-  console.log(`- Users with null subscription_status: ${users.filter(u => !u.subscription_status).length}`);
+  console.log(
+    `- Users with subscription_status 'active': ${users.filter(u => u.subscription_status === 'active').length}`
+  );
+  console.log(
+    `- Users with subscription_status 'trialing': ${users.filter(u => u.subscription_status === 'trialing').length}`
+  );
+  console.log(
+    `- Users with null subscription_status: ${users.filter(u => !u.subscription_status).length}`
+  );
 
   // Count by plan
   const planCounts = {};
@@ -81,7 +94,7 @@ async function checkKPIData() {
     transactions.forEach(t => {
       const price = t.metadata?.price_paid || t.metadata?.amount_paid || 0;
       if (price > 0) {
-        totalRevenue += (price / 100); // Convert cents to dollars
+        totalRevenue += price / 100; // Convert cents to dollars
         transactionsWithPrice++;
       }
     });
@@ -96,8 +109,12 @@ async function checkKPIData() {
         console.log(`Transaction ${i + 1}:`);
         console.log(`  - Type: ${t.type}`);
         console.log(`  - Credits: ${t.amount}`);
-        console.log(`  - Price: $${t.metadata?.price_paid ? (t.metadata.price_paid / 100).toFixed(2) : 'N/A'}`);
-        console.log(`  - Metadata: ${JSON.stringify(t.metadata).substring(0, 100)}`);
+        console.log(
+          `  - Price: $${t.metadata?.price_paid ? (t.metadata.price_paid / 100).toFixed(2) : 'N/A'}`
+        );
+        console.log(
+          `  - Metadata: ${JSON.stringify(t.metadata).substring(0, 100)}`
+        );
       });
     }
   }
@@ -107,7 +124,8 @@ async function checkKPIData() {
 
   const totalUserBase = users.length;
   const paidUsersCount = paidUsers.length;
-  const conversionRate = totalUserBase > 0 ? (paidUsersCount / totalUserBase) * 100 : 0;
+  const conversionRate =
+    totalUserBase > 0 ? (paidUsersCount / totalUserBase) * 100 : 0;
 
   console.log(`\nConversion Rate Calculation:`);
   console.log(`- Formula: (paid users / total users) × 100`);
@@ -116,16 +134,26 @@ async function checkKPIData() {
 
   // ARPU Calculation - count users with paid plans regardless of status field
   const basicCount = users.filter(u => u.subscription_plan === 'basic').length;
-  const starterCount = users.filter(u => u.subscription_plan === 'starter').length;
-  const proCount = users.filter(u => u.subscription_plan === 'professional' || u.subscription_plan === 'pro').length;
+  const starterCount = users.filter(
+    u => u.subscription_plan === 'starter'
+  ).length;
+  const proCount = users.filter(
+    u => u.subscription_plan === 'professional' || u.subscription_plan === 'pro'
+  ).length;
 
-  const mrr = (basicCount * 9.99) + (starterCount * 24.99) + (proCount * 49.99);
+  const mrr = basicCount * 9.99 + starterCount * 24.99 + proCount * 49.99;
   const arpu = paidUsersCount > 0 ? mrr / paidUsersCount : 0;
 
   console.log(`\nARPU Calculation:`);
-  console.log(`- Active Basic subscribers: ${basicCount} × $9.99 = $${(basicCount * 9.99).toFixed(2)}`);
-  console.log(`- Active Starter subscribers: ${starterCount} × $24.99 = $${(starterCount * 24.99).toFixed(2)}`);
-  console.log(`- Active Pro subscribers: ${proCount} × $49.99 = $${(proCount * 49.99).toFixed(2)}`);
+  console.log(
+    `- Active Basic subscribers: ${basicCount} × $9.99 = $${(basicCount * 9.99).toFixed(2)}`
+  );
+  console.log(
+    `- Active Starter subscribers: ${starterCount} × $24.99 = $${(starterCount * 24.99).toFixed(2)}`
+  );
+  console.log(
+    `- Active Pro subscribers: ${proCount} × $49.99 = $${(proCount * 49.99).toFixed(2)}`
+  );
   console.log(`- Total MRR: $${mrr.toFixed(2)}`);
   console.log(`- Expected ARPU: $${arpu.toFixed(2)} (MRR / paid users)`);
 
@@ -136,7 +164,8 @@ async function checkKPIData() {
     .eq('event_type', 'subscription_cancelled');
 
   const churnCount = cancelEvents?.length || 0;
-  const churnRate = paidUsersCount > 0 ? (churnCount / (paidUsersCount + churnCount)) * 100 : 0;
+  const churnRate =
+    paidUsersCount > 0 ? (churnCount / (paidUsersCount + churnCount)) * 100 : 0;
 
   console.log(`\nChurn Rate Calculation:`);
   console.log(`- Cancelled subscriptions: ${churnCount}`);
@@ -144,7 +173,9 @@ async function checkKPIData() {
   console.log(`- Expected Churn Rate: ${churnRate.toFixed(2)}%`);
 
   console.log('\n=== Summary ===');
-  console.log('If these values are different from what you see in the UI, there may be an issue with:');
+  console.log(
+    'If these values are different from what you see in the UI, there may be an issue with:'
+  );
   console.log('1. The API endpoint query');
   console.log('2. The data filtering logic');
   console.log('3. The frontend display logic');

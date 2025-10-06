@@ -27,14 +27,14 @@ export class ClippingMagicService {
   constructor() {
     this.apiId = env.CLIPPINGMAGIC_API_KEY;
     this.apiSecret = env.CLIPPINGMAGIC_API_SECRET || '';
-    
+
     // Debug environment variables - commented out for production
     // console.log('Raw env values:', {
     //   CLIPPINGMAGIC_API_KEY: process.env.CLIPPINGMAGIC_API_KEY,
     //   CLIPPINGMAGIC_API_SECRET: process.env.CLIPPINGMAGIC_API_SECRET ? 'EXISTS' : 'MISSING',
     //   secretLength: process.env.CLIPPINGMAGIC_API_SECRET?.length || 0
     // });
-    
+
     // console.log('ClippingMagic Service Init:', {
     //   hasApiId: !!this.apiId,
     //   hasApiSecret: !!this.apiSecret,
@@ -43,15 +43,17 @@ export class ClippingMagicService {
     //   envValue: env.CLIPPINGMAGIC_API_SECRET ? 'EXISTS' : 'MISSING',
     //   directEnvValue: process.env.CLIPPINGMAGIC_API_SECRET || 'NOT_FOUND'
     // });
-    
+
     // Force use of process.env directly as a workaround
     if (!this.apiSecret && process.env.CLIPPINGMAGIC_API_SECRET) {
       // console.log('Using direct env value as workaround');
       this.apiSecret = process.env.CLIPPINGMAGIC_API_SECRET;
     }
-    
+
     // Create Basic Auth header
-    this.authHeader = 'Basic ' + Buffer.from(this.apiId + ':' + this.apiSecret).toString('base64');
+    this.authHeader =
+      'Basic ' +
+      Buffer.from(this.apiId + ':' + this.apiSecret).toString('base64');
   }
 
   /**
@@ -62,7 +64,10 @@ export class ClippingMagicService {
     options: ClippingMagicOptions = {}
   ): Promise<ClippingMagicResult> {
     if (!this.apiId || !this.apiSecret) {
-      return { status: 'error', error: 'ClippingMagic API credentials are not configured' };
+      return {
+        status: 'error',
+        error: 'ClippingMagic API credentials are not configured',
+      };
     }
 
     const startTime = Date.now();
@@ -76,7 +81,9 @@ export class ClippingMagicService {
       // Download the image first
       const imageResponse = await fetch(imageUrl);
       if (!imageResponse.ok) {
-        throw new Error(`Failed to download image: ${imageResponse.statusText}`);
+        throw new Error(
+          `Failed to download image: ${imageResponse.statusText}`
+        );
       }
 
       const imageBlob = await imageResponse.blob();
@@ -88,7 +95,7 @@ export class ClippingMagicService {
       formData.append('format', 'json'); // Get JSON response with image ID and secret
       formData.append('maxPixels', '26214400'); // Preserve full resolution up to 26.2 megapixels
       formData.append('processing.mode', 'graphics'); // Default to graphics mode for DTF
-      
+
       // Remove test parameter - we want actual processing
       // formData.append('test', 'true');
 
@@ -96,14 +103,16 @@ export class ClippingMagicService {
       const uploadResponse = await fetch(`${this.baseUrl}/images`, {
         method: 'POST',
         headers: {
-          'Authorization': this.authHeader,
+          Authorization: this.authHeader,
         },
         body: formData,
       });
 
       if (!uploadResponse.ok) {
         const errorData = await uploadResponse.text();
-        throw new Error(`ClippingMagic upload error: ${uploadResponse.status} - ${errorData}`);
+        throw new Error(
+          `ClippingMagic upload error: ${uploadResponse.status} - ${errorData}`
+        );
       }
 
       const uploadResult = await uploadResponse.json();
@@ -118,54 +127,57 @@ export class ClippingMagicService {
       let attempts = 0;
       const maxAttempts = 60; // 60 seconds max wait (increased from 30)
       let resultReady = false;
-      
+
       while (attempts < maxAttempts && !resultReady) {
         await new Promise(resolve => setTimeout(resolve, 1000)); // Wait 1 second
-        
+
         // Check if result is ready
-        const statusResponse = await fetch(`${this.baseUrl}/images/${imageId}`, {
-          method: 'GET',
-          headers: {
-            'Authorization': this.authHeader,
-            'Accept': 'application/json',
-          },
-        });
-        
+        const statusResponse = await fetch(
+          `${this.baseUrl}/images/${imageId}`,
+          {
+            method: 'GET',
+            headers: {
+              Authorization: this.authHeader,
+              Accept: 'application/json',
+            },
+          }
+        );
+
         if (statusResponse.ok) {
           const statusData = await statusResponse.json();
           if (statusData.resultRevision && statusData.resultRevision > 0) {
             resultReady = true;
           }
         }
-        
+
         attempts++;
       }
-      
+
       if (!resultReady) {
         throw new Error('Background removal timed out. Please try again.');
       }
-      
+
       // Step 3: Download the processed result
       const resultUrl = `${this.baseUrl}/images/${imageId}`;
       const resultParams = new URLSearchParams();
-      
+
       // Add format options for download
       if (options.format) {
         resultParams.append('format', options.format);
       } else {
         resultParams.append('format', 'png'); // Default to PNG for transparency
       }
-      
+
       // CRITICAL: Set DPI to 300 for print-ready output (DTF requires high DPI)
       resultParams.append('output.dpi', '300');
-      
+
       // CRITICAL: Allow result to maintain full input size
       resultParams.append('result.allowEnlarging', 'true');
-      
+
       if (options.backgroundColor && options.format === 'jpg') {
         resultParams.append('background_color', options.backgroundColor);
       }
-      
+
       if (options.quality && options.format === 'jpg') {
         resultParams.append('quality', options.quality.toString());
       }
@@ -174,7 +186,7 @@ export class ClippingMagicService {
       const resultResponse = await fetch(`${resultUrl}?${resultParams}`, {
         method: 'GET',
         headers: {
-          'Authorization': this.authHeader,
+          Authorization: this.authHeader,
         },
       });
 
@@ -182,12 +194,14 @@ export class ClippingMagicService {
 
       if (!resultResponse.ok) {
         const errorData = await resultResponse.text();
-        throw new Error(`ClippingMagic result error: ${resultResponse.status} - ${errorData}`);
+        throw new Error(
+          `ClippingMagic result error: ${resultResponse.status} - ${errorData}`
+        );
       }
 
       // Get the processed image
       const resultBlob = await resultResponse.blob();
-      
+
       // Convert blob to data URL for immediate use
       const processedUrl = await this.blobToDataUrl(resultBlob);
 
@@ -200,11 +214,11 @@ export class ClippingMagicService {
           processingTime,
         },
       };
-
     } catch (error) {
       return {
         status: 'error',
-        error: error instanceof Error ? error.message : 'Background removal failed',
+        error:
+          error instanceof Error ? error.message : 'Background removal failed',
         metadata: {
           originalSize: 0,
           processedSize: 0,
@@ -236,7 +250,7 @@ export class ClippingMagicService {
     try {
       const response = await fetch(`${this.baseUrl}/account`, {
         headers: {
-          'Authorization': this.authHeader,
+          Authorization: this.authHeader,
         },
       });
 
@@ -277,7 +291,7 @@ export class ClippingMagicService {
     }
 
     // Check minimum dimensions
-    return new Promise((resolve) => {
+    return new Promise(resolve => {
       const img = new Image();
       img.onload = () => {
         if (img.width < 50 || img.height < 50) {

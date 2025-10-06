@@ -106,7 +106,7 @@ export interface AdminSession {
 }
 
 // Admin Action Types for Audit Logging
-export type AdminAction = 
+export type AdminAction =
   | 'user.view'
   | 'user.edit'
   | 'user.delete'

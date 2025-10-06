@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { waitUntil } from '@vercel/functions';
-import { createServerSupabaseClient, createServiceRoleClient } from '@/lib/supabase/server';
+import {
+  createServerSupabaseClient,
+  createServiceRoleClient,
+} from '@/lib/supabase/server';
 import { ProcessingMode, DeepImageService } from '@/services/deepImage';
 import { storageService } from '@/services/storage';
 import { saveProcessedImageToGallery } from '@/utils/saveProcessedImage';
@@ -11,7 +14,10 @@ export async function POST(request: NextRequest) {
   try {
     // 1. Authenticate user
     const supabase = await createServerSupabaseClient();
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
 
     if (authError || !user) {
       return NextResponse.json(
@@ -24,10 +30,17 @@ export async function POST(request: NextRequest) {
     const formData = await request.formData();
     const imageFile = formData.get('image') as File;
     const imageUrl = formData.get('imageUrl') as string;
-    const processingMode = (formData.get('processingMode') as ProcessingMode) || 'auto_enhance';
-    const scale = formData.get('scale') ? parseInt(formData.get('scale') as string) : undefined;
-    const targetWidth = formData.get('targetWidth') ? parseInt(formData.get('targetWidth') as string) : undefined;
-    const targetHeight = formData.get('targetHeight') ? parseInt(formData.get('targetHeight') as string) : undefined;
+    const processingMode =
+      (formData.get('processingMode') as ProcessingMode) || 'auto_enhance';
+    const scale = formData.get('scale')
+      ? parseInt(formData.get('scale') as string)
+      : undefined;
+    const targetWidth = formData.get('targetWidth')
+      ? parseInt(formData.get('targetWidth') as string)
+      : undefined;
+    const targetHeight = formData.get('targetHeight')
+      ? parseInt(formData.get('targetHeight') as string)
+      : undefined;
 
     // 3. Store image temporarily if uploaded
     let finalImageUrl: string;
@@ -51,10 +64,7 @@ export async function POST(request: NextRequest) {
     } else if (imageUrl) {
       finalImageUrl = imageUrl;
     } else {
-      return NextResponse.json(
-        { error: 'No image provided' },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: 'No image provided' }, { status: 400 });
     }
 
     // 4. Create job in database
@@ -70,8 +80,8 @@ export async function POST(request: NextRequest) {
         scale,
         targetWidth,
         targetHeight,
-        originalFileName: imageFile?.name
-      }
+        originalFileName: imageFile?.name,
+      },
     };
 
     const { data: job, error: jobError } = await serviceClient
@@ -94,7 +104,7 @@ export async function POST(request: NextRequest) {
       processingMode,
       scale,
       targetWidth,
-      targetHeight
+      targetHeight,
     });
 
     // Use waitUntil to keep the function execution alive
@@ -105,9 +115,8 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       success: true,
       jobId: job.id,
-      message: 'Processing started. Poll for status updates.'
+      message: 'Processing started. Poll for status updates.',
     });
-
   } catch (error) {
     console.error('[Upscale Async] Error:', error);
     return NextResponse.json(
@@ -139,7 +148,7 @@ async function processJob(
       .update({
         status: 'processing',
         started_at: new Date().toISOString(),
-        progress: 10
+        progress: 10,
       })
       .eq('id', jobId);
 
@@ -159,14 +168,17 @@ async function processJob(
 
     const response = await deepImageService.upscaleImage(imageUrl, {
       processingMode: options.processingMode || 'auto_enhance',
-      scale: options.scale as (2 | 4 | undefined),
+      scale: options.scale as 2 | 4 | undefined,
       faceEnhance: false,
       targetWidth: options.targetWidth,
-      targetHeight: options.targetHeight
+      targetHeight: options.targetHeight,
     });
 
     const processingTime = Date.now() - startTime;
-    console.log(`[Upscale Async] Job ${jobId} Deep-Image response:`, response.status);
+    console.log(
+      `[Upscale Async] Job ${jobId} Deep-Image response:`,
+      response.status
+    );
 
     // Update progress to 70%
     await serviceClient
@@ -189,8 +201,8 @@ async function processJob(
       metadata: {
         targetWidth: options.targetWidth,
         targetHeight: options.targetHeight,
-        processingMode: options.processingMode
-      }
+        processingMode: options.processingMode,
+      },
     });
 
     // Save to gallery
@@ -207,8 +219,8 @@ async function processJob(
           metadata: {
             processingTime,
             creditsUsed: 1,
-            processingTimeFromApi: response.processingTime
-          }
+            processingTimeFromApi: response.processingTime,
+          },
         });
 
         if (savedId) {
@@ -244,12 +256,11 @@ async function processJob(
           url: finalUrl,
           imageId: savedId,
           processingTime,
-          creditsUsed: 1
+          creditsUsed: 1,
         },
-        completed_at: new Date().toISOString()
+        completed_at: new Date().toISOString(),
       })
       .eq('id', jobId);
-
   } catch (error) {
     console.error('[Upscale Async] Processing failed:', error);
 
@@ -261,12 +272,13 @@ async function processJob(
       status: 'failed',
       creditsCharged: 0,
       processingTimeMs: Date.now() - Date.now(),
-      errorMessage: error instanceof Error ? error.message : 'Processing failed',
+      errorMessage:
+        error instanceof Error ? error.message : 'Processing failed',
       metadata: {
         targetWidth: options.targetWidth,
         targetHeight: options.targetHeight,
-        processingMode: options.processingMode
-      }
+        processingMode: options.processingMode,
+      },
     });
 
     // Update job as failed
@@ -274,8 +286,9 @@ async function processJob(
       .from('processing_jobs')
       .update({
         status: 'failed',
-        error_message: error instanceof Error ? error.message : 'Processing failed',
-        completed_at: new Date().toISOString()
+        error_message:
+          error instanceof Error ? error.message : 'Processing failed',
+        completed_at: new Date().toISOString(),
       })
       .eq('id', jobId);
   }

@@ -3,12 +3,14 @@
 ## 🔐 1. Authentication & Authorization
 
 ### 1.1 Admin Roles
+
 - **Super Admin**: Full system access, can manage other admins
 - **Admin**: User management, financial viewing, no system settings
 - **Support**: View-only access, can add credits, view user data
 - **Analytics**: Read-only access to reports and metrics
 
 ### 1.2 Security Requirements
+
 - Two-factor authentication (2FA) mandatory for all admin accounts
 - IP whitelist for admin access (configurable)
 - Session timeout after 30 minutes of inactivity
@@ -16,6 +18,7 @@
 - Failed login attempt monitoring and blocking
 
 ### 1.3 Access Control
+
 ```typescript
 interface AdminPermissions {
   users: {
@@ -40,6 +43,7 @@ interface AdminPermissions {
 ## 👥 2. User Management
 
 ### 2.1 User Search & Filters
+
 - Search by: email, name, user ID
 - Filter by:
   - Account status (active, suspended, deleted)
@@ -51,6 +55,7 @@ interface AdminPermissions {
   - Country/region
 
 ### 2.2 Bulk Operations
+
 - Select multiple users for:
   - Add/remove credits
   - Send email notification
@@ -59,6 +64,7 @@ interface AdminPermissions {
   - Change subscription plan
 
 ### 2.3 Individual User Actions
+
 - View detailed profile and history
 - Edit user information
 - Add/remove credits with reason
@@ -69,6 +75,7 @@ interface AdminPermissions {
 - Impersonate user (with audit log)
 
 ### 2.4 User Communication
+
 - Send individual emails
 - Send bulk emails to segments
 - In-app notification system
@@ -77,6 +84,7 @@ interface AdminPermissions {
 ## 💰 3. Financial Management
 
 ### 3.1 Transaction Management
+
 - View all transactions with filters
 - Process refunds with reason tracking
 - Void/cancel transactions
@@ -84,6 +92,7 @@ interface AdminPermissions {
 - Export transactions (CSV, PDF)
 
 ### 3.2 Coupon Management
+
 - Create discount codes
   - Percentage or fixed amount
   - Usage limits
@@ -94,6 +103,7 @@ interface AdminPermissions {
 - Deactivate codes
 
 ### 3.3 Invoice Management
+
 - Generate custom invoices
 - Edit invoice details
 - Send invoices via email
@@ -101,6 +111,7 @@ interface AdminPermissions {
 - Tax management by region
 
 ### 3.4 Financial Reporting
+
 - Revenue by period (daily, weekly, monthly, yearly)
 - Revenue by plan type
 - Revenue by country
@@ -113,6 +124,7 @@ interface AdminPermissions {
 ## 📊 4. Analytics & Business Intelligence
 
 ### 4.1 Real-time Dashboard
+
 - Active users (last 24h, 7d, 30d)
 - Current processing jobs
 - API status and response times
@@ -120,6 +132,7 @@ interface AdminPermissions {
 - Credit usage rate
 
 ### 4.2 User Analytics
+
 - User acquisition funnel
 - Feature adoption rates
 - User engagement metrics
@@ -127,6 +140,7 @@ interface AdminPermissions {
 - Cohort analysis
 
 ### 4.3 Custom Reports
+
 - Report builder with drag-drop interface
 - Saved report templates
 - Scheduled report generation
@@ -134,6 +148,7 @@ interface AdminPermissions {
 - Export formats: CSV, PDF, Excel
 
 ### 4.4 Predictive Analytics
+
 - Churn prediction scores
 - Revenue forecasting
 - Usage trend analysis
@@ -142,6 +157,7 @@ interface AdminPermissions {
 ## 🔧 5. System Management
 
 ### 5.1 Configuration
+
 - Feature flags management
 - API rate limits per plan
 - Pricing configuration
@@ -149,6 +165,7 @@ interface AdminPermissions {
 - System messages
 
 ### 5.2 Monitoring
+
 - API health dashboard
 - Service uptime tracking
 - Error log viewer
@@ -156,6 +173,7 @@ interface AdminPermissions {
 - Queue monitoring
 
 ### 5.3 Maintenance
+
 - Maintenance mode toggle
 - Scheduled maintenance
 - System announcements
@@ -163,6 +181,7 @@ interface AdminPermissions {
 - Cache management
 
 ### 5.4 API Management
+
 - API key generation
 - Usage monitoring per key
 - Rate limit configuration
@@ -172,6 +191,7 @@ interface AdminPermissions {
 ## 🎯 6. Support Tools
 
 ### 6.1 User Support
+
 - View user's screen (current state)
 - Access user's processing history
 - Simulate user's view
@@ -179,6 +199,7 @@ interface AdminPermissions {
 - Priority support queue
 
 ### 6.2 Debugging Tools
+
 - Error log search
 - User activity timeline
 - API request inspector
@@ -186,6 +207,7 @@ interface AdminPermissions {
 - Database query analyzer
 
 ### 6.3 Content Management
+
 - FAQ management
 - Help article editor
 - Video tutorial uploads
@@ -195,6 +217,7 @@ interface AdminPermissions {
 ## 📈 7. KPI Dashboard
 
 ### 7.1 Financial KPIs
+
 - MRR with growth rate
 - ARR projection
 - ARPU by segment
@@ -205,6 +228,7 @@ interface AdminPermissions {
 - Runway
 
 ### 7.2 Operational KPIs
+
 - Daily/Monthly Active Users
 - Feature usage rates
 - Processing success rate
@@ -213,6 +237,7 @@ interface AdminPermissions {
 - Customer satisfaction score
 
 ### 7.3 Growth KPIs
+
 - User acquisition rate
 - Conversion rate by source
 - Trial to paid conversion
@@ -223,6 +248,7 @@ interface AdminPermissions {
 ## 🛡️ 8. Compliance & Security
 
 ### 8.1 GDPR Compliance
+
 - User data export tool
 - Right to be forgotten implementation
 - Consent management
@@ -230,6 +256,7 @@ interface AdminPermissions {
 - Privacy policy versioning
 
 ### 8.2 Audit Logging
+
 - All admin actions logged
 - User data access logs
 - Financial transaction logs
@@ -237,6 +264,7 @@ interface AdminPermissions {
 - Log retention: 2 years
 
 ### 8.3 Security Monitoring
+
 - Failed login attempts
 - Suspicious activity alerts
 - API abuse detection
@@ -246,24 +274,28 @@ interface AdminPermissions {
 ## 🚀 9. Implementation Priorities
 
 ### Phase 1: Core Admin Functions
+
 1. Admin authentication and roles
 2. Basic user management
 3. Transaction viewing
 4. Simple analytics dashboard
 
 ### Phase 2: Financial Tools
+
 1. Refund processing
 2. Coupon management
 3. Financial reporting
 4. Invoice management
 
 ### Phase 3: Advanced Features
+
 1. Custom report builder
 2. Predictive analytics
 3. Support tools
 4. API management
 
 ### Phase 4: Compliance & Scale
+
 1. GDPR tools
 2. Advanced security
 3. Performance optimization

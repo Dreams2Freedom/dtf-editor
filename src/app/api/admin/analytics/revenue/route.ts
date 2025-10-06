@@ -6,9 +6,11 @@ import { withRateLimit } from '@/lib/rate-limit';
 async function handleGet(request: NextRequest) {
   try {
     const supabase = await createServerSupabaseClient();
-    
+
     // Check if user is admin
-    const { data: { user } } = await supabase.auth.getUser();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
@@ -20,17 +22,20 @@ async function handleGet(request: NextRequest) {
       .single();
 
     if (!profile?.is_admin) {
-      return NextResponse.json({ error: 'Admin access required' }, { status: 403 });
+      return NextResponse.json(
+        { error: 'Admin access required' },
+        { status: 403 }
+      );
     }
 
     // Get time range from query params
     const searchParams = request.nextUrl.searchParams;
     const range = searchParams.get('range') || '30d';
-    
+
     // Calculate date range
     const now = new Date();
     const startDate = new Date();
-    
+
     switch (range) {
       case '7d':
         startDate.setDate(now.getDate() - 7);
@@ -50,13 +55,19 @@ async function handleGet(request: NextRequest) {
     try {
       serviceClient = createServiceRoleSupabaseClient();
     } catch (error) {
-      console.error('Failed to create service role client in revenue route:', error);
+      console.error(
+        'Failed to create service role client in revenue route:',
+        error
+      );
       return NextResponse.json(
-        { error: 'Database configuration error', details: error instanceof Error ? error.message : 'Unknown error' },
+        {
+          error: 'Database configuration error',
+          details: error instanceof Error ? error.message : 'Unknown error',
+        },
         { status: 500 }
       );
     }
-    
+
     // Fetch credit transactions (our revenue source)
     const { data: transactions, error: transactionsError } = await serviceClient
       .from('credit_transactions')
@@ -64,7 +75,7 @@ async function handleGet(request: NextRequest) {
       .in('type', ['purchase', 'subscription'])
       .gte('created_at', startDate.toISOString())
       .order('created_at', { ascending: false });
-    
+
     if (transactionsError) {
       console.error('Error fetching transactions:', transactionsError);
     }
@@ -75,21 +86,30 @@ async function handleGet(request: NextRequest) {
       .from('profiles')
       .select('id, subscription_plan, subscription_status, created_at')
       .in('subscription_plan', paidPlans);
-    
+
     if (usersError) {
       console.error('Error fetching users:', usersError);
     }
 
     // Calculate daily revenue
-    const dailyRevenue = new Map<string, { revenue: number; transactions: number }>();
-    
+    const dailyRevenue = new Map<
+      string,
+      { revenue: number; transactions: number }
+    >();
+
     transactions?.forEach(transaction => {
       const date = new Date(transaction.created_at).toISOString().split('T')[0];
-      const existing = dailyRevenue.get(date) || { revenue: 0, transactions: 0 };
-      const price = transaction.metadata?.price_paid || transaction.metadata?.amount_paid || 0;
+      const existing = dailyRevenue.get(date) || {
+        revenue: 0,
+        transactions: 0,
+      };
+      const price =
+        transaction.metadata?.price_paid ||
+        transaction.metadata?.amount_paid ||
+        0;
       dailyRevenue.set(date, {
-        revenue: existing.revenue + (price / 100),
-        transactions: existing.transactions + 1
+        revenue: existing.revenue + price / 100,
+        transactions: existing.transactions + 1,
       });
     });
 
@@ -99,16 +119,26 @@ async function handleGet(request: NextRequest) {
       .sort((a, b) => a.date.localeCompare(b.date));
 
     // Calculate monthly revenue
-    const monthlyRevenue = new Map<string, { revenue: number; mrr: number; new_customers: number }>();
-    
+    const monthlyRevenue = new Map<
+      string,
+      { revenue: number; mrr: number; new_customers: number }
+    >();
+
     transactions?.forEach(transaction => {
       const month = new Date(transaction.created_at).toISOString().slice(0, 7);
-      const existing = monthlyRevenue.get(month) || { revenue: 0, mrr: 0, new_customers: 0 };
-      const price = transaction.metadata?.price_paid || transaction.metadata?.amount_paid || 0;
+      const existing = monthlyRevenue.get(month) || {
+        revenue: 0,
+        mrr: 0,
+        new_customers: 0,
+      };
+      const price =
+        transaction.metadata?.price_paid ||
+        transaction.metadata?.amount_paid ||
+        0;
       monthlyRevenue.set(month, {
-        revenue: existing.revenue + (price / 100),
+        revenue: existing.revenue + price / 100,
         mrr: existing.mrr,
-        new_customers: existing.new_customers
+        new_customers: existing.new_customers,
       });
     });
 
@@ -117,17 +147,21 @@ async function handleGet(request: NextRequest) {
       basic: 9.99,
       starter: 24.99,
       professional: 49.99,
-      pro: 49.99
+      pro: 49.99,
     };
 
     allUsers?.forEach(user => {
       const month = new Date().toISOString().slice(0, 7);
-      const existing = monthlyRevenue.get(month) || { revenue: 0, mrr: 0, new_customers: 0 };
+      const existing = monthlyRevenue.get(month) || {
+        revenue: 0,
+        mrr: 0,
+        new_customers: 0,
+      };
       const planPrice = planPrices[user.subscription_plan] || 0;
-      
+
       monthlyRevenue.set(month, {
         ...existing,
-        mrr: existing.mrr + planPrice
+        mrr: existing.mrr + planPrice,
       });
     });
 
@@ -137,14 +171,17 @@ async function handleGet(request: NextRequest) {
 
     // Calculate plan distribution
     const planCounts = new Map<string, { count: number; revenue: number }>();
-    
+
     allUsers?.forEach(user => {
-      const existing = planCounts.get(user.subscription_plan) || { count: 0, revenue: 0 };
+      const existing = planCounts.get(user.subscription_plan) || {
+        count: 0,
+        revenue: 0,
+      };
       const planPrice = planPrices[user.subscription_plan] || 0;
-      
+
       planCounts.set(user.subscription_plan, {
         count: existing.count + 1,
-        revenue: existing.revenue + planPrice
+        revenue: existing.revenue + planPrice,
       });
     });
 
@@ -153,26 +190,32 @@ async function handleGet(request: NextRequest) {
       .sort((a, b) => b.revenue - a.revenue);
 
     // Get top customers by total spent
-    const customerSpending = new Map<string, { 
-      email: string; 
-      total_spent: number; 
-      subscription_plan: string;
-      created_at: string;
-    }>();
+    const customerSpending = new Map<
+      string,
+      {
+        email: string;
+        total_spent: number;
+        subscription_plan: string;
+        created_at: string;
+      }
+    >();
 
     transactions?.forEach(transaction => {
       const userId = transaction.user_id;
       const existing = customerSpending.get(userId);
-      
-      const price = transaction.metadata?.price_paid || transaction.metadata?.amount_paid || 0;
+
+      const price =
+        transaction.metadata?.price_paid ||
+        transaction.metadata?.amount_paid ||
+        0;
       if (existing) {
-        existing.total_spent += (price / 100);
+        existing.total_spent += price / 100;
       } else {
         customerSpending.set(userId, {
           email: transaction.profiles.email,
-          total_spent: (price / 100),
+          total_spent: price / 100,
           subscription_plan: transaction.profiles.subscription_plan || 'free',
-          created_at: transaction.created_at
+          created_at: transaction.created_at,
         });
       }
     });
@@ -183,33 +226,38 @@ async function handleGet(request: NextRequest) {
       .slice(0, 10);
 
     // Calculate metrics
-    const totalRevenue = transactions?.reduce((sum, t) => {
-      const price = t.metadata?.price_paid || t.metadata?.amount_paid || 0;
-      return sum + (price / 100);
-    }, 0) || 0;
-    const currentMRR = allUsers?.reduce((sum, user) => {
-      return sum + (planPrices[user.subscription_plan] || 0);
-    }, 0) || 0;
-    
-    const previousMonthRevenue = transactions
-      ?.filter(t => {
-        const transactionDate = new Date(t.created_at);
-        const prevMonth = new Date();
-        prevMonth.setMonth(prevMonth.getMonth() - 1);
-        return transactionDate.getMonth() === prevMonth.getMonth();
-      })
-      .reduce((sum, t) => {
+    const totalRevenue =
+      transactions?.reduce((sum, t) => {
         const price = t.metadata?.price_paid || t.metadata?.amount_paid || 0;
-        return sum + (price / 100);
+        return sum + price / 100;
+      }, 0) || 0;
+    const currentMRR =
+      allUsers?.reduce((sum, user) => {
+        return sum + (planPrices[user.subscription_plan] || 0);
       }, 0) || 0;
 
-    const growthRate = previousMonthRevenue > 0 
-      ? ((totalRevenue - previousMonthRevenue) / previousMonthRevenue) * 100 
-      : 0;
+    const previousMonthRevenue =
+      transactions
+        ?.filter(t => {
+          const transactionDate = new Date(t.created_at);
+          const prevMonth = new Date();
+          prevMonth.setMonth(prevMonth.getMonth() - 1);
+          return transactionDate.getMonth() === prevMonth.getMonth();
+        })
+        .reduce((sum, t) => {
+          const price = t.metadata?.price_paid || t.metadata?.amount_paid || 0;
+          return sum + price / 100;
+        }, 0) || 0;
 
-    const avgOrderValue = transactions && transactions.length > 0 
-      ? totalRevenue / transactions.length 
-      : 0;
+    const growthRate =
+      previousMonthRevenue > 0
+        ? ((totalRevenue - previousMonthRevenue) / previousMonthRevenue) * 100
+        : 0;
+
+    const avgOrderValue =
+      transactions && transactions.length > 0
+        ? totalRevenue / transactions.length
+        : 0;
 
     // Simple LTV calculation (MRR * 12 for annual, simplified)
     const ltv = currentMRR * 12;
@@ -225,12 +273,11 @@ async function handleGet(request: NextRequest) {
         arr: currentMRR * 12,
         average_order_value: avgOrderValue,
         ltv: ltv / (allUsers?.length || 1), // Per customer LTV
-        growth_rate: growthRate
-      }
+        growth_rate: growthRate,
+      },
     };
 
     return NextResponse.json(revenueData);
-
   } catch (error) {
     console.error('Error fetching revenue data:', error);
     return NextResponse.json(

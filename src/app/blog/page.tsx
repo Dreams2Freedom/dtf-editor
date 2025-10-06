@@ -24,13 +24,15 @@ export default function BlogPage() {
 
           {/* Description */}
           <p className="text-xl text-gray-600 mb-8 max-w-2xl mx-auto">
-            We're working on amazing content to help you master DTF printing, 
+            We're working on amazing content to help you master DTF printing,
             design tips, and get the most out of our tools.
           </p>
 
           {/* What to Expect */}
           <div className="bg-white rounded-2xl shadow-sm p-8 mb-12 max-w-3xl mx-auto">
-            <h2 className="text-2xl font-semibold text-gray-900 mb-6">What to Expect</h2>
+            <h2 className="text-2xl font-semibold text-gray-900 mb-6">
+              What to Expect
+            </h2>
             <div className="grid md:grid-cols-3 gap-6 text-left">
               <div className="space-y-3">
                 <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
@@ -64,9 +66,12 @@ export default function BlogPage() {
 
           {/* Newsletter Signup */}
           <div className="bg-gradient-to-r from-purple-600 to-pink-600 rounded-2xl p-8 text-white max-w-3xl mx-auto">
-            <h3 className="text-2xl font-semibold mb-3">Be the First to Know</h3>
+            <h3 className="text-2xl font-semibold mb-3">
+              Be the First to Know
+            </h3>
             <p className="mb-6 opacity-90">
-              Get notified when we launch our blog and receive exclusive DTF tips
+              Get notified when we launch our blog and receive exclusive DTF
+              tips
             </p>
             <div className="flex flex-col sm:flex-row gap-4 max-w-md mx-auto">
               <input
@@ -82,7 +87,9 @@ export default function BlogPage() {
 
           {/* CTA Buttons */}
           <div className="mt-12 space-y-4">
-            <p className="text-gray-600 mb-4">In the meantime, explore our tools:</p>
+            <p className="text-gray-600 mb-4">
+              In the meantime, explore our tools:
+            </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Link
                 href="/process"

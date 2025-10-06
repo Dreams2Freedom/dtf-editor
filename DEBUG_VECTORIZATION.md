@@ -1,6 +1,7 @@
 # Debug Vectorization Issue
 
 ## Current Status
+
 - User has 9 credits in database (confirmed)
 - Vectorization requires 2 credits
 - Still getting "Insufficient credits" error
@@ -12,6 +13,7 @@
    - This will show what the server is seeing
 
 2. **Restart Dev Server**
+
    ```bash
    # Stop the server (Ctrl+C)
    # Start it again
@@ -40,6 +42,7 @@ If the issue persists, try this manual approach:
 3. Try vectorization again
 
 ## What We've Fixed So Far
+
 - ✅ Credit column mismatch (credits vs credits_remaining)
 - ✅ Phantom credit refunds
 - ✅ Credit display in UI

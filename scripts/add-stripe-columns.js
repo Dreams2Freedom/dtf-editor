@@ -12,7 +12,9 @@ const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
 if (!supabaseUrl || !supabaseServiceKey) {
-  console.error('❌ Missing NEXT_PUBLIC_SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY');
+  console.error(
+    '❌ Missing NEXT_PUBLIC_SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY'
+  );
   process.exit(1);
 }
 
@@ -24,11 +26,16 @@ async function checkColumns() {
   // Try to select the Stripe columns
   const { data, error } = await supabase
     .from('profiles')
-    .select('stripe_customer_id, stripe_subscription_id, subscription_current_period_end, subscription_canceled_at')
+    .select(
+      'stripe_customer_id, stripe_subscription_id, subscription_current_period_end, subscription_canceled_at'
+    )
     .limit(1);
 
   if (error) {
-    if (error.message.includes('column') && error.message.includes('does not exist')) {
+    if (
+      error.message.includes('column') &&
+      error.message.includes('does not exist')
+    ) {
       console.log('❌ Some Stripe columns are missing from profiles table');
       return false;
     } else {
@@ -50,14 +57,18 @@ async function main() {
     console.log('\n📝 To add the missing columns:\n');
     console.log('1. Go to your Supabase dashboard');
     console.log('2. Navigate to SQL Editor');
-    console.log('3. Run the migration: supabase/migrations/010_add_stripe_columns.sql');
+    console.log(
+      '3. Run the migration: supabase/migrations/010_add_stripe_columns.sql'
+    );
   } else if (columnsExist === true) {
     console.log('\n✨ Your profiles table is ready for Stripe integration!');
-    
+
     // Show sample data
     const { data: profiles } = await supabase
       .from('profiles')
-      .select('id, stripe_customer_id, stripe_subscription_id, subscription_status')
+      .select(
+        'id, stripe_customer_id, stripe_subscription_id, subscription_status'
+      )
       .not('stripe_customer_id', 'is', null)
       .limit(5);
 

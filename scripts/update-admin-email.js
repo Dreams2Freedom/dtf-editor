@@ -18,7 +18,10 @@ async function updateAdminEmail() {
 
   try {
     // Read the migration file
-    const migrationPath = path.join(__dirname, '../supabase/migrations/20250103_update_admin_email.sql');
+    const migrationPath = path.join(
+      __dirname,
+      '../supabase/migrations/20250103_update_admin_email.sql'
+    );
     const migrationSQL = fs.readFileSync(migrationPath, 'utf8');
 
     console.log('📝 Migration content:\n');
@@ -29,14 +32,17 @@ async function updateAdminEmail() {
     console.log('To apply this migration, please:');
     console.log('1. Go to Supabase Dashboard');
     console.log('2. Navigate to SQL Editor');
-    console.log('3. Copy the SQL above or from: supabase/migrations/20250103_update_admin_email.sql');
+    console.log(
+      '3. Copy the SQL above or from: supabase/migrations/20250103_update_admin_email.sql'
+    );
     console.log('4. Execute the query\n');
 
     // Test after manual execution
     console.log('After running the migration:');
     console.log('✅ shannon@s2transfers.com will have admin access');
-    console.log('✅ You\'ll be able to view all affiliates at /admin/affiliates/applications\n');
-
+    console.log(
+      "✅ You'll be able to view all affiliates at /admin/affiliates/applications\n"
+    );
   } catch (error) {
     console.error('❌ Error:', error);
   }

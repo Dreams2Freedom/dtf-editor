@@ -12,14 +12,15 @@ const TEST_USER_NAME = 'Shannon';
 // Import the email service (we'll simulate it since we can't directly import TS)
 const MAILGUN_API_KEY = process.env.MAILGUN_API_KEY;
 const MAILGUN_DOMAIN = process.env.MAILGUN_DOMAIN;
-const MAILGUN_FROM_EMAIL = process.env.MAILGUN_FROM_EMAIL || 'noreply@dtfeditor.com';
+const MAILGUN_FROM_EMAIL =
+  process.env.MAILGUN_FROM_EMAIL || 'noreply@dtfeditor.com';
 const MAILGUN_FROM_NAME = process.env.MAILGUN_FROM_NAME || 'DTF Editor';
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://dtfeditor.com';
 
 async function sendTestEmail(type, data) {
   const mailgunUrl = `https://api.mailgun.net/v3/${MAILGUN_DOMAIN}/messages`;
   const auth = Buffer.from(`api:${MAILGUN_API_KEY}`).toString('base64');
-  
+
   const formData = new URLSearchParams();
   formData.append('from', `${MAILGUN_FROM_NAME} <${MAILGUN_FROM_EMAIL}>`);
   formData.append('to', TEST_EMAIL);
@@ -28,18 +29,18 @@ async function sendTestEmail(type, data) {
   formData.append('text', data.text);
   formData.append('o:tag', type);
   formData.append('o:tracking', 'true');
-  
+
   const response = await fetch(mailgunUrl, {
     method: 'POST',
     headers: {
-      'Authorization': `Basic ${auth}`,
+      Authorization: `Basic ${auth}`,
       'Content-Type': 'application/x-www-form-urlencoded',
     },
     body: formData.toString(),
   });
-  
+
   const responseText = await response.text();
-  
+
   if (response.ok) {
     const result = JSON.parse(responseText);
     return { success: true, id: result.id };
@@ -53,7 +54,7 @@ async function testAllEmails() {
   console.log('   Recipient:', TEST_EMAIL);
   console.log('   From:', `${MAILGUN_FROM_NAME} <${MAILGUN_FROM_EMAIL}>`);
   console.log('');
-  
+
   const tests = [
     {
       name: '1. Welcome Email',
@@ -81,8 +82,8 @@ async function testAllEmails() {
             </div>
           </div>
         `,
-        text: `Welcome to DTF Editor!\n\nHi ${TEST_USER_NAME}!\n\nThank you for joining DTF Editor.`
-      }
+        text: `Welcome to DTF Editor!\n\nHi ${TEST_USER_NAME}!\n\nThank you for joining DTF Editor.`,
+      },
     },
     {
       name: '2. Purchase Confirmation',
@@ -107,8 +108,8 @@ async function testAllEmails() {
             </div>
           </div>
         `,
-        text: `Purchase Confirmed!\n\nType: Credit Package\nCredits: 10\nAmount: $9.99`
-      }
+        text: `Purchase Confirmed!\n\nType: Credit Package\nCredits: 10\nAmount: $9.99`,
+      },
     },
     {
       name: '3. Credit Warning (Critical)',
@@ -124,7 +125,7 @@ async function testAllEmails() {
               <h2 style="color: #333;">Hi ${TEST_USER_NAME}!</h2>
               <p style="color: #666; line-height: 1.6;">
                 You have <strong style="color: #dc2626;">5 credits</strong> that will expire 
-                on <strong>${new Date(Date.now() + 24*60*60*1000).toLocaleDateString()}</strong>.
+                on <strong>${new Date(Date.now() + 24 * 60 * 60 * 1000).toLocaleDateString()}</strong>.
               </p>
               <p style="color: #666;">Don't let your credits go to waste!</p>
               <div style="text-align: center; margin: 30px 0;">
@@ -135,8 +136,8 @@ async function testAllEmails() {
             </div>
           </div>
         `,
-        text: `Credits Expiring Soon!\n\nYou have 5 credits expiring tomorrow.`
-      }
+        text: `Credits Expiring Soon!\n\nYou have 5 credits expiring tomorrow.`,
+      },
     },
     {
       name: '4. Subscription Created',
@@ -154,7 +155,7 @@ async function testAllEmails() {
                 Your <strong>Basic</strong> subscription has been created.
               </p>
               <p style="color: #666;">
-                Next billing date: <strong>${new Date(Date.now() + 30*24*60*60*1000).toLocaleDateString()}</strong>
+                Next billing date: <strong>${new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toLocaleDateString()}</strong>
               </p>
               <div style="text-align: center; margin: 30px 0;">
                 <a href="${APP_URL}/settings" style="display: inline-block; background-color: #E88B4B; color: #ffffff; padding: 15px 30px; text-decoration: none; border-radius: 5px;">
@@ -164,8 +165,8 @@ async function testAllEmails() {
             </div>
           </div>
         `,
-        text: `Subscription Created!\n\nYour Basic subscription has been created.`
-      }
+        text: `Subscription Created!\n\nYour Basic subscription has been created.`,
+      },
     },
     {
       name: '5. Subscription Cancelled',
@@ -193,8 +194,8 @@ async function testAllEmails() {
             </div>
           </div>
         `,
-        text: `Subscription Cancelled\n\nYour subscription has been cancelled.`
-      }
+        text: `Subscription Cancelled\n\nYour subscription has been cancelled.`,
+      },
     },
     {
       name: '6. Password Reset',
@@ -223,8 +224,8 @@ async function testAllEmails() {
             </div>
           </div>
         `,
-        text: `Password Reset Request\n\nClick here to reset your password: ${APP_URL}/reset-password`
-      }
+        text: `Password Reset Request\n\nClick here to reset your password: ${APP_URL}/reset-password`,
+      },
     },
     {
       name: '7. Support Ticket Notification (Admin)',
@@ -272,19 +273,19 @@ async function testAllEmails() {
             </div>
           </div>
         `,
-        text: `New Support Ticket\n\nTicket: SUP-2025-0001\nPriority: URGENT\nFrom: ${TEST_EMAIL}`
-      }
-    }
+        text: `New Support Ticket\n\nTicket: SUP-2025-0001\nPriority: URGENT\nFrom: ${TEST_EMAIL}`,
+      },
+    },
   ];
-  
+
   console.log(`📤 Sending ${tests.length} test emails...\n`);
-  
+
   for (const test of tests) {
     process.stdout.write(`   ${test.name}... `);
-    
+
     try {
       const result = await sendTestEmail(test.type, test.data);
-      
+
       if (result.success) {
         console.log('✅ Sent');
       } else {
@@ -295,11 +296,11 @@ async function testAllEmails() {
       console.log('❌ Error');
       console.log(`      ${error.message}`);
     }
-    
+
     // Small delay between emails
     await new Promise(resolve => setTimeout(resolve, 1000));
   }
-  
+
   console.log('\n✨ Email testing complete!');
   console.log(`\n📬 Check the inbox for: ${TEST_EMAIL}`);
   console.log('\n📋 Verify the following for each email:');
@@ -308,7 +309,7 @@ async function testAllEmails() {
   console.log('   3. Links are clickable and correct');
   console.log('   4. Colors and branding are consistent');
   console.log('   5. Text version is readable (if viewing plain text)');
-  
+
   console.log('\n🎯 Next Steps:');
   console.log('   1. Test emails triggered by actual user actions');
   console.log('   2. Set up email tracking in Mailgun dashboard');

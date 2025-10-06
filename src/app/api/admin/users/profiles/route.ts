@@ -6,7 +6,9 @@ export async function POST(request: NextRequest) {
   try {
     // Verify the request is from an authenticated admin
     const supabase = await createServerSupabaseClient();
-    const { data: { session } } = await supabase.auth.getSession();
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
 
     if (!session) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -20,14 +22,20 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (!profile?.is_admin) {
-      return NextResponse.json({ error: 'Forbidden - Admin access required' }, { status: 403 });
+      return NextResponse.json(
+        { error: 'Forbidden - Admin access required' },
+        { status: 403 }
+      );
     }
 
     // Get user IDs from request body
     const { userIds } = await request.json();
 
     if (!userIds || !Array.isArray(userIds)) {
-      return NextResponse.json({ error: 'Invalid request - userIds array required' }, { status: 400 });
+      return NextResponse.json(
+        { error: 'Invalid request - userIds array required' },
+        { status: 400 }
+      );
     }
 
     // Use service role client to fetch profiles (bypasses RLS)

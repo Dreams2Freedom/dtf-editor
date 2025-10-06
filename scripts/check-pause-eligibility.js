@@ -12,16 +12,20 @@ async function checkPauseEligibility() {
 
   // Get the user
   const { data: authUsers } = await supabase.auth.admin.listUsers();
-  const authUser = authUsers.users.find(u => u.email === 'snsmarketing@gmail.com');
-  
+  const authUser = authUsers.users.find(
+    u => u.email === 'snsmarketing@gmail.com'
+  );
+
   if (!authUser) {
     console.error('User not found');
     return;
   }
 
   // Check pause eligibility
-  const { data: eligibility, error } = await supabase
-    .rpc('check_pause_eligibility', { p_user_id: authUser.id });
+  const { data: eligibility, error } = await supabase.rpc(
+    'check_pause_eligibility',
+    { p_user_id: authUser.id }
+  );
 
   console.log('=== PAUSE ELIGIBILITY ===');
   if (error) {
@@ -43,11 +47,11 @@ async function checkPauseEligibility() {
   console.log('\n=== PAUSE HISTORY ===');
   if (events && events.length > 0) {
     console.log('Total Pauses:', events.length);
-    const thisYear = events.filter(e => 
-      new Date(e.created_at).getFullYear() === new Date().getFullYear()
+    const thisYear = events.filter(
+      e => new Date(e.created_at).getFullYear() === new Date().getFullYear()
     );
     console.log('Pauses This Year:', thisYear.length);
-    
+
     if (events[0]) {
       console.log('\nLast Pause:');
       console.log('Date:', new Date(events[0].created_at).toLocaleDateString());
@@ -66,7 +70,10 @@ async function checkPauseEligibility() {
 
   console.log('\n=== PROFILE STATUS ===');
   console.log('Subscription Status:', profile?.subscription_status);
-  console.log('Paused Until:', profile?.subscription_paused_until || 'Not paused');
+  console.log(
+    'Paused Until:',
+    profile?.subscription_paused_until || 'Not paused'
+  );
   console.log('Pause Count:', profile?.pause_count || 0);
 }
 

@@ -1,9 +1,11 @@
 # Stripe Payment Integration Testing Guide
 
 ## Overview
+
 This guide outlines the testing procedures for the newly implemented Stripe payment integration, including subscription plans, pay-as-you-go purchases, and webhook handling.
 
 ## Prerequisites
+
 - Stripe test API keys configured in `.env.local`
 - Supabase database with the required tables (`users`, `credit_transactions`)
 - Stripe webhook endpoint configured in Stripe dashboard
@@ -11,6 +13,7 @@ This guide outlines the testing procedures for the newly implemented Stripe paym
 ## Test Environment Setup
 
 ### 1. Stripe Test Mode Configuration
+
 ```bash
 # Ensure these environment variables are set for testing
 STRIPE_SECRET_KEY=sk_test_...
@@ -19,14 +22,18 @@ STRIPE_WEBHOOK_SECRET=whsec_...
 ```
 
 ### 2. Stripe Test Products Setup
+
 Create the following test products in your Stripe dashboard:
+
 - Free Plan (price_id: `price_free`)
 - Basic Plan - $9.99/month (price_id: `price_basic`)
 - Starter Plan - $24.99/month (price_id: `price_starter`)
 - Pay-as-you-go packages: 10, 20, 50 credits
 
 ### 3. Webhook Configuration
+
 Configure webhook endpoint in Stripe dashboard:
+
 - URL: `https://your-domain.com/api/webhooks/stripe`
 - Events to listen for:
   - `customer.subscription.created`
@@ -39,6 +46,7 @@ Configure webhook endpoint in Stripe dashboard:
 ## Testing Checklist
 
 ### Phase 1: Frontend UI Testing
+
 - [ ] **Pricing Page Navigation**
   - [ ] Pricing page loads without errors
   - [ ] Tab switching between subscription and pay-as-you-go works
@@ -58,6 +66,7 @@ Configure webhook endpoint in Stripe dashboard:
   - [ ] Package selection highlights work correctly
 
 ### Phase 2: Authentication Integration
+
 - [ ] **User Authentication**
   - [ ] Unauthenticated users see login prompts when trying to purchase
   - [ ] Authenticated users can access payment flows
@@ -66,6 +75,7 @@ Configure webhook endpoint in Stripe dashboard:
 ### Phase 3: Payment Flow Testing
 
 #### Subscription Testing
+
 - [ ] **Basic Plan Subscription**
   - [ ] Click "Subscribe Now" on Basic Plan
   - [ ] Stripe payment form appears
@@ -81,6 +91,7 @@ Configure webhook endpoint in Stripe dashboard:
   - [ ] Check subscription details in Stripe dashboard
 
 #### Pay-as-You-Go Testing
+
 - [ ] **10 Credits Purchase**
   - [ ] Click "Buy 10 Credits" on 10-credit package
   - [ ] Stripe payment form appears
@@ -98,6 +109,7 @@ Configure webhook endpoint in Stripe dashboard:
   - [ ] Verify best value pricing is applied
 
 ### Phase 4: Webhook Testing
+
 - [ ] **Subscription Webhooks**
   - [ ] Monitor webhook logs during subscription creation
   - [ ] Verify `customer.subscription.created` event is received
@@ -111,6 +123,7 @@ Configure webhook endpoint in Stripe dashboard:
   - [ ] Verify transaction is recorded in `credit_transactions` table
 
 ### Phase 5: Billing Management Testing
+
 - [ ] **Billing History Display**
   - [ ] Navigate to billing management section
   - [ ] Verify all transactions appear in history
@@ -124,6 +137,7 @@ Configure webhook endpoint in Stripe dashboard:
   - [ ] Verify subscription status updates correctly
 
 ### Phase 6: Error Handling Testing
+
 - [ ] **Payment Failures**
   - [ ] Test with declined card: `4000 0000 0000 0002`
   - [ ] Verify error messages are displayed to user
@@ -142,43 +156,49 @@ Configure webhook endpoint in Stripe dashboard:
 ## Test Data
 
 ### Test Credit Cards
+
 - **Success**: `4242 4242 4242 4242`
 - **Decline**: `4000 0000 0000 0002`
 - **Insufficient Funds**: `4000 0000 0000 9995`
 - **Expired Card**: `4000 0000 0000 0069`
 
 ### Test Bank Account (for ACH payments)
+
 - **Success**: `110000000`
 - **Decline**: `110000000`
 
 ## Monitoring and Logs
 
 ### Stripe Dashboard Monitoring
+
 - Monitor payments in Stripe dashboard
 - Check webhook delivery status
 - Verify customer creation and management
 
 ### Application Logs
+
 - Monitor API route logs for errors
 - Check webhook processing logs
 - Verify database updates
 
 ### Database Verification
+
 ```sql
 -- Check user subscription status
-SELECT id, email, subscription_status, credits, stripe_customer_id, stripe_subscription_id 
-FROM users 
+SELECT id, email, subscription_status, credits, stripe_customer_id, stripe_subscription_id
+FROM users
 WHERE email = 'test@example.com';
 
 -- Check credit transactions
-SELECT * FROM credit_transactions 
-WHERE user_id = 'user-uuid' 
+SELECT * FROM credit_transactions
+WHERE user_id = 'user-uuid'
 ORDER BY created_at DESC;
 ```
 
 ## Success Criteria
 
 ### Functional Requirements
+
 - [ ] Users can successfully subscribe to plans
 - [ ] Users can purchase pay-as-you-go credits
 - [ ] Credits are correctly allocated to user accounts
@@ -187,6 +207,7 @@ ORDER BY created_at DESC;
 - [ ] Subscription management works as expected
 
 ### Non-Functional Requirements
+
 - [ ] Payment flows complete within 30 seconds
 - [ ] Error messages are clear and actionable
 - [ ] UI is responsive and user-friendly
@@ -196,12 +217,14 @@ ORDER BY created_at DESC;
 ## Post-Testing Actions
 
 ### If Tests Pass
+
 - [ ] Mark testing as complete
 - [ ] Document any issues found and resolved
 - [ ] Proceed to next development phase
 - [ ] Consider production deployment
 
 ### If Tests Fail
+
 - [ ] Document specific failures
 - [ ] Investigate root causes
 - [ ] Implement fixes
@@ -211,13 +234,15 @@ ORDER BY created_at DESC;
 ## Rollback Plan
 
 If critical issues are discovered:
+
 1. Disable payment routes in production
 2. Revert to previous working version
 3. Implement fixes in development
 4. Re-test thoroughly before re-deployment
 
 ## Notes
+
 - Always use Stripe test mode for development and testing
 - Never use real payment data in test environment
 - Monitor Stripe dashboard for any unexpected charges
-- Keep test data separate from production data 
+- Keep test data separate from production data

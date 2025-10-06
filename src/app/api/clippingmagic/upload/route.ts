@@ -14,7 +14,10 @@ export async function POST(request: NextRequest) {
   try {
     // Check authentication
     const supabase = await createServerSupabaseClient();
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
 
     if (authError || !user) {
       return NextResponse.json(
@@ -26,11 +29,14 @@ export async function POST(request: NextRequest) {
     // Check content length to prevent 413 errors
     const contentLength = request.headers.get('content-length');
     const maxSize = 10 * 1024 * 1024; // 10MB
-    
+
     if (contentLength && parseInt(contentLength) > maxSize) {
       console.error('[ClippingMagic Upload] File too large:', contentLength);
       return NextResponse.json(
-        { error: 'File too large. Maximum size is 10MB. Please try with a smaller image.' },
+        {
+          error:
+            'File too large. Maximum size is 10MB. Please try with a smaller image.',
+        },
         { status: 413 }
       );
     }
@@ -41,27 +47,27 @@ export async function POST(request: NextRequest) {
     try {
       formData = await request.formData();
     } catch (formError) {
-      console.error('[ClippingMagic Upload] Error parsing form data:', formError);
+      console.error(
+        '[ClippingMagic Upload] Error parsing form data:',
+        formError
+      );
       // Don't assume it's a size error - could be malformed data
       return NextResponse.json(
         { error: 'Failed to parse upload data. Please try again.' },
         { status: 400 }
       );
     }
-    
+
     const file = formData.get('image') as File;
 
     if (!file) {
-      return NextResponse.json(
-        { error: 'No image provided' },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: 'No image provided' }, { status: 400 });
     }
-    
+
     console.log('[DEBUG API] Received file:', {
       name: file.name,
       size: (file.size / 1024 / 1024).toFixed(2) + ' MB',
-      type: file.type
+      type: file.type,
     });
 
     // Check user credits
@@ -74,7 +80,10 @@ export async function POST(request: NextRequest) {
 
     if (!profile || profile.credits_remaining < 1) {
       return NextResponse.json(
-        { error: 'Insufficient credits. Please purchase more credits to continue.' },
+        {
+          error:
+            'Insufficient credits. Please purchase more credits to continue.',
+        },
         { status: 402 }
       );
     }
@@ -85,48 +94,55 @@ export async function POST(request: NextRequest) {
       hasApiSecret: !!env.CLIPPINGMAGIC_API_SECRET,
       fileSize: file.size,
       fileType: file.type,
-      fileName: file.name
+      fileName: file.name,
     });
-    
+
     // Create Basic Auth header
-    const authHeader = 'Basic ' + Buffer.from(
-      env.CLIPPINGMAGIC_API_KEY + ':' + env.CLIPPINGMAGIC_API_SECRET
-    ).toString('base64');
+    const authHeader =
+      'Basic ' +
+      Buffer.from(
+        env.CLIPPINGMAGIC_API_KEY + ':' + env.CLIPPINGMAGIC_API_SECRET
+      ).toString('base64');
 
     // Convert WebP to PNG if necessary (ClippingMagic doesn't support WebP input)
     let fileToUpload = file;
     if (file.type === 'image/webp') {
       console.log('Converting WebP to PNG for ClippingMagic...');
-      
+
       try {
         // Read the file as array buffer
         const buffer = await file.arrayBuffer();
-        
+
         // Convert WebP to PNG using Sharp
-        const pngBuffer = await sharp(Buffer.from(buffer))
-          .png()
-          .toBuffer();
-        
+        const pngBuffer = await sharp(Buffer.from(buffer)).png().toBuffer();
+
         // Create a new File object with PNG type
-        fileToUpload = new File([pngBuffer], file.name.replace('.webp', '.png'), {
-          type: 'image/png'
-        });
-        
+        fileToUpload = new File(
+          [pngBuffer],
+          file.name.replace('.webp', '.png'),
+          {
+            type: 'image/png',
+          }
+        );
+
         console.log('WebP successfully converted to PNG');
       } catch (conversionError) {
         console.error('Failed to convert WebP to PNG:', conversionError);
         return NextResponse.json(
-          { error: 'Failed to convert WebP image. Please try uploading a PNG or JPEG instead.' },
+          {
+            error:
+              'Failed to convert WebP image. Please try uploading a PNG or JPEG instead.',
+          },
           { status: 400 }
         );
       }
     }
-    
+
     // Prepare form data for ClippingMagic
     const cmFormData = new FormData();
     cmFormData.append('image', fileToUpload);
     cmFormData.append('format', 'json');
-    
+
     // CRITICAL: Preserve full image resolution
     cmFormData.append('maxPixels', '26214400'); // Maximum allowed: 26.2 megapixels
 
@@ -134,10 +150,10 @@ export async function POST(request: NextRequest) {
     cmFormData.append('fit.toResult', 'true'); // Fit to subject with margin
     cmFormData.append('fit.margin', '0.5'); // 0.5% margin (0.05% might be too tight, using 0.5%)
     cmFormData.append('result.allowEnlarging', 'true'); // Allow full size output
-    
+
     // Set default processing mode to graphics for better DTF results
     cmFormData.append('processing.mode', 'graphics'); // Graphics mode is better for DTF designs
-    
+
     // Add test parameter in development
     // NOTE: Test mode might cause issues with white label editor
     // Comment out for production-like testing
@@ -149,7 +165,7 @@ export async function POST(request: NextRequest) {
     const response = await fetch('https://clippingmagic.com/api/v1/images', {
       method: 'POST',
       headers: {
-        'Authorization': authHeader,
+        Authorization: authHeader,
       },
       body: cmFormData,
     });
@@ -164,23 +180,25 @@ export async function POST(request: NextRequest) {
     }
 
     const result = await response.json();
-    
+
     // DO NOT deduct credits here - wait until the user completes the operation
     // Credits will be deducted when the result is generated
-    
+
     // Return the image ID and secret for the editor
     return NextResponse.json({
       success: true,
       image: {
         id: result.image.id,
         secret: result.image.secret,
-      }
+      },
     });
-
   } catch (error) {
     console.error('ClippingMagic upload error:', error);
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Failed to upload image' },
+      {
+        error:
+          error instanceof Error ? error.message : 'Failed to upload image',
+      },
       { status: 500 }
     );
   }

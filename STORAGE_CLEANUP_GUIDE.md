@@ -5,6 +5,7 @@ This guide explains how to implement the 48-hour image deletion for free users.
 ## What This Does
 
 The storage cleanup system automatically:
+
 1. **Deletes images after 48 hours** for free users
 2. **Keeps images for 90 days** for pay-as-you-go users (from last credit purchase)
 3. **Keeps images permanently** for subscribed users
@@ -21,6 +22,7 @@ The storage cleanup system automatically:
 5. Paste and run the query
 
 This migration:
+
 - Adds `expires_at` column to `processed_images`
 - Creates functions to calculate expiration dates
 - Sets up triggers to auto-calculate expiration on image creation
@@ -43,9 +45,12 @@ supabase functions deploy cleanup-free-user-images
 You have three options for running the cleanup:
 
 #### Option A: Supabase Cron (Recommended)
+
 In Supabase Dashboard → Database → Extensions:
+
 1. Enable the `pg_cron` extension
 2. Run this SQL to schedule hourly cleanup:
+
 ```sql
 SELECT cron.schedule(
   'cleanup-expired-images',
@@ -55,14 +60,18 @@ SELECT cron.schedule(
 ```
 
 #### Option B: External Cron Service
+
 Use a service like GitHub Actions, Vercel Cron, or Upstash to call the Edge Function:
+
 ```bash
 curl -X POST https://your-project.supabase.co/functions/v1/cleanup-free-user-images \
   -H "Authorization: Bearer YOUR_ANON_KEY"
 ```
 
 #### Option C: Manual Cleanup
+
 Run this SQL periodically:
+
 ```sql
 SELECT cleanup_expired_images();
 ```
@@ -70,18 +79,22 @@ SELECT cleanup_expired_images();
 ## How It Works
 
 ### Expiration Logic
+
 - **Free users**: Images expire 48 hours after upload
 - **Pay-as-you-go**: Images expire 90 days after last credit purchase
 - **Subscribers**: Images never expire
 
 ### What Happens on Expiration
+
 1. Database record is deleted
 2. Storage files are removed (if using Edge Function)
 3. Thumbnails are cleaned up
 4. Collection associations are removed automatically (CASCADE)
 
 ### Plan Change Behavior
+
 When a user changes plans:
+
 - Free → Paid: All expiration dates removed (images become permanent)
 - Paid → Free: Images get 48-hour expiration from current time
 - Credit purchase: Extends all images to 90 days from purchase date
@@ -95,6 +108,7 @@ node scripts/test-storage-cleanup.js
 ```
 
 This will show:
+
 - Images with expiration dates
 - Already expired images
 - User storage patterns
@@ -103,6 +117,7 @@ This will show:
 ## UI Updates
 
 The gallery now shows:
+
 - "Expires in X hours" for images expiring within 24 hours
 - "Expires [date]" for images expiring later
 - "Expired" for images past expiration
@@ -114,8 +129,8 @@ To monitor the cleanup system:
 
 ```sql
 -- Check images by expiration status
-SELECT 
-  CASE 
+SELECT
+  CASE
     WHEN expires_at IS NULL THEN 'Permanent'
     WHEN expires_at < NOW() THEN 'Expired'
     WHEN expires_at < NOW() + INTERVAL '24 hours' THEN 'Expiring Soon'
@@ -126,7 +141,7 @@ FROM processed_images
 GROUP BY status;
 
 -- Check cleanup job history (if using pg_cron)
-SELECT * FROM cron.job_run_details 
+SELECT * FROM cron.job_run_details
 WHERE jobname = 'cleanup-expired-images'
 ORDER BY start_time DESC
 LIMIT 10;
@@ -135,15 +150,18 @@ LIMIT 10;
 ## Troubleshooting
 
 ### Images not getting expiration dates
+
 - Check if the trigger is active: `\d processed_images`
 - Manually run: `UPDATE processed_images SET expires_at = calculate_image_expiration(user_id, created_at) WHERE expires_at IS NULL`
 
 ### Cleanup not running
+
 - Check cron job status
 - Verify Edge Function deployment
 - Check Supabase logs for errors
 
 ### Storage not being deleted
+
 - Ensure service role key has storage access
 - Check storage bucket RLS policies
 - Verify storage paths are correct

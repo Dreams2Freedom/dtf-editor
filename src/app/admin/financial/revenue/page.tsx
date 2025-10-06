@@ -10,7 +10,7 @@ import {
   Users,
   CreditCard,
   ArrowUp,
-  ArrowDown
+  ArrowDown,
 } from 'lucide-react';
 import { toast } from '@/lib/toast';
 import {
@@ -26,7 +26,7 @@ import {
   CartesianGrid,
   Tooltip,
   Legend,
-  ResponsiveContainer
+  ResponsiveContainer,
 } from 'recharts';
 
 interface RevenueMetrics {
@@ -68,7 +68,9 @@ export default function RevenuePage() {
   const [metrics, setMetrics] = useState<RevenueMetrics | null>(null);
   const [breakdown, setBreakdown] = useState<RevenueBreakdown | null>(null);
   const [monthlyData, setMonthlyData] = useState<MonthlyRevenue[]>([]);
-  const [planDistribution, setPlanDistribution] = useState<PlanDistribution[]>([]);
+  const [planDistribution, setPlanDistribution] = useState<PlanDistribution[]>(
+    []
+  );
   const [loading, setLoading] = useState(true);
   const [dateRange, setDateRange] = useState<string>('30d');
 
@@ -81,7 +83,9 @@ export default function RevenuePage() {
 
   const fetchRevenueData = async () => {
     try {
-      const response = await fetch(`/api/admin/financial/revenue?range=${dateRange}`);
+      const response = await fetch(
+        `/api/admin/financial/revenue?range=${dateRange}`
+      );
       if (!response.ok) {
         throw new Error('Failed to fetch revenue data');
       }
@@ -104,7 +108,7 @@ export default function RevenuePage() {
       style: 'currency',
       currency: 'USD',
       minimumFractionDigits: 0,
-      maximumFractionDigits: 0
+      maximumFractionDigits: 0,
     }).format(amount / 100);
   };
 
@@ -130,13 +134,17 @@ export default function RevenuePage() {
         {/* Header */}
         <div className="flex justify-between items-center">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Revenue Analytics</h1>
-            <p className="text-gray-600 mt-1">Track revenue performance and growth metrics</p>
+            <h1 className="text-2xl font-bold text-gray-900">
+              Revenue Analytics
+            </h1>
+            <p className="text-gray-600 mt-1">
+              Track revenue performance and growth metrics
+            </p>
           </div>
           <select
             className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
             value={dateRange}
-            onChange={(e) => setDateRange(e.target.value)}
+            onChange={e => setDateRange(e.target.value)}
           >
             <option value="7d">Last 7 Days</option>
             <option value="30d">Last 30 Days</option>
@@ -153,17 +161,23 @@ export default function RevenuePage() {
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm text-gray-600">Total Revenue</p>
-                    <p className="text-2xl font-bold">{formatCurrency(metrics.totalRevenue)}</p>
+                    <p className="text-2xl font-bold">
+                      {formatCurrency(metrics.totalRevenue)}
+                    </p>
                     <div className="flex items-center mt-1">
                       {metrics.growthRate > 0 ? (
                         <>
                           <ArrowUp className="w-4 h-4 text-success-500 mr-1" />
-                          <span className="text-sm text-success-500">{formatPercentage(metrics.growthRate)}</span>
+                          <span className="text-sm text-success-500">
+                            {formatPercentage(metrics.growthRate)}
+                          </span>
                         </>
                       ) : (
                         <>
                           <ArrowDown className="w-4 h-4 text-error-500 mr-1" />
-                          <span className="text-sm text-error-500">{formatPercentage(Math.abs(metrics.growthRate))}</span>
+                          <span className="text-sm text-error-500">
+                            {formatPercentage(Math.abs(metrics.growthRate))}
+                          </span>
                         </>
                       )}
                     </div>
@@ -178,8 +192,12 @@ export default function RevenuePage() {
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm text-gray-600">MRR</p>
-                    <p className="text-2xl font-bold">{formatCurrency(metrics.mrr)}</p>
-                    <p className="text-xs text-gray-500 mt-1">Monthly Recurring</p>
+                    <p className="text-2xl font-bold">
+                      {formatCurrency(metrics.mrr)}
+                    </p>
+                    <p className="text-xs text-gray-500 mt-1">
+                      Monthly Recurring
+                    </p>
                   </div>
                   <TrendingUp className="w-8 h-8 text-blue-500" />
                 </div>
@@ -191,8 +209,12 @@ export default function RevenuePage() {
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm text-gray-600">ARR</p>
-                    <p className="text-2xl font-bold">{formatCurrency(metrics.arr)}</p>
-                    <p className="text-xs text-gray-500 mt-1">Annual Recurring</p>
+                    <p className="text-2xl font-bold">
+                      {formatCurrency(metrics.arr)}
+                    </p>
+                    <p className="text-xs text-gray-500 mt-1">
+                      Annual Recurring
+                    </p>
                   </div>
                   <Calendar className="w-8 h-8 text-purple-500" />
                 </div>
@@ -204,8 +226,12 @@ export default function RevenuePage() {
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm text-gray-600">Avg Order</p>
-                    <p className="text-2xl font-bold">{formatCurrency(metrics.avgOrderValue)}</p>
-                    <p className="text-xs text-gray-500 mt-1">Per transaction</p>
+                    <p className="text-2xl font-bold">
+                      {formatCurrency(metrics.avgOrderValue)}
+                    </p>
+                    <p className="text-xs text-gray-500 mt-1">
+                      Per transaction
+                    </p>
                   </div>
                   <CreditCard className="w-8 h-8 text-orange-500" />
                 </div>
@@ -217,8 +243,12 @@ export default function RevenuePage() {
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm text-gray-600">LTV</p>
-                    <p className="text-2xl font-bold">{formatCurrency(metrics.ltv)}</p>
-                    <p className="text-xs text-gray-500 mt-1">Customer lifetime</p>
+                    <p className="text-2xl font-bold">
+                      {formatCurrency(metrics.ltv)}
+                    </p>
+                    <p className="text-xs text-gray-500 mt-1">
+                      Customer lifetime
+                    </p>
                   </div>
                   <Users className="w-8 h-8 text-indigo-500" />
                 </div>
@@ -235,7 +265,9 @@ export default function RevenuePage() {
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm text-gray-600">Conversion Rate</p>
-                    <p className="text-xl font-bold">{formatPercentage(metrics.conversionRate)}</p>
+                    <p className="text-xl font-bold">
+                      {formatPercentage(metrics.conversionRate)}
+                    </p>
                   </div>
                 </div>
               </CardContent>
@@ -246,7 +278,9 @@ export default function RevenuePage() {
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm text-gray-600">Churn Rate</p>
-                    <p className="text-xl font-bold">{formatPercentage(metrics.churnRate)}</p>
+                    <p className="text-xl font-bold">
+                      {formatPercentage(metrics.churnRate)}
+                    </p>
                   </div>
                 </div>
               </CardContent>
@@ -257,7 +291,9 @@ export default function RevenuePage() {
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm text-gray-600">Total Customers</p>
-                    <p className="text-xl font-bold">{metrics.totalCustomers}</p>
+                    <p className="text-xl font-bold">
+                      {metrics.totalCustomers}
+                    </p>
                   </div>
                 </div>
               </CardContent>
@@ -268,7 +304,9 @@ export default function RevenuePage() {
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm text-gray-600">Paying Customers</p>
-                    <p className="text-xl font-bold">{metrics.payingCustomers}</p>
+                    <p className="text-xl font-bold">
+                      {metrics.payingCustomers}
+                    </p>
                   </div>
                 </div>
               </CardContent>
@@ -287,20 +325,30 @@ export default function RevenuePage() {
                 <div className="space-y-4">
                   <div className="flex justify-between items-center">
                     <span className="text-sm text-gray-600">Subscriptions</span>
-                    <span className="font-bold text-success-600">{formatCurrency(breakdown.subscriptions)}</span>
+                    <span className="font-bold text-success-600">
+                      {formatCurrency(breakdown.subscriptions)}
+                    </span>
                   </div>
                   <div className="flex justify-between items-center">
-                    <span className="text-sm text-gray-600">One-time Purchases</span>
-                    <span className="font-bold text-blue-600">{formatCurrency(breakdown.oneTimePurchases)}</span>
+                    <span className="text-sm text-gray-600">
+                      One-time Purchases
+                    </span>
+                    <span className="font-bold text-blue-600">
+                      {formatCurrency(breakdown.oneTimePurchases)}
+                    </span>
                   </div>
                   <div className="flex justify-between items-center">
                     <span className="text-sm text-gray-600">Refunds</span>
-                    <span className="font-bold text-error-600">-{formatCurrency(breakdown.refunds)}</span>
+                    <span className="font-bold text-error-600">
+                      -{formatCurrency(breakdown.refunds)}
+                    </span>
                   </div>
                   <div className="pt-4 border-t">
                     <div className="flex justify-between items-center">
                       <span className="text-sm font-medium">Net Revenue</span>
-                      <span className="text-xl font-bold">{formatCurrency(breakdown.net)}</span>
+                      <span className="text-xl font-bold">
+                        {formatCurrency(breakdown.net)}
+                      </span>
                     </div>
                   </div>
                 </div>
@@ -322,29 +370,41 @@ export default function RevenuePage() {
                       cx="50%"
                       cy="50%"
                       labelLine={false}
-                      label={(entry) => `${entry.plan}: ${entry.percentage}%`}
+                      label={entry => `${entry.plan}: ${entry.percentage}%`}
                       outerRadius={80}
                       fill="#8884d8"
                       dataKey="revenue"
                     >
                       {planDistribution.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                        <Cell
+                          key={`cell-${index}`}
+                          fill={COLORS[index % COLORS.length]}
+                        />
                       ))}
                     </Pie>
-                    <Tooltip formatter={(value: number) => formatCurrency(value)} />
+                    <Tooltip
+                      formatter={(value: number) => formatCurrency(value)}
+                    />
                   </PieChart>
                 </ResponsiveContainer>
                 <div className="mt-4 space-y-2">
                   {planDistribution.map((plan, index) => (
-                    <div key={plan.plan} className="flex justify-between items-center">
+                    <div
+                      key={plan.plan}
+                      className="flex justify-between items-center"
+                    >
                       <div className="flex items-center">
-                        <div 
-                          className="w-3 h-3 rounded-full mr-2" 
-                          style={{ backgroundColor: COLORS[index % COLORS.length] }}
+                        <div
+                          className="w-3 h-3 rounded-full mr-2"
+                          style={{
+                            backgroundColor: COLORS[index % COLORS.length],
+                          }}
                         />
                         <span className="text-sm">{plan.plan}</span>
                       </div>
-                      <span className="text-sm font-medium">{plan.count} users</span>
+                      <span className="text-sm font-medium">
+                        {plan.count} users
+                      </span>
                     </div>
                   ))}
                 </div>
@@ -364,27 +424,31 @@ export default function RevenuePage() {
                 <LineChart data={monthlyData}>
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis dataKey="month" />
-                  <YAxis tickFormatter={(value) => `$${(value / 100).toFixed(0)}`} />
-                  <Tooltip formatter={(value: number) => formatCurrency(value)} />
+                  <YAxis
+                    tickFormatter={value => `$${(value / 100).toFixed(0)}`}
+                  />
+                  <Tooltip
+                    formatter={(value: number) => formatCurrency(value)}
+                  />
                   <Legend />
-                  <Line 
-                    type="monotone" 
-                    dataKey="revenue" 
-                    stroke="#3B82F6" 
+                  <Line
+                    type="monotone"
+                    dataKey="revenue"
+                    stroke="#3B82F6"
                     name="Total Revenue"
                     strokeWidth={2}
                   />
-                  <Line 
-                    type="monotone" 
-                    dataKey="subscriptions" 
-                    stroke="#10B981" 
+                  <Line
+                    type="monotone"
+                    dataKey="subscriptions"
+                    stroke="#10B981"
                     name="Subscriptions"
                     strokeWidth={2}
                   />
-                  <Line 
-                    type="monotone" 
-                    dataKey="purchases" 
-                    stroke="#F59E0B" 
+                  <Line
+                    type="monotone"
+                    dataKey="purchases"
+                    stroke="#F59E0B"
                     name="Purchases"
                     strokeWidth={2}
                   />
@@ -408,7 +472,11 @@ export default function RevenuePage() {
                   <YAxis />
                   <Tooltip />
                   <Legend />
-                  <Bar dataKey="customers" fill="#8B5CF6" name="New Customers" />
+                  <Bar
+                    dataKey="customers"
+                    fill="#8B5CF6"
+                    name="New Customers"
+                  />
                 </BarChart>
               </ResponsiveContainer>
             </CardContent>

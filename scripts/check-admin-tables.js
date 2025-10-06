@@ -59,8 +59,9 @@ async function checkAdminTables() {
 
     // Try to call is_admin function
     try {
-      const { data, error } = await supabase
-        .rpc('is_admin', { user_id: '00000000-0000-0000-0000-000000000000' });
+      const { data, error } = await supabase.rpc('is_admin', {
+        user_id: '00000000-0000-0000-0000-000000000000',
+      });
 
       if (error) {
         if (error.message.includes('does not exist')) {
@@ -77,8 +78,9 @@ async function checkAdminTables() {
 
     // Try to call get_admin_role function
     try {
-      const { data, error } = await supabase
-        .rpc('get_admin_role', { user_id: '00000000-0000-0000-0000-000000000000' });
+      const { data, error } = await supabase.rpc('get_admin_role', {
+        user_id: '00000000-0000-0000-0000-000000000000',
+      });
 
       if (error) {
         if (error.message.includes('does not exist')) {
@@ -102,14 +104,15 @@ async function checkAdminTables() {
     console.log('3. Navigate to: SQL Editor');
     console.log('4. Create a new query');
     console.log('5. Copy the entire file:');
-    console.log('   supabase/migrations/20250103_create_admin_roles_system.sql');
+    console.log(
+      '   supabase/migrations/20250103_create_admin_roles_system.sql'
+    );
     console.log('6. Paste and click "Run"\n');
     console.log('After running the migration:');
     console.log('  ✅ You will be set as super_admin');
     console.log('  ✅ /admin/users/admins will work');
     console.log('  ✅ /admin/affiliates will work');
     console.log('='.repeat(60) + '\n');
-
   } catch (error) {
     console.error('❌ Unexpected error:', error);
   }

@@ -20,21 +20,21 @@ BEGIN
     SELECT credits_remaining INTO v_current_credits
     FROM profiles
     WHERE id = p_user_id;
-    
+
     -- Check if enough credits
     IF v_current_credits < p_credits_to_use THEN
         RETURN QUERY SELECT false, v_current_credits;
         RETURN;
     END IF;
-    
+
     -- Deduct credits
     v_new_credits := v_current_credits - p_credits_to_use;
-    
+
     UPDATE profiles
     SET credits_remaining = v_new_credits,
         updated_at = NOW()
     WHERE id = p_user_id;
-    
+
     -- Log the transaction
     INSERT INTO credit_transactions (
         user_id,
@@ -51,7 +51,7 @@ BEGIN
         jsonb_build_object('operation', p_operation),
         v_new_credits
     );
-    
+
     RETURN QUERY SELECT true, v_new_credits;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
@@ -73,16 +73,16 @@ BEGIN
     SELECT credits_remaining INTO v_current_credits
     FROM profiles
     WHERE id = p_user_id;
-    
+
     -- Calculate new credits
     v_new_credits := v_current_credits + p_amount;
-    
+
     -- Update profile
     UPDATE profiles
     SET credits_remaining = v_new_credits,
         updated_at = NOW()
     WHERE id = p_user_id;
-    
+
     -- Log the transaction
     INSERT INTO credit_transactions (
         user_id,
@@ -127,9 +127,9 @@ GRANT EXECUTE ON FUNCTION add_credit_transaction TO authenticated;
 
 4. **Check transaction log**
    ```sql
-   SELECT * FROM credit_transactions 
-   WHERE user_id = '[your-user-id]' 
-   ORDER BY created_at DESC 
+   SELECT * FROM credit_transactions
+   WHERE user_id = '[your-user-id]'
+   ORDER BY created_at DESC
    LIMIT 5;
    ```
 
@@ -166,9 +166,10 @@ GRANT EXECUTE ON FUNCTION add_credit_transaction TO authenticated;
 1. **Ensure low credits**
    - If you have many credits, you'll need to use them up
    - Or update your profile directly:
+
    ```sql
-   UPDATE profiles 
-   SET credits_remaining = 0 
+   UPDATE profiles
+   SET credits_remaining = 0
    WHERE id = '[your-user-id]';
    ```
 
@@ -204,6 +205,7 @@ GRANT EXECUTE ON FUNCTION add_credit_transaction TO authenticated;
 ## Troubleshooting
 
 ### "Function does not exist" Error
+
 - Make sure you ran the SQL script above in Supabase SQL editor
 - Check that functions were created:
   ```sql
@@ -211,11 +213,13 @@ GRANT EXECUTE ON FUNCTION add_credit_transaction TO authenticated;
   ```
 
 ### Credits Not Updating
+
 - Check browser console for errors
 - Verify user is authenticated
 - Check Supabase logs for RLS policy errors
 
 ### Processing Fails Immediately
+
 - Verify API keys are correct
 - Check you have sufficient credits
 - Look at network tab for detailed error
@@ -223,7 +227,7 @@ GRANT EXECUTE ON FUNCTION add_credit_transaction TO authenticated;
 ## Success Criteria ✅
 
 - [ ] Upscaling deducts 1 credit
-- [ ] Background removal deducts 1 credit  
+- [ ] Background removal deducts 1 credit
 - [ ] Vectorization deducts 2 credits
 - [ ] Insufficient credits blocks processing
 - [ ] Failed processing refunds credits

@@ -234,31 +234,44 @@ export function GenerationConfigStep({
           {/* Quality Selection */}
           <div className="mb-4">
             <label className="block text-sm font-medium mb-2">Quality</label>
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-3 gap-2">
               <button
                 onClick={() =>
-                  onOptionsChange({ ...generationOptions, quality: 'standard' })
+                  onOptionsChange({ ...generationOptions, quality: 'low' })
                 }
                 className={`p-3 rounded-lg border text-sm transition-all ${
-                  generationOptions.quality === 'standard'
+                  generationOptions.quality === 'low'
                     ? 'border-primary-600 bg-primary-50 text-primary-700 ring-2 ring-primary-200'
                     : 'border-gray-300 hover:border-gray-400'
                 }`}
               >
-                <div className="font-medium">Standard</div>
+                <div className="font-medium">Low</div>
                 <div className="text-xs text-gray-600">1 credit</div>
               </button>
               <button
                 onClick={() =>
-                  onOptionsChange({ ...generationOptions, quality: 'hd' })
+                  onOptionsChange({ ...generationOptions, quality: 'medium' })
                 }
                 className={`p-3 rounded-lg border text-sm transition-all ${
-                  generationOptions.quality === 'hd'
+                  generationOptions.quality === 'medium'
                     ? 'border-primary-600 bg-primary-50 text-primary-700 ring-2 ring-primary-200'
                     : 'border-gray-300 hover:border-gray-400'
                 }`}
               >
-                <div className="font-medium">HD</div>
+                <div className="font-medium">Medium</div>
+                <div className="text-xs text-gray-600">1 credit</div>
+              </button>
+              <button
+                onClick={() =>
+                  onOptionsChange({ ...generationOptions, quality: 'high' })
+                }
+                className={`p-3 rounded-lg border text-sm transition-all ${
+                  generationOptions.quality === 'high'
+                    ? 'border-primary-600 bg-primary-50 text-primary-700 ring-2 ring-primary-200'
+                    : 'border-gray-300 hover:border-gray-400'
+                }`}
+              >
+                <div className="font-medium">High</div>
                 <div className="text-xs text-gray-600">2 credits</div>
               </button>
             </div>

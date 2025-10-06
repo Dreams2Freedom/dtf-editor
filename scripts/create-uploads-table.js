@@ -9,12 +9,19 @@ const supabase = createClient(
 async function createUploadsTable() {
   try {
     // Create the uploads table
-    const { error: createError } = await supabase.from('uploads').select('*').limit(1);
-    
+    const { error: createError } = await supabase
+      .from('uploads')
+      .select('*')
+      .limit(1);
+
     if (createError && createError.code === '42P01') {
-      console.log('Uploads table does not exist. Please create it manually in Supabase dashboard.');
-      console.log('Use the SQL from: supabase/migrations/007_create_uploads_table.sql');
-      
+      console.log(
+        'Uploads table does not exist. Please create it manually in Supabase dashboard.'
+      );
+      console.log(
+        'Use the SQL from: supabase/migrations/007_create_uploads_table.sql'
+      );
+
       // Show the SQL that needs to be run
       console.log('\nSQL to run in Supabase SQL Editor:\n');
       console.log(`-- Create uploads table for storing user upload records
@@ -53,26 +60,27 @@ CREATE POLICY "Users can update their own uploads"
 CREATE POLICY "Users can delete their own uploads" 
   ON public.uploads FOR DELETE 
   USING (auth.uid() = user_id);`);
-      
     } else if (!createError) {
       console.log('✓ Uploads table already exists');
     } else {
       console.error('Error checking uploads table:', createError);
     }
-    
+
     // Check if bucket exists
-    const { data: buckets, error: bucketError } = await supabase.storage.listBuckets();
-    
+    const { data: buckets, error: bucketError } =
+      await supabase.storage.listBuckets();
+
     if (!bucketError) {
       const bucketExists = buckets?.some(b => b.name === 'user-uploads');
       if (bucketExists) {
         console.log('✓ Storage bucket "user-uploads" exists');
       } else {
         console.log('⚠️  Storage bucket "user-uploads" does not exist');
-        console.log('Please create it in Supabase dashboard with public access');
+        console.log(
+          'Please create it in Supabase dashboard with public access'
+        );
       }
     }
-    
   } catch (error) {
     console.error('Error:', error);
   }

@@ -12,7 +12,9 @@ const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
 if (!supabaseUrl || !supabaseServiceKey) {
-  console.error('❌ Missing NEXT_PUBLIC_SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY');
+  console.error(
+    '❌ Missing NEXT_PUBLIC_SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY'
+  );
   process.exit(1);
 }
 
@@ -36,16 +38,23 @@ async function testResetForUser(userId) {
   console.log('📊 Before reset:');
   console.log(`   Credits: ${profileBefore.credits_remaining}`);
   console.log(`   Last reset: ${profileBefore.last_credit_reset || 'Never'}`);
-  console.log(`   Subscription: ${profileBefore.subscription_status || 'free'}`);
+  console.log(
+    `   Subscription: ${profileBefore.subscription_status || 'free'}`
+  );
 
   // Force reset by setting last_credit_reset to old date
-  if (profileBefore.subscription_status === 'free' || !profileBefore.subscription_status) {
+  if (
+    profileBefore.subscription_status === 'free' ||
+    !profileBefore.subscription_status
+  ) {
     console.log('\n🔧 Setting last reset to 31 days ago to trigger reset...');
-    
+
     const { error: updateError } = await supabase
       .from('profiles')
-      .update({ 
-        last_credit_reset: new Date(Date.now() - 31 * 24 * 60 * 60 * 1000).toISOString() 
+      .update({
+        last_credit_reset: new Date(
+          Date.now() - 31 * 24 * 60 * 60 * 1000
+        ).toISOString(),
       })
       .eq('id', userId);
 
@@ -57,8 +66,10 @@ async function testResetForUser(userId) {
 
   // Call reset function
   console.log('\n🚀 Calling reset_monthly_credits function...');
-  const { data: resetResult, error: resetError } = await supabase
-    .rpc('reset_monthly_credits', { p_user_id: userId });
+  const { data: resetResult, error: resetError } = await supabase.rpc(
+    'reset_monthly_credits',
+    { p_user_id: userId }
+  );
 
   if (resetError) {
     console.log('❌ Error calling reset function:', resetError.message);
@@ -97,7 +108,9 @@ async function testResetForUser(userId) {
 
   if (transactions && transactions.length > 0) {
     transactions.forEach(t => {
-      console.log(`   ${new Date(t.created_at).toLocaleString()}: ${t.type} - ${t.amount} credits`);
+      console.log(
+        `   ${new Date(t.created_at).toLocaleString()}: ${t.type} - ${t.amount} credits`
+      );
       console.log(`   ${t.description || 'No description'}`);
     });
   }
@@ -107,8 +120,9 @@ async function testResetAllEligibleUsers() {
   console.log('\n🔄 Testing reset for all eligible free users...\n');
 
   // Call reset function without specific user
-  const { data: resetResults, error: resetError } = await supabase
-    .rpc('reset_monthly_credits');
+  const { data: resetResults, error: resetError } = await supabase.rpc(
+    'reset_monthly_credits'
+  );
 
   if (resetError) {
     console.log('❌ Error calling reset function:', resetError.message);
@@ -118,7 +132,9 @@ async function testResetAllEligibleUsers() {
   if (resetResults && resetResults.length > 0) {
     console.log(`✅ Reset ${resetResults.length} users:`);
     resetResults.forEach(r => {
-      console.log(`   User ${r.user_id.substring(0, 8)}...: +${r.credits_added} credits (new balance: ${r.new_balance})`);
+      console.log(
+        `   User ${r.user_id.substring(0, 8)}...: +${r.credits_added} credits (new balance: ${r.new_balance})`
+      );
     });
   } else {
     console.log('⚠️  No users were eligible for reset');
@@ -129,7 +145,7 @@ async function main() {
   console.log('🚀 Credit Reset Test\n');
 
   const args = process.argv.slice(2);
-  
+
   if (args.length > 0 && args[0] === '--all') {
     await testResetAllEligibleUsers();
   } else if (args.length > 0) {
@@ -150,8 +166,12 @@ async function main() {
     }
 
     console.log('\n💡 Usage:');
-    console.log('   node test-credit-reset.js [user-id]     # Test specific user');
-    console.log('   node test-credit-reset.js --all         # Test all eligible users');
+    console.log(
+      '   node test-credit-reset.js [user-id]     # Test specific user'
+    );
+    console.log(
+      '   node test-credit-reset.js --all         # Test all eligible users'
+    );
   }
 }
 

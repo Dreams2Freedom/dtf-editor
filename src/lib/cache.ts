@@ -11,7 +11,8 @@ class MemoryCache {
   private cache = new Map<string, CacheItem<unknown>>();
   private maxSize = 100; // Maximum number of items to cache
 
-  set<T>(key: string, value: T, ttlMs = 5 * 60 * 1000): void { // Default 5 minutes
+  set<T>(key: string, value: T, ttlMs = 5 * 60 * 1000): void {
+    // Default 5 minutes
     // Remove oldest items if cache is full
     if (this.cache.size >= this.maxSize) {
       const oldestKey = this.cache.keys().next().value;
@@ -29,7 +30,7 @@ class MemoryCache {
 
   get<T>(key: string): T | null {
     const item = this.cache.get(key) as CacheItem<T> | undefined;
-    
+
     if (!item) {
       return null;
     }
@@ -45,7 +46,7 @@ class MemoryCache {
 
   has(key: string): boolean {
     const item = this.cache.get(key);
-    
+
     if (!item) {
       return false;
     }
@@ -93,7 +94,8 @@ export const cache = new MemoryCache();
 // Cache key generators
 export const cacheKeys = {
   userProfile: (userId: string) => `user_profile_${userId}`,
-  processingHistory: (userId: string, limit: number) => `processing_history_${userId}_${limit}`,
+  processingHistory: (userId: string, limit: number) =>
+    `processing_history_${userId}_${limit}`,
   accountInfo: (service: string) => `account_info_${service}`,
   imageMetadata: (imageUrl: string) => `image_metadata_${imageUrl}`,
 };
@@ -136,7 +138,7 @@ export function useCachedData<T>(
     try {
       setLoading(true);
       setError(null);
-      
+
       const result = await cachedFetch(key, fetcher, ttlMs);
       setData(result);
     } catch (err) {

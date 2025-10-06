@@ -3,7 +3,10 @@ const path = require('path');
 require('dotenv').config({ path: path.join(__dirname, '..', '.env.local') });
 
 // Check if environment variables are loaded
-if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
+if (
+  !process.env.NEXT_PUBLIC_SUPABASE_URL ||
+  !process.env.SUPABASE_SERVICE_ROLE_KEY
+) {
   console.error('Missing required environment variables!');
   process.exit(1);
 }
@@ -15,10 +18,10 @@ const supabase = createClient(
 
 async function debugAdminAuth() {
   const email = 'Shannon@S2Transfers.com';
-  
+
   console.log('🔍 Debugging Admin Authentication Issues');
   console.log('=====================================\n');
-  
+
   try {
     // Check if user exists and has admin privileges
     const { data: profile, error: profileError } = await supabase
@@ -42,7 +45,10 @@ async function debugAdminAuth() {
     console.log('  - Email:', profile.email);
     console.log('  - Full Name:', profile.full_name);
     console.log('  - Is Admin:', profile.is_admin ? 'YES' : 'NO');
-    console.log('  - Credits:', profile.credits_remaining || profile.credits || 0);
+    console.log(
+      '  - Credits:',
+      profile.credits_remaining || profile.credits || 0
+    );
     console.log('  - Plan:', profile.subscription_plan);
     console.log('  - Status:', profile.is_active ? 'Active' : 'Inactive');
     console.log('  - Created:', profile.created_at);
@@ -56,7 +62,7 @@ async function debugAdminAuth() {
 
     // Check if admin tables exist
     console.log('\n🔍 Checking Admin Tables...');
-    
+
     const { data: adminUsers, error: adminError } = await supabase
       .from('admin_users')
       .select('*')
@@ -89,7 +95,6 @@ async function debugAdminAuth() {
     console.log('3. Check Network tab for Set-Cookie headers');
     console.log('4. Verify cookie httpOnly and secure flags');
     console.log('5. Check if running on http vs https (secure flag)');
-
   } catch (error) {
     console.error('Unexpected error:', error);
   }

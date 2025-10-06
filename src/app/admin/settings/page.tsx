@@ -4,7 +4,13 @@ import { useAuthStore } from '@/stores/authStore';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/Button';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/Card';
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 import { Checkbox } from '@/components/ui/Checkbox';
 import { Input } from '@/components/ui/Input';
@@ -20,7 +26,7 @@ import {
   AlertCircle,
   Check,
   X,
-  Calculator
+  Calculator,
 } from 'lucide-react';
 import Link from 'next/link';
 import ApiCostConfig from '@/components/admin/settings/ApiCostConfig';
@@ -34,17 +40,17 @@ export default function AdminSettingsPage() {
     payment_alerts: true,
     error_alerts: true,
     daily_summary: false,
-    
+
     // Security settings
     require_2fa: false,
     session_timeout: 60, // minutes
     ip_whitelist: false,
-    
+
     // System settings
     maintenance_mode: false,
     debug_mode: false,
     api_rate_limit: 100,
-    
+
     // Email settings
     support_email: 'support@dtfeditor.com',
     from_email: 'noreply@dtfeditor.com',
@@ -63,10 +69,10 @@ export default function AdminSettingsPage() {
 
   const handleSaveSettings = async () => {
     setIsSaving(true);
-    
+
     // Simulate API call
     await new Promise(resolve => setTimeout(resolve, 1000));
-    
+
     toast.success('Settings saved successfully');
     setIsSaving(false);
   };
@@ -89,7 +95,9 @@ export default function AdminSettingsPage() {
                 </Button>
               </Link>
               <div>
-                <h1 className="text-2xl font-bold text-gray-900">Admin Settings</h1>
+                <h1 className="text-2xl font-bold text-gray-900">
+                  Admin Settings
+                </h1>
                 <p className="text-gray-600">Configure system-wide settings</p>
               </div>
             </div>
@@ -118,41 +126,69 @@ export default function AdminSettingsPage() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="font-medium">New User Alerts</p>
-                  <p className="text-sm text-gray-500">Get notified when new users sign up</p>
+                  <p className="text-sm text-gray-500">
+                    Get notified when new users sign up
+                  </p>
                 </div>
                 <Checkbox
                   checked={settings.new_user_alerts}
-                  onCheckedChange={(checked) => setSettings({ ...settings, new_user_alerts: checked as boolean })}
+                  onCheckedChange={checked =>
+                    setSettings({
+                      ...settings,
+                      new_user_alerts: checked as boolean,
+                    })
+                  }
                 />
               </div>
               <div className="flex items-center justify-between">
                 <div>
                   <p className="font-medium">Payment Alerts</p>
-                  <p className="text-sm text-gray-500">Notifications for payments and subscriptions</p>
+                  <p className="text-sm text-gray-500">
+                    Notifications for payments and subscriptions
+                  </p>
                 </div>
                 <Checkbox
                   checked={settings.payment_alerts}
-                  onCheckedChange={(checked) => setSettings({ ...settings, payment_alerts: checked as boolean })}
+                  onCheckedChange={checked =>
+                    setSettings({
+                      ...settings,
+                      payment_alerts: checked as boolean,
+                    })
+                  }
                 />
               </div>
               <div className="flex items-center justify-between">
                 <div>
                   <p className="font-medium">Error Alerts</p>
-                  <p className="text-sm text-gray-500">Critical system errors and failures</p>
+                  <p className="text-sm text-gray-500">
+                    Critical system errors and failures
+                  </p>
                 </div>
                 <Checkbox
                   checked={settings.error_alerts}
-                  onCheckedChange={(checked) => setSettings({ ...settings, error_alerts: checked as boolean })}
+                  onCheckedChange={checked =>
+                    setSettings({
+                      ...settings,
+                      error_alerts: checked as boolean,
+                    })
+                  }
                 />
               </div>
               <div className="flex items-center justify-between">
                 <div>
                   <p className="font-medium">Daily Summary</p>
-                  <p className="text-sm text-gray-500">Receive daily activity summary</p>
+                  <p className="text-sm text-gray-500">
+                    Receive daily activity summary
+                  </p>
                 </div>
                 <Checkbox
                   checked={settings.daily_summary}
-                  onCheckedChange={(checked) => setSettings({ ...settings, daily_summary: checked as boolean })}
+                  onCheckedChange={checked =>
+                    setSettings({
+                      ...settings,
+                      daily_summary: checked as boolean,
+                    })
+                  }
                 />
               </div>
             </CardContent>
@@ -173,7 +209,9 @@ export default function AdminSettingsPage() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="font-medium">Require 2FA for Admins</p>
-                  <p className="text-sm text-gray-500">Enforce two-factor authentication</p>
+                  <p className="text-sm text-gray-500">
+                    Enforce two-factor authentication
+                  </p>
                 </div>
                 <Badge variant="secondary">Coming Soon</Badge>
               </div>
@@ -182,7 +220,12 @@ export default function AdminSettingsPage() {
                   type="number"
                   label="Session Timeout (minutes)"
                   value={settings.session_timeout}
-                  onChange={(e) => setSettings({ ...settings, session_timeout: parseInt(e.target.value) })}
+                  onChange={e =>
+                    setSettings({
+                      ...settings,
+                      session_timeout: parseInt(e.target.value),
+                    })
+                  }
                   min="15"
                   max="480"
                 />
@@ -190,7 +233,9 @@ export default function AdminSettingsPage() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="font-medium">IP Whitelist</p>
-                  <p className="text-sm text-gray-500">Restrict admin access by IP</p>
+                  <p className="text-sm text-gray-500">
+                    Restrict admin access by IP
+                  </p>
                 </div>
                 <Badge variant="secondary">Coming Soon</Badge>
               </div>
@@ -204,15 +249,15 @@ export default function AdminSettingsPage() {
                 <Database className="w-5 h-5 mr-2" />
                 System Settings
               </CardTitle>
-              <CardDescription>
-                Core system configuration
-              </CardDescription>
+              <CardDescription>Core system configuration</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="flex items-center justify-between">
                 <div>
                   <p className="font-medium">Maintenance Mode</p>
-                  <p className="text-sm text-gray-500">Show maintenance page to users</p>
+                  <p className="text-sm text-gray-500">
+                    Show maintenance page to users
+                  </p>
                 </div>
                 <div className="flex items-center">
                   {settings.maintenance_mode ? (
@@ -223,7 +268,12 @@ export default function AdminSettingsPage() {
                   <div className="ml-3">
                     <Checkbox
                       checked={settings.maintenance_mode}
-                      onCheckedChange={(checked) => setSettings({ ...settings, maintenance_mode: checked as boolean })}
+                      onCheckedChange={checked =>
+                        setSettings({
+                          ...settings,
+                          maintenance_mode: checked as boolean,
+                        })
+                      }
                     />
                   </div>
                 </div>
@@ -231,11 +281,15 @@ export default function AdminSettingsPage() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="font-medium">Debug Mode</p>
-                  <p className="text-sm text-gray-500">Enable detailed error logging</p>
+                  <p className="text-sm text-gray-500">
+                    Enable detailed error logging
+                  </p>
                 </div>
                 <Checkbox
                   checked={settings.debug_mode}
-                  onCheckedChange={(checked) => setSettings({ ...settings, debug_mode: checked as boolean })}
+                  onCheckedChange={checked =>
+                    setSettings({ ...settings, debug_mode: checked as boolean })
+                  }
                 />
               </div>
               <div>
@@ -243,7 +297,12 @@ export default function AdminSettingsPage() {
                   type="number"
                   label="API Rate Limit (requests/minute)"
                   value={settings.api_rate_limit}
-                  onChange={(e) => setSettings({ ...settings, api_rate_limit: parseInt(e.target.value) })}
+                  onChange={e =>
+                    setSettings({
+                      ...settings,
+                      api_rate_limit: parseInt(e.target.value),
+                    })
+                  }
                   min="10"
                   max="1000"
                 />
@@ -258,22 +317,24 @@ export default function AdminSettingsPage() {
                 <Mail className="w-5 h-5 mr-2" />
                 Email Configuration
               </CardTitle>
-              <CardDescription>
-                Email system settings
-              </CardDescription>
+              <CardDescription>Email system settings</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <Input
                 type="email"
                 label="Support Email Address"
                 value={settings.support_email}
-                onChange={(e) => setSettings({ ...settings, support_email: e.target.value })}
+                onChange={e =>
+                  setSettings({ ...settings, support_email: e.target.value })
+                }
               />
               <Input
                 type="email"
                 label="From Email Address"
                 value={settings.from_email}
-                onChange={(e) => setSettings({ ...settings, from_email: e.target.value })}
+                onChange={e =>
+                  setSettings({ ...settings, from_email: e.target.value })
+                }
               />
             </CardContent>
           </Card>
@@ -288,9 +349,7 @@ export default function AdminSettingsPage() {
         <Card className="mt-6">
           <CardHeader>
             <CardTitle>System Status</CardTitle>
-            <CardDescription>
-              Current system health and status
-            </CardDescription>
+            <CardDescription>Current system health and status</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
@@ -335,11 +394,19 @@ export default function AdminSettingsPage() {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
-            <Button variant="outline" className="text-error-600 border-error-300 hover:bg-error-50" disabled>
+            <Button
+              variant="outline"
+              className="text-error-600 border-error-300 hover:bg-error-50"
+              disabled
+            >
               <Database className="w-4 h-4 mr-2" />
               Reset Database (Disabled)
             </Button>
-            <Button variant="outline" className="text-error-600 border-error-300 hover:bg-error-50" disabled>
+            <Button
+              variant="outline"
+              className="text-error-600 border-error-300 hover:bg-error-50"
+              disabled
+            >
               <Users className="w-4 h-4 mr-2" />
               Clear All User Data (Disabled)
             </Button>

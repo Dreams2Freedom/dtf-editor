@@ -1,19 +1,22 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createServerSupabaseClient, createServiceRoleClient } from '@/lib/supabase/server';
+import {
+  createServerSupabaseClient,
+  createServiceRoleClient,
+} from '@/lib/supabase/server';
 import { withRateLimit } from '@/lib/rate-limit';
 import { AdminAuditService } from '@/services/adminAudit';
 
 async function handlePost(request: NextRequest) {
   try {
     const supabase = await createServerSupabaseClient();
-    
+
     // Check if user is admin
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
     if (authError || !user) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     // Check admin status
@@ -34,7 +37,12 @@ async function handlePost(request: NextRequest) {
     const body = await request.json();
     const { action, userIds } = body;
 
-    if (!action || !userIds || !Array.isArray(userIds) || userIds.length === 0) {
+    if (
+      !action ||
+      !userIds ||
+      !Array.isArray(userIds) ||
+      userIds.length === 0
+    ) {
       return NextResponse.json(
         { error: 'Invalid request: action and userIds required' },
         { status: 400 }
@@ -49,13 +57,13 @@ async function handlePost(request: NextRequest) {
         // Activate users
         const { data: activatedUsers, error: activateError } = await supabase
           .from('profiles')
-          .update({ 
+          .update({
             subscription_status: 'active',
-            updated_at: new Date().toISOString()
+            updated_at: new Date().toISOString(),
           })
           .in('id', userIds)
           .select();
-        
+
         if (activateError) {
           errors.push(`Activate error: ${activateError.message}`);
         } else {
@@ -67,13 +75,13 @@ async function handlePost(request: NextRequest) {
         // Suspend users
         const { data: suspendedUsers, error: suspendError } = await supabase
           .from('profiles')
-          .update({ 
+          .update({
             subscription_status: 'suspended',
-            updated_at: new Date().toISOString()
+            updated_at: new Date().toISOString(),
           })
           .in('id', userIds)
           .select();
-        
+
         if (suspendError) {
           errors.push(`Suspend error: ${suspendError.message}`);
         } else {
@@ -87,15 +95,21 @@ async function handlePost(request: NextRequest) {
         // Need to use service role client for admin operations
         const serviceClient = createServiceRoleClient();
         let successCount = 0;
-        
+
         for (const userId of userIds) {
           try {
             // Use the service role client to delete the user
-            const { error: deleteAuthError } = await serviceClient.auth.admin.deleteUser(userId);
-            
+            const { error: deleteAuthError } =
+              await serviceClient.auth.admin.deleteUser(userId);
+
             if (deleteAuthError) {
-              console.error(`Failed to delete user ${userId}:`, deleteAuthError);
-              errors.push(`Failed to delete user ${userId}: ${deleteAuthError.message}`);
+              console.error(
+                `Failed to delete user ${userId}:`,
+                deleteAuthError
+              );
+              errors.push(
+                `Failed to delete user ${userId}: ${deleteAuthError.message}`
+              );
             } else {
               successCount++;
               console.log(`Successfully deleted user ${userId}`);
@@ -105,9 +119,9 @@ async function handlePost(request: NextRequest) {
             errors.push(`Error deleting user ${userId}`);
           }
         }
-        
+
         affected = successCount;
-        
+
         if (successCount === 0) {
           return NextResponse.json(
             { error: 'Failed to delete any users', errors },
@@ -131,14 +145,13 @@ async function handlePost(request: NextRequest) {
         );
 
       default:
-        return NextResponse.json(
-          { error: 'Invalid action' },
-          { status: 400 }
-        );
+        return NextResponse.json({ error: 'Invalid action' }, { status: 400 });
     }
 
     // Log the bulk action
-    console.log(`[Admin Bulk Action] ${action} performed on ${affected} users by ${user.email}`);
+    console.log(
+      `[Admin Bulk Action] ${action} performed on ${affected} users by ${user.email}`
+    );
 
     // Create audit log entry
     const auditService = AdminAuditService.getInstance();
@@ -146,10 +159,10 @@ async function handlePost(request: NextRequest) {
       {
         user: {
           id: user.id,
-          email: user.email || ''
+          email: user.email || '',
         },
         role: 'admin',
-        createdAt: new Date()
+        createdAt: new Date(),
       },
       {
         action: 'user.bulk_update',
@@ -159,8 +172,8 @@ async function handlePost(request: NextRequest) {
           affected_users: affected,
           total_users: userIds.length,
           user_ids: userIds,
-          errors: errors.length > 0 ? errors : undefined
-        }
+          errors: errors.length > 0 ? errors : undefined,
+        },
       },
       request
     );
@@ -170,9 +183,8 @@ async function handlePost(request: NextRequest) {
       action,
       affected,
       total: userIds.length,
-      errors: errors.length > 0 ? errors : undefined
+      errors: errors.length > 0 ? errors : undefined,
     });
-
   } catch (error) {
     console.error('Bulk action error:', error);
     return NextResponse.json(

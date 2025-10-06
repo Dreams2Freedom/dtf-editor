@@ -16,28 +16,28 @@ const AdminDebugPage = () => {
     setMounted(true);
     if (typeof window !== 'undefined' && typeof document !== 'undefined') {
       setCookies(document.cookie);
-      
+
       // Check for admin session
       const adminSessionCookie = document.cookie
         .split('; ')
         .find(row => row.startsWith('admin_session='));
-      
+
       setSessionInfo({
         hasCookie: !!adminSessionCookie,
         cookieValue: adminSessionCookie || 'Not found',
-        allCookies: document.cookie || 'No cookies'
+        allCookies: document.cookie || 'No cookies',
       });
     }
   }, []);
 
   const testNavigation = (method: string) => {
     if (typeof window === 'undefined') return;
-    
+
     console.log(`Testing navigation with: ${method}`);
     console.log('Cookies:', document.cookie);
     console.log('Location:', window.location.href);
     console.log('User Agent:', navigator.userAgent);
-    
+
     switch (method) {
       case 'router':
         router.push('/admin');
@@ -76,18 +76,21 @@ const AdminDebugPage = () => {
     <div className="min-h-screen bg-gray-50 p-8">
       <div className="max-w-4xl mx-auto space-y-6">
         <h1 className="text-2xl font-bold">Admin Debug Page</h1>
-        
+
         <Card className="p-6">
           <h2 className="text-lg font-semibold mb-4">Cookie Information</h2>
           <div className="space-y-2">
             <p className="text-sm font-mono bg-gray-100 p-2 rounded break-all">
               {cookies || 'No cookies found'}
             </p>
-            <Button onClick={() => {
-              if (typeof document !== 'undefined') {
-                setCookies(document.cookie);
-              }
-            }} size="sm">
+            <Button
+              onClick={() => {
+                if (typeof document !== 'undefined') {
+                  setCookies(document.cookie);
+                }
+              }}
+              size="sm"
+            >
               Refresh Cookies
             </Button>
             <Button onClick={setCookieTest} size="sm" className="ml-2">
@@ -127,13 +130,28 @@ const AdminDebugPage = () => {
         <Card className="p-6">
           <h2 className="text-lg font-semibold mb-4">Browser Info</h2>
           <pre className="bg-gray-100 p-4 rounded overflow-auto text-sm">
-            {JSON.stringify({
-              userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : 'N/A',
-              href: typeof window !== 'undefined' ? window.location.href : 'N/A',
-              protocol: typeof window !== 'undefined' ? window.location.protocol : 'N/A',
-              host: typeof window !== 'undefined' ? window.location.host : 'N/A',
-              pathname: typeof window !== 'undefined' ? window.location.pathname : 'N/A'
-            }, null, 2)}
+            {JSON.stringify(
+              {
+                userAgent:
+                  typeof navigator !== 'undefined'
+                    ? navigator.userAgent
+                    : 'N/A',
+                href:
+                  typeof window !== 'undefined' ? window.location.href : 'N/A',
+                protocol:
+                  typeof window !== 'undefined'
+                    ? window.location.protocol
+                    : 'N/A',
+                host:
+                  typeof window !== 'undefined' ? window.location.host : 'N/A',
+                pathname:
+                  typeof window !== 'undefined'
+                    ? window.location.pathname
+                    : 'N/A',
+              },
+              null,
+              2
+            )}
           </pre>
         </Card>
       </div>
@@ -143,5 +161,5 @@ const AdminDebugPage = () => {
 
 // Export with SSR disabled
 export default dynamic(() => Promise.resolve(AdminDebugPage), {
-  ssr: false
+  ssr: false,
 });

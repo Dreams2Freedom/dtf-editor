@@ -11,7 +11,7 @@ import {
   RefreshCw,
   Zap,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
 } from 'lucide-react';
 import { ClientOnly } from '@/components/auth/ClientOnly';
 import { Button } from '@/components/ui/Button';
@@ -53,12 +53,14 @@ export function CreditHistory() {
       const offset = (currentPage - 1) * ITEMS_PER_PAGE;
 
       // Fetch one extra item to check if there are more pages
-      const { data, error } = await supabase
-        .rpc('get_user_credit_transactions', {
+      const { data, error } = await supabase.rpc(
+        'get_user_credit_transactions',
+        {
           p_user_id: user?.id,
           p_limit: ITEMS_PER_PAGE + 1,
-          p_offset: offset
-        });
+          p_offset: offset,
+        }
+      );
 
       if (error) {
         console.error('Error fetching transactions:', error);
@@ -77,7 +79,12 @@ export function CreditHistory() {
         setTransactions(results);
       }
 
-      console.log('[CreditHistory] Fetched:', results.length, 'Has more:', results.length > ITEMS_PER_PAGE);
+      console.log(
+        '[CreditHistory] Fetched:',
+        results.length,
+        'Has more:',
+        results.length > ITEMS_PER_PAGE
+      );
     } catch (error) {
       console.error('Error fetching credit history:', error);
     } finally {
@@ -133,7 +140,9 @@ export function CreditHistory() {
       <div className="text-center py-8 text-gray-500">
         <CreditCard className="h-12 w-12 mx-auto mb-3 text-gray-300" />
         <p>No credit transactions yet</p>
-        <p className="text-sm mt-1">Your credit purchases and usage will appear here</p>
+        <p className="text-sm mt-1">
+          Your credit purchases and usage will appear here
+        </p>
       </div>
     );
   }
@@ -145,13 +154,15 @@ export function CreditHistory() {
   return (
     <div className="space-y-4">
       <div className="space-y-3">
-        {transactions.map((transaction) => (
+        {transactions.map(transaction => (
           <div
             key={transaction.id}
             className="flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
           >
             <div className="flex items-center space-x-3">
-              <div className={`p-2 rounded-full bg-white ${getTransactionColor(transaction.type)}`}>
+              <div
+                className={`p-2 rounded-full bg-white ${getTransactionColor(transaction.type)}`}
+              >
                 {getTransactionIcon(transaction.type)}
               </div>
               <div>
@@ -159,7 +170,10 @@ export function CreditHistory() {
                   {transaction.description || `${transaction.type} transaction`}
                 </p>
                 <p className="text-sm text-gray-500">
-                  {format(new Date(transaction.created_at), 'MMM d, yyyy h:mm a')}
+                  {format(
+                    new Date(transaction.created_at),
+                    'MMM d, yyyy h:mm a'
+                  )}
                 </p>
                 {transaction.metadata?.price_paid && (
                   <p className="text-xs text-gray-500">
@@ -169,7 +183,9 @@ export function CreditHistory() {
               </div>
             </div>
             <div className="text-right">
-              <p className={`font-semibold ${getTransactionColor(transaction.type)}`}>
+              <p
+                className={`font-semibold ${getTransactionColor(transaction.type)}`}
+              >
                 {formatAmount(transaction.amount, transaction.type)} credits
               </p>
               <p className="text-sm text-gray-500">

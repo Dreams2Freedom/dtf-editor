@@ -10,10 +10,7 @@ export async function POST(request: NextRequest) {
     const { jobId } = await request.json();
 
     if (!jobId) {
-      return NextResponse.json(
-        { error: 'Job ID required' },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: 'Job ID required' }, { status: 400 });
     }
 
     const serviceClient = createServiceRoleClient();
@@ -26,17 +23,14 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (jobError || !job) {
-      return NextResponse.json(
-        { error: 'Job not found' },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: 'Job not found' }, { status: 404 });
     }
 
     // Check if job is already being processed or completed
     if (job.status !== 'pending') {
       return NextResponse.json({
         message: `Job already ${job.status}`,
-        status: job.status
+        status: job.status,
       });
     }
 
@@ -46,7 +40,7 @@ export async function POST(request: NextRequest) {
       .update({
         status: 'processing',
         started_at: new Date().toISOString(),
-        progress: 10
+        progress: 10,
       })
       .eq('id', jobId);
 
@@ -56,7 +50,7 @@ export async function POST(request: NextRequest) {
       processingMode = 'auto_enhance',
       scale,
       targetWidth,
-      targetHeight
+      targetHeight,
     } = job.input_data as any;
 
     // Process the image using DeepImageService
@@ -72,10 +66,10 @@ export async function POST(request: NextRequest) {
 
       const response = await deepImageService.upscaleImage(imageUrl, {
         processingMode: processingMode as ProcessingMode,
-        scale: scale as (2 | 4 | undefined),
+        scale: scale as 2 | 4 | undefined,
         faceEnhance: false,
         targetWidth,
-        targetHeight
+        targetHeight,
       });
 
       const processingTime = Date.now() - startTime;
@@ -101,8 +95,8 @@ export async function POST(request: NextRequest) {
         metadata: {
           targetWidth,
           targetHeight,
-          processingMode
-        }
+          processingMode,
+        },
       });
 
       // Save to gallery
@@ -119,8 +113,8 @@ export async function POST(request: NextRequest) {
             metadata: {
               processingTime,
               creditsUsed: 1,
-              processingTimeFromApi: response.processingTime
-            }
+              processingTimeFromApi: response.processingTime,
+            },
           });
 
           if (savedId) {
@@ -156,9 +150,9 @@ export async function POST(request: NextRequest) {
             url: finalUrl,
             imageId: savedId,
             processingTime,
-            creditsUsed: 1
+            creditsUsed: 1,
           },
-          completed_at: new Date().toISOString()
+          completed_at: new Date().toISOString(),
         })
         .eq('id', jobId);
 
@@ -166,9 +160,8 @@ export async function POST(request: NextRequest) {
         success: true,
         url: finalUrl,
         imageId: savedId,
-        processingTime
+        processingTime,
       });
-
     } catch (error) {
       console.error('[Job Process] Processing error:', error);
 
@@ -180,12 +173,13 @@ export async function POST(request: NextRequest) {
         status: 'failed',
         creditsCharged: 0,
         processingTimeMs: Date.now() - startTime,
-        errorMessage: error instanceof Error ? error.message : 'Processing failed',
+        errorMessage:
+          error instanceof Error ? error.message : 'Processing failed',
         metadata: {
           targetWidth,
           targetHeight,
-          processingMode
-        }
+          processingMode,
+        },
       });
 
       // Update job as failed
@@ -193,8 +187,9 @@ export async function POST(request: NextRequest) {
         .from('processing_jobs')
         .update({
           status: 'failed',
-          error_message: error instanceof Error ? error.message : 'Processing failed',
-          completed_at: new Date().toISOString()
+          error_message:
+            error instanceof Error ? error.message : 'Processing failed',
+          completed_at: new Date().toISOString(),
         })
         .eq('id', jobId);
 
@@ -203,7 +198,6 @@ export async function POST(request: NextRequest) {
         { status: 500 }
       );
     }
-
   } catch (error) {
     console.error('[Job Process] Error:', error);
     return NextResponse.json(
@@ -219,10 +213,7 @@ export async function GET(request: NextRequest) {
   const jobId = searchParams.get('jobId');
 
   if (!jobId) {
-    return NextResponse.json(
-      { error: 'Job ID required' },
-      { status: 400 }
-    );
+    return NextResponse.json({ error: 'Job ID required' }, { status: 400 });
   }
 
   const serviceClient = createServiceRoleClient();
@@ -234,10 +225,7 @@ export async function GET(request: NextRequest) {
     .single();
 
   if (error || !job) {
-    return NextResponse.json(
-      { error: 'Job not found' },
-      { status: 404 }
-    );
+    return NextResponse.json({ error: 'Job not found' }, { status: 404 });
   }
 
   return NextResponse.json(job);

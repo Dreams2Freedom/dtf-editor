@@ -1,5 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { imageProcessingService, ProcessingOptions, ProcessingOperation } from '@/services/imageProcessing';
+import {
+  imageProcessingService,
+  ProcessingOptions,
+  ProcessingOperation,
+} from '@/services/imageProcessing';
 import { storageService } from '@/services/storage';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { saveProcessedImageToGallery } from '@/utils/saveProcessedImage';
@@ -9,8 +13,11 @@ async function handlePost(request: NextRequest) {
   try {
     // 1. Get authenticated user
     const supabase = await createServerSupabaseClient();
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
-    
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
+
     if (authError || !user) {
       return NextResponse.json(
         { error: 'Authentication required' },
@@ -35,7 +42,9 @@ async function handlePost(request: NextRequest) {
     const allowedTypes = ['image/jpeg', 'image/png', 'image/webp'];
     if (!allowedTypes.includes(imageFile.type)) {
       return NextResponse.json(
-        { error: 'Invalid file type. Please upload JPEG, PNG, or WebP images.' },
+        {
+          error: 'Invalid file type. Please upload JPEG, PNG, or WebP images.',
+        },
         { status: 400 }
       );
     }
@@ -61,11 +70,21 @@ async function handlePost(request: NextRequest) {
     // 7. Build processing options
     const processingOptions: ProcessingOptions = {
       operation: operation as ProcessingOperation,
-      scale: formData.get('scale') ? parseInt(formData.get('scale') as string) as 2 | 4 : undefined,
-      processingMode: formData.get('processingMode') as 'auto_enhance' | 'generative_upscale' | 'basic_upscale' | undefined,
+      scale: formData.get('scale')
+        ? (parseInt(formData.get('scale') as string) as 2 | 4)
+        : undefined,
+      processingMode: formData.get('processingMode') as
+        | 'auto_enhance'
+        | 'generative_upscale'
+        | 'basic_upscale'
+        | undefined,
       faceEnhance: formData.get('faceEnhance') === 'true',
       backgroundColor: formData.get('backgroundColor') as string | undefined,
-      vectorFormat: formData.get('vectorFormat') as 'svg' | 'pdf' | 'png' | undefined,
+      vectorFormat: formData.get('vectorFormat') as
+        | 'svg'
+        | 'pdf'
+        | 'png'
+        | undefined,
     };
 
     // 8. Validate operation-specific options
@@ -73,10 +92,7 @@ async function handlePost(request: NextRequest) {
     if (validationError) {
       // Clean up uploaded file on validation error
       await storageService.deleteImage(uploadResult.path!);
-      return NextResponse.json(
-        { error: validationError },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: validationError }, { status: 400 });
     }
 
     // 9. Process the image
@@ -99,15 +115,15 @@ async function handlePost(request: NextRequest) {
       // Save to gallery
       let savedId: string | null = null;
       let saveError: any = null;
-      
+
       if (result.processedUrl) {
         try {
           console.log('[Process API] Attempting to save to gallery:', {
             operation,
             format: processingOptions.vectorFormat || 'png',
-            urlType: result.processedUrl.startsWith('data:') ? 'data' : 'url'
+            urlType: result.processedUrl.startsWith('data:') ? 'data' : 'url',
           });
-          
+
           savedId = await saveProcessedImageToGallery({
             userId: user.id,
             processedUrl: result.processedUrl,
@@ -116,18 +132,21 @@ async function handlePost(request: NextRequest) {
             fileSize: imageFile.size,
             metadata: {
               ...result.metadata,
-              format: processingOptions.vectorFormat || 'png'
-            }
+              format: processingOptions.vectorFormat || 'png',
+            },
           });
-          
-          console.log('[Process API] Save result:', savedId ? 'Success' : 'Failed');
+
+          console.log(
+            '[Process API] Save result:',
+            savedId ? 'Success' : 'Failed'
+          );
         } catch (error) {
           saveError = error;
           console.error('[Process API] Error saving to gallery:', error);
           // Don't fail the entire request if saving fails
         }
       }
-      
+
       return NextResponse.json({
         success: true,
         processedUrl: result.processedUrl,
@@ -135,8 +154,8 @@ async function handlePost(request: NextRequest) {
           ...result.metadata,
           saveAttempted: true,
           savedId: savedId || null,
-          saveError: saveError ? String(saveError) : null
-        }
+          saveError: saveError ? String(saveError) : null,
+        },
       });
     } else {
       // Clean up uploaded file on processing error
@@ -148,10 +167,11 @@ async function handlePost(request: NextRequest) {
         { status: 422 }
       );
     }
-
   } catch (error) {
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Internal server error' },
+      {
+        error: error instanceof Error ? error.message : 'Internal server error',
+      },
       { status: 500 }
     );
   }
@@ -172,7 +192,11 @@ function validateProcessingOptions(options: ProcessingOptions): string | null {
       if (!options.processingMode) {
         return 'Processing mode is required for upscaling';
       }
-      if (!['auto_enhance', 'generative_upscale', 'basic_upscale'].includes(options.processingMode)) {
+      if (
+        !['auto_enhance', 'generative_upscale', 'basic_upscale'].includes(
+          options.processingMode
+        )
+      ) {
         return 'Invalid processing mode';
       }
       break;
@@ -182,7 +206,10 @@ function validateProcessingOptions(options: ProcessingOptions): string | null {
       break;
 
     case 'vectorization':
-      if (options.vectorFormat && !['svg', 'pdf', 'png'].includes(options.vectorFormat)) {
+      if (
+        options.vectorFormat &&
+        !['svg', 'pdf', 'png'].includes(options.vectorFormat)
+      ) {
         return 'Vector format must be svg, pdf, or png';
       }
       break;
@@ -211,8 +238,11 @@ async function handleGet(request: NextRequest) {
   try {
     // Get authenticated user
     const supabase = await createServerSupabaseClient();
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
-    
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
+
     if (authError || !user) {
       return NextResponse.json(
         { error: 'Authentication required' },
@@ -225,17 +255,21 @@ async function handleGet(request: NextRequest) {
     const limit = parseInt(searchParams.get('limit') || '20');
 
     // Get processing history
-    const history = await imageProcessingService.getProcessingHistory(user.id, limit);
+    const history = await imageProcessingService.getProcessingHistory(
+      user.id,
+      limit
+    );
 
     return NextResponse.json({
       success: true,
-      data: history
+      data: history,
     });
-
   } catch (error) {
     console.error('Process API GET Error:', error);
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Internal server error' },
+      {
+        error: error instanceof Error ? error.message : 'Internal server error',
+      },
       { status: 500 }
     );
   }

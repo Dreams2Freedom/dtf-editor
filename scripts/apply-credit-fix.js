@@ -23,9 +23,13 @@ console.log('\n━━━━━━━━━━━━━━━━━━━━━�
 
 console.log('✅ After running this SQL:');
 console.log('- The credit_transactions table will be created');
-console.log('- RLS policies will allow the service role to insert transactions');
+console.log(
+  '- RLS policies will allow the service role to insert transactions'
+);
 console.log('- The add_user_credits function will work properly');
 console.log('- Credits will be added after payments\n');
 
 console.log('🔗 Direct link to SQL Editor:');
-console.log('https://supabase.com/dashboard/project/xysuxhdqukjtqgzetwps/sql/new');
+console.log(
+  'https://supabase.com/dashboard/project/xysuxhdqukjtqgzetwps/sql/new'
+);

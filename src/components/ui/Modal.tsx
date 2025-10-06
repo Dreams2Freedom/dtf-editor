@@ -1,4 +1,4 @@
-"use client";
+'use client';
 
 import React from 'react';
 import * as Dialog from '@radix-ui/react-dialog';
@@ -72,7 +72,10 @@ export function Modal({
                   </Dialog.Title>
                 )}
                 {description && (
-                  <Dialog.Description id="modal-description" className="mt-1 text-sm text-gray-500">
+                  <Dialog.Description
+                    id="modal-description"
+                    className="mt-1 text-sm text-gray-500"
+                  >
                     {description}
                   </Dialog.Description>
                 )}
@@ -97,4 +100,4 @@ export function Modal({
   );
 }
 
-export { Dialog }; 
+export { Dialog };

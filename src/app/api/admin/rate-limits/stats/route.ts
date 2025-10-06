@@ -10,11 +10,15 @@ async function handleGetStats(request: NextRequest) {
 
   try {
     // Check if Upstash is configured
-    if (!process.env.UPSTASH_REDIS_REST_URL || !process.env.UPSTASH_REDIS_REST_TOKEN) {
+    if (
+      !process.env.UPSTASH_REDIS_REST_URL ||
+      !process.env.UPSTASH_REDIS_REST_TOKEN
+    ) {
       return NextResponse.json({
         status: 'not_configured',
         message: 'Upstash Redis not configured. Using in-memory rate limiting.',
-        warning: 'In-memory rate limiting does not persist across servers or restarts!',
+        warning:
+          'In-memory rate limiting does not persist across servers or restarts!',
       });
     }
 
@@ -26,7 +30,7 @@ async function handleGetStats(request: NextRequest) {
 
     // Get all rate limit keys
     const keys = await redis.keys('dtf-editor:*');
-    
+
     // Categorize keys
     const stats = {
       total_keys: keys.length,
@@ -58,12 +62,12 @@ async function handleGetStats(request: NextRequest) {
       if (parts.length >= 3) {
         const type = parts[1];
         const identifier = parts[2];
-        
+
         // Count by type
         if (type in stats.by_type) {
           stats.by_type[type as keyof typeof stats.by_type]++;
         }
-        
+
         // Count by identifier type
         if (identifier.startsWith('user')) {
           stats.by_identifier.authenticated_users++;
@@ -115,11 +119,10 @@ async function handleGetStats(request: NextRequest) {
       estimates,
       recommendations: generateRecommendations(stats),
     });
-
   } catch (error) {
     console.error('Rate limit stats error:', error);
     return NextResponse.json(
-      { 
+      {
         error: 'Failed to get rate limit statistics',
         details: error instanceof Error ? error.message : 'Unknown error',
       },
@@ -130,27 +133,36 @@ async function handleGetStats(request: NextRequest) {
 
 function generateRecommendations(stats: any): string[] {
   const recommendations = [];
-  
+
   if (stats.total_keys > 10000) {
     recommendations.push('Consider implementing key expiration cleanup');
   }
-  
+
   if (stats.by_type.auth > stats.by_type.api) {
-    recommendations.push('High auth attempts detected - monitor for potential attacks');
+    recommendations.push(
+      'High auth attempts detected - monitor for potential attacks'
+    );
   }
-  
-  if (stats.by_identifier.anonymous_ips > stats.by_identifier.authenticated_users * 10) {
-    recommendations.push('Many anonymous users - consider encouraging sign-ups');
+
+  if (
+    stats.by_identifier.anonymous_ips >
+    stats.by_identifier.authenticated_users * 10
+  ) {
+    recommendations.push(
+      'Many anonymous users - consider encouraging sign-ups'
+    );
   }
-  
+
   if (stats.top_consumers.some((c: any) => c.count > 50)) {
-    recommendations.push('Some users hitting limits frequently - review rate limit thresholds');
+    recommendations.push(
+      'Some users hitting limits frequently - review rate limit thresholds'
+    );
   }
-  
+
   if (recommendations.length === 0) {
     recommendations.push('Rate limiting is working well - no issues detected');
   }
-  
+
   return recommendations;
 }
 

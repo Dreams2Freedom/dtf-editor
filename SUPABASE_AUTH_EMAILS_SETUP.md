@@ -5,6 +5,7 @@ This guide explains how to configure Supabase to use Mailgun for all authenticat
 ## Overview
 
 By default, Supabase sends its own auth emails. To use Mailgun instead, we need to:
+
 1. Disable Supabase's default email sending
 2. Deploy an Edge Function to handle auth events
 3. Configure webhooks to trigger our custom email sending
@@ -14,17 +15,21 @@ By default, Supabase sends its own auth emails. To use Mailgun instead, we need 
 We've prepared the following components:
 
 ### 1. Email Service Methods
+
 - `sendPasswordResetEmail()` - For password reset links
 - `sendEmailConfirmation()` - For email verification
 - `sendMagicLinkEmail()` - For passwordless login
 
 ### 2. Edge Function
+
 Located at `supabase/functions/auth-email-handler/`
+
 - Handles auth email events from Supabase
 - Sends emails via Mailgun API
 - Includes all email templates
 
 ### 3. API Endpoints (Alternative approach)
+
 - `/api/auth/send-reset-email` - Custom password reset endpoint
 
 ## Setup Instructions
@@ -75,6 +80,7 @@ supabase secrets set APP_URL=https://dtfeditor.com
 ### Step 4: Update Environment Variables
 
 Add to your `.env.local`:
+
 ```env
 # Supabase Edge Function URL
 SUPABASE_FUNCTION_URL=https://your-project-ref.functions.supabase.co
@@ -83,15 +89,18 @@ SUPABASE_FUNCTION_URL=https://your-project-ref.functions.supabase.co
 ## Testing
 
 ### Test Password Reset
+
 ```javascript
 // In your app
 const { error } = await authService.resetPassword('user@example.com');
 ```
 
 ### Test Email Confirmation
+
 When a new user signs up, they'll receive a custom confirmation email.
 
 ### Test Magic Link
+
 ```javascript
 // If implementing magic link login
 const { error } = await supabase.auth.signInWithOtp({
@@ -117,6 +126,7 @@ const { error } = await supabase.auth.signInWithOtp({
 ## Alternative: Direct API Approach
 
 If you prefer not to use Edge Functions, you can:
+
 1. Keep Supabase default emails disabled
 2. Use the custom API endpoints (`/api/auth/send-reset-email`)
 3. Handle all auth flows manually in your app

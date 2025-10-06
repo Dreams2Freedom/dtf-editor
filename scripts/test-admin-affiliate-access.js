@@ -17,7 +17,8 @@ async function testAdminAccess() {
   try {
     // 1. Get current admin user
     console.log('1. Checking admin user:');
-    const { data: adminUsers, error: adminError } = await supabase.auth.admin.listUsers();
+    const { data: adminUsers, error: adminError } =
+      await supabase.auth.admin.listUsers();
 
     if (adminError) {
       console.error('Error getting users:', adminError);
@@ -36,8 +37,10 @@ async function testAdminAccess() {
     // 2. Test is_admin function
     console.log('2. Testing is_admin function:');
     if (adminUser) {
-      const { data: isAdmin, error: adminCheckError } = await supabase
-        .rpc('is_admin', { user_id: adminUser.id });
+      const { data: isAdmin, error: adminCheckError } = await supabase.rpc(
+        'is_admin',
+        { user_id: adminUser.id }
+      );
 
       if (adminCheckError) {
         console.error('   Error checking is_admin:', adminCheckError);
@@ -84,7 +87,7 @@ async function testAdminAccess() {
     // 5. Try to fetch with a user context simulation
     console.log('\n5. Simulating user context:');
     console.log('   Note: This test uses service_role key which bypasses RLS');
-    console.log('   The actual frontend will use the user\'s auth token\n');
+    console.log("   The actual frontend will use the user's auth token\n");
 
     console.log('✅ Test complete!\n');
     console.log('Summary:');
@@ -92,7 +95,6 @@ async function testAdminAccess() {
     console.log('- is_admin function exists ✅');
     console.log('- To test actual admin access, log in as', adminEmails[0]);
     console.log('  and visit /admin/affiliates/applications\n');
-
   } catch (error) {
     console.error('Unexpected error:', error);
   }

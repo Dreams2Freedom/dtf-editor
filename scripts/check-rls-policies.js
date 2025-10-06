@@ -29,19 +29,16 @@ async function checkRLSPolicies() {
     'processed_images',
     'image_collections',
     'credit_transactions',
-    'images'
+    'images',
   ];
 
   for (const table of tables) {
     console.log(`\n📊 Table: ${table}`);
-    
+
     try {
       // Test if we can read from the table with service role
-      const { data, error } = await supabase
-        .from(table)
-        .select('*')
-        .limit(1);
-      
+      const { data, error } = await supabase.from(table).select('*').limit(1);
+
       if (error) {
         console.log(`   ❌ Error accessing table: ${error.message}`);
       } else {
@@ -52,7 +49,7 @@ async function checkRLSPolicies() {
       const { data: policies, error: policyError } = await supabase
         .rpc('get_policies', { table_name: table })
         .single();
-      
+
       if (policyError) {
         console.log(`   ⚠️  Could not check policies`);
       }
@@ -63,32 +60,33 @@ async function checkRLSPolicies() {
 
   // Test with user context
   console.log('\n\n🧪 Testing with user context...');
-  
+
   const email = 'snsmarketing@gmail.com';
   const password = 'TestPassword123!';
-  
+
   // Create a user client
-  const userClient = createClient(supabaseUrl, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY);
-  
-  const { data: authData, error: authError } = await userClient.auth.signInWithPassword({
-    email,
-    password
-  });
-  
+  const userClient = createClient(
+    supabaseUrl,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+  );
+
+  const { data: authData, error: authError } =
+    await userClient.auth.signInWithPassword({
+      email,
+      password,
+    });
+
   if (authError) {
     console.log(`❌ Auth failed: ${authError.message}`);
     return;
   }
-  
+
   console.log(`✅ Authenticated as: ${authData.user.email}`);
-  
+
   // Test each table with user context
   for (const table of tables) {
-    const { data, error } = await userClient
-      .from(table)
-      .select('*')
-      .limit(1);
-    
+    const { data, error } = await userClient.from(table).select('*').limit(1);
+
     if (error) {
       console.log(`   ❌ ${table}: ${error.message} (${error.code})`);
     } else {

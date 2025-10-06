@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createServerSupabaseClient, createServiceRoleClient } from '@/lib/supabase/server';
+import {
+  createServerSupabaseClient,
+  createServiceRoleClient,
+} from '@/lib/supabase/server';
 import { logAdminAction, getClientIp, getUserAgent } from '@/utils/adminLogger';
 import { withRateLimit } from '@/lib/rate-limit';
 
@@ -10,8 +13,10 @@ async function handleGet(
   try {
     // Check if user is authenticated and is admin
     const supabase = await createServerSupabaseClient();
-    const { data: { user } } = await supabase.auth.getUser();
-    
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
@@ -25,7 +30,7 @@ async function handleGet(
     if (!profile?.is_admin) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
-    
+
     // Use service role client to bypass RLS
     const serviceClient = createServiceRoleClient();
 
@@ -68,9 +73,13 @@ async function handleGet(
       .select('amount')
       .eq('user_id', params.id)
       .like('description', '%usage%')
-      .gte('created_at', new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString());
+      .gte(
+        'created_at',
+        new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString()
+      );
 
-    const totalUsageLast30Days = usageStats?.reduce((sum, t) => sum + Math.abs(t.amount), 0) || 0;
+    const totalUsageLast30Days =
+      usageStats?.reduce((sum, t) => sum + Math.abs(t.amount), 0) || 0;
 
     // Get Stripe customer info if available
     let stripeInfo = null;
@@ -78,7 +87,8 @@ async function handleGet(
       // TODO: Fetch from Stripe API
       stripeInfo = {
         customer_id: userDetails.stripe_customer_id,
-        subscription_status: userDetails.subscription_plan !== 'free' ? 'active' : null
+        subscription_status:
+          userDetails.subscription_plan !== 'free' ? 'active' : null,
       };
     }
 
@@ -88,7 +98,7 @@ async function handleGet(
       type: t.type || 'usage',
       amount: t.amount,
       description: t.description,
-      created_at: t.created_at
+      created_at: t.created_at,
     }));
 
     // Log the admin action
@@ -107,7 +117,10 @@ async function handleGet(
       user: {
         id: userDetails.id,
         email: userDetails.email,
-        full_name: userDetails.full_name || `${userDetails.first_name || ''} ${userDetails.last_name || ''}`.trim() || null,
+        full_name:
+          userDetails.full_name ||
+          `${userDetails.first_name || ''} ${userDetails.last_name || ''}`.trim() ||
+          null,
         plan: userDetails.subscription_plan || 'free',
         status: userDetails.is_active !== false ? 'active' : 'suspended',
         credits_remaining: userDetails.credits_remaining || 0,
@@ -119,14 +132,17 @@ async function handleGet(
         recent_uploads: uploads,
         usage_stats: {
           last_30_days: totalUsageLast30Days,
-          total_uploads: uploads.length
+          total_uploads: uploads.length,
         },
-        stripe_info: stripeInfo
-      }
+        stripe_info: stripeInfo,
+      },
     });
   } catch (error) {
     console.error('Admin user details API error:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return NextResponse.json(
+      { error: 'Internal server error' },
+      { status: 500 }
+    );
   }
 }
 
@@ -137,8 +153,10 @@ async function handlePatch(
   try {
     // Check if user is authenticated and is admin
     const supabase = await createServerSupabaseClient();
-    const { data: { user } } = await supabase.auth.getUser();
-    
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
@@ -152,7 +170,7 @@ async function handlePatch(
     if (!profile?.is_admin) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
-    
+
     // Use service role client to bypass RLS
     const serviceClient = createServiceRoleClient();
 
@@ -160,7 +178,11 @@ async function handlePatch(
     const { full_name, email, plan, status } = body;
 
     // Validate input
-    if (!email || !['free', 'basic', 'starter', 'pro'].includes(plan) || !['active', 'suspended'].includes(status)) {
+    if (
+      !email ||
+      !['free', 'basic', 'starter', 'pro'].includes(plan) ||
+      !['active', 'suspended'].includes(status)
+    ) {
       return NextResponse.json({ error: 'Invalid input' }, { status: 400 });
     }
 
@@ -169,9 +191,9 @@ async function handlePatch(
       email,
       subscription_plan: plan,
       is_active: status === 'active',
-      updated_at: new Date().toISOString()
+      updated_at: new Date().toISOString(),
     };
-    
+
     if (full_name !== undefined) {
       updateData.full_name = full_name;
     }
@@ -185,36 +207,45 @@ async function handlePatch(
 
     if (error) {
       console.error('Error updating user:', error);
-      return NextResponse.json({ error: 'Failed to update user' }, { status: 500 });
+      return NextResponse.json(
+        { error: 'Failed to update user' },
+        { status: 500 }
+      );
     }
 
     // Log the admin action
     await logAdminAction({
       adminId: user.id,
       adminEmail: user.email,
-      action: body.is_active !== undefined ? 
-        (body.is_active ? 'user.activate' : 'user.suspend') : 
-        'user.update',
+      action:
+        body.is_active !== undefined
+          ? body.is_active
+            ? 'user.activate'
+            : 'user.suspend'
+          : 'user.update',
       resourceType: 'user',
       resourceId: params.id,
       details: {
         updated_fields: Object.keys(body),
-        changes: body
+        changes: body,
       },
       ipAddress: getClientIp(request),
       userAgent: getUserAgent(request),
     });
 
-    return NextResponse.json({ 
+    return NextResponse.json({
       user: {
         ...updatedUser,
         plan: updatedUser.subscription_plan,
-        status: updatedUser.is_active ? 'active' : 'suspended'
-      }
+        status: updatedUser.is_active ? 'active' : 'suspended',
+      },
     });
   } catch (error) {
     console.error('Admin user update API error:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return NextResponse.json(
+      { error: 'Internal server error' },
+      { status: 500 }
+    );
   }
 }
 

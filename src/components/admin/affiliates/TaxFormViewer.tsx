@@ -34,7 +34,11 @@ interface TaxFormViewerProps {
   onClose: () => void;
 }
 
-export function TaxFormViewer({ affiliateId, affiliateName, onClose }: TaxFormViewerProps) {
+export function TaxFormViewer({
+  affiliateId,
+  affiliateName,
+  onClose,
+}: TaxFormViewerProps) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [taxFormData, setTaxFormData] = useState<{
@@ -49,7 +53,9 @@ export function TaxFormViewer({ affiliateId, affiliateName, onClose }: TaxFormVi
       setLoading(true);
       setError(null);
 
-      const response = await fetch(`/api/admin/affiliates/tax-form?affiliate_id=${affiliateId}`);
+      const response = await fetch(
+        `/api/admin/affiliates/tax-form?affiliate_id=${affiliateId}`
+      );
       const data = await response.json();
 
       if (!response.ok) {
@@ -100,11 +106,15 @@ ZIP: ${taxFormData?.form_data.zip || ''}
 
 Tax ID: ${formatTaxId(taxFormData?.tax_id || '', taxFormData?.tax_form_type || '')}
 
-${taxFormData?.tax_form_type === 'W8BEN' ? `
+${
+  taxFormData?.tax_form_type === 'W8BEN'
+    ? `
 Country: ${taxFormData?.form_data.country || ''}
 Foreign Tax ID: ${taxFormData?.form_data.foreignTaxId || ''}
 Treaty Country: ${taxFormData?.form_data.treatyCountry || ''}
-` : ''}
+`
+    : ''
+}
 
 Generated: ${new Date().toLocaleString()}
     `.trim();
@@ -140,10 +150,13 @@ Generated: ${new Date().toLocaleString()}
           <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-6 flex items-start gap-3">
             <AlertTriangle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
             <div className="text-sm">
-              <p className="font-medium text-amber-900">Confidential Tax Information</p>
+              <p className="font-medium text-amber-900">
+                Confidential Tax Information
+              </p>
               <p className="text-amber-700 mt-1">
-                This information is highly sensitive. Access is logged for compliance and audit purposes.
-                Do not share or distribute this information.
+                This information is highly sensitive. Access is logged for
+                compliance and audit purposes. Do not share or distribute this
+                information.
               </p>
             </div>
           </div>
@@ -151,11 +164,7 @@ Generated: ${new Date().toLocaleString()}
           {/* View Button */}
           {!taxFormData && !error && (
             <div className="text-center py-8">
-              <Button
-                onClick={handleViewTaxForm}
-                disabled={loading}
-                size="lg"
-              >
+              <Button onClick={handleViewTaxForm} disabled={loading} size="lg">
                 <Eye className="w-4 h-4 mr-2" />
                 {loading ? 'Loading...' : 'View Tax Form'}
               </Button>
@@ -194,69 +203,111 @@ Generated: ${new Date().toLocaleString()}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                       <label className="text-sm text-gray-600">Name</label>
-                      <p className="font-medium">{taxFormData.form_data.name || 'N/A'}</p>
+                      <p className="font-medium">
+                        {taxFormData.form_data.name || 'N/A'}
+                      </p>
                     </div>
 
                     {taxFormData.form_data.businessName && (
                       <div>
-                        <label className="text-sm text-gray-600">Business Name</label>
-                        <p className="font-medium">{taxFormData.form_data.businessName}</p>
+                        <label className="text-sm text-gray-600">
+                          Business Name
+                        </label>
+                        <p className="font-medium">
+                          {taxFormData.form_data.businessName}
+                        </p>
                       </div>
                     )}
 
                     <div>
-                      <label className="text-sm text-gray-600">Tax Classification</label>
-                      <p className="font-medium capitalize">{taxFormData.form_data.taxClassification || 'N/A'}</p>
+                      <label className="text-sm text-gray-600">
+                        Tax Classification
+                      </label>
+                      <p className="font-medium capitalize">
+                        {taxFormData.form_data.taxClassification || 'N/A'}
+                      </p>
                     </div>
 
                     <div>
-                      <label className="text-sm text-gray-600">Tax ID (SSN/EIN)</label>
+                      <label className="text-sm text-gray-600">
+                        Tax ID (SSN/EIN)
+                      </label>
                       <p className="font-medium font-mono">
-                        {formatTaxId(taxFormData.tax_id, taxFormData.tax_form_type)}
+                        {formatTaxId(
+                          taxFormData.tax_id,
+                          taxFormData.tax_form_type
+                        )}
                       </p>
                     </div>
                   </div>
 
                   <div className="pt-4 border-t">
-                    <label className="text-sm text-gray-600 block mb-2">Address</label>
-                    <p className="font-medium">{taxFormData.form_data.address || 'N/A'}</p>
+                    <label className="text-sm text-gray-600 block mb-2">
+                      Address
+                    </label>
                     <p className="font-medium">
-                      {taxFormData.form_data.city}, {taxFormData.form_data.state} {taxFormData.form_data.zip}
+                      {taxFormData.form_data.address || 'N/A'}
+                    </p>
+                    <p className="font-medium">
+                      {taxFormData.form_data.city},{' '}
+                      {taxFormData.form_data.state} {taxFormData.form_data.zip}
                     </p>
                   </div>
                 </div>
               ) : (
                 <div className="space-y-4">
-                  <h3 className="font-semibold text-lg">W-8BEN Information (International)</h3>
+                  <h3 className="font-semibold text-lg">
+                    W-8BEN Information (International)
+                  </h3>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                       <label className="text-sm text-gray-600">Name</label>
-                      <p className="font-medium">{taxFormData.form_data.name || 'N/A'}</p>
+                      <p className="font-medium">
+                        {taxFormData.form_data.name || 'N/A'}
+                      </p>
                     </div>
 
                     <div>
-                      <label className="text-sm text-gray-600">Country of Residence</label>
-                      <p className="font-medium">{taxFormData.form_data.country || 'N/A'}</p>
+                      <label className="text-sm text-gray-600">
+                        Country of Residence
+                      </label>
+                      <p className="font-medium">
+                        {taxFormData.form_data.country || 'N/A'}
+                      </p>
                     </div>
 
                     <div>
-                      <label className="text-sm text-gray-600">Date of Birth</label>
-                      <p className="font-medium">{taxFormData.form_data.dateOfBirth || 'N/A'}</p>
+                      <label className="text-sm text-gray-600">
+                        Date of Birth
+                      </label>
+                      <p className="font-medium">
+                        {taxFormData.form_data.dateOfBirth || 'N/A'}
+                      </p>
                     </div>
 
                     <div>
-                      <label className="text-sm text-gray-600">Foreign Tax ID</label>
-                      <p className="font-medium font-mono">{taxFormData.form_data.foreignTaxId || 'N/A'}</p>
+                      <label className="text-sm text-gray-600">
+                        Foreign Tax ID
+                      </label>
+                      <p className="font-medium font-mono">
+                        {taxFormData.form_data.foreignTaxId || 'N/A'}
+                      </p>
                     </div>
                   </div>
 
                   {taxFormData.form_data.treatyCountry && (
                     <div className="pt-4 border-t">
-                      <label className="text-sm text-gray-600 block mb-2">Tax Treaty Information</label>
-                      <p className="font-medium">Country: {taxFormData.form_data.treatyCountry}</p>
+                      <label className="text-sm text-gray-600 block mb-2">
+                        Tax Treaty Information
+                      </label>
+                      <p className="font-medium">
+                        Country: {taxFormData.form_data.treatyCountry}
+                      </p>
                       {taxFormData.form_data.treatyArticle && (
-                        <p className="font-medium">Article: {taxFormData.form_data.treatyArticle}</p>
+                        <p className="font-medium">
+                          Article: {taxFormData.form_data.treatyArticle}
+                        </p>
                       )}
                     </div>
                   )}

@@ -2,16 +2,16 @@
 
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
-import { 
-  DollarSign, 
-  TrendingUp, 
-  TrendingDown, 
-  Activity, 
+import {
+  DollarSign,
+  TrendingUp,
+  TrendingDown,
+  Activity,
   Image,
   AlertTriangle,
   CheckCircle,
   XCircle,
-  RefreshCw
+  RefreshCw,
 } from 'lucide-react';
 import { toast } from '@/lib/toast';
 
@@ -59,17 +59,18 @@ export function CostAnalyticsDashboard() {
   const loadAnalytics = async () => {
     try {
       setLoading(true);
-      
-      const response = await fetch(`/api/admin/analytics/costs?days=${dateRange}`);
+
+      const response = await fetch(
+        `/api/admin/analytics/costs?days=${dateRange}`
+      );
       const data = await response.json();
-      
+
       if (!response.ok) {
         throw new Error(data.error || 'Failed to fetch analytics');
       }
-      
+
       setAnalytics(data.analytics);
       setDailySummaries(data.dailySummaries || []);
-      
     } catch (error) {
       console.error('Error loading cost analytics:', error);
       toast.error('Failed to load cost analytics');
@@ -104,7 +105,7 @@ export function CostAnalyticsDashboard() {
       clipping_magic: 'ClippingMagic',
       vectorizer: 'Vectorizer.ai',
       openai: 'OpenAI (DALL-E)',
-      stripe: 'Stripe Payments'
+      stripe: 'Stripe Payments',
     };
     return names[provider] || provider;
   };
@@ -115,7 +116,7 @@ export function CostAnalyticsDashboard() {
       background_removal: 'Background Removal',
       vectorization: 'Vectorization',
       image_generation: 'AI Generation',
-      payment_processing: 'Payment Processing'
+      payment_processing: 'Payment Processing',
     };
     return names[operation] || operation;
   };
@@ -137,7 +138,9 @@ export function CostAnalyticsDashboard() {
     return (
       <div className="text-center py-12">
         <AlertTriangle className="w-12 h-12 text-yellow-500 mx-auto mb-4" />
-        <h3 className="text-lg font-semibold text-gray-900 mb-2">No Analytics Data</h3>
+        <h3 className="text-lg font-semibold text-gray-900 mb-2">
+          No Analytics Data
+        </h3>
         <p className="text-gray-600 mb-4">
           Start processing images to see cost analytics
         </p>
@@ -152,21 +155,29 @@ export function CostAnalyticsDashboard() {
   }
 
   const { summary } = analytics;
-  const profitMarginClass = summary.profitMargin > 30 ? 'text-green-600' : 
-                           summary.profitMargin > 10 ? 'text-yellow-600' : 'text-red-600';
+  const profitMarginClass =
+    summary.profitMargin > 30
+      ? 'text-green-600'
+      : summary.profitMargin > 10
+        ? 'text-yellow-600'
+        : 'text-red-600';
 
   return (
     <div className="space-y-6">
       {/* Header */}
       <div className="flex justify-between items-center">
         <div>
-          <h2 className="text-2xl font-bold text-gray-900">API Cost Analytics</h2>
-          <p className="text-gray-600">Track API costs and profitability in real-time</p>
+          <h2 className="text-2xl font-bold text-gray-900">
+            API Cost Analytics
+          </h2>
+          <p className="text-gray-600">
+            Track API costs and profitability in real-time
+          </p>
         </div>
         <div className="flex gap-3">
           <select
             value={dateRange}
-            onChange={(e) => setDateRange(Number(e.target.value))}
+            onChange={e => setDateRange(Number(e.target.value))}
             className="rounded-md border-gray-300 shadow-sm focus:border-primary-blue focus:ring-primary-blue"
           >
             <option value={7}>Last 7 days</option>
@@ -178,7 +189,9 @@ export function CostAnalyticsDashboard() {
             disabled={refreshing}
             className="px-4 py-2 bg-primary-blue text-white rounded-md hover:bg-blue-700 disabled:opacity-50 flex items-center gap-2"
           >
-            <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
+            <RefreshCw
+              className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`}
+            />
             {refreshing ? 'Refreshing...' : 'Refresh'}
           </button>
         </div>
@@ -190,7 +203,9 @@ export function CostAnalyticsDashboard() {
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600">Total API Costs</p>
+                <p className="text-sm font-medium text-gray-600">
+                  Total API Costs
+                </p>
                 <p className="text-2xl font-bold text-gray-900 mt-2">
                   {formatCurrency(summary.totalCost)}
                 </p>
@@ -209,13 +224,13 @@ export function CostAnalyticsDashboard() {
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600">Total Revenue</p>
+                <p className="text-sm font-medium text-gray-600">
+                  Total Revenue
+                </p>
                 <p className="text-2xl font-bold text-gray-900 mt-2">
                   {formatCurrency(summary.totalRevenue)}
                 </p>
-                <p className="text-sm text-gray-500 mt-1">
-                  From credits used
-                </p>
+                <p className="text-sm text-gray-500 mt-1">From credits used</p>
               </div>
               <div className="p-3 bg-green-100 rounded-full">
                 <TrendingUp className="w-6 h-6 text-green-600" />
@@ -228,15 +243,22 @@ export function CostAnalyticsDashboard() {
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600">Gross Profit</p>
+                <p className="text-sm font-medium text-gray-600">
+                  Gross Profit
+                </p>
                 <p className="text-2xl font-bold text-gray-900 mt-2">
                   {formatCurrency(summary.totalProfit)}
                 </p>
-                <p className={`text-sm mt-1 ${summary.totalProfit >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                  {summary.totalProfit >= 0 ? '+' : ''}{formatPercentage(summary.profitMargin)} margin
+                <p
+                  className={`text-sm mt-1 ${summary.totalProfit >= 0 ? 'text-green-600' : 'text-red-600'}`}
+                >
+                  {summary.totalProfit >= 0 ? '+' : ''}
+                  {formatPercentage(summary.profitMargin)} margin
                 </p>
               </div>
-              <div className={`p-3 ${summary.totalProfit >= 0 ? 'bg-green-100' : 'bg-red-100'} rounded-full`}>
+              <div
+                className={`p-3 ${summary.totalProfit >= 0 ? 'bg-green-100' : 'bg-red-100'} rounded-full`}
+              >
                 {summary.totalProfit >= 0 ? (
                   <CheckCircle className="w-6 h-6 text-green-600" />
                 ) : (
@@ -251,7 +273,9 @@ export function CostAnalyticsDashboard() {
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600">Profit Margin</p>
+                <p className="text-sm font-medium text-gray-600">
+                  Profit Margin
+                </p>
                 <p className={`text-2xl font-bold mt-2 ${profitMarginClass}`}>
                   {formatPercentage(summary.profitMargin)}
                 </p>
@@ -287,43 +311,71 @@ export function CostAnalyticsDashboard() {
                 </tr>
               </thead>
               <tbody>
-                {Object.entries(analytics.byProvider).map(([provider, data]) => {
-                  const successRate = data.requests > 0 
-                    ? (data.successfulRequests / data.requests) * 100 
-                    : 0;
-                  const margin = data.totalRevenue > 0 
-                    ? (data.totalProfit / data.totalRevenue) * 100 
-                    : 0;
-                  
-                  return (
-                    <tr key={provider} className="border-b hover:bg-gray-50">
-                      <td className="py-3 font-medium">{getProviderName(provider)}</td>
-                      <td className="text-right py-3">{data.requests}</td>
-                      <td className="text-right py-3">
-                        <span className={successRate > 95 ? 'text-green-600' : successRate > 90 ? 'text-yellow-600' : 'text-red-600'}>
-                          {formatPercentage(successRate)}
-                        </span>
-                      </td>
-                      <td className="text-right py-3">{formatCurrency(data.totalCost)}</td>
-                      <td className="text-right py-3">{formatCurrency(data.totalRevenue)}</td>
-                      <td className={`text-right py-3 ${data.totalProfit >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                        {formatCurrency(data.totalProfit)}
-                      </td>
-                      <td className={`text-right py-3 ${margin > 30 ? 'text-green-600' : margin > 10 ? 'text-yellow-600' : 'text-red-600'}`}>
-                        {formatPercentage(margin)}
-                      </td>
-                    </tr>
-                  );
-                })}
+                {Object.entries(analytics.byProvider).map(
+                  ([provider, data]) => {
+                    const successRate =
+                      data.requests > 0
+                        ? (data.successfulRequests / data.requests) * 100
+                        : 0;
+                    const margin =
+                      data.totalRevenue > 0
+                        ? (data.totalProfit / data.totalRevenue) * 100
+                        : 0;
+
+                    return (
+                      <tr key={provider} className="border-b hover:bg-gray-50">
+                        <td className="py-3 font-medium">
+                          {getProviderName(provider)}
+                        </td>
+                        <td className="text-right py-3">{data.requests}</td>
+                        <td className="text-right py-3">
+                          <span
+                            className={
+                              successRate > 95
+                                ? 'text-green-600'
+                                : successRate > 90
+                                  ? 'text-yellow-600'
+                                  : 'text-red-600'
+                            }
+                          >
+                            {formatPercentage(successRate)}
+                          </span>
+                        </td>
+                        <td className="text-right py-3">
+                          {formatCurrency(data.totalCost)}
+                        </td>
+                        <td className="text-right py-3">
+                          {formatCurrency(data.totalRevenue)}
+                        </td>
+                        <td
+                          className={`text-right py-3 ${data.totalProfit >= 0 ? 'text-green-600' : 'text-red-600'}`}
+                        >
+                          {formatCurrency(data.totalProfit)}
+                        </td>
+                        <td
+                          className={`text-right py-3 ${margin > 30 ? 'text-green-600' : margin > 10 ? 'text-yellow-600' : 'text-red-600'}`}
+                        >
+                          {formatPercentage(margin)}
+                        </td>
+                      </tr>
+                    );
+                  }
+                )}
               </tbody>
               <tfoot>
                 <tr className="font-semibold">
                   <td className="py-3">Total</td>
                   <td className="text-right py-3">{summary.totalRequests}</td>
                   <td className="text-right py-3">-</td>
-                  <td className="text-right py-3">{formatCurrency(summary.totalCost)}</td>
-                  <td className="text-right py-3">{formatCurrency(summary.totalRevenue)}</td>
-                  <td className={`text-right py-3 ${summary.totalProfit >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                  <td className="text-right py-3">
+                    {formatCurrency(summary.totalCost)}
+                  </td>
+                  <td className="text-right py-3">
+                    {formatCurrency(summary.totalRevenue)}
+                  </td>
+                  <td
+                    className={`text-right py-3 ${summary.totalProfit >= 0 ? 'text-green-600' : 'text-red-600'}`}
+                  >
                     {formatCurrency(summary.totalProfit)}
                   </td>
                   <td className={`text-right py-3 ${profitMarginClass}`}>
@@ -343,17 +395,23 @@ export function CostAnalyticsDashboard() {
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {Object.entries(analytics.byProvider).map(([provider, data]) => (
+            {Object.entries(analytics.byProvider).map(([provider, data]) =>
               Object.entries(data.operations).map(([operation, opData]) => {
                 const profit = opData.revenue - opData.cost;
-                const margin = opData.revenue > 0 ? (profit / opData.revenue) * 100 : 0;
-                
+                const margin =
+                  opData.revenue > 0 ? (profit / opData.revenue) * 100 : 0;
+
                 return (
-                  <div key={`${provider}-${operation}`} className="p-4 border rounded-lg">
+                  <div
+                    key={`${provider}-${operation}`}
+                    className="p-4 border rounded-lg"
+                  >
                     <h4 className="font-medium text-sm text-gray-700 mb-2">
                       {getOperationName(operation)}
                     </h4>
-                    <p className="text-xs text-gray-500 mb-3">{getProviderName(provider)}</p>
+                    <p className="text-xs text-gray-500 mb-3">
+                      {getProviderName(provider)}
+                    </p>
                     <div className="space-y-1">
                       <div className="flex justify-between text-sm">
                         <span className="text-gray-600">Count:</span>
@@ -361,21 +419,29 @@ export function CostAnalyticsDashboard() {
                       </div>
                       <div className="flex justify-between text-sm">
                         <span className="text-gray-600">Cost:</span>
-                        <span className="font-medium">{formatCurrency(opData.cost)}</span>
+                        <span className="font-medium">
+                          {formatCurrency(opData.cost)}
+                        </span>
                       </div>
                       <div className="flex justify-between text-sm">
                         <span className="text-gray-600">Revenue:</span>
-                        <span className="font-medium">{formatCurrency(opData.revenue)}</span>
+                        <span className="font-medium">
+                          {formatCurrency(opData.revenue)}
+                        </span>
                       </div>
                       <div className="flex justify-between text-sm pt-2 border-t">
                         <span className="text-gray-600">Profit:</span>
-                        <span className={`font-medium ${profit >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                        <span
+                          className={`font-medium ${profit >= 0 ? 'text-green-600' : 'text-red-600'}`}
+                        >
                           {formatCurrency(profit)}
                         </span>
                       </div>
                       <div className="flex justify-between text-sm">
                         <span className="text-gray-600">Margin:</span>
-                        <span className={`font-medium ${margin > 30 ? 'text-green-600' : margin > 10 ? 'text-yellow-600' : 'text-red-600'}`}>
+                        <span
+                          className={`font-medium ${margin > 30 ? 'text-green-600' : margin > 10 ? 'text-yellow-600' : 'text-red-600'}`}
+                        >
                           {formatPercentage(margin)}
                         </span>
                       </div>
@@ -383,7 +449,7 @@ export function CostAnalyticsDashboard() {
                   </div>
                 );
               })
-            ))}
+            )}
           </div>
         </CardContent>
       </Card>
@@ -395,10 +461,14 @@ export function CostAnalyticsDashboard() {
             <div className="flex items-start gap-3">
               <AlertTriangle className="w-5 h-5 text-yellow-600 mt-0.5" />
               <div>
-                <h3 className="font-semibold text-yellow-800">Low Profit Margin Warning</h3>
+                <h3 className="font-semibold text-yellow-800">
+                  Low Profit Margin Warning
+                </h3>
                 <p className="text-yellow-700 mt-1">
-                  Your current profit margin of {formatPercentage(summary.profitMargin)} is below the recommended 20%.
-                  Consider adjusting credit pricing or negotiating better API rates.
+                  Your current profit margin of{' '}
+                  {formatPercentage(summary.profitMargin)} is below the
+                  recommended 20%. Consider adjusting credit pricing or
+                  negotiating better API rates.
                 </p>
               </div>
             </div>

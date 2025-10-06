@@ -10,7 +10,12 @@ import { Bell, Send, Users, DollarSign, Gift, AlertCircle } from 'lucide-react';
 import { useAuthStore } from '@/stores/authStore';
 import { createClientSupabaseClient } from '@/lib/supabase/client';
 
-type NotificationType = 'info' | 'warning' | 'success' | 'error' | 'announcement';
+type NotificationType =
+  | 'info'
+  | 'warning'
+  | 'success'
+  | 'error'
+  | 'announcement';
 type TargetAudience = 'all' | 'free' | 'basic' | 'starter' | 'custom';
 type Priority = 'low' | 'normal' | 'high' | 'urgent';
 
@@ -30,7 +35,7 @@ export default function AdminNotificationsPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!formData.title || !formData.message) {
       toast.error('Title and message are required');
       return;
@@ -39,13 +44,15 @@ export default function AdminNotificationsPage() {
     setLoading(true);
     try {
       const supabase = createClientSupabaseClient();
-      const { data: { session } } = await supabase.auth.getSession();
-      
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+
       if (!session) {
         toast.error('Authentication required');
         return;
       }
-      
+
       // Calculate expiration if set
       let expiresAt = null;
       if (formData.expiresIn) {
@@ -57,7 +64,7 @@ export default function AdminNotificationsPage() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session.access_token}`,
+          Authorization: `Bearer ${session.access_token}`,
         },
         body: JSON.stringify({
           ...formData,
@@ -72,7 +79,7 @@ export default function AdminNotificationsPage() {
       }
 
       toast.success(`Notification sent to ${data.usersNotified} users`);
-      
+
       // Reset form
       setFormData({
         title: '',
@@ -150,7 +157,9 @@ export default function AdminNotificationsPage() {
                 </label>
                 <Input
                   value={formData.title}
-                  onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                  onChange={e =>
+                    setFormData({ ...formData, title: e.target.value })
+                  }
                   placeholder="Notification title"
                   required
                 />
@@ -163,7 +172,9 @@ export default function AdminNotificationsPage() {
                 </label>
                 <textarea
                   value={formData.message}
-                  onChange={(e) => setFormData({ ...formData, message: e.target.value })}
+                  onChange={e =>
+                    setFormData({ ...formData, message: e.target.value })
+                  }
                   placeholder="Notification message"
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
                   rows={4}
@@ -179,7 +190,12 @@ export default function AdminNotificationsPage() {
                   </label>
                   <select
                     value={formData.type}
-                    onChange={(e) => setFormData({ ...formData, type: e.target.value as NotificationType })}
+                    onChange={e =>
+                      setFormData({
+                        ...formData,
+                        type: e.target.value as NotificationType,
+                      })
+                    }
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
                   >
                     <option value="info">Info</option>
@@ -196,7 +212,12 @@ export default function AdminNotificationsPage() {
                   </label>
                   <select
                     value={formData.priority}
-                    onChange={(e) => setFormData({ ...formData, priority: e.target.value as Priority })}
+                    onChange={e =>
+                      setFormData({
+                        ...formData,
+                        priority: e.target.value as Priority,
+                      })
+                    }
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
                   >
                     <option value="low">Low</option>
@@ -213,21 +234,28 @@ export default function AdminNotificationsPage() {
                   Target Audience
                 </label>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                  {(['all', 'free', 'basic', 'starter'] as TargetAudience[]).map((audience) => (
+                  {(
+                    ['all', 'free', 'basic', 'starter'] as TargetAudience[]
+                  ).map(audience => (
                     <button
                       key={audience}
                       type="button"
-                      onClick={() => setFormData({ ...formData, targetAudience: audience })}
+                      onClick={() =>
+                        setFormData({ ...formData, targetAudience: audience })
+                      }
                       className={`
                         flex items-center justify-center gap-2 px-4 py-2 rounded-md border transition-colors
-                        ${formData.targetAudience === audience
-                          ? 'border-purple-500 bg-purple-50 text-purple-700'
-                          : 'border-gray-300 hover:border-gray-400'
+                        ${
+                          formData.targetAudience === audience
+                            ? 'border-purple-500 bg-purple-50 text-purple-700'
+                            : 'border-gray-300 hover:border-gray-400'
                         }
                       `}
                     >
                       {getAudienceIcon(audience)}
-                      <span className="text-sm font-medium">{getAudienceLabel(audience)}</span>
+                      <span className="text-sm font-medium">
+                        {getAudienceLabel(audience)}
+                      </span>
                     </button>
                   ))}
                 </div>
@@ -241,7 +269,9 @@ export default function AdminNotificationsPage() {
                   </label>
                   <Input
                     value={formData.actionUrl}
-                    onChange={(e) => setFormData({ ...formData, actionUrl: e.target.value })}
+                    onChange={e =>
+                      setFormData({ ...formData, actionUrl: e.target.value })
+                    }
                     placeholder="https://example.com"
                   />
                 </div>
@@ -252,7 +282,9 @@ export default function AdminNotificationsPage() {
                   </label>
                   <Input
                     value={formData.actionText}
-                    onChange={(e) => setFormData({ ...formData, actionText: e.target.value })}
+                    onChange={e =>
+                      setFormData({ ...formData, actionText: e.target.value })
+                    }
                     placeholder="Learn More"
                   />
                 </div>
@@ -266,7 +298,9 @@ export default function AdminNotificationsPage() {
                 <Input
                   type="number"
                   value={formData.expiresIn}
-                  onChange={(e) => setFormData({ ...formData, expiresIn: e.target.value })}
+                  onChange={e =>
+                    setFormData({ ...formData, expiresIn: e.target.value })
+                  }
                   placeholder="24"
                   min="1"
                 />
@@ -274,30 +308,37 @@ export default function AdminNotificationsPage() {
 
               {/* Preview */}
               <div className="bg-gray-50 rounded-lg p-4">
-                <h3 className="text-sm font-medium text-gray-700 mb-2">Preview</h3>
-                <div className={`
+                <h3 className="text-sm font-medium text-gray-700 mb-2">
+                  Preview
+                </h3>
+                <div
+                  className={`
                   p-4 rounded-md border
                   ${formData.type === 'info' && 'bg-blue-50 border-blue-200'}
                   ${formData.type === 'success' && 'bg-success-50 border-green-200'}
                   ${formData.type === 'warning' && 'bg-warning-50 border-warning-200'}
                   ${formData.type === 'error' && 'bg-error-50 border-error-200'}
                   ${formData.type === 'announcement' && 'bg-purple-50 border-purple-200'}
-                `}>
+                `}
+                >
                   <div className="flex items-start gap-3">
-                    <AlertCircle className={`
+                    <AlertCircle
+                      className={`
                       h-5 w-5 flex-shrink-0 mt-0.5
                       ${formData.type === 'info' && 'text-blue-600'}
                       ${formData.type === 'success' && 'text-success-600'}
                       ${formData.type === 'warning' && 'text-warning-600'}
                       ${formData.type === 'error' && 'text-error-600'}
                       ${formData.type === 'announcement' && 'text-purple-600'}
-                    `} />
+                    `}
+                    />
                     <div className="flex-1">
                       <h4 className="font-medium text-gray-900">
                         {formData.title || 'Notification Title'}
                       </h4>
                       <p className="mt-1 text-sm text-gray-600">
-                        {formData.message || 'Notification message will appear here...'}
+                        {formData.message ||
+                          'Notification message will appear here...'}
                       </p>
                       {formData.actionUrl && formData.actionText && (
                         <button className="mt-2 text-sm font-medium text-purple-600 hover:text-purple-700">

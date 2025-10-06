@@ -1,15 +1,15 @@
 'use client';
 
 import { DPIChecker } from '@/components/dpi-tool/DPIChecker';
-import { 
-  CheckCircle, 
-  AlertTriangle, 
-  Zap, 
+import {
+  CheckCircle,
+  AlertTriangle,
+  Zap,
   ArrowRight,
   Star,
   Users,
   Shield,
-  Calculator
+  Calculator,
 } from 'lucide-react';
 import Link from 'next/link';
 import { useState } from 'react';
@@ -40,12 +40,15 @@ export default function FreeDPICheckerPage() {
 
               <h2 className="text-4xl md:text-5xl font-bold text-gray-900 mb-4">
                 Is Your Image High Enough Quality
-                <span className="block text-[#366494] mt-2">for DTF Printing?</span>
+                <span className="block text-[#366494] mt-2">
+                  for DTF Printing?
+                </span>
               </h2>
 
               <p className="text-xl text-gray-600 mb-8">
                 Instantly check if your design will print crisp or pixelated.
-                Our free DPI calculator tells you exactly what quality to expect at any print size.
+                Our free DPI calculator tells you exactly what quality to expect
+                at any print size.
               </p>
 
               {/* Trust Indicators */}
@@ -80,9 +83,12 @@ export default function FreeDPICheckerPage() {
               <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-3">
                 <AlertTriangle className="w-6 h-6 text-red-600" />
               </div>
-              <h3 className="font-semibold text-gray-900 mb-2">Avoid Pixelated Prints</h3>
+              <h3 className="font-semibold text-gray-900 mb-2">
+                Avoid Pixelated Prints
+              </h3>
               <p className="text-sm text-gray-600">
-                Know before you print if your image will look professional or amateur
+                Know before you print if your image will look professional or
+                amateur
               </p>
             </div>
 
@@ -90,7 +96,9 @@ export default function FreeDPICheckerPage() {
               <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-3">
                 <CheckCircle className="w-6 h-6 text-green-600" />
               </div>
-              <h3 className="font-semibold text-gray-900 mb-2">Get Exact DPI Numbers</h3>
+              <h3 className="font-semibold text-gray-900 mb-2">
+                Get Exact DPI Numbers
+              </h3>
               <p className="text-sm text-gray-600">
                 See precise DPI calculations for your specific print dimensions
               </p>
@@ -102,7 +110,8 @@ export default function FreeDPICheckerPage() {
               </div>
               <h3 className="font-semibold text-gray-900 mb-2">Free Forever</h3>
               <p className="text-sm text-gray-600">
-                No hidden fees, no credit card required. Just create a free account
+                No hidden fees, no credit card required. Just create a free
+                account
               </p>
             </div>
           </div>
@@ -118,31 +127,38 @@ export default function FreeDPICheckerPage() {
 
           <div className="grid md:grid-cols-2 gap-8 mb-12">
             <div>
-              <h3 className="text-xl font-semibold text-gray-900 mb-4">What DPI Do You Need?</h3>
+              <h3 className="text-xl font-semibold text-gray-900 mb-4">
+                What DPI Do You Need?
+              </h3>
               <div className="space-y-3">
                 <div className="flex items-start">
                   <CheckCircle className="w-5 h-5 text-green-500 mt-1 mr-3 flex-shrink-0" />
                   <div>
-                    <span className="font-medium">300+ DPI:</span> Professional quality, crisp details
+                    <span className="font-medium">300+ DPI:</span> Professional
+                    quality, crisp details
                   </div>
                 </div>
                 <div className="flex items-start">
                   <AlertTriangle className="w-5 h-5 text-yellow-500 mt-1 mr-3 flex-shrink-0" />
                   <div>
-                    <span className="font-medium">150-299 DPI:</span> Acceptable for simple designs
+                    <span className="font-medium">150-299 DPI:</span> Acceptable
+                    for simple designs
                   </div>
                 </div>
                 <div className="flex items-start">
                   <AlertTriangle className="w-5 h-5 text-red-500 mt-1 mr-3 flex-shrink-0" />
                   <div>
-                    <span className="font-medium">Below 150 DPI:</span> Will appear pixelated
+                    <span className="font-medium">Below 150 DPI:</span> Will
+                    appear pixelated
                   </div>
                 </div>
               </div>
             </div>
 
             <div>
-              <h3 className="text-xl font-semibold text-gray-900 mb-4">Common DTF Print Widths</h3>
+              <h3 className="text-xl font-semibold text-gray-900 mb-4">
+                Common DTF Print Widths
+              </h3>
               <div className="bg-gray-50 rounded-lg p-4">
                 <table className="w-full text-sm">
                   <thead>
@@ -191,8 +207,9 @@ export default function FreeDPICheckerPage() {
                 Image Resolution Too Low?
               </h3>
               <p className="text-white/90 mb-6 max-w-2xl mx-auto">
-                Don't worry! Our AI upscaler can increase your image resolution up to 4x 
-                while maintaining quality. You get 2 free credits with your new account.
+                Don't worry! Our AI upscaler can increase your image resolution
+                up to 4x while maintaining quality. You get 2 free credits with
+                your new account.
               </p>
               <Link href="/process/upscale">
                 <button className="bg-white text-[#366494] px-6 py-3 rounded-lg font-medium hover:bg-gray-100 transition-colors inline-flex items-center">
@@ -218,8 +235,9 @@ export default function FreeDPICheckerPage() {
                 Why do I need to create an account?
               </h3>
               <p className="text-gray-600">
-                Creating a free account gives you access to your DPI results history, 
-                2 free AI tool credits, and the ability to save your calculations for future reference.
+                Creating a free account gives you access to your DPI results
+                history, 2 free AI tool credits, and the ability to save your
+                calculations for future reference.
               </p>
             </div>
 
@@ -228,8 +246,9 @@ export default function FreeDPICheckerPage() {
                 Is this really free?
               </h3>
               <p className="text-gray-600">
-                Yes! The DPI checker is 100% free forever. We also give you 2 free credits 
-                to try our premium AI tools like upscaling and background removal.
+                Yes! The DPI checker is 100% free forever. We also give you 2
+                free credits to try our premium AI tools like upscaling and
+                background removal.
               </p>
             </div>
 
@@ -238,8 +257,8 @@ export default function FreeDPICheckerPage() {
                 What file types are supported?
               </h3>
               <p className="text-gray-600">
-                Our DPI checker supports all common image formats including JPG, PNG, GIF, 
-                WebP, and BMP files up to 10MB in size.
+                Our DPI checker supports all common image formats including JPG,
+                PNG, GIF, WebP, and BMP files up to 10MB in size.
               </p>
             </div>
 
@@ -248,8 +267,9 @@ export default function FreeDPICheckerPage() {
                 How accurate is the DPI calculation?
               </h3>
               <p className="text-gray-600">
-                Our calculations are 100% accurate based on your image's pixel dimensions 
-                and the print size you specify. The math is simple: pixels ÷ inches = DPI.
+                Our calculations are 100% accurate based on your image's pixel
+                dimensions and the print size you specify. The math is simple:
+                pixels ÷ inches = DPI.
               </p>
             </div>
           </div>

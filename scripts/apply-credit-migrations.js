@@ -20,30 +20,43 @@ async function applyMigrations() {
 
   const migrations = [
     '008_create_credit_transactions.sql',
-    '009_credit_expiration_tracking.sql'
+    '009_credit_expiration_tracking.sql',
   ];
 
   for (const migration of migrations) {
     console.log(`🔄 Applying ${migration}...`);
-    
+
     try {
-      const migrationPath = path.join(__dirname, '..', 'supabase', 'migrations', migration);
+      const migrationPath = path.join(
+        __dirname,
+        '..',
+        'supabase',
+        'migrations',
+        migration
+      );
       const sql = await fs.readFile(migrationPath, 'utf8');
-      
+
       // Execute the migration
-      const { error } = await supabase.rpc('exec_sql', { sql_query: sql }).catch(async (err) => {
-        // If exec_sql doesn't exist, try direct execution
-        const statements = sql.split(';').filter(s => s.trim());
-        for (const statement of statements) {
-          if (statement.trim()) {
-            const { error } = await supabase.from('_dummy_').select().limit(0);
-            if (error) {
-              console.error(`❌ Failed to execute: ${statement.substring(0, 50)}...`);
-              throw error;
+      const { error } = await supabase
+        .rpc('exec_sql', { sql_query: sql })
+        .catch(async err => {
+          // If exec_sql doesn't exist, try direct execution
+          const statements = sql.split(';').filter(s => s.trim());
+          for (const statement of statements) {
+            if (statement.trim()) {
+              const { error } = await supabase
+                .from('_dummy_')
+                .select()
+                .limit(0);
+              if (error) {
+                console.error(
+                  `❌ Failed to execute: ${statement.substring(0, 50)}...`
+                );
+                throw error;
+              }
             }
           }
-        }
-      });
+        });
 
       if (error) {
         console.error(`❌ Failed to apply ${migration}:`, error.message);
@@ -52,11 +65,15 @@ async function applyMigrations() {
       }
     } catch (error) {
       console.error(`❌ Error applying ${migration}:`, error.message);
-      console.log('\n⚠️  Please apply this migration manually through the Supabase dashboard SQL editor.');
+      console.log(
+        '\n⚠️  Please apply this migration manually through the Supabase dashboard SQL editor.'
+      );
     }
   }
 
-  console.log('\n📝 Note: If migrations failed, please apply them manually through the Supabase dashboard:');
+  console.log(
+    '\n📝 Note: If migrations failed, please apply them manually through the Supabase dashboard:'
+  );
   console.log('1. Go to your Supabase project dashboard');
   console.log('2. Navigate to SQL Editor');
   console.log('3. Copy and paste the contents of each migration file');

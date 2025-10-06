@@ -9,11 +9,13 @@ const supabase = createClient(
 
 async function resetDiscount() {
   console.log('Resetting discount usage for testing...\n');
-  
+
   // Get the user
   const { data: authUsers } = await supabase.auth.admin.listUsers();
-  const authUser = authUsers.users.find(u => u.email === 'snsmarketing@gmail.com');
-  
+  const authUser = authUsers.users.find(
+    u => u.email === 'snsmarketing@gmail.com'
+  );
+
   if (!authUser) {
     console.error('User not found');
     return;
@@ -24,7 +26,7 @@ async function resetDiscount() {
     .from('profiles')
     .update({
       discount_used_count: 0,
-      last_discount_date: null
+      last_discount_date: null,
     })
     .eq('id', authUser.id);
 
@@ -46,14 +48,14 @@ async function resetDiscount() {
   } else {
     console.log('✓ Discount events deleted');
   }
-  
+
   // Verify the reset
   const { data: profile } = await supabase
     .from('profiles')
     .select('discount_used_count, last_discount_date')
     .eq('id', authUser.id)
     .single();
-    
+
   console.log('\n=== VERIFICATION ===');
   console.log('Discount Used Count:', profile.discount_used_count);
   console.log('Last Discount Date:', profile.last_discount_date);

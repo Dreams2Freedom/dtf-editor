@@ -8,11 +8,13 @@ async function checkRecentPayments() {
     // List recent payment intents
     const paymentIntents = await stripeClient.paymentIntents.list({
       limit: 5,
-      expand: ['data.latest_charge']
+      expand: ['data.latest_charge'],
     });
 
-    console.log(`Found ${paymentIntents.data.length} recent payment intents:\n`);
-    
+    console.log(
+      `Found ${paymentIntents.data.length} recent payment intents:\n`
+    );
+
     paymentIntents.data.forEach((pi, index) => {
       console.log(`Payment Intent ${index + 1}:`);
       console.log('ID:', pi.id);
@@ -26,11 +28,11 @@ async function checkRecentPayments() {
 
     // Also check recent checkout sessions
     const sessions = await stripeClient.checkout.sessions.list({
-      limit: 5
+      limit: 5,
     });
 
     console.log(`\nFound ${sessions.data.length} recent checkout sessions:\n`);
-    
+
     sessions.data.forEach((session, index) => {
       console.log(`Checkout Session ${index + 1}:`);
       console.log('ID:', session.id);
@@ -42,7 +44,6 @@ async function checkRecentPayments() {
       console.log('Customer:', session.customer);
       console.log('---\n');
     });
-    
   } catch (error) {
     console.error('Error:', error.message);
   }

@@ -26,8 +26,9 @@ async function debugStorageAccess() {
   try {
     // 1. Get detailed bucket info
     console.log('📦 Checking bucket configurations...\n');
-    const { data: buckets, error: bucketsError } = await serviceClient.storage.listBuckets();
-    
+    const { data: buckets, error: bucketsError } =
+      await serviceClient.storage.listBuckets();
+
     if (bucketsError) {
       console.error('❌ Error listing buckets:', bucketsError);
       return;
@@ -43,22 +44,22 @@ async function debugStorageAccess() {
 
     // 2. Test with specific file paths
     console.log('🧪 Testing specific access patterns...\n');
-    
+
     // Create test users
     const testUser1Email = `test1_${Date.now()}@example.com`;
     const testUser2Email = `test2_${Date.now()}@example.com`;
     const testPassword = 'TestPassword123!';
-    
+
     const { data: user1 } = await serviceClient.auth.admin.createUser({
       email: testUser1Email,
       password: testPassword,
-      email_confirm: true
+      email_confirm: true,
     });
 
     const { data: user2 } = await serviceClient.auth.admin.createUser({
       email: testUser2Email,
       password: testPassword,
-      email_confirm: true
+      email_confirm: true,
     });
 
     if (!user1 || !user2) {
@@ -74,7 +75,7 @@ async function debugStorageAccess() {
       // Sign in as user 1
       const { data: session1 } = await serviceClient.auth.signInWithPassword({
         email: testUser1Email,
-        password: testPassword
+        password: testPassword,
       });
 
       if (!session1) {
@@ -84,41 +85,41 @@ async function debugStorageAccess() {
       const user1Client = createClient(supabaseUrl, supabaseAnonKey, {
         auth: {
           persistSession: false,
-          autoRefreshToken: false
+          autoRefreshToken: false,
         },
         global: {
           headers: {
-            Authorization: `Bearer ${session1.session.access_token}`
-          }
-        }
+            Authorization: `Bearer ${session1.session.access_token}`,
+          },
+        },
       });
 
       // Test different file paths
       const testCases = [
-        `${user1.user.id}/test.jpg`,                    // Should work
-        `${user2.user.id}/test.jpg`,                    // Should fail
-        `test.jpg`,                                      // Should fail
-        `${user1.user.id}/subfolder/test.jpg`,         // Should work
-        `shared/${user1.user.id}/test.jpg`,            // Depends on policy
+        `${user1.user.id}/test.jpg`, // Should work
+        `${user2.user.id}/test.jpg`, // Should fail
+        `test.jpg`, // Should fail
+        `${user1.user.id}/subfolder/test.jpg`, // Should work
+        `shared/${user1.user.id}/test.jpg`, // Depends on policy
       ];
 
       console.log('\n📝 Testing file upload paths for User 1:\n');
-      
+
       for (const path of testCases) {
         console.log(`Testing path: ${path}`);
-        
+
         // Try to upload
         const { error: uploadError } = await user1Client.storage
           .from('images')
           .upload(path, 'test content', {
-            upsert: true
+            upsert: true,
           });
 
         if (uploadError) {
           console.log(`  ❌ Upload failed: ${uploadError.message}`);
         } else {
           console.log(`  ✅ Upload succeeded`);
-          
+
           // Clean up
           await serviceClient.storage.from('images').remove([path]);
         }
@@ -126,7 +127,7 @@ async function debugStorageAccess() {
 
       // Now test as User 2 trying to access User 1's file
       console.log('\n🔐 Testing cross-user access:\n');
-      
+
       // First, have User 1 upload a file
       const user1File = `${user1.user.id}/private-file.jpg`;
       const { error: user1UploadError } = await user1Client.storage
@@ -134,36 +135,37 @@ async function debugStorageAccess() {
         .upload(user1File, 'User 1 private content');
 
       if (user1UploadError) {
-        console.log(`❌ User 1 couldn't upload their own file: ${user1UploadError.message}`);
+        console.log(
+          `❌ User 1 couldn't upload their own file: ${user1UploadError.message}`
+        );
       } else {
         console.log(`✅ User 1 uploaded: ${user1File}`);
 
         // Sign in as User 2
         const { data: session2 } = await serviceClient.auth.signInWithPassword({
           email: testUser2Email,
-          password: testPassword
+          password: testPassword,
         });
 
         if (session2) {
           const user2Client = createClient(supabaseUrl, supabaseAnonKey, {
             auth: {
               persistSession: false,
-              autoRefreshToken: false
+              autoRefreshToken: false,
             },
             global: {
               headers: {
-                Authorization: `Bearer ${session2.session.access_token}`
-              }
-            }
+                Authorization: `Bearer ${session2.session.access_token}`,
+              },
+            },
           });
 
           // Try to access User 1's file as User 2
           console.log(`\nUser 2 trying to access User 1's file...`);
-          
+
           // Try download
-          const { data: downloadData, error: downloadError } = await user2Client.storage
-            .from('images')
-            .download(user1File);
+          const { data: downloadData, error: downloadError } =
+            await user2Client.storage.from('images').download(user1File);
 
           if (downloadError) {
             console.log(`✅ GOOD: User 2 cannot download User 1's file`);
@@ -178,7 +180,7 @@ async function debugStorageAccess() {
             .getPublicUrl(user1File);
 
           console.log(`\nPublic URL generated: ${urlData.publicUrl}`);
-          
+
           // Try to fetch the URL
           try {
             const response = await fetch(urlData.publicUrl);
@@ -195,7 +197,6 @@ async function debugStorageAccess() {
         // Clean up the test file
         await serviceClient.storage.from('images').remove([user1File]);
       }
-
     } finally {
       // Clean up test users
       await serviceClient.auth.admin.deleteUser(user1.user.id);
@@ -221,7 +222,6 @@ ORDER BY policyname;
 -- Enable RLS if needed
 -- ALTER TABLE storage.objects ENABLE ROW LEVEL SECURITY;
     `);
-
   } catch (error) {
     console.error('❌ Error during debug:', error);
   }

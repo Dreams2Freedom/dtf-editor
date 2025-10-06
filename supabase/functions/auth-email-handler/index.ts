@@ -126,10 +126,10 @@ async function sendEmail(options: {
     form.append('subject', options.subject);
     form.append('html', options.html);
     form.append('text', options.text);
-    
+
     // Add tags
     options.tags.forEach(tag => form.append('o:tag', tag));
-    
+
     // Disable tracking for security emails
     form.append('o:tracking', 'false');
     form.append('o:tracking-clicks', 'false');

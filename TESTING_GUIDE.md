@@ -43,6 +43,7 @@ node scripts/test-credit-expiration.js
 #### **A. Test Credit Reset (Free Tier)**
 
 1. **Start the dev server:**
+
    ```bash
    npm run dev
    ```
@@ -52,6 +53,7 @@ node scripts/test-credit-expiration.js
    - Note: User starts with 0 credits (free tier)
 
 3. **Test manual credit reset:**
+
    ```bash
    # In another terminal, run:
    curl -X POST http://localhost:3000/api/cron/reset-credits \
@@ -66,6 +68,7 @@ node scripts/test-credit-expiration.js
 #### **B. Test Credit History API**
 
 1. **While logged in, visit:**
+
    ```
    http://localhost:3000/api/credits/history
    ```
@@ -109,6 +112,7 @@ node scripts/test-credit-expiration.js
 #### **D. Test Cron Endpoint**
 
 1. **Test GET endpoint (for cron jobs):**
+
    ```bash
    curl -X GET http://localhost:3000/api/cron/reset-credits \
      -H "Authorization: Bearer test-cron-secret-123"
@@ -160,18 +164,18 @@ Run these in Supabase SQL Editor:
 
 ```sql
 -- Check if tables exist
-SELECT table_name FROM information_schema.tables 
-WHERE table_schema = 'public' 
+SELECT table_name FROM information_schema.tables
+WHERE table_schema = 'public'
 AND table_name IN ('credit_transactions', 'credit_purchases');
 
 -- Check if functions exist
-SELECT routine_name FROM information_schema.routines 
-WHERE routine_schema = 'public' 
+SELECT routine_name FROM information_schema.routines
+WHERE routine_schema = 'public'
 AND routine_name IN ('reset_monthly_credits', 'use_credits_with_expiration', 'add_credit_purchase');
 
 -- View recent transactions
-SELECT * FROM credit_transactions 
-ORDER BY created_at DESC 
+SELECT * FROM credit_transactions
+ORDER BY created_at DESC
 LIMIT 20;
 
 -- Check user credit summary
@@ -196,6 +200,7 @@ ORDER BY created_at DESC;
 ## 📱 **Quick Test Scenarios**
 
 ### **Scenario 1: New User Flow**
+
 1. Sign up new user
 2. Check credits (should be 0)
 3. Run manual reset
@@ -204,11 +209,13 @@ ORDER BY created_at DESC;
 6. Check history shows usage
 
 ### **Scenario 2: Credit Expiration**
+
 1. Run `test-credit-expiration.js`
 2. Check that FIFO works (oldest credits used first)
 3. Verify rollover logic in database
 
 ### **Scenario 3: API Integration**
+
 1. Test `/api/credits/history` endpoint
 2. Test `/api/cron/reset-credits` endpoint
 3. Check error handling with invalid auth

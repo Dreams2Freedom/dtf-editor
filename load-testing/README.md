@@ -1,9 +1,11 @@
 # Load Testing Guide for DTF Editor
 
 ## Overview
+
 This directory contains load testing scripts and configurations for testing the DTF Editor application under various load conditions.
 
 ## Tools Used
+
 - **Playwright** - For browser-based end-to-end load testing
 - **Node.js scripts** - For API endpoint load testing
 - **Artillery** (optional) - For advanced load testing scenarios
@@ -11,12 +13,14 @@ This directory contains load testing scripts and configurations for testing the 
 ## Test Scenarios
 
 ### 1. Critical User Flows
+
 - User registration and login
 - Image upload and processing
 - Payment processing
 - Subscription management
 
 ### 2. API Endpoints
+
 - `/api/auth/signup` - User registration
 - `/api/auth/login` - User authentication
 - `/api/upload` - Image upload
@@ -25,6 +29,7 @@ This directory contains load testing scripts and configurations for testing the 
 - `/api/webhooks/stripe` - Payment webhooks
 
 ### 3. Performance Metrics
+
 - Response time (p50, p95, p99)
 - Throughput (requests per second)
 - Error rate
@@ -43,26 +48,31 @@ npm install -g artillery
 ## Running Tests
 
 ### Quick Load Test (10 concurrent users)
+
 ```bash
 npm run load:test:quick
 ```
 
 ### Standard Load Test (50 concurrent users)
+
 ```bash
 npm run load:test:standard
 ```
 
 ### Stress Test (100+ concurrent users)
+
 ```bash
 npm run load:test:stress
 ```
 
 ### API Load Test
+
 ```bash
 node load-testing/api-load-test.js
 ```
 
 ### Browser-based Load Test
+
 ```bash
 npx playwright test load-testing/browser-load-test.spec.ts --workers=10
 ```
@@ -70,6 +80,7 @@ npx playwright test load-testing/browser-load-test.spec.ts --workers=10
 ## Test Configuration
 
 Edit `load-testing/config.js` to configure:
+
 - Base URL
 - Number of virtual users
 - Test duration
@@ -92,11 +103,13 @@ Edit `load-testing/config.js` to configure:
 ## Interpreting Results
 
 ### Good Performance Indicators
+
 - p95 response time < 3 seconds
 - Error rate < 1%
 - Successful transaction rate > 99%
 
 ### Warning Signs
+
 - Response times increasing linearly with load
 - Database connection pool exhaustion
 - Memory leaks (increasing memory usage over time)

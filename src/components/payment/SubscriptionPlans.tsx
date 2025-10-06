@@ -11,7 +11,9 @@ interface SubscriptionPlansProps {
   onSubscriptionComplete?: () => void;
 }
 
-export const SubscriptionPlans: React.FC<SubscriptionPlansProps> = ({ onSubscriptionComplete }) => {
+export const SubscriptionPlans: React.FC<SubscriptionPlansProps> = ({
+  onSubscriptionComplete,
+}) => {
   const { user } = useAuthContext();
   const [selectedPlan, setSelectedPlan] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -73,7 +75,7 @@ export const SubscriptionPlans: React.FC<SubscriptionPlansProps> = ({ onSubscrip
       }
 
       const { url } = await response.json();
-      
+
       // Redirect to Stripe Checkout
       if (url) {
         window.location.href = url;
@@ -104,13 +106,29 @@ export const SubscriptionPlans: React.FC<SubscriptionPlansProps> = ({ onSubscrip
   const getPlanBadge = (planId: string) => {
     switch (planId) {
       case 'free':
-        return <span className="bg-gray-100 text-gray-800 text-xs font-medium px-2.5 py-0.5 rounded">Free</span>;
+        return (
+          <span className="bg-gray-100 text-gray-800 text-xs font-medium px-2.5 py-0.5 rounded">
+            Free
+          </span>
+        );
       case 'basic':
-        return <span className="bg-blue-100 text-blue-800 text-xs font-medium px-2.5 py-0.5 rounded">Popular</span>;
+        return (
+          <span className="bg-blue-100 text-blue-800 text-xs font-medium px-2.5 py-0.5 rounded">
+            Popular
+          </span>
+        );
       case 'starter':
-        return <span className="bg-purple-100 text-purple-800 text-xs font-medium px-2.5 py-0.5 rounded">Pro</span>;
+        return (
+          <span className="bg-purple-100 text-purple-800 text-xs font-medium px-2.5 py-0.5 rounded">
+            Pro
+          </span>
+        );
       case 'professional':
-        return <span className="bg-yellow-100 text-yellow-800 text-xs font-medium px-2.5 py-0.5 rounded">Best Value</span>;
+        return (
+          <span className="bg-yellow-100 text-yellow-800 text-xs font-medium px-2.5 py-0.5 rounded">
+            Best Value
+          </span>
+        );
       default:
         return null;
     }
@@ -119,7 +137,9 @@ export const SubscriptionPlans: React.FC<SubscriptionPlansProps> = ({ onSubscrip
   return (
     <div className="space-y-6">
       <div className="text-center">
-        <h2 className="text-3xl font-bold text-gray-900 mb-4">Choose Your Plan</h2>
+        <h2 className="text-3xl font-bold text-gray-900 mb-4">
+          Choose Your Plan
+        </h2>
         <p className="text-lg text-gray-600">
           Select the perfect plan for your image processing needs
         </p>
@@ -138,65 +158,67 @@ export const SubscriptionPlans: React.FC<SubscriptionPlansProps> = ({ onSubscrip
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {plans.map((plan) => (
-          <Card
-            key={plan.id}
-            className={`relative p-6 transition-all duration-200 hover:shadow-lg ${
-              selectedPlan === plan.id ? 'ring-2 ring-blue-500' : ''
-            }`}
-          >
-            {getPlanBadge(plan.id) && (
-              <div className="absolute -top-2 left-1/2 transform -translate-x-1/2">
-                {getPlanBadge(plan.id)}
-              </div>
-            )}
-
-            <div className="text-center mb-6">
-              <div className="flex justify-center mb-4">
-                {getPlanIcon(plan.id)}
-              </div>
-              <h3 className="text-xl font-semibold text-gray-900 mb-2">{plan.name}</h3>
-              <div className="text-3xl font-bold text-gray-900 mb-1">
-                ${plan.price}
-                <span className="text-sm font-normal text-gray-500">/{plan.interval}</span>
-              </div>
-              {plan.creditsPerMonth && (
-                <p className="text-sm text-gray-600">
-                  {plan.creditsPerMonth} credits per month
-                </p>
-              )}
-            </div>
-
-            <ul className="space-y-3 mb-6">
-              {plan.features.map((feature, index) => (
-                <li key={index} className="flex items-start">
-                  <Check className="w-5 h-5 text-green-500 mr-3 mt-0.5 flex-shrink-0" />
-                  <span className="text-sm text-gray-700">{feature}</span>
-                </li>
-              ))}
-            </ul>
-
-            <Button
-              onClick={() => handleSubscribe(plan)}
-              disabled={isLoading}
-              className={`w-full ${
-                plan.id === 'basic'
-                  ? 'bg-blue-600 hover:bg-blue-700'
-                  : plan.id === 'free'
-                  ? 'bg-gray-600 hover:bg-gray-700'
-                  : 'bg-purple-600 hover:bg-purple-700'
+          {plans.map(plan => (
+            <Card
+              key={plan.id}
+              className={`relative p-6 transition-all duration-200 hover:shadow-lg ${
+                selectedPlan === plan.id ? 'ring-2 ring-blue-500' : ''
               }`}
             >
-              {isLoading && selectedPlan === plan.id ? (
-                'Processing...'
-              ) : plan.price === 0 ? (
-                'Get Started Free'
-              ) : (
-                'Subscribe Now'
+              {getPlanBadge(plan.id) && (
+                <div className="absolute -top-2 left-1/2 transform -translate-x-1/2">
+                  {getPlanBadge(plan.id)}
+                </div>
               )}
-            </Button>
-          </Card>
-        ))}
+
+              <div className="text-center mb-6">
+                <div className="flex justify-center mb-4">
+                  {getPlanIcon(plan.id)}
+                </div>
+                <h3 className="text-xl font-semibold text-gray-900 mb-2">
+                  {plan.name}
+                </h3>
+                <div className="text-3xl font-bold text-gray-900 mb-1">
+                  ${plan.price}
+                  <span className="text-sm font-normal text-gray-500">
+                    /{plan.interval}
+                  </span>
+                </div>
+                {plan.creditsPerMonth && (
+                  <p className="text-sm text-gray-600">
+                    {plan.creditsPerMonth} credits per month
+                  </p>
+                )}
+              </div>
+
+              <ul className="space-y-3 mb-6">
+                {plan.features.map((feature, index) => (
+                  <li key={index} className="flex items-start">
+                    <Check className="w-5 h-5 text-green-500 mr-3 mt-0.5 flex-shrink-0" />
+                    <span className="text-sm text-gray-700">{feature}</span>
+                  </li>
+                ))}
+              </ul>
+
+              <Button
+                onClick={() => handleSubscribe(plan)}
+                disabled={isLoading}
+                className={`w-full ${
+                  plan.id === 'basic'
+                    ? 'bg-blue-600 hover:bg-blue-700'
+                    : plan.id === 'free'
+                      ? 'bg-gray-600 hover:bg-gray-700'
+                      : 'bg-purple-600 hover:bg-purple-700'
+                }`}
+              >
+                {isLoading && selectedPlan === plan.id
+                  ? 'Processing...'
+                  : plan.price === 0
+                    ? 'Get Started Free'
+                    : 'Subscribe Now'}
+              </Button>
+            </Card>
+          ))}
         </div>
       )}
 
@@ -206,4 +228,4 @@ export const SubscriptionPlans: React.FC<SubscriptionPlansProps> = ({ onSubscrip
       </div>
     </div>
   );
-}; 
+};

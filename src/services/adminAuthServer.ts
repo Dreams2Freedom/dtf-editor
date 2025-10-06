@@ -10,11 +10,13 @@ const supabase = createClient(
 /**
  * Verify admin session from request cookies (server-side)
  */
-export async function verifyAdminSession(request: NextRequest): Promise<AdminSession | null> {
+export async function verifyAdminSession(
+  request: NextRequest
+): Promise<AdminSession | null> {
   try {
     // Get session from cookie
     const sessionCookie = request.cookies.get('admin_session')?.value;
-    
+
     if (!sessionCookie) {
       return null;
     }
@@ -33,7 +35,10 @@ export async function verifyAdminSession(request: NextRequest): Promise<AdminSes
     }
 
     // Check if session is expired
-    if (adminSession.expires_at && new Date(adminSession.expires_at) < new Date()) {
+    if (
+      adminSession.expires_at &&
+      new Date(adminSession.expires_at) < new Date()
+    ) {
       return null;
     }
 
@@ -63,14 +68,14 @@ export function hasAdminPermission(
   permissionPath: string[]
 ): boolean {
   let current: any = session.user.role_permissions;
-  
+
   for (const segment of permissionPath) {
     if (!current || typeof current !== 'object') {
       return false;
     }
     current = current[segment];
   }
-  
+
   return current === true;
 }
 
@@ -92,7 +97,7 @@ export async function logAdminAction(
       resource_type: resourceType,
       resource_id: resourceId,
       details,
-      ip_address: ipAddress
+      ip_address: ipAddress,
     });
   } catch (error) {
     console.error('Failed to log admin action:', error);

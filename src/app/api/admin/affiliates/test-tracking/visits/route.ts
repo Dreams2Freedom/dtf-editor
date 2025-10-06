@@ -1,11 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createServerSupabaseClient, createServiceRoleClient } from '@/lib/supabase/server';
+import {
+  createServerSupabaseClient,
+  createServiceRoleClient,
+} from '@/lib/supabase/server';
 
 export async function GET(request: NextRequest) {
   try {
     // Validate admin session
     const supabase = await createServerSupabaseClient();
-    const { data: { user } } = await supabase.auth.getUser();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
 
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -26,7 +31,10 @@ export async function GET(request: NextRequest) {
     const referralCode = searchParams.get('code');
 
     if (!referralCode) {
-      return NextResponse.json({ error: 'Referral code required' }, { status: 400 });
+      return NextResponse.json(
+        { error: 'Referral code required' },
+        { status: 400 }
+      );
     }
 
     // Use service role to get data
@@ -40,7 +48,10 @@ export async function GET(request: NextRequest) {
       .single();
 
     if (!affiliate) {
-      return NextResponse.json({ error: 'Affiliate not found' }, { status: 404 });
+      return NextResponse.json(
+        { error: 'Affiliate not found' },
+        { status: 404 }
+      );
     }
 
     // Get recent visits (last 24 hours)
@@ -59,9 +70,8 @@ export async function GET(request: NextRequest) {
       visits: visits || [],
       count: visits?.length || 0,
       affiliateId: affiliate.id,
-      referralCode
+      referralCode,
     });
-
   } catch (error) {
     console.error('Error fetching visits:', error);
     return NextResponse.json(

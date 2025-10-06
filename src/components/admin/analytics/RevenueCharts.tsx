@@ -2,25 +2,30 @@
 
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
-import { 
-  TrendingUp, 
-  TrendingDown, 
+import {
+  TrendingUp,
+  TrendingDown,
   DollarSign,
   Calendar,
   Users,
   CreditCard,
-  Activity
+  Activity,
 } from 'lucide-react';
 import { toast } from '@/lib/toast';
 
 interface RevenueData {
   daily: Array<{ date: string; revenue: number; transactions: number }>;
-  monthly: Array<{ month: string; revenue: number; mrr: number; new_customers: number }>;
+  monthly: Array<{
+    month: string;
+    revenue: number;
+    mrr: number;
+    new_customers: number;
+  }>;
   planDistribution: Array<{ plan: string; count: number; revenue: number }>;
-  topCustomers: Array<{ 
-    id: string; 
-    email: string; 
-    total_spent: number; 
+  topCustomers: Array<{
+    id: string;
+    email: string;
+    total_spent: number;
     subscription_plan: string;
     created_at: string;
   }>;
@@ -37,7 +42,9 @@ interface RevenueData {
 export function RevenueCharts() {
   const [data, setData] = useState<RevenueData | null>(null);
   const [loading, setLoading] = useState(true);
-  const [timeRange, setTimeRange] = useState<'7d' | '30d' | '90d' | '1y'>('30d');
+  const [timeRange, setTimeRange] = useState<'7d' | '30d' | '90d' | '1y'>(
+    '30d'
+  );
 
   useEffect(() => {
     fetchRevenueData();
@@ -46,9 +53,12 @@ export function RevenueCharts() {
   const fetchRevenueData = async () => {
     setLoading(true);
     try {
-      const response = await fetch(`/api/admin/analytics/revenue?range=${timeRange}`, {
-        credentials: 'include'
-      });
+      const response = await fetch(
+        `/api/admin/analytics/revenue?range=${timeRange}`,
+        {
+          credentials: 'include',
+        }
+      );
 
       if (!response.ok) {
         throw new Error('Failed to fetch revenue data');
@@ -93,19 +103,19 @@ export function RevenueCharts() {
   }
 
   // Simple bar chart component
-  const BarChart = ({ 
-    data, 
-    valueKey, 
+  const BarChart = ({
+    data,
+    valueKey,
     labelKey,
-    height = 200 
-  }: { 
-    data: any[]; 
-    valueKey: string; 
+    height = 200,
+  }: {
+    data: any[];
+    valueKey: string;
     labelKey: string;
     height?: number;
   }) => {
     const maxValue = Math.max(...data.map(d => d[valueKey]));
-    
+
     return (
       <div className="relative" style={{ height }}>
         <div className="absolute inset-0 flex items-end justify-between gap-1">
@@ -114,9 +124,11 @@ export function RevenueCharts() {
             return (
               <div key={index} className="flex-1 flex flex-col items-center">
                 <div className="text-xs text-gray-600 mb-1">
-                  {valueKey === 'revenue' ? formatCurrency(item[valueKey]) : item[valueKey]}
+                  {valueKey === 'revenue'
+                    ? formatCurrency(item[valueKey])
+                    : item[valueKey]}
                 </div>
-                <div 
+                <div
                   className="w-full bg-primary-blue rounded-t transition-all duration-300 hover:bg-blue-600"
                   style={{ height: `${percentage}%` }}
                 />
@@ -135,7 +147,9 @@ export function RevenueCharts() {
     <div className="space-y-6">
       {/* Header with Time Range Selector */}
       <div className="flex justify-between items-center">
-        <h2 className="text-xl font-semibold text-gray-900">Revenue Analytics</h2>
+        <h2 className="text-xl font-semibold text-gray-900">
+          Revenue Analytics
+        </h2>
         <div className="flex gap-2">
           {(['7d', '30d', '90d', '1y'] as const).map(range => (
             <button
@@ -147,9 +161,13 @@ export function RevenueCharts() {
                   : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
               }`}
             >
-              {range === '7d' ? '7 Days' : 
-               range === '30d' ? '30 Days' : 
-               range === '90d' ? '90 Days' : '1 Year'}
+              {range === '7d'
+                ? '7 Days'
+                : range === '30d'
+                  ? '30 Days'
+                  : range === '90d'
+                    ? '90 Days'
+                    : '1 Year'}
             </button>
           ))}
         </div>
@@ -162,19 +180,23 @@ export function RevenueCharts() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-xs text-gray-600">Total Revenue</p>
-                <p className="text-lg font-semibold">{formatCurrency(data.metrics.total_revenue)}</p>
+                <p className="text-lg font-semibold">
+                  {formatCurrency(data.metrics.total_revenue)}
+                </p>
               </div>
               <DollarSign className="w-8 h-8 text-green-500" />
             </div>
           </CardContent>
         </Card>
-        
+
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-xs text-gray-600">MRR</p>
-                <p className="text-lg font-semibold">{formatCurrency(data.metrics.mrr)}</p>
+                <p className="text-lg font-semibold">
+                  {formatCurrency(data.metrics.mrr)}
+                </p>
               </div>
               <TrendingUp className="w-8 h-8 text-blue-500" />
             </div>
@@ -186,7 +208,9 @@ export function RevenueCharts() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-xs text-gray-600">ARR</p>
-                <p className="text-lg font-semibold">{formatCurrency(data.metrics.arr)}</p>
+                <p className="text-lg font-semibold">
+                  {formatCurrency(data.metrics.arr)}
+                </p>
               </div>
               <Calendar className="w-8 h-8 text-purple-500" />
             </div>
@@ -198,7 +222,9 @@ export function RevenueCharts() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-xs text-gray-600">Avg Order</p>
-                <p className="text-lg font-semibold">{formatCurrency(data.metrics.average_order_value)}</p>
+                <p className="text-lg font-semibold">
+                  {formatCurrency(data.metrics.average_order_value)}
+                </p>
               </div>
               <CreditCard className="w-8 h-8 text-orange-500" />
             </div>
@@ -210,7 +236,9 @@ export function RevenueCharts() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-xs text-gray-600">LTV</p>
-                <p className="text-lg font-semibold">{formatCurrency(data.metrics.ltv)}</p>
+                <p className="text-lg font-semibold">
+                  {formatCurrency(data.metrics.ltv)}
+                </p>
               </div>
               <Users className="w-8 h-8 text-indigo-500" />
             </div>
@@ -222,9 +250,13 @@ export function RevenueCharts() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-xs text-gray-600">Growth</p>
-                <p className={`text-lg font-semibold ${
-                  data.metrics.growth_rate >= 0 ? 'text-green-600' : 'text-red-600'
-                }`}>
+                <p
+                  className={`text-lg font-semibold ${
+                    data.metrics.growth_rate >= 0
+                      ? 'text-green-600'
+                      : 'text-red-600'
+                  }`}
+                >
                   {formatPercent(data.metrics.growth_rate)}
                 </p>
               </div>
@@ -247,13 +279,15 @@ export function RevenueCharts() {
           </CardHeader>
           <CardContent>
             {data.daily.length > 0 ? (
-              <BarChart 
-                data={data.daily.slice(-7)} 
-                valueKey="revenue" 
+              <BarChart
+                data={data.daily.slice(-7)}
+                valueKey="revenue"
                 labelKey="date"
               />
             ) : (
-              <p className="text-gray-500 text-center py-8">No revenue data available</p>
+              <p className="text-gray-500 text-center py-8">
+                No revenue data available
+              </p>
             )}
           </CardContent>
         </Card>
@@ -265,13 +299,15 @@ export function RevenueCharts() {
           </CardHeader>
           <CardContent>
             {data.monthly.length > 0 ? (
-              <BarChart 
-                data={data.monthly.slice(-6)} 
-                valueKey="mrr" 
+              <BarChart
+                data={data.monthly.slice(-6)}
+                valueKey="mrr"
                 labelKey="month"
               />
             ) : (
-              <p className="text-gray-500 text-center py-8">No monthly data available</p>
+              <p className="text-gray-500 text-center py-8">
+                No monthly data available
+              </p>
             )}
           </CardContent>
         </Card>
@@ -284,20 +320,23 @@ export function RevenueCharts() {
           <CardContent>
             <div className="space-y-4">
               {data.planDistribution.map((plan, index) => {
-                const percentage = data.metrics.mrr > 0 
-                  ? (plan.revenue / data.metrics.mrr) * 100 
-                  : 0;
-                
+                const percentage =
+                  data.metrics.mrr > 0
+                    ? (plan.revenue / data.metrics.mrr) * 100
+                    : 0;
+
                 return (
                   <div key={index}>
                     <div className="flex justify-between items-center mb-1">
-                      <span className="text-sm font-medium capitalize">{plan.plan}</span>
+                      <span className="text-sm font-medium capitalize">
+                        {plan.plan}
+                      </span>
                       <span className="text-sm text-gray-600">
                         {formatCurrency(plan.revenue)} ({plan.count} users)
                       </span>
                     </div>
                     <div className="w-full bg-gray-200 rounded-full h-2">
-                      <div 
+                      <div
                         className="bg-primary-blue h-2 rounded-full transition-all duration-300"
                         style={{ width: `${percentage}%` }}
                       />
@@ -317,7 +356,10 @@ export function RevenueCharts() {
           <CardContent>
             <div className="space-y-3">
               {data.topCustomers.map((customer, index) => (
-                <div key={customer.id} className="flex items-center justify-between">
+                <div
+                  key={customer.id}
+                  className="flex items-center justify-between"
+                >
                   <div className="flex items-center gap-3">
                     <div className="w-8 h-8 rounded-full bg-primary-blue text-white flex items-center justify-center text-sm font-medium">
                       {index + 1}

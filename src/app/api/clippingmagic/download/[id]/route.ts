@@ -10,7 +10,10 @@ export async function GET(
   try {
     // Check authentication
     const supabase = await createServerSupabaseClient();
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
 
     if (authError || !user) {
       return NextResponse.json(
@@ -21,21 +24,18 @@ export async function GET(
 
     const resolvedParams = await params;
     const imageId = resolvedParams.id;
-    
+
     console.log('ClippingMagic download request:', {
       imageId,
       userId: user.id,
       hasApiKey: !!env.CLIPPINGMAGIC_API_KEY,
-      hasApiSecret: !!env.CLIPPINGMAGIC_API_SECRET
+      hasApiSecret: !!env.CLIPPINGMAGIC_API_SECRET,
     });
-    
+
     if (!imageId) {
-      return NextResponse.json(
-        { error: 'Image ID required' },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: 'Image ID required' }, { status: 400 });
     }
-    
+
     // Check if API credentials are available
     if (!env.CLIPPINGMAGIC_API_KEY || !env.CLIPPINGMAGIC_API_SECRET) {
       console.error('ClippingMagic API credentials missing');
@@ -44,57 +44,72 @@ export async function GET(
         { status: 500 }
       );
     }
-    
-    const authHeader = 'Basic ' + Buffer.from(
-      env.CLIPPINGMAGIC_API_KEY + ':' + env.CLIPPINGMAGIC_API_SECRET
-    ).toString('base64');
+
+    const authHeader =
+      'Basic ' +
+      Buffer.from(
+        env.CLIPPINGMAGIC_API_KEY + ':' + env.CLIPPINGMAGIC_API_SECRET
+      ).toString('base64');
 
     // Download the processed image with 300 DPI for print-ready output
     // Start with minimal parameters and add gradually
     const queryParams = new URLSearchParams();
     queryParams.append('format', 'png');
-    
+
     // Only add valid download parameters
-    queryParams.append('output.dpi', '300');  // Critical for DTF printing
-    
-    console.log('[DEBUG] Requesting download with params:', queryParams.toString());
-    
+    queryParams.append('output.dpi', '300'); // Critical for DTF printing
+
+    console.log(
+      '[DEBUG] Requesting download with params:',
+      queryParams.toString()
+    );
+
     // First, try to get image info to see available sizes
     try {
-      const infoResponse = await fetch(`https://clippingmagic.com/api/v1/images/${imageId}`, {
-        method: 'GET',
-        headers: {
-          'Authorization': authHeader,
-          'Accept': 'application/json'
-        },
-      });
-      
+      const infoResponse = await fetch(
+        `https://clippingmagic.com/api/v1/images/${imageId}`,
+        {
+          method: 'GET',
+          headers: {
+            Authorization: authHeader,
+            Accept: 'application/json',
+          },
+        }
+      );
+
       if (infoResponse.ok) {
         const imageInfo = await infoResponse.json();
         console.log('[DEBUG] Image info from ClippingMagic:', imageInfo);
       } else {
-        console.error('[DEBUG] Failed to get image info:', infoResponse.status, await infoResponse.text());
+        console.error(
+          '[DEBUG] Failed to get image info:',
+          infoResponse.status,
+          await infoResponse.text()
+        );
       }
     } catch (infoError) {
       console.error('[DEBUG] Error fetching image info:', infoError);
     }
-    
+
     // Now download the actual image
-    const response = await fetch(`https://clippingmagic.com/api/v1/images/${imageId}?${queryParams}`, {
-      method: 'GET',
-      headers: {
-        'Authorization': authHeader,
-      },
-    });
+    const response = await fetch(
+      `https://clippingmagic.com/api/v1/images/${imageId}?${queryParams}`,
+      {
+        method: 'GET',
+        headers: {
+          Authorization: authHeader,
+        },
+      }
+    );
 
     if (!response.ok) {
       const errorText = await response.text();
       console.error('ClippingMagic API error:', {
         status: response.status,
         statusText: response.statusText,
-        error: errorText
+        error: errorText,
       });
-      
+
       return NextResponse.json(
         { error: `ClippingMagic error: ${response.status} - ${errorText}` },
         { status: response.status }
@@ -109,7 +124,7 @@ export async function GET(
       imageId,
       size: (imageBuffer.byteLength / 1024 / 1024).toFixed(2) + ' MB',
       contentType,
-      headers: Object.fromEntries(response.headers.entries())
+      headers: Object.fromEntries(response.headers.entries()),
     });
 
     // Variables for response headers
@@ -127,44 +142,44 @@ export async function GET(
       storagePath = `${user.id}/processed/${filename}`;
 
       // Upload to Supabase Storage (use 'images' bucket which is public)
-      const { data: uploadData, error: uploadError } = await serviceClient
-        .storage
-        .from('images')
-        .upload(storagePath, imageBuffer, {
-          contentType,
-          cacheControl: '3600',
-          upsert: false
-        });
+      const { data: uploadData, error: uploadError } =
+        await serviceClient.storage
+          .from('images')
+          .upload(storagePath, imageBuffer, {
+            contentType,
+            cacheControl: '3600',
+            upsert: false,
+          });
 
       if (uploadError) {
         console.error('Failed to upload to storage:', uploadError);
       } else {
         // Get public URL (images bucket is public)
-        const { data: { publicUrl } } = serviceClient
-          .storage
-          .from('images')
-          .getPublicUrl(storagePath);
+        const {
+          data: { publicUrl },
+        } = serviceClient.storage.from('images').getPublicUrl(storagePath);
 
         const imageUrl = publicUrl;
 
         // Save to processed_images table
-        const { data: processedImageId, error: saveError } = await serviceClient.rpc('insert_processed_image', {
-          p_user_id: user.id,
-          p_original_filename: `background_removal_${timestamp}.${extension}`,
-          p_processed_filename: filename,
-          p_operation_type: 'background-removal',
-          p_file_size: imageBuffer.byteLength,
-          p_processing_status: 'completed',
-          p_storage_url: imageUrl,
-          p_thumbnail_url: imageUrl,
-          p_metadata: {
-            credits_used: 1,
-            processing_time_ms: 0,
-            api_used: 'ClippingMagic',
-            clippingmagic_id: imageId,  // This refers to the ClippingMagic image ID from params
-            storage_path: storagePath
-          }
-        });
+        const { data: processedImageId, error: saveError } =
+          await serviceClient.rpc('insert_processed_image', {
+            p_user_id: user.id,
+            p_original_filename: `background_removal_${timestamp}.${extension}`,
+            p_processed_filename: filename,
+            p_operation_type: 'background-removal',
+            p_file_size: imageBuffer.byteLength,
+            p_processing_status: 'completed',
+            p_storage_url: imageUrl,
+            p_thumbnail_url: imageUrl,
+            p_metadata: {
+              credits_used: 1,
+              processing_time_ms: 0,
+              api_used: 'ClippingMagic',
+              clippingmagic_id: imageId, // This refers to the ClippingMagic image ID from params
+              storage_path: storagePath,
+            },
+          });
 
         if (saveError) {
           console.error('Failed to save to gallery:', saveError);
@@ -188,14 +203,14 @@ export async function GET(
         'X-Storage-Path': storagePath || '', // Include storage path for reference
       },
     });
-
   } catch (error) {
     console.error('ClippingMagic download error:', error);
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+    const errorMessage =
+      error instanceof Error ? error.message : 'Unknown error occurred';
     return NextResponse.json(
-      { 
+      {
         error: 'Failed to download image',
-        details: errorMessage 
+        details: errorMessage,
       },
       { status: 500 }
     );

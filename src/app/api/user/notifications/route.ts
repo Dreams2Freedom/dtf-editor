@@ -5,15 +5,15 @@ import { withRateLimit } from '@/lib/rate-limit';
 async function handlePatch(request: NextRequest) {
   try {
     const supabase = await createServerSupabaseClient();
-    
+
     // Get the authenticated user
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
-    
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
+
     if (authError || !user) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     // Get the request body
@@ -45,9 +45,9 @@ async function handlePatch(request: NextRequest) {
       );
     }
 
-    return NextResponse.json({ 
+    return NextResponse.json({
       message: 'Notification preferences updated successfully',
-      preferences: data.notification_preferences 
+      preferences: data.notification_preferences,
     });
   } catch (error) {
     console.error('Notification preferences update error:', error);

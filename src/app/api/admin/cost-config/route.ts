@@ -9,7 +9,9 @@ async function handleGet(request: NextRequest) {
     const supabase = await createServerSupabaseClient();
 
     // Check admin authentication
-    const { data: { user } } = await supabase.auth.getUser();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
@@ -21,7 +23,10 @@ async function handleGet(request: NextRequest) {
       .single();
 
     if (!profile?.is_admin) {
-      return NextResponse.json({ error: 'Admin access required' }, { status: 403 });
+      return NextResponse.json(
+        { error: 'Admin access required' },
+        { status: 403 }
+      );
     }
 
     // Fetch all cost configurations
@@ -33,33 +38,63 @@ async function handleGet(request: NextRequest) {
 
     if (error) {
       console.error('Error fetching cost configs:', error);
-      return NextResponse.json({ error: 'Failed to fetch configurations' }, { status: 500 });
+      return NextResponse.json(
+        { error: 'Failed to fetch configurations' },
+        { status: 500 }
+      );
     }
 
     // If no configs exist, return default values
     if (!configs || configs.length === 0) {
       const defaultConfigs = [
-        { provider: 'deep_image', operation: 'upscale', cost_per_unit: 0.08, unit_description: 'per image' },
-        { provider: 'clipping_magic', operation: 'background_removal', cost_per_unit: 0.125, unit_description: 'per image' },
-        { provider: 'vectorizer', operation: 'vectorization', cost_per_unit: 0.20, unit_description: 'per image' },
-        { provider: 'openai', operation: 'image_generation', cost_per_unit: 0.04, unit_description: 'per image (1024x1024)' },
-        { provider: 'stripe', operation: 'payment_processing', cost_per_unit: 0.029, unit_description: 'per transaction (+ $0.30 fixed)' }
+        {
+          provider: 'deep_image',
+          operation: 'upscale',
+          cost_per_unit: 0.08,
+          unit_description: 'per image',
+        },
+        {
+          provider: 'clipping_magic',
+          operation: 'background_removal',
+          cost_per_unit: 0.125,
+          unit_description: 'per image',
+        },
+        {
+          provider: 'vectorizer',
+          operation: 'vectorization',
+          cost_per_unit: 0.2,
+          unit_description: 'per image',
+        },
+        {
+          provider: 'openai',
+          operation: 'image_generation',
+          cost_per_unit: 0.04,
+          unit_description: 'per image (1024x1024)',
+        },
+        {
+          provider: 'stripe',
+          operation: 'payment_processing',
+          cost_per_unit: 0.029,
+          unit_description: 'per transaction (+ $0.30 fixed)',
+        },
       ];
 
       return NextResponse.json({
         configs: defaultConfigs,
-        isDefault: true
+        isDefault: true,
       });
     }
 
     return NextResponse.json({
       configs,
-      isDefault: false
+      isDefault: false,
     });
-
   } catch (error) {
     console.error('Cost config fetch error:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return NextResponse.json(
+      { error: 'Internal server error' },
+      { status: 500 }
+    );
   }
 }
 
@@ -69,7 +104,9 @@ async function handlePost(request: NextRequest) {
     const supabase = await createServerSupabaseClient();
 
     // Check admin authentication
-    const { data: { user } } = await supabase.auth.getUser();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
@@ -81,19 +118,34 @@ async function handlePost(request: NextRequest) {
       .single();
 
     if (!profile?.is_admin) {
-      return NextResponse.json({ error: 'Admin access required' }, { status: 403 });
+      return NextResponse.json(
+        { error: 'Admin access required' },
+        { status: 403 }
+      );
     }
 
     const body = await request.json();
-    const { provider, operation, cost_per_unit, unit_description, notes } = body;
+    const { provider, operation, cost_per_unit, unit_description, notes } =
+      body;
 
     // Validate inputs
-    if (!provider || !operation || cost_per_unit === undefined || cost_per_unit === null) {
-      return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
+    if (
+      !provider ||
+      !operation ||
+      cost_per_unit === undefined ||
+      cost_per_unit === null
+    ) {
+      return NextResponse.json(
+        { error: 'Missing required fields' },
+        { status: 400 }
+      );
     }
 
     if (cost_per_unit < 0) {
-      return NextResponse.json({ error: 'Cost cannot be negative' }, { status: 400 });
+      return NextResponse.json(
+        { error: 'Cost cannot be negative' },
+        { status: 400 }
+      );
     }
 
     // Check if configuration exists
@@ -115,7 +167,7 @@ async function handlePost(request: NextRequest) {
           cost_per_unit,
           unit_description: unit_description || existingConfig.unit_description,
           notes,
-          updated_at: new Date().toISOString()
+          updated_at: new Date().toISOString(),
         })
         .eq('id', existingConfig.id)
         .select()
@@ -123,7 +175,10 @@ async function handlePost(request: NextRequest) {
 
       if (error) {
         console.error('Error updating cost config:', error);
-        return NextResponse.json({ error: 'Failed to update configuration' }, { status: 500 });
+        return NextResponse.json(
+          { error: 'Failed to update configuration' },
+          { status: 500 }
+        );
       }
 
       result = data;
@@ -138,14 +193,17 @@ async function handlePost(request: NextRequest) {
           cost_per_unit,
           unit_description: unit_description || 'per unit',
           notes,
-          effective_date: new Date().toISOString()
+          effective_date: new Date().toISOString(),
         })
         .select()
         .single();
 
       if (error) {
         console.error('Error inserting cost config:', error);
-        return NextResponse.json({ error: 'Failed to create configuration' }, { status: 500 });
+        return NextResponse.json(
+          { error: 'Failed to create configuration' },
+          { status: 500 }
+        );
       }
 
       result = data;
@@ -158,10 +216,10 @@ async function handlePost(request: NextRequest) {
       {
         user: {
           id: user.id,
-          email: user.email || ''
+          email: user.email || '',
         },
         role: 'admin',
-        createdAt: new Date()
+        createdAt: new Date(),
       },
       {
         action: 'settings.update',
@@ -173,8 +231,8 @@ async function handlePost(request: NextRequest) {
           operation,
           old_cost: existingConfig?.cost_per_unit,
           new_cost: cost_per_unit,
-          action
-        }
+          action,
+        },
       },
       request
     );
@@ -182,12 +240,14 @@ async function handlePost(request: NextRequest) {
     return NextResponse.json({
       success: true,
       config: result,
-      action
+      action,
     });
-
   } catch (error) {
     console.error('Cost config update error:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return NextResponse.json(
+      { error: 'Internal server error' },
+      { status: 500 }
+    );
   }
 }
 
@@ -197,7 +257,9 @@ async function handlePut(request: NextRequest) {
     const supabase = await createServerSupabaseClient();
 
     // Check admin authentication
-    const { data: { user } } = await supabase.auth.getUser();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
@@ -209,21 +271,28 @@ async function handlePut(request: NextRequest) {
       .single();
 
     if (!profile?.is_admin) {
-      return NextResponse.json({ error: 'Admin access required' }, { status: 403 });
+      return NextResponse.json(
+        { error: 'Admin access required' },
+        { status: 403 }
+      );
     }
 
     const body = await request.json();
     const { configs } = body;
 
     if (!Array.isArray(configs)) {
-      return NextResponse.json({ error: 'Configs must be an array' }, { status: 400 });
+      return NextResponse.json(
+        { error: 'Configs must be an array' },
+        { status: 400 }
+      );
     }
 
     const results = [];
     const errors = [];
 
     for (const config of configs) {
-      const { provider, operation, cost_per_unit, unit_description, notes } = config;
+      const { provider, operation, cost_per_unit, unit_description, notes } =
+        config;
 
       if (!provider || !operation || cost_per_unit === undefined) {
         errors.push(`Invalid config for ${provider}/${operation}`);
@@ -246,7 +315,7 @@ async function handlePut(request: NextRequest) {
             cost_per_unit,
             unit_description: unit_description || existing.unit_description,
             notes,
-            updated_at: new Date().toISOString()
+            updated_at: new Date().toISOString(),
           })
           .eq('id', existing.id)
           .select()
@@ -267,7 +336,7 @@ async function handlePut(request: NextRequest) {
             cost_per_unit,
             unit_description: unit_description || 'per unit',
             notes,
-            effective_date: new Date().toISOString()
+            effective_date: new Date().toISOString(),
           })
           .select()
           .single();
@@ -286,10 +355,10 @@ async function handlePut(request: NextRequest) {
       {
         user: {
           id: user.id,
-          email: user.email || ''
+          email: user.email || '',
         },
         role: 'admin',
-        createdAt: new Date()
+        createdAt: new Date(),
       },
       {
         action: 'settings.update',
@@ -298,8 +367,8 @@ async function handlePut(request: NextRequest) {
           type: 'api_cost_config_bulk',
           updated_count: results.length,
           error_count: errors.length,
-          configs: results
-        }
+          configs: results,
+        },
       },
       request
     );
@@ -308,12 +377,14 @@ async function handlePut(request: NextRequest) {
       success: true,
       updated: results.length,
       errors: errors.length > 0 ? errors : undefined,
-      configs: results
+      configs: results,
     });
-
   } catch (error) {
     console.error('Bulk cost config update error:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return NextResponse.json(
+      { error: 'Internal server error' },
+      { status: 500 }
+    );
   }
 }
 

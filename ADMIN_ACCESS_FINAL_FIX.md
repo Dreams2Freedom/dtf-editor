@@ -3,6 +3,7 @@
 ## Issue Found
 
 The admin panel at `/admin/affiliates/applications` shows these errors:
+
 - ❌ React Error #418 (hydration mismatch)
 - ❌ 401 Unauthorized errors
 - ❌ 404 on `get_admin_role` RPC function
@@ -10,6 +11,7 @@ The admin panel at `/admin/affiliates/applications` shows these errors:
 ## Root Cause
 
 **Missing database functions in production:**
+
 1. `get_admin_role(user_id)` - Returns user's admin role
 2. `is_super_admin(user_id)` - Checks if user is super admin
 3. `has_permission(user_id, permission_key)` - Checks specific permissions
@@ -19,6 +21,7 @@ These functions exist in migration `20250103_create_admin_roles_system.sql` but 
 ## Current Production State
 
 ✅ **What's Working:**
+
 - Shannon@S2Transfers.com exists in database (stored as lowercase: shannon@s2transfers.com)
 - User has `profiles.is_admin = true`
 - User is in `admin_users` table with `super_admin` role
@@ -27,6 +30,7 @@ These functions exist in migration `20250103_create_admin_roles_system.sql` but 
 - Email matching is case-insensitive (you can type it any way)
 
 ❌ **What's Missing:**
+
 - `get_admin_role()` function
 - `is_super_admin()` function
 - `has_permission()` function
@@ -104,6 +108,7 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 ### Step 3: Verify It Works
 
 After applying the SQL and logging in, you should see:
+
 - ✅ No 404 errors on `get_admin_role`
 - ✅ No 401 errors
 - ✅ Affiliate applications showing correctly
@@ -116,11 +121,13 @@ The `20250103_create_admin_roles_system.sql` migration was committed to the code
 ## Quick Verification
 
 After applying the SQL, run this to verify:
+
 ```bash
 node scripts/check-admin-functions.js
 ```
 
 Should show:
+
 ```
 ✅ Function exists: get_admin_role -> super_admin
 ✅ Function exists: is_super_admin -> true
@@ -130,6 +137,7 @@ Should show:
 ## Summary
 
 **Required Actions:**
+
 1. ✅ Apply `ADD_MISSING_ADMIN_FUNCTIONS.sql` to production Supabase
 2. ✅ Log in as Shannon@S2Transfers.com to production
 3. ✅ Test admin panel access

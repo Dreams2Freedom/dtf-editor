@@ -8,20 +8,24 @@ import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { Input } from '@/components/ui/Input';
 import { Badge } from '@/components/ui/Badge';
-import { 
-  Plus, 
-  Search, 
-  MessageSquare, 
-  Clock, 
-  CheckCircle, 
+import {
+  Plus,
+  Search,
+  MessageSquare,
+  Clock,
+  CheckCircle,
   AlertCircle,
   HelpCircle,
   CreditCard,
   Bug,
   Sparkles,
-  Filter
+  Filter,
 } from 'lucide-react';
-import type { SupportTicket, TicketStatus, TicketCategory } from '@/types/support';
+import type {
+  SupportTicket,
+  TicketStatus,
+  TicketCategory,
+} from '@/types/support';
 import { CreateTicketModal } from '@/components/support/CreateTicketModal';
 
 export default function SupportPage() {
@@ -58,7 +62,7 @@ export default function SupportPage() {
 
   const fetchTickets = async () => {
     if (!user) return;
-    
+
     try {
       setLoading(true);
       const data = await supportService.getUserTickets(user.id);
@@ -78,9 +82,10 @@ export default function SupportPage() {
 
     // Apply search filter
     if (searchQuery) {
-      filtered = filtered.filter(ticket => 
-        ticket.subject.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        ticket.ticket_number.toLowerCase().includes(searchQuery.toLowerCase())
+      filtered = filtered.filter(
+        ticket =>
+          ticket.subject.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          ticket.ticket_number.toLowerCase().includes(searchQuery.toLowerCase())
       );
     }
 
@@ -122,7 +127,9 @@ export default function SupportPage() {
     }
   };
 
-  const getStatusColor = (status: TicketStatus): "default" | "success" | "warning" | "error" => {
+  const getStatusColor = (
+    status: TicketStatus
+  ): 'default' | 'success' | 'warning' | 'error' => {
     switch (status) {
       case 'open':
         return 'default';
@@ -138,7 +145,9 @@ export default function SupportPage() {
     }
   };
 
-  const getPriorityColor = (priority: string): "default" | "success" | "warning" | "error" => {
+  const getPriorityColor = (
+    priority: string
+  ): 'default' | 'success' | 'warning' | 'error' => {
     switch (priority) {
       case 'low':
         return 'success';
@@ -156,16 +165,18 @@ export default function SupportPage() {
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
     const now = new Date();
-    const diffInHours = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60));
-    
+    const diffInHours = Math.floor(
+      (now.getTime() - date.getTime()) / (1000 * 60 * 60)
+    );
+
     if (diffInHours < 1) return 'Just now';
     if (diffInHours < 24) return `${diffInHours}h ago`;
     if (diffInHours < 48) return 'Yesterday';
-    
-    return date.toLocaleDateString('en-US', { 
-      month: 'short', 
+
+    return date.toLocaleDateString('en-US', {
+      month: 'short',
       day: 'numeric',
-      year: date.getFullYear() !== now.getFullYear() ? 'numeric' : undefined
+      year: date.getFullYear() !== now.getFullYear() ? 'numeric' : undefined,
     });
   };
 
@@ -186,8 +197,12 @@ export default function SupportPage() {
       <div className="max-w-6xl mx-auto px-4">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Support Center</h1>
-          <p className="text-gray-600">Get help, report bugs, or request features</p>
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">
+            Support Center
+          </h1>
+          <p className="text-gray-600">
+            Get help, report bugs, or request features
+          </p>
         </div>
 
         {/* Quick Actions */}
@@ -205,13 +220,21 @@ export default function SupportPage() {
             <Input
               placeholder="Search tickets..."
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+              onChange={e => setSearchQuery(e.target.value)}
               className="pl-10"
             />
           </div>
 
           <div className="flex gap-2">
-            {(['all', 'open', 'in_progress', 'waiting_on_user', 'resolved'] as const).map(status => (
+            {(
+              [
+                'all',
+                'open',
+                'in_progress',
+                'waiting_on_user',
+                'resolved',
+              ] as const
+            ).map(status => (
               <Button
                 key={status}
                 variant={statusFilter === status ? 'default' : 'outline'}
@@ -234,11 +257,13 @@ export default function SupportPage() {
           <Card className="p-12 text-center">
             <HelpCircle className="w-16 h-16 text-gray-300 mx-auto mb-4" />
             <h3 className="text-xl font-semibold text-gray-900 mb-2">
-              {searchQuery || statusFilter !== 'all' ? 'No tickets found' : 'No support tickets yet'}
+              {searchQuery || statusFilter !== 'all'
+                ? 'No tickets found'
+                : 'No support tickets yet'}
             </h3>
             <p className="text-gray-600 mb-6">
-              {searchQuery || statusFilter !== 'all' 
-                ? 'Try adjusting your filters' 
+              {searchQuery || statusFilter !== 'all'
+                ? 'Try adjusting your filters'
                 : 'Need help? Create your first support ticket'}
             </p>
             {!searchQuery && statusFilter === 'all' && (
@@ -259,7 +284,7 @@ export default function SupportPage() {
                 className={`p-6 hover:shadow-lg transition-shadow cursor-pointer relative ${
                   ticket.has_admin_reply ? 'border-l-4 border-l-blue-500' : ''
                 }`}
-                onClick={(e) => {
+                onClick={e => {
                   // Prevent navigation if clicking on the button
                   if ((e.target as HTMLElement).closest('button')) {
                     return;
@@ -294,17 +319,18 @@ export default function SupportPage() {
                         {ticket.priority}
                       </Badge>
                     </div>
-                    
+
                     <h3 className="text-lg font-semibold text-gray-900 mb-2">
                       {ticket.subject}
                     </h3>
-                    
+
                     <div className="flex items-center gap-4 text-sm text-gray-500">
                       <span>Created {formatDate(ticket.created_at)}</span>
                       {ticket.message_count && ticket.message_count > 0 && (
                         <span className="flex items-center gap-1">
                           <MessageSquare className="w-3 h-3" />
-                          {ticket.message_count} {ticket.message_count === 1 ? 'message' : 'messages'}
+                          {ticket.message_count}{' '}
+                          {ticket.message_count === 1 ? 'message' : 'messages'}
                         </span>
                       )}
                       {ticket.has_admin_reply && (
@@ -320,10 +346,10 @@ export default function SupportPage() {
                       )}
                     </div>
                   </div>
-                  
+
                   <div className="ml-4">
-                    <Button 
-                      variant="outline" 
+                    <Button
+                      variant="outline"
                       size="sm"
                       onClick={() => router.push(`/support/${ticket.id}`)}
                     >

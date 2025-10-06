@@ -14,7 +14,7 @@ import {
   CreditCard,
   Package,
   Calendar,
-  Download
+  Download,
 } from 'lucide-react';
 import { toast } from '@/lib/toast';
 
@@ -43,7 +43,9 @@ interface TransactionMetrics {
 
 export default function TransactionsPage() {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
-  const [filteredTransactions, setFilteredTransactions] = useState<Transaction[]>([]);
+  const [filteredTransactions, setFilteredTransactions] = useState<
+    Transaction[]
+  >([]);
   const [metrics, setMetrics] = useState<TransactionMetrics | null>(null);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
@@ -64,7 +66,9 @@ export default function TransactionsPage() {
 
   const fetchTransactions = async () => {
     try {
-      const response = await fetch(`/api/admin/financial/transactions?range=${dateRange}`);
+      const response = await fetch(
+        `/api/admin/financial/transactions?range=${dateRange}`
+      );
       if (!response.ok) {
         throw new Error('Failed to fetch transactions');
       }
@@ -107,22 +111,26 @@ export default function TransactionsPage() {
     setFilteredTransactions(filtered);
   }, [transactions, searchQuery, typeFilter, statusFilter]);
 
-  const getTypeVariant = (type: string): 'success' | 'info' | 'default' | 'error' | 'secondary' => {
+  const getTypeVariant = (
+    type: string
+  ): 'success' | 'info' | 'default' | 'error' | 'secondary' => {
     const variants = {
       purchase: 'success' as const,
       subscription: 'info' as const,
       usage: 'default' as const,
-      refund: 'error' as const
+      refund: 'error' as const,
     };
     return variants[type as keyof typeof variants] || 'secondary';
   };
 
-  const getStatusVariant = (status: string): 'success' | 'warning' | 'error' | 'secondary' => {
+  const getStatusVariant = (
+    status: string
+  ): 'success' | 'warning' | 'error' | 'secondary' => {
     const variants = {
       completed: 'success' as const,
       pending: 'warning' as const,
       failed: 'error' as const,
-      refunded: 'warning' as const
+      refunded: 'warning' as const,
     };
     return variants[status as keyof typeof variants] || 'secondary';
   };
@@ -130,22 +138,26 @@ export default function TransactionsPage() {
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
-      currency: 'USD'
+      currency: 'USD',
     }).format(amount / 100);
   };
 
   const exportTransactions = () => {
     const csv = [
-      ['Date', 'User', 'Email', 'Type', 'Amount', 'Status', 'Description'].join(','),
-      ...filteredTransactions.map(t => [
-        new Date(t.created_at).toLocaleDateString(),
-        t.user_name,
-        t.user_email,
-        t.type,
-        formatCurrency(t.amount),
-        t.status,
-        t.description
-      ].join(','))
+      ['Date', 'User', 'Email', 'Type', 'Amount', 'Status', 'Description'].join(
+        ','
+      ),
+      ...filteredTransactions.map(t =>
+        [
+          new Date(t.created_at).toLocaleDateString(),
+          t.user_name,
+          t.user_email,
+          t.type,
+          formatCurrency(t.amount),
+          t.status,
+          t.description,
+        ].join(',')
+      ),
     ].join('\n');
 
     const blob = new Blob([csv], { type: 'text/csv' });
@@ -173,7 +185,9 @@ export default function TransactionsPage() {
         <div className="flex justify-between items-center">
           <div>
             <h1 className="text-2xl font-bold text-gray-900">Transactions</h1>
-            <p className="text-gray-600 mt-1">View and manage all financial transactions</p>
+            <p className="text-gray-600 mt-1">
+              View and manage all financial transactions
+            </p>
           </div>
           <Button onClick={exportTransactions} variant="outline">
             <Download className="w-4 h-4 mr-2" />
@@ -189,7 +203,9 @@ export default function TransactionsPage() {
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm text-gray-600">Total Revenue</p>
-                    <p className="text-xl font-bold">{formatCurrency(metrics.total_revenue)}</p>
+                    <p className="text-xl font-bold">
+                      {formatCurrency(metrics.total_revenue)}
+                    </p>
                   </div>
                   <DollarSign className="w-8 h-8 text-success-500" />
                 </div>
@@ -201,7 +217,9 @@ export default function TransactionsPage() {
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm text-gray-600">Transactions</p>
-                    <p className="text-xl font-bold">{metrics.total_transactions}</p>
+                    <p className="text-xl font-bold">
+                      {metrics.total_transactions}
+                    </p>
                   </div>
                   <CreditCard className="w-8 h-8 text-blue-500" />
                 </div>
@@ -213,7 +231,9 @@ export default function TransactionsPage() {
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm text-gray-600">Successful</p>
-                    <p className="text-xl font-bold">{metrics.successful_transactions}</p>
+                    <p className="text-xl font-bold">
+                      {metrics.successful_transactions}
+                    </p>
                   </div>
                   <TrendingUp className="w-8 h-8 text-success-500" />
                 </div>
@@ -225,7 +245,9 @@ export default function TransactionsPage() {
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm text-gray-600">Failed</p>
-                    <p className="text-xl font-bold">{metrics.failed_transactions}</p>
+                    <p className="text-xl font-bold">
+                      {metrics.failed_transactions}
+                    </p>
                   </div>
                   <TrendingDown className="w-8 h-8 text-error-500" />
                 </div>
@@ -237,7 +259,9 @@ export default function TransactionsPage() {
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm text-gray-600">Refunded</p>
-                    <p className="text-xl font-bold">{formatCurrency(metrics.refunded_amount)}</p>
+                    <p className="text-xl font-bold">
+                      {formatCurrency(metrics.refunded_amount)}
+                    </p>
                   </div>
                   <Package className="w-8 h-8 text-orange-500" />
                 </div>
@@ -249,7 +273,9 @@ export default function TransactionsPage() {
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm text-gray-600">Avg Value</p>
-                    <p className="text-xl font-bold">{formatCurrency(metrics.average_transaction)}</p>
+                    <p className="text-xl font-bold">
+                      {formatCurrency(metrics.average_transaction)}
+                    </p>
                   </div>
                   <Calendar className="w-8 h-8 text-purple-500" />
                 </div>
@@ -265,7 +291,7 @@ export default function TransactionsPage() {
             <Input
               placeholder="Search transactions..."
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+              onChange={e => setSearchQuery(e.target.value)}
               className="pl-10"
             />
           </div>
@@ -273,7 +299,7 @@ export default function TransactionsPage() {
           <select
             className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
             value={typeFilter}
-            onChange={(e) => setTypeFilter(e.target.value)}
+            onChange={e => setTypeFilter(e.target.value)}
           >
             <option value="all">All Types</option>
             <option value="purchase">Purchase</option>
@@ -285,7 +311,7 @@ export default function TransactionsPage() {
           <select
             className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
             value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
+            onChange={e => setStatusFilter(e.target.value)}
           >
             <option value="all">All Status</option>
             <option value="completed">Completed</option>
@@ -297,7 +323,7 @@ export default function TransactionsPage() {
           <select
             className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
             value={dateRange}
-            onChange={(e) => setDateRange(e.target.value)}
+            onChange={e => setDateRange(e.target.value)}
           >
             <option value="7d">Last 7 Days</option>
             <option value="30d">Last 30 Days</option>
@@ -327,20 +353,32 @@ export default function TransactionsPage() {
                 <tbody>
                   {filteredTransactions.length === 0 ? (
                     <tr>
-                      <td colSpan={6} className="text-center py-8 text-gray-500">
+                      <td
+                        colSpan={6}
+                        className="text-center py-8 text-gray-500"
+                      >
                         No transactions found
                       </td>
                     </tr>
                   ) : (
-                    filteredTransactions.map((transaction) => (
-                      <tr key={transaction.id} className="border-b hover:bg-gray-50">
+                    filteredTransactions.map(transaction => (
+                      <tr
+                        key={transaction.id}
+                        className="border-b hover:bg-gray-50"
+                      >
                         <td className="py-3 px-4 text-sm">
-                          {new Date(transaction.created_at).toLocaleDateString()}
+                          {new Date(
+                            transaction.created_at
+                          ).toLocaleDateString()}
                         </td>
                         <td className="py-3 px-4">
                           <div>
-                            <div className="font-medium">{transaction.user_name}</div>
-                            <div className="text-sm text-gray-500">{transaction.user_email}</div>
+                            <div className="font-medium">
+                              {transaction.user_name}
+                            </div>
+                            <div className="text-sm text-gray-500">
+                              {transaction.user_email}
+                            </div>
                           </div>
                         </td>
                         <td className="py-3 px-4">

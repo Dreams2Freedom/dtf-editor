@@ -2,7 +2,7 @@ import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 import type { AdminSession } from '@/types/admin';
 
-export type AuditAction = 
+export type AuditAction =
   | 'admin.login'
   | 'admin.logout'
   | 'admin.login_failed'
@@ -33,7 +33,7 @@ export type AuditAction =
   | 'support.close'
   | 'settings.update';
 
-export type ResourceType = 
+export type ResourceType =
   | 'user'
   | 'admin'
   | 'subscription'
@@ -96,10 +96,11 @@ export class AdminAuditService {
       // Extract IP and user agent from request if provided
       let ipAddress = entry.ip_address;
       let userAgent = entry.user_agent;
-      
+
       if (request) {
-        ipAddress = ipAddress || 
-          request.headers.get('x-forwarded-for')?.split(',')[0].trim() || 
+        ipAddress =
+          ipAddress ||
+          request.headers.get('x-forwarded-for')?.split(',')[0].trim() ||
           request.headers.get('x-real-ip') ||
           null;
         userAgent = userAgent || request.headers.get('user-agent');
@@ -107,20 +108,19 @@ export class AdminAuditService {
 
       // Prepare the log entry
       const logEntry = {
-        admin_id: adminSession?.user?.id || entry.details?.attempted_email || 'unknown',
+        admin_id:
+          adminSession?.user?.id || entry.details?.attempted_email || 'unknown',
         action: entry.action,
         resource_type: entry.resource_type,
         resource_id: entry.resource_id || null,
         details: entry.details || {},
         ip_address: ipAddress,
         user_agent: userAgent,
-        created_at: new Date().toISOString()
+        created_at: new Date().toISOString(),
       };
 
       // Insert directly into audit_logs table
-      const { error } = await supabase
-        .from('audit_logs')
-        .insert(logEntry);
+      const { error } = await supabase.from('audit_logs').insert(logEntry);
 
       if (error) {
         console.error('Failed to write audit log:', error);
@@ -133,7 +133,7 @@ export class AdminAuditService {
           action: entry.action,
           admin: adminSession?.user?.email || 'unknown',
           resource: `${entry.resource_type}${entry.resource_id ? `/${entry.resource_id}` : ''}`,
-          details: entry.details
+          details: entry.details,
         });
       }
 
@@ -154,12 +154,16 @@ export class AdminAuditService {
     details?: Record<string, any>,
     request?: Request
   ): Promise<boolean> {
-    return this.logAction(adminSession, {
-      action,
-      resource_type: 'user',
-      resource_id: userId,
-      details
-    }, request);
+    return this.logAction(
+      adminSession,
+      {
+        action,
+        resource_type: 'user',
+        resource_id: userId,
+        details,
+      },
+      request
+    );
   }
 
   /**
@@ -171,16 +175,20 @@ export class AdminAuditService {
     details?: Record<string, any>,
     request?: Request
   ): Promise<boolean> {
-    return this.logAction(null, {
-      action: success ? 'admin.login' : 'admin.login_failed',
-      resource_type: 'admin',
-      resource_id: email,
-      details: {
-        ...details,
-        attempted_email: email,
-        success
-      }
-    }, request);
+    return this.logAction(
+      null,
+      {
+        action: success ? 'admin.login' : 'admin.login_failed',
+        resource_type: 'admin',
+        resource_id: email,
+        details: {
+          ...details,
+          attempted_email: email,
+          success,
+        },
+      },
+      request
+    );
   }
 
   /**
@@ -193,17 +201,21 @@ export class AdminAuditService {
     details?: Record<string, any>,
     request?: Request
   ): Promise<boolean> {
-    return this.logAction(adminSession, {
-      action,
-      resource_type: 'user',
-      resource_id: `bulk_${affectedIds.length}_users`,
-      details: {
-        ...details,
-        affected_count: affectedIds.length,
-        affected_ids: affectedIds.slice(0, 10), // Log first 10 IDs
-        total_affected: affectedIds.length
-      }
-    }, request);
+    return this.logAction(
+      adminSession,
+      {
+        action,
+        resource_type: 'user',
+        resource_id: `bulk_${affectedIds.length}_users`,
+        details: {
+          ...details,
+          affected_count: affectedIds.length,
+          affected_ids: affectedIds.slice(0, 10), // Log first 10 IDs
+          total_affected: affectedIds.length,
+        },
+      },
+      request
+    );
   }
 
   /**
@@ -214,19 +226,19 @@ export class AdminAuditService {
     after: Record<string, any>
   ): Record<string, any> {
     const changes: Record<string, any> = {};
-    
+
     for (const key in after) {
       if (before[key] !== after[key]) {
         changes[key] = {
           before: before[key],
-          after: after[key]
+          after: after[key],
         };
       }
     }
-    
+
     return {
       changes,
-      fields_changed: Object.keys(changes)
+      fields_changed: Object.keys(changes),
     };
   }
 }
@@ -249,16 +261,14 @@ export async function createAdminAuditLog(params: {
     const { createServiceRoleClient } = await import('@/lib/supabase/server');
     const supabase = createServiceRoleClient();
 
-    const { error } = await supabase
-      .from('audit_logs')
-      .insert({
-        admin_id: params.admin_id,
-        action: params.action,
-        resource_type: params.resource_type,
-        resource_id: params.resource_id || null,
-        details: params.details || {},
-        created_at: new Date().toISOString()
-      });
+    const { error } = await supabase.from('audit_logs').insert({
+      admin_id: params.admin_id,
+      action: params.action,
+      resource_type: params.resource_type,
+      resource_id: params.resource_id || null,
+      details: params.details || {},
+      created_at: new Date().toISOString(),
+    });
 
     if (error) {
       console.error('[AUDIT] Failed to create audit log:', error);

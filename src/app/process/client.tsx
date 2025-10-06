@@ -23,7 +23,9 @@ export default function ProcessClient() {
   const [isUploading, setIsUploading] = useState(false);
   const [uploadedImageId, setUploadedImageId] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
-  const [preselectedOperation, setPreselectedOperation] = useState<string | null>(null);
+  const [preselectedOperation, setPreselectedOperation] = useState<
+    string | null
+  >(null);
   const [showSignupModal, setShowSignupModal] = useState(false);
   const [pendingTool, setPendingTool] = useState<string | null>(null);
 
@@ -43,76 +45,84 @@ export default function ProcessClient() {
   }, []);
 
   // Upload image automatically
-  const uploadImage = useCallback(async (file: File) => {
-    if (!user) {
-      setShowSignupModal(true);
-      return null;
-    }
-
-    setIsUploading(true);
-    setUploadError(null);
-
-    try {
-      const formData = new FormData();
-      formData.append('image', file);
-
-      const response = await fetch('/api/upload', {
-        method: 'POST',
-        body: formData,
-        credentials: 'include'
-      });
-
-      const result = await response.json();
-
-      if (result.success) {
-        setUploadedImageId(result.imageId);
-        return result.imageId;
-      } else {
-        throw new Error(result.error || 'Upload failed');
+  const uploadImage = useCallback(
+    async (file: File) => {
+      if (!user) {
+        setShowSignupModal(true);
+        return null;
       }
-    } catch (error) {
-      setUploadError(error instanceof Error ? error.message : 'Upload failed');
-      return null;
-    } finally {
-      setIsUploading(false);
-    }
-  }, [user]);
+
+      setIsUploading(true);
+      setUploadError(null);
+
+      try {
+        const formData = new FormData();
+        formData.append('image', file);
+
+        const response = await fetch('/api/upload', {
+          method: 'POST',
+          body: formData,
+          credentials: 'include',
+        });
+
+        const result = await response.json();
+
+        if (result.success) {
+          setUploadedImageId(result.imageId);
+          return result.imageId;
+        } else {
+          throw new Error(result.error || 'Upload failed');
+        }
+      } catch (error) {
+        setUploadError(
+          error instanceof Error ? error.message : 'Upload failed'
+        );
+        return null;
+      } finally {
+        setIsUploading(false);
+      }
+    },
+    [user]
+  );
 
   // Handle file drop/selection with auto-upload
-  const onDrop = useCallback(async (acceptedFiles: File[]) => {
-    const file = acceptedFiles[0];
-    if (!file) return;
+  const onDrop = useCallback(
+    async (acceptedFiles: File[]) => {
+      const file = acceptedFiles[0];
+      if (!file) return;
 
-    const validationError = validateFile(file);
-    if (validationError) {
-      setUploadError(validationError);
-      return;
-    }
+      const validationError = validateFile(file);
+      if (validationError) {
+        setUploadError(validationError);
+        return;
+      }
 
-    setSelectedFile(file);
-    setUploadError(null);
-    setUploadedImageId(null);
+      setSelectedFile(file);
+      setUploadError(null);
+      setUploadedImageId(null);
 
-    // Create preview
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      setImagePreview(e.target?.result as string);
-    };
-    reader.readAsDataURL(file);
+      // Create preview
+      const reader = new FileReader();
+      reader.onload = e => {
+        setImagePreview(e.target?.result as string);
+      };
+      reader.readAsDataURL(file);
 
-    // Auto-upload the image
-    if (user) {
-      await uploadImage(file);
-    }
-  }, [validateFile, user, uploadImage]);
+      // Auto-upload the image
+      if (user) {
+        await uploadImage(file);
+      }
+    },
+    [validateFile, user, uploadImage]
+  );
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
     accept: {
-      'image/*': ['.jpeg', '.jpg', '.png', '.webp']
+      'image/*': ['.jpeg', '.jpg', '.png', '.webp'],
     },
     maxFiles: 1,
-    multiple: false
+    multiple: false,
   });
 
   // Check for preselected operation and image from URL
@@ -121,7 +131,7 @@ export default function ProcessClient() {
     if (operation) {
       setPreselectedOperation(operation);
     }
-    
+
     // Handle incoming image URL (e.g., from AI generation "Process Further" button)
     const imageUrlParam = searchParams.get('image');
     if (imageUrlParam && !selectedFile) {
@@ -133,22 +143,24 @@ export default function ProcessClient() {
           if (!response.ok) {
             throw new Error('Failed to fetch image from URL');
           }
-          
+
           const blob = await response.blob();
-          
+
           // Validate that it's an image
           if (!blob.type.startsWith('image/')) {
             throw new Error('URL does not point to a valid image');
           }
-          
+
           // Create file from blob
           let extension = 'jpg';
           if (blob.type === 'image/png') extension = 'png';
           else if (blob.type === 'image/webp') extension = 'webp';
           else if (blob.type === 'image/gif') extension = 'gif';
-          
-          const file = new File([blob], `image.${extension}`, { type: blob.type });
-          
+
+          const file = new File([blob], `image.${extension}`, {
+            type: blob.type,
+          });
+
           // Validate the file
           const validationError = validateFile(file);
           if (validationError) {
@@ -156,28 +168,32 @@ export default function ProcessClient() {
             setIsUploading(false);
             return;
           }
-          
+
           setSelectedFile(file);
           setUploadError(null);
-          
+
           // Create preview
           const reader = new FileReader();
-          reader.onload = (e) => {
+          reader.onload = e => {
             setImagePreview(e.target?.result as string);
           };
           reader.readAsDataURL(file);
-          
+
           // Auto-upload if user is logged in
           if (user) {
             await uploadImage(file);
           }
         } catch (error) {
-          setUploadError(error instanceof Error ? error.message : 'Failed to load image from URL');
+          setUploadError(
+            error instanceof Error
+              ? error.message
+              : 'Failed to load image from URL'
+          );
         } finally {
           setIsUploading(false);
         }
       };
-      
+
       loadImageFromUrl();
     }
   }, [searchParams, selectedFile, user, uploadImage, validateFile]);
@@ -194,11 +210,11 @@ export default function ProcessClient() {
   useEffect(() => {
     if (user) {
       refreshCredits();
-      
+
       // Refresh on window focus
       const handleFocus = () => refreshCredits();
       window.addEventListener('focus', handleFocus);
-      
+
       // Refresh on visibility change (tab switching)
       const handleVisibilityChange = () => {
         if (!document.hidden) {
@@ -206,10 +222,13 @@ export default function ProcessClient() {
         }
       };
       document.addEventListener('visibilitychange', handleVisibilityChange);
-      
+
       return () => {
         window.removeEventListener('focus', handleFocus);
-        document.removeEventListener('visibilitychange', handleVisibilityChange);
+        document.removeEventListener(
+          'visibilitychange',
+          handleVisibilityChange
+        );
       };
     }
   }, [user, refreshCredits]);
@@ -217,14 +236,14 @@ export default function ProcessClient() {
   // Navigate to tool with automatic upload if needed
   const navigateToTool = async (tool: string) => {
     if (isProcessing) return;
-    
+
     // If not logged in, show signup modal and save tool for later
     if (!user) {
       setPendingTool(tool);
       setShowSignupModal(true);
       return;
     }
-    
+
     setIsProcessing(true);
     let imageId = uploadedImageId;
 
@@ -246,7 +265,7 @@ export default function ProcessClient() {
   // Handle signup modal close
   const handleSignupModalClose = () => {
     setShowSignupModal(false);
-    
+
     // If user signed up and there's a pending tool, navigate to it
     if (user && pendingTool && selectedFile) {
       navigateToTool(pendingTool);
@@ -262,7 +281,6 @@ export default function ProcessClient() {
     }
   }, [user]);
 
-
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Main Content */}
@@ -270,7 +288,7 @@ export default function ProcessClient() {
         <div className="max-w-6xl mx-auto p-4 space-y-4">
           {/* Breadcrumb */}
           <Breadcrumb items={[{ label: 'Process Image' }]} />
-          
+
           {/* Compact Header */}
           <div className="text-center">
             <h1 className="text-2xl font-bold text-gray-900">
@@ -278,7 +296,8 @@ export default function ProcessClient() {
             </h1>
             {profile && (
               <p className="text-sm text-blue-600 mt-1">
-                {profile?.credits ?? profile?.credits_remaining ?? 0} credits remaining
+                {profile?.credits ?? profile?.credits_remaining ?? 0} credits
+                remaining
               </p>
             )}
           </div>
@@ -298,7 +317,9 @@ export default function ProcessClient() {
                   <input {...getInputProps()} />
                   <Upload className="w-10 h-10 mx-auto text-gray-400 mb-3" />
                   <p className="text-base font-medium text-gray-700 mb-1">
-                    {isDragActive ? 'Drop your image here' : 'Drag & drop an image here'}
+                    {isDragActive
+                      ? 'Drop your image here'
+                      : 'Drag & drop an image here'}
                   </p>
                   <p className="text-gray-500 text-sm mb-2">
                     or click to select a file
@@ -319,12 +340,16 @@ export default function ProcessClient() {
                 <CardHeader className="pb-3">
                   <CardTitle className="text-lg flex items-center justify-between">
                     Selected Image
-                    <Button variant="secondary" size="sm" onClick={() => {
-                      setSelectedFile(null);
-                      setImagePreview(null);
-                      setUploadedImageId(null);
-                      setUploadError(null);
-                    }}>
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      onClick={() => {
+                        setSelectedFile(null);
+                        setImagePreview(null);
+                        setUploadedImageId(null);
+                        setUploadError(null);
+                      }}
+                    >
                       Change
                     </Button>
                   </CardTitle>
@@ -342,9 +367,10 @@ export default function ProcessClient() {
                     </div>
                     <div className="space-y-1">
                       <p className="text-xs text-gray-500 text-center">
-                        {selectedFile.name} • {formatFileSize(selectedFile.size)}
+                        {selectedFile.name} •{' '}
+                        {formatFileSize(selectedFile.size)}
                       </p>
-                      
+
                       {isUploading && (
                         <div className="text-center text-blue-600">
                           <div className="inline-flex items-center gap-2 text-sm">
@@ -353,19 +379,19 @@ export default function ProcessClient() {
                           </div>
                         </div>
                       )}
-                      
+
                       {uploadedImageId && !isUploading && (
                         <div className="text-center text-green-600 text-sm">
                           ✓ Ready to process
                         </div>
                       )}
-                      
+
                       {uploadError && (
                         <p className="text-xs text-red-600 text-center">
                           {uploadError}
                         </p>
                       )}
-                      
+
                       {!user && (
                         <p className="text-xs text-amber-600 text-center">
                           Sign up free to process images
@@ -380,36 +406,45 @@ export default function ProcessClient() {
               <Card>
                 <CardHeader className="pb-3">
                   <CardTitle className="text-lg">
-                    {isUploading ? 'Uploading Image...' : 
-                     preselectedOperation ? `Processing with ${getOperationName(preselectedOperation)}...` :
-                     'Select Processing Tool'}
+                    {isUploading
+                      ? 'Uploading Image...'
+                      : preselectedOperation
+                        ? `Processing with ${getOperationName(preselectedOperation)}...`
+                        : 'Select Processing Tool'}
                   </CardTitle>
-                  {!uploadedImageId && !isUploading && !preselectedOperation && (
-                    <p className="text-xs text-gray-500">
-                      Click a tool to start processing
-                    </p>
-                  )}
+                  {!uploadedImageId &&
+                    !isUploading &&
+                    !preselectedOperation && (
+                      <p className="text-xs text-gray-500">
+                        Click a tool to start processing
+                      </p>
+                    )}
                   {preselectedOperation && !uploadedImageId && !isUploading && (
                     <p className="text-xs text-gray-500">
-                      Will automatically proceed to {getOperationName(preselectedOperation)}
+                      Will automatically proceed to{' '}
+                      {getOperationName(preselectedOperation)}
                     </p>
                   )}
                 </CardHeader>
                 <CardContent className="pt-0">
                   <div className="space-y-3">
                     {/* Upscale */}
-                    <Card 
+                    <Card
                       className={`cursor-pointer transition-all ${
-                        isProcessing ? 'opacity-50 cursor-not-allowed' : 
-                        preselectedOperation === 'upscale' ? 'ring-2 ring-blue-500 bg-blue-50' :
-                        'hover:shadow-md hover:border-blue-500'
+                        isProcessing
+                          ? 'opacity-50 cursor-not-allowed'
+                          : preselectedOperation === 'upscale'
+                            ? 'ring-2 ring-blue-500 bg-blue-50'
+                            : 'hover:shadow-md hover:border-blue-500'
                       }`}
                       onClick={() => !isProcessing && navigateToTool('upscale')}
                     >
                       <CardContent className="p-4 flex items-center gap-4">
                         <Wand2 className="w-10 h-10 text-blue-600 flex-shrink-0" />
                         <div className="flex-1">
-                          <h3 className="font-semibold text-sm">Upscale Image</h3>
+                          <h3 className="font-semibold text-sm">
+                            Upscale Image
+                          </h3>
                           <p className="text-xs text-gray-600">
                             Enhance resolution up to 4x
                           </p>
@@ -422,18 +457,24 @@ export default function ProcessClient() {
                     </Card>
 
                     {/* Background Removal */}
-                    <Card 
+                    <Card
                       className={`cursor-pointer transition-all ${
-                        isProcessing ? 'opacity-50 cursor-not-allowed' : 
-                        preselectedOperation === 'background-removal' ? 'ring-2 ring-green-500 bg-green-50' :
-                        'hover:shadow-md hover:border-green-500'
+                        isProcessing
+                          ? 'opacity-50 cursor-not-allowed'
+                          : preselectedOperation === 'background-removal'
+                            ? 'ring-2 ring-green-500 bg-green-50'
+                            : 'hover:shadow-md hover:border-green-500'
                       }`}
-                      onClick={() => !isProcessing && navigateToTool('background-removal')}
+                      onClick={() =>
+                        !isProcessing && navigateToTool('background-removal')
+                      }
                     >
                       <CardContent className="p-4 flex items-center gap-4">
                         <Scissors className="w-10 h-10 text-green-600 flex-shrink-0" />
                         <div className="flex-1">
-                          <h3 className="font-semibold text-sm">Remove Background</h3>
+                          <h3 className="font-semibold text-sm">
+                            Remove Background
+                          </h3>
                           <p className="text-xs text-gray-600">
                             Professional background removal
                           </p>
@@ -446,13 +487,17 @@ export default function ProcessClient() {
                     </Card>
 
                     {/* Vectorization */}
-                    <Card 
+                    <Card
                       className={`cursor-pointer transition-all ${
-                        isProcessing ? 'opacity-50 cursor-not-allowed' : 
-                        preselectedOperation === 'vectorize' ? 'ring-2 ring-purple-500 bg-purple-50' :
-                        'hover:shadow-md hover:border-purple-500'
+                        isProcessing
+                          ? 'opacity-50 cursor-not-allowed'
+                          : preselectedOperation === 'vectorize'
+                            ? 'ring-2 ring-purple-500 bg-purple-50'
+                            : 'hover:shadow-md hover:border-purple-500'
                       }`}
-                      onClick={() => !isProcessing && navigateToTool('vectorize')}
+                      onClick={() =>
+                        !isProcessing && navigateToTool('vectorize')
+                      }
                     >
                       <CardContent className="p-4 flex items-center gap-4">
                         <Zap className="w-10 h-10 text-purple-600 flex-shrink-0" />
@@ -470,21 +515,23 @@ export default function ProcessClient() {
                     </Card>
                   </div>
 
-                  {profile && (profile?.credits ?? profile?.credits_remaining ?? 0) < 1 && (
-                    <p className="text-xs text-red-600 text-center mt-3">
-                      Insufficient credits. Please purchase more credits.
-                    </p>
-                  )}
+                  {profile &&
+                    (profile?.credits ?? profile?.credits_remaining ?? 0) <
+                      1 && (
+                      <p className="text-xs text-red-600 text-center mt-3">
+                        Insufficient credits. Please purchase more credits.
+                      </p>
+                    )}
                 </CardContent>
               </Card>
             </div>
           )}
         </div>
       </main>
-      
+
       {/* Signup Modal */}
-      <SignupModal 
-        isOpen={showSignupModal} 
+      <SignupModal
+        isOpen={showSignupModal}
         onClose={handleSignupModalClose}
         feature="AI image processing"
       />

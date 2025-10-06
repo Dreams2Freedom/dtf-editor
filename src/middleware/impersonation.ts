@@ -8,26 +8,40 @@ export interface ImpersonationData {
   startedAt: string;
 }
 
-export async function handleImpersonation(request: NextRequest, response: NextResponse) {
-
+export async function handleImpersonation(
+  request: NextRequest,
+  response: NextResponse
+) {
   // Check for impersonation session
   const impersonationCookie = request.cookies.get('impersonation_session');
-  
+
   if (impersonationCookie) {
     try {
-      const impersonationData: ImpersonationData = JSON.parse(impersonationCookie.value);
-      
+      const impersonationData: ImpersonationData = JSON.parse(
+        impersonationCookie.value
+      );
+
       // Add impersonation headers for client components
       response.headers.set('x-impersonation-active', 'true');
-      response.headers.set('x-impersonated-user-id', impersonationData.impersonatedUserId);
-      response.headers.set('x-impersonated-user-email', impersonationData.impersonatedUserEmail);
-      response.headers.set('x-original-admin-email', impersonationData.originalAdminEmail);
-      
+      response.headers.set(
+        'x-impersonated-user-id',
+        impersonationData.impersonatedUserId
+      );
+      response.headers.set(
+        'x-impersonated-user-email',
+        impersonationData.impersonatedUserEmail
+      );
+      response.headers.set(
+        'x-original-admin-email',
+        impersonationData.originalAdminEmail
+      );
+
       // Check if impersonation has expired (2 hours)
       const startedAt = new Date(impersonationData.startedAt);
       const now = new Date();
-      const hoursSinceStart = (now.getTime() - startedAt.getTime()) / (1000 * 60 * 60);
-      
+      const hoursSinceStart =
+        (now.getTime() - startedAt.getTime()) / (1000 * 60 * 60);
+
       if (hoursSinceStart > 2) {
         // Expired - clear the cookie
         response.cookies.delete('impersonation_session');

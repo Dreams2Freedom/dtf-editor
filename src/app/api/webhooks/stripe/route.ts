@@ -13,37 +13,44 @@ function getSupabase() {
   if (!supabase) {
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
     const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-    
+
     if (!supabaseUrl || !supabaseKey) {
       throw new Error('Supabase environment variables are required');
     }
-    
+
     supabase = createClient(supabaseUrl, supabaseKey);
   }
   return supabase;
 }
 
 // Helper function to update GoHighLevel tags based on purchase type
-async function updateGoHighLevelTags(email: string, purchaseType: 'subscription' | 'credits', planName?: string) {
+async function updateGoHighLevelTags(
+  email: string,
+  purchaseType: 'subscription' | 'credits',
+  planName?: string
+) {
   try {
     console.log('🏷️ Updating GoHighLevel tags for:', email, purchaseType);
-    
+
     // First, find or create the contact
     const contactResult = await goHighLevelService.createContact({
       email,
       firstName: '',
       tags: [], // Will be updated below
     });
-    
+
     if (!contactResult.success) {
-      console.error('Failed to find/create GoHighLevel contact:', contactResult.error);
+      console.error(
+        'Failed to find/create GoHighLevel contact:',
+        contactResult.error
+      );
       return;
     }
-    
+
     // Prepare tags based on purchase type
     const tagsToAdd: string[] = ['customer'];
     const tagsToRemove: string[] = ['free-account'];
-    
+
     if (purchaseType === 'subscription') {
       tagsToAdd.push('customer-subscription');
       if (planName) {
@@ -53,12 +60,12 @@ async function updateGoHighLevelTags(email: string, purchaseType: 'subscription'
       tagsToAdd.push('customer-credits');
       tagsToAdd.push('pay-as-you-go');
     }
-    
+
     // Update tags (Note: GoHighLevel v1 API doesn't have a remove tags endpoint,
     // so we'll update the contact with new tags)
     console.log('🏷️ Adding tags:', tagsToAdd);
     console.log('🏷️ Removing tags:', tagsToRemove);
-    
+
     // Create contact with updated tags
     await goHighLevelService.createContact({
       email,
@@ -67,10 +74,10 @@ async function updateGoHighLevelTags(email: string, purchaseType: 'subscription'
       customFields: {
         lastPurchase: new Date().toISOString(),
         purchaseType: purchaseType,
-        customerStatus: 'active'
-      }
+        customerStatus: 'active',
+      },
     });
-    
+
     console.log('✅ GoHighLevel tags updated successfully');
   } catch (error) {
     console.error('Error updating GoHighLevel tags:', error);
@@ -139,7 +146,7 @@ export async function POST(request: NextRequest) {
         break;
 
       default:
-        // Unhandled event type
+      // Unhandled event type
     }
 
     console.log('✅ Webhook processed successfully');
@@ -148,7 +155,10 @@ export async function POST(request: NextRequest) {
     console.error('❌ Webhook error:', error);
     console.error('Error details:', error.message);
     return NextResponse.json(
-      { error: 'Webhook signature verification failed', details: error.message },
+      {
+        error: 'Webhook signature verification failed',
+        details: error.message,
+      },
       { status: 400 }
     );
   }
@@ -159,9 +169,9 @@ async function handleSubscriptionEvent(subscription: any) {
   console.log('Event type:', subscription.status);
   console.log('Customer ID:', subscription.customer);
   console.log('Subscription ID:', subscription.id);
-  
+
   let userId = subscription.metadata?.userId;
-  
+
   // If no userId in metadata, try to find it by customer ID
   if (!userId && subscription.customer) {
     const { data: profile } = await getSupabase()
@@ -169,23 +179,39 @@ async function handleSubscriptionEvent(subscription: any) {
       .select('id, stripe_subscription_id')
       .eq('stripe_customer_id', subscription.customer)
       .single();
-    
+
     if (profile) {
       userId = profile.id;
       console.log('Found userId from customer ID:', userId);
-      
+
       // Check if this is a different subscription than what we have on file
-      if (profile.stripe_subscription_id && profile.stripe_subscription_id !== subscription.id) {
-        console.log('⚠️ New subscription detected, different from stored:', profile.stripe_subscription_id);
-        
+      if (
+        profile.stripe_subscription_id &&
+        profile.stripe_subscription_id !== subscription.id
+      ) {
+        console.log(
+          '⚠️ New subscription detected, different from stored:',
+          profile.stripe_subscription_id
+        );
+
         // Check if the old subscription should be cancelled
         try {
           const stripeService = getStripeService();
-          const oldSub = await stripeService.getSubscription(profile.stripe_subscription_id);
-          
-          if (oldSub && (oldSub.status === 'active' || oldSub.status === 'trialing')) {
-            console.log('🔄 Cancelling old subscription:', profile.stripe_subscription_id);
-            await stripeService.cancelSubscription(profile.stripe_subscription_id);
+          const oldSub = await stripeService.getSubscription(
+            profile.stripe_subscription_id
+          );
+
+          if (
+            oldSub &&
+            (oldSub.status === 'active' || oldSub.status === 'trialing')
+          ) {
+            console.log(
+              '🔄 Cancelling old subscription:',
+              profile.stripe_subscription_id
+            );
+            await stripeService.cancelSubscription(
+              profile.stripe_subscription_id
+            );
           }
         } catch (error) {
           console.error('Error checking old subscription:', error);
@@ -194,7 +220,7 @@ async function handleSubscriptionEvent(subscription: any) {
       }
     }
   }
-  
+
   if (!userId) {
     console.error('❌ Could not find userId for subscription event');
     return;
@@ -202,19 +228,21 @@ async function handleSubscriptionEvent(subscription: any) {
 
   // Get the price ID from the subscription
   const priceId = subscription.items?.data?.[0]?.price?.id;
-  
+
   // Determine the plan based on the price ID
   const stripeService = getStripeService();
   const plans = stripeService.getSubscriptionPlans();
   const plan = plans.find((p: any) => p.stripePriceId === priceId);
-  
+
   const updateData: any = {
     stripe_subscription_id: subscription.id,
   };
-  
+
   // Only add period end if it exists
   if (subscription.current_period_end) {
-    updateData.subscription_current_period_end = new Date(subscription.current_period_end * 1000).toISOString();
+    updateData.subscription_current_period_end = new Date(
+      subscription.current_period_end * 1000
+    ).toISOString();
   }
 
   // If we found a matching plan, update both status and plan
@@ -238,37 +266,45 @@ async function handleSubscriptionEvent(subscription: any) {
     console.error('❌ Error updating subscription:', error);
     throw error;
   }
-  
+
   console.log('✅ Subscription updated for user:', userId);
-  
+
   // Send subscription confirmation email for new subscriptions
   if (subscription.status === 'active' && !subscription.cancel_at_period_end) {
     try {
       // Get user details for email
-      const { data: { user }, error: userError } = await getSupabase().auth.admin.getUserById(userId);
-      
+      const {
+        data: { user },
+        error: userError,
+      } = await getSupabase().auth.admin.getUserById(userId);
+
       if (userError) {
         console.error('❌ Error fetching user for email:', userError);
       }
-      
+
       // Get user profile for first name
       const { data: profile } = await getSupabase()
         .from('profiles')
         .select('first_name')
         .eq('id', userId)
         .single();
-      
+
       if (user?.email && plan) {
-        console.log('📧 Sending subscription confirmation email to:', user.email);
+        console.log(
+          '📧 Sending subscription confirmation email to:',
+          user.email
+        );
         const emailSent = await emailService.sendSubscriptionEmail({
           email: user.email,
           firstName: profile?.first_name,
           action: 'created',
           planName: plan.name,
-          nextBillingDate: subscription.current_period_end ? new Date(subscription.current_period_end * 1000) : undefined
+          nextBillingDate: subscription.current_period_end
+            ? new Date(subscription.current_period_end * 1000)
+            : undefined,
         });
         console.log('📧 Subscription email sent result:', emailSent);
-        
+
         // Update GoHighLevel tags for subscription purchase
         await updateGoHighLevelTags(user.email, 'subscription', plan.name);
       }
@@ -283,9 +319,9 @@ async function handleSubscriptionCancellation(subscription: any) {
   console.log('🚫 Handling subscription cancellation');
   console.log('Subscription ID:', subscription.id);
   console.log('Customer ID:', subscription.customer);
-  
+
   let userId = subscription.metadata?.userId;
-  
+
   // If no userId in metadata, try to find it by customer ID
   if (!userId && subscription.customer) {
     const { data: profile } = await getSupabase()
@@ -293,13 +329,13 @@ async function handleSubscriptionCancellation(subscription: any) {
       .select('id')
       .eq('stripe_customer_id', subscription.customer)
       .single();
-    
+
     if (profile) {
       userId = profile.id;
       console.log('Found userId from customer ID:', userId);
     }
   }
-  
+
   if (!userId) {
     console.error('❌ Could not find userId for subscription cancellation');
     return;
@@ -318,7 +354,7 @@ async function handleSubscriptionCancellation(subscription: any) {
     console.error('❌ Error updating subscription status:', error);
     throw error;
   }
-  
+
   console.log('✅ Subscription cancelled for user:', userId);
 }
 
@@ -329,20 +365,26 @@ async function handleInvoicePaymentSucceeded(invoice: any) {
   // Handle subscription renewal
   if (invoice.subscription && invoice.billing_reason === 'subscription_cycle') {
     // Update subscription billing period dates
-    const subscription = await getStripeService().getSubscription(invoice.subscription);
+    const subscription = await getStripeService().getSubscription(
+      invoice.subscription
+    );
     if (subscription) {
       // Update the billing period in profiles
       const updateData: any = {
-        updated_at: new Date().toISOString()
+        updated_at: new Date().toISOString(),
       };
-      
+
       if (subscription.current_period_start) {
-        updateData.stripe_current_period_start = new Date(subscription.current_period_start * 1000).toISOString();
+        updateData.stripe_current_period_start = new Date(
+          subscription.current_period_start * 1000
+        ).toISOString();
       }
       if (subscription.current_period_end) {
-        updateData.stripe_current_period_end = new Date(subscription.current_period_end * 1000).toISOString();
+        updateData.stripe_current_period_end = new Date(
+          subscription.current_period_end * 1000
+        ).toISOString();
       }
-      
+
       const { error: updateError } = await getSupabase()
         .from('profiles')
         .update(updateData)
@@ -354,14 +396,17 @@ async function handleInvoicePaymentSucceeded(invoice: any) {
 
       // Trigger credit reset for the new billing period
       try {
-        const response = await fetch(`${env.NEXT_PUBLIC_APP_URL}/api/credits/reset`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'x-api-key': env.SUPABASE_SERVICE_ROLE_KEY
-          },
-          body: JSON.stringify({ userId })
-        });
+        const response = await fetch(
+          `${env.NEXT_PUBLIC_APP_URL}/api/credits/reset`,
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'x-api-key': env.SUPABASE_SERVICE_ROLE_KEY,
+            },
+            body: JSON.stringify({ userId }),
+          }
+        );
 
         if (!response.ok) {
           console.error('Failed to reset credits:', await response.text());
@@ -377,18 +422,20 @@ async function handlePaymentIntentSucceeded(paymentIntent: any) {
   console.log('🎯 handlePaymentIntentSucceeded called');
   console.log('Payment Intent ID:', paymentIntent.id);
   console.log('Metadata:', paymentIntent.metadata);
-  
+
   // IMPORTANT: Credits are now added in checkout.session.completed to prevent duplicates
   // This handler now only sends confirmation emails for direct payment intents
   // that don't go through Checkout (if any exist in your flow)
-  
+
   const userId = paymentIntent.metadata?.userId;
   const credits = parseInt(paymentIntent.metadata?.credits || '0');
-  
+
   console.log('User ID:', userId);
   console.log('Credits in metadata:', credits);
-  console.log('⚠️ NOTE: Credits are added via checkout.session.completed, not here');
-  
+  console.log(
+    '⚠️ NOTE: Credits are added via checkout.session.completed, not here'
+  );
+
   if (!userId) {
     console.log('⚠️ No userId, skipping');
     return;
@@ -397,26 +444,31 @@ async function handlePaymentIntentSucceeded(paymentIntent: any) {
   try {
     // DON'T add credits here - they're added in checkout.session.completed
     // This prevents duplicate credit allocation (BUG-054)
-    console.log('✅ Payment intent processed (credits handled by checkout.session)');
-    
+    console.log(
+      '✅ Payment intent processed (credits handled by checkout.session)'
+    );
+
     // Send purchase confirmation email
     try {
       console.log('📧 Attempting to send payment intent purchase email...');
-      
+
       // Get user email from auth
-      const { data: { user }, error: userError } = await getSupabase().auth.admin.getUserById(userId);
-      
+      const {
+        data: { user },
+        error: userError,
+      } = await getSupabase().auth.admin.getUserById(userId);
+
       if (userError) {
         console.error('❌ Error fetching user:', userError);
       }
-      
+
       // Get first name from profile
       const { data: profile } = await getSupabase()
         .from('profiles')
         .select('first_name')
         .eq('id', userId)
         .single();
-      
+
       if (user?.email) {
         console.log('📧 Sending purchase email to:', user.email);
         const emailSent = await emailService.sendPurchaseEmail({
@@ -428,7 +480,7 @@ async function handlePaymentIntentSucceeded(paymentIntent: any) {
           invoiceUrl: `${process.env.NEXT_PUBLIC_APP_URL}/dashboard`,
         });
         console.log('📧 Email sent result:', emailSent);
-        
+
         // Update GoHighLevel tags for credit purchase
         await updateGoHighLevelTags(user.email, 'credits');
       } else {
@@ -457,14 +509,14 @@ async function handleChargeRefunded(charge: any) {
   console.log('Charge ID:', charge.id);
   console.log('Refunded amount:', charge.amount_refunded);
   console.log('Payment Intent:', charge.payment_intent);
-  
+
   // Get metadata from the original payment intent
   const userId = charge.metadata?.userId;
   const credits = parseInt(charge.metadata?.credits || '0');
-  
+
   console.log('User ID:', userId);
   console.log('Credits to deduct:', credits);
-  
+
   if (!userId || !credits) {
     console.log('⚠️ Missing userId or credits in refund, skipping');
     return;
@@ -474,34 +526,34 @@ async function handleChargeRefunded(charge: any) {
     // Calculate how many credits to deduct based on refund amount
     const refundPercentage = charge.amount_refunded / charge.amount;
     const creditsToDeduct = Math.ceil(credits * refundPercentage);
-    
+
     console.log(`📝 Deducting ${creditsToDeduct} credits due to refund`);
-    
+
     // Deduct credits from the user
     const { data: profile, error: fetchError } = await getSupabase()
       .from('profiles')
       .select('credits_remaining')
       .eq('id', userId)
       .single();
-    
+
     if (fetchError) {
       console.error('❌ Error fetching profile:', fetchError);
       throw fetchError;
     }
-    
+
     const currentCredits = profile.credits_remaining || 0;
     const newCredits = Math.max(0, currentCredits - creditsToDeduct); // Don't go negative
-    
+
     const { error: updateError } = await getSupabase()
       .from('profiles')
       .update({ credits_remaining: newCredits })
       .eq('id', userId);
-    
+
     if (updateError) {
       console.error('❌ Error updating credits:', updateError);
       throw updateError;
     }
-    
+
     // Log the transaction
     const { error: transactionError } = await getSupabase()
       .from('credit_transactions')
@@ -513,20 +565,25 @@ async function handleChargeRefunded(charge: any) {
         metadata: {
           stripe_charge_id: charge.id,
           stripe_payment_intent_id: charge.payment_intent,
-          refund_amount: charge.amount_refunded
-        }
+          refund_amount: charge.amount_refunded,
+        },
       });
-    
+
     if (transactionError) {
       console.log('Note: Could not log transaction:', transactionError.message);
     }
-    
-    console.log(`✅ Credits deducted successfully! ${currentCredits} → ${newCredits}`);
-    
+
+    console.log(
+      `✅ Credits deducted successfully! ${currentCredits} → ${newCredits}`
+    );
+
     // Send refund notification email
     try {
-      const { data: { user }, error: userError } = await getSupabase().auth.admin.getUserById(userId);
-      
+      const {
+        data: { user },
+        error: userError,
+      } = await getSupabase().auth.admin.getUserById(userId);
+
       if (user?.email) {
         // Get user's first name from profile
         const { data: userProfile } = await getSupabase()
@@ -534,20 +591,19 @@ async function handleChargeRefunded(charge: any) {
           .select('first_name')
           .eq('id', userId)
           .single();
-        
+
         await emailService.sendRefundEmail({
           email: user.email,
           firstName: userProfile?.first_name,
           refundAmount: charge.amount_refunded / 100, // Convert from cents
           creditDeducted: creditsToDeduct,
-          originalPaymentDate: new Date(charge.created * 1000) // Convert from Unix timestamp
+          originalPaymentDate: new Date(charge.created * 1000), // Convert from Unix timestamp
         });
         console.log('📧 Refund notification sent to:', user.email);
       }
     } catch (emailError) {
       console.error('Error sending refund email:', emailError);
     }
-    
   } catch (err) {
     console.error('❌ Failed to process refund:', err);
     throw err;
@@ -559,13 +615,13 @@ async function handleCheckoutSessionCompleted(session: any) {
   console.log('Session ID:', session.id);
   console.log('Session metadata:', session.metadata);
   console.log('Session mode:', session.mode);
-  
+
   const userId = session.metadata?.userId;
   if (!userId) {
     console.error('❌ No userId in session metadata');
     return;
   }
-  
+
   console.log('👤 Processing for user:', userId);
 
   // Handle subscription checkout
@@ -587,12 +643,13 @@ async function handleCheckoutSessionCompleted(session: any) {
     }
 
     // Get subscription details to update plan
-    const subscription = await getStripeService().getSubscription(subscriptionId);
+    const subscription =
+      await getStripeService().getSubscription(subscriptionId);
     if (subscription) {
       const priceId = subscription.items.data[0]?.price.id;
       const plans = getStripeService().getSubscriptionPlans();
       const plan = plans.find((p: any) => p.stripePriceId === priceId);
-      
+
       if (plan) {
         // Update subscription plan and status
         const { error: planError } = await supabase
@@ -609,17 +666,20 @@ async function handleCheckoutSessionCompleted(session: any) {
 
         // Add initial credits
         if (plan.creditsPerMonth) {
-          const { error: creditError } = await getSupabase().rpc('add_user_credits', {
-            p_user_id: userId,
-            p_amount: plan.creditsPerMonth,
-            p_transaction_type: 'subscription',
-            p_description: `${plan.name} subscription`,
-            p_metadata: {
-              stripe_session_id: session.id,
-              stripe_subscription_id: subscriptionId,
-              price_paid: session.amount_total || 0
+          const { error: creditError } = await getSupabase().rpc(
+            'add_user_credits',
+            {
+              p_user_id: userId,
+              p_amount: plan.creditsPerMonth,
+              p_transaction_type: 'subscription',
+              p_description: `${plan.name} subscription`,
+              p_metadata: {
+                stripe_session_id: session.id,
+                stripe_subscription_id: subscriptionId,
+                price_paid: session.amount_total || 0,
+              },
             }
-          });
+          );
 
           if (creditError) {
             throw creditError;
@@ -637,7 +697,10 @@ async function handleCheckoutSessionCompleted(session: any) {
           );
           console.log('✅ Tracked affiliate conversion for subscription');
         } catch (affiliateError) {
-          console.error('❌ Error tracking affiliate conversion:', affiliateError);
+          console.error(
+            '❌ Error tracking affiliate conversion:',
+            affiliateError
+          );
           // Don't fail the webhook if affiliate tracking fails
         }
 
@@ -656,33 +719,36 @@ async function handleCheckoutSessionCompleted(session: any) {
               paymentMode: 'subscription',
               subscriptionId: subscriptionId,
               planName: plan.name,
-              amountCents: session.amount_total || 0
-            }
+              amountCents: session.amount_total || 0,
+            },
           });
           console.log('💰 Stripe subscription cost tracked');
         } catch (costError) {
           console.error('Error tracking Stripe costs:', costError);
           // Don't fail the webhook if cost tracking fails
         }
-        
+
         // Send subscription confirmation email
         try {
           console.log('📧 Attempting to send subscription email...');
-          
+
           // Get user email from auth
-          const { data: { user }, error: userError } = await getSupabase().auth.admin.getUserById(userId);
-          
+          const {
+            data: { user },
+            error: userError,
+          } = await getSupabase().auth.admin.getUserById(userId);
+
           if (userError) {
             console.error('❌ Error fetching user:', userError);
           }
-          
+
           // Get first name from profile
           const { data: profile } = await getSupabase()
             .from('profiles')
             .select('first_name')
             .eq('id', userId)
             .single();
-          
+
           if (user?.email) {
             console.log('📧 Sending subscription email to:', user.email);
             await emailService.sendSubscriptionEmail({
@@ -692,7 +758,7 @@ async function handleCheckoutSessionCompleted(session: any) {
               planName: plan.name,
               nextBillingDate: new Date(subscription.current_period_end * 1000),
             });
-            
+
             // Also send purchase confirmation
             await emailService.sendPurchaseEmail({
               email: user.email,
@@ -710,55 +776,58 @@ async function handleCheckoutSessionCompleted(session: any) {
       }
     }
   }
-  
+
   // Handle one-time payment (pay-as-you-go credits)
   if (session.mode === 'payment') {
     console.log('🎯 Processing pay-as-you-go payment from checkout session');
-    
+
     const credits = parseInt(session.metadata?.credits || '0');
     const customerId = session.customer;
-    
+
     if (credits > 0) {
       try {
         // Update customer ID and set credit expiration (90 days for pay-as-you-go)
         const creditExpirationDate = new Date();
         creditExpirationDate.setDate(creditExpirationDate.getDate() + 90); // 90 days from purchase
-        
+
         if (customerId) {
           await getSupabase()
             .from('profiles')
-            .update({ 
+            .update({
               stripe_customer_id: customerId,
-              credit_expires_at: creditExpirationDate.toISOString() // Set 90-day expiration for storage
+              credit_expires_at: creditExpirationDate.toISOString(), // Set 90-day expiration for storage
             })
             .eq('id', userId);
         } else {
           // Even without customer ID, set the credit expiration
           await getSupabase()
             .from('profiles')
-            .update({ 
-              credit_expires_at: creditExpirationDate.toISOString()
+            .update({
+              credit_expires_at: creditExpirationDate.toISOString(),
             })
             .eq('id', userId);
         }
-        
+
         // Add credits
-        const { error: creditError } = await getSupabase().rpc('add_user_credits', {
-          p_user_id: userId,
-          p_amount: credits,
-          p_transaction_type: 'purchase',
-          p_description: `${credits} credits purchase`,
-          p_metadata: {
-            stripe_session_id: session.id,
-            price_paid: session.amount_total || 0
+        const { error: creditError } = await getSupabase().rpc(
+          'add_user_credits',
+          {
+            p_user_id: userId,
+            p_amount: credits,
+            p_transaction_type: 'purchase',
+            p_description: `${credits} credits purchase`,
+            p_metadata: {
+              stripe_session_id: session.id,
+              price_paid: session.amount_total || 0,
+            },
           }
-        });
-        
+        );
+
         if (creditError) {
           console.error('❌ Credit addition error:', creditError);
           throw creditError;
         }
-        
+
         console.log('✅ Credits added successfully from checkout session!');
 
         // Track affiliate conversion for one-time purchase
@@ -772,7 +841,10 @@ async function handleCheckoutSessionCompleted(session: any) {
           );
           console.log('✅ Tracked affiliate conversion for one-time purchase');
         } catch (affiliateError) {
-          console.error('❌ Error tracking affiliate conversion:', affiliateError);
+          console.error(
+            '❌ Error tracking affiliate conversion:',
+            affiliateError
+          );
           // Don't fail the webhook if affiliate tracking fails
         }
 
@@ -784,9 +856,9 @@ async function handleCheckoutSessionCompleted(session: any) {
             .select('subscription_plan')
             .eq('id', userId)
             .single();
-          
+
           const userPlan = userProfile?.subscription_plan || 'free';
-          
+
           // Log Stripe API cost (2.9% + $0.30)
           await ApiCostTracker.logUsage({
             userId,
@@ -800,33 +872,36 @@ async function handleCheckoutSessionCompleted(session: any) {
               sessionId: session.id,
               paymentMode: 'credits',
               amountCents: session.amount_total || 0,
-              creditsAdded: credits
-            }
+              creditsAdded: credits,
+            },
           });
           console.log('💰 Stripe payment cost tracked');
         } catch (costError) {
           console.error('Error tracking Stripe costs:', costError);
           // Don't fail the webhook if cost tracking fails
         }
-        
+
         // Send purchase confirmation email
         try {
           console.log('📧 Attempting to fetch user for email...');
-          
+
           // Get user email from auth
-          const { data: { user }, error: userError } = await getSupabase().auth.admin.getUserById(userId);
-          
+          const {
+            data: { user },
+            error: userError,
+          } = await getSupabase().auth.admin.getUserById(userId);
+
           if (userError) {
             console.error('❌ Error fetching user:', userError);
           }
-          
+
           // Get first name from profile
           const { data: profile } = await getSupabase()
             .from('profiles')
             .select('first_name')
             .eq('id', userId)
             .single();
-          
+
           if (user?.email) {
             console.log('📧 Sending purchase email to:', user.email);
             const emailSent = await emailService.sendPurchaseEmail({
@@ -838,7 +913,7 @@ async function handleCheckoutSessionCompleted(session: any) {
               invoiceUrl: `${process.env.NEXT_PUBLIC_APP_URL}/dashboard`,
             });
             console.log('📧 Email sent result:', emailSent);
-            
+
             // Update GoHighLevel tags for credit purchase
             await updateGoHighLevelTags(user.email, 'credits');
           } else {
@@ -866,22 +941,22 @@ async function handleTrialWillEnd(subscription: any) {
 
 async function handleInvoicePaymentFailed(invoice: any) {
   console.log('💳❌ Handling failed payment for invoice:', invoice.id);
-  
+
   // Try to get userId from metadata or customer lookup
   let userId = invoice.metadata?.userId;
-  
+
   if (!userId && invoice.customer) {
     const { data: profile } = await getSupabase()
       .from('profiles')
       .select('id, subscription_plan')
       .eq('stripe_customer_id', invoice.customer)
       .single();
-    
+
     if (profile) {
       userId = profile.id;
     }
   }
-  
+
   if (!userId) {
     console.error('❌ Could not find userId for failed payment');
     return;
@@ -898,38 +973,41 @@ async function handleInvoicePaymentFailed(invoice: any) {
   if (error) {
     throw error;
   }
-  
+
   // Send failed payment notification email
   try {
     // Get user details
-    const { data: { user }, error: userError } = await getSupabase().auth.admin.getUserById(userId);
-    
+    const {
+      data: { user },
+      error: userError,
+    } = await getSupabase().auth.admin.getUserById(userId);
+
     if (userError) {
       console.error('❌ Error fetching user for email:', userError);
     }
-    
+
     // Get user profile for details
     const { data: profile } = await getSupabase()
       .from('profiles')
       .select('first_name, subscription_plan')
       .eq('id', userId)
       .single();
-    
+
     if (user?.email) {
       // Determine attempt count from invoice
       const attemptCount = invoice.attempt_count || 1;
-      
+
       // Get next retry date if available
       let nextRetryDate;
       if (invoice.next_payment_attempt) {
         nextRetryDate = new Date(invoice.next_payment_attempt * 1000);
       }
-      
+
       // Get plan name
       const stripeService = getStripeService();
       const plans = stripeService.getSubscriptionPlans();
       const plan = plans.find((p: any) => p.id === profile?.subscription_plan);
-      
+
       console.log('📧 Sending payment failed email to:', user.email);
       const emailSent = await emailService.sendPaymentFailedEmail({
         email: user.email,
@@ -937,7 +1015,7 @@ async function handleInvoicePaymentFailed(invoice: any) {
         planName: plan?.name || profile?.subscription_plan || 'subscription',
         attemptCount: attemptCount,
         nextRetryDate: nextRetryDate,
-        amount: invoice.amount_due
+        amount: invoice.amount_due,
       });
       console.log('📧 Payment failed email sent result:', emailSent);
     }
@@ -945,4 +1023,4 @@ async function handleInvoicePaymentFailed(invoice: any) {
     console.error('Failed to send payment failed email:', emailError);
     // Don't fail the webhook if email fails
   }
-} 
+}

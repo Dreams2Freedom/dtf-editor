@@ -6,7 +6,11 @@ import { createClient } from '@supabase/supabase-js';
 import { ApiCostTracker } from '@/lib/api-cost-tracker';
 
 // Types for image processing operations
-export type ProcessingOperation = 'upscale' | 'background-removal' | 'vectorization' | 'ai-generation';
+export type ProcessingOperation =
+  | 'upscale'
+  | 'background-removal'
+  | 'vectorization'
+  | 'ai-generation';
 
 export interface ProcessingOptions {
   operation: ProcessingOperation;
@@ -14,7 +18,7 @@ export interface ProcessingOptions {
   scale?: 2 | 4;
   processingMode?: 'auto_enhance' | 'generative_upscale' | 'basic_upscale';
   faceEnhance?: boolean;
-  targetWidth?: number;  // For DPI-aware upscaling
+  targetWidth?: number; // For DPI-aware upscaling
   targetHeight?: number; // For DPI-aware upscaling
   // Background removal options
   backgroundColor?: string;
@@ -57,7 +61,10 @@ export class ImageProcessingService {
   private deepImageService: DeepImageService;
   private clippingMagicService: ClippingMagicService;
   private vectorizerService: VectorizerService;
-  private supabase = createClient(env.SUPABASE_URL, env.SUPABASE_SERVICE_ROLE_KEY);
+  private supabase = createClient(
+    env.SUPABASE_URL,
+    env.SUPABASE_SERVICE_ROLE_KEY
+  );
 
   constructor() {
     this.deepImageService = new DeepImageService();
@@ -68,12 +75,22 @@ export class ImageProcessingService {
   /**
    * Map processing operation to API provider and operation
    */
-  private mapOperationToProvider(operation: ProcessingOperation): { provider: 'deep_image' | 'clipping_magic' | 'vectorizer' | 'openai'; apiOperation: 'upscale' | 'background_removal' | 'vectorization' | 'image_generation' } {
+  private mapOperationToProvider(operation: ProcessingOperation): {
+    provider: 'deep_image' | 'clipping_magic' | 'vectorizer' | 'openai';
+    apiOperation:
+      | 'upscale'
+      | 'background_removal'
+      | 'vectorization'
+      | 'image_generation';
+  } {
     switch (operation) {
       case 'upscale':
         return { provider: 'deep_image', apiOperation: 'upscale' };
       case 'background-removal':
-        return { provider: 'clipping_magic', apiOperation: 'background_removal' };
+        return {
+          provider: 'clipping_magic',
+          apiOperation: 'background_removal',
+        };
       case 'vectorization':
         return { provider: 'vectorizer', apiOperation: 'vectorization' };
       case 'ai-generation':
@@ -97,7 +114,9 @@ export class ImageProcessingService {
     try {
       // 1. Check if the feature is available
       if (!this.isOperationAvailable(options.operation)) {
-        throw new Error(`${options.operation} is not available - missing API configuration`);
+        throw new Error(
+          `${options.operation} is not available - missing API configuration`
+        );
       }
 
       // Check if user is admin
@@ -106,7 +125,7 @@ export class ImageProcessingService {
         .select('is_admin')
         .eq('id', userId)
         .single();
-      
+
       isAdmin = adminProfile?.is_admin === true;
 
       // 2. Check user credits before processing (skip for admins)
@@ -123,24 +142,24 @@ export class ImageProcessingService {
 
       // 4. Process the image based on operation type
       let processedUrl: string;
-      
+
       switch (options.operation) {
         case 'upscale':
           processedUrl = await this.handleUpscaling(imageUrl, options);
           break;
-        
+
         case 'background-removal':
           processedUrl = await this.handleBackgroundRemoval(imageUrl, options);
           break;
-          
+
         case 'vectorization':
           processedUrl = await this.handleVectorization(imageUrl, options);
           break;
-          
+
         case 'ai-generation':
           processedUrl = await this.handleAIGeneration(options);
           break;
-          
+
         default:
           throw new Error(`Unsupported operation: ${options.operation}`);
       }
@@ -151,7 +170,7 @@ export class ImageProcessingService {
         originalUrl: imageUrl,
         processedUrl,
         creditsUsed: isAdmin ? 0 : requiredCredits,
-        processingTime: Date.now() - startTime
+        processingTime: Date.now() - startTime,
       });
 
       // 6. Get user plan for cost tracking
@@ -160,12 +179,14 @@ export class ImageProcessingService {
         .select('subscription_plan')
         .eq('id', userId)
         .single();
-      
+
       const userPlan = profile?.subscription_plan || 'free';
       const processingTime = Date.now() - startTime;
 
       // 7. Track API costs (0 credits for admins)
-      const { provider, apiOperation } = this.mapOperationToProvider(options.operation);
+      const { provider, apiOperation } = this.mapOperationToProvider(
+        options.operation
+      );
       await ApiCostTracker.logUsage({
         userId,
         provider,
@@ -174,11 +195,17 @@ export class ImageProcessingService {
         creditsCharged: isAdmin ? 0 : requiredCredits,
         userPlan,
         processingTimeMs: processingTime,
-        metadata: { imageUrl, processedUrl }
+        metadata: { imageUrl, processedUrl },
       });
 
       // 8. Log successful operation (0 credits for admins)
-      await this.logOperation(userId, options.operation, isAdmin ? 0 : requiredCredits, 'success', processingTime);
+      await this.logOperation(
+        userId,
+        options.operation,
+        isAdmin ? 0 : requiredCredits,
+        'success',
+        processingTime
+      );
 
       return {
         success: true,
@@ -187,31 +214,36 @@ export class ImageProcessingService {
         processedUrl,
         metadata: {
           processingTime: Date.now() - startTime,
-          creditsUsed: requiredCredits
-        }
+          creditsUsed: requiredCredits,
+        },
       };
-
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Processing failed';
-      
+      const errorMessage =
+        error instanceof Error ? error.message : 'Processing failed';
+
       // Only refund credits if the error is NOT due to insufficient credits (skip for admins)
-      if (!errorMessage.toLowerCase().includes('insufficient credits') && !isAdmin) {
+      if (
+        !errorMessage.toLowerCase().includes('insufficient credits') &&
+        !isAdmin
+      ) {
         const requiredCredits = this.getOperationCost(options.operation);
         await this.refundCredits(userId, requiredCredits, options.operation);
       }
-      
+
       // Get user plan for cost tracking
       const { data: profile } = await this.supabase
         .from('profiles')
         .select('subscription_plan')
         .eq('id', userId)
         .single();
-      
+
       const userPlan = profile?.subscription_plan || 'free';
       const processingTime = Date.now() - startTime;
 
       // Track failed API usage (still costs us even if it fails)
-      const { provider, apiOperation } = this.mapOperationToProvider(options.operation);
+      const { provider, apiOperation } = this.mapOperationToProvider(
+        options.operation
+      );
       await ApiCostTracker.logUsage({
         userId,
         provider,
@@ -221,10 +253,16 @@ export class ImageProcessingService {
         userPlan,
         processingTimeMs: processingTime,
         errorMessage,
-        metadata: { imageUrl }
+        metadata: { imageUrl },
       });
-      
-      await this.logOperation(userId, options.operation, 0, 'failed', processingTime);
+
+      await this.logOperation(
+        userId,
+        options.operation,
+        0,
+        'failed',
+        processingTime
+      );
 
       return {
         success: false,
@@ -233,8 +271,8 @@ export class ImageProcessingService {
         error: errorMessage,
         metadata: {
           processingTime: Date.now() - startTime,
-          creditsUsed: 0
-        }
+          creditsUsed: 0,
+        },
       };
     }
   }
@@ -242,12 +280,17 @@ export class ImageProcessingService {
   /**
    * Handle image upscaling using Deep-Image.ai
    */
-  private async handleUpscaling(imageUrl: string, options: ProcessingOptions): Promise<string> {
+  private async handleUpscaling(
+    imageUrl: string,
+    options: ProcessingOptions
+  ): Promise<string> {
     // Check if we have target dimensions (DPI mode) or scale factor (simple mode)
     if (!options.targetWidth && !options.targetHeight && !options.scale) {
-      throw new Error('Either target dimensions or scale factor is required for upscaling');
+      throw new Error(
+        'Either target dimensions or scale factor is required for upscaling'
+      );
     }
-    
+
     if (!options.processingMode) {
       throw new Error('Processing mode is required for upscaling');
     }
@@ -258,7 +301,7 @@ export class ImageProcessingService {
       faceEnhance: options.faceEnhance,
       targetWidth: options.targetWidth,
       targetHeight: options.targetHeight,
-      type: 'photo' // Default to photo for now
+      type: 'photo', // Default to photo for now
     });
 
     if (result.status === 'error') {
@@ -275,11 +318,14 @@ export class ImageProcessingService {
   /**
    * Handle background removal using ClippingMagic
    */
-  private async handleBackgroundRemoval(imageUrl: string, options: ProcessingOptions): Promise<string> {
+  private async handleBackgroundRemoval(
+    imageUrl: string,
+    options: ProcessingOptions
+  ): Promise<string> {
     const result = await this.clippingMagicService.removeBackground(imageUrl, {
       format: 'png', // Default to PNG for transparency
       backgroundColor: options.backgroundColor,
-      transparent: true
+      transparent: true,
     });
 
     if (result.status === 'error') {
@@ -287,7 +333,9 @@ export class ImageProcessingService {
     }
 
     if (!result.url) {
-      throw new Error('No processed image URL returned from background removal service');
+      throw new Error(
+        'No processed image URL returned from background removal service'
+      );
     }
 
     return result.url;
@@ -296,7 +344,10 @@ export class ImageProcessingService {
   /**
    * Handle vectorization using Vectorizer.ai
    */
-  private async handleVectorization(imageUrl: string, options: ProcessingOptions): Promise<string> {
+  private async handleVectorization(
+    imageUrl: string,
+    options: ProcessingOptions
+  ): Promise<string> {
     const result = await this.vectorizerService.vectorizeImage(imageUrl, {
       format: options.vectorFormat || 'svg',
       mode: 'production',
@@ -304,8 +355,8 @@ export class ImageProcessingService {
         curve_fitting: 'medium', // Good balance of quality and speed
         corner_threshold: 120,
         length_threshold: 2.0,
-        max_iterations: 100
-      }
+        max_iterations: 100,
+      },
     });
 
     if (result.status === 'error') {
@@ -313,7 +364,9 @@ export class ImageProcessingService {
     }
 
     if (!result.url) {
-      throw new Error('No processed vector URL returned from vectorization service');
+      throw new Error(
+        'No processed vector URL returned from vectorization service'
+      );
     }
 
     return result.url;
@@ -322,7 +375,9 @@ export class ImageProcessingService {
   /**
    * Handle AI image generation (placeholder for OpenAI integration)
    */
-  private async handleAIGeneration(options: ProcessingOptions): Promise<string> {
+  private async handleAIGeneration(
+    options: ProcessingOptions
+  ): Promise<string> {
     // TODO: Implement OpenAI integration in Phase 2
     if (!options.prompt) {
       throw new Error('Prompt is required for AI image generation');
@@ -369,7 +424,10 @@ export class ImageProcessingService {
   /**
    * Check if user has enough credits for an operation
    */
-  private async checkUserCredits(userId: string, requiredCredits: number): Promise<boolean> {
+  private async checkUserCredits(
+    userId: string,
+    requiredCredits: number
+  ): Promise<boolean> {
     try {
       // Only select credits_remaining since credits column doesn't exist
       const { data, error } = await this.supabase
@@ -382,18 +440,18 @@ export class ImageProcessingService {
         console.error('Error fetching user credits:', error);
         throw error;
       }
-      
+
       // Use credits_remaining
       const availableCredits = data?.credits_remaining ?? 0;
-      
+
       console.log('Credit check:', {
         userId,
         requiredCredits,
         availableCredits,
         data,
-        hasEnough: availableCredits >= requiredCredits
+        hasEnough: availableCredits >= requiredCredits,
       });
-      
+
       return availableCredits >= requiredCredits;
     } catch (error) {
       console.error('Error checking user credits:', error);
@@ -404,13 +462,17 @@ export class ImageProcessingService {
   /**
    * Deduct credits from user account
    */
-  async deductCredits(userId: string, credits: number, operation: string): Promise<void> {
+  async deductCredits(
+    userId: string,
+    credits: number,
+    operation: string
+  ): Promise<void> {
     // Try the new function name first, fall back to direct update if it fails
     try {
       const { data, error } = await this.supabase.rpc('deduct_credits', {
         user_id: userId,
         credits: credits,
-        operation: operation
+        operation: operation,
       });
 
       if (!error && data?.success) {
@@ -438,9 +500,9 @@ export class ImageProcessingService {
     }
 
     // Update credits_remaining
-    const updateData = { 
-      credits_remaining: availableCredits - credits, 
-      updated_at: new Date().toISOString() 
+    const updateData = {
+      credits_remaining: availableCredits - credits,
+      updated_at: new Date().toISOString(),
     };
 
     const { error: updateError } = await this.supabase
@@ -453,28 +515,30 @@ export class ImageProcessingService {
     }
 
     // Log transaction
-    await this.supabase
-      .from('credit_transactions')
-      .insert({
-        user_id: userId,
-        amount: -credits,
-        type: 'usage',
-        description: `Used for ${operation}`,
-        metadata: { operation },
-        balance_after: profile.credits_remaining - credits
-      });
+    await this.supabase.from('credit_transactions').insert({
+      user_id: userId,
+      amount: -credits,
+      type: 'usage',
+      description: `Used for ${operation}`,
+      metadata: { operation },
+      balance_after: profile.credits_remaining - credits,
+    });
   }
 
   /**
    * Refund credits to user account (on processing failure)
    */
-  private async refundCredits(userId: string, credits: number, operation: string): Promise<void> {
+  private async refundCredits(
+    userId: string,
+    credits: number,
+    operation: string
+  ): Promise<void> {
     try {
       // Try the new function first
       const { error } = await this.supabase.rpc('refund_credits', {
         user_id: userId,
         credits: credits,
-        reason: `Refund for failed ${operation}`
+        reason: `Refund for failed ${operation}`,
       });
 
       if (!error) {
@@ -495,74 +559,82 @@ export class ImageProcessingService {
       if (profile) {
         await this.supabase
           .from('profiles')
-          .update({ 
+          .update({
             credits_remaining: profile.credits_remaining + credits,
-            updated_at: new Date().toISOString()
+            updated_at: new Date().toISOString(),
           })
           .eq('id', userId);
 
         // Log transaction
-        await this.supabase
-          .from('credit_transactions')
-          .insert({
-            user_id: userId,
-            amount: credits,
-            type: 'refund',
-            description: `Refund for failed ${operation}`,
-            metadata: { operation, refund_reason: 'processing_failed' },
-            balance_after: profile.credits_remaining + credits
-          });
+        await this.supabase.from('credit_transactions').insert({
+          user_id: userId,
+          amount: credits,
+          type: 'refund',
+          description: `Refund for failed ${operation}`,
+          metadata: { operation, refund_reason: 'processing_failed' },
+          balance_after: profile.credits_remaining + credits,
+        });
       }
     } catch (error) {
       // Don't throw errors for refund failures
     }
   }
 
-
   /**
    * Save processing result to database
    */
-  private async saveProcessingResult(userId: string, result: {
-    operation: string;
-    originalUrl: string;
-    processedUrl: string;
-    creditsUsed: number;
-    processingTime: number;
-  }): Promise<void> {
+  private async saveProcessingResult(
+    userId: string,
+    result: {
+      operation: string;
+      originalUrl: string;
+      processedUrl: string;
+      creditsUsed: number;
+      processingTime: number;
+    }
+  ): Promise<void> {
     try {
       console.log('Saving processing result:', {
         userId,
         operation: result.operation,
-        processedUrl: result.processedUrl
+        processedUrl: result.processedUrl,
       });
-      
+
       // Extract filename from URL
-      const originalFilename = result.originalUrl.split('/').pop() || 'processed_image';
+      const originalFilename =
+        result.originalUrl.split('/').pop() || 'processed_image';
       const processedFilename = `${originalFilename.split('.')[0]}_${result.operation}_${Date.now()}.${originalFilename.split('.').pop()}`;
-      
+
       // Get image dimensions if available (this is a placeholder - actual implementation would fetch from processed image)
       const dimensions = { width: null, height: null };
-      
+
       // Calculate expiration date based on user's plan
-      const { data: expirationData, error: expirationError } = await this.supabase
-        .rpc('calculate_image_expiration', { p_user_id: userId });
-        
+      const { data: expirationData, error: expirationError } =
+        await this.supabase.rpc('calculate_image_expiration', {
+          p_user_id: userId,
+        });
+
       if (expirationError) {
         console.error('Error calculating expiration:', expirationError);
       }
-      
+
       // Image saving is disabled here to prevent duplicates
       // The API endpoints (upscale/route.ts, process/route.ts) handle the saving
       // by downloading the image and re-uploading to Supabase storage
-      
-      console.log('Image processing completed. Gallery saving handled by API endpoint.');
+
+      console.log(
+        'Image processing completed. Gallery saving handled by API endpoint.'
+      );
     } catch (error) {
       // Log error but don't throw - we don't want to fail the entire operation
       console.error('Failed to save to image gallery:', error);
-      console.error('Error stack:', error instanceof Error ? error.stack : 'No stack');
+      console.error(
+        'Error stack:',
+        error instanceof Error ? error.stack : 'No stack'
+      );
     }
   }
-  
+
   /**
    * Get API provider name for operation
    */
@@ -599,9 +671,9 @@ export class ImageProcessingService {
           operation,
           creditsUsed,
           status,
-          processingTimeMs
+          processingTimeMs,
         },
-        created_at: new Date().toISOString()
+        created_at: new Date().toISOString(),
       });
     } catch (error) {
       // Don't throw errors for logging failures
@@ -611,7 +683,10 @@ export class ImageProcessingService {
   /**
    * Get user's processing history
    */
-  async getProcessingHistory(userId: string, limit = 20): Promise<ProcessingJob[]> {
+  async getProcessingHistory(
+    userId: string,
+    limit = 20
+  ): Promise<ProcessingJob[]> {
     try {
       const { data, error } = await this.supabase
         .from('processed_images')
@@ -628,25 +703,28 @@ export class ImageProcessingService {
         status: row.processing_status,
         operation: this.mapOperationTypeToOperation(row.operation_type),
         options: {
-          operation: this.mapOperationTypeToOperation(row.operation_type)
+          operation: this.mapOperationTypeToOperation(row.operation_type),
         },
         originalImageUrl: row.metadata?.original_url || row.storage_url,
         processedImageUrl: row.storage_url,
         creditsUsed: row.metadata?.credits_used || 0,
-        error: row.processing_status === 'failed' ? 'Processing failed' : undefined,
+        error:
+          row.processing_status === 'failed' ? 'Processing failed' : undefined,
         createdAt: new Date(row.created_at),
-        completedAt: row.updated_at ? new Date(row.updated_at) : undefined
+        completedAt: row.updated_at ? new Date(row.updated_at) : undefined,
       }));
     } catch (error) {
       console.error('Error fetching processing history:', error);
       return [];
     }
   }
-  
+
   /**
    * Map database operation_type to ProcessingOperation
    */
-  private mapOperationTypeToOperation(operationType: string): ProcessingOperation {
+  private mapOperationTypeToOperation(
+    operationType: string
+  ): ProcessingOperation {
     switch (operationType) {
       case 'upscale':
         return 'upscale';
@@ -666,16 +744,15 @@ export class ImageProcessingService {
    */
   getAvailableOperations(): ProcessingOperation[] {
     const operations: ProcessingOperation[] = [];
-    
+
     if (isFeatureAvailable('upscaling')) operations.push('upscale');
-    if (isFeatureAvailable('background-removal')) operations.push('background-removal');
+    if (isFeatureAvailable('background-removal'))
+      operations.push('background-removal');
     if (isFeatureAvailable('vectorization')) operations.push('vectorization');
     if (isFeatureAvailable('ai-generation')) operations.push('ai-generation');
-    
+
     return operations;
   }
-
-
 }
 
 // Export singleton instance

@@ -42,7 +42,9 @@ async function testAdminUsersQuery() {
     console.log('----------------------------------------');
     users.forEach((user, index) => {
       console.log(`${index + 1}. ${user.email}`);
-      console.log(`   Status: ${user.is_active !== false ? 'active' : 'suspended'}`);
+      console.log(
+        `   Status: ${user.is_active !== false ? 'active' : 'suspended'}`
+      );
       console.log(`   Plan: ${user.subscription_plan || 'free'}`);
       console.log(`   Credits: ${user.credits_remaining || 0}`);
       console.log('');
@@ -51,22 +53,24 @@ async function testAdminUsersQuery() {
     // Check for any filters that might be applied
     console.log('\n🔍 Checking for potential filter issues:');
     console.log('----------------------------------------');
-    
+
     // Check is_active field
     const { data: activeCheck } = await supabase
       .from('profiles')
       .select('email, is_active');
-    
+
     console.log('is_active values:');
     activeCheck.forEach(user => {
-      console.log(`${user.email}: ${user.is_active === null ? 'NULL' : user.is_active}`);
+      console.log(
+        `${user.email}: ${user.is_active === null ? 'NULL' : user.is_active}`
+      );
     });
 
     // Check for full_name field
     const { data: nameCheck } = await supabase
       .from('profiles')
       .select('email, full_name, first_name, last_name');
-    
+
     console.log('\nName fields:');
     nameCheck.forEach(user => {
       console.log(`${user.email}:`);
@@ -74,7 +78,6 @@ async function testAdminUsersQuery() {
       console.log(`  first_name: ${user.first_name || 'NULL'}`);
       console.log(`  last_name: ${user.last_name || 'NULL'}`);
     });
-
   } catch (error) {
     console.error('❌ Error:', error);
   }

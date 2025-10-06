@@ -13,6 +13,7 @@ This guide will help you set up the required Stripe products and prices for DTF 
 Go to Stripe Dashboard > Products and create the following:
 
 ### Basic Plan
+
 1. Click "Add product"
 2. Name: "DTF Editor Basic Plan"
 3. Description: "20 credits per month for image processing"
@@ -24,6 +25,7 @@ Go to Stripe Dashboard > Products and create the following:
 6. Copy the Product ID (starts with `prod_`) and Price ID (starts with `price_`)
 
 ### Starter Plan
+
 1. Click "Add product"
 2. Name: "DTF Editor Starter Plan"
 3. Description: "60 credits per month for image processing - Best value!"
@@ -37,6 +39,7 @@ Go to Stripe Dashboard > Products and create the following:
 ## Step 2: Create One-Time Credit Packages
 
 ### 10 Credits Package
+
 1. Click "Add product"
 2. Name: "10 DTF Processing Credits"
 3. Description: "10 credits for image processing - Perfect for occasional use"
@@ -46,6 +49,7 @@ Go to Stripe Dashboard > Products and create the following:
 5. Save and copy IDs
 
 ### 20 Credits Package
+
 1. Click "Add product"
 2. Name: "20 DTF Processing Credits"
 3. Description: "20 credits for image processing - Most popular"
@@ -55,6 +59,7 @@ Go to Stripe Dashboard > Products and create the following:
 5. Save and copy IDs
 
 ### 50 Credits Package
+
 1. Click "Add product"
 2. Name: "50 DTF Processing Credits"
 3. Description: "50 credits for image processing - Best value, save 25%"
@@ -128,18 +133,21 @@ NEXT_PUBLIC_STRIPE_CREDITS_50_PRICE_ID=price_xxxxx
 ## Troubleshooting
 
 ### Webhook Failures
+
 - Check endpoint URL is correct
 - Verify webhook secret matches
 - Check server logs for errors
 - Use Stripe CLI for local testing: `stripe listen --forward-to localhost:3000/api/webhooks/stripe`
 
 ### Payment Failures
+
 - Check API keys are correct
 - Verify products exist in Stripe
 - Check browser console for errors
 - Ensure CORS is configured correctly
 
 ### Credit Not Applied
+
 - Check webhook is firing
 - Verify database connection
 - Check transaction logs

@@ -6,7 +6,7 @@ require('dotenv').config({ path: '.env.local' });
 // Test with authenticated user approach
 async function testWithAuth() {
   console.log('🔍 Testing Image Gallery with authenticated user...\n');
-  
+
   // Create client with anon key
   const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -15,10 +15,11 @@ async function testWithAuth() {
 
   try {
     // Sign in as test user
-    const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
-      email: 'shannonherod@gmail.com',
-      password: 'Anteater2020!'
-    });
+    const { data: authData, error: authError } =
+      await supabase.auth.signInWithPassword({
+        email: 'shannonherod@gmail.com',
+        password: 'Anteater2020!',
+      });
 
     if (authError) {
       console.log('❌ Auth error:', authError.message);
@@ -40,8 +41,8 @@ async function testWithAuth() {
       metadata: {
         credits_used: 1,
         processing_time_ms: 1500,
-        api_used: 'Deep-Image.ai'
-      }
+        api_used: 'Deep-Image.ai',
+      },
     };
 
     const { data: insertData, error: insertError } = await supabase
@@ -75,7 +76,6 @@ async function testWithAuth() {
         console.log('🧹 Test data cleaned up');
       }
     }
-
   } catch (error) {
     console.error('❌ Test error:', error);
   }

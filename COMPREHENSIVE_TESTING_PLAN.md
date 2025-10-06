@@ -3,11 +3,13 @@
 ## 🚨 CRITICAL ISSUE: User Signup Blocked
 
 ### Current Problem
+
 - **Error**: "infinite recursion detected in policy for relation 'profiles'"
 - **Impact**: Users cannot create accounts, blocking all functionality
 - **Root Cause**: Supabase RLS (Row Level Security) policy configuration issue
 
 ### Immediate Fix Required
+
 1. **Check Supabase RLS Policies**
    - Navigate to Supabase Dashboard → Authentication → Policies
    - Review policies on `profiles` table
@@ -24,34 +26,39 @@
 ### Phase 1: Fix User Authentication (CRITICAL)
 
 #### 1.1 Database Schema Verification
+
 - [ ] **Check Supabase Tables**
+
   ```sql
   -- Run in Supabase SQL Editor
-  SELECT table_name FROM information_schema.tables 
-  WHERE table_schema = 'public' 
+  SELECT table_name FROM information_schema.tables
+  WHERE table_schema = 'public'
   AND table_name IN ('profiles', 'users', 'credit_transactions');
   ```
 
 - [ ] **Verify RLS Policies**
+
   ```sql
   -- Check existing policies
-  SELECT schemaname, tablename, policyname, permissive, roles, cmd, qual 
-  FROM pg_policies 
+  SELECT schemaname, tablename, policyname, permissive, roles, cmd, qual
+  FROM pg_policies
   WHERE tablename = 'profiles';
   ```
 
 - [ ] **Fix Profiles Table Policy**
+
   ```sql
   -- Drop problematic policies
   DROP POLICY IF EXISTS "profiles_policy" ON profiles;
-  
+
   -- Create simple, working policy
-  CREATE POLICY "Enable read/write for authenticated users" 
-  ON profiles FOR ALL 
+  CREATE POLICY "Enable read/write for authenticated users"
+  ON profiles FOR ALL
   USING (auth.uid() = id);
   ```
 
 #### 1.2 User Registration Testing
+
 - [ ] **Signup Flow**
   - [ ] Navigate to `/auth/signup`
   - [ ] Fill out registration form with test data
@@ -74,6 +81,7 @@
 ### Phase 2: Core Application Functionality
 
 #### 2.1 Image Upload & Storage
+
 - [ ] **File Upload**
   - [ ] Navigate to `/image-upload`
   - [ ] Upload various image formats (PNG, JPG, WebP)
@@ -87,6 +95,7 @@
   - [ ] Test bucket creation if missing
 
 #### 2.2 Image Upscaling
+
 - [ ] **Basic Upscaling**
   - [ ] Upload test image
   - [ ] Select "Basic Upscale" option
@@ -106,6 +115,7 @@
   - [ ] Test polling mechanism for long jobs
 
 #### 2.3 User Dashboard
+
 - [ ] **Dashboard Access**
   - [ ] Navigate to `/dashboard` while logged in
   - [ ] Verify user-specific data is displayed
@@ -125,7 +135,9 @@
 ### Phase 3: Payment Integration Testing
 
 #### 3.1 Stripe Configuration
+
 - [ ] **Environment Variables**
+
   ```bash
   # Verify these are set in .env.local
   STRIPE_SECRET_KEY=sk_test_...
@@ -139,6 +151,7 @@
   - [ ] Confirm webhook events are being received
 
 #### 3.2 Subscription Plans
+
 - [ ] **Pricing Page**
   - [ ] Navigate to `/pricing`
   - [ ] Verify all plans display correctly
@@ -163,6 +176,7 @@
   - [ ] Check premium features are accessible
 
 #### 3.3 Pay-as-You-Go Purchases
+
 - [ ] **10 Credits Package ($4.99)**
   - [ ] Select 10-credit package
   - [ ] Complete payment with test card
@@ -180,6 +194,7 @@
   - [ ] Check transaction recording
 
 #### 3.4 Payment Error Handling
+
 - [ ] **Declined Card**
   - [ ] Use test card: `4000 0000 0000 0002`
   - [ ] Verify error message is displayed
@@ -194,6 +209,7 @@
   - [ ] Check expiration error handling
 
 #### 3.5 Webhook Testing
+
 - [ ] **Subscription Events**
   - [ ] Monitor webhook logs during subscription creation
   - [ ] Verify `customer.subscription.created` event
@@ -210,6 +226,7 @@
   - [ ] Check subscription status updates correctly
 
 #### 3.6 Billing Management
+
 - [ ] **Billing History**
   - [ ] Navigate to billing management section
   - [ ] Verify all transactions appear in history
@@ -225,6 +242,7 @@
 ### Phase 4: Integration Testing
 
 #### 4.1 End-to-End User Journey
+
 - [ ] **Complete New User Flow**
   1. Sign up for new account
   2. Verify email confirmation (if enabled)
@@ -246,6 +264,7 @@
   7. Verify access continues until billing period ends
 
 #### 4.2 Error Scenarios
+
 - [ ] **Network Failures**
   - [ ] Simulate network interruption during payment
   - [ ] Test image upload with poor connection
@@ -264,6 +283,7 @@
 ### Phase 5: Performance & Security Testing
 
 #### 5.1 Performance
+
 - [ ] **Image Processing**
   - [ ] Test with large image files (>10MB)
   - [ ] Verify timeout handling for long processes
@@ -275,6 +295,7 @@
   - [ ] Check database performance under load
 
 #### 5.2 Security
+
 - [ ] **Authentication**
   - [ ] Test session timeout
   - [ ] Verify logout functionality
@@ -288,12 +309,14 @@
 ### Phase 6: Browser & Device Testing
 
 #### 6.1 Browser Compatibility
+
 - [ ] **Chrome/Chromium**
 - [ ] **Firefox**
 - [ ] **Safari**
 - [ ] **Edge**
 
 #### 6.2 Device Testing
+
 - [ ] **Desktop** (1920x1080, 1366x768)
 - [ ] **Tablet** (768x1024)
 - [ ] **Mobile** (375x667, 414x896)
@@ -301,6 +324,7 @@
 ### Phase 7: Production Readiness
 
 #### 7.1 Environment Variables
+
 - [ ] **Production Configuration**
   ```bash
   # Verify all required variables are set
@@ -313,6 +337,7 @@
   ```
 
 #### 7.2 Monitoring Setup
+
 - [ ] **Error Tracking**
   - [ ] Configure error monitoring (Sentry, etc.)
   - [ ] Set up alerting for critical errors
@@ -326,21 +351,25 @@
 ## 🚀 Testing Execution Order
 
 ### Priority 1 (Critical - Must Fix First)
+
 1. Fix Supabase RLS policy issue
 2. Test user signup/login
 3. Verify basic image upload
 
 ### Priority 2 (Core Functionality)
+
 1. Test image upscaling
 2. Verify user dashboard
 3. Test basic payment flow
 
 ### Priority 3 (Advanced Features)
+
 1. Test all payment scenarios
 2. Verify webhook handling
 3. Test error conditions
 
 ### Priority 4 (Polish)
+
 1. Performance testing
 2. Browser compatibility
 3. Mobile responsiveness
@@ -348,6 +377,7 @@
 ## 📊 Success Criteria
 
 ### Functional Requirements
+
 - [ ] Users can successfully create accounts
 - [ ] Image upload and processing works reliably
 - [ ] Payment processing is secure and accurate
@@ -355,6 +385,7 @@
 - [ ] Error handling is graceful and informative
 
 ### Non-Functional Requirements
+
 - [ ] Page load times under 3 seconds
 - [ ] Image processing completes within 60 seconds
 - [ ] Payment flows complete within 30 seconds
@@ -364,6 +395,7 @@
 ## 🔧 Test Data
 
 ### Test Users
+
 ```json
 {
   "email": "test@example.com",
@@ -373,12 +405,14 @@
 ```
 
 ### Test Images
+
 - Small PNG (100KB)
 - Large JPG (5MB)
 - WebP format
 - Various aspect ratios
 
 ### Test Cards
+
 - Success: `4242 4242 4242 4242`
 - Decline: `4000 0000 0000 0002`
 - Insufficient: `4000 0000 0000 9995`
@@ -387,6 +421,7 @@
 ## 📝 Bug Reporting Template
 
 When issues are found, document with:
+
 1. **Issue Description**: Clear explanation of the problem
 2. **Steps to Reproduce**: Exact steps to trigger the issue
 3. **Expected vs Actual**: What should happen vs what does happen
@@ -397,4 +432,4 @@ When issues are found, document with:
 
 ---
 
-**Next Steps**: Start with Phase 1 to fix the critical user signup issue, then proceed systematically through each phase. 
+**Next Steps**: Start with Phase 1 to fix the critical user signup issue, then proceed systematically through each phase.

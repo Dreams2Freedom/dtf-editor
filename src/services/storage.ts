@@ -21,11 +21,14 @@ export class StorageService {
     if (!env.SUPABASE_URL || !env.SUPABASE_SERVICE_ROLE_KEY) {
       console.error('StorageService: Missing required environment variables', {
         hasUrl: !!env.SUPABASE_URL,
-        hasServiceKey: !!env.SUPABASE_SERVICE_ROLE_KEY
+        hasServiceKey: !!env.SUPABASE_SERVICE_ROLE_KEY,
       });
       throw new Error('Missing required Supabase configuration');
     }
-    this.supabase = createClient(env.SUPABASE_URL, env.SUPABASE_SERVICE_ROLE_KEY);
+    this.supabase = createClient(
+      env.SUPABASE_URL,
+      env.SUPABASE_SERVICE_ROLE_KEY
+    );
   }
 
   /**
@@ -35,11 +38,11 @@ export class StorageService {
     try {
       // Try to list buckets as a simple connection test
       const { data, error } = await this.supabase.storage.listBuckets();
-      
+
       if (error) {
         return false;
       }
-      
+
       return true;
     } catch (error) {
       return false;
@@ -56,18 +59,22 @@ export class StorageService {
   /**
    * Upload an image from data URL to Supabase Storage
    */
-  public async uploadImageFromDataUrl(dataUrl: string, fileName: string, userId: string): Promise<UploadResult> {
+  public async uploadImageFromDataUrl(
+    dataUrl: string,
+    fileName: string,
+    userId: string
+  ): Promise<UploadResult> {
     try {
       // Convert data URL to File object
       const response = await fetch(dataUrl);
       const blob = await response.blob();
       const file = new File([blob], fileName, { type: blob.type });
-      
+
       return this.uploadFile(file, userId);
     } catch (error: any) {
-      return { 
-        success: false, 
-        error: error.message || 'Failed to upload image from data URL'
+      return {
+        success: false,
+        error: error.message || 'Failed to upload image from data URL',
       };
     }
   }
@@ -76,7 +83,6 @@ export class StorageService {
    * Upload a file to Supabase Storage
    */
   public async uploadFile(file: File, userId?: string): Promise<UploadResult> {
-
     try {
       // Validate file
       const validation = this.validateFile(file);
@@ -89,12 +95,13 @@ export class StorageService {
 
       // Try direct upload first
       try {
-        const { data: uploadData, error: uploadError } = await this.supabase.storage
-          .from(this.bucketName)
-          .upload(filePath, file, {
-            cacheControl: '3600',
-            upsert: false // Don't overwrite existing files
-          });
+        const { data: uploadData, error: uploadError } =
+          await this.supabase.storage
+            .from(this.bucketName)
+            .upload(filePath, file, {
+              cacheControl: '3600',
+              upsert: false, // Don't overwrite existing files
+            });
 
         if (uploadError) {
           throw uploadError;
@@ -103,35 +110,33 @@ export class StorageService {
           .from(this.bucketName)
           .getPublicUrl(filePath).data.publicUrl;
 
-        
         // Ensure we always return a valid result
         if (!publicUrl) {
           return { success: false, error: 'Failed to generate public URL' };
         }
-        
-        return { success: true, url: publicUrl, path: filePath };
 
+        return { success: true, url: publicUrl, path: filePath };
       } catch (directUploadError: any) {
-        
         // Test connection and try to create bucket if needed
         await this.testConnection();
-        
+
         // Try to create bucket first
         await this.ensureBucketExists();
 
         // Retry upload with new unique path
         const retryFilePath = this.generateFilePath(file.name, userId);
-        const { data: retryData, error: retryError } = await this.supabase.storage
-          .from(this.bucketName)
-          .upload(retryFilePath, file, {
-            cacheControl: '3600',
-            upsert: false
-          });
+        const { data: retryData, error: retryError } =
+          await this.supabase.storage
+            .from(this.bucketName)
+            .upload(retryFilePath, file, {
+              cacheControl: '3600',
+              upsert: false,
+            });
 
         if (retryError) {
-          return { 
-            success: false, 
-            error: retryError.message || 'Failed to upload file after retry'
+          return {
+            success: false,
+            error: retryError.message || 'Failed to upload file after retry',
           };
         }
 
@@ -139,19 +144,20 @@ export class StorageService {
           .from(this.bucketName)
           .getPublicUrl(retryFilePath).data.publicUrl;
 
-        
         // Ensure we always return a valid result
         if (!publicUrl) {
-          return { success: false, error: 'Failed to generate public URL after retry' };
+          return {
+            success: false,
+            error: 'Failed to generate public URL after retry',
+          };
         }
 
         return { success: true, url: publicUrl, path: retryFilePath };
       }
-
     } catch (error: any) {
-      return { 
-        success: false, 
-        error: error.message || 'Failed to upload file to storage'
+      return {
+        success: false,
+        error: error.message || 'Failed to upload file to storage',
       };
     }
   }
@@ -175,17 +181,18 @@ export class StorageService {
       if (error) {
         return {
           success: false,
-          error: error.message
+          error: error.message,
         };
       }
 
       return {
-        success: true
+        success: true,
       };
     } catch (error) {
       return {
         success: false,
-        error: error instanceof Error ? error.message : 'Unknown error occurred'
+        error:
+          error instanceof Error ? error.message : 'Unknown error occurred',
       };
     }
   }
@@ -196,23 +203,34 @@ export class StorageService {
   async ensureBucketExists(): Promise<boolean> {
     try {
       // Try to get bucket info to check if it exists
-      const { data: buckets, error } = await this.supabase.storage.listBuckets();
-      
+      const { data: buckets, error } =
+        await this.supabase.storage.listBuckets();
+
       if (error) {
         // If we can't list buckets due to RLS, assume the bucket exists
         // This is common when RLS policies prevent listing buckets
         return true;
       }
 
-      const bucketExists = buckets?.some(bucket => bucket.name === this.bucketName);
-      
+      const bucketExists = buckets?.some(
+        bucket => bucket.name === this.bucketName
+      );
+
       if (!bucketExists) {
         // Create the bucket if it doesn't exist
-        const { error: createError } = await this.supabase.storage.createBucket(this.bucketName, {
-          public: true,
-          allowedMimeTypes: ['image/jpeg', 'image/png', 'image/webp', 'image/gif'],
-          fileSizeLimit: 52428800 // 50MB
-        });
+        const { error: createError } = await this.supabase.storage.createBucket(
+          this.bucketName,
+          {
+            public: true,
+            allowedMimeTypes: [
+              'image/jpeg',
+              'image/png',
+              'image/webp',
+              'image/gif',
+            ],
+            fileSizeLimit: 52428800, // 50MB
+          }
+        );
 
         if (createError) {
           // If we can't create the bucket due to RLS, assume it exists or will be created by admin
@@ -236,13 +254,17 @@ export class StorageService {
       return { isValid: false, error: 'No file selected.' };
     }
 
-    if (file.size > 50 * 1024 * 1024) { // 50MB limit (Vercel Pro)
+    if (file.size > 50 * 1024 * 1024) {
+      // 50MB limit (Vercel Pro)
       return { isValid: false, error: 'File size exceeds 50MB limit.' };
     }
 
     const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
     if (!allowedTypes.includes(file.type)) {
-      return { isValid: false, error: 'File type not supported. Please use JPEG, PNG, or WebP.' };
+      return {
+        isValid: false,
+        error: 'File type not supported. Please use JPEG, PNG, or WebP.',
+      };
     }
 
     return { isValid: true };
@@ -265,14 +287,14 @@ export class StorageService {
     const randomSuffix = Math.random().toString(36).substring(2, 8);
     const sanitizedName = this.sanitizeFileName(originalName);
     const fileName = `${timestamp}-${randomSuffix}-${sanitizedName}`;
-    
+
     // If userId is provided, organize files by user
     if (userId) {
       return `users/${userId}/${fileName}`;
     }
-    
+
     return `uploads/${fileName}`;
   }
 }
 
-export const storageService = new StorageService(); 
+export const storageService = new StorageService();

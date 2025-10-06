@@ -9,9 +9,11 @@ interface ImpersonationStatus {
   originalAdminEmail?: string;
 }
 
-export function useImpersonation(): ImpersonationStatus & { endImpersonation: () => Promise<void> } {
+export function useImpersonation(): ImpersonationStatus & {
+  endImpersonation: () => Promise<void>;
+} {
   const [status, setStatus] = useState<ImpersonationStatus>({
-    isImpersonating: false
+    isImpersonating: false,
   });
 
   useEffect(() => {
@@ -22,7 +24,7 @@ export function useImpersonation(): ImpersonationStatus & { endImpersonation: ()
     try {
       const response = await fetch('/api/admin/impersonate', {
         method: 'GET',
-        credentials: 'include'
+        credentials: 'include',
       });
 
       if (response.ok) {
@@ -31,7 +33,7 @@ export function useImpersonation(): ImpersonationStatus & { endImpersonation: ()
           isImpersonating: data.isImpersonating,
           impersonatedUserId: data.impersonatedUserId,
           impersonatedUserEmail: data.impersonatedUserEmail,
-          originalAdminEmail: data.originalAdminEmail
+          originalAdminEmail: data.originalAdminEmail,
         });
       }
     } catch (error) {
@@ -43,7 +45,7 @@ export function useImpersonation(): ImpersonationStatus & { endImpersonation: ()
     try {
       const response = await fetch('/api/admin/impersonate', {
         method: 'DELETE',
-        credentials: 'include'
+        credentials: 'include',
       });
 
       if (!response.ok) {
@@ -60,6 +62,6 @@ export function useImpersonation(): ImpersonationStatus & { endImpersonation: ()
 
   return {
     ...status,
-    endImpersonation
+    endImpersonation,
   };
 }

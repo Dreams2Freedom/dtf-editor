@@ -15,7 +15,7 @@ import {
   Percent,
   Users,
   CheckCircle,
-  XCircle
+  XCircle,
 } from 'lucide-react';
 import { toast } from '@/lib/toast';
 
@@ -59,7 +59,9 @@ export default function CouponsPage() {
     min_purchase: 0,
     max_uses: 0,
     valid_from: new Date().toISOString().split('T')[0],
-    valid_until: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
+    valid_until: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
+      .toISOString()
+      .split('T')[0],
   });
 
   useEffect(() => {
@@ -113,13 +115,12 @@ export default function CouponsPage() {
     }
   };
 
-
   const handleCreateCoupon = async () => {
     try {
       const response = await fetch('/api/admin/financial/coupons', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData)
+        body: JSON.stringify(formData),
       });
 
       if (!response.ok) {
@@ -140,7 +141,7 @@ export default function CouponsPage() {
       const response = await fetch(`/api/admin/financial/coupons/${id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ is_active: !currentStatus })
+        body: JSON.stringify({ is_active: !currentStatus }),
       });
 
       if (!response.ok) {
@@ -160,7 +161,7 @@ export default function CouponsPage() {
 
     try {
       const response = await fetch(`/api/admin/financial/coupons/${id}`, {
-        method: 'DELETE'
+        method: 'DELETE',
       });
 
       if (!response.ok) {
@@ -201,7 +202,9 @@ export default function CouponsPage() {
         <div className="flex justify-between items-center">
           <div>
             <h1 className="text-2xl font-bold text-gray-900">Coupons</h1>
-            <p className="text-gray-600 mt-1">Manage discount codes and promotional offers</p>
+            <p className="text-gray-600 mt-1">
+              Manage discount codes and promotional offers
+            </p>
           </div>
           <Button onClick={() => setShowCreateModal(true)} variant="default">
             <Plus className="w-4 h-4 mr-2" />
@@ -229,7 +232,9 @@ export default function CouponsPage() {
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm text-gray-600">Active</p>
-                    <p className="text-xl font-bold">{metrics.active_coupons}</p>
+                    <p className="text-xl font-bold">
+                      {metrics.active_coupons}
+                    </p>
                   </div>
                   <CheckCircle className="w-8 h-8 text-success-500" />
                 </div>
@@ -241,7 +246,9 @@ export default function CouponsPage() {
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm text-gray-600">Expired</p>
-                    <p className="text-xl font-bold">{metrics.expired_coupons}</p>
+                    <p className="text-xl font-bold">
+                      {metrics.expired_coupons}
+                    </p>
                   </div>
                   <XCircle className="w-8 h-8 text-error-500" />
                 </div>
@@ -265,7 +272,9 @@ export default function CouponsPage() {
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm text-gray-600">Total Saved</p>
-                    <p className="text-xl font-bold">${(metrics.total_discount_given / 100).toFixed(2)}</p>
+                    <p className="text-xl font-bold">
+                      ${(metrics.total_discount_given / 100).toFixed(2)}
+                    </p>
                   </div>
                   <Percent className="w-8 h-8 text-orange-500" />
                 </div>
@@ -276,7 +285,9 @@ export default function CouponsPage() {
               <CardContent className="p-4">
                 <div>
                   <p className="text-sm text-gray-600">Most Used</p>
-                  <p className="text-sm font-bold truncate">{metrics.most_used_coupon || 'N/A'}</p>
+                  <p className="text-sm font-bold truncate">
+                    {metrics.most_used_coupon || 'N/A'}
+                  </p>
                 </div>
               </CardContent>
             </Card>
@@ -290,7 +301,7 @@ export default function CouponsPage() {
             <Input
               placeholder="Search coupons..."
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+              onChange={e => setSearchQuery(e.target.value)}
               className="pl-10"
             />
           </div>
@@ -298,7 +309,7 @@ export default function CouponsPage() {
           <select
             className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
             value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
+            onChange={e => setStatusFilter(e.target.value)}
           >
             <option value="all">All Coupons</option>
             <option value="active">Active</option>
@@ -329,18 +340,27 @@ export default function CouponsPage() {
                 <tbody>
                   {filteredCoupons.length === 0 ? (
                     <tr>
-                      <td colSpan={7} className="text-center py-8 text-gray-500">
+                      <td
+                        colSpan={7}
+                        className="text-center py-8 text-gray-500"
+                      >
                         No coupons found
                       </td>
                     </tr>
                   ) : (
-                    filteredCoupons.map((coupon) => {
-                      const isExpired = new Date(coupon.valid_until) < new Date();
+                    filteredCoupons.map(coupon => {
+                      const isExpired =
+                        new Date(coupon.valid_until) < new Date();
                       return (
-                        <tr key={coupon.id} className="border-b hover:bg-gray-50">
+                        <tr
+                          key={coupon.id}
+                          className="border-b hover:bg-gray-50"
+                        >
                           <td className="py-3 px-4">
                             <div className="flex items-center gap-2">
-                              <code className="font-mono font-bold">{coupon.code}</code>
+                              <code className="font-mono font-bold">
+                                {coupon.code}
+                              </code>
                               <button
                                 onClick={() => copyToClipboard(coupon.code)}
                                 className="text-gray-400 hover:text-gray-600"
@@ -349,10 +369,15 @@ export default function CouponsPage() {
                               </button>
                             </div>
                           </td>
-                          <td className="py-3 px-4 text-sm">{coupon.description}</td>
+                          <td className="py-3 px-4 text-sm">
+                            {coupon.description}
+                          </td>
                           <td className="py-3 px-4">
                             <Badge variant="success">
-                              {formatDiscount(coupon.discount_type, coupon.discount_value)}
+                              {formatDiscount(
+                                coupon.discount_type,
+                                coupon.discount_value
+                              )}
                             </Badge>
                           </td>
                           <td className="py-3 px-4 text-sm">
@@ -374,7 +399,12 @@ export default function CouponsPage() {
                           <td className="py-3 px-4">
                             <div className="flex justify-end gap-2">
                               <button
-                                onClick={() => handleToggleStatus(coupon.id, coupon.is_active)}
+                                onClick={() =>
+                                  handleToggleStatus(
+                                    coupon.id,
+                                    coupon.is_active
+                                  )
+                                }
                                 className="text-primary-600 hover:text-primary-800"
                                 disabled={isExpired}
                               >
@@ -405,28 +435,48 @@ export default function CouponsPage() {
               <h2 className="text-xl font-bold mb-4">Create New Coupon</h2>
               <div className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Code</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Code
+                  </label>
                   <Input
                     value={formData.code}
-                    onChange={(e) => setFormData({ ...formData, code: e.target.value.toUpperCase() })}
+                    onChange={e =>
+                      setFormData({
+                        ...formData,
+                        code: e.target.value.toUpperCase(),
+                      })
+                    }
                     placeholder="SUMMER2025"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Description
+                  </label>
                   <Input
                     value={formData.description}
-                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                    onChange={e =>
+                      setFormData({ ...formData, description: e.target.value })
+                    }
                     placeholder="Summer sale discount"
                   />
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Type</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Type
+                    </label>
                     <select
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg"
                       value={formData.discount_type}
-                      onChange={(e) => setFormData({ ...formData, discount_type: e.target.value as 'percentage' | 'fixed' })}
+                      onChange={e =>
+                        setFormData({
+                          ...formData,
+                          discount_type: e.target.value as
+                            | 'percentage'
+                            | 'fixed',
+                        })
+                      }
                     >
                       <option value="percentage">Percentage</option>
                       <option value="fixed">Fixed Amount</option>
@@ -434,60 +484,97 @@ export default function CouponsPage() {
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      {formData.discount_type === 'percentage' ? 'Percent' : 'Amount ($)'}
+                      {formData.discount_type === 'percentage'
+                        ? 'Percent'
+                        : 'Amount ($)'}
                     </label>
                     <Input
                       type="number"
-                      value={formData.discount_type === 'percentage' ? formData.discount_value : formData.discount_value / 100}
-                      onChange={(e) => setFormData({ 
-                        ...formData, 
-                        discount_value: formData.discount_type === 'percentage' 
-                          ? Number(e.target.value)
-                          : Number(e.target.value) * 100
-                      })}
+                      value={
+                        formData.discount_type === 'percentage'
+                          ? formData.discount_value
+                          : formData.discount_value / 100
+                      }
+                      onChange={e =>
+                        setFormData({
+                          ...formData,
+                          discount_value:
+                            formData.discount_type === 'percentage'
+                              ? Number(e.target.value)
+                              : Number(e.target.value) * 100,
+                        })
+                      }
                     />
                   </div>
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Valid From</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Valid From
+                    </label>
                     <Input
                       type="date"
                       value={formData.valid_from}
-                      onChange={(e) => setFormData({ ...formData, valid_from: e.target.value })}
+                      onChange={e =>
+                        setFormData({ ...formData, valid_from: e.target.value })
+                      }
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Valid Until</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Valid Until
+                    </label>
                     <Input
                       type="date"
                       value={formData.valid_until}
-                      onChange={(e) => setFormData({ ...formData, valid_until: e.target.value })}
+                      onChange={e =>
+                        setFormData({
+                          ...formData,
+                          valid_until: e.target.value,
+                        })
+                      }
                     />
                   </div>
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Min Purchase ($)</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Min Purchase ($)
+                    </label>
                     <Input
                       type="number"
                       value={formData.min_purchase / 100}
-                      onChange={(e) => setFormData({ ...formData, min_purchase: Number(e.target.value) * 100 })}
+                      onChange={e =>
+                        setFormData({
+                          ...formData,
+                          min_purchase: Number(e.target.value) * 100,
+                        })
+                      }
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Max Uses</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Max Uses
+                    </label>
                     <Input
                       type="number"
                       value={formData.max_uses}
-                      onChange={(e) => setFormData({ ...formData, max_uses: Number(e.target.value) })}
+                      onChange={e =>
+                        setFormData({
+                          ...formData,
+                          max_uses: Number(e.target.value),
+                        })
+                      }
                       placeholder="0 for unlimited"
                     />
                   </div>
                 </div>
               </div>
               <div className="flex justify-end gap-3 mt-6">
-                <Button variant="outline" onClick={() => setShowCreateModal(false)}>
+                <Button
+                  variant="outline"
+                  onClick={() => setShowCreateModal(false)}
+                >
                   Cancel
                 </Button>
                 <Button onClick={handleCreateCoupon} variant="default">

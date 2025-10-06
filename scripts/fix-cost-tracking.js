@@ -17,9 +17,9 @@ const supabase = createClient(
 const API_COSTS = {
   deep_image: { upscale: 0.08 },
   clipping_magic: { background_removal: 0.125 },
-  vectorizer: { vectorization: 0.20 },
+  vectorizer: { vectorization: 0.2 },
   openai: { image_generation: 0.04 },
-  stripe: { payment_processing: 0.029 }
+  stripe: { payment_processing: 0.029 },
 };
 
 // Credit values by plan
@@ -30,7 +30,7 @@ const CREDIT_VALUES = {
   professional: 0.398, // $19.99 / 50 credits
   payg_10: 0.799, // $7.99 / 10 credits
   payg_20: 0.749, // $14.99 / 20 credits
-  payg_50: 0.599  // $29.99 / 50 credits
+  payg_50: 0.599, // $29.99 / 50 credits
 };
 
 async function checkTables() {
@@ -66,7 +66,9 @@ async function createHistoricalData() {
     return;
   }
 
-  console.log(`Found ${processedImages?.length || 0} processed images in the last 30 days`);
+  console.log(
+    `Found ${processedImages?.length || 0} processed images in the last 30 days`
+  );
 
   if (!processedImages || processedImages.length === 0) {
     console.log('No historical data to import');
@@ -126,12 +128,14 @@ async function createHistoricalData() {
       credit_value: creditValue * (image.credits_used || 1),
       processing_time_ms: Math.floor(Math.random() * 3000) + 1000, // Estimated
       created_at: image.created_at,
-      processed_at: image.created_at
+      processed_at: image.created_at,
     });
   }
 
   if (usageLogs.length > 0) {
-    console.log(`\n💾 Inserting ${usageLogs.length} historical cost records...`);
+    console.log(
+      `\n💾 Inserting ${usageLogs.length} historical cost records...`
+    );
 
     const { error: insertError } = await supabase
       .from('api_usage_logs')
@@ -139,19 +143,26 @@ async function createHistoricalData() {
 
     if (insertError) {
       console.log('❌ Error inserting historical data:', insertError.message);
-      console.log('This might be because the api_usage_logs table doesn\'t exist yet.');
+      console.log(
+        "This might be because the api_usage_logs table doesn't exist yet."
+      );
       console.log('\n📝 Please run the SQL migration first:');
       console.log('   1. Go to Supabase Dashboard > SQL Editor');
-      console.log('   2. Run the script in: scripts/create-api-usage-logs-table.sql');
+      console.log(
+        '   2. Run the script in: scripts/create-api-usage-logs-table.sql'
+      );
       console.log('   3. Then run this script again');
     } else {
       console.log('✅ Historical data imported successfully!');
 
       // Calculate summary statistics
       const totalCost = usageLogs.reduce((sum, log) => sum + log.api_cost, 0);
-      const totalRevenue = usageLogs.reduce((sum, log) => sum + log.credit_value, 0);
+      const totalRevenue = usageLogs.reduce(
+        (sum, log) => sum + log.credit_value,
+        0
+      );
       const profit = totalRevenue - totalCost;
-      const margin = totalRevenue > 0 ? (profit / totalRevenue * 100) : 0;
+      const margin = totalRevenue > 0 ? (profit / totalRevenue) * 100 : 0;
 
       console.log('\n📈 Historical Data Summary:');
       console.log(`   Total API Costs: $${totalCost.toFixed(2)}`);
@@ -193,7 +204,7 @@ async function updateCostSummaries() {
         total_api_cost: 0,
         total_revenue: 0,
         gross_profit: 0,
-        total_processing_time_ms: 0
+        total_processing_time_ms: 0,
       };
     }
 
@@ -205,7 +216,8 @@ async function updateCostSummaries() {
     }
     summaries[key].total_api_cost += log.api_cost;
     summaries[key].total_revenue += log.credit_value;
-    summaries[key].gross_profit = summaries[key].total_revenue - summaries[key].total_api_cost;
+    summaries[key].gross_profit =
+      summaries[key].total_revenue - summaries[key].total_api_cost;
     summaries[key].total_processing_time_ms += log.processing_time_ms || 0;
   }
 
@@ -227,7 +239,7 @@ async function updateCostSummaries() {
 
 async function main() {
   console.log('🚀 DTF Editor - Cost Tracking System Fix\n');
-  console.log('=' .repeat(50));
+  console.log('='.repeat(50));
 
   // Step 1: Check existing tables
   const tables = await checkTables();
@@ -260,4 +272,6 @@ async function main() {
 }
 
 // Run the script
-main().catch(console.error).finally(() => process.exit(0));
+main()
+  .catch(console.error)
+  .finally(() => process.exit(0));

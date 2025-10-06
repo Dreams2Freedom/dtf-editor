@@ -17,15 +17,21 @@ async function handleGet(request: NextRequest) {
         },
       }
     );
-    
+
     // Get authenticated user
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
-    
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
+
     if (authError || !user) {
-      return NextResponse.json({ 
-        success: false, 
-        error: 'Unauthorized' 
-      }, { status: 401 });
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'Unauthorized',
+        },
+        { status: 401 }
+      );
     }
 
     // Get total credits used
@@ -52,7 +58,8 @@ async function handleGet(request: NextRequest) {
       console.error('Error fetching purchases:', purchaseError);
     }
 
-    const totalPurchased = purchaseData?.reduce((sum, t) => sum + t.amount, 0) || 0;
+    const totalPurchased =
+      purchaseData?.reduce((sum, t) => sum + t.amount, 0) || 0;
 
     // Get most used operation
     const operationCounts: Record<string, number> = {};
@@ -61,14 +68,16 @@ async function handleGet(request: NextRequest) {
       if (operation.includes('upscale')) {
         operationCounts['upscale'] = (operationCounts['upscale'] || 0) + 1;
       } else if (operation.includes('background')) {
-        operationCounts['background-removal'] = (operationCounts['background-removal'] || 0) + 1;
+        operationCounts['background-removal'] =
+          (operationCounts['background-removal'] || 0) + 1;
       } else if (operation.includes('vector')) {
         operationCounts['vectorize'] = (operationCounts['vectorize'] || 0) + 1;
       }
     });
 
-    const mostUsedOperation = Object.entries(operationCounts)
-      .sort(([,a], [,b]) => b - a)[0]?.[0] || 'none';
+    const mostUsedOperation =
+      Object.entries(operationCounts).sort(([, a], [, b]) => b - a)[0]?.[0] ||
+      'none';
 
     // Calculate average monthly usage
     const { data: profile } = await supabase
@@ -77,8 +86,12 @@ async function handleGet(request: NextRequest) {
       .eq('id', user.id)
       .single();
 
-    const accountAgeMonths = profile?.created_at 
-      ? Math.max(1, (Date.now() - new Date(profile.created_at).getTime()) / (1000 * 60 * 60 * 24 * 30))
+    const accountAgeMonths = profile?.created_at
+      ? Math.max(
+          1,
+          (Date.now() - new Date(profile.created_at).getTime()) /
+            (1000 * 60 * 60 * 24 * 30)
+        )
       : 1;
 
     const averageUsagePerMonth = totalUsed / accountAgeMonths;
@@ -100,16 +113,18 @@ async function handleGet(request: NextRequest) {
         totalPurchased,
         mostUsedOperation,
         averageUsagePerMonth,
-        lastPurchaseDate: lastPurchase?.created_at || null
-      }
+        lastPurchaseDate: lastPurchase?.created_at || null,
+      },
     });
-
   } catch (error) {
     console.error('Analytics error:', error);
-    return NextResponse.json({ 
-      success: false, 
-      error: 'Failed to fetch analytics' 
-    }, { status: 500 });
+    return NextResponse.json(
+      {
+        success: false,
+        error: 'Failed to fetch analytics',
+      },
+      { status: 500 }
+    );
   }
 }
 

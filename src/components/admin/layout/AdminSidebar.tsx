@@ -16,7 +16,7 @@ import {
   ChevronRight,
   Bell,
   UsersRound,
-  ShieldCheck
+  ShieldCheck,
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { createClientSupabaseClient } from '@/lib/supabase/client';
@@ -47,7 +47,7 @@ const menuItems: MenuItem[] = [
     children: [
       { name: 'All Users', href: '/admin/users', icon: Users },
       { name: 'User Activity', href: '/admin/users/activity', icon: FileText },
-    ]
+    ],
   },
   {
     name: 'Financial',
@@ -55,10 +55,14 @@ const menuItems: MenuItem[] = [
     icon: DollarSign,
     permission: ['financial', 'view'],
     children: [
-      { name: 'Transactions', href: '/admin/financial/transactions', icon: DollarSign },
+      {
+        name: 'Transactions',
+        href: '/admin/financial/transactions',
+        icon: DollarSign,
+      },
       { name: 'Coupons', href: '/admin/financial/coupons', icon: FileText },
       { name: 'Revenue', href: '/admin/financial/revenue', icon: BarChart3 },
-    ]
+    ],
   },
   {
     name: 'Analytics',
@@ -73,11 +77,19 @@ const menuItems: MenuItem[] = [
     permission: ['affiliates', 'view'],
     children: [
       { name: 'Overview', href: '/admin/affiliates', icon: BarChart3 },
-      { name: 'Applications', href: '/admin/affiliates/applications', icon: FileText },
+      {
+        name: 'Applications',
+        href: '/admin/affiliates/applications',
+        icon: FileText,
+      },
       { name: 'Referrals', href: '/admin/affiliates/referrals', icon: Users },
-      { name: 'Commissions', href: '/admin/affiliates/commissions', icon: DollarSign },
+      {
+        name: 'Commissions',
+        href: '/admin/affiliates/commissions',
+        icon: DollarSign,
+      },
       { name: 'Payouts', href: '/admin/affiliates/payouts', icon: DollarSign },
-    ]
+    ],
   },
   {
     name: 'Support',
@@ -124,8 +136,9 @@ export function AdminSidebar({ isOpen, onClose }: AdminSidebarProps) {
     menuItems.forEach(item => {
       if (item.children) {
         // Check if any child page is active
-        const hasActiveChild = item.children.some(child =>
-          pathname === child.href || pathname.startsWith(child.href + '/')
+        const hasActiveChild = item.children.some(
+          child =>
+            pathname === child.href || pathname.startsWith(child.href + '/')
         );
 
         if (hasActiveChild) {
@@ -143,11 +156,14 @@ export function AdminSidebar({ isOpen, onClose }: AdminSidebarProps) {
     const checkSuperAdmin = async () => {
       try {
         const supabase = createClientSupabaseClient();
-        const { data: { user } } = await supabase.auth.getUser();
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
 
         if (user) {
-          const { data: role } = await supabase
-            .rpc('get_admin_role', { user_id: user.id });
+          const { data: role } = await supabase.rpc('get_admin_role', {
+            user_id: user.id,
+          });
 
           setIsSuperAdmin(role === 'super_admin');
         }
@@ -176,9 +192,7 @@ export function AdminSidebar({ isOpen, onClose }: AdminSidebarProps) {
 
   const toggleExpanded = (name: string) => {
     setExpandedItems(prev =>
-      prev.includes(name)
-        ? prev.filter(item => item !== name)
-        : [...prev, name]
+      prev.includes(name) ? prev.filter(item => item !== name) : [...prev, name]
     );
   };
 
@@ -200,9 +214,10 @@ export function AdminSidebar({ isOpen, onClose }: AdminSidebarProps) {
             onClick={() => toggleExpanded(item.name)}
             className={`
               w-full flex items-center justify-between px-3 py-2 text-sm font-medium rounded-lg
-              ${active
-                ? 'bg-blue-600 text-white hover:bg-blue-700'
-                : 'text-gray-700 hover:bg-gray-100 hover:text-gray-900'
+              ${
+                active
+                  ? 'bg-blue-600 text-white hover:bg-blue-700'
+                  : 'text-gray-700 hover:bg-gray-100 hover:text-gray-900'
               }
               ${isChild ? 'pl-11' : ''}
             `}
@@ -222,9 +237,10 @@ export function AdminSidebar({ isOpen, onClose }: AdminSidebarProps) {
             href={item.href}
             className={`
               flex items-center px-3 py-2 text-sm font-medium rounded-lg
-              ${active
-                ? 'bg-blue-600 text-white hover:bg-blue-700'
-                : 'text-gray-700 hover:bg-gray-100 hover:text-gray-900'
+              ${
+                active
+                  ? 'bg-blue-600 text-white hover:bg-blue-700'
+                  : 'text-gray-700 hover:bg-gray-100 hover:text-gray-900'
               }
               ${isChild ? 'pl-11' : ''}
             `}
@@ -233,7 +249,7 @@ export function AdminSidebar({ isOpen, onClose }: AdminSidebarProps) {
             {item.name}
           </Link>
         )}
-        
+
         {hasChildren && isExpanded && (
           <div className="mt-1 space-y-1">
             {item.children!.map(child => renderMenuItem(child, true))}

@@ -13,8 +13,9 @@ const supabase = createClient(
 
   // Test 1: Check is_admin function
   console.log('1. Testing is_admin function:');
-  const { data: isAdmin, error: adminError } = await supabase
-    .rpc('is_admin', { check_user_id: userId });
+  const { data: isAdmin, error: adminError } = await supabase.rpc('is_admin', {
+    check_user_id: userId,
+  });
 
   if (adminError) {
     console.error('   ❌ Error:', adminError.message);

@@ -11,7 +11,10 @@ import { env } from '@/config/env';
 export default function TestCreditsPage() {
   const { user, profile } = useAuthStore();
   const [isLoading, setIsLoading] = useState(false);
-  const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [message, setMessage] = useState<{
+    type: 'success' | 'error';
+    text: string;
+  } | null>(null);
   const [creditData, setCreditData] = useState<any>(null);
 
   useEffect(() => {
@@ -44,7 +47,7 @@ export default function TestCreditsPage() {
         },
         body: JSON.stringify({
           userId: user?.id,
-          secret: env.CRON_SECRET || 'test-cron-secret-123'
+          secret: env.CRON_SECRET || 'test-cron-secret-123',
         }),
       });
 
@@ -55,7 +58,10 @@ export default function TestCreditsPage() {
         // Refresh auth store to get new credit balance
         window.location.reload();
       } else {
-        setMessage({ type: 'error', text: result.error || 'Failed to reset credits' });
+        setMessage({
+          type: 'error',
+          text: result.error || 'Failed to reset credits',
+        });
       }
     } catch (error) {
       setMessage({ type: 'error', text: 'Network error occurred' });
@@ -87,7 +93,10 @@ export default function TestCreditsPage() {
         setMessage({ type: 'success', text: 'Credit usage test completed!' });
         fetchCreditData();
       } else {
-        setMessage({ type: 'error', text: result.error || 'Failed to test credit usage' });
+        setMessage({
+          type: 'error',
+          text: result.error || 'Failed to test credit usage',
+        });
       }
     } catch (error) {
       setMessage({ type: 'error', text: 'Network error occurred' });
@@ -102,8 +111,12 @@ export default function TestCreditsPage() {
         <Card className="w-full max-w-md">
           <CardContent className="text-center py-8">
             <AlertCircle className="w-12 h-12 text-amber-500 mx-auto mb-4" />
-            <h2 className="text-xl font-semibold mb-2">Authentication Required</h2>
-            <p className="text-gray-600">Please log in to test the credit system</p>
+            <h2 className="text-xl font-semibold mb-2">
+              Authentication Required
+            </h2>
+            <p className="text-gray-600">
+              Please log in to test the credit system
+            </p>
           </CardContent>
         </Card>
       </div>
@@ -130,10 +143,12 @@ export default function TestCreditsPage() {
                   <span className="font-medium">User ID:</span> {user.id}
                 </p>
                 <p className="text-sm">
-                  <span className="font-medium">Credits:</span> {profile?.credits_remaining || 0}
+                  <span className="font-medium">Credits:</span>{' '}
+                  {profile?.credits_remaining || 0}
                 </p>
                 <p className="text-sm">
-                  <span className="font-medium">Plan:</span> {profile?.subscription_status || 'free'}
+                  <span className="font-medium">Plan:</span>{' '}
+                  {profile?.subscription_status || 'free'}
                 </p>
               </div>
             </CardContent>
@@ -204,16 +219,20 @@ export default function TestCreditsPage() {
               {creditData?.summary ? (
                 <div className="space-y-2">
                   <p className="text-sm">
-                    <span className="font-medium">Total:</span> {creditData.summary.total_credits}
+                    <span className="font-medium">Total:</span>{' '}
+                    {creditData.summary.total_credits}
                   </p>
                   <p className="text-sm">
-                    <span className="font-medium">Active:</span> {creditData.summary.active_credits}
+                    <span className="font-medium">Active:</span>{' '}
+                    {creditData.summary.active_credits}
                   </p>
                   <p className="text-sm">
-                    <span className="font-medium">Rollover:</span> {creditData.summary.rollover_credits}
+                    <span className="font-medium">Rollover:</span>{' '}
+                    {creditData.summary.rollover_credits}
                   </p>
                   <p className="text-sm">
-                    <span className="font-medium">Purchases:</span> {creditData.summary.active_purchases}
+                    <span className="font-medium">Purchases:</span>{' '}
+                    {creditData.summary.active_purchases}
                   </p>
                 </div>
               ) : (
@@ -225,9 +244,13 @@ export default function TestCreditsPage() {
 
         {/* Message Display */}
         {message && (
-          <div className={`mb-6 p-4 rounded-lg ${
-            message.type === 'success' ? 'bg-green-50 text-green-800' : 'bg-red-50 text-red-800'
-          }`}>
+          <div
+            className={`mb-6 p-4 rounded-lg ${
+              message.type === 'success'
+                ? 'bg-green-50 text-green-800'
+                : 'bg-red-50 text-red-800'
+            }`}
+          >
             {message.text}
           </div>
         )}

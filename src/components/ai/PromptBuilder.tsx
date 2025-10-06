@@ -3,14 +3,20 @@
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
-import { enhancePromptForDTF, getPromptSuggestions } from '@/utils/promptHelpers';
+import {
+  enhancePromptForDTF,
+  getPromptSuggestions,
+} from '@/utils/promptHelpers';
 
 interface PromptBuilderProps {
   onPromptChange: (prompt: string) => void;
   initialPrompt?: string;
 }
 
-export function PromptBuilder({ onPromptChange, initialPrompt = '' }: PromptBuilderProps) {
+export function PromptBuilder({
+  onPromptChange,
+  initialPrompt = '',
+}: PromptBuilderProps) {
   const [prompt, setPrompt] = useState(initialPrompt);
   const [selectedCategory, setSelectedCategory] = useState<
     'general' | 'fashion' | 'sports' | 'nature' | 'abstract' | 'vintage'
@@ -54,7 +60,7 @@ export function PromptBuilder({ onPromptChange, initialPrompt = '' }: PromptBuil
           <textarea
             id="prompt"
             value={prompt}
-            onChange={(e) => handlePromptChange(e.target.value)}
+            onChange={e => handlePromptChange(e.target.value)}
             placeholder="Enter a detailed description of the image you want to generate..."
             className="w-full px-4 py-3 border rounded-lg resize-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
             rows={4}
@@ -98,10 +104,10 @@ export function PromptBuilder({ onPromptChange, initialPrompt = '' }: PromptBuil
       {showSuggestions && (
         <Card className="p-4">
           <h3 className="font-medium mb-3">Prompt Suggestions</h3>
-          
+
           {/* Categories */}
           <div className="flex flex-wrap gap-2 mb-4">
-            {categories.map((category) => (
+            {categories.map(category => (
               <button
                 key={category.id}
                 onClick={() => setSelectedCategory(category.id)}
@@ -138,19 +144,27 @@ export function PromptBuilder({ onPromptChange, initialPrompt = '' }: PromptBuil
           ✅ Automatic DTF Optimization
         </h4>
         <p className="text-xs text-green-700">
-          All images are automatically generated with <strong>transparent backgrounds</strong> and optimized for DTF printing.
-          No need to specify transparency - we handle it for you!
+          All images are automatically generated with{' '}
+          <strong>transparent backgrounds</strong> and optimized for DTF
+          printing. No need to specify transparency - we handle it for you!
         </p>
       </div>
 
       {/* Prompt Tips */}
       <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
-        <h4 className="text-sm font-medium text-blue-900 mb-1">Tips for Better Results:</h4>
+        <h4 className="text-sm font-medium text-blue-900 mb-1">
+          Tips for Better Results:
+        </h4>
         <ul className="text-xs text-blue-700 space-y-1">
           <li>• Be specific about colors, style, and composition</li>
           <li>• Mention if you want vector, realistic, or cartoon style</li>
-          <li>• <strong>Transparent backgrounds are automatic</strong> - focus on the subject</li>
-          <li>• For best DTF results, use "high contrast" and "vibrant colors"</li>
+          <li>
+            • <strong>Transparent backgrounds are automatic</strong> - focus on
+            the subject
+          </li>
+          <li>
+            • For best DTF results, use "high contrast" and "vibrant colors"
+          </li>
           <li>• Avoid complex backgrounds - the subject will be isolated</li>
         </ul>
       </div>

@@ -23,7 +23,7 @@ async function handleGetHealth(request: NextRequest) {
         deepImage: { status: 'unknown', message: '' },
         clippingMagic: { status: 'unknown', message: '' },
         vectorizer: { status: 'unknown', message: '' },
-      }
+      },
     },
     environment: {
       node_version: process.version,
@@ -41,22 +41,25 @@ async function handleGetHealth(request: NextRequest) {
         deepImage: false,
         clippingMagic: false,
         vectorizer: false,
-      }
-    }
+      },
+    },
   };
 
   try {
     // Check Database (Supabase)
     if (env.SUPABASE_URL && env.SUPABASE_SERVICE_ROLE_KEY) {
       const startTime = Date.now();
-      const supabase = createClient(env.SUPABASE_URL, env.SUPABASE_SERVICE_ROLE_KEY);
-      
+      const supabase = createClient(
+        env.SUPABASE_URL,
+        env.SUPABASE_SERVICE_ROLE_KEY
+      );
+
       const { count, error } = await supabase
         .from('users')
         .select('*', { count: 'exact', head: true });
-      
+
       health.services.database.latency = Date.now() - startTime;
-      
+
       if (!error) {
         health.services.database.status = 'healthy';
         health.configuration.supabase = true;
@@ -67,10 +70,13 @@ async function handleGetHealth(request: NextRequest) {
 
     // Check Storage (Supabase Storage)
     if (env.SUPABASE_URL && env.SUPABASE_SERVICE_ROLE_KEY) {
-      const supabase = createClient(env.SUPABASE_URL, env.SUPABASE_SERVICE_ROLE_KEY);
-      
+      const supabase = createClient(
+        env.SUPABASE_URL,
+        env.SUPABASE_SERVICE_ROLE_KEY
+      );
+
       const { data, error } = await supabase.storage.listBuckets();
-      
+
       if (!error && data) {
         health.services.storage.status = 'healthy';
         health.services.storage.message = `${data.length} buckets available`;
@@ -93,7 +99,11 @@ async function handleGetHealth(request: NextRequest) {
     // Check Stripe
     if (env.STRIPE_SECRET_KEY) {
       health.services.stripe.status = 'healthy';
-      health.services.stripe.message = env.STRIPE_SECRET_KEY.startsWith('sk_live') ? 'Live mode' : 'Test mode';
+      health.services.stripe.message = env.STRIPE_SECRET_KEY.startsWith(
+        'sk_live'
+      )
+        ? 'Live mode'
+        : 'Test mode';
       health.configuration.stripe = true;
     } else {
       health.services.stripe.status = 'error';
@@ -141,16 +151,19 @@ async function handleGetHealth(request: NextRequest) {
 
     // Determine overall status
     const hasErrors = Object.values(health.services).some(
-      service => typeof service === 'object' && 'status' in service && service.status === 'error'
+      service =>
+        typeof service === 'object' &&
+        'status' in service &&
+        service.status === 'error'
     );
-    
+
     health.status = hasErrors ? 'degraded' : 'healthy';
 
     return NextResponse.json(health);
   } catch (error) {
     console.error('Health check error:', error);
     return NextResponse.json(
-      { 
+      {
         ...health,
         status: 'error',
         error: error instanceof Error ? error.message : 'Unknown error',

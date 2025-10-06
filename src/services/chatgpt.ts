@@ -3,8 +3,8 @@ import { env } from '@/config/env';
 export interface ImageGenerationOptions {
   prompt: string;
   size?: '1024x1024' | '1024x1792' | '1792x1024'; // GPT-Image-1 sizes via Images API
-  quality?: 'standard' | 'hd'; // Images API quality levels
-  style?: 'vivid' | 'natural'; // Style preference
+  quality?: 'low' | 'medium' | 'high' | 'auto'; // GPT-Image-1 quality levels
+  style?: 'vivid' | 'natural'; // Style preference (not supported by gpt-image-1)
   n?: number; // Number of images to generate
 }
 
@@ -33,10 +33,12 @@ export interface ImageGenerationResult {
 export type ImageEditResult = ImageGenerationResult;
 
 // Credit costs for GPT-Image-1 using Images API (based on quality)
-// Images API supports "standard" and "hd" quality
+// gpt-image-1 supports: 'low', 'medium', 'high', 'auto'
 const CREDIT_COSTS_BY_QUALITY = {
-  standard: 1, // Standard quality uses 1 credit
-  hd: 2, // HD quality uses 2 credits
+  low: 1, // Low quality uses 1 credit
+  medium: 1, // Medium quality uses 1 credit (beta pricing)
+  high: 2, // High quality uses 2 credits
+  auto: 1, // Auto quality uses 1 credit (default)
 };
 
 export class ChatGPTService {
@@ -85,8 +87,7 @@ export class ChatGPTService {
       const {
         prompt,
         size = '1024x1024',
-        quality = 'standard',
-        style = 'vivid',
+        quality = 'medium',
         n = 1,
       } = options;
 
@@ -97,7 +98,6 @@ export class ChatGPTService {
         prompt: prompt.substring(0, 100) + '...',
         size,
         quality,
-        style,
         n: imageCount,
       });
 
@@ -110,14 +110,15 @@ export class ChatGPTService {
         const cleanedPrompt = prompt.replace('[IMAGE-TO-IMAGE]', ''); // Remove marker if present
 
         // Build the request parameters for Images API
-        // Note: gpt-image-1 only supports: model, prompt, n, size, quality
+        // gpt-image-1 supports: model, prompt, n, size, quality, background, moderation
         // Does NOT support: style (DALL-E 3 only) or response_format
         const requestParams: any = {
           model: 'gpt-image-1', // Dedicated image generation model
           prompt: cleanedPrompt,
           n: imageCount,
-          size: size, // Direct size parameter support
-          quality: quality, // Direct quality parameter: "standard" or "hd"
+          size: size, // '1024x1024' | '1024x1792' | '1792x1024'
+          quality: quality, // 'low' | 'medium' | 'high' | 'auto'
+          background: 'transparent', // CRITICAL for DTF printing - enables transparent backgrounds
           // response_format removed - will return URLs by default
         };
 
@@ -163,7 +164,7 @@ export class ChatGPTService {
 
       // Calculate credits used based on quality and count
       const creditsPerImage =
-        CREDIT_COSTS_BY_QUALITY[quality] || CREDIT_COSTS_BY_QUALITY['standard'];
+        CREDIT_COSTS_BY_QUALITY[quality] || CREDIT_COSTS_BY_QUALITY['medium'];
       const creditsUsed = creditsPerImage * imageCount;
 
       console.log('Image generation successful:', {
@@ -171,7 +172,7 @@ export class ChatGPTService {
         creditsUsed,
         size,
         quality,
-        style,
+        hasTransparentBackground: true,
       });
 
       return {

@@ -28,29 +28,33 @@ async function testStoragePolicies() {
   try {
     // 1. Check storage buckets
     console.log('📦 Checking storage buckets...');
-    const { data: buckets, error: bucketsError } = await serviceClient.storage.listBuckets();
-    
+    const { data: buckets, error: bucketsError } =
+      await serviceClient.storage.listBuckets();
+
     if (bucketsError) {
       console.error('❌ Error listing buckets:', bucketsError);
       return;
     }
 
     console.log('✅ Found buckets:', buckets.map(b => b.name).join(', '));
-    
+
     // 2. Check bucket policies
     for (const bucket of buckets) {
       console.log(`\n📋 Checking policies for bucket: ${bucket.name}`);
-      
+
       // Check if bucket is public
       console.log(`  - Public: ${bucket.public ? '✅ Yes' : '❌ No'}`);
-      
+
       // Try to list files as anonymous user
       const { data: anonFiles, error: anonError } = await anonClient.storage
         .from(bucket.name)
         .list();
-      
+
       if (bucket.public && anonError) {
-        console.log('  - ⚠️  Public bucket but anonymous listing failed:', anonError.message);
+        console.log(
+          '  - ⚠️  Public bucket but anonymous listing failed:',
+          anonError.message
+        );
       } else if (!bucket.public && !anonError) {
         console.log('  - ⚠️  Private bucket but anonymous listing succeeded!');
       } else {
@@ -60,18 +64,19 @@ async function testStoragePolicies() {
 
     // 3. Test user isolation (using test user)
     console.log('\n🔐 Testing user isolation...');
-    
+
     // Create test users
     const testUser1Email = `test1_${Date.now()}@example.com`;
     const testUser2Email = `test2_${Date.now()}@example.com`;
     const testPassword = 'TestPassword123!';
-    
+
     // Create test user 1
-    const { data: user1, error: user1Error } = await serviceClient.auth.admin.createUser({
-      email: testUser1Email,
-      password: testPassword,
-      email_confirm: true
-    });
+    const { data: user1, error: user1Error } =
+      await serviceClient.auth.admin.createUser({
+        email: testUser1Email,
+        password: testPassword,
+        email_confirm: true,
+      });
 
     if (user1Error) {
       console.error('❌ Error creating test user 1:', user1Error);
@@ -79,11 +84,12 @@ async function testStoragePolicies() {
     }
 
     // Create test user 2
-    const { data: user2, error: user2Error } = await serviceClient.auth.admin.createUser({
-      email: testUser2Email,
-      password: testPassword,
-      email_confirm: true
-    });
+    const { data: user2, error: user2Error } =
+      await serviceClient.auth.admin.createUser({
+        email: testUser2Email,
+        password: testPassword,
+        email_confirm: true,
+      });
 
     if (user2Error) {
       console.error('❌ Error creating test user 2:', user2Error);
@@ -98,11 +104,11 @@ async function testStoragePolicies() {
       // Test file upload for user 1
       const testFileName = `test_${Date.now()}.txt`;
       const testFileContent = 'This is a test file';
-      
+
       // Create authenticated client for user 1
       const { data: session1 } = await anonClient.auth.signInWithPassword({
         email: testUser1Email,
-        password: testPassword
+        password: testPassword,
       });
 
       if (!session1) {
@@ -112,13 +118,13 @@ async function testStoragePolicies() {
       const user1Client = createClient(supabaseUrl, supabaseAnonKey, {
         auth: {
           persistSession: false,
-          autoRefreshToken: false
+          autoRefreshToken: false,
         },
         global: {
           headers: {
-            Authorization: `Bearer ${session1.session.access_token}`
-          }
-        }
+            Authorization: `Bearer ${session1.session.access_token}`,
+          },
+        },
       });
 
       // Upload file as user 1 to images bucket
@@ -130,11 +136,11 @@ async function testStoragePolicies() {
         console.log('❌ User 1 upload failed:', uploadError.message);
       } else {
         console.log('✅ User 1 uploaded file successfully');
-        
+
         // Try to access user 1's file as user 2
         const { data: session2 } = await anonClient.auth.signInWithPassword({
           email: testUser2Email,
-          password: testPassword
+          password: testPassword,
         });
 
         if (!session2) {
@@ -144,24 +150,27 @@ async function testStoragePolicies() {
         const user2Client = createClient(supabaseUrl, supabaseAnonKey, {
           auth: {
             persistSession: false,
-            autoRefreshToken: false
+            autoRefreshToken: false,
           },
           global: {
             headers: {
-              Authorization: `Bearer ${session2.session.access_token}`
-            }
-          }
+              Authorization: `Bearer ${session2.session.access_token}`,
+            },
+          },
         });
 
         // Try to download user 1's file as user 2
-        const { data: downloadData, error: downloadError } = await user2Client.storage
-          .from('images')
-          .download(`${user1.user.id}/${testFileName}`);
+        const { data: downloadData, error: downloadError } =
+          await user2Client.storage
+            .from('images')
+            .download(`${user1.user.id}/${testFileName}`);
 
         if (downloadError) {
-          console.log('✅ User isolation working: User 2 cannot access User 1\'s files');
+          console.log(
+            "✅ User isolation working: User 2 cannot access User 1's files"
+          );
         } else {
-          console.log('❌ SECURITY ISSUE: User 2 can access User 1\'s files!');
+          console.log("❌ SECURITY ISSUE: User 2 can access User 1's files!");
         }
 
         // Clean up - delete test file
@@ -169,7 +178,6 @@ async function testStoragePolicies() {
           .from('images')
           .remove([`${user1.user.id}/${testFileName}`]);
       }
-
     } finally {
       // Clean up test users
       await serviceClient.auth.admin.deleteUser(user1.user.id);
@@ -179,17 +187,19 @@ async function testStoragePolicies() {
 
     // 4. Check RLS policies on processed_images table
     console.log('\n📊 Checking RLS policies on processed_images table...');
-    
+
     // Try to query as anonymous
     const { data: anonQuery, error: anonQueryError } = await anonClient
       .from('processed_images')
       .select('*')
       .limit(1);
-    
+
     if (anonQueryError) {
       console.log('✅ Anonymous users cannot read processed_images');
     } else {
-      console.log('❌ SECURITY ISSUE: Anonymous users can read processed_images!');
+      console.log(
+        '❌ SECURITY ISSUE: Anonymous users can read processed_images!'
+      );
     }
 
     // 5. Summary
@@ -198,7 +208,6 @@ async function testStoragePolicies() {
     console.log('- User isolation tested: ✅');
     console.log('- RLS policies verified: ✅');
     console.log('\n✨ Storage policy verification complete!');
-
   } catch (error) {
     console.error('❌ Error during verification:', error);
   }

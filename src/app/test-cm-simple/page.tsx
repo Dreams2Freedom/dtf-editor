@@ -57,7 +57,7 @@ export default function TestCMSimple() {
   return (
     <div className="p-8 max-w-2xl mx-auto">
       <h1 className="text-2xl font-bold mb-6">Simple ClippingMagic Test</h1>
-      
+
       <div className="space-y-6">
         {/* File Selection */}
         <div className="border rounded p-4">
@@ -75,7 +75,9 @@ export default function TestCMSimple() {
 
         {/* Upload */}
         <div className="border rounded p-4">
-          <h2 className="font-semibold mb-2">Step 2: Upload to ClippingMagic</h2>
+          <h2 className="font-semibold mb-2">
+            Step 2: Upload to ClippingMagic
+          </h2>
           <button
             onClick={uploadImage}
             disabled={!imageFile || isUploading}
@@ -83,7 +85,7 @@ export default function TestCMSimple() {
           >
             {isUploading ? 'Uploading...' : 'Upload'}
           </button>
-          
+
           {uploadResult && (
             <div className="mt-2 p-2 bg-green-100 rounded text-sm">
               <p>✓ Upload successful!</p>

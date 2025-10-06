@@ -9,14 +9,14 @@ const supabase = createClient(
 (async () => {
   console.log('=== Checking admin_users table ===\n');
 
-  const { data, error } = await supabase
-    .from('admin_users')
-    .select('*');
+  const { data, error } = await supabase.from('admin_users').select('*');
 
   if (error) {
     console.error('❌ Error querying admin_users table:', error.message);
     console.log('\nThe admin_users table does not exist!');
-    console.log('Migration 20250103_create_admin_roles_system.sql has NOT been applied.\n');
+    console.log(
+      'Migration 20250103_create_admin_roles_system.sql has NOT been applied.\n'
+    );
   } else {
     console.log('✅ admin_users table exists!');
     console.log('Records:', data?.length || 0);
@@ -40,7 +40,10 @@ const supabase = createClient(
   console.log('User ID: fcc1b251-6307-457c-ac1e-064aa43b2449');
 
   // Check if this user exists in auth.users
-  const { data: { users }, error: usersError } = await supabase.auth.admin.listUsers();
+  const {
+    data: { users },
+    error: usersError,
+  } = await supabase.auth.admin.listUsers();
 
   if (!usersError && users) {
     const currentUser = users.find(u => u.email === 'shannonherod@gmail.com');
@@ -58,7 +61,9 @@ const supabase = createClient(
       console.log('\n✅ Super admin email shannon@s2transfers.com exists');
       console.log('   ID:', superAdmin.id);
     } else {
-      console.log('\n⚠️  Super admin email shannon@s2transfers.com NOT found in auth.users');
+      console.log(
+        '\n⚠️  Super admin email shannon@s2transfers.com NOT found in auth.users'
+      );
     }
   }
 })();

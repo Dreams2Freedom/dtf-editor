@@ -6,9 +6,11 @@ import { withRateLimit } from '@/lib/rate-limit';
 async function handleGet() {
   try {
     const supabase = await createServerSupabaseClient();
-    
+
     // Check if user is admin using simplified auth
-    const { data: { user } } = await supabase.auth.getUser();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
@@ -28,13 +30,19 @@ async function handleGet() {
     try {
       serviceClient = createServiceRoleSupabaseClient();
     } catch (error) {
-      console.error('Failed to create service role client in user stats route:', error);
+      console.error(
+        'Failed to create service role client in user stats route:',
+        error
+      );
       return NextResponse.json(
-        { error: 'Database configuration error', details: error instanceof Error ? error.message : 'Unknown error' },
+        {
+          error: 'Database configuration error',
+          details: error instanceof Error ? error.message : 'Unknown error',
+        },
         { status: 500 }
       );
     }
-    
+
     // Get all users to calculate statistics
     const { data: allUsers, error: usersError } = await serviceClient
       .from('profiles')
@@ -47,12 +55,18 @@ async function handleGet() {
 
     // Calculate statistics from the fetched data
     const totalUsers = allUsers?.length || 0;
-    const activeUsers = allUsers?.filter(user => user.is_active !== false).length || 0;
-    const paidUsers = allUsers?.filter(user => 
-      user.subscription_plan && 
-      ['basic', 'starter', 'professional', 'pro'].includes(user.subscription_plan.toLowerCase())
-    ).length || 0;
-    const suspendedUsers = allUsers?.filter(user => user.is_active === false).length || 0;
+    const activeUsers =
+      allUsers?.filter(user => user.is_active !== false).length || 0;
+    const paidUsers =
+      allUsers?.filter(
+        user =>
+          user.subscription_plan &&
+          ['basic', 'starter', 'professional', 'pro'].includes(
+            user.subscription_plan.toLowerCase()
+          )
+      ).length || 0;
+    const suspendedUsers =
+      allUsers?.filter(user => user.is_active === false).length || 0;
 
     // Debug logging
     console.log('User stats calculation:', {
@@ -62,19 +76,22 @@ async function handleGet() {
       suspendedCount: suspendedUsers,
       sampleData: allUsers?.slice(0, 3).map(u => ({
         is_active: u.is_active,
-        subscription_plan: u.subscription_plan
-      }))
+        subscription_plan: u.subscription_plan,
+      })),
     });
 
     return NextResponse.json({
       total: totalUsers,
       active: activeUsers,
       paid: paidUsers,
-      suspended: suspendedUsers
+      suspended: suspendedUsers,
     });
   } catch (error) {
     console.error('Admin user stats API error:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return NextResponse.json(
+      { error: 'Internal server error' },
+      { status: 500 }
+    );
   }
 }
 

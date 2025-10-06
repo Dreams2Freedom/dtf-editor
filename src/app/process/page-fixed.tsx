@@ -18,7 +18,7 @@ export default function ProcessPage() {
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
-  
+
   // Store the uploaded URL instead of ID
   const [uploadedImageUrl, setUploadedImageUrl] = useState<string | null>(null);
 
@@ -38,35 +38,38 @@ export default function ProcessPage() {
   }, []);
 
   // Handle file drop/selection
-  const onDrop = useCallback((acceptedFiles: File[]) => {
-    const file = acceptedFiles[0];
-    if (!file) return;
+  const onDrop = useCallback(
+    (acceptedFiles: File[]) => {
+      const file = acceptedFiles[0];
+      if (!file) return;
 
-    const validationError = validateFile(file);
-    if (validationError) {
-      setUploadError(validationError);
-      return;
-    }
+      const validationError = validateFile(file);
+      if (validationError) {
+        setUploadError(validationError);
+        return;
+      }
 
-    setSelectedFile(file);
-    setUploadError(null);
-    setUploadedImageUrl(null);
+      setSelectedFile(file);
+      setUploadError(null);
+      setUploadedImageUrl(null);
 
-    // Create preview
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      setImagePreview(e.target?.result as string);
-    };
-    reader.readAsDataURL(file);
-  }, [validateFile]);
+      // Create preview
+      const reader = new FileReader();
+      reader.onload = e => {
+        setImagePreview(e.target?.result as string);
+      };
+      reader.readAsDataURL(file);
+    },
+    [validateFile]
+  );
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
     accept: {
-      'image/*': ['.jpeg', '.jpg', '.png', '.webp']
+      'image/*': ['.jpeg', '.jpg', '.png', '.webp'],
     },
     maxFiles: 1,
-    multiple: false
+    multiple: false,
   });
 
   // Upload image to storage
@@ -83,7 +86,7 @@ export default function ProcessPage() {
       const response = await fetch('/api/upload', {
         method: 'POST',
         body: formData,
-        credentials: 'include'
+        credentials: 'include',
       });
 
       const result = await response.json();
@@ -121,13 +124,28 @@ export default function ProcessPage() {
             <div className="flex items-center space-x-8">
               <h1 className="text-2xl font-bold text-gray-900">DTF Editor</h1>
               <nav className="hidden md:flex space-x-6">
-                <Link href="/dashboard" className="text-gray-600 hover:text-gray-900">Dashboard</Link>
-                <Link href="/process" className="text-blue-600 font-medium">Process</Link>
-                <Link href="/pricing" className="text-gray-600 hover:text-gray-900">Pricing</Link>
+                <Link
+                  href="/dashboard"
+                  className="text-gray-600 hover:text-gray-900"
+                >
+                  Dashboard
+                </Link>
+                <Link href="/process" className="text-blue-600 font-medium">
+                  Process
+                </Link>
+                <Link
+                  href="/pricing"
+                  className="text-gray-600 hover:text-gray-900"
+                >
+                  Pricing
+                </Link>
               </nav>
             </div>
             <div className="flex items-center gap-4">
-              <Link href="/dashboard" className="text-gray-600 hover:text-gray-900">
+              <Link
+                href="/dashboard"
+                className="text-gray-600 hover:text-gray-900"
+              >
                 ← Back to Dashboard
               </Link>
             </div>
@@ -166,7 +184,7 @@ export default function ProcessPage() {
                 `}
               >
                 <input {...getInputProps()} />
-                
+
                 {imagePreview ? (
                   <div className="space-y-4">
                     <div className="relative inline-block">
@@ -183,7 +201,7 @@ export default function ProcessPage() {
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={(e) => {
+                      onClick={e => {
                         e.stopPropagation();
                         setSelectedFile(null);
                         setImagePreview(null);
@@ -198,7 +216,9 @@ export default function ProcessPage() {
                     <Upload className="w-12 h-12 text-gray-400 mx-auto" />
                     <div>
                       <p className="text-lg font-medium text-gray-700">
-                        {isDragActive ? 'Drop your image here' : 'Drag & drop your image here'}
+                        {isDragActive
+                          ? 'Drop your image here'
+                          : 'Drag & drop your image here'}
                       </p>
                       <p className="text-sm text-gray-500 mt-1">
                         or click to select from your computer
@@ -240,7 +260,7 @@ export default function ProcessPage() {
           {/* Processing Tools */}
           {uploadedImageUrl && (
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <Card 
+              <Card
                 className="cursor-pointer hover:shadow-lg transition-shadow"
                 onClick={() => navigateToTool('upscale')}
               >
@@ -261,7 +281,7 @@ export default function ProcessPage() {
                 </CardContent>
               </Card>
 
-              <Card 
+              <Card
                 className="cursor-pointer hover:shadow-lg transition-shadow"
                 onClick={() => navigateToTool('background-removal')}
               >
@@ -282,7 +302,7 @@ export default function ProcessPage() {
                 </CardContent>
               </Card>
 
-              <Card 
+              <Card
                 className="cursor-pointer hover:shadow-lg transition-shadow"
                 onClick={() => navigateToTool('vectorize')}
               >

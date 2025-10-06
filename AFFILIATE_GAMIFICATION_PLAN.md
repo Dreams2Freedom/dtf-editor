@@ -2,7 +2,7 @@
 
 **Version:** 1.0  
 **Date:** January 2025  
-**Purpose:** Drive affiliate engagement through competitive elements and rewards  
+**Purpose:** Drive affiliate engagement through competitive elements and rewards
 
 ---
 
@@ -11,6 +11,7 @@
 ### **Main Leaderboards**
 
 #### **1. Monthly Earnings Champion**
+
 - **Metric:** Total commissions earned this month
 - **Display:** Top 25 affiliates
 - **Prize:**
@@ -21,6 +22,7 @@
 - **Visibility:** Public (with opt-out option)
 
 #### **2. Referral Master**
+
 - **Metric:** Number of new signups this month
 - **Display:** Top 25 affiliates
 - **Prize:**
@@ -31,6 +33,7 @@
 - **Special:** "Referral Streak" bonus for consistent daily referrals
 
 #### **3. Conversion King/Queen**
+
 - **Metric:** Highest conversion rate (min 10 clicks)
 - **Display:** Top 10 affiliates
 - **Prize:** "Conversion Expert" badge + feature in newsletter
@@ -38,6 +41,7 @@
 - **Requirement:** Minimum 10 clicks to qualify
 
 #### **4. Lifetime Legends**
+
 - **Metric:** All-time earnings
 - **Display:** Top 50 affiliates
 - **Tiers:**
@@ -50,6 +54,7 @@
 - **Visibility:** Always visible
 
 #### **5. Rising Star**
+
 - **Metric:** Highest growth rate vs previous month
 - **Display:** Top 10 new affiliates (< 3 months)
 - **Prize:** "Rising Star" badge + mentorship session
@@ -63,6 +68,7 @@
 ### **Milestone Badges**
 
 #### **Referral Milestones**
+
 - 🌱 **First Steps** - 1st referral
 - 🌿 **Growing** - 10 referrals
 - 🌳 **Established** - 50 referrals
@@ -71,6 +77,7 @@
 - 🌟 **Superstar** - 1000+ referrals
 
 #### **Earnings Milestones**
+
 - 💵 **First Dollar** - Earn first commission
 - 💰 **Century Club** - $100 earned
 - 💎 **High Roller** - $1,000 earned
@@ -78,6 +85,7 @@
 - 🚀 **Moon Club** - $10,000 earned
 
 #### **Performance Badges**
+
 - ⚡ **Quick Start** - 5 referrals in first week
 - 🔥 **On Fire** - 10 conversions in a day
 - 📈 **Consistent** - Active for 30 consecutive days
@@ -86,6 +94,7 @@
 - 🦄 **Unicorn** - 100% conversion rate (min 10 clicks)
 
 #### **Special Event Badges**
+
 - 🎃 **Halloween Hero** - Top performer in October
 - 🎁 **Holiday Champion** - Top performer in December
 - 🆕 **Early Adopter** - Joined in first month
@@ -93,6 +102,7 @@
 - 📚 **Knowledge Seeker** - Completed all tutorials
 
 #### **Content Creator Badges**
+
 - 📝 **Blogger** - Verified blog with 10+ posts
 - 📹 **Video Creator** - YouTube channel with 1000+ subs
 - 📱 **Social Influencer** - 5000+ followers
@@ -105,33 +115,33 @@
 
 ### **Earning Points**
 
-| Action | Points | Frequency |
-|--------|--------|----------|
-| Daily login | 5 | Daily |
-| New referral click | 1 | Per click |
-| New signup | 10 | Per signup |
-| Conversion to paid | 50 | Per conversion |
-| Share on social media | 5 | Daily |
-| Complete tutorial | 20 | One-time |
-| Help another affiliate | 10 | Per instance |
-| Write testimonial | 25 | One-time |
-| Monthly activity | 100 | Monthly |
+| Action                 | Points | Frequency      |
+| ---------------------- | ------ | -------------- |
+| Daily login            | 5      | Daily          |
+| New referral click     | 1      | Per click      |
+| New signup             | 10     | Per signup     |
+| Conversion to paid     | 50     | Per conversion |
+| Share on social media  | 5      | Daily          |
+| Complete tutorial      | 20     | One-time       |
+| Help another affiliate | 10     | Per instance   |
+| Write testimonial      | 25     | One-time       |
+| Monthly activity       | 100    | Monthly        |
 
 ### **Redeeming Points**
 
-| Reward | Points Cost |
-|--------|------------|
-| 10 customer credits | 250 |
-| 25 customer credits | 500 |
-| 50 customer credits | 900 |
-| Premium support for 1 month | 300 |
-| Custom vanity URL | 400 |
-| Early payout (skip 30-day hold) | 600 |
-| Commission boost (3% for 1 month, max 5% total) | 1000 |
-| Featured affiliate spotlight | 800 |
-| 1-on-1 strategy session | 1500 |
-| Exclusive webinar access | 200 |
-| Custom marketing materials | 750 |
+| Reward                                          | Points Cost |
+| ----------------------------------------------- | ----------- |
+| 10 customer credits                             | 250         |
+| 25 customer credits                             | 500         |
+| 50 customer credits                             | 900         |
+| Premium support for 1 month                     | 300         |
+| Custom vanity URL                               | 400         |
+| Early payout (skip 30-day hold)                 | 600         |
+| Commission boost (3% for 1 month, max 5% total) | 1000        |
+| Featured affiliate spotlight                    | 800         |
+| 1-on-1 strategy session                         | 1500        |
+| Exclusive webinar access                        | 200         |
+| Custom marketing materials                      | 750         |
 
 ---
 
@@ -140,6 +150,7 @@
 ### **Affiliate Tiers**
 
 #### **🌱 Standard Tier (Default)**
+
 - Commission: 20% for 24 months, then 10%
 - Cookie duration: 30 days
 - Basic dashboard
@@ -147,6 +158,7 @@
 - Access to basic materials
 
 #### **⭐ Silver Tier**
+
 - **Requirements:** Generate $500+/month in MRR (3-month average)
 - Commission: 22% for 24 months, then 10%
 - Cookie duration: 30 days
@@ -156,6 +168,7 @@
 - Silver badge display
 
 #### **🏆 Gold Tier (Maximum)**
+
 - **Requirements:** Generate $1,500+/month in MRR (3-month average)
 - Commission: 25% for 24 months, then 10%
 - Cookie duration: 30 days
@@ -168,33 +181,36 @@
 
 ### **Tier Benefits Comparison**
 
-| Feature | Standard | Silver | Gold |
-|---------|----------|--------|------|
-| Commission Rate (First 24 months) | 20% | 22% | 25% |
-| Commission Rate (After 24 months) | 10% | 10% | 10% |
-| Cookie Duration | 30 days | 30 days | 30 days |
-| Support Level | Standard | Priority | Dedicated |
-| Custom Materials | ❌ | Basic | Full |
-| Bonus Eligibility | Monthly | Monthly | Quarterly |
-| Strategy Calls | ❌ | ❌ | Quarterly |
-| MRR Requirement | $0 | $500/month | $1,500/month |
-| Max Bonus Stack | 5% | 5% | 5% |
+| Feature                           | Standard | Silver     | Gold         |
+| --------------------------------- | -------- | ---------- | ------------ |
+| Commission Rate (First 24 months) | 20%      | 22%        | 25%          |
+| Commission Rate (After 24 months) | 10%      | 10%        | 10%          |
+| Cookie Duration                   | 30 days  | 30 days    | 30 days      |
+| Support Level                     | Standard | Priority   | Dedicated    |
+| Custom Materials                  | ❌       | Basic      | Full         |
+| Bonus Eligibility                 | Monthly  | Monthly    | Quarterly    |
+| Strategy Calls                    | ❌       | ❌         | Quarterly    |
+| MRR Requirement                   | $0       | $500/month | $1,500/month |
+| Max Bonus Stack                   | 5%       | 5%         | 5%           |
 
 ---
 
 ## 🎯 **Challenges & Missions**
 
 ### **Daily Challenges**
+
 - **Quick Win:** Get 5 clicks today (10 points)
 - **Engagement:** Get 1 signup today (25 points)
 - **Social Share:** Share your link on social (5 points)
 
 ### **Weekly Challenges**
+
 - **Consistent Performer:** 7 days of activity (50 points)
 - **Converter:** Get 3 paid conversions (100 points)
 - **Traffic Driver:** 100 unique clicks (75 points)
 
 ### **Monthly Missions**
+
 - **Growth Mission:** Increase referrals by 25% (200 points + badge)
 - **Quality Mission:** Achieve 30% conversion rate (300 points + badge)
 - **Volume Mission:** Refer 20 new users (250 points + badge)
@@ -202,21 +218,25 @@
 ### **Seasonal Campaigns**
 
 #### **Q1: New Year Sprint**
+
 - Double points for January signups
 - "Resolution Keeper" badge for consistency
 - Bonus pool for top performers
 
 #### **Q2: Spring Growth**
+
 - Team challenges (pair affiliates)
 - "Growth Hacker" badge
 - Referral races with prizes
 
 #### **Q3: Summer Surge**
+
 - Vacation prize for top affiliate
 - "Summer Champion" badge
 - Daily mini-challenges
 
 #### **Q4: Holiday Rush**
+
 - Triple commission days
 - "Holiday Hero" badge
 - Grand prize drawing for active affiliates
@@ -226,6 +246,7 @@
 ## 📊 **Engagement Mechanics**
 
 ### **Streak System**
+
 - **Login Streak:** Daily login counter with bonuses
   - 7 days: 25 bonus points
   - 30 days: 100 bonus points + badge
@@ -237,6 +258,7 @@
   - 30 days: Permanent 5% commission increase
 
 ### **Level System**
+
 - **Level 1-10:** Starter affiliates
 - **Level 11-25:** Experienced affiliates
 - **Level 26-50:** Expert affiliates
@@ -244,12 +266,14 @@
 - **Level 100+:** Legendary affiliates
 
 **XP Earning:**
+
 - Each referral = 10 XP
 - Each conversion = 50 XP
 - Each $100 earned = 100 XP
 - Daily activity = 5 XP
 
 ### **Notification Triggers**
+
 - 🔔 "You're 2 referrals away from Silver tier!"
 - 🔔 "Your conversion rate is top 10% this week!"
 - 🔔 "You've unlocked a new achievement!"
@@ -261,6 +285,7 @@
 ## 🎁 **Special Recognition Programs**
 
 ### **Affiliate of the Month**
+
 - Featured on website
 - Success story interview
 - 250 credits bonus
@@ -269,6 +294,7 @@
 - Free merchandise package
 
 ### **Hall of Fame**
+
 - **Induction Requirements:**
   - $10,000+ lifetime earnings
   - 100+ active referrals
@@ -283,6 +309,7 @@
   - Mentorship opportunities
 
 ### **Ambassador Program**
+
 - **Selection:** Top 1% of affiliates
 - **Benefits:**
   - Exclusive ambassador badge
@@ -295,9 +322,10 @@
 
 ## 🔮 **Future Features (Post-Launch)**
 
-*These features are planned for future phases after the core affiliate program is successful:*
+_These features are planned for future phases after the core affiliate program is successful:_
 
 ### **Social & Community Features (Phase 2)**
+
 - Affiliate forums and discussion boards
 - Team competitions and collaborations
 - Success story sharing
@@ -305,12 +333,14 @@
 - Community challenges
 
 ### **Training Academy (Phase 2)**
+
 - Self-paced video courses
 - Certification programs
 - Advanced marketing tactics
 - Platform-specific strategies
 
 ### **Advanced Integrations (Phase 3)**
+
 - Slack/Discord community
 - API for custom integrations
 - Mobile app
@@ -321,24 +351,28 @@
 ## 📈 **Implementation Priorities**
 
 ### **Phase 1: Core Gamification (Week 1)**
+
 1. Basic leaderboard (monthly earnings)
 2. Simple badge system (5-10 badges)
 3. Points accumulation
 4. Tier structure
 
 ### **Phase 2: Engagement Features (Week 2)**
+
 1. Full leaderboard suite
 2. Achievement system (20+ badges)
 3. Daily/weekly challenges
 4. Streak tracking
 
 ### **Phase 3: Advanced Features (Week 3)**
+
 1. Points redemption store
 2. Level progression system
 3. Team competitions
 4. Seasonal campaigns
 
 ### **Phase 4: Recognition & Polish (Week 4)**
+
 1. Ambassador program setup
 2. Hall of Fame implementation
 3. Affiliate of the Month program
@@ -349,6 +383,7 @@
 ## 📊 **Success Metrics**
 
 ### **Engagement KPIs**
+
 - Daily active affiliates (target: 40%)
 - Average session duration (target: 10+ minutes)
 - Challenge completion rate (target: 60%)
@@ -356,12 +391,14 @@
 - Leaderboard participation (target: 75%)
 
 ### **Performance KPIs**
+
 - Referral increase from gamification (target: +30%)
 - Conversion rate improvement (target: +15%)
 - Affiliate retention (target: 80% at 6 months)
 - Revenue per affiliate (target: +25%)
 
 ### **Satisfaction KPIs**
+
 - Gamification NPS score (target: 70+)
 - Feature usage rate (target: 85%)
 - Leaderboard engagement (target: 75%)
@@ -372,18 +409,21 @@
 ## 🚀 **Launch Strategy**
 
 ### **Soft Launch (Week 1)**
+
 - Enable for top 20 affiliates
 - Gather feedback
 - Test point calculations
 - Refine reward costs
 
 ### **Beta Launch (Week 2-3)**
+
 - Open to 50% of affiliates
 - Run first monthly competition
 - Monitor engagement metrics
 - Adjust difficulty levels
 
 ### **Full Launch (Week 4)**
+
 - Enable for all affiliates
 - Launch announcement campaign
 - First official leaderboard month
@@ -394,6 +434,7 @@
 ## 🔄 **Ongoing Optimization**
 
 ### **Monthly Reviews**
+
 - Analyze engagement data
 - Adjust point values
 - Update challenge difficulty
@@ -401,6 +442,7 @@
 - Plan seasonal events
 
 ### **Quarterly Updates**
+
 - New badge releases
 - Feature enhancements
 - Prize pool adjustments
@@ -408,6 +450,7 @@
 - Community feedback sessions
 
 ### **Annual Planning**
+
 - Major feature additions
 - System overhauls
 - Retreat planning

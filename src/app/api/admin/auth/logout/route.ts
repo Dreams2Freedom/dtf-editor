@@ -13,14 +13,14 @@ async function handleLogout(request: NextRequest) {
 
   try {
     const cookieStore = await cookies();
-    
+
     // Get admin session from cookie
     const sessionCookie = cookieStore.get('admin_session');
-    
+
     if (sessionCookie) {
       try {
         const session: AdminSession = JSON.parse(sessionCookie.value);
-        
+
         const supabase = createServerClient(
           env.SUPABASE_URL,
           env.SUPABASE_ANON_KEY,
@@ -41,23 +41,23 @@ async function handleLogout(request: NextRequest) {
             },
           }
         );
-        
+
         // Sign out from Supabase
         await supabase.auth.signOut();
       } catch (error) {
         // Ignore errors during logout
       }
     }
-    
+
     // Create response and clear admin session cookies
     const response = NextResponse.json({
       success: true,
-      message: 'Logged out successfully'
+      message: 'Logged out successfully',
     });
-    
+
     response.cookies.delete('admin_session');
     response.cookies.delete('admin_logged_in');
-    
+
     return response;
   } catch (error) {
     return NextResponse.json(

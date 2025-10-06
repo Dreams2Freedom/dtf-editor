@@ -14,7 +14,10 @@ export async function POST(request: NextRequest) {
   try {
     // 1. Authenticate user
     const supabase = await createServerSupabaseClient();
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
 
     if (authError || !user) {
       return NextResponse.json(
@@ -27,17 +30,24 @@ export async function POST(request: NextRequest) {
     const formData = await request.formData();
     const imageFile = formData.get('image') as File;
     const imageUrl = formData.get('imageUrl') as string;
-    const processingMode = (formData.get('processingMode') as ProcessingMode) || 'basic_upscale';
-    const scale = formData.get('scale') ? parseInt(formData.get('scale') as string) : undefined;
-    const targetWidth = formData.get('targetWidth') ? parseInt(formData.get('targetWidth') as string) : undefined;
-    const targetHeight = formData.get('targetHeight') ? parseInt(formData.get('targetHeight') as string) : undefined;
+    const processingMode =
+      (formData.get('processingMode') as ProcessingMode) || 'basic_upscale';
+    const scale = formData.get('scale')
+      ? parseInt(formData.get('scale') as string)
+      : undefined;
+    const targetWidth = formData.get('targetWidth')
+      ? parseInt(formData.get('targetWidth') as string)
+      : undefined;
+    const targetHeight = formData.get('targetHeight')
+      ? parseInt(formData.get('targetHeight') as string)
+      : undefined;
 
     console.log('[Upscale Direct] Processing request:', {
       hasFile: !!imageFile,
       hasUrl: !!imageUrl,
       processingMode,
       targetWidth,
-      targetHeight
+      targetHeight,
     });
 
     // 3. Handle image input
@@ -49,7 +59,8 @@ export async function POST(request: NextRequest) {
       const buffer = Buffer.from(bytes);
 
       // Check file size
-      if (buffer.length > 4 * 1024 * 1024) { // 4MB limit for inline processing
+      if (buffer.length > 4 * 1024 * 1024) {
+        // 4MB limit for inline processing
         // Upload to Supabase storage for large files
         const base64 = buffer.toString('base64');
         const dataUrl = `data:${imageFile.type};base64,${base64}`;
@@ -72,19 +83,18 @@ export async function POST(request: NextRequest) {
     } else if (imageUrl) {
       finalImageUrl = imageUrl;
     } else {
-      return NextResponse.json(
-        { error: 'No image provided' },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: 'No image provided' }, { status: 400 });
     }
 
     // 4. Check if we should use simplified processing for large dimensions
-    const megapixels = targetWidth && targetHeight ?
-      (targetWidth * targetHeight) / 1000000 : 0;
+    const megapixels =
+      targetWidth && targetHeight ? (targetWidth * targetHeight) / 1000000 : 0;
 
     // For very large images, force basic upscale to avoid timeout
     if (megapixels > 15) {
-      console.log(`[Upscale Direct] Large image (${megapixels}MP), using basic upscale`);
+      console.log(
+        `[Upscale Direct] Large image (${megapixels}MP), using basic upscale`
+      );
       processingMode === 'basic_upscale';
     }
 
@@ -96,14 +106,16 @@ export async function POST(request: NextRequest) {
 
       const response = await deepImageService.upscaleImage(finalImageUrl, {
         processingMode: processingMode as ProcessingMode,
-        scale: scale as (2 | 4 | undefined),
+        scale: scale as 2 | 4 | undefined,
         faceEnhance: false,
         targetWidth,
-        targetHeight
+        targetHeight,
       });
 
       const processingTime = Date.now() - startTime;
-      console.log(`[Upscale Direct] Processing completed in ${processingTime}ms`);
+      console.log(
+        `[Upscale Direct] Processing completed in ${processingTime}ms`
+      );
 
       if (response.status === 'error' || !response.url) {
         // Track failed usage
@@ -115,13 +127,13 @@ export async function POST(request: NextRequest) {
           creditsCharged: 0,
           processingTimeMs: processingTime,
           errorMessage: response.error,
-          metadata: { targetWidth, targetHeight, processingMode }
+          metadata: { targetWidth, targetHeight, processingMode },
         });
 
         return NextResponse.json(
           {
             success: false,
-            error: response.error || 'Processing failed'
+            error: response.error || 'Processing failed',
           },
           { status: 400 }
         );
@@ -135,7 +147,7 @@ export async function POST(request: NextRequest) {
         status: 'success',
         creditsCharged: 1,
         processingTimeMs: processingTime,
-        metadata: { targetWidth, targetHeight, processingMode }
+        metadata: { targetWidth, targetHeight, processingMode },
       });
 
       // 7. Save to gallery
@@ -152,8 +164,8 @@ export async function POST(request: NextRequest) {
             metadata: {
               processingTime,
               creditsUsed: 1,
-              processingTimeFromApi: response.processingTime
-            }
+              processingTimeFromApi: response.processingTime,
+            },
           });
 
           if (savedId) {
@@ -165,7 +177,9 @@ export async function POST(request: NextRequest) {
               .single();
 
             if (imageData?.storage_url) {
-              const { data: { publicUrl } } = supabase.storage
+              const {
+                data: { publicUrl },
+              } = supabase.storage
                 .from('images')
                 .getPublicUrl(imageData.storage_url);
 
@@ -181,7 +195,9 @@ export async function POST(request: NextRequest) {
 
       // 8. Check if we're approaching timeout
       if (Date.now() - startTime > MAX_PROCESSING_TIME) {
-        console.warn('[Upscale Direct] Approaching timeout, returning result quickly');
+        console.warn(
+          '[Upscale Direct] Approaching timeout, returning result quickly'
+        );
       }
 
       // 9. Return successful response
@@ -190,9 +206,8 @@ export async function POST(request: NextRequest) {
         url: finalUrl,
         imageId: savedId,
         processingTime,
-        creditsUsed: 1
+        creditsUsed: 1,
       });
-
     } catch (error) {
       const processingTime = Date.now() - startTime;
 
@@ -204,8 +219,9 @@ export async function POST(request: NextRequest) {
         status: 'failed',
         creditsCharged: 0,
         processingTimeMs: processingTime,
-        errorMessage: error instanceof Error ? error.message : 'Processing failed',
-        metadata: { targetWidth, targetHeight, processingMode }
+        errorMessage:
+          error instanceof Error ? error.message : 'Processing failed',
+        metadata: { targetWidth, targetHeight, processingMode },
       });
 
       console.error('[Upscale Direct] Processing error:', error);
@@ -213,18 +229,17 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         {
           success: false,
-          error: error instanceof Error ? error.message : 'Processing failed'
+          error: error instanceof Error ? error.message : 'Processing failed',
         },
         { status: 500 }
       );
     }
-
   } catch (error) {
     console.error('[Upscale Direct] Request error:', error);
     return NextResponse.json(
       {
         success: false,
-        error: error instanceof Error ? error.message : 'Request failed'
+        error: error instanceof Error ? error.message : 'Request failed',
       },
       { status: 500 }
     );

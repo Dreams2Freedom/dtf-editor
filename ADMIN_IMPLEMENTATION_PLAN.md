@@ -17,6 +17,7 @@ The admin dashboard is a critical component that has not been implemented yet. T
 ### Phase 1: Foundation (Week 1)
 
 #### 1.1 Database Schema (2 days)
+
 ```sql
 -- Admin roles table
 CREATE TABLE admin_roles (
@@ -64,6 +65,7 @@ CREATE TABLE support_tickets (
 ```
 
 #### 1.2 Authentication System (2 days)
+
 - [ ] Create admin authentication flow
 - [ ] Implement 2FA with authenticator apps
 - [ ] Add IP whitelist validation
@@ -71,6 +73,7 @@ CREATE TABLE support_tickets (
 - [ ] Build permission checking middleware
 
 #### 1.3 Base UI Structure (1 day)
+
 - [ ] Create admin layout component
 - [ ] Build admin navigation
 - [ ] Create admin route protection
@@ -79,6 +82,7 @@ CREATE TABLE support_tickets (
 ### Phase 2: Core Features (Week 2)
 
 #### 2.1 User Management (3 days)
+
 - [ ] User list with DataTable component
 - [ ] Advanced search and filters
 - [ ] User detail view
@@ -88,6 +92,7 @@ CREATE TABLE support_tickets (
 - [ ] User impersonation
 
 #### 2.2 Financial Management (2 days)
+
 - [ ] Transaction list and filters
 - [ ] Refund processing UI
 - [ ] Coupon management system
@@ -96,6 +101,7 @@ CREATE TABLE support_tickets (
 ### Phase 3: Analytics & Monitoring (Week 3)
 
 #### 3.1 Analytics Dashboard (3 days)
+
 - [ ] Real-time metrics dashboard
 - [ ] User analytics charts
 - [ ] Revenue analytics
@@ -103,6 +109,7 @@ CREATE TABLE support_tickets (
 - [ ] Export functionality
 
 #### 3.2 System Monitoring (2 days)
+
 - [ ] API health dashboard
 - [ ] Error log viewer
 - [ ] Performance metrics
@@ -111,12 +118,14 @@ CREATE TABLE support_tickets (
 ### Phase 4: Advanced Features (Week 4)
 
 #### 4.1 Support Tools (2 days)
+
 - [ ] Support ticket system
 - [ ] User session viewer
 - [ ] Internal notes system
 - [ ] Priority queue management
 
 #### 4.2 Compliance & Security (3 days)
+
 - [ ] GDPR tools implementation
 - [ ] Audit log viewer
 - [ ] Security dashboard
@@ -125,6 +134,7 @@ CREATE TABLE support_tickets (
 ## Technical Implementation Details
 
 ### Admin API Routes Structure
+
 ```
 /api/admin/
 ├── auth/
@@ -162,6 +172,7 @@ CREATE TABLE support_tickets (
 ```
 
 ### Component Structure
+
 ```
 src/components/admin/
 ├── layout/
@@ -253,6 +264,7 @@ src/components/admin/
 ## Deployment Considerations
 
 1. **Environment Variables**
+
    ```
    ADMIN_IP_WHITELIST=
    ADMIN_SESSION_TIMEOUT=

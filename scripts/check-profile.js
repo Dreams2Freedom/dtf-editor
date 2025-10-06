@@ -18,8 +18,8 @@ async function checkProfile() {
   const supabase = createClient(supabaseUrl, supabaseServiceKey, {
     auth: {
       autoRefreshToken: false,
-      persistSession: false
-    }
+      persistSession: false,
+    },
   });
 
   // The user ID from the error logs
@@ -27,8 +27,9 @@ async function checkProfile() {
 
   try {
     // Check if user exists in auth.users
-    const { data: authUser, error: authError } = await supabase.auth.admin.getUserById(userId);
-    
+    const { data: authUser, error: authError } =
+      await supabase.auth.admin.getUserById(userId);
+
     if (authError) {
       console.error('❌ Error fetching auth user:', authError.message);
     } else {
@@ -45,7 +46,7 @@ async function checkProfile() {
     if (profileError) {
       console.error('❌ Profile not found:', profileError.message);
       console.log('\n🔧 Creating profile for user...');
-      
+
       // Create the profile
       const { data: newProfile, error: createError } = await supabase
         .from('profiles')
@@ -57,7 +58,7 @@ async function checkProfile() {
           subscription_plan: 'free',
           is_admin: false,
           created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
+          updated_at: new Date().toISOString(),
         })
         .select()
         .single();
@@ -75,7 +76,6 @@ async function checkProfile() {
       console.log('   Credits:', profile.credits_remaining);
       console.log('   Plan:', profile.subscription_plan);
     }
-
   } catch (error) {
     console.error('❌ Error:', error.message);
   }

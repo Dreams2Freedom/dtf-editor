@@ -13,7 +13,7 @@ async function checkLatestPayment() {
     // Get the most recent payment intent
     const paymentIntents = await stripeClient.paymentIntents.list({
       limit: 1,
-      customer: 'cus_SljqE25ffokLaJ'
+      customer: 'cus_SljqE25ffokLaJ',
     });
 
     const latest = paymentIntents.data[0];
@@ -34,13 +34,14 @@ async function checkLatestPayment() {
 
     console.log('\nRecent transactions:');
     transactions?.forEach(t => {
-      console.log(`- ${t.created_at}: ${t.amount} credits (${t.type}) - ${t.description}`);
+      console.log(
+        `- ${t.created_at}: ${t.amount} credits (${t.type}) - ${t.description}`
+      );
     });
 
     // Check for any errors in the last minute
     const oneMinuteAgo = new Date(Date.now() - 60000).toISOString();
     console.log('\nChecking for recent errors...');
-    
   } catch (error) {
     console.error('Error:', error);
   }

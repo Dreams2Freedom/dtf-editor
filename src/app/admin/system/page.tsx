@@ -4,11 +4,28 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/Button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
-import { 
-  ArrowLeft, Shield, Activity, Database, Gauge, AlertCircle, 
-  CheckCircle, XCircle, RefreshCw, Server, HardDrive, Mail, 
-  Cpu, Globe, Clock, TrendingUp, Users, Image, CreditCard,
-  FileText, Package
+import {
+  ArrowLeft,
+  Shield,
+  Activity,
+  Database,
+  Gauge,
+  AlertCircle,
+  CheckCircle,
+  XCircle,
+  RefreshCw,
+  Server,
+  HardDrive,
+  Mail,
+  Cpu,
+  Globe,
+  Clock,
+  TrendingUp,
+  Users,
+  Image,
+  CreditCard,
+  FileText,
+  Package,
 } from 'lucide-react';
 import { useAuthContext } from '@/contexts/AuthContext';
 
@@ -108,9 +125,13 @@ export default function SystemPage() {
   const router = useRouter();
   const { user } = useAuthContext();
   const [loading, setLoading] = useState(true);
-  const [rateLimitStats, setRateLimitStats] = useState<RateLimitStats | null>(null);
+  const [rateLimitStats, setRateLimitStats] = useState<RateLimitStats | null>(
+    null
+  );
   const [systemHealth, setSystemHealth] = useState<SystemHealth | null>(null);
-  const [databaseStats, setDatabaseStats] = useState<DatabaseStats | null>(null);
+  const [databaseStats, setDatabaseStats] = useState<DatabaseStats | null>(
+    null
+  );
   const [error, setError] = useState<string | null>(null);
   const [lastRefresh, setLastRefresh] = useState<Date>(new Date());
 
@@ -123,13 +144,13 @@ export default function SystemPage() {
   const fetchAllStats = async () => {
     setLoading(true);
     setError(null);
-    
+
     await Promise.all([
       fetchSystemStats(),
       fetchHealthStatus(),
       fetchDatabaseStats(),
     ]);
-    
+
     setLastRefresh(new Date());
     setLoading(false);
   };
@@ -138,7 +159,7 @@ export default function SystemPage() {
     try {
       const response = await fetch('/api/admin/rate-limits/stats', {
         headers: {
-          'Authorization': `Bearer ${user?.access_token}`,
+          Authorization: `Bearer ${user?.access_token}`,
         },
       });
 
@@ -157,7 +178,7 @@ export default function SystemPage() {
     try {
       const response = await fetch('/api/admin/system/health', {
         headers: {
-          'Authorization': `Bearer ${user?.access_token}`,
+          Authorization: `Bearer ${user?.access_token}`,
         },
       });
 
@@ -176,7 +197,7 @@ export default function SystemPage() {
     try {
       const response = await fetch('/api/admin/system/database', {
         headers: {
-          'Authorization': `Bearer ${user?.access_token}`,
+          Authorization: `Bearer ${user?.access_token}`,
         },
       });
 
@@ -225,11 +246,13 @@ export default function SystemPage() {
           <ArrowLeft className="w-4 h-4 mr-2" />
           Back to Dashboard
         </Button>
-        
+
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold text-gray-900">System Status</h1>
-            <p className="text-gray-600 mt-2">Monitor system health and performance</p>
+            <p className="text-gray-600 mt-2">
+              Monitor system health and performance
+            </p>
           </div>
           <div className="flex items-center gap-4">
             <span className="text-sm text-gray-500">
@@ -240,7 +263,9 @@ export default function SystemPage() {
               disabled={loading}
               className="flex items-center gap-2"
             >
-              <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+              <RefreshCw
+                className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`}
+              />
               Refresh
             </Button>
           </div>
@@ -278,10 +303,14 @@ export default function SystemPage() {
               {/* Status */}
               <div className="flex items-center gap-2">
                 {getStatusIcon(rateLimitStats.status)}
-                <span className={`font-semibold ${getStatusColor(rateLimitStats.status)}`}>
-                  {rateLimitStats.status === 'connected' ? 'Redis Connected' : 
-                   rateLimitStats.status === 'not_configured' ? 'Using In-Memory (Configure Redis)' : 
-                   'Unknown Status'}
+                <span
+                  className={`font-semibold ${getStatusColor(rateLimitStats.status)}`}
+                >
+                  {rateLimitStats.status === 'connected'
+                    ? 'Redis Connected'
+                    : rateLimitStats.status === 'not_configured'
+                      ? 'Using In-Memory (Configure Redis)'
+                      : 'Unknown Status'}
                 </span>
               </div>
 
@@ -290,7 +319,9 @@ export default function SystemPage() {
                 <div className="bg-warning-50 border border-warning-200 rounded-lg p-3">
                   <div className="flex items-start gap-2">
                     <AlertCircle className="w-5 h-5 text-warning-600 mt-0.5" />
-                    <p className="text-sm text-warning-800">{rateLimitStats.warning}</p>
+                    <p className="text-sm text-warning-800">
+                      {rateLimitStats.warning}
+                    </p>
                   </div>
                 </div>
               )}
@@ -302,25 +333,37 @@ export default function SystemPage() {
                     <div className="bg-gray-50 rounded-lg p-4">
                       <div className="flex items-center gap-2 mb-2">
                         <Database className="w-4 h-4 text-gray-600" />
-                        <span className="text-sm text-gray-600">Total Keys</span>
+                        <span className="text-sm text-gray-600">
+                          Total Keys
+                        </span>
                       </div>
-                      <p className="text-2xl font-bold">{rateLimitStats.stats.total_keys}</p>
+                      <p className="text-2xl font-bold">
+                        {rateLimitStats.stats.total_keys}
+                      </p>
                     </div>
 
                     <div className="bg-gray-50 rounded-lg p-4">
                       <div className="flex items-center gap-2 mb-2">
                         <Activity className="w-4 h-4 text-gray-600" />
-                        <span className="text-sm text-gray-600">Active Users</span>
+                        <span className="text-sm text-gray-600">
+                          Active Users
+                        </span>
                       </div>
-                      <p className="text-2xl font-bold">{rateLimitStats.stats.by_identifier.authenticated_users}</p>
+                      <p className="text-2xl font-bold">
+                        {rateLimitStats.stats.by_identifier.authenticated_users}
+                      </p>
                     </div>
 
                     <div className="bg-gray-50 rounded-lg p-4">
                       <div className="flex items-center gap-2 mb-2">
                         <Gauge className="w-4 h-4 text-gray-600" />
-                        <span className="text-sm text-gray-600">Anonymous IPs</span>
+                        <span className="text-sm text-gray-600">
+                          Anonymous IPs
+                        </span>
                       </div>
-                      <p className="text-2xl font-bold">{rateLimitStats.stats.by_identifier.anonymous_ips}</p>
+                      <p className="text-2xl font-bold">
+                        {rateLimitStats.stats.by_identifier.anonymous_ips}
+                      </p>
                     </div>
                   </div>
 
@@ -328,12 +371,19 @@ export default function SystemPage() {
                   <div className="mt-6">
                     <h3 className="font-semibold mb-3">Endpoint Usage</h3>
                     <div className="space-y-2">
-                      {Object.entries(rateLimitStats.stats.by_type).map(([type, count]) => (
-                        <div key={type} className="flex justify-between items-center py-2 border-b">
-                          <span className="capitalize">{type}</span>
-                          <span className="font-mono text-sm">{count} keys</span>
-                        </div>
-                      ))}
+                      {Object.entries(rateLimitStats.stats.by_type).map(
+                        ([type, count]) => (
+                          <div
+                            key={type}
+                            className="flex justify-between items-center py-2 border-b"
+                          >
+                            <span className="capitalize">{type}</span>
+                            <span className="font-mono text-sm">
+                              {count} keys
+                            </span>
+                          </div>
+                        )
+                      )}
                     </div>
                   </div>
 
@@ -342,12 +392,21 @@ export default function SystemPage() {
                     <div className="mt-6">
                       <h3 className="font-semibold mb-3">Top Consumers</h3>
                       <div className="space-y-2">
-                        {rateLimitStats.stats.top_consumers.map((consumer, idx) => (
-                          <div key={idx} className="flex justify-between items-center py-2 border-b">
-                            <span className="font-mono text-sm">{consumer.key}</span>
-                            <span className="text-sm">{consumer.count} requests</span>
-                          </div>
-                        ))}
+                        {rateLimitStats.stats.top_consumers.map(
+                          (consumer, idx) => (
+                            <div
+                              key={idx}
+                              className="flex justify-between items-center py-2 border-b"
+                            >
+                              <span className="font-mono text-sm">
+                                {consumer.key}
+                              </span>
+                              <span className="text-sm">
+                                {consumer.count} requests
+                              </span>
+                            </div>
+                          )
+                        )}
                       </div>
                     </div>
                   )}
@@ -360,39 +419,56 @@ export default function SystemPage() {
                   <h3 className="font-semibold mb-3">Usage Estimates</h3>
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <span className="text-sm text-gray-600">Unique Users</span>
-                      <p className="font-bold">{rateLimitStats.estimates.unique_users}</p>
+                      <span className="text-sm text-gray-600">
+                        Unique Users
+                      </span>
+                      <p className="font-bold">
+                        {rateLimitStats.estimates.unique_users}
+                      </p>
                     </div>
                     <div>
-                      <span className="text-sm text-gray-600">Unique Visitors</span>
-                      <p className="font-bold">{rateLimitStats.estimates.unique_visitors}</p>
+                      <span className="text-sm text-gray-600">
+                        Unique Visitors
+                      </span>
+                      <p className="font-bold">
+                        {rateLimitStats.estimates.unique_visitors}
+                      </p>
                     </div>
                     <div>
-                      <span className="text-sm text-gray-600">API Calls Tracked</span>
-                      <p className="font-bold">{rateLimitStats.estimates.api_calls_tracked}</p>
+                      <span className="text-sm text-gray-600">
+                        API Calls Tracked
+                      </span>
+                      <p className="font-bold">
+                        {rateLimitStats.estimates.api_calls_tracked}
+                      </p>
                     </div>
                     <div>
-                      <span className="text-sm text-gray-600">Monthly Cost</span>
-                      <p className="font-bold">{rateLimitStats.estimates.monthly_cost_estimate}</p>
+                      <span className="text-sm text-gray-600">
+                        Monthly Cost
+                      </span>
+                      <p className="font-bold">
+                        {rateLimitStats.estimates.monthly_cost_estimate}
+                      </p>
                     </div>
                   </div>
                 </div>
               )}
 
               {/* Recommendations */}
-              {rateLimitStats.recommendations && rateLimitStats.recommendations.length > 0 && (
-                <div className="mt-6">
-                  <h3 className="font-semibold mb-3">Recommendations</h3>
-                  <ul className="space-y-2">
-                    {rateLimitStats.recommendations.map((rec, idx) => (
-                      <li key={idx} className="flex items-start gap-2">
-                        <CheckCircle className="w-4 h-4 text-success-500 mt-0.5" />
-                        <span className="text-sm">{rec}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
+              {rateLimitStats.recommendations &&
+                rateLimitStats.recommendations.length > 0 && (
+                  <div className="mt-6">
+                    <h3 className="font-semibold mb-3">Recommendations</h3>
+                    <ul className="space-y-2">
+                      {rateLimitStats.recommendations.map((rec, idx) => (
+                        <li key={idx} className="flex items-start gap-2">
+                          <CheckCircle className="w-4 h-4 text-success-500 mt-0.5" />
+                          <span className="text-sm">{rec}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
             </div>
           ) : (
             <p className="text-gray-500">No data available</p>
@@ -426,16 +502,21 @@ export default function SystemPage() {
               <p className="text-lg font-semibold mt-1">Connected</p>
             </div>
 
-            <div className={`${rateLimitStats?.status === 'connected' ? 'bg-success-50' : 'bg-warning-50'} rounded-lg p-4`}>
+            <div
+              className={`${rateLimitStats?.status === 'connected' ? 'bg-success-50' : 'bg-warning-50'} rounded-lg p-4`}
+            >
               <div className="flex items-center justify-between">
                 <span className="text-sm text-gray-600">Rate Limiting</span>
-                {rateLimitStats?.status === 'connected' ? 
-                  <CheckCircle className="w-4 h-4 text-success-500" /> :
+                {rateLimitStats?.status === 'connected' ? (
+                  <CheckCircle className="w-4 h-4 text-success-500" />
+                ) : (
                   <AlertCircle className="w-4 h-4 text-warning-500" />
-                }
+                )}
               </div>
               <p className="text-lg font-semibold mt-1">
-                {rateLimitStats?.status === 'connected' ? 'Redis Active' : 'In-Memory'}
+                {rateLimitStats?.status === 'connected'
+                  ? 'Redis Active'
+                  : 'In-Memory'}
               </p>
             </div>
 
@@ -466,7 +547,9 @@ export default function SystemPage() {
                   <Users className="w-4 h-4 text-blue-600" />
                   <span className="text-sm text-gray-600">Total Users</span>
                 </div>
-                <p className="text-2xl font-bold">{databaseStats.tables.users.total}</p>
+                <p className="text-2xl font-bold">
+                  {databaseStats.tables.users.total}
+                </p>
                 <p className="text-xs text-gray-500 mt-1">
                   +{databaseStats.tables.users.recent_24h} today
                 </p>
@@ -475,9 +558,13 @@ export default function SystemPage() {
               <div className="bg-purple-50 rounded-lg p-4">
                 <div className="flex items-center gap-2 mb-2">
                   <Image className="w-4 h-4 text-purple-600" />
-                  <span className="text-sm text-gray-600">Processed Images</span>
+                  <span className="text-sm text-gray-600">
+                    Processed Images
+                  </span>
                 </div>
-                <p className="text-2xl font-bold">{databaseStats.tables.processed_images.total}</p>
+                <p className="text-2xl font-bold">
+                  {databaseStats.tables.processed_images.total}
+                </p>
                 <p className="text-xs text-gray-500 mt-1">
                   +{databaseStats.tables.processed_images.recent_24h} today
                 </p>
@@ -488,7 +575,9 @@ export default function SystemPage() {
                   <CreditCard className="w-4 h-4 text-success-600" />
                   <span className="text-sm text-gray-600">Payments</span>
                 </div>
-                <p className="text-2xl font-bold">{databaseStats.tables.payments.total}</p>
+                <p className="text-2xl font-bold">
+                  {databaseStats.tables.payments.total}
+                </p>
                 <p className="text-xs text-gray-500 mt-1">
                   {databaseStats.tables.subscriptions.total} active subs
                 </p>
@@ -499,7 +588,9 @@ export default function SystemPage() {
                   <HardDrive className="w-4 h-4 text-orange-600" />
                   <span className="text-sm text-gray-600">Storage Used</span>
                 </div>
-                <p className="text-2xl font-bold">{databaseStats.storage.total_size_mb} MB</p>
+                <p className="text-2xl font-bold">
+                  {databaseStats.storage.total_size_mb} MB
+                </p>
                 <p className="text-xs text-gray-500 mt-1">
                   {databaseStats.storage.buckets} buckets
                 </p>
@@ -510,11 +601,15 @@ export default function SystemPage() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm text-gray-600">Database Provider</p>
-                  <p className="font-semibold">{databaseStats.database.provider}</p>
+                  <p className="font-semibold">
+                    {databaseStats.database.provider}
+                  </p>
                 </div>
                 <div className="text-right">
                   <p className="text-sm text-gray-600">Total Records</p>
-                  <p className="font-semibold">{databaseStats.summary.total_records.toLocaleString()}</p>
+                  <p className="font-semibold">
+                    {databaseStats.summary.total_records.toLocaleString()}
+                  </p>
                 </div>
                 <div className="text-right">
                   <p className="text-sm text-gray-600">24h Growth</p>
@@ -552,7 +647,9 @@ export default function SystemPage() {
                       {systemHealth.services.database.status === 'healthy' ? (
                         <>
                           <CheckCircle className="w-4 h-4 text-success-500" />
-                          <span className="text-sm text-gray-500">{systemHealth.services.database.latency}ms</span>
+                          <span className="text-sm text-gray-500">
+                            {systemHealth.services.database.latency}ms
+                          </span>
                         </>
                       ) : (
                         <XCircle className="w-4 h-4 text-error-500" />
@@ -595,7 +692,9 @@ export default function SystemPage() {
                       {systemHealth.services.stripe.status === 'healthy' ? (
                         <>
                           <CheckCircle className="w-4 h-4 text-success-500" />
-                          <span className="text-xs text-gray-500">{systemHealth.services.stripe.message}</span>
+                          <span className="text-xs text-gray-500">
+                            {systemHealth.services.stripe.message}
+                          </span>
                         </>
                       ) : (
                         <XCircle className="w-4 h-4 text-error-500" />
@@ -612,7 +711,9 @@ export default function SystemPage() {
                       {systemHealth.services.email.status === 'healthy' ? (
                         <>
                           <CheckCircle className="w-4 h-4 text-success-500" />
-                          <span className="text-xs text-gray-500">{systemHealth.services.email.provider}</span>
+                          <span className="text-xs text-gray-500">
+                            {systemHealth.services.email.provider}
+                          </span>
                         </>
                       ) : (
                         <AlertCircle className="w-4 h-4 text-warning-500" />
@@ -681,19 +782,27 @@ export default function SystemPage() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <p className="text-sm text-gray-600">Deployment</p>
-                <p className="font-semibold capitalize">{systemHealth.environment.deployment}</p>
+                <p className="font-semibold capitalize">
+                  {systemHealth.environment.deployment}
+                </p>
               </div>
               <div>
                 <p className="text-sm text-gray-600">Region</p>
-                <p className="font-semibold">{systemHealth.environment.region}</p>
+                <p className="font-semibold">
+                  {systemHealth.environment.region}
+                </p>
               </div>
               <div>
                 <p className="text-sm text-gray-600">Node Version</p>
-                <p className="font-semibold">{systemHealth.environment.node_version}</p>
+                <p className="font-semibold">
+                  {systemHealth.environment.node_version}
+                </p>
               </div>
               <div>
                 <p className="text-sm text-gray-600">Commit SHA</p>
-                <p className="font-mono text-sm">{systemHealth.environment.commit.substring(0, 8)}</p>
+                <p className="font-mono text-sm">
+                  {systemHealth.environment.commit.substring(0, 8)}
+                </p>
               </div>
             </div>
           </CardContent>

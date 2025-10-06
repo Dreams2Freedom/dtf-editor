@@ -48,4 +48,4 @@ export function Badge({
   );
 }
 
-export { badgeVariants }; 
+export { badgeVariants };

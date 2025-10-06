@@ -18,7 +18,7 @@ export default function Error({
   useEffect(() => {
     // Log the error to an error reporting service
     console.error('Global error handler:', error);
-    
+
     // You can add error reporting service here
     // if (typeof window !== 'undefined' && window.Sentry) {
     //   window.Sentry.captureException(error);
@@ -32,20 +32,19 @@ export default function Error({
           <div className="flex justify-center mb-4">
             <AlertTriangle className="h-12 w-12 text-red-500" />
           </div>
-          
+
           <h1 className="text-2xl font-bold text-gray-900 mb-2">
             Oops! Something went wrong
           </h1>
-          
+
           <p className="text-gray-600 mb-6">
-            We encountered an unexpected error. Don't worry, our team has been notified and we're working on it.
+            We encountered an unexpected error. Don't worry, our team has been
+            notified and we're working on it.
           </p>
 
           {process.env.NODE_ENV === 'development' && error.message && (
             <div className="mb-6 p-4 bg-red-50 rounded-lg text-left">
-              <p className="text-sm font-mono text-red-800">
-                {error.message}
-              </p>
+              <p className="text-sm font-mono text-red-800">{error.message}</p>
               {error.digest && (
                 <p className="text-xs text-red-600 mt-2">
                   Error ID: {error.digest}
@@ -62,7 +61,7 @@ export default function Error({
               <RefreshCw className="w-4 h-4" />
               Try Again
             </Button>
-            
+
             <Button
               variant="outline"
               onClick={() => router.push('/')}

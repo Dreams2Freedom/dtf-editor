@@ -11,26 +11,36 @@ const TEST_USER_NAME = 'Shannon';
 console.log('📧 Email Delivery Test for DTF Editor\n');
 console.log('   Recipient:', TEST_EMAIL);
 console.log('   Mailgun Domain:', process.env.MAILGUN_DOMAIN);
-console.log('   From:', process.env.MAILGUN_FROM_EMAIL || 'noreply@dtfeditor.com');
+console.log(
+  '   From:',
+  process.env.MAILGUN_FROM_EMAIL || 'noreply@dtfeditor.com'
+);
 console.log('');
 
 // Check Mailgun configuration
 if (!process.env.MAILGUN_API_KEY || !process.env.MAILGUN_DOMAIN) {
   console.error('❌ Mailgun is not configured properly!');
-  console.log('   MAILGUN_API_KEY:', process.env.MAILGUN_API_KEY ? '✅ Set' : '❌ Missing');
-  console.log('   MAILGUN_DOMAIN:', process.env.MAILGUN_DOMAIN ? '✅ Set' : '❌ Missing');
+  console.log(
+    '   MAILGUN_API_KEY:',
+    process.env.MAILGUN_API_KEY ? '✅ Set' : '❌ Missing'
+  );
+  console.log(
+    '   MAILGUN_DOMAIN:',
+    process.env.MAILGUN_DOMAIN ? '✅ Set' : '❌ Missing'
+  );
   process.exit(1);
 }
 
 const MAILGUN_API_KEY = process.env.MAILGUN_API_KEY;
 const MAILGUN_DOMAIN = process.env.MAILGUN_DOMAIN;
-const MAILGUN_FROM_EMAIL = process.env.MAILGUN_FROM_EMAIL || 'noreply@dtfeditor.com';
+const MAILGUN_FROM_EMAIL =
+  process.env.MAILGUN_FROM_EMAIL || 'noreply@dtfeditor.com';
 const MAILGUN_FROM_NAME = process.env.MAILGUN_FROM_NAME || 'DTF Editor';
 
 async function sendTestEmail(type, subject, htmlContent, textContent) {
   const mailgunUrl = `https://api.mailgun.net/v3/${MAILGUN_DOMAIN}/messages`;
   const auth = Buffer.from(`api:${MAILGUN_API_KEY}`).toString('base64');
-  
+
   const formData = new URLSearchParams();
   formData.append('from', `${MAILGUN_FROM_NAME} <${MAILGUN_FROM_EMAIL}>`);
   formData.append('to', TEST_EMAIL);
@@ -41,19 +51,19 @@ async function sendTestEmail(type, subject, htmlContent, textContent) {
   formData.append('o:tracking', 'true');
   formData.append('o:tracking-clicks', 'true');
   formData.append('o:tracking-opens', 'true');
-  
+
   try {
     const response = await fetch(mailgunUrl, {
       method: 'POST',
       headers: {
-        'Authorization': `Basic ${auth}`,
+        Authorization: `Basic ${auth}`,
         'Content-Type': 'application/x-www-form-urlencoded',
       },
       body: formData.toString(),
     });
-    
+
     const responseText = await response.text();
-    
+
     if (response.ok) {
       const result = JSON.parse(responseText);
       return { success: true, id: result.id, message: result.message };
@@ -67,7 +77,7 @@ async function sendTestEmail(type, subject, htmlContent, textContent) {
 
 async function runEmailTests() {
   console.log('🚀 Starting Email Tests...\n');
-  
+
   const tests = [
     {
       name: 'Welcome Email',
@@ -113,7 +123,7 @@ async function runEmailTests() {
           </div>
         </div>
       `,
-      text: `Welcome to DTF Editor!\n\nHi ${TEST_USER_NAME}!\n\nThis is a test email to verify Mailgun is working.\n\nTimestamp: ${new Date().toLocaleString()}`
+      text: `Welcome to DTF Editor!\n\nHi ${TEST_USER_NAME}!\n\nThis is a test email to verify Mailgun is working.\n\nTimestamp: ${new Date().toLocaleString()}`,
     },
     {
       name: 'Purchase Confirmation',
@@ -161,7 +171,7 @@ async function runEmailTests() {
           </div>
         </div>
       `,
-      text: `Purchase Confirmed!\n\nThank you ${TEST_USER_NAME}!\n\nOrder: 10 Credits for $9.99\n\nThis is a test email.`
+      text: `Purchase Confirmed!\n\nThank you ${TEST_USER_NAME}!\n\nOrder: 10 Credits for $9.99\n\nThis is a test email.`,
     },
     {
       name: 'Credit Warning',
@@ -178,7 +188,7 @@ async function runEmailTests() {
             <div style="background: #fef3c7; border-left: 4px solid #f59e0b; padding: 15px; margin: 20px 0;">
               <p style="color: #92400e; font-weight: bold; margin: 0;">⏰ Time Sensitive</p>
               <p style="color: #78350f; margin: 8px 0 0 0;">
-                You have <strong>5 credits</strong> that will expire on <strong>${new Date(Date.now() + 48*60*60*1000).toLocaleDateString()}</strong>
+                You have <strong>5 credits</strong> that will expire on <strong>${new Date(Date.now() + 48 * 60 * 60 * 1000).toLocaleDateString()}</strong>
               </p>
             </div>
             
@@ -198,18 +208,23 @@ async function runEmailTests() {
           </div>
         </div>
       `,
-      text: `Credits Expiring Soon!\n\nHi ${TEST_USER_NAME},\n\nYou have 5 credits expiring soon.\n\nThis is a test email.`
-    }
+      text: `Credits Expiring Soon!\n\nHi ${TEST_USER_NAME},\n\nYou have 5 credits expiring soon.\n\nThis is a test email.`,
+    },
   ];
-  
+
   let successCount = 0;
   let failCount = 0;
-  
+
   for (const test of tests) {
     process.stdout.write(`📤 Sending ${test.name}... `);
-    
-    const result = await sendTestEmail(test.type, test.subject, test.html, test.text);
-    
+
+    const result = await sendTestEmail(
+      test.type,
+      test.subject,
+      test.html,
+      test.text
+    );
+
     if (result.success) {
       console.log(`✅ Sent successfully!`);
       console.log(`   Message ID: ${result.id}`);
@@ -223,30 +238,32 @@ async function runEmailTests() {
       }
       failCount++;
     }
-    
+
     console.log('');
-    
+
     // Wait 1 second between emails to avoid rate limiting
     await new Promise(resolve => setTimeout(resolve, 1000));
   }
-  
+
   console.log('📊 Test Results:');
   console.log(`   ✅ Successful: ${successCount}`);
   console.log(`   ❌ Failed: ${failCount}`);
   console.log('');
-  
+
   if (successCount > 0) {
     console.log('✨ Check your inbox at:', TEST_EMAIL);
     console.log('   - Look for emails from:', MAILGUN_FROM_EMAIL);
     console.log('   - Check spam folder if not in inbox');
     console.log('   - Emails should arrive within 1-2 minutes');
   }
-  
+
   console.log('\n📱 How to Test Through the App:');
   console.log('');
   console.log('1. Welcome Email:');
   console.log('   - Sign up with shannonherod@gmail.com');
-  console.log('   - Or trigger manually: curl -X POST http://localhost:3000/api/auth/welcome-email');
+  console.log(
+    '   - Or trigger manually: curl -X POST http://localhost:3000/api/auth/welcome-email'
+  );
   console.log('');
   console.log('2. Purchase Confirmation:');
   console.log('   - Make a test purchase on https://dtfeditor.com/pricing');
@@ -260,7 +277,7 @@ async function runEmailTests() {
   console.log('   - Go to https://dtfeditor.com/auth/login');
   console.log('   - Click "Forgot Password"');
   console.log('   - Enter shannonherod@gmail.com');
-  
+
   console.log('\n🔍 Mailgun Dashboard:');
   console.log('   - Log into https://app.mailgun.com');
   console.log('   - Check Sending > Logs to see all sent emails');

@@ -16,7 +16,9 @@ async function testFunctions() {
   try {
     // Get shannon's user ID
     const { data: users } = await supabase.auth.admin.listUsers();
-    const shannon = users?.users?.find(u => u.email === 'shannon@s2transfers.com');
+    const shannon = users?.users?.find(
+      u => u.email === 'shannon@s2transfers.com'
+    );
 
     if (!shannon) {
       console.log('❌ User not found');
@@ -28,8 +30,10 @@ async function testFunctions() {
     console.log('');
 
     // Test is_admin - using named parameter
-    const { data: isAdminResult, error: adminError } = await supabase
-      .rpc('is_admin', { check_user_id: shannon.id });
+    const { data: isAdminResult, error: adminError } = await supabase.rpc(
+      'is_admin',
+      { check_user_id: shannon.id }
+    );
 
     console.log('1. is_admin(check_user_id):');
     if (adminError) {
@@ -39,8 +43,10 @@ async function testFunctions() {
     }
 
     // Test is_super_admin
-    const { data: isSuperAdmin, error: superError } = await supabase
-      .rpc('is_super_admin', { check_user_id: shannon.id });
+    const { data: isSuperAdmin, error: superError } = await supabase.rpc(
+      'is_super_admin',
+      { check_user_id: shannon.id }
+    );
 
     console.log('\n2. is_super_admin(check_user_id):');
     if (superError) {
@@ -50,8 +56,10 @@ async function testFunctions() {
     }
 
     // Test get_admin_role
-    const { data: role, error: roleError } = await supabase
-      .rpc('get_admin_role', { check_user_id: shannon.id });
+    const { data: role, error: roleError } = await supabase.rpc(
+      'get_admin_role',
+      { check_user_id: shannon.id }
+    );
 
     console.log('\n3. get_admin_role(check_user_id):');
     if (roleError) {
@@ -90,7 +98,6 @@ async function testFunctions() {
       console.log('\n⚠️  Some functions have errors - check above');
     }
     console.log('='.repeat(60) + '\n');
-
   } catch (error) {
     console.error('❌ Unexpected error:', error);
   }

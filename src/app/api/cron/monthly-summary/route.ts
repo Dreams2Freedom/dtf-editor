@@ -13,13 +13,20 @@ export async function GET(request: NextRequest) {
 
     const supabase = createServerSupabaseClient();
     const now = new Date();
-    
+
     // Get the previous month's date range
-    const firstDayLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    const firstDayLastMonth = new Date(
+      now.getFullYear(),
+      now.getMonth() - 1,
+      1
+    );
     const lastDayLastMonth = new Date(now.getFullYear(), now.getMonth(), 0);
-    
+
     // Format month name (e.g., "January 2025")
-    const monthName = firstDayLastMonth.toLocaleString('en-US', { month: 'long', year: 'numeric' });
+    const monthName = firstDayLastMonth.toLocaleString('en-US', {
+      month: 'long',
+      year: 'numeric',
+    });
 
     // Get all active users with their profiles
     const { data: users, error: usersError } = await supabase
@@ -29,7 +36,10 @@ export async function GET(request: NextRequest) {
 
     if (usersError) {
       console.error('Error fetching users:', usersError);
-      return NextResponse.json({ error: 'Failed to fetch users' }, { status: 500 });
+      return NextResponse.json(
+        { error: 'Failed to fetch users' },
+        { status: 500 }
+      );
     }
 
     let totalEmailsSent = 0;
@@ -46,19 +56,23 @@ export async function GET(request: NextRequest) {
           .lte('created_at', lastDayLastMonth.toISOString());
 
         if (transError) {
-          console.error(`Error fetching transactions for user ${user.id}:`, transError);
+          console.error(
+            `Error fetching transactions for user ${user.id}:`,
+            transError
+          );
           continue;
         }
 
         // Calculate credits used (negative transactions)
         const creditsUsed = Math.abs(
-          transactions?.filter(t => t.amount < 0)
+          transactions
+            ?.filter(t => t.amount < 0)
             .reduce((sum, t) => sum + Math.abs(t.amount), 0) || 0
         );
 
         // Count images processed by feature
         const featureCounts = new Map<string, number>();
-        
+
         transactions?.forEach(t => {
           if (t.amount < 0 && t.description) {
             // Extract feature from description (e.g., "Image upscaled" -> "Upscale")
@@ -72,16 +86,21 @@ export async function GET(request: NextRequest) {
             } else if (t.description.toLowerCase().includes('generat')) {
               feature = 'AI Generation';
             }
-            
+
             featureCounts.set(feature, (featureCounts.get(feature) || 0) + 1);
           }
         });
 
-        const imagesProcessed = Array.from(featureCounts.values()).reduce((sum, count) => sum + count, 0);
-        
+        const imagesProcessed = Array.from(featureCounts.values()).reduce(
+          (sum, count) => sum + count,
+          0
+        );
+
         // Skip users with no activity
         if (imagesProcessed === 0) {
-          console.log(`Skipping user ${user.email} - no activity in ${monthName}`);
+          console.log(
+            `Skipping user ${user.email} - no activity in ${monthName}`
+          );
           continue;
         }
 
@@ -100,7 +119,9 @@ export async function GET(request: NextRequest) {
           .single();
 
         if (existingNotification) {
-          console.log(`Monthly summary already sent to ${user.email} for ${monthName}`);
+          console.log(
+            `Monthly summary already sent to ${user.email} for ${monthName}`
+          );
           continue;
         }
 
@@ -118,19 +139,17 @@ export async function GET(request: NextRequest) {
 
         if (emailSent) {
           // Record that we sent this notification
-          await supabase
-            .from('email_notifications')
-            .insert({
-              user_id: user.id,
-              notification_type: notificationKey,
-              email_sent_to: user.email,
-              metadata: {
-                month: monthName,
-                credits_used: creditsUsed,
-                images_processed: imagesProcessed,
-                top_features: popularFeatures.slice(0, 3),
-              }
-            });
+          await supabase.from('email_notifications').insert({
+            user_id: user.id,
+            notification_type: notificationKey,
+            email_sent_to: user.email,
+            metadata: {
+              month: monthName,
+              credits_used: creditsUsed,
+              images_processed: imagesProcessed,
+              top_features: popularFeatures.slice(0, 3),
+            },
+          });
 
           totalEmailsSent++;
           results.push({
@@ -141,7 +160,10 @@ export async function GET(request: NextRequest) {
           });
         }
       } catch (error) {
-        console.error(`Failed to process monthly summary for ${user.email}:`, error);
+        console.error(
+          `Failed to process monthly summary for ${user.email}:`,
+          error
+        );
       }
     }
 
@@ -152,7 +174,6 @@ export async function GET(request: NextRequest) {
       results,
       timestamp: now.toISOString(),
     });
-
   } catch (error) {
     console.error('Monthly summary cron error:', error);
     return NextResponse.json(

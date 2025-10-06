@@ -5,13 +5,16 @@
 ### 1. Go to [vercel.com](https://vercel.com)
 
 ### 2. Import Project
+
 - Click "Add New..." → "Project"
 - Import: `Dreams2Freedom/dtf-editor`
 
 ### 3. Add Environment Variables
+
 In the "Environment Variables" section, add these:
 
 #### Required Variables (Copy exactly as shown):
+
 ```
 NEXT_PUBLIC_APP_URL = https://dtfeditor.com
 CRON_SECRET = ggtBAoBFnAj6dMr2lFe6rPgzJ90OKy1pALIDm0xHfxs=
@@ -26,6 +29,7 @@ MAILGUN_FROM_NAME = DTF Editor
 ```
 
 #### Stripe Price IDs (Copy all):
+
 ```
 STRIPE_BASIC_PLAN_PRICE_ID = price_1RleoYPHFzf1GpIrfy9RVk9m
 STRIPE_STARTER_PLAN_PRICE_ID = price_1RlepVPHFzf1GpIrjRiKHtvb
@@ -35,6 +39,7 @@ STRIPE_PAYG_50_CREDITS_PRICE_ID = price_1RqD0QPHFzf1GpIrcAqSHy0u
 ```
 
 #### Get from your .env.local file:
+
 - SUPABASE_SERVICE_ROLE_KEY
 - DEEP_IMAGE_API_KEY
 - CLIPPINGMAGIC_API_KEY
@@ -45,16 +50,19 @@ STRIPE_PAYG_50_CREDITS_PRICE_ID = price_1RqD0QPHFzf1GpIrcAqSHy0u
 - MAILGUN_API_KEY
 
 ### 4. Deploy
+
 Click "Deploy" and wait for build to complete
 
 ### 5. After Deployment
 
 #### Add Custom Domain:
+
 1. Go to Settings → Domains
 2. Add `dtfeditor.com`
 3. Follow DNS instructions
 
 #### Set up Stripe Webhook:
+
 1. Go to Stripe Dashboard (TEST mode)
 2. Developers → Webhooks → Add endpoint
 3. URL: `https://dtfeditor.com/api/webhooks/stripe`
@@ -69,11 +77,13 @@ Click "Deploy" and wait for build to complete
 7. Redeploy
 
 ### 6. Verify
+
 - Visit your site
 - Look for yellow "TEST MODE" banner
 - Test with card: 4242 4242 4242 4242
 
 ## 🎯 Important Notes
+
 - We're using Stripe TEST keys (safe!)
 - Your CRON_SECRET: `ggtBAoBFnAj6dMr2lFe6rPgzJ90OKy1pALIDm0xHfxs=`
-- Get your Stripe TEST Secret from .env.local (starts with sk_test_)
+- Get your Stripe TEST Secret from .env.local (starts with sk*test*)

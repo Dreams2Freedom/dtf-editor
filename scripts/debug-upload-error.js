@@ -29,7 +29,7 @@ async function debugUploadError() {
     const { count, error } = await supabase
       .from('uploads')
       .select('*', { count: 'exact', head: true });
-    
+
     if (error) {
       console.error('❌ Uploads table error:', JSON.stringify(error, null, 2));
       if (error.code === '42P01') {
@@ -52,7 +52,7 @@ async function debugUploadError() {
       file_path: 'test/path.png',
       file_size: 1000,
       file_type: 'image/png',
-      public_url: 'https://example.com/test.png'
+      public_url: 'https://example.com/test.png',
     };
 
     console.log('Inserting:', JSON.stringify(testData, null, 2));
@@ -85,10 +85,7 @@ async function debugUploadError() {
   console.log('\n4. Checking table columns...');
   try {
     // Try to get column information
-    const { data, error } = await supabase
-      .from('uploads')
-      .select('*')
-      .limit(0);
+    const { data, error } = await supabase.from('uploads').select('*').limit(0);
 
     if (!error) {
       console.log('✅ Table structure check passed');
@@ -103,7 +100,7 @@ async function debugUploadError() {
   console.log('\n5. Checking storage bucket...');
   try {
     const { data: buckets, error } = await supabase.storage.listBuckets();
-    
+
     if (error) {
       console.error('❌ Cannot list buckets:', error);
     } else {
@@ -113,7 +110,10 @@ async function debugUploadError() {
         console.log('   → Public:', userUploadsBucket.public);
       } else {
         console.log('❌ Storage bucket "user-uploads" not found');
-        console.log('   Available buckets:', buckets?.map(b => b.name).join(', '));
+        console.log(
+          '   Available buckets:',
+          buckets?.map(b => b.name).join(', ')
+        );
       }
     }
   } catch (e) {
@@ -124,20 +124,22 @@ async function debugUploadError() {
   console.log('\n6. Listing all accessible tables...');
   const tablesToCheck = [
     'profiles',
-    'subscription_plans', 
+    'subscription_plans',
     'subscription_history',
     'credit_transactions',
     'processing_history',
     'payg_packages',
     'api_logs',
-    'uploads'
+    'uploads',
   ];
 
   for (const table of tablesToCheck) {
     try {
       const { error } = await supabase.from(table).select('count').limit(1);
       if (error) {
-        console.log(`   ❌ ${table} - ${error.code === '42P01' ? 'DOES NOT EXIST' : error.code}`);
+        console.log(
+          `   ❌ ${table} - ${error.code === '42P01' ? 'DOES NOT EXIST' : error.code}`
+        );
       } else {
         console.log(`   ✅ ${table} - EXISTS`);
       }
@@ -148,14 +150,18 @@ async function debugUploadError() {
 
   console.log('\n📋 Summary:');
   console.log('The uploads table and several other tables are missing.');
-  console.log('This indicates the database migrations have not been fully applied.');
+  console.log(
+    'This indicates the database migrations have not been fully applied.'
+  );
   console.log('\n🔧 To fix this:');
   console.log('1. Go to your Supabase dashboard');
   console.log('2. Navigate to SQL Editor');
   console.log('3. Run the migrations in order:');
   console.log('   - 001_initial_schema.sql (partially applied)');
   console.log('   - 007_create_uploads_table.sql');
-  console.log('\nAlternatively, run the specific uploads table creation SQL below.');
+  console.log(
+    '\nAlternatively, run the specific uploads table creation SQL below.'
+  );
 }
 
 debugUploadError().catch(console.error);

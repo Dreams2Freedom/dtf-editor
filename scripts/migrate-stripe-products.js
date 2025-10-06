@@ -12,7 +12,9 @@ if (!LIVE_STRIPE_KEY) {
 
 if (TEST_STRIPE_KEY === 'sk_test_...') {
   console.error('❌ Please add your Stripe test key to this script');
-  console.error('   You can find it at: https://dashboard.stripe.com/test/apikeys');
+  console.error(
+    '   You can find it at: https://dashboard.stripe.com/test/apikeys'
+  );
   process.exit(1);
 }
 
@@ -25,25 +27,30 @@ async function migrateProducts() {
   try {
     // Step 1: Fetch all products from test mode
     console.log('📦 Fetching test mode products...');
-    const testProducts = await stripeTest.products.list({ limit: 100, active: true });
-    
+    const testProducts = await stripeTest.products.list({
+      limit: 100,
+      active: true,
+    });
+
     console.log(`Found ${testProducts.data.length} products in test mode\n`);
 
     // Step 2: Migrate each product
     for (const testProduct of testProducts.data) {
       console.log(`\n📋 Migrating product: ${testProduct.name}`);
       console.log(`   Description: ${testProduct.description || 'N/A'}`);
-      
+
       // Create product in live mode
       let liveProduct;
       try {
         // Check if product already exists (by name)
         const existingProducts = await stripeLive.products.search({
-          query: `name:"${testProduct.name}"`
+          query: `name:"${testProduct.name}"`,
         });
 
         if (existingProducts.data.length > 0) {
-          console.log(`   ⚠️  Product already exists in live mode, using existing`);
+          console.log(
+            `   ⚠️  Product already exists in live mode, using existing`
+          );
           liveProduct = existingProducts.data[0];
         } else {
           liveProduct = await stripeLive.products.create({
@@ -51,35 +58,40 @@ async function migrateProducts() {
             description: testProduct.description,
             metadata: testProduct.metadata,
             tax_code: testProduct.tax_code,
-            active: testProduct.active
+            active: testProduct.active,
           });
           console.log(`   ✅ Product created with ID: ${liveProduct.id}`);
         }
 
         // Step 3: Fetch and migrate prices for this product
-        const testPrices = await stripeTest.prices.list({ 
+        const testPrices = await stripeTest.prices.list({
           product: testProduct.id,
           limit: 100,
-          active: true
+          active: true,
         });
 
-        console.log(`   💰 Found ${testPrices.data.length} price(s) for this product`);
+        console.log(
+          `   💰 Found ${testPrices.data.length} price(s) for this product`
+        );
 
         for (const testPrice of testPrices.data) {
           // Check if price already exists
           const existingPrices = await stripeLive.prices.list({
             product: liveProduct.id,
-            active: true
+            active: true,
           });
 
-          const priceExists = existingPrices.data.some(p => 
-            p.unit_amount === testPrice.unit_amount &&
-            p.currency === testPrice.currency &&
-            p.recurring?.interval === testPrice.recurring?.interval
+          const priceExists = existingPrices.data.some(
+            p =>
+              p.unit_amount === testPrice.unit_amount &&
+              p.currency === testPrice.currency &&
+              p.recurring?.interval === testPrice.recurring?.interval
           );
 
           if (priceExists) {
-            console.log(`      ⚠️  Price already exists: ${formatPrice(testPrice)}`);
+            console.log(
+              `      ⚠️  Price already exists: ${formatPrice(testPrice)}`
+            );
             continue;
           }
 
@@ -89,13 +101,13 @@ async function migrateProducts() {
             currency: testPrice.currency,
             metadata: testPrice.metadata,
             nickname: testPrice.nickname,
-            active: testPrice.active
+            active: testPrice.active,
           };
 
           if (testPrice.recurring) {
             priceData.recurring = {
               interval: testPrice.recurring.interval,
-              interval_count: testPrice.recurring.interval_count
+              interval_count: testPrice.recurring.interval_count,
             };
             priceData.unit_amount = testPrice.unit_amount;
           } else {
@@ -103,9 +115,10 @@ async function migrateProducts() {
           }
 
           const livePrice = await stripeLive.prices.create(priceData);
-          console.log(`      ✅ Price created: ${formatPrice(testPrice)} - ID: ${livePrice.id}`);
+          console.log(
+            `      ✅ Price created: ${formatPrice(testPrice)} - ID: ${livePrice.id}`
+          );
         }
-
       } catch (error) {
         console.error(`   ❌ Error migrating product: ${error.message}`);
       }
@@ -113,19 +126,22 @@ async function migrateProducts() {
 
     // Step 4: List all created products and prices
     console.log('\n\n📊 Migration Summary:');
-    console.log('=' .repeat(50));
-    
-    const liveProducts = await stripeLive.products.list({ limit: 100, active: true });
-    
+    console.log('='.repeat(50));
+
+    const liveProducts = await stripeLive.products.list({
+      limit: 100,
+      active: true,
+    });
+
     for (const product of liveProducts.data) {
       console.log(`\n📦 ${product.name}`);
       console.log(`   Product ID: ${product.id}`);
-      
-      const prices = await stripeLive.prices.list({ 
+
+      const prices = await stripeLive.prices.list({
         product: product.id,
-        active: true 
+        active: true,
       });
-      
+
       if (prices.data.length > 0) {
         console.log('   Prices:');
         for (const price of prices.data) {
@@ -135,9 +151,12 @@ async function migrateProducts() {
     }
 
     console.log('\n✅ Migration complete!');
-    console.log('\n⚠️  IMPORTANT: Update your code with the new live mode price IDs');
-    console.log('   The price IDs above need to be used in your application code');
-
+    console.log(
+      '\n⚠️  IMPORTANT: Update your code with the new live mode price IDs'
+    );
+    console.log(
+      '   The price IDs above need to be used in your application code'
+    );
   } catch (error) {
     console.error('❌ Migration failed:', error.message);
   }
@@ -146,7 +165,7 @@ async function migrateProducts() {
 function formatPrice(price) {
   const amount = (price.unit_amount / 100).toFixed(2);
   const currency = price.currency.toUpperCase();
-  
+
   if (price.recurring) {
     return `${currency} ${amount}/${price.recurring.interval}`;
   } else {

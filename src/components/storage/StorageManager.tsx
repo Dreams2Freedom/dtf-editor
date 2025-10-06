@@ -4,8 +4,8 @@ import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Modal } from '@/components/ui/Modal';
-import { 
-  Trash2, 
+import {
+  Trash2,
   Download,
   FolderOpen,
   CheckSquare,
@@ -13,7 +13,7 @@ import {
   AlertTriangle,
   Info,
   Archive,
-  FileImage
+  FileImage,
 } from 'lucide-react';
 import { useAuthStore } from '@/stores/authStore';
 import { createClientSupabaseClient } from '@/lib/supabase/client';
@@ -41,7 +41,9 @@ export function StorageManager({ onStorageUpdate }: StorageManagerProps) {
   const [selectedImages, setSelectedImages] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
-  const [deleteType, setDeleteType] = useState<'selected' | 'expired' | 'all'>('selected');
+  const [deleteType, setDeleteType] = useState<'selected' | 'expired' | 'all'>(
+    'selected'
+  );
   const [processing, setProcessing] = useState(false);
 
   useEffect(() => {
@@ -54,10 +56,10 @@ export function StorageManager({ onStorageUpdate }: StorageManagerProps) {
     try {
       setLoading(true);
       const supabase = createClientSupabaseClient();
-      
+
       // Use RPC function to fetch images
       const { data, error } = await supabase.rpc('get_user_images', {
-        p_user_id: user.id
+        p_user_id: user.id,
       });
 
       if (error) throw error;
@@ -106,7 +108,7 @@ export function StorageManager({ onStorageUpdate }: StorageManagerProps) {
   const getExpiringImages = () => {
     const threeDaysFromNow = new Date();
     threeDaysFromNow.setDate(threeDaysFromNow.getDate() + 3);
-    
+
     return images.filter(img => {
       if (!img.expires_at) return false;
       const expiryDate = new Date(img.expires_at);
@@ -117,10 +119,10 @@ export function StorageManager({ onStorageUpdate }: StorageManagerProps) {
   const handleBulkDelete = async () => {
     setProcessing(true);
     const supabase = createClientSupabaseClient();
-    
+
     try {
       let imagesToDelete: string[] = [];
-      
+
       switch (deleteType) {
         case 'selected':
           imagesToDelete = Array.from(selectedImages);
@@ -143,16 +145,18 @@ export function StorageManager({ onStorageUpdate }: StorageManagerProps) {
       for (const imageId of imagesToDelete) {
         await supabase.rpc('delete_processed_image', {
           p_image_id: imageId,
-          p_user_id: user.id
+          p_user_id: user.id,
         });
       }
 
       // Update local state
       setImages(prev => prev.filter(img => !imagesToDelete.includes(img.id)));
       setSelectedImages(new Set());
-      
-      toast.success(`Deleted ${imagesToDelete.length} image${imagesToDelete.length > 1 ? 's' : ''}`);
-      
+
+      toast.success(
+        `Deleted ${imagesToDelete.length} image${imagesToDelete.length > 1 ? 's' : ''}`
+      );
+
       // Notify parent to update storage stats
       if (onStorageUpdate) {
         onStorageUpdate();
@@ -167,8 +171,10 @@ export function StorageManager({ onStorageUpdate }: StorageManagerProps) {
   };
 
   const handleBulkDownload = async () => {
-    const imagesToDownload = images.filter(img => selectedImages.has(img.id) && img.storage_url);
-    
+    const imagesToDownload = images.filter(
+      img => selectedImages.has(img.id) && img.storage_url
+    );
+
     if (imagesToDownload.length === 0) {
       toast.error('No images selected for download');
       return;
@@ -239,7 +245,9 @@ export function StorageManager({ onStorageUpdate }: StorageManagerProps) {
                 <AlertTriangle className="w-4 h-4 text-yellow-600" />
                 <span className="text-sm font-medium">Expiring Soon</span>
               </div>
-              <p className="text-2xl font-bold text-yellow-700">{expiringCount}</p>
+              <p className="text-2xl font-bold text-yellow-700">
+                {expiringCount}
+              </p>
               <p className="text-xs text-yellow-600">Within 3 days</p>
             </div>
 
@@ -257,7 +265,9 @@ export function StorageManager({ onStorageUpdate }: StorageManagerProps) {
                 <CheckSquare className="w-4 h-4 text-blue-600" />
                 <span className="text-sm font-medium">Selected</span>
               </div>
-              <p className="text-2xl font-bold text-blue-700">{selectedImages.size}</p>
+              <p className="text-2xl font-bold text-blue-700">
+                {selectedImages.size}
+              </p>
               <p className="text-xs text-blue-600">Images selected</p>
             </div>
           </div>
@@ -273,7 +283,7 @@ export function StorageManager({ onStorageUpdate }: StorageManagerProps) {
               <CheckSquare className="w-4 h-4 mr-1" />
               Select All
             </Button>
-            
+
             <Button
               size="sm"
               variant="outline"
@@ -333,15 +343,18 @@ export function StorageManager({ onStorageUpdate }: StorageManagerProps) {
             <div className="flex items-start gap-3">
               <AlertTriangle className="w-5 h-5 text-yellow-600 mt-0.5" />
               <div className="flex-1">
-                <h4 className="font-medium text-yellow-900">Images Expiring Soon</h4>
+                <h4 className="font-medium text-yellow-900">
+                  Images Expiring Soon
+                </h4>
                 <p className="text-sm text-yellow-700 mt-1">
-                  {expiringCount} image{expiringCount > 1 ? 's are' : ' is'} expiring within 3 days. 
-                  Free tier images are automatically deleted after 48 hours.
+                  {expiringCount} image{expiringCount > 1 ? 's are' : ' is'}{' '}
+                  expiring within 3 days. Free tier images are automatically
+                  deleted after 48 hours.
                 </p>
-                <Button 
-                  size="sm" 
+                <Button
+                  size="sm"
                   className="mt-2"
-                  onClick={() => window.location.href = '/pricing'}
+                  onClick={() => (window.location.href = '/pricing')}
                 >
                   Upgrade to Keep Images
                 </Button>
@@ -362,12 +375,16 @@ export function StorageManager({ onStorageUpdate }: StorageManagerProps) {
             <AlertTriangle className="w-5 h-5 text-red-600 mt-0.5" />
             <div>
               <p className="font-medium">
-                {deleteType === 'selected' && `Delete ${selectedImages.size} selected image${selectedImages.size > 1 ? 's' : ''}?`}
-                {deleteType === 'expired' && `Delete ${expiredCount} expired image${expiredCount > 1 ? 's' : ''}?`}
-                {deleteType === 'all' && `Delete all ${images.length} image${images.length > 1 ? 's' : ''}?`}
+                {deleteType === 'selected' &&
+                  `Delete ${selectedImages.size} selected image${selectedImages.size > 1 ? 's' : ''}?`}
+                {deleteType === 'expired' &&
+                  `Delete ${expiredCount} expired image${expiredCount > 1 ? 's' : ''}?`}
+                {deleteType === 'all' &&
+                  `Delete all ${images.length} image${images.length > 1 ? 's' : ''}?`}
               </p>
               <p className="text-sm text-gray-600 mt-1">
-                This action cannot be undone. The images will be permanently removed.
+                This action cannot be undone. The images will be permanently
+                removed.
               </p>
             </div>
           </div>

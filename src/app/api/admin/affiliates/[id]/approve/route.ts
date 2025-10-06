@@ -9,7 +9,9 @@ export async function POST(
   try {
     // Verify the request is from an authenticated admin
     const supabase = await createServerSupabaseClient();
-    const { data: { session } } = await supabase.auth.getSession();
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
 
     if (!session) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -23,7 +25,10 @@ export async function POST(
       .single();
 
     if (!profile?.is_admin) {
-      return NextResponse.json({ error: 'Forbidden - Admin access required' }, { status: 403 });
+      return NextResponse.json(
+        { error: 'Forbidden - Admin access required' },
+        { status: 403 }
+      );
     }
 
     // Use service role client to update affiliate status
@@ -34,7 +39,7 @@ export async function POST(
       .update({
         status: 'approved',
         approved_at: new Date().toISOString(),
-        approved_by: session.user.id
+        approved_by: session.user.id,
       })
       .eq('id', params.id);
 

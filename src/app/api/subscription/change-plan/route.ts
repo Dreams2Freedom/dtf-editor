@@ -5,23 +5,29 @@ import { env } from '@/config/env';
 import { withRateLimit } from '@/lib/rate-limit';
 
 // Plan price mapping
-const PLAN_PRICES: Record<string, { priceId: string; monthlyPrice: number; credits: number }> = {
+const PLAN_PRICES: Record<
+  string,
+  { priceId: string; monthlyPrice: number; credits: number }
+> = {
   basic: {
     priceId: env.STRIPE_BASIC_PLAN_PRICE_ID,
     monthlyPrice: 9.99,
-    credits: 20
+    credits: 20,
   },
   starter: {
     priceId: env.STRIPE_STARTER_PLAN_PRICE_ID,
     monthlyPrice: 24.99,
-    credits: 60
-  }
+    credits: 60,
+  },
 };
 
 async function handlePost(request: NextRequest) {
   try {
     const supabase = await createServerSupabaseClient();
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
 
     if (authError || !user) {
       return NextResponse.json(
@@ -30,13 +36,11 @@ async function handlePost(request: NextRequest) {
       );
     }
 
-    const { newPlanId, prorationBehavior = 'create_prorations' } = await request.json();
+    const { newPlanId, prorationBehavior = 'create_prorations' } =
+      await request.json();
 
     if (!newPlanId || !PLAN_PRICES[newPlanId]) {
-      return NextResponse.json(
-        { error: 'Invalid plan ID' },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: 'Invalid plan ID' }, { status: 400 });
     }
 
     // Get user profile
@@ -73,8 +77,10 @@ async function handlePost(request: NextRequest) {
 
     try {
       // Get current subscription from Stripe
-      const subscription = await getStripe().subscriptions.retrieve(profile.stripe_subscription_id);
-      
+      const subscription = await getStripe().subscriptions.retrieve(
+        profile.stripe_subscription_id
+      );
+
       if (!subscription || subscription.status !== 'active') {
         return NextResponse.json(
           { error: 'Subscription is not active' },
@@ -84,7 +90,7 @@ async function handlePost(request: NextRequest) {
 
       // Get the subscription item ID (needed for update)
       const subscriptionItemId = subscription.items.data[0]?.id;
-      
+
       if (!subscriptionItemId) {
         return NextResponse.json(
           { error: 'Subscription item not found' },
@@ -96,11 +102,14 @@ async function handlePost(request: NextRequest) {
       const updatedSubscription = await getStripe().subscriptions.update(
         subscription.id,
         {
-          items: [{
-            id: subscriptionItemId,
-            price: newPlan.priceId,
-          }],
-          proration_behavior: prorationBehavior as Stripe.SubscriptionUpdateParams.ProrationBehavior,
+          items: [
+            {
+              id: subscriptionItemId,
+              price: newPlan.priceId,
+            },
+          ],
+          proration_behavior:
+            prorationBehavior as Stripe.SubscriptionUpdateParams.ProrationBehavior,
         }
       );
 
@@ -110,23 +119,27 @@ async function handlePost(request: NextRequest) {
       const periodStart = subscription.current_period_start;
       const totalDays = (periodEnd - periodStart) / (24 * 60 * 60);
       const daysUsed = (now - periodStart) / (24 * 60 * 60);
-      
+
       const currentCreditsPerDay = currentPlan.credits / totalDays;
       const newCreditsPerDay = newPlan.credits / totalDays;
       const creditsUsedSoFar = Math.floor(currentCreditsPerDay * daysUsed);
       const newTotalCredits = Math.floor(newCreditsPerDay * totalDays);
-      
+
       // Update user's credits
       const creditAdjustment = newTotalCredits - currentPlan.credits;
-      
+
       if (creditAdjustment !== 0) {
         // Add or remove credits based on plan change
-        const { error: creditError } = await supabase.rpc('adjust_user_credits', {
-          p_user_id: user.id,
-          p_adjustment: creditAdjustment,
-          p_operation: creditAdjustment > 0 ? 'plan_upgrade' : 'plan_downgrade',
-          p_description: `Plan changed from ${profile.subscription_plan} to ${newPlanId}`
-        });
+        const { error: creditError } = await supabase.rpc(
+          'adjust_user_credits',
+          {
+            p_user_id: user.id,
+            p_adjustment: creditAdjustment,
+            p_operation:
+              creditAdjustment > 0 ? 'plan_upgrade' : 'plan_downgrade',
+            p_description: `Plan changed from ${profile.subscription_plan} to ${newPlanId}`,
+          }
+        );
 
         if (creditError) {
           console.error('Error adjusting credits:', creditError);
@@ -139,7 +152,7 @@ async function handlePost(request: NextRequest) {
         .update({
           subscription_plan: newPlanId,
           subscription_status: updatedSubscription.status,
-          updated_at: new Date().toISOString()
+          updated_at: new Date().toISOString(),
         })
         .eq('id', user.id);
 
@@ -148,18 +161,16 @@ async function handlePost(request: NextRequest) {
       }
 
       // Log the plan change event
-      await supabase
-        .from('subscription_events')
-        .insert({
-          user_id: user.id,
-          event_type: 'plan_changed',
-          event_data: {
-            from_plan: profile.subscription_plan,
-            to_plan: newPlanId,
-            credit_adjustment: creditAdjustment,
-            proration_behavior: prorationBehavior
-          }
-        });
+      await supabase.from('subscription_events').insert({
+        user_id: user.id,
+        event_type: 'plan_changed',
+        event_data: {
+          from_plan: profile.subscription_plan,
+          to_plan: newPlanId,
+          credit_adjustment: creditAdjustment,
+          proration_behavior: prorationBehavior,
+        },
+      });
 
       // Check if immediate payment is needed
       let paymentUrl = null;
@@ -167,15 +178,22 @@ async function handlePost(request: NextRequest) {
         // Create invoice and get payment URL
         const invoice = await getStripe().invoices.create({
           customer: profile.stripe_customer_id,
-          auto_advance: true
+          auto_advance: true,
         });
 
         await getStripe().invoices.finalizeInvoice(invoice.id);
-        
+
         // Get the payment intent
-        const finalizedInvoice = await getStripe().invoices.retrieve(invoice.id);
-        if (finalizedInvoice.payment_intent && typeof finalizedInvoice.payment_intent === 'string') {
-          const paymentIntent = await getStripe().paymentIntents.retrieve(finalizedInvoice.payment_intent);
+        const finalizedInvoice = await getStripe().invoices.retrieve(
+          invoice.id
+        );
+        if (
+          finalizedInvoice.payment_intent &&
+          typeof finalizedInvoice.payment_intent === 'string'
+        ) {
+          const paymentIntent = await getStripe().paymentIntents.retrieve(
+            finalizedInvoice.payment_intent
+          );
           paymentUrl = paymentIntent.next_action?.redirect_to_url?.url || null;
         }
 
@@ -194,10 +212,11 @@ async function handlePost(request: NextRequest) {
         subscription: {
           id: updatedSubscription.id,
           status: updatedSubscription.status,
-          current_period_end: new Date(updatedSubscription.current_period_end * 1000).toISOString()
-        }
+          current_period_end: new Date(
+            updatedSubscription.current_period_end * 1000
+          ).toISOString(),
+        },
       });
-
     } catch (stripeError: any) {
       console.error('Stripe error:', stripeError);
       return NextResponse.json(
@@ -205,7 +224,6 @@ async function handlePost(request: NextRequest) {
         { status: 500 }
       );
     }
-
   } catch (error) {
     console.error('Error changing plan:', error);
     return NextResponse.json(

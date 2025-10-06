@@ -7,7 +7,10 @@ import { withRateLimit } from '@/lib/rate-limit';
 async function handlePost(request: NextRequest) {
   try {
     const supabase = await createServerSupabaseClient();
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
 
     if (authError || !user) {
       return NextResponse.json(
@@ -26,8 +29,10 @@ async function handlePost(request: NextRequest) {
     }
 
     // Check eligibility
-    const { data: eligibility, error: eligibilityError } = await supabase
-      .rpc('check_pause_eligibility', { p_user_id: user.id });
+    const { data: eligibility, error: eligibilityError } = await supabase.rpc(
+      'check_pause_eligibility',
+      { p_user_id: user.id }
+    );
 
     if (eligibilityError || !eligibility?.can_pause) {
       return NextResponse.json(
@@ -53,7 +58,9 @@ async function handlePost(request: NextRequest) {
     // Get current subscription to find billing period end
     let subscription;
     try {
-      subscription = await getStripe().subscriptions.retrieve(profile.stripe_subscription_id);
+      subscription = await getStripe().subscriptions.retrieve(
+        profile.stripe_subscription_id
+      );
     } catch (err) {
       return NextResponse.json(
         { error: 'Failed to retrieve subscription details' },
@@ -64,7 +71,7 @@ async function handlePost(request: NextRequest) {
     // Calculate resume date from current period end, not from today
     const currentPeriodEnd = new Date(subscription.current_period_end * 1000);
     const resumeDate = new Date(currentPeriodEnd);
-    
+
     switch (duration) {
       case '2_weeks':
         resumeDate.setDate(resumeDate.getDate() + 14);
@@ -87,8 +94,8 @@ async function handlePost(request: NextRequest) {
         {
           pause_collection: {
             behavior: 'void',
-            resumes_at: Math.floor(resumeDate.getTime() / 1000)
-          }
+            resumes_at: Math.floor(resumeDate.getTime() / 1000),
+          },
         }
       );
 
@@ -99,7 +106,7 @@ async function handlePost(request: NextRequest) {
           subscription_paused_until: resumeDate.toISOString(),
           pause_count: (profile.pause_count || 0) + 1,
           last_pause_date: new Date().toISOString(),
-          subscription_status: 'paused'
+          subscription_status: 'paused',
         })
         .eq('id', user.id);
 
@@ -108,18 +115,16 @@ async function handlePost(request: NextRequest) {
       }
 
       // Log event
-      await supabase
-        .from('subscription_events')
-        .insert({
-          user_id: user.id,
-          event_type: 'subscription_paused',
-          event_data: {
-            duration,
-            pause_date: new Date().toISOString(),
-            resume_date: resumeDate.toISOString(),
-            stripe_subscription_id: profile.stripe_subscription_id
-          }
-        });
+      await supabase.from('subscription_events').insert({
+        user_id: user.id,
+        event_type: 'subscription_paused',
+        event_data: {
+          duration,
+          pause_date: new Date().toISOString(),
+          resume_date: resumeDate.toISOString(),
+          stripe_subscription_id: profile.stripe_subscription_id,
+        },
+      });
 
       // Send pause confirmation email
       try {
@@ -143,10 +148,9 @@ async function handlePost(request: NextRequest) {
         subscription: {
           id: updatedSubscription.id,
           status: updatedSubscription.status,
-          pause_collection: updatedSubscription.pause_collection
-        }
+          pause_collection: updatedSubscription.pause_collection,
+        },
       });
-
     } catch (stripeError: any) {
       console.error('Stripe error:', stripeError);
       return NextResponse.json(
@@ -154,7 +158,6 @@ async function handlePost(request: NextRequest) {
         { status: 500 }
       );
     }
-
   } catch (error) {
     console.error('Error pausing subscription:', error);
     return NextResponse.json(

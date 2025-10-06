@@ -23,7 +23,7 @@ async function simpleStorageTest() {
   // Test 1: Anonymous access
   console.log('1️⃣ Testing anonymous access to private buckets...');
   const anonClient = createClient(supabaseUrl, supabaseAnonKey);
-  
+
   // Try to list files in images bucket as anonymous
   const { data: anonImages, error: anonImagesError } = await anonClient.storage
     .from('images')
@@ -39,15 +39,17 @@ async function simpleStorageTest() {
 
   // Test 2: Authenticated user access
   console.log('\n2️⃣ Testing authenticated user access...');
-  
+
   // Sign up a test user
   const testEmail = `test_${Date.now()}@example.com`;
   const testPassword = 'TestPassword123!';
-  
-  const { data: signUpData, error: signUpError } = await anonClient.auth.signUp({
-    email: testEmail,
-    password: testPassword,
-  });
+
+  const { data: signUpData, error: signUpError } = await anonClient.auth.signUp(
+    {
+      email: testEmail,
+      password: testPassword,
+    }
+  );
 
   if (signUpError) {
     console.log('❌ Could not create test user:', signUpError.message);
@@ -62,7 +64,10 @@ async function simpleStorageTest() {
   console.log(`✅ Created test user: ${signUpData.user.id}`);
 
   // Create authenticated client
-  const { data: { session }, error: signInError } = await anonClient.auth.signInWithPassword({
+  const {
+    data: { session },
+    error: signInError,
+  } = await anonClient.auth.signInWithPassword({
     email: testEmail,
     password: testPassword,
   });
@@ -75,13 +80,13 @@ async function simpleStorageTest() {
   const authClient = createClient(supabaseUrl, supabaseAnonKey, {
     auth: {
       persistSession: false,
-      autoRefreshToken: false
+      autoRefreshToken: false,
     },
     global: {
       headers: {
-        Authorization: `Bearer ${session.access_token}`
-      }
-    }
+        Authorization: `Bearer ${session.access_token}`,
+      },
+    },
   });
 
   // Test 3: Try to upload to correct path
@@ -121,7 +126,7 @@ async function simpleStorageTest() {
 
   // Delete test user
   await anonClient.auth.admin.deleteUser(signUpData.user.id).catch(() => {});
-  
+
   console.log('\n✅ Test complete');
 }
 

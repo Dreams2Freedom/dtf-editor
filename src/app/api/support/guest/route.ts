@@ -43,8 +43,8 @@ export async function POST(request: NextRequest) {
         guest_name: !userId ? name : null,
         metadata: {
           source: 'contact_form',
-          guest: !userId
-        }
+          guest: !userId,
+        },
       })
       .select()
       .single();
@@ -66,8 +66,8 @@ export async function POST(request: NextRequest) {
         content: message,
         metadata: {
           sender_name: name,
-          sender_email: email
-        }
+          sender_email: email,
+        },
       });
 
     if (messageError) {
@@ -81,7 +81,7 @@ export async function POST(request: NextRequest) {
       console.log('New support ticket from contact form:', {
         ticketId: ticket.id,
         from: `${name} <${email}>`,
-        subject
+        subject,
       });
     } catch (emailError) {
       console.error('Failed to send email notification:', emailError);
@@ -90,9 +90,8 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       success: true,
       ticketId: ticket.id,
-      message: 'Your message has been received. We\'ll respond within 24 hours.'
+      message: "Your message has been received. We'll respond within 24 hours.",
     });
-
   } catch (error) {
     console.error('Guest support error:', error);
     return NextResponse.json(

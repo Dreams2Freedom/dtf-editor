@@ -17,10 +17,13 @@ export default function DPICheckerPage() {
             <ArrowLeft className="w-4 h-4 mr-1" />
             Back to Dashboard
           </Link>
-          
-          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">DPI Checker Tool</h1>
+
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">
+            DPI Checker Tool
+          </h1>
           <p className="text-gray-600 text-sm sm:text-base mt-1">
-            Check if your image has the right resolution for professional DTF printing
+            Check if your image has the right resolution for professional DTF
+            printing
           </p>
         </div>
 
@@ -32,21 +35,28 @@ export default function DPICheckerPage() {
           <div className="bg-white rounded-lg p-6 shadow-sm">
             <h3 className="font-semibold text-gray-900 mb-2">What is DPI?</h3>
             <p className="text-sm text-gray-600">
-              DPI (Dots Per Inch) measures the resolution of your image when printed. Higher DPI means sharper, more detailed prints.
+              DPI (Dots Per Inch) measures the resolution of your image when
+              printed. Higher DPI means sharper, more detailed prints.
             </p>
           </div>
-          
+
           <div className="bg-white rounded-lg p-6 shadow-sm">
-            <h3 className="font-semibold text-gray-900 mb-2">DTF Printing Standards</h3>
+            <h3 className="font-semibold text-gray-900 mb-2">
+              DTF Printing Standards
+            </h3>
             <p className="text-sm text-gray-600">
-              For professional DTF transfers, aim for 300 DPI. This ensures crisp details and vibrant colors on your final product.
+              For professional DTF transfers, aim for 300 DPI. This ensures
+              crisp details and vibrant colors on your final product.
             </p>
           </div>
-          
+
           <div className="bg-white rounded-lg p-6 shadow-sm">
-            <h3 className="font-semibold text-gray-900 mb-2">Need Higher Resolution?</h3>
+            <h3 className="font-semibold text-gray-900 mb-2">
+              Need Higher Resolution?
+            </h3>
             <p className="text-sm text-gray-600">
-              Use our AI upscaler to increase your image resolution up to 4x while maintaining quality.
+              Use our AI upscaler to increase your image resolution up to 4x
+              while maintaining quality.
             </p>
           </div>
         </div>

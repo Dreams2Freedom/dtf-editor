@@ -1,10 +1,10 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { 
-  User, 
-  Search, 
-  ChevronLeft, 
+import {
+  User,
+  Search,
+  ChevronLeft,
   ChevronRight,
   Filter,
   Download,
@@ -20,7 +20,7 @@ import {
   UserCheck,
   Mail,
   Trash2,
-  UserCog
+  UserCog,
 } from 'lucide-react';
 import { toast } from '@/lib/toast';
 import { UserEditModal } from './UserEditModal';
@@ -50,13 +50,17 @@ export function UserListTable() {
     search: '',
     status: 'all',
     sort_by: 'created_at',
-    sort_order: 'desc'
+    sort_order: 'desc',
   });
   const [dropdownUserId, setDropdownUserId] = useState<string | null>(null);
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [creditModalOpen, setCreditModalOpen] = useState(false);
-  const [selectedUser, setSelectedUser] = useState<AdminUserListResponse['users'][0] | null>(null);
-  const [selectedUserIds, setSelectedUserIds] = useState<Set<string>>(new Set());
+  const [selectedUser, setSelectedUser] = useState<
+    AdminUserListResponse['users'][0] | null
+  >(null);
+  const [selectedUserIds, setSelectedUserIds] = useState<Set<string>>(
+    new Set()
+  );
   const [bulkActionLoading, setBulkActionLoading] = useState(false);
   const [bulkCreditModalOpen, setBulkCreditModalOpen] = useState(false);
   const [emailModalOpen, setEmailModalOpen] = useState(false);
@@ -76,7 +80,7 @@ export function UserListTable() {
       });
 
       const response = await fetch(`/api/admin/users?${queryParams}`, {
-        credentials: 'include'
+        credentials: 'include',
       });
 
       if (!response.ok) {
@@ -119,17 +123,20 @@ export function UserListTable() {
     setSelectedUserIds(new Set());
   };
 
-  const handleExport = async (scope: 'all' | 'selected', format: 'csv' | 'json') => {
+  const handleExport = async (
+    scope: 'all' | 'selected',
+    format: 'csv' | 'json'
+  ) => {
     try {
       const queryParams = new URLSearchParams();
       queryParams.append('format', format);
-      
+
       if (scope === 'selected' && selectedUserIds.size > 0) {
         queryParams.append('userIds', Array.from(selectedUserIds).join(','));
       }
 
       const response = await fetch(`/api/admin/users/export?${queryParams}`, {
-        credentials: 'include'
+        credentials: 'include',
       });
 
       if (!response.ok) {
@@ -139,7 +146,9 @@ export function UserListTable() {
       // Get filename from Content-Disposition header
       const contentDisposition = response.headers.get('Content-Disposition');
       const fileNameMatch = contentDisposition?.match(/filename="(.+)"/);
-      const fileName = fileNameMatch ? fileNameMatch[1] : `users-export.${format}`;
+      const fileName = fileNameMatch
+        ? fileNameMatch[1]
+        : `users-export.${format}`;
 
       // Create blob and download
       const blob = await response.blob();
@@ -152,7 +161,9 @@ export function UserListTable() {
       document.body.removeChild(link);
       window.URL.revokeObjectURL(url);
 
-      toast.success(`Exported ${scope === 'all' ? 'all users' : `${selectedUserIds.size} users`} as ${format.toUpperCase()}`);
+      toast.success(
+        `Exported ${scope === 'all' ? 'all users' : `${selectedUserIds.size} users`} as ${format.toUpperCase()}`
+      );
     } catch (error) {
       console.error('Export error:', error);
       toast.error('Failed to export users');
@@ -162,7 +173,7 @@ export function UserListTable() {
   const handleExportUser = async (userId: string) => {
     try {
       const response = await fetch(`/api/users/${userId}/export`, {
-        credentials: 'include'
+        credentials: 'include',
       });
 
       if (!response.ok) {
@@ -172,7 +183,9 @@ export function UserListTable() {
       // Get filename from Content-Disposition header
       const contentDisposition = response.headers.get('Content-Disposition');
       const fileNameMatch = contentDisposition?.match(/filename="(.+)"/);
-      const fileName = fileNameMatch ? fileNameMatch[1] : `user-data-export.json`;
+      const fileName = fileNameMatch
+        ? fileNameMatch[1]
+        : `user-data-export.json`;
 
       // Create blob and download
       const blob = await response.blob();
@@ -193,15 +206,21 @@ export function UserListTable() {
     }
   };
 
-  const handleImpersonateUser = async (user: AdminUserListResponse['users'][0]) => {
-    if (!confirm(`Are you sure you want to impersonate ${user.email}? You will view the application as this user.`)) {
+  const handleImpersonateUser = async (
+    user: AdminUserListResponse['users'][0]
+  ) => {
+    if (
+      !confirm(
+        `Are you sure you want to impersonate ${user.email}? You will view the application as this user.`
+      )
+    ) {
       return;
     }
 
     try {
       const response = await fetch(`/api/admin/users/${user.id}/impersonate`, {
         method: 'POST',
-        credentials: 'include'
+        credentials: 'include',
       });
 
       if (!response.ok) {
@@ -211,7 +230,7 @@ export function UserListTable() {
 
       const result = await response.json();
       toast.success(result.message);
-      
+
       // Redirect to user dashboard
       window.location.href = '/dashboard';
     } catch (error: any) {
@@ -222,19 +241,29 @@ export function UserListTable() {
     }
   };
 
-  const handleBulkAction = async (action: 'suspend' | 'activate' | 'delete' | 'email' | 'credits') => {
+  const handleBulkAction = async (
+    action: 'suspend' | 'activate' | 'delete' | 'email' | 'credits'
+  ) => {
     if (selectedUserIds.size === 0) {
       toast.error('No users selected');
       return;
     }
 
     const selectedUsers = users.filter(user => selectedUserIds.has(user.id));
-    
-    if (action === 'delete' && !confirm(`Are you sure you want to delete ${selectedUserIds.size} users?`)) {
+
+    if (
+      action === 'delete' &&
+      !confirm(`Are you sure you want to delete ${selectedUserIds.size} users?`)
+    ) {
       return;
     }
 
-    if (action === 'suspend' && !confirm(`Are you sure you want to suspend ${selectedUserIds.size} users?`)) {
+    if (
+      action === 'suspend' &&
+      !confirm(
+        `Are you sure you want to suspend ${selectedUserIds.size} users?`
+      )
+    ) {
       return;
     }
 
@@ -258,7 +287,7 @@ export function UserListTable() {
 
       const result = await response.json();
       toast.success(`Successfully ${action}ed ${result.affected} users`);
-      
+
       // Refresh the list
       fetchUsers();
       setSelectedUserIds(new Set());
@@ -278,7 +307,10 @@ export function UserListTable() {
     setParams({
       ...params,
       sort_by: sortBy,
-      sort_order: params.sort_by === sortBy && params.sort_order === 'asc' ? 'desc' : 'asc'
+      sort_order:
+        params.sort_by === sortBy && params.sort_order === 'asc'
+          ? 'desc'
+          : 'asc',
     });
   };
 
@@ -300,21 +332,33 @@ export function UserListTable() {
 
   const handleUserUpdate = (updatedUser: any) => {
     // Update user in the list
-    setUsers(users.map(u => u.id === updatedUser.id ? {
-      ...u,
-      email: updatedUser.email,
-      full_name: updatedUser.full_name,
-      plan: updatedUser.plan,
-      status: updatedUser.status
-    } : u));
+    setUsers(
+      users.map(u =>
+        u.id === updatedUser.id
+          ? {
+              ...u,
+              email: updatedUser.email,
+              full_name: updatedUser.full_name,
+              plan: updatedUser.plan,
+              status: updatedUser.status,
+            }
+          : u
+      )
+    );
   };
 
   const handleCreditUpdate = (userId: string, newBalance: number) => {
     // Update user credits in the list
-    setUsers(users.map(u => u.id === userId ? {
-      ...u,
-      credits_remaining: newBalance
-    } : u));
+    setUsers(
+      users.map(u =>
+        u.id === userId
+          ? {
+              ...u,
+              credits_remaining: newBalance,
+            }
+          : u
+      )
+    );
   };
 
   const formatDate = (date: string) => {
@@ -323,11 +367,13 @@ export function UserListTable() {
       month: 'short',
       day: 'numeric',
       hour: '2-digit',
-      minute: '2-digit'
+      minute: '2-digit',
     });
   };
 
-  const getPlanBadgeVariant = (plan: string): 'default' | 'secondary' | 'success' | 'info' => {
+  const getPlanBadgeVariant = (
+    plan: string
+  ): 'default' | 'secondary' | 'success' | 'info' => {
     switch (plan) {
       case 'starter':
         return 'info';
@@ -363,9 +409,7 @@ export function UserListTable() {
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
             <h3 className="text-lg font-medium text-gray-900">Users</h3>
-            <p className="mt-1 text-sm text-gray-500">
-              Total users: {total}
-            </p>
+            <p className="mt-1 text-sm text-gray-500">Total users: {total}</p>
           </div>
           <div className="flex items-center gap-2">
             <DropdownMenu>
@@ -385,10 +429,14 @@ export function UserListTable() {
                 {selectedUserIds.size > 0 && (
                   <>
                     <DropdownMenuSeparator />
-                    <DropdownMenuItem onClick={() => handleExport('selected', 'csv')}>
+                    <DropdownMenuItem
+                      onClick={() => handleExport('selected', 'csv')}
+                    >
                       Export Selected ({selectedUserIds.size}) (CSV)
                     </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => handleExport('selected', 'json')}>
+                    <DropdownMenuItem
+                      onClick={() => handleExport('selected', 'json')}
+                    >
                       Export Selected ({selectedUserIds.size}) (JSON)
                     </DropdownMenuItem>
                   </>
@@ -408,7 +456,7 @@ export function UserListTable() {
               type="text"
               placeholder="Search by email or name..."
               value={params.search || ''}
-              onChange={(e) => handleSearch(e.target.value)}
+              onChange={e => handleSearch(e.target.value)}
               leftIcon={<Search className="h-5 w-5" />}
             />
           </div>
@@ -417,7 +465,11 @@ export function UserListTable() {
           <div className="w-full sm:w-48">
             <Select
               value={params.status}
-              onChange={(e) => handleStatusFilter(e.target.value as AdminUserListParams['status'])}
+              onChange={e =>
+                handleStatusFilter(
+                  e.target.value as AdminUserListParams['status']
+                )
+              }
               leftIcon={<Filter className="h-5 w-5" />}
             >
               <option value="all">All Status</option>
@@ -434,7 +486,8 @@ export function UserListTable() {
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
             <div className="flex items-center gap-2">
               <span className="text-sm font-medium text-info-900">
-                {selectedUserIds.size} user{selectedUserIds.size !== 1 ? 's' : ''} selected
+                {selectedUserIds.size} user
+                {selectedUserIds.size !== 1 ? 's' : ''} selected
               </span>
               <button
                 onClick={deselectAllUsers}
@@ -506,7 +559,11 @@ export function UserListTable() {
             <tr>
               <th scope="col" className="px-6 py-3 w-12">
                 <button
-                  onClick={() => selectedUserIds.size === users.length ? deselectAllUsers() : selectAllUsers()}
+                  onClick={() =>
+                    selectedUserIds.size === users.length
+                      ? deselectAllUsers()
+                      : selectAllUsers()
+                  }
                   className="text-gray-400 hover:text-gray-600"
                 >
                   {selectedUserIds.size === users.length ? (
@@ -516,28 +573,34 @@ export function UserListTable() {
                   )}
                 </button>
               </th>
-              <th 
-                scope="col" 
+              <th
+                scope="col"
                 className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
                 onClick={() => handleSort('email')}
               >
                 User
               </th>
-              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th
+                scope="col"
+                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+              >
                 Plan
               </th>
-              <th 
-                scope="col" 
+              <th
+                scope="col"
                 className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
                 onClick={() => handleSort('credits_remaining')}
               >
                 Credits
               </th>
-              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th
+                scope="col"
+                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+              >
                 Status
               </th>
-              <th 
-                scope="col" 
+              <th
+                scope="col"
                 className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
                 onClick={() => handleSort('created_at')}
               >
@@ -562,7 +625,7 @@ export function UserListTable() {
                 </td>
               </tr>
             ) : (
-              users.map((user) => (
+              users.map(user => (
                 <tr key={user.id} className="hover:bg-gray-50">
                   <td className="px-6 py-4 w-12">
                     <button
@@ -610,12 +673,16 @@ export function UserListTable() {
                   <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                     <div className="relative">
                       <button
-                        onClick={() => setDropdownUserId(dropdownUserId === user.id ? null : user.id)}
+                        onClick={() =>
+                          setDropdownUserId(
+                            dropdownUserId === user.id ? null : user.id
+                          )
+                        }
                         className="text-gray-400 hover:text-gray-500 focus:outline-none"
                       >
                         <MoreVertical className="h-5 w-5" />
                       </button>
-                      
+
                       {dropdownUserId === user.id && (
                         <>
                           <div
@@ -671,9 +738,7 @@ export function UserListTable() {
                                 <UserCog className="mr-3 h-4 w-4" />
                                 View as User
                               </button>
-                              <button
-                                className="flex items-center w-full px-4 py-2 text-sm text-red-600 hover:bg-red-50"
-                              >
+                              <button className="flex items-center w-full px-4 py-2 text-sm text-red-600 hover:bg-red-50">
                                 {user.status === 'active' ? (
                                   <>
                                     <Ban className="mr-3 h-4 w-4" />
@@ -704,7 +769,11 @@ export function UserListTable() {
         <div className="px-4 py-3 border-t border-gray-200 sm:px-6">
           <div className="flex items-center justify-between">
             <div className="text-sm text-gray-700">
-              Showing <span className="font-medium">{(params.page! - 1) * params.limit! + 1}</span> to{' '}
+              Showing{' '}
+              <span className="font-medium">
+                {(params.page! - 1) * params.limit! + 1}
+              </span>{' '}
+              to{' '}
               <span className="font-medium">
                 {Math.min(params.page! * params.limit!, total)}
               </span>{' '}
@@ -736,8 +805,15 @@ export function UserListTable() {
                       {page}
                     </Button>
                   );
-                } else if (page === params.page! - 2 || page === params.page! + 2) {
-                  return <span key={page} className="px-1">...</span>;
+                } else if (
+                  page === params.page! - 2 ||
+                  page === params.page! + 2
+                ) {
+                  return (
+                    <span key={page} className="px-1">
+                      ...
+                    </span>
+                  );
                 }
                 return null;
               })}
@@ -776,7 +852,9 @@ export function UserListTable() {
             setSelectedUser(null);
           }}
           user={selectedUser}
-          onUpdate={(newBalance) => handleCreditUpdate(selectedUser.id, newBalance)}
+          onUpdate={newBalance =>
+            handleCreditUpdate(selectedUser.id, newBalance)
+          }
         />
       )}
 
@@ -799,12 +877,14 @@ export function UserListTable() {
           setEmailModalOpen(false);
           setSelectedUserIds(new Set());
         }}
-        selectedUsers={users.filter(u => selectedUserIds.has(u.id)).map(u => ({
-          id: u.id,
-          email: u.email,
-          first_name: u.full_name?.split(' ')[0],
-          last_name: u.full_name?.split(' ').slice(1).join(' ')
-        }))}
+        selectedUsers={users
+          .filter(u => selectedUserIds.has(u.id))
+          .map(u => ({
+            id: u.id,
+            email: u.email,
+            first_name: u.full_name?.split(' ')[0],
+            last_name: u.full_name?.split(' ').slice(1).join(' '),
+          }))}
         onSuccess={() => {
           setEmailModalOpen(false);
           setSelectedUserIds(new Set());

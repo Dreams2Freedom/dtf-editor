@@ -10,16 +10,19 @@ const supabase = createClient(
 const stripeClient = stripe(process.env.STRIPE_SECRET_KEY);
 
 async function processSession() {
-  const sessionId = 'cs_test_a1gkSc1SqGe2NeyCHpAmS5bgLXH2KNcgVRlAfGX3IgLaE0DLVg8yoE1H1L';
+  const sessionId =
+    'cs_test_a1gkSc1SqGe2NeyCHpAmS5bgLXH2KNcgVRlAfGX3IgLaE0DLVg8yoE1H1L';
   const userId = 'f689bb22-89dd-4c3c-a941-d77feb84428d';
-  
+
   try {
     // Get the session
     const session = await stripeClient.checkout.sessions.retrieve(sessionId);
     console.log('Session:', session.id, session.status);
 
     // Get the subscription
-    const subscription = await stripeClient.subscriptions.retrieve(session.subscription);
+    const subscription = await stripeClient.subscriptions.retrieve(
+      session.subscription
+    );
     console.log('Subscription:', subscription.id, subscription.status);
 
     // Get the price details
@@ -53,8 +56,8 @@ async function processSession() {
       p_metadata: {
         stripe_session_id: session.id,
         stripe_subscription_id: subscription.id,
-        price_paid: 999
-      }
+        price_paid: 999,
+      },
     });
 
     if (creditError) {
@@ -64,7 +67,6 @@ async function processSession() {
 
     console.log('Credits added successfully');
     console.log('✅ Subscription processed successfully!');
-    
   } catch (error) {
     console.error('Error:', error);
   }

@@ -75,9 +75,7 @@ export default function RootLayout({
       <body className={`${inter.className} h-full`} suppressHydrationWarning>
         <ErrorBoundary>
           <AuthProvider>
-            <AppLayout>
-              {children}
-            </AppLayout>
+            <AppLayout>{children}</AppLayout>
             <ToastContainer />
           </AuthProvider>
         </ErrorBoundary>

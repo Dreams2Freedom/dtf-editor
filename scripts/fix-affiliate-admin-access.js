@@ -14,8 +14,8 @@ const supabase = createClient(
   {
     auth: {
       autoRefreshToken: false,
-      persistSession: false
-    }
+      persistSession: false,
+    },
   }
 );
 
@@ -24,14 +24,21 @@ async function fixAdminAccess() {
 
   try {
     // Read the migration file
-    const migrationPath = path.join(__dirname, '../supabase/migrations/20250103_fix_affiliate_admin_access.sql');
+    const migrationPath = path.join(
+      __dirname,
+      '../supabase/migrations/20250103_fix_affiliate_admin_access.sql'
+    );
     const migrationSQL = fs.readFileSync(migrationPath, 'utf8');
 
     console.log('📋 Migration SQL loaded\n');
-    console.log('Due to Supabase client limitations, please run this migration manually:\n');
+    console.log(
+      'Due to Supabase client limitations, please run this migration manually:\n'
+    );
     console.log('1. Go to Supabase Dashboard > SQL Editor');
     console.log('2. Create a new query');
-    console.log('3. Copy the SQL from: supabase/migrations/20250103_fix_affiliate_admin_access.sql');
+    console.log(
+      '3. Copy the SQL from: supabase/migrations/20250103_fix_affiliate_admin_access.sql'
+    );
     console.log('4. Execute the query\n');
 
     // Test current access
@@ -43,21 +50,33 @@ async function fixAdminAccess() {
       .limit(1);
 
     if (affiliatesError) {
-      console.log('❌ Cannot access affiliates table:', affiliatesError.message);
-      console.log('   This is expected if you\'re not running as an admin user');
+      console.log(
+        '❌ Cannot access affiliates table:',
+        affiliatesError.message
+      );
+      console.log("   This is expected if you're not running as an admin user");
       console.log('   The migration will fix this for admin users\n');
     } else {
-      console.log('✅ Can access affiliates table (you may already be admin or using service key)\n');
+      console.log(
+        '✅ Can access affiliates table (you may already be admin or using service key)\n'
+      );
     }
 
     // Check if the is_admin function exists
-    const { data: functionExists, error: functionError } = await supabase
-      .rpc('is_admin', { user_id: '00000000-0000-0000-0000-000000000000' });
+    const { data: functionExists, error: functionError } = await supabase.rpc(
+      'is_admin',
+      { user_id: '00000000-0000-0000-0000-000000000000' }
+    );
 
     if (functionError && functionError.message.includes('does not exist')) {
-      console.log('ℹ️  is_admin function does not exist yet - migration needs to be run\n');
+      console.log(
+        'ℹ️  is_admin function does not exist yet - migration needs to be run\n'
+      );
     } else if (functionError) {
-      console.log('⚠️  Error checking is_admin function:', functionError.message);
+      console.log(
+        '⚠️  Error checking is_admin function:',
+        functionError.message
+      );
     } else {
       console.log('✅ is_admin function exists\n');
     }
@@ -66,7 +85,6 @@ async function fixAdminAccess() {
     console.log('- Admin users will be able to view all affiliate data');
     console.log('- Admin users will be able to update affiliate applications');
     console.log('- Regular users will still only see their own data\n');
-
   } catch (error) {
     console.error('❌ Error:', error);
     process.exit(1);

@@ -12,7 +12,11 @@ interface BreadcrumbProps {
   homeLabel?: string;
 }
 
-export function Breadcrumb({ items, homeHref = '/dashboard', homeLabel = 'Dashboard' }: BreadcrumbProps) {
+export function Breadcrumb({
+  items,
+  homeHref = '/dashboard',
+  homeLabel = 'Dashboard',
+}: BreadcrumbProps) {
   const isAdmin = homeHref.startsWith('/admin');
 
   return (

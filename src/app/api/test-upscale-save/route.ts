@@ -5,7 +5,10 @@ async function handleGet() {
   // Return a simple test to verify the endpoint works
   return NextResponse.json({
     message: 'Test endpoint working',
-    hasSaveFunction: typeof import('@/utils/saveProcessedImage').then(m => m.saveProcessedImageToGallery) === 'object'
+    hasSaveFunction:
+      typeof import('@/utils/saveProcessedImage').then(
+        m => m.saveProcessedImageToGallery
+      ) === 'object',
   });
 }
 

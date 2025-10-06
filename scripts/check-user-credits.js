@@ -18,15 +18,16 @@ async function checkUserCredits(email) {
 
   try {
     // Get user by email
-    const { data: authData, error: authError } = await supabase.auth.admin.listUsers();
-    
+    const { data: authData, error: authError } =
+      await supabase.auth.admin.listUsers();
+
     if (authError) {
       console.error('❌ Error fetching users:', authError.message);
       return;
     }
 
     const user = authData.users.find(u => u.email === email);
-    
+
     if (!user) {
       console.error(`❌ User not found: ${email}`);
       return;
@@ -66,10 +67,11 @@ async function checkUserCredits(email) {
       console.log('\n📝 Recent Credit Transactions:');
       transactions.forEach(tx => {
         const sign = tx.operation.includes('deduct') ? '-' : '+';
-        console.log(`   ${sign}${tx.amount} - ${tx.operation} - ${tx.description || 'No description'} - ${new Date(tx.created_at).toLocaleString()}`);
+        console.log(
+          `   ${sign}${tx.amount} - ${tx.operation} - ${tx.description || 'No description'} - ${new Date(tx.created_at).toLocaleString()}`
+        );
       });
     }
-
   } catch (error) {
     console.error('❌ Error:', error);
   }

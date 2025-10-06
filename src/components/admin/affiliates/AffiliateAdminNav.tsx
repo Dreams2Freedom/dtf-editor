@@ -8,7 +8,7 @@ import {
   FileText,
   DollarSign,
   CreditCard,
-  UsersRound
+  UsersRound,
 } from 'lucide-react';
 
 interface NavItem {
@@ -21,23 +21,23 @@ const navItems: NavItem[] = [
   {
     name: 'Overview',
     href: '/admin/affiliates',
-    icon: BarChart3
+    icon: BarChart3,
   },
   {
     name: 'Applications',
     href: '/admin/affiliates/applications',
-    icon: FileText
+    icon: FileText,
   },
   {
     name: 'Commissions',
     href: '/admin/affiliates/commissions',
-    icon: DollarSign
+    icon: DollarSign,
   },
   {
     name: 'Payouts',
     href: '/admin/affiliates/payouts',
-    icon: CreditCard
-  }
+    icon: CreditCard,
+  },
 ];
 
 export function AffiliateAdminNav() {
@@ -59,13 +59,15 @@ export function AffiliateAdminNav() {
         <UsersRound className="h-8 w-8 text-blue-600 mr-3" />
         <div>
           <h1 className="text-2xl font-bold">Affiliate Program Management</h1>
-          <p className="text-gray-600">Monitor and manage your affiliate program</p>
+          <p className="text-gray-600">
+            Monitor and manage your affiliate program
+          </p>
         </div>
       </div>
 
       {/* Tab Navigation */}
       <nav className="flex space-x-1 border-b border-gray-200">
-        {navItems.map((item) => {
+        {navItems.map(item => {
           const isActive = pathname === item.href;
           return (
             <Link
@@ -73,9 +75,10 @@ export function AffiliateAdminNav() {
               href={item.href}
               className={`
                 flex items-center px-4 py-2 text-sm font-medium border-b-2 transition-colors
-                ${isActive
-                  ? 'border-blue-600 text-blue-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                ${
+                  isActive
+                    ? 'border-blue-600 text-blue-600'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                 }
               `}
             >

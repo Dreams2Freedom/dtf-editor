@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createServerSupabaseClient, createServiceRoleClient } from '@/lib/supabase/server';
+import {
+  createServerSupabaseClient,
+  createServiceRoleClient,
+} from '@/lib/supabase/server';
 
 // Based on Next.js 15 documentation for dynamic route handlers
 // Add OPTIONS handler for CORS
@@ -22,21 +25,26 @@ export async function GET(
   try {
     // Get the dynamic parameter
     const { id } = await params;
-    
+
     // Get Supabase client
     const supabase = await createServerSupabaseClient();
-    
+
     // First, check if this is a processed image ID (UUID format)
-    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    const uuidRegex =
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
     const isProcessedImageId = uuidRegex.test(id);
 
     // Check authentication - try to get user from session
-    const { data: { user } } = await supabase.auth.getUser();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
 
     // For processed images (UUIDs), we can allow access without strict authentication
     // because the URLs are already public in storage
     if (!user && !isProcessedImageId) {
-      console.error('[Uploads API] Authentication required for non-UUID requests');
+      console.error(
+        '[Uploads API] Authentication required for non-UUID requests'
+      );
       return NextResponse.json(
         { success: false, error: 'Unauthorized' },
         { status: 401 }
@@ -44,7 +52,10 @@ export async function GET(
     }
 
     if (!user && isProcessedImageId) {
-      console.log('[Uploads API] Allowing public access to processed image (UUID):', id);
+      console.log(
+        '[Uploads API] Allowing public access to processed image (UUID):',
+        id
+      );
     }
 
     console.log('Looking for image with ID:', id);
@@ -64,7 +75,7 @@ export async function GET(
         .select('storage_url, user_id')
         .eq('id', id)
         .single();
-      
+
       if (dbError || !processedImage) {
         console.error('Processed image not found:', dbError);
         return NextResponse.json(
@@ -72,12 +83,15 @@ export async function GET(
           { status: 404 }
         );
       }
-      
+
       console.log('Found processed image:', processedImage.storage_url);
 
       // Check if storage_url is already a complete URL or just a path
       let publicUrl: string;
-      if (processedImage.storage_url.startsWith('http://') || processedImage.storage_url.startsWith('https://')) {
+      if (
+        processedImage.storage_url.startsWith('http://') ||
+        processedImage.storage_url.startsWith('https://')
+      ) {
         // It's already a full URL, use it directly
         publicUrl = processedImage.storage_url;
         console.log('Using existing public URL:', publicUrl);
@@ -93,10 +107,10 @@ export async function GET(
       return NextResponse.json({
         success: true,
         publicUrl: publicUrl,
-        imageId: id
+        imageId: id,
       });
     }
-    
+
     // If we get here, it's not a UUID and we need a user
     if (!user) {
       console.error('[Uploads API] User required for non-UUID requests');
@@ -129,15 +143,15 @@ export async function GET(
     const { data: fileData, error: downloadError } = await supabase.storage
       .from('user-uploads')
       .download(`users/${user.id}/${fileName}`);
-    
+
     if (downloadError || !fileData) {
       console.error('File not found:', downloadError);
-      
+
       // If direct approach fails, list files and find it
       const { data: files, error: listError } = await supabase.storage
         .from('user-uploads')
         .list(`users/${user.id}`);
-      
+
       if (listError) {
         console.error('Error listing files:', listError);
         return NextResponse.json(
@@ -145,57 +159,63 @@ export async function GET(
           { status: 500 }
         );
       }
-      
+
       // Find file that matches our filename (with or without extension)
       const fileNameWithoutExt = fileName.replace(/\.[^/.]+$/, '');
       const matchedFile = files?.find(f => {
         const nameWithoutExt = f.name.replace(/\.[^/.]+$/, '');
-        return f.name === fileName || 
-               nameWithoutExt === fileNameWithoutExt ||
-               f.name.startsWith(fileNameWithoutExt);
+        return (
+          f.name === fileName ||
+          nameWithoutExt === fileNameWithoutExt ||
+          f.name.startsWith(fileNameWithoutExt)
+        );
       });
-      
+
       if (!matchedFile) {
-        console.error('No matching file found in list:', files?.map(f => f.name));
+        console.error(
+          'No matching file found in list:',
+          files?.map(f => f.name)
+        );
         return NextResponse.json(
           { success: false, error: 'Upload not found' },
           { status: 404 }
         );
       }
-      
+
       // Get the public URL for the matched file
       const { data: matchedUrlData } = supabase.storage
         .from('user-uploads')
         .getPublicUrl(`users/${user.id}/${matchedFile.name}`);
-      
+
       console.log('Found file via listing:', matchedFile.name);
       console.log('Public URL:', matchedUrlData.publicUrl);
-      
+
       return NextResponse.json({
         success: true,
         id: id,
-        publicUrl: matchedUrlData.publicUrl
+        publicUrl: matchedUrlData.publicUrl,
       });
     }
-    
+
     console.log('Found file directly:', fileName);
     console.log('Public URL:', publicUrlData.publicUrl);
 
     return NextResponse.json({
       success: true,
       id: id,
-      publicUrl: publicUrlData.publicUrl
+      publicUrl: publicUrlData.publicUrl,
     });
-
   } catch (error) {
     console.error('Fetch upload error:', error);
-    
+
     // Ensure we always return valid JSON
     return NextResponse.json(
-      { 
-        success: false, 
-        error: error instanceof Error ? error.message : 'Failed to fetch upload',
-        details: process.env.NODE_ENV === 'development' ? String(error) : undefined
+      {
+        success: false,
+        error:
+          error instanceof Error ? error.message : 'Failed to fetch upload',
+        details:
+          process.env.NODE_ENV === 'development' ? String(error) : undefined,
       },
       { status: 500 }
     );

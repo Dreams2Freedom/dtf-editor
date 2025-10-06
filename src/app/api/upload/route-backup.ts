@@ -5,9 +5,11 @@ import { StorageService } from '@/services/storage';
 export async function POST(request: NextRequest) {
   try {
     const supabase = await createServerSupabaseClient();
-    
+
     // Check authentication
-    const { data: { user } } = await supabase.auth.getUser();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
     if (!user) {
       return NextResponse.json(
         { success: false, error: 'Unauthorized' },
@@ -18,7 +20,7 @@ export async function POST(request: NextRequest) {
     // Get the file from form data
     const formData = await request.formData();
     const file = formData.get('image') as File;
-    
+
     if (!file) {
       return NextResponse.json(
         { success: false, error: 'No file provided' },
@@ -54,24 +56,25 @@ export async function POST(request: NextRequest) {
         { status: 500 }
       );
     }
-    
+
     // Upload to Supabase storage
     const uploadResult = await storage.uploadImage(file, user.id);
-    
+
     console.log('Upload result:', uploadResult);
-    
+
     if (!uploadResult.success || !uploadResult.url || !uploadResult.path) {
       return NextResponse.json(
         { success: false, error: uploadResult.error || 'Upload failed' },
         { status: 500 }
       );
     }
-    
+
     // For now, use the full filename as the ID (since uploads table doesn't exist yet)
     // This includes the timestamp and makes it unique
-    const fullFileName = uploadResult.path.split('/').pop() || `img_${Date.now()}.png`;
+    const fullFileName =
+      uploadResult.path.split('/').pop() || `img_${Date.now()}.png`;
     const imageId = fullFileName.replace(/\.[^/.]+$/, ''); // Remove extension for ID
-    
+
     console.log('Upload successful:');
     console.log('Full filename:', fullFileName);
     console.log('Image ID:', imageId);
@@ -81,9 +84,8 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       success: true,
       imageId: imageId,
-      publicUrl: uploadResult.url
+      publicUrl: uploadResult.url,
     });
-
   } catch (error) {
     console.error('Upload error:', error);
     return NextResponse.json(

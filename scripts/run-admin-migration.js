@@ -23,7 +23,7 @@ const migrations = [
     updated_at TIMESTAMPTZ DEFAULT NOW()
   );
   `,
-  
+
   // 2. Create admin users table
   `
   CREATE TABLE IF NOT EXISTS admin_users (
@@ -40,7 +40,7 @@ const migrations = [
     UNIQUE(user_id)
   );
   `,
-  
+
   // 3. Create audit logs table
   `
   CREATE TABLE IF NOT EXISTS admin_audit_logs (
@@ -55,7 +55,7 @@ const migrations = [
     created_at TIMESTAMPTZ DEFAULT NOW()
   );
   `,
-  
+
   // 4. Create support tables
   `
   CREATE TABLE IF NOT EXISTS support_tickets (
@@ -83,7 +83,7 @@ const migrations = [
     created_at TIMESTAMPTZ DEFAULT NOW()
   );
   `,
-  
+
   // 5. Create indexes
   `
   CREATE INDEX IF NOT EXISTS idx_admin_audit_logs_admin_id ON admin_audit_logs(admin_id);
@@ -94,7 +94,7 @@ const migrations = [
   CREATE INDEX IF NOT EXISTS idx_support_tickets_assigned ON support_tickets(assigned_admin_id);
   CREATE INDEX IF NOT EXISTS idx_support_ticket_messages_ticket ON support_ticket_messages(ticket_id);
   `,
-  
+
   // 6. Insert default roles
   `
   INSERT INTO admin_roles (name, permissions, description) VALUES
@@ -134,35 +134,40 @@ const migrations = [
       "admin": {"manage": false}
     }'::jsonb, 'Read-only access to analytics and reports')
   ON CONFLICT (name) DO NOTHING;
-  `
+  `,
 ];
 
 async function runMigrations() {
   console.log('🚀 Starting admin system migration...\n');
-  
+
   for (let i = 0; i < migrations.length; i++) {
     console.log(`Running migration ${i + 1}/${migrations.length}...`);
-    
+
     const { error } = await supabase.rpc('exec_sql', {
-      sql: migrations[i]
+      sql: migrations[i],
     });
-    
+
     if (error) {
       console.error(`❌ Migration ${i + 1} failed:`, error.message);
       // Try alternative approach for local dev
       console.log('Trying alternative approach...');
-      
+
       // For local development, you might need to run these manually
       console.log('Migration SQL:', migrations[i].substring(0, 100) + '...');
     } else {
       console.log(`✅ Migration ${i + 1} completed`);
     }
   }
-  
+
   // Verify tables
   console.log('\n📊 Verifying tables...');
-  const tables = ['admin_roles', 'admin_users', 'admin_audit_logs', 'support_tickets'];
-  
+  const tables = [
+    'admin_roles',
+    'admin_users',
+    'admin_audit_logs',
+    'support_tickets',
+  ];
+
   for (const table of tables) {
     const { error } = await supabase.from(table).select('id').limit(1);
     if (error) {
@@ -171,56 +176,56 @@ async function runMigrations() {
       console.log(`✅ Table ${table}: Ready`);
     }
   }
-  
+
   // Check roles
   const { data: roles } = await supabase.from('admin_roles').select('name');
   if (roles && roles.length > 0) {
     console.log('\n✅ Admin roles created:');
     roles.forEach(role => console.log(`   - ${role.name}`));
   }
-  
+
   console.log('\n🎉 Migration completed!');
-  
+
   // Create first admin if email provided
   const adminEmail = process.argv[2];
   if (adminEmail) {
     await createAdminUser(adminEmail);
   } else {
     console.log('\n💡 To create your first admin user, run:');
-    console.log('   node scripts/run-admin-migration.js your-email@example.com');
+    console.log(
+      '   node scripts/run-admin-migration.js your-email@example.com'
+    );
   }
 }
 
 async function createAdminUser(email) {
   console.log(`\n👤 Creating admin user for ${email}...`);
-  
+
   // Get user
   const { data: profile } = await supabase
     .from('profiles')
     .select('id')
     .eq('email', email)
     .single();
-  
+
   if (!profile) {
     console.error('❌ User not found. Create a regular account first.');
     return;
   }
-  
+
   // Get super_admin role
   const { data: role } = await supabase
     .from('admin_roles')
     .select('id')
     .eq('name', 'super_admin')
     .single();
-  
+
   // Create admin user
-  const { error } = await supabase
-    .from('admin_users')
-    .insert({
-      user_id: profile.id,
-      role_id: role.id
-    });
-  
+  const { error } = await supabase.from('admin_users').insert({
+    user_id: profile.id,
+    role_id: role.id,
+  });
+
   if (error) {
     if (error.code === '23505') {
       console.log('ℹ️  User is already an admin');

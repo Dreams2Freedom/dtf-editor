@@ -12,8 +12,10 @@ async function debugEligibility() {
 
   // Get the user
   const { data: authUsers } = await supabase.auth.admin.listUsers();
-  const authUser = authUsers.users.find(u => u.email === 'snsmarketing@gmail.com');
-  
+  const authUser = authUsers.users.find(
+    u => u.email === 'snsmarketing@gmail.com'
+  );
+
   if (!authUser) {
     console.error('User not found');
     return;
@@ -43,8 +45,10 @@ async function debugEligibility() {
 
   // Test discount eligibility with direct RPC call
   console.log('\n=== TESTING DISCOUNT ELIGIBILITY RPC ===');
-  const { data: discountElig, error: discountError } = await supabase
-    .rpc('check_discount_eligibility', { p_user_id: authUser.id });
+  const { data: discountElig, error: discountError } = await supabase.rpc(
+    'check_discount_eligibility',
+    { p_user_id: authUser.id }
+  );
 
   if (discountError) {
     console.error('Discount eligibility error:', discountError);
@@ -61,8 +65,10 @@ async function debugEligibility() {
 
   // Test pause eligibility
   console.log('\n=== TESTING PAUSE ELIGIBILITY RPC ===');
-  const { data: pauseElig, error: pauseError } = await supabase
-    .rpc('check_pause_eligibility', { p_user_id: authUser.id });
+  const { data: pauseElig, error: pauseError } = await supabase.rpc(
+    'check_pause_eligibility',
+    { p_user_id: authUser.id }
+  );
 
   if (pauseError) {
     console.error('Pause eligibility error:', pauseError);
@@ -89,7 +95,9 @@ async function debugEligibility() {
   if (events && events.length > 0) {
     console.log('Recent events:');
     events.forEach(event => {
-      console.log(`- ${event.event_type} at ${new Date(event.created_at).toLocaleDateString()}`);
+      console.log(
+        `- ${event.event_type} at ${new Date(event.created_at).toLocaleDateString()}`
+      );
     });
   } else {
     console.log('No events found');

@@ -9,7 +9,9 @@ export async function POST(
   try {
     // Verify the request is from an authenticated admin
     const supabase = await createServerSupabaseClient();
-    const { data: { session } } = await supabase.auth.getSession();
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
 
     if (!session) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -23,7 +25,10 @@ export async function POST(
       .single();
 
     if (!profile?.is_admin) {
-      return NextResponse.json({ error: 'Forbidden - Admin access required' }, { status: 403 });
+      return NextResponse.json(
+        { error: 'Forbidden - Admin access required' },
+        { status: 403 }
+      );
     }
 
     // Get rejection reason from request body
@@ -45,7 +50,7 @@ export async function POST(
         status: 'rejected',
         rejection_reason: rejectionReason,
         rejected_at: new Date().toISOString(),
-        rejected_by: session.user.id
+        rejected_by: session.user.id,
       })
       .eq('id', params.id);
 

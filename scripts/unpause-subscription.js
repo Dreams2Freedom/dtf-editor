@@ -9,21 +9,24 @@ const supabase = createClient(
 );
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
-  apiVersion: '2024-11-20.acacia'
+  apiVersion: '2024-11-20.acacia',
 });
 
 async function unpauseSubscription() {
   console.log('Unpausing subscription for snsmarketing@gmail.com...\n');
 
   // First get the auth user
-  const { data: authUsers, error: authError } = await supabase.auth.admin.listUsers();
-  
+  const { data: authUsers, error: authError } =
+    await supabase.auth.admin.listUsers();
+
   if (authError) {
     console.error('Error fetching auth users:', authError);
     return;
   }
 
-  const authUser = authUsers.users.find(u => u.email === 'snsmarketing@gmail.com');
+  const authUser = authUsers.users.find(
+    u => u.email === 'snsmarketing@gmail.com'
+  );
   if (!authUser) {
     console.error('Auth user not found');
     return;
@@ -52,13 +55,16 @@ async function unpauseSubscription() {
     const subscription = await stripe.subscriptions.update(
       user.stripe_subscription_id,
       {
-        pause_collection: null
+        pause_collection: null,
       }
     );
 
     console.log('✅ Stripe subscription unpaused');
     console.log('Status:', subscription.status);
-    console.log('Current Period End:', new Date(subscription.current_period_end * 1000).toLocaleString());
+    console.log(
+      'Current Period End:',
+      new Date(subscription.current_period_end * 1000).toLocaleString()
+    );
 
     // Update database
     console.log('\nUpdating database...');
@@ -66,7 +72,7 @@ async function unpauseSubscription() {
       .from('profiles')
       .update({
         subscription_paused_until: null,
-        subscription_status: 'starter' // or whatever the active status should be
+        subscription_status: 'starter', // or whatever the active status should be
       })
       .eq('id', user.id);
 
@@ -77,20 +83,17 @@ async function unpauseSubscription() {
     }
 
     // Log the unpause event
-    await supabase
-      .from('subscription_events')
-      .insert({
-        user_id: user.id,
-        event_type: 'subscription_resumed',
-        event_data: {
-          resumed_date: new Date().toISOString(),
-          stripe_subscription_id: user.stripe_subscription_id
-        }
-      });
+    await supabase.from('subscription_events').insert({
+      user_id: user.id,
+      event_type: 'subscription_resumed',
+      event_data: {
+        resumed_date: new Date().toISOString(),
+        stripe_subscription_id: user.stripe_subscription_id,
+      },
+    });
 
     console.log('\n✅ Subscription successfully unpaused!');
     console.log('The user can now test the pause feature again.');
-
   } catch (stripeErr) {
     console.error('Stripe Error:', stripeErr.message);
   }

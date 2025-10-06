@@ -13,7 +13,8 @@ interface ImpersonationData {
 }
 
 export function ImpersonationBanner() {
-  const [impersonationData, setImpersonationData] = useState<ImpersonationData | null>(null);
+  const [impersonationData, setImpersonationData] =
+    useState<ImpersonationData | null>(null);
   const [ending, setEnding] = useState(false);
   const router = useRouter();
 
@@ -26,7 +27,7 @@ export function ImpersonationBanner() {
     try {
       const response = await fetch('/api/admin/impersonate', {
         method: 'GET',
-        credentials: 'include'
+        credentials: 'include',
       });
 
       if (response.ok) {
@@ -36,7 +37,7 @@ export function ImpersonationBanner() {
             originalAdminEmail: data.originalAdminEmail,
             impersonatedUserId: data.impersonatedUserId,
             impersonatedUserEmail: data.impersonatedUserEmail,
-            startedAt: data.startedAt
+            startedAt: data.startedAt,
           });
         }
       }
@@ -47,11 +48,11 @@ export function ImpersonationBanner() {
 
   const endImpersonation = async () => {
     setEnding(true);
-    
+
     try {
       const response = await fetch('/api/admin/impersonate', {
         method: 'DELETE',
-        credentials: 'include'
+        credentials: 'include',
       });
 
       if (!response.ok) {
@@ -59,7 +60,7 @@ export function ImpersonationBanner() {
       }
 
       toast.success('Impersonation session ended');
-      
+
       // Redirect back to admin
       router.push('/admin/users');
       router.refresh();
@@ -86,10 +87,13 @@ export function ImpersonationBanner() {
             </div>
             <div className="hidden sm:flex items-center gap-2 text-sm">
               <User className="w-4 h-4" />
-              <span>Viewing as: <strong>{impersonationData.impersonatedUserEmail}</strong></span>
+              <span>
+                Viewing as:{' '}
+                <strong>{impersonationData.impersonatedUserEmail}</strong>
+              </span>
             </div>
           </div>
-          
+
           <button
             onClick={endImpersonation}
             disabled={ending}

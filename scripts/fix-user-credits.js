@@ -18,15 +18,16 @@ async function fixUserCredits(email, correctCredits) {
 
   try {
     // Get user by email
-    const { data: authData, error: authError } = await supabase.auth.admin.listUsers();
-    
+    const { data: authData, error: authError } =
+      await supabase.auth.admin.listUsers();
+
     if (authError) {
       console.error('❌ Error fetching users:', authError.message);
       return;
     }
 
     const user = authData.users.find(u => u.email === email);
-    
+
     if (!user) {
       console.error(`❌ User not found: ${email}`);
       return;
@@ -39,7 +40,7 @@ async function fixUserCredits(email, correctCredits) {
       .from('profiles')
       .update({
         credits_remaining: correctCredits,
-        updated_at: new Date().toISOString()
+        updated_at: new Date().toISOString(),
       })
       .eq('id', user.id)
       .select()
@@ -54,18 +55,15 @@ async function fixUserCredits(email, correctCredits) {
     console.log(`   Credits Remaining: ${profile.credits_remaining}`);
 
     // Add a transaction to log this correction
-    await supabase
-      .from('credit_transactions')
-      .insert({
-        user_id: user.id,
-        amount: correctCredits,
-        operation: 'admin_correction',
-        description: 'Fixed phantom credits issue',
-        created_at: new Date().toISOString()
-      });
+    await supabase.from('credit_transactions').insert({
+      user_id: user.id,
+      amount: correctCredits,
+      operation: 'admin_correction',
+      description: 'Fixed phantom credits issue',
+      created_at: new Date().toISOString(),
+    });
 
     console.log('\n✅ Transaction logged');
-
   } catch (error) {
     console.error('❌ Error:', error);
   }

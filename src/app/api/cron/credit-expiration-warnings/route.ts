@@ -5,10 +5,7 @@ import { emailService } from '@/services/email';
 import { withRateLimit } from '@/lib/rate-limit';
 
 // Create Supabase client with service role for admin operations
-const supabase = createClient(
-  env.SUPABASE_URL,
-  env.SUPABASE_SERVICE_ROLE_KEY
-);
+const supabase = createClient(env.SUPABASE_URL, env.SUPABASE_SERVICE_ROLE_KEY);
 
 async function handleGet(request: NextRequest) {
   try {
@@ -30,7 +27,8 @@ async function handleGet(request: NextRequest) {
     // Get all credit transactions with expiration dates
     const { data: expiringCredits, error } = await supabase
       .from('credit_transactions')
-      .select(`
+      .select(
+        `
         user_id,
         credits_remaining,
         expires_at,
@@ -40,7 +38,8 @@ async function handleGet(request: NextRequest) {
           email_marketing_opted_out,
           email_transactional_opted_out
         )
-      `)
+      `
+      )
       .gt('credits_remaining', 0)
       .lte('expires_at', infoDate.toISOString())
       .gte('expires_at', now.toISOString())
@@ -51,21 +50,26 @@ async function handleGet(request: NextRequest) {
       throw error;
     }
 
-    console.log(`Found ${expiringCredits?.length || 0} users with expiring credits`);
+    console.log(
+      `Found ${expiringCredits?.length || 0} users with expiring credits`
+    );
 
     // Group credits by user
-    const userCredits = new Map<string, {
-      email: string;
-      firstName?: string;
-      totalExpiring: number;
-      nearestExpiry: Date;
-      urgencyLevel: 'critical' | 'warning' | 'info';
-    }>();
+    const userCredits = new Map<
+      string,
+      {
+        email: string;
+        firstName?: string;
+        totalExpiring: number;
+        nearestExpiry: Date;
+        urgencyLevel: 'critical' | 'warning' | 'info';
+      }
+    >();
 
     expiringCredits?.forEach((credit: any) => {
       const userId = credit.user_id;
       const expiryDate = new Date(credit.expires_at);
-      
+
       // Skip if user has opted out of transactional emails
       if (credit.profiles.email_transactional_opted_out) {
         return;
@@ -105,7 +109,7 @@ async function handleGet(request: NextRequest) {
       try {
         // Check if we've already sent a warning for this expiry period
         const warningKey = `${userId}_${creditInfo.nearestExpiry.toISOString().split('T')[0]}`;
-        
+
         // Check email_events to see if we already sent this warning
         const { data: existingWarning } = await supabase
           .from('email_events')
@@ -116,7 +120,9 @@ async function handleGet(request: NextRequest) {
           .single();
 
         if (existingWarning) {
-          console.log(`Already sent warning to ${creditInfo.email} for this expiry period`);
+          console.log(
+            `Already sent warning to ${creditInfo.email} for this expiry period`
+          );
           continue;
         }
 
@@ -131,21 +137,19 @@ async function handleGet(request: NextRequest) {
 
         if (success) {
           emailsSent++;
-          
+
           // Log that we sent this warning
-          await supabase
-            .from('email_events')
-            .insert({
-              email: creditInfo.email,
-              event_type: 'credit_warning',
-              timestamp: new Date().toISOString(),
-              category: [warningKey],
-              metadata: {
-                credits_expiring: creditInfo.totalExpiring,
-                expiry_date: creditInfo.nearestExpiry,
-                urgency_level: creditInfo.urgencyLevel,
-              },
-            });
+          await supabase.from('email_events').insert({
+            email: creditInfo.email,
+            event_type: 'credit_warning',
+            timestamp: new Date().toISOString(),
+            category: [warningKey],
+            metadata: {
+              credits_expiring: creditInfo.totalExpiring,
+              expiry_date: creditInfo.nearestExpiry,
+              urgency_level: creditInfo.urgencyLevel,
+            },
+          });
         } else {
           emailsFailed++;
         }
@@ -155,7 +159,9 @@ async function handleGet(request: NextRequest) {
       }
     }
 
-    console.log(`Credit expiration warnings sent: ${emailsSent}, failed: ${emailsFailed}`);
+    console.log(
+      `Credit expiration warnings sent: ${emailsSent}, failed: ${emailsFailed}`
+    );
 
     return NextResponse.json({
       success: true,

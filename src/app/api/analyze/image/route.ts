@@ -8,7 +8,10 @@ async function handlePost(request: NextRequest) {
   try {
     // Get authenticated user
     const supabase = await createServerSupabaseClient();
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
 
     if (authError || !user) {
       return NextResponse.json(
@@ -19,7 +22,11 @@ async function handlePost(request: NextRequest) {
 
     // Parse request body
     const body = await request.json();
-    const { imageUrl, analysisType = 'describe_for_recreation', customInstructions } = body;
+    const {
+      imageUrl,
+      analysisType = 'describe_for_recreation',
+      customInstructions,
+    } = body;
 
     if (!imageUrl) {
       return NextResponse.json(
@@ -51,7 +58,7 @@ async function handlePost(request: NextRequest) {
           
           IMPORTANT: For DTF printing, note if the image has a transparent background or if the subject is isolated.
           Format your response as a clear, detailed prompt that can be used with GPT-Image-1.`;
-        
+
         userPrompt = `Analyze this image and provide a detailed description that can be used to recreate it with AI image generation. 
           ${customInstructions ? `Additional instructions: ${customInstructions}` : ''}
           Be specific about any text in the image, including exact wording, positioning, and style.`;
@@ -60,7 +67,8 @@ async function handlePost(request: NextRequest) {
       case 'extract_text':
         systemPrompt = `You are an expert at identifying and extracting text from images.
           List all text found in the image, including its position, style, and any decorative elements.`;
-        userPrompt = 'Extract all text from this image and describe how it is styled and positioned.';
+        userPrompt =
+          'Extract all text from this image and describe how it is styled and positioned.';
         break;
 
       case 'suggest_variations':
@@ -80,25 +88,25 @@ async function handlePost(request: NextRequest) {
 
     // Call GPT-4 Vision API (using gpt-4o which has vision capabilities)
     const response = await openai.chat.completions.create({
-      model: "gpt-4o", // GPT-4 Omni model with vision capabilities
+      model: 'gpt-4o', // GPT-4 Omni model with vision capabilities
       messages: [
         {
-          role: "system",
-          content: systemPrompt
+          role: 'system',
+          content: systemPrompt,
         },
         {
-          role: "user",
+          role: 'user',
           content: [
-            { type: "text", text: userPrompt },
-            { 
-              type: "image_url", 
-              image_url: { 
+            { type: 'text', text: userPrompt },
+            {
+              type: 'image_url',
+              image_url: {
                 url: imageUrl,
-                detail: "high" // High detail for better analysis
-              } 
-            }
-          ]
-        }
+                detail: 'high', // High detail for better analysis
+              },
+            },
+          ],
+        },
       ],
       max_tokens: 1000,
     });
@@ -123,13 +131,12 @@ async function handlePost(request: NextRequest) {
       recreationPrompt,
       analysisType,
     });
-
   } catch (error: unknown) {
     console.error('[Analyze Image API] Error:', error);
     return NextResponse.json(
-      { 
+      {
         error: 'Failed to analyze image',
-        details: error instanceof Error ? error.message : 'Unknown error'
+        details: error instanceof Error ? error.message : 'Unknown error',
       },
       { status: 500 }
     );

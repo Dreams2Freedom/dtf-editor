@@ -9,6 +9,7 @@ This document defines the **mandatory naming conventions** for all PostgreSQL fu
 ## The Problem We Had
 
 **October 4, 2025:** Spent hours debugging 404 errors on admin functions, only to discover:
+
 - Functions existed in database with parameter `check_user_id`
 - Client code called them with parameter `user_id`
 - PostgreSQL treated these as **completely different functions** → 404 errors
@@ -24,6 +25,7 @@ This document defines the **mandatory naming conventions** for all PostgreSQL fu
 **ALWAYS use `user_id` (NOT `check_user_id`, `userId`, or any variation)**
 
 ✅ **CORRECT:**
+
 ```sql
 CREATE FUNCTION is_admin(user_id UUID)
 CREATE FUNCTION get_admin_role(user_id UUID)
@@ -31,6 +33,7 @@ CREATE FUNCTION has_permission(user_id UUID, permission_key TEXT)
 ```
 
 ❌ **WRONG:**
+
 ```sql
 CREATE FUNCTION is_admin(check_user_id UUID)  -- NO!
 CREATE FUNCTION is_admin(userId UUID)         -- NO!
@@ -39,19 +42,20 @@ CREATE FUNCTION is_admin(uid UUID)            -- NO!
 
 ### 2. Other Common Parameters
 
-| Parameter Type | Standard Name | Examples |
-|---------------|---------------|----------|
-| User ID | `user_id` | `user_id UUID` |
-| Permission | `permission_key` | `permission_key TEXT` |
-| Email | `user_email` | `user_email TEXT` |
-| Role | `role_name` | `role_name TEXT` |
-| Timestamp | Use descriptive name | `created_after TIMESTAMP`, `valid_until TIMESTAMP` |
+| Parameter Type | Standard Name        | Examples                                           |
+| -------------- | -------------------- | -------------------------------------------------- |
+| User ID        | `user_id`            | `user_id UUID`                                     |
+| Permission     | `permission_key`     | `permission_key TEXT`                              |
+| Email          | `user_email`         | `user_email TEXT`                                  |
+| Role           | `role_name`          | `role_name TEXT`                                   |
+| Timestamp      | Use descriptive name | `created_after TIMESTAMP`, `valid_until TIMESTAMP` |
 
 ### 3. Function Naming Convention
 
 **Pattern:** `verb_noun` or `is_adjective` or `get_noun`
 
 ✅ **CORRECT:**
+
 ```sql
 is_admin(user_id UUID)           -- Check boolean status
 is_super_admin(user_id UUID)     -- Check boolean status
@@ -62,6 +66,7 @@ update_user_credits(...)         -- Action function
 ```
 
 ❌ **WRONG:**
+
 ```sql
 admin(user_id UUID)              -- Vague, unclear what it does
 checkAdmin(user_id UUID)         -- camelCase (use snake_case)
@@ -73,18 +78,21 @@ AdminCheck(user_id UUID)         -- PascalCase (use snake_case)
 **Always use explicit return types**
 
 ✅ **CORRECT:**
+
 ```sql
 CREATE FUNCTION is_admin(user_id UUID)
 RETURNS BOOLEAN AS $$
 ```
 
 ✅ **CORRECT:**
+
 ```sql
 CREATE FUNCTION get_admin_role(user_id UUID)
 RETURNS TEXT AS $$
 ```
 
 ❌ **WRONG:**
+
 ```sql
 CREATE FUNCTION is_admin(user_id UUID)
 -- Missing RETURNS clause
@@ -108,20 +116,23 @@ CREATE FUNCTION is_admin(user_id UUID)
 ## How to Verify Parameter Names
 
 ### Step 1: Check Existing Functions
+
 ```bash
 grep -r "CREATE FUNCTION function_name" supabase/migrations/
 ```
 
 ### Step 2: Check Client Code Usage
+
 ```bash
 grep -r "supabase.rpc('function_name'" src/
 ```
 
 ### Step 3: Verify They Match
+
 ```typescript
 // Client code
 const { data } = await supabase.rpc('get_admin_role', {
-  user_id: userId  // ← This parameter name
+  user_id: userId, // ← This parameter name
 });
 ```
 
@@ -184,6 +195,7 @@ has_permission(user_id UUID, permission_key TEXT) RETURNS BOOLEAN
 ## Why This Matters
 
 PostgreSQL function signatures include parameter names. If you have:
+
 - `is_admin(check_user_id UUID)` in database
 - `supabase.rpc('is_admin', { user_id: '...' })` in client code
 

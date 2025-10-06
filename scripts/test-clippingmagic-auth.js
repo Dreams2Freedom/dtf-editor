@@ -11,7 +11,8 @@ if (!apiId || !apiSecret) {
 }
 
 // Create Basic Auth header
-const authHeader = 'Basic ' + Buffer.from(apiId + ':' + apiSecret).toString('base64');
+const authHeader =
+  'Basic ' + Buffer.from(apiId + ':' + apiSecret).toString('base64');
 
 console.log('API ID:', apiId);
 console.log('API Secret length:', apiSecret.length);
@@ -22,13 +23,13 @@ async function testAuth() {
   try {
     const response = await fetch('https://clippingmagic.com/api/v1/account', {
       headers: {
-        'Authorization': authHeader,
+        Authorization: authHeader,
       },
     });
 
     console.log('\nAPI Response:');
     console.log('Status:', response.status, response.statusText);
-    
+
     if (response.ok) {
       const data = await response.json();
       console.log('✅ Authentication successful!');

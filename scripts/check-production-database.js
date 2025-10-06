@@ -12,13 +12,14 @@ const supabase = createClient(
 (async () => {
   // Test 1: Check Shannon@S2Transfers.com user ID
   console.log('1. Finding Shannon@S2Transfers.com user in PRODUCTION:');
-  const { data: shannonUser, error: userError } = await supabase.auth.admin.listUsers();
+  const { data: shannonUser, error: userError } =
+    await supabase.auth.admin.listUsers();
 
   if (userError) {
     console.error('   ❌ Error listing users:', userError.message);
   } else {
-    const shannon = shannonUser.users.find(u =>
-      u.email?.toLowerCase() === 'shannon@s2transfers.com'
+    const shannon = shannonUser.users.find(
+      u => u.email?.toLowerCase() === 'shannon@s2transfers.com'
     );
     if (shannon) {
       console.log('   ✅ Found user:', shannon.email);
@@ -34,8 +35,10 @@ const supabase = createClient(
   const testUserId = 'fcc1b251-6307-457c-ac1e-064aa43b2449'; // shannonherod@gmail.com
 
   // Test Shannon@S2Transfers.com
-  const { data: shannonIsAdmin, error: shannonAdminError } = await supabase
-    .rpc('is_admin', { check_user_id: shannonUserId });
+  const { data: shannonIsAdmin, error: shannonAdminError } = await supabase.rpc(
+    'is_admin',
+    { check_user_id: shannonUserId }
+  );
 
   console.log('   Shannon@S2Transfers.com:');
   if (shannonAdminError) {
@@ -45,8 +48,10 @@ const supabase = createClient(
   }
 
   // Test shannonherod@gmail.com
-  const { data: testIsAdmin, error: testAdminError } = await supabase
-    .rpc('is_admin', { check_user_id: testUserId });
+  const { data: testIsAdmin, error: testAdminError } = await supabase.rpc(
+    'is_admin',
+    { check_user_id: testUserId }
+  );
 
   console.log('   shannonherod@gmail.com:');
   if (testAdminError) {
@@ -129,7 +134,10 @@ const supabase = createClient(
       console.error('     ❌ Error:', shannonProfileError.message);
     }
   } else {
-    console.log('     profiles.is_admin:', shannonProfile?.is_admin ? '✅ true' : '❌ false');
+    console.log(
+      '     profiles.is_admin:',
+      shannonProfile?.is_admin ? '✅ true' : '❌ false'
+    );
   }
 
   // shannonherod@gmail.com
@@ -147,11 +155,16 @@ const supabase = createClient(
       console.error('     ❌ Error:', testProfileError.message);
     }
   } else {
-    console.log('     profiles.is_admin:', testProfile?.is_admin ? '✅ true' : '❌ false');
+    console.log(
+      '     profiles.is_admin:',
+      testProfile?.is_admin ? '✅ true' : '❌ false'
+    );
   }
 
   console.log('\n=== SUMMARY ===');
-  console.log('For Shannon@S2Transfers.com to have admin access, ALL must be true:');
+  console.log(
+    'For Shannon@S2Transfers.com to have admin access, ALL must be true:'
+  );
   console.log('  1. User exists in auth.users');
   console.log('  2. profiles.is_admin = true OR in admin_users table');
   console.log('  3. is_admin() function returns true');

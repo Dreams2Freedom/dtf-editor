@@ -40,10 +40,10 @@ const supabase = createClient(
         manage_affiliates: true,
         manage_support: true,
         manage_admins: true,
-        system_settings: true
+        system_settings: true,
       },
       is_active: true,
-      notes: 'Super Administrator - Added via script'
+      notes: 'Super Administrator - Added via script',
     })
     .select()
     .single();
@@ -60,5 +60,7 @@ const supabase = createClient(
   console.log('   Active:', data.is_active);
   console.log('   Permissions:', JSON.stringify(data.permissions, null, 2));
 
-  console.log('\n✅ You can now access the admin panel at /admin/affiliates/applications');
+  console.log(
+    '\n✅ You can now access the admin panel at /admin/affiliates/applications'
+  );
 })();

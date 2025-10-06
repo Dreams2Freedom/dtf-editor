@@ -24,7 +24,7 @@ async function handlePost(request: NextRequest) {
         ticket_id: ticketId,
         user_id: adminId,
         message: message,
-        is_admin: true
+        is_admin: true,
       })
       .select()
       .single();
@@ -55,9 +55,9 @@ async function handlePost(request: NextRequest) {
       // Update ticket status to waiting_on_user
       await supabase
         .from('support_tickets')
-        .update({ 
+        .update({
           status: 'waiting_on_user',
-          updated_at: new Date().toISOString()
+          updated_at: new Date().toISOString(),
         })
         .eq('id', ticketId);
 
@@ -67,9 +67,11 @@ async function handlePost(request: NextRequest) {
           await emailService.sendTicketReplyToUser({
             ticketNumber: ticket.ticket_number,
             userEmail: userProfile.email,
-            userName: userProfile.first_name ? `${userProfile.first_name} ${userProfile.last_name || ''}`.trim() : undefined,
+            userName: userProfile.first_name
+              ? `${userProfile.first_name} ${userProfile.last_name || ''}`.trim()
+              : undefined,
             adminMessage: message,
-            ticketSubject: ticket.subject
+            ticketSubject: ticket.subject,
           });
           console.log('Admin reply notification sent to:', userProfile.email);
         } catch (emailError) {
@@ -85,10 +87,10 @@ async function handlePost(request: NextRequest) {
       {
         user: {
           id: adminId,
-          email: '' // Admin email would need to be fetched
+          email: '', // Admin email would need to be fetched
         },
         role: 'admin',
-        createdAt: new Date()
+        createdAt: new Date(),
       },
       {
         action: 'support.reply',
@@ -97,17 +99,16 @@ async function handlePost(request: NextRequest) {
         details: {
           ticket_number: ticket?.ticket_number,
           message_length: message.length,
-          user_notified: !!userProfile?.email
-        }
+          user_notified: !!userProfile?.email,
+        },
       },
       request
     );
 
     return NextResponse.json({
       success: true,
-      message: newMessage
+      message: newMessage,
     });
-
   } catch (error) {
     console.error('Admin support message error:', error);
     return NextResponse.json(

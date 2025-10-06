@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createServerSupabaseClient, createServiceRoleClient } from '@/lib/supabase/server';
+import {
+  createServerSupabaseClient,
+  createServiceRoleClient,
+} from '@/lib/supabase/server';
 import { chatGPTService } from '@/services/chatgpt';
 import { validatePrompt, enhancePromptForDTF } from '@/utils/promptHelpers';
 import { v4 as uuidv4 } from 'uuid';
@@ -10,8 +13,11 @@ export const maxDuration = 60;
 export const runtime = 'nodejs';
 
 async function handlePost(request: NextRequest) {
-  console.log('[Edit Image API] Request received at:', new Date().toISOString());
-  
+  console.log(
+    '[Edit Image API] Request received at:',
+    new Date().toISOString()
+  );
+
   try {
     // Get the authenticated user using the server Supabase client
     console.log('[Edit Image API] Creating Supabase client...');
@@ -19,16 +25,22 @@ async function handlePost(request: NextRequest) {
     try {
       supabase = await createServerSupabaseClient();
     } catch (clientError) {
-      console.error('[Edit Image API] Failed to create Supabase client:', clientError);
+      console.error(
+        '[Edit Image API] Failed to create Supabase client:',
+        clientError
+      );
       return NextResponse.json(
-        { 
+        {
           error: 'Failed to initialize authentication',
-          details: clientError instanceof Error ? clientError.message : 'Unknown error' 
+          details:
+            clientError instanceof Error
+              ? clientError.message
+              : 'Unknown error',
         },
         { status: 500 }
       );
     }
-    
+
     console.log('[Edit Image API] Getting user from session...');
     const {
       data: { user },
@@ -42,15 +54,15 @@ async function handlePost(request: NextRequest) {
         { status: 401 }
       );
     }
-    
+
     console.log('[Edit Image API] User authenticated:', user.id);
 
     // Get user profile to check subscription status, credits, and admin status
     console.log('[Edit Image API] Fetching profile for user:', user.id);
-    
+
     // Use service role client to bypass RLS for reading profile
     const serviceClient = createServiceRoleClient();
-    
+
     const { data: profile, error: profileError } = await serviceClient
       .from('profiles')
       .select('*')
@@ -60,25 +72,29 @@ async function handlePost(request: NextRequest) {
     if (profileError) {
       console.error('[Edit Image API] Error fetching profile:', profileError);
       return NextResponse.json(
-        { error: 'Failed to fetch user profile', details: profileError.message },
+        {
+          error: 'Failed to fetch user profile',
+          details: profileError.message,
+        },
         { status: 500 }
       );
     }
-    
+
     console.log('[Edit Image API] Profile fetched:', {
       id: profile?.id,
       credits: profile?.credits,
       is_admin: profile?.is_admin,
-      subscription_tier: profile?.subscription_tier
+      subscription_tier: profile?.subscription_tier,
     });
 
     // Check if user has access (must be paid user or admin)
     const isAdmin = profile.is_admin === true;
-    const isPaidUser = profile.subscription_tier && profile.subscription_tier !== 'free';
-    
+    const isPaidUser =
+      profile.subscription_tier && profile.subscription_tier !== 'free';
+
     if (!isPaidUser && !isAdmin) {
       return NextResponse.json(
-        { 
+        {
           error: 'AI image editing is only available for paid subscribers',
           requiresUpgrade: true,
         },
@@ -91,8 +107,8 @@ async function handlePost(request: NextRequest) {
     const prompt = formData.get('prompt') as string;
     const imageFile = formData.get('image') as File;
     const maskFile = formData.get('mask') as File | null;
-    const size = formData.get('size') as string || '1024x1024';
-    const count = parseInt(formData.get('count') as string || '1');
+    const size = (formData.get('size') as string) || '1024x1024';
+    const count = parseInt((formData.get('count') as string) || '1');
     const enhanceForDTF = formData.get('enhanceForDTF') === 'true';
 
     if (!prompt || !imageFile) {
@@ -105,10 +121,7 @@ async function handlePost(request: NextRequest) {
     // Validate prompt
     const validation = validatePrompt(prompt);
     if (!validation.valid) {
-      return NextResponse.json(
-        { error: validation.reason },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: validation.reason }, { status: 400 });
     }
 
     // Calculate required credits for editing (fixed at 1 credit per edit - Beta pricing)
@@ -118,7 +131,7 @@ async function handlePost(request: NextRequest) {
     // Check if user has enough credits (skip for admins)
     if (!isAdmin && profile.credits < totalCreditsRequired) {
       return NextResponse.json(
-        { 
+        {
           error: `Insufficient credits. You need ${totalCreditsRequired} credits but only have ${profile.credits}`,
           creditsRequired: totalCreditsRequired,
           creditsAvailable: profile.credits,
@@ -135,9 +148,7 @@ async function handlePost(request: NextRequest) {
     }
 
     // Enhance prompt for DTF if requested
-    const enhancedPrompt = enhanceForDTF
-      ? enhancePromptForDTF(prompt)
-      : prompt;
+    const enhancedPrompt = enhanceForDTF ? enhancePromptForDTF(prompt) : prompt;
 
     console.log('[Edit Image API] Editing image:', {
       userId: user.id,
@@ -159,14 +170,20 @@ async function handlePost(request: NextRequest) {
         size: size as any,
         n: count,
       });
-      console.log('[Edit Image API] ChatGPT service response:', { 
-        success: result.success, 
-        imageCount: result.images?.length 
+      console.log('[Edit Image API] ChatGPT service response:', {
+        success: result.success,
+        imageCount: result.images?.length,
       });
     } catch (serviceError) {
       console.error('[Edit Image API] ChatGPT service error:', serviceError);
       return NextResponse.json(
-        { error: 'Image editing service error', details: serviceError instanceof Error ? serviceError.message : 'Unknown error' },
+        {
+          error: 'Image editing service error',
+          details:
+            serviceError instanceof Error
+              ? serviceError.message
+              : 'Unknown error',
+        },
         { status: 500 }
       );
     }
@@ -211,7 +228,7 @@ async function handlePost(request: NextRequest) {
     for (const image of result.images) {
       try {
         let buffer: Buffer;
-        
+
         // Extract base64 data from data URL
         if (image.url.startsWith('data:')) {
           const base64Data = image.url.split(',')[1];
@@ -228,12 +245,13 @@ async function handlePost(request: NextRequest) {
         const filename = `ai-edited/${user.id}/${uuidv4()}.png`;
 
         // Upload to Supabase Storage
-        const { data: uploadData, error: uploadError } = await serviceClient.storage
-          .from('user-uploads')
-          .upload(filename, buffer, {
-            contentType: 'image/png',
-            upsert: false,
-          });
+        const { data: uploadData, error: uploadError } =
+          await serviceClient.storage
+            .from('user-uploads')
+            .upload(filename, buffer, {
+              contentType: 'image/png',
+              upsert: false,
+            });
 
         if (uploadError) {
           console.error('Error uploading to storage:', uploadError);
@@ -248,9 +266,8 @@ async function handlePost(request: NextRequest) {
         // Save to processed_images via RPC so it appears in My Images (bypasses RLS/grant issues)
         const widthVal = parseInt(size.split('x')[0]);
         const heightVal = parseInt(size.split('x')[1]);
-        const { data: insertedId, error: recordError } = await serviceClient.rpc(
-          'insert_processed_image',
-          {
+        const { data: insertedId, error: recordError } =
+          await serviceClient.rpc('insert_processed_image', {
             p_user_id: user.id,
             p_original_filename: `ai-edited-${Date.now()}.png`,
             p_processed_filename: filename.split('/').pop() || filename,
@@ -267,10 +284,9 @@ async function handlePost(request: NextRequest) {
               credits_used: creditsPerImage,
               width: widthVal,
               height: heightVal,
-              storage_path: filename
-            }
-          }
-        );
+              storage_path: filename,
+            },
+          });
 
         if (recordError) {
           console.error('Error saving upload record:', recordError);
@@ -293,14 +309,19 @@ async function handlePost(request: NextRequest) {
       creditsRemaining: profile.credits - totalCreditsRequired,
       enhancedPrompt: enhancedPrompt !== prompt ? enhancedPrompt : undefined,
     });
-
   } catch (error) {
     console.error('[Edit Image API] Unexpected error:', error);
-    console.error('[Edit Image API] Error stack:', error instanceof Error ? error.stack : undefined);
+    console.error(
+      '[Edit Image API] Error stack:',
+      error instanceof Error ? error.stack : undefined
+    );
     return NextResponse.json(
-      { 
+      {
         error: error instanceof Error ? error.message : 'Internal server error',
-        details: process.env.NODE_ENV === 'development' && error instanceof Error ? error.stack : undefined
+        details:
+          process.env.NODE_ENV === 'development' && error instanceof Error
+            ? error.stack
+            : undefined,
       },
       { status: 500 }
     );

@@ -20,17 +20,17 @@ async function cleanup() {
     .from('profiles')
     .select('id, email')
     .or('email.like.%test%,email.like.%example.com%');
-  
+
   if (error) {
     console.error('Error fetching profiles:', error);
     return;
   }
-  
+
   console.log(`Found ${profiles?.length || 0} test profiles to clean up\n`);
-  
+
   for (const profile of profiles || []) {
     console.log(`Cleaning up: ${profile.email}`);
-    
+
     try {
       // Delete transactions
       await supabase
@@ -38,23 +38,22 @@ async function cleanup() {
         .delete()
         .eq('user_id', profile.id);
       console.log('  ✓ Deleted transactions');
-      
+
       // Delete processed images
       await supabase
         .from('processed_images')
         .delete()
         .eq('user_id', profile.id);
       console.log('  ✓ Deleted processed images');
-      
+
       // Delete profile
-      await supabase
-        .from('profiles')
-        .delete()
-        .eq('id', profile.id);
+      await supabase.from('profiles').delete().eq('id', profile.id);
       console.log('  ✓ Deleted profile');
-      
+
       // Try to delete auth user
-      const { error: authError } = await supabase.auth.admin.deleteUser(profile.id);
+      const { error: authError } = await supabase.auth.admin.deleteUser(
+        profile.id
+      );
       if (!authError) {
         console.log('  ✓ Deleted auth user');
       } else if (authError.message?.includes('not found')) {
@@ -62,13 +61,13 @@ async function cleanup() {
       } else {
         console.log('  ⚠️  Could not delete auth user:', authError.message);
       }
-      
+
       console.log('');
     } catch (err) {
       console.error(`  ❌ Error cleaning up ${profile.email}:`, err.message);
     }
   }
-  
+
   console.log('✅ Cleanup complete!');
 }
 

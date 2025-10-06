@@ -11,7 +11,10 @@ export async function GET(
 
     // Get authenticated user
     const supabase = await createServerSupabaseClient();
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
 
     if (authError || !user) {
       return NextResponse.json(
@@ -28,10 +31,7 @@ export async function GET(
       .single();
 
     if (jobError || !job) {
-      return NextResponse.json(
-        { error: 'Job not found' },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: 'Job not found' }, { status: 404 });
     }
 
     // Return job status
@@ -44,10 +44,9 @@ export async function GET(
         error: job.error_message,
         result: job.output_data,
         createdAt: job.created_at,
-        completedAt: job.completed_at
-      }
+        completedAt: job.completed_at,
+      },
     });
-
   } catch (error) {
     console.error('[Job Status] Error:', error);
     return NextResponse.json(
@@ -67,7 +66,10 @@ export async function DELETE(
 
     // Get authenticated user
     const supabase = await createServerSupabaseClient();
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
 
     if (authError || !user) {
       return NextResponse.json(
@@ -81,7 +83,7 @@ export async function DELETE(
       .from('processing_jobs')
       .update({
         status: 'cancelled',
-        completed_at: new Date().toISOString()
+        completed_at: new Date().toISOString(),
       })
       .eq('id', jobId)
       .eq('user_id', user.id)
@@ -96,9 +98,8 @@ export async function DELETE(
 
     return NextResponse.json({
       success: true,
-      message: 'Job cancelled'
+      message: 'Job cancelled',
     });
-
   } catch (error) {
     console.error('[Job Cancel] Error:', error);
     return NextResponse.json(

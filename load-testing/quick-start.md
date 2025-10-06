@@ -3,6 +3,7 @@
 ## What This Tests
 
 Our free load testing setup helps you identify:
+
 - How many users your app can handle simultaneously
 - Which pages/features are slow
 - Where bottlenecks occur
@@ -15,25 +16,33 @@ No installation needed! Just use the scripts in this folder.
 ## Running Tests
 
 ### 1. Quick Health Check (1 minute)
+
 Test if your site can handle 10 concurrent users:
+
 ```bash
 node load-testing/simple-load-test.js
 ```
 
 ### 2. Moderate Load Test (2 minutes)
+
 Test with 25 users:
+
 ```bash
 CONCURRENT_USERS=25 node load-testing/simple-load-test.js
 ```
 
 ### 3. Stress Test (3 minutes)
+
 See when things start breaking:
+
 ```bash
 CONCURRENT_USERS=50 REQUESTS_PER_USER=20 node load-testing/simple-load-test.js
 ```
 
 ### 4. User Flow Test
+
 Test real user journeys (signup, image upload, etc):
+
 ```bash
 TEST_USERS=10 node load-testing/user-flow-test.js
 ```
@@ -41,11 +50,13 @@ TEST_USERS=10 node load-testing/user-flow-test.js
 ## Testing Different Environments
 
 ### Test Local Development
+
 ```bash
 TEST_URL=http://localhost:3000 node load-testing/simple-load-test.js
 ```
 
 ### Test Production (BE CAREFUL!)
+
 ```bash
 TEST_URL=https://dtfeditor.com CONCURRENT_USERS=5 node load-testing/simple-load-test.js
 ```
@@ -53,21 +64,25 @@ TEST_URL=https://dtfeditor.com CONCURRENT_USERS=5 node load-testing/simple-load-
 ## Understanding Results
 
 ### Good Signs 🟢
+
 - P95 response time < 3 seconds
 - Error rate < 1%
 - Consistent response times
 
 ### Warning Signs 🟡
+
 - P95 response time 3-5 seconds
 - Error rate 1-5%
 - Response times increasing with load
 
 ### Bad Signs 🔴
+
 - P95 response time > 5 seconds
 - Error rate > 5%
 - Timeouts or connection errors
 
 ## Example Output
+
 ```
 =======================================================
 LOAD TEST RESULTS
@@ -100,19 +115,24 @@ Performance Assessment:
 ## Common Issues & Solutions
 
 ### "Connection refused" errors
+
 **Problem**: Server can't handle the load
 **Solution**: Start with fewer users (5-10) and gradually increase
 
 ### Very slow response times
+
 **Problem**: Database queries or API calls are slow
-**Solution**: 
+**Solution**:
+
 1. Check database connection pooling
 2. Add caching where possible
 3. Optimize slow queries
 
 ### High error rates
+
 **Problem**: Rate limiting or resource exhaustion
 **Solution**:
+
 1. Check rate limit settings
 2. Monitor server memory/CPU during tests
 3. Check database connection limits
@@ -136,11 +156,13 @@ While running load tests, monitor:
 ## When to Run Load Tests
 
 ### Safe Times ✅
+
 - Local development (anytime)
 - Staging environment (anytime)
 - Production (off-peak hours, with small loads)
 
 ### Never ❌
+
 - During peak business hours
 - With massive loads on production
 - Without warning your team
@@ -158,6 +180,7 @@ While running load tests, monitor:
 Results are automatically saved to `load-testing/reports/` with timestamps.
 
 Compare results over time:
+
 ```bash
 ls -la load-testing/reports/
 ```
@@ -165,8 +188,9 @@ ls -la load-testing/reports/
 ## No Budget? No Problem!
 
 This testing setup is 100% free and gives you:
+
 - Real performance metrics
-- Bottleneck identification  
+- Bottleneck identification
 - Confidence in your app's capacity
 - No external dependencies
 - No credit card required
@@ -174,12 +198,14 @@ This testing setup is 100% free and gives you:
 ## Need More Advanced Testing?
 
 If you later need more advanced features like:
+
 - Distributed testing from multiple locations
 - Advanced scripting and scenarios
 - Real browser testing
 - Detailed performance profiling
 
 Consider these free/cheap options:
+
 - K6 (free, open source)
 - Locust (free, open source)
 - Apache JMeter (free, open source)

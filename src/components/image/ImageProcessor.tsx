@@ -3,7 +3,16 @@
 import { useState, useCallback, useEffect } from 'react';
 import { useDropzone } from 'react-dropzone';
 import { useSearchParams } from 'next/navigation';
-import { Upload, Wand2, Download, AlertCircle, CheckCircle, Loader2, Scissors, Zap } from 'lucide-react';
+import {
+  Upload,
+  Wand2,
+  Download,
+  AlertCircle,
+  CheckCircle,
+  Loader2,
+  Scissors,
+  Zap,
+} from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { OptimizedImage } from '@/components/ui/OptimizedImage';
@@ -44,22 +53,33 @@ export function ImageProcessor() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
-  const [processingResult, setProcessingResult] = useState<ProcessingResult | null>(null);
-  const [processingOptions, setProcessingOptions] = useState<ProcessingOptions>({
-    operation: 'upscale',
-    scale: 4,
-    processingMode: 'auto_enhance',
-    faceEnhance: false,
-    vectorFormat: 'svg'
-  });
+  const [processingResult, setProcessingResult] =
+    useState<ProcessingResult | null>(null);
+  const [processingOptions, setProcessingOptions] = useState<ProcessingOptions>(
+    {
+      operation: 'upscale',
+      scale: 4,
+      processingMode: 'auto_enhance',
+      faceEnhance: false,
+      vectorFormat: 'svg',
+    }
+  );
   const [clippingMagicReady, setClippingMagicReady] = useState(false);
-  
+
   const { user, profile } = useAuthStore();
 
   // Set initial operation from URL parameter
   useEffect(() => {
     const operation = searchParams.get('operation') as ProcessingOperation;
-    if (operation && ['upscale', 'background-removal', 'vectorization', 'ai-generation'].includes(operation)) {
+    if (
+      operation &&
+      [
+        'upscale',
+        'background-removal',
+        'vectorization',
+        'ai-generation',
+      ].includes(operation)
+    ) {
       setProcessingOptions(prev => ({ ...prev, operation }));
     }
   }, [searchParams]);
@@ -69,11 +89,11 @@ export function ImageProcessor() {
     const loadClippingMagic = () => {
       // Check if already loaded
       if (window.ClippingMagic) {
-        const errors = window.ClippingMagic.initialize({ 
+        const errors = window.ClippingMagic.initialize({
           apiId: parseInt(env.CLIPPINGMAGIC_API_KEY),
-          forcePopup: true // Force popup mode instead of iframe
+          forcePopup: true, // Force popup mode instead of iframe
         });
-        
+
         if (errors.length === 0) {
           setClippingMagicReady(true);
         }
@@ -85,14 +105,14 @@ export function ImageProcessor() {
       script.src = 'https://clippingmagic.com/api/v1/ClippingMagic.js';
       script.type = 'text/javascript';
       script.async = true;
-      
+
       script.onload = () => {
         if (window.ClippingMagic) {
-          const errors = window.ClippingMagic.initialize({ 
+          const errors = window.ClippingMagic.initialize({
             apiId: parseInt(env.CLIPPINGMAGIC_API_KEY),
-            forcePopup: true // Force popup mode instead of iframe
+            forcePopup: true, // Force popup mode instead of iframe
           });
-          
+
           if (errors.length === 0) {
             setClippingMagicReady(true);
             console.log('ClippingMagic initialized');
@@ -101,7 +121,7 @@ export function ImageProcessor() {
           }
         }
       };
-      
+
       document.body.appendChild(script);
     };
 
@@ -119,7 +139,7 @@ export function ImageProcessor() {
     try {
       const response = await fetch(`/api/clippingmagic/download/${imageId}`, {
         method: 'GET',
-        credentials: 'include'
+        credentials: 'include',
       });
 
       if (!response.ok) {
@@ -128,18 +148,19 @@ export function ImageProcessor() {
 
       const blob = await response.blob();
       const url = URL.createObjectURL(blob);
-      
+
       setIsProcessing(false);
       setProcessingResult({
         success: true,
         url: url,
-        creditsUsed: 1
+        creditsUsed: 1,
       });
     } catch (error) {
       setIsProcessing(false);
       setProcessingResult({
         success: false,
-        error: error instanceof Error ? error.message : 'Failed to download result'
+        error:
+          error instanceof Error ? error.message : 'Failed to download result',
       });
     }
   };
@@ -162,37 +183,40 @@ export function ImageProcessor() {
   }, []);
 
   // Handle file drop/selection
-  const onDrop = useCallback((acceptedFiles: File[]) => {
-    const file = acceptedFiles[0];
-    if (!file) return;
+  const onDrop = useCallback(
+    (acceptedFiles: File[]) => {
+      const file = acceptedFiles[0];
+      if (!file) return;
 
-    const validationError = validateFile(file);
-    if (validationError) {
-      setProcessingResult({
-        success: false,
-        error: validationError
-      });
-      return;
-    }
+      const validationError = validateFile(file);
+      if (validationError) {
+        setProcessingResult({
+          success: false,
+          error: validationError,
+        });
+        return;
+      }
 
-    setSelectedFile(file);
-    setProcessingResult(null);
+      setSelectedFile(file);
+      setProcessingResult(null);
 
-    // Create preview
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      setImagePreview(e.target?.result as string);
-    };
-    reader.readAsDataURL(file);
-  }, [validateFile]);
+      // Create preview
+      const reader = new FileReader();
+      reader.onload = e => {
+        setImagePreview(e.target?.result as string);
+      };
+      reader.readAsDataURL(file);
+    },
+    [validateFile]
+  );
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
     accept: {
-      'image/*': ['.jpeg', '.jpg', '.png', '.webp']
+      'image/*': ['.jpeg', '.jpg', '.png', '.webp'],
     },
     maxFiles: 1,
-    multiple: false
+    multiple: false,
   });
 
   // Process image
@@ -212,74 +236,91 @@ export function ImageProcessor() {
         const response = await fetch('/api/clippingmagic/upload-large', {
           method: 'POST',
           body: formData,
-          credentials: 'include'
+          credentials: 'include',
         });
 
         const result = await response.json();
-        
+
         if (result.success && result.image) {
           console.log('Upload successful:', result.image);
-          
+
           // Debug what's in the window
           console.log('=== ClippingMagic Debug ===');
           console.log('window.ClippingMagic exists:', !!window.ClippingMagic);
-          console.log('window.ClippingMagic.edit exists:', !!(window.ClippingMagic?.edit));
-          console.log('typeof window.ClippingMagic.edit:', typeof window.ClippingMagic?.edit);
+          console.log(
+            'window.ClippingMagic.edit exists:',
+            !!window.ClippingMagic?.edit
+          );
+          console.log(
+            'typeof window.ClippingMagic.edit:',
+            typeof window.ClippingMagic?.edit
+          );
           console.log('Current URL:', window.location.href);
           console.log('Document readyState:', document.readyState);
-          
+
           // Check if we're in an iframe
           console.log('In iframe?:', window !== window.top);
           console.log('Parent origin:', window.parent.location.origin);
-          
+
           // List all properties of ClippingMagic
           if (window.ClippingMagic) {
-            console.log('ClippingMagic properties:', Object.keys(window.ClippingMagic));
+            console.log(
+              'ClippingMagic properties:',
+              Object.keys(window.ClippingMagic)
+            );
           }
-          
+
           console.log('Opening ClippingMagic editor as overlay...');
-          
+
           // Wait a bit to ensure everything is ready
           setTimeout(() => {
             if (window.ClippingMagic && window.ClippingMagic.edit) {
               try {
-                window.ClippingMagic.edit({
-                  image: {
-                    id: result.image.id,
-                    secret: result.image.secret
+                window.ClippingMagic.edit(
+                  {
+                    image: {
+                      id: result.image.id,
+                      secret: result.image.secret,
+                    },
+                    useStickySettings: true,
+                    hideBottomToolbar: false,
+                    locale: 'en-US',
                   },
-                  useStickySettings: true,
-                  hideBottomToolbar: false,
-                  locale: 'en-US'
-                }, (opts: any) => {
-                  console.log('ClippingMagic callback:', opts);
-                  switch (opts.event) {
-                    case 'error':
-                      console.error('ClippingMagic error:', opts.error);
-                      setIsProcessing(false);
-                      setProcessingResult({
-                        success: false,
-                        error: 'ClippingMagic error: ' + (opts.error?.message || 'Unknown error')
-                      });
-                      break;
-                      
-                    case 'result-generated':
-                      console.log('Result generated for image:', opts.image.id);
-                      downloadClippingMagicResult(opts.image.id.toString());
-                      break;
-                      
-                    case 'editor-exit':
-                      console.log('Editor closed');
-                      setIsProcessing(false);
-                      break;
+                  (opts: any) => {
+                    console.log('ClippingMagic callback:', opts);
+                    switch (opts.event) {
+                      case 'error':
+                        console.error('ClippingMagic error:', opts.error);
+                        setIsProcessing(false);
+                        setProcessingResult({
+                          success: false,
+                          error:
+                            'ClippingMagic error: ' +
+                            (opts.error?.message || 'Unknown error'),
+                        });
+                        break;
+
+                      case 'result-generated':
+                        console.log(
+                          'Result generated for image:',
+                          opts.image.id
+                        );
+                        downloadClippingMagicResult(opts.image.id.toString());
+                        break;
+
+                      case 'editor-exit':
+                        console.log('Editor closed');
+                        setIsProcessing(false);
+                        break;
+                    }
                   }
-                });
+                );
               } catch (editError) {
                 console.error('Error calling ClippingMagic.edit:', editError);
                 setIsProcessing(false);
                 setProcessingResult({
                   success: false,
-                  error: 'Failed to open editor: ' + editError
+                  error: 'Failed to open editor: ' + editError,
                 });
               }
             } else {
@@ -293,7 +334,8 @@ export function ImageProcessor() {
         setIsProcessing(false);
         setProcessingResult({
           success: false,
-          error: error instanceof Error ? error.message : 'Failed to upload image'
+          error:
+            error instanceof Error ? error.message : 'Failed to upload image',
         });
       }
       return;
@@ -304,24 +346,30 @@ export function ImageProcessor() {
       const formData = new FormData();
       formData.append('image', selectedFile);
       formData.append('operation', processingOptions.operation);
-      
+
       // Add operation-specific options
       if (processingOptions.operation === 'upscale') {
         formData.append('scale', processingOptions.scale?.toString() || '4');
-        formData.append('processingMode', processingOptions.processingMode || 'auto_enhance');
+        formData.append(
+          'processingMode',
+          processingOptions.processingMode || 'auto_enhance'
+        );
         if (processingOptions.faceEnhance) {
           formData.append('faceEnhance', 'true');
         }
       }
-      
+
       if (processingOptions.operation === 'background-removal') {
         if (processingOptions.backgroundColor) {
           formData.append('backgroundColor', processingOptions.backgroundColor);
         }
       }
-      
+
       if (processingOptions.operation === 'vectorization') {
-        formData.append('vectorFormat', processingOptions.vectorFormat || 'svg');
+        formData.append(
+          'vectorFormat',
+          processingOptions.vectorFormat || 'svg'
+        );
       }
 
       // Use the unified processing endpoint
@@ -331,8 +379,8 @@ export function ImageProcessor() {
         credentials: 'include', // Include cookies for authentication
         headers: {
           // Don't set Content-Type - let browser set it for FormData
-          'Accept': 'application/json',
-        }
+          Accept: 'application/json',
+        },
       });
 
       console.log('API Response status:', response.status);
@@ -344,18 +392,18 @@ export function ImageProcessor() {
           success: true,
           url: result.processedUrl,
           creditsUsed: result.metadata?.creditsUsed,
-          processingTime: result.metadata?.processingTime
+          processingTime: result.metadata?.processingTime,
         });
       } else {
         setProcessingResult({
           success: false,
-          error: result.error || 'Processing failed'
+          error: result.error || 'Processing failed',
         });
       }
     } catch (error) {
       setProcessingResult({
         success: false,
-        error: error instanceof Error ? error.message : 'Processing failed'
+        error: error instanceof Error ? error.message : 'Processing failed',
       });
     } finally {
       setIsProcessing(false);
@@ -370,39 +418,46 @@ export function ImageProcessor() {
     }
 
     if (!window.ClippingMagic || !window.ClippingMagic.edit) {
-      alert('ClippingMagic is still loading. Please wait a moment and try again.');
+      alert(
+        'ClippingMagic is still loading. Please wait a moment and try again.'
+      );
       return;
     }
 
     console.log('Opening ClippingMagic editor with:', window.cmImageData);
-    
+
     // Call edit directly, just like the test page
-    window.ClippingMagic.edit({
-      image: {
-        id: window.cmImageData.id,
-        secret: window.cmImageData.secret
+    window.ClippingMagic.edit(
+      {
+        image: {
+          id: window.cmImageData.id,
+          secret: window.cmImageData.secret,
+        },
+        useStickySettings: true,
+        hideBottomToolbar: false,
+        locale: 'en-US',
       },
-      useStickySettings: true,
-      hideBottomToolbar: false,
-      locale: 'en-US'
-    }, (opts: any) => {
-      console.log('ClippingMagic callback:', opts);
-      switch (opts.event) {
-        case 'error':
-          alert('ClippingMagic error: ' + (opts.error?.message || 'Unknown error'));
-          break;
-          
-        case 'result-generated':
-          console.log('Result generated for image:', opts.image.id);
-          // Download the result
-          downloadClippingMagicResult(opts.image.id.toString());
-          break;
-          
-        case 'editor-exit':
-          console.log('Editor closed');
-          break;
+      (opts: any) => {
+        console.log('ClippingMagic callback:', opts);
+        switch (opts.event) {
+          case 'error':
+            alert(
+              'ClippingMagic error: ' + (opts.error?.message || 'Unknown error')
+            );
+            break;
+
+          case 'result-generated':
+            console.log('Result generated for image:', opts.image.id);
+            // Download the result
+            downloadClippingMagicResult(opts.image.id.toString());
+            break;
+
+          case 'editor-exit':
+            console.log('Editor closed');
+            break;
+        }
       }
-    });
+    );
   };
 
   // Download processed image
@@ -413,20 +468,19 @@ export function ImageProcessor() {
       const response = await fetch(processingResult.url);
       const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
-      
+
       const a = document.createElement('a');
       a.href = url;
       a.download = `processed_${selectedFile?.name || 'image.jpg'}`;
       document.body.appendChild(a);
       a.click();
-      
+
       window.URL.revokeObjectURL(url);
       document.body.removeChild(a);
     } catch (error) {
       alert('Failed to download image');
     }
   };
-
 
   // Reset the component
   const reset = () => {
@@ -445,7 +499,11 @@ export function ImageProcessor() {
           <button
             onClick={() => {
               console.log('Testing popup...');
-              const popup = window.open('https://google.com', '_blank', 'width=800,height=600');
+              const popup = window.open(
+                'https://google.com',
+                '_blank',
+                'width=800,height=600'
+              );
               console.log('Popup result:', popup);
               if (!popup) {
                 alert('Popup blocked! Please allow popups for this site.');
@@ -459,14 +517,21 @@ export function ImageProcessor() {
             onClick={() => {
               console.log('Testing ClippingMagic.edit directly...');
               if (window.ClippingMagic && window.ClippingMagic.edit) {
-                window.ClippingMagic.edit({
-                  image: { id: 207794051, secret: "g5rssaot702277tqfdpufdmqjtkc2u8j9h9t7fhro879csnbmtv" },
-                  useStickySettings: true,
-                  hideBottomToolbar: false,
-                  locale: 'en-US'
-                }, (opts: any) => {
-                  console.log('Direct test callback:', opts);
-                });
+                window.ClippingMagic.edit(
+                  {
+                    image: {
+                      id: 207794051,
+                      secret:
+                        'g5rssaot702277tqfdpufdmqjtkc2u8j9h9t7fhro879csnbmtv',
+                    },
+                    useStickySettings: true,
+                    hideBottomToolbar: false,
+                    locale: 'en-US',
+                  },
+                  (opts: any) => {
+                    console.log('Direct test callback:', opts);
+                  }
+                );
               } else {
                 alert('ClippingMagic not loaded');
               }
@@ -511,11 +576,11 @@ export function ImageProcessor() {
               <input {...getInputProps()} />
               <Upload className="w-12 h-12 mx-auto text-gray-400 mb-4" />
               <p className="text-lg font-medium text-gray-700 mb-2">
-                {isDragActive ? 'Drop your image here' : 'Drag & drop an image here'}
+                {isDragActive
+                  ? 'Drop your image here'
+                  : 'Drag & drop an image here'}
               </p>
-              <p className="text-gray-500 mb-4">
-                or click to select a file
-              </p>
+              <p className="text-gray-500 mb-4">or click to select a file</p>
               <p className="text-sm text-gray-400">
                 Supports JPEG, PNG, WebP • Max 10MB
               </p>
@@ -565,28 +630,55 @@ export function ImageProcessor() {
                 </label>
                 <div className="grid grid-cols-3 gap-2">
                   <Button
-                    variant={processingOptions.operation === 'upscale' ? 'default' : 'outline'}
+                    variant={
+                      processingOptions.operation === 'upscale'
+                        ? 'default'
+                        : 'outline'
+                    }
                     size="sm"
                     className="justify-start"
-                    onClick={() => setProcessingOptions(prev => ({ ...prev, operation: 'upscale' }))}
+                    onClick={() =>
+                      setProcessingOptions(prev => ({
+                        ...prev,
+                        operation: 'upscale',
+                      }))
+                    }
                   >
                     <Wand2 className="w-4 h-4 mr-2" />
                     Upscale
                   </Button>
                   <Button
-                    variant={processingOptions.operation === 'background-removal' ? 'default' : 'outline'}
+                    variant={
+                      processingOptions.operation === 'background-removal'
+                        ? 'default'
+                        : 'outline'
+                    }
                     size="sm"
                     className="justify-start"
-                    onClick={() => setProcessingOptions(prev => ({ ...prev, operation: 'background-removal' }))}
+                    onClick={() =>
+                      setProcessingOptions(prev => ({
+                        ...prev,
+                        operation: 'background-removal',
+                      }))
+                    }
                   >
                     <Scissors className="w-4 h-4 mr-2" />
                     Remove BG
                   </Button>
                   <Button
-                    variant={processingOptions.operation === 'vectorization' ? 'default' : 'outline'}
+                    variant={
+                      processingOptions.operation === 'vectorization'
+                        ? 'default'
+                        : 'outline'
+                    }
                     size="sm"
                     className="justify-start"
-                    onClick={() => setProcessingOptions(prev => ({ ...prev, operation: 'vectorization' }))}
+                    onClick={() =>
+                      setProcessingOptions(prev => ({
+                        ...prev,
+                        operation: 'vectorization',
+                      }))
+                    }
                   >
                     <Zap className="w-4 h-4 mr-2" />
                     Vectorize
@@ -603,16 +695,24 @@ export function ImageProcessor() {
                     </label>
                     <div className="flex gap-2">
                       <Button
-                        variant={processingOptions.scale === 2 ? 'default' : 'outline'}
+                        variant={
+                          processingOptions.scale === 2 ? 'default' : 'outline'
+                        }
                         size="sm"
-                        onClick={() => setProcessingOptions(prev => ({ ...prev, scale: 2 }))}
+                        onClick={() =>
+                          setProcessingOptions(prev => ({ ...prev, scale: 2 }))
+                        }
                       >
                         2x
                       </Button>
                       <Button
-                        variant={processingOptions.scale === 4 ? 'default' : 'outline'}
+                        variant={
+                          processingOptions.scale === 4 ? 'default' : 'outline'
+                        }
                         size="sm"
-                        onClick={() => setProcessingOptions(prev => ({ ...prev, scale: 4 }))}
+                        onClick={() =>
+                          setProcessingOptions(prev => ({ ...prev, scale: 4 }))
+                        }
                       >
                         4x
                       </Button>
@@ -625,26 +725,54 @@ export function ImageProcessor() {
                     </label>
                     <div className="space-y-2">
                       <Button
-                        variant={processingOptions.processingMode === 'auto_enhance' ? 'default' : 'outline'}
+                        variant={
+                          processingOptions.processingMode === 'auto_enhance'
+                            ? 'default'
+                            : 'outline'
+                        }
                         size="sm"
                         className="w-full justify-start"
-                        onClick={() => setProcessingOptions(prev => ({ ...prev, processingMode: 'auto_enhance' }))}
+                        onClick={() =>
+                          setProcessingOptions(prev => ({
+                            ...prev,
+                            processingMode: 'auto_enhance',
+                          }))
+                        }
                       >
                         Auto Enhance (Recommended)
                       </Button>
                       <Button
-                        variant={processingOptions.processingMode === 'generative_upscale' ? 'default' : 'outline'}
+                        variant={
+                          processingOptions.processingMode ===
+                          'generative_upscale'
+                            ? 'default'
+                            : 'outline'
+                        }
                         size="sm"
                         className="w-full justify-start"
-                        onClick={() => setProcessingOptions(prev => ({ ...prev, processingMode: 'generative_upscale' }))}
+                        onClick={() =>
+                          setProcessingOptions(prev => ({
+                            ...prev,
+                            processingMode: 'generative_upscale',
+                          }))
+                        }
                       >
                         Generative Upscale
                       </Button>
                       <Button
-                        variant={processingOptions.processingMode === 'basic_upscale' ? 'default' : 'outline'}
+                        variant={
+                          processingOptions.processingMode === 'basic_upscale'
+                            ? 'default'
+                            : 'outline'
+                        }
                         size="sm"
                         className="w-full justify-start"
-                        onClick={() => setProcessingOptions(prev => ({ ...prev, processingMode: 'basic_upscale' }))}
+                        onClick={() =>
+                          setProcessingOptions(prev => ({
+                            ...prev,
+                            processingMode: 'basic_upscale',
+                          }))
+                        }
                       >
                         Basic Upscale
                       </Button>
@@ -656,10 +784,18 @@ export function ImageProcessor() {
                       type="checkbox"
                       id="faceEnhance"
                       checked={processingOptions.faceEnhance}
-                      onChange={(e) => setProcessingOptions(prev => ({ ...prev, faceEnhance: e.target.checked }))}
+                      onChange={e =>
+                        setProcessingOptions(prev => ({
+                          ...prev,
+                          faceEnhance: e.target.checked,
+                        }))
+                      }
                       className="rounded border-gray-300"
                     />
-                    <label htmlFor="faceEnhance" className="text-sm text-gray-700">
+                    <label
+                      htmlFor="faceEnhance"
+                      className="text-sm text-gray-700"
+                    >
                       Enhance faces
                     </label>
                   </div>
@@ -674,29 +810,57 @@ export function ImageProcessor() {
                   </label>
                   <div className="flex gap-2">
                     <Button
-                      variant={!processingOptions.backgroundColor ? 'default' : 'outline'}
+                      variant={
+                        !processingOptions.backgroundColor
+                          ? 'default'
+                          : 'outline'
+                      }
                       size="sm"
-                      onClick={() => setProcessingOptions(prev => ({ ...prev, backgroundColor: undefined }))}
+                      onClick={() =>
+                        setProcessingOptions(prev => ({
+                          ...prev,
+                          backgroundColor: undefined,
+                        }))
+                      }
                     >
                       Transparent
                     </Button>
                     <Button
-                      variant={processingOptions.backgroundColor === '#ffffff' ? 'default' : 'outline'}
+                      variant={
+                        processingOptions.backgroundColor === '#ffffff'
+                          ? 'default'
+                          : 'outline'
+                      }
                       size="sm"
-                      onClick={() => setProcessingOptions(prev => ({ ...prev, backgroundColor: '#ffffff' }))}
+                      onClick={() =>
+                        setProcessingOptions(prev => ({
+                          ...prev,
+                          backgroundColor: '#ffffff',
+                        }))
+                      }
                     >
                       White
                     </Button>
                     <Button
-                      variant={processingOptions.backgroundColor === '#000000' ? 'default' : 'outline'}
+                      variant={
+                        processingOptions.backgroundColor === '#000000'
+                          ? 'default'
+                          : 'outline'
+                      }
                       size="sm"
-                      onClick={() => setProcessingOptions(prev => ({ ...prev, backgroundColor: '#000000' }))}
+                      onClick={() =>
+                        setProcessingOptions(prev => ({
+                          ...prev,
+                          backgroundColor: '#000000',
+                        }))
+                      }
                     >
                       Black
                     </Button>
                   </div>
                   <p className="text-xs text-gray-500 mt-2">
-                    Opens the ClippingMagic editor where you can manually refine background removal.
+                    Opens the ClippingMagic editor where you can manually refine
+                    background removal.
                   </p>
                 </div>
               )}
@@ -709,31 +873,54 @@ export function ImageProcessor() {
                   </label>
                   <div className="flex gap-2">
                     <Button
-                      variant={processingOptions.vectorFormat === 'svg' ? 'default' : 'outline'}
+                      variant={
+                        processingOptions.vectorFormat === 'svg'
+                          ? 'default'
+                          : 'outline'
+                      }
                       size="sm"
-                      onClick={() => setProcessingOptions(prev => ({ ...prev, vectorFormat: 'svg' }))}
+                      onClick={() =>
+                        setProcessingOptions(prev => ({
+                          ...prev,
+                          vectorFormat: 'svg',
+                        }))
+                      }
                     >
                       SVG
                     </Button>
                     <Button
-                      variant={processingOptions.vectorFormat === 'pdf' ? 'default' : 'outline'}
+                      variant={
+                        processingOptions.vectorFormat === 'pdf'
+                          ? 'default'
+                          : 'outline'
+                      }
                       size="sm"
-                      onClick={() => setProcessingOptions(prev => ({ ...prev, vectorFormat: 'pdf' }))}
+                      onClick={() =>
+                        setProcessingOptions(prev => ({
+                          ...prev,
+                          vectorFormat: 'pdf',
+                        }))
+                      }
                     >
                       PDF
                     </Button>
                   </div>
                   <p className="text-xs text-gray-500 mt-2">
-                    SVG format is scalable and web-friendly. PDF is better for print designs.
+                    SVG format is scalable and web-friendly. PDF is better for
+                    print designs.
                   </p>
                 </div>
               )}
 
-
               {/* Process Button */}
               <Button
                 onClick={processImage}
-                disabled={isProcessing || !user || (profile?.credits_remaining || 0) < (processingOptions.operation === 'vectorization' ? 2 : 1)}
+                disabled={
+                  isProcessing ||
+                  !user ||
+                  (profile?.credits_remaining || 0) <
+                    (processingOptions.operation === 'vectorization' ? 2 : 1)
+                }
                 className="w-full"
               >
                 {isProcessing ? (
@@ -743,12 +930,21 @@ export function ImageProcessor() {
                   </>
                 ) : (
                   <>
-                    {processingOptions.operation === 'upscale' && <Wand2 className="w-4 h-4 mr-2" />}
-                    {processingOptions.operation === 'background-removal' && <Scissors className="w-4 h-4 mr-2" />}
-                    {processingOptions.operation === 'vectorization' && <Zap className="w-4 h-4 mr-2" />}
-                    {processingOptions.operation === 'upscale' && 'Upscale Image (1 credit)'}
-                    {processingOptions.operation === 'background-removal' && 'Remove Background (1 credit)'}
-                    {processingOptions.operation === 'vectorization' && 'Vectorize Image (1 credit)'}
+                    {processingOptions.operation === 'upscale' && (
+                      <Wand2 className="w-4 h-4 mr-2" />
+                    )}
+                    {processingOptions.operation === 'background-removal' && (
+                      <Scissors className="w-4 h-4 mr-2" />
+                    )}
+                    {processingOptions.operation === 'vectorization' && (
+                      <Zap className="w-4 h-4 mr-2" />
+                    )}
+                    {processingOptions.operation === 'upscale' &&
+                      'Upscale Image (1 credit)'}
+                    {processingOptions.operation === 'background-removal' &&
+                      'Remove Background (1 credit)'}
+                    {processingOptions.operation === 'vectorization' &&
+                      'Vectorize Image (1 credit)'}
                   </>
                 )}
               </Button>
@@ -759,11 +955,19 @@ export function ImageProcessor() {
                 </p>
               )}
 
-              {user && (profile?.credits_remaining || 0) < (processingOptions.operation === 'vectorization' ? 2 : 1) && (
-                <p className="text-sm text-red-600 text-center">
-                  Insufficient credits. Need {processingOptions.operation === 'vectorization' ? 2 : 1} credit{processingOptions.operation === 'vectorization' ? 's' : ''} for this operation.
-                </p>
-              )}
+              {user &&
+                (profile?.credits_remaining || 0) <
+                  (processingOptions.operation === 'vectorization' ? 2 : 1) && (
+                  <p className="text-sm text-red-600 text-center">
+                    Insufficient credits. Need{' '}
+                    {processingOptions.operation === 'vectorization' ? 2 : 1}{' '}
+                    credit
+                    {processingOptions.operation === 'vectorization'
+                      ? 's'
+                      : ''}{' '}
+                    for this operation.
+                  </p>
+                )}
             </CardContent>
           </Card>
         </div>
@@ -789,31 +993,36 @@ export function ImageProcessor() {
           </CardHeader>
           <CardContent>
             {processingResult.success && processingResult.url ? (
-                <div className="space-y-4">
-                  <OptimizedImage
-                    src={processingResult.url}
-                    alt="Processed"
-                    width={600}
-                    height={400}
-                    className="w-full h-auto rounded-lg border"
-                    quality={95}
-                    priority
-                  />
-                  <div className="flex items-center justify-between">
-                    <div className="text-sm text-gray-600">
-                      {processingResult.processingTime && (
-                        <span>Processed in {formatProcessingTime(processingResult.processingTime)}</span>
-                      )}
-                      {processingResult.creditsUsed && (
-                        <span className="ml-4">Credits used: {processingResult.creditsUsed}</span>
-                      )}
-                    </div>
-                    <Button onClick={downloadImage}>
-                      <Download className="w-4 h-4 mr-2" />
-                      Download
-                    </Button>
+              <div className="space-y-4">
+                <OptimizedImage
+                  src={processingResult.url}
+                  alt="Processed"
+                  width={600}
+                  height={400}
+                  className="w-full h-auto rounded-lg border"
+                  quality={95}
+                  priority
+                />
+                <div className="flex items-center justify-between">
+                  <div className="text-sm text-gray-600">
+                    {processingResult.processingTime && (
+                      <span>
+                        Processed in{' '}
+                        {formatProcessingTime(processingResult.processingTime)}
+                      </span>
+                    )}
+                    {processingResult.creditsUsed && (
+                      <span className="ml-4">
+                        Credits used: {processingResult.creditsUsed}
+                      </span>
+                    )}
                   </div>
+                  <Button onClick={downloadImage}>
+                    <Download className="w-4 h-4 mr-2" />
+                    Download
+                  </Button>
                 </div>
+              </div>
             ) : (
               <div className="text-red-600">
                 <p>{processingResult.error}</p>
@@ -822,7 +1031,6 @@ export function ImageProcessor() {
           </CardContent>
         </Card>
       )}
-
     </div>
   );
 }

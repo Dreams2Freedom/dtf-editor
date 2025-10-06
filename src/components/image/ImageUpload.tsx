@@ -1,8 +1,14 @@
-"use client";
+'use client';
 
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { useDropzone } from 'react-dropzone';
-import { Upload, X, Image as ImageIcon, AlertCircle, CheckCircle } from 'lucide-react';
+import {
+  Upload,
+  X,
+  Image as ImageIcon,
+  AlertCircle,
+  CheckCircle,
+} from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Card, CardContent } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
@@ -33,7 +39,12 @@ export interface ImageUploadProps {
 
 const DEFAULT_MAX_FILES = 10;
 const DEFAULT_MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MB (Vercel Pro)
-const DEFAULT_ACCEPTED_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/svg+xml'];
+const DEFAULT_ACCEPTED_TYPES = [
+  'image/jpeg',
+  'image/png',
+  'image/webp',
+  'image/svg+xml',
+];
 
 export function ImageUpload({
   onImagesUploaded,
@@ -60,7 +71,9 @@ export function ImageUpload({
     return null;
   };
 
-  const getImageDimensions = (file: File): Promise<{ width: number; height: number }> => {
+  const getImageDimensions = (
+    file: File
+  ): Promise<{ width: number; height: number }> => {
     return new Promise((resolve, reject) => {
       const img = new Image();
       img.onload = () => {
@@ -73,55 +86,58 @@ export function ImageUpload({
     });
   };
 
-  const processFiles = useCallback(async (files: File[]) => {
-    const newImages: UploadedImage[] = [];
+  const processFiles = useCallback(
+    async (files: File[]) => {
+      const newImages: UploadedImage[] = [];
 
-    for (const file of files) {
-      const error = validateFile(file);
-      if (error) {
-        newImages.push({
-          id: Math.random().toString(36).substr(2, 9),
-          file,
-          preview: URL.createObjectURL(file),
-          name: file.name,
-          size: file.size,
-          type: file.type,
-          status: 'error',
-          error,
-        });
-        continue;
+      for (const file of files) {
+        const error = validateFile(file);
+        if (error) {
+          newImages.push({
+            id: Math.random().toString(36).substr(2, 9),
+            file,
+            preview: URL.createObjectURL(file),
+            name: file.name,
+            size: file.size,
+            type: file.type,
+            status: 'error',
+            error,
+          });
+          continue;
+        }
+
+        try {
+          const dimensions = await getImageDimensions(file);
+          newImages.push({
+            id: Math.random().toString(36).substr(2, 9),
+            file,
+            preview: URL.createObjectURL(file),
+            name: file.name,
+            size: file.size,
+            type: file.type,
+            width: dimensions.width,
+            height: dimensions.height,
+            status: 'pending',
+          });
+        } catch (error) {
+          newImages.push({
+            id: Math.random().toString(36).substr(2, 9),
+            file,
+            preview: URL.createObjectURL(file),
+            name: file.name,
+            size: file.size,
+            type: file.type,
+            status: 'error',
+            error: 'Failed to process image',
+          });
+        }
       }
 
-      try {
-        const dimensions = await getImageDimensions(file);
-        newImages.push({
-          id: Math.random().toString(36).substr(2, 9),
-          file,
-          preview: URL.createObjectURL(file),
-          name: file.name,
-          size: file.size,
-          type: file.type,
-          width: dimensions.width,
-          height: dimensions.height,
-          status: 'pending',
-        });
-      } catch (error) {
-        newImages.push({
-          id: Math.random().toString(36).substr(2, 9),
-          file,
-          preview: URL.createObjectURL(file),
-          name: file.name,
-          size: file.size,
-          type: file.type,
-          status: 'error',
-          error: 'Failed to process image',
-        });
-      }
-    }
-
-    setUploadedImages(prev => [...prev, ...newImages]);
-    return newImages;
-  }, [acceptedTypes, maxFileSize]);
+      setUploadedImages(prev => [...prev, ...newImages]);
+      return newImages;
+    },
+    [acceptedTypes, maxFileSize]
+  );
 
   // Notify parent when uploadedImages changes
   useEffect(() => {
@@ -166,10 +182,6 @@ export function ImageUpload({
     const i = Math.floor(Math.log(bytes) / Math.log(k));
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
   };
-
-
-
-
 
   const getStatusIcon = (status: UploadedImage['status']) => {
     switch (status) {
@@ -236,11 +248,8 @@ export function ImageUpload({
               Uploaded Images ({uploadedImages.length}/{maxFiles})
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {uploadedImages.map((image) => (
-                <div
-                  key={image.id}
-                  className="border rounded-lg p-4 space-y-3"
-                >
+              {uploadedImages.map(image => (
+                <div key={image.id} className="border rounded-lg p-4 space-y-3">
                   {/* Image Preview */}
                   <div className="relative aspect-square bg-gray-100 rounded-lg overflow-hidden">
                     <img
@@ -264,11 +273,13 @@ export function ImageUpload({
                       </span>
                       {getStatusIcon(image.status)}
                     </div>
-                    
+
                     <div className="text-xs text-gray-500 space-y-1">
                       <p>Size: {formatFileSize(image.size)}</p>
                       {image.width && image.height && (
-                        <p>Dimensions: {image.width} × {image.height}</p>
+                        <p>
+                          Dimensions: {image.width} × {image.height}
+                        </p>
                       )}
                     </div>
 
@@ -280,14 +291,15 @@ export function ImageUpload({
                     </div>
 
                     {/* Upload Progress */}
-                    {image.status === 'uploading' && image.uploadProgress !== undefined && (
-                      <div className="w-full bg-gray-200 rounded-full h-2">
-                        <div
-                          className="bg-primary-500 h-2 rounded-full transition-all duration-300"
-                          style={{ width: `${image.uploadProgress}%` }}
-                        />
-                      </div>
-                    )}
+                    {image.status === 'uploading' &&
+                      image.uploadProgress !== undefined && (
+                        <div className="w-full bg-gray-200 rounded-full h-2">
+                          <div
+                            className="bg-primary-500 h-2 rounded-full transition-all duration-300"
+                            style={{ width: `${image.uploadProgress}%` }}
+                          />
+                        </div>
+                      )}
                   </div>
                 </div>
               ))}
@@ -297,4 +309,4 @@ export function ImageUpload({
       )}
     </div>
   );
-} 
+}

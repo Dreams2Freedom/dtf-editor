@@ -60,7 +60,9 @@ export function ImageEditor() {
   const totalCost = creditCost * options.count;
   const canEdit =
     isAdmin ||
-    (isPaidUser && hasCredits && (profile?.credits_remaining || 0) >= totalCost);
+    (isPaidUser &&
+      hasCredits &&
+      (profile?.credits_remaining || 0) >= totalCost);
 
   const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];

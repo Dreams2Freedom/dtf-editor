@@ -13,12 +13,12 @@ interface AppLayoutProps {
 
 export function AppLayout({ children, showFooter = true }: AppLayoutProps) {
   const pathname = usePathname();
-  
+
   // Don't show header/footer on auth pages
   const isAuthPage = pathname?.startsWith('/auth/');
   const isAdminPage = pathname?.startsWith('/admin');
   const isClippingMagicEditor = pathname?.includes('/clippingmagic-editor');
-  
+
   // Hide layout on specific pages
   if (isAuthPage || isAdminPage || isClippingMagicEditor) {
     return <>{children}</>;

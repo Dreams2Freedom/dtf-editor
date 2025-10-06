@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { 
+import {
   User,
   Mail,
   Calendar,
@@ -17,7 +17,7 @@ import {
   DollarSign,
   Image,
   TrendingUp,
-  AlertCircle
+  AlertCircle,
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
@@ -87,7 +87,7 @@ export function UserDetailView({ userId }: UserDetailViewProps) {
   const fetchUserDetails = async () => {
     try {
       const response = await fetch(`/api/admin/users/${userId}/details`, {
-        credentials: 'include'
+        credentials: 'include',
       });
 
       if (!response.ok) {
@@ -105,29 +105,37 @@ export function UserDetailView({ userId }: UserDetailViewProps) {
   };
 
   const handleUserUpdate = (updatedUser: any) => {
-    setUser(prev => prev ? {
-      ...prev,
-      email: updatedUser.email,
-      full_name: updatedUser.full_name,
-      plan: updatedUser.plan,
-      status: updatedUser.status
-    } : null);
+    setUser(prev =>
+      prev
+        ? {
+            ...prev,
+            email: updatedUser.email,
+            full_name: updatedUser.full_name,
+            plan: updatedUser.plan,
+            status: updatedUser.status,
+          }
+        : null
+    );
     fetchUserDetails(); // Refresh all data
   };
 
   const handleCreditUpdate = (newBalance: number) => {
-    setUser(prev => prev ? {
-      ...prev,
-      credits_remaining: newBalance
-    } : null);
+    setUser(prev =>
+      prev
+        ? {
+            ...prev,
+            credits_remaining: newBalance,
+          }
+        : null
+    );
     fetchUserDetails(); // Refresh to get new transactions
   };
 
   const handleStatusToggle = async () => {
     if (!user) return;
-    
+
     const newStatus = user.status === 'active' ? 'suspended' : 'active';
-    
+
     try {
       const response = await fetch(`/api/admin/users/${userId}/status`, {
         method: 'PATCH',
@@ -135,14 +143,16 @@ export function UserDetailView({ userId }: UserDetailViewProps) {
           'Content-Type': 'application/json',
         },
         credentials: 'include',
-        body: JSON.stringify({ status: newStatus })
+        body: JSON.stringify({ status: newStatus }),
       });
 
       if (!response.ok) {
         throw new Error('Failed to update user status');
       }
 
-      toast.success(`User ${newStatus === 'active' ? 'activated' : 'suspended'} successfully`);
+      toast.success(
+        `User ${newStatus === 'active' ? 'activated' : 'suspended'} successfully`
+      );
       setUser({ ...user, status: newStatus });
     } catch (error) {
       console.error('Error updating user status:', error);
@@ -152,7 +162,10 @@ export function UserDetailView({ userId }: UserDetailViewProps) {
 
   const openStripeCustomer = () => {
     if (user?.stripe_customer_id) {
-      window.open(`https://dashboard.stripe.com/customers/${user.stripe_customer_id}`, '_blank');
+      window.open(
+        `https://dashboard.stripe.com/customers/${user.stripe_customer_id}`,
+        '_blank'
+      );
     }
   };
 
@@ -162,14 +175,14 @@ export function UserDetailView({ userId }: UserDetailViewProps) {
       month: 'short',
       day: 'numeric',
       hour: '2-digit',
-      minute: '2-digit'
+      minute: '2-digit',
     });
   };
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
-      currency: 'USD'
+      currency: 'USD',
     }).format(amount);
   };
 
@@ -231,7 +244,9 @@ export function UserDetailView({ userId }: UserDetailViewProps) {
                 </h2>
                 <p className="text-gray-500">{user.email}</p>
                 <div className="flex items-center gap-2 mt-1">
-                  <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getPlanBadgeColor(user.plan)}`}>
+                  <span
+                    className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getPlanBadgeColor(user.plan)}`}
+                  >
                     {user.plan}
                   </span>
                   {user.status === 'active' ? (
@@ -259,7 +274,13 @@ export function UserDetailView({ userId }: UserDetailViewProps) {
               <Button
                 variant={user.status === 'active' ? 'destructive' : 'success'}
                 onClick={handleStatusToggle}
-                leftIcon={user.status === 'active' ? <Ban className="h-4 w-4" /> : <CheckCircle className="h-4 w-4" />}
+                leftIcon={
+                  user.status === 'active' ? (
+                    <Ban className="h-4 w-4" />
+                  ) : (
+                    <CheckCircle className="h-4 w-4" />
+                  )
+                }
               >
                 {user.status === 'active' ? 'Suspend' : 'Activate'}
               </Button>
@@ -279,26 +300,44 @@ export function UserDetailView({ userId }: UserDetailViewProps) {
             <CardContent>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
-                  <label className="text-sm font-medium text-gray-500">User ID</label>
-                  <p className="mt-1 text-gray-900 font-mono text-sm">{user.id}</p>
-                </div>
-                <div>
-                  <label className="text-sm font-medium text-gray-500">Joined</label>
-                  <p className="mt-1 text-gray-900">{formatDate(user.created_at)}</p>
-                </div>
-                <div>
-                  <label className="text-sm font-medium text-gray-500">Last Sign In</label>
-                  <p className="mt-1 text-gray-900">
-                    {user.last_sign_in_at ? formatDate(user.last_sign_in_at) : 'Never'}
+                  <label className="text-sm font-medium text-gray-500">
+                    User ID
+                  </label>
+                  <p className="mt-1 text-gray-900 font-mono text-sm">
+                    {user.id}
                   </p>
                 </div>
                 <div>
-                  <label className="text-sm font-medium text-gray-500">Last Updated</label>
-                  <p className="mt-1 text-gray-900">{formatDate(user.updated_at)}</p>
+                  <label className="text-sm font-medium text-gray-500">
+                    Joined
+                  </label>
+                  <p className="mt-1 text-gray-900">
+                    {formatDate(user.created_at)}
+                  </p>
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-gray-500">
+                    Last Sign In
+                  </label>
+                  <p className="mt-1 text-gray-900">
+                    {user.last_sign_in_at
+                      ? formatDate(user.last_sign_in_at)
+                      : 'Never'}
+                  </p>
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-gray-500">
+                    Last Updated
+                  </label>
+                  <p className="mt-1 text-gray-900">
+                    {formatDate(user.updated_at)}
+                  </p>
                 </div>
                 {user.stripe_customer_id && (
                   <div>
-                    <label className="text-sm font-medium text-gray-500">Stripe Customer</label>
+                    <label className="text-sm font-medium text-gray-500">
+                      Stripe Customer
+                    </label>
                     <p className="mt-1">
                       <button
                         onClick={openStripeCustomer}
@@ -311,9 +350,17 @@ export function UserDetailView({ userId }: UserDetailViewProps) {
                 )}
                 {user.subscription_status && (
                   <div>
-                    <label className="text-sm font-medium text-gray-500">Subscription Status</label>
+                    <label className="text-sm font-medium text-gray-500">
+                      Subscription Status
+                    </label>
                     <p className="mt-1">
-                      <Badge variant={user.subscription_status === 'active' ? 'success' : 'secondary'}>
+                      <Badge
+                        variant={
+                          user.subscription_status === 'active'
+                            ? 'success'
+                            : 'secondary'
+                        }
+                      >
                         {user.subscription_status}
                       </Badge>
                     </p>
@@ -331,11 +378,15 @@ export function UserDetailView({ userId }: UserDetailViewProps) {
             <CardContent>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 <div className="text-center p-4 bg-gray-50 rounded-lg">
-                  <p className="text-2xl font-bold text-gray-900">{user.images_processed}</p>
+                  <p className="text-2xl font-bold text-gray-900">
+                    {user.images_processed}
+                  </p>
                   <p className="text-sm text-gray-500">Images Processed</p>
                 </div>
                 <div className="text-center p-4 bg-gray-50 rounded-lg">
-                  <p className="text-2xl font-bold text-gray-900">{user.total_credits_used}</p>
+                  <p className="text-2xl font-bold text-gray-900">
+                    {user.total_credits_used}
+                  </p>
                   <p className="text-sm text-gray-500">Credits Used</p>
                 </div>
                 <div className="text-center p-4 bg-gray-50 rounded-lg">
@@ -351,18 +402,27 @@ export function UserDetailView({ userId }: UserDetailViewProps) {
                   <p className="text-sm text-gray-500">Profit Margin</p>
                 </div>
               </div>
-              
+
               <div className="mt-6">
-                <h4 className="text-sm font-medium text-gray-700 mb-3">API Usage by Service</h4>
+                <h4 className="text-sm font-medium text-gray-700 mb-3">
+                  API Usage by Service
+                </h4>
                 <div className="space-y-2">
-                  {Object.entries(user.api_usage_summary.by_service).map(([service, count]) => (
-                    <div key={service} className="flex items-center justify-between">
-                      <span className="text-sm text-gray-600 capitalize">
-                        {service.replace('_', ' ')}
-                      </span>
-                      <span className="text-sm font-medium text-gray-900">{count} operations</span>
-                    </div>
-                  ))}
+                  {Object.entries(user.api_usage_summary.by_service).map(
+                    ([service, count]) => (
+                      <div
+                        key={service}
+                        className="flex items-center justify-between"
+                      >
+                        <span className="text-sm text-gray-600 capitalize">
+                          {service.replace('_', ' ')}
+                        </span>
+                        <span className="text-sm font-medium text-gray-900">
+                          {count} operations
+                        </span>
+                      </div>
+                    )
+                  )}
                 </div>
               </div>
             </CardContent>
@@ -380,20 +440,34 @@ export function UserDetailView({ userId }: UserDetailViewProps) {
             </CardHeader>
             <CardContent>
               {user.credit_transactions.length === 0 ? (
-                <p className="text-gray-500 text-center py-8">No transactions yet</p>
+                <p className="text-gray-500 text-center py-8">
+                  No transactions yet
+                </p>
               ) : (
                 <div className="space-y-3">
-                  {user.credit_transactions.slice(0, 10).map((transaction) => (
-                    <div key={transaction.id} className="flex items-center justify-between py-3 border-b last:border-0">
+                  {user.credit_transactions.slice(0, 10).map(transaction => (
+                    <div
+                      key={transaction.id}
+                      className="flex items-center justify-between py-3 border-b last:border-0"
+                    >
                       <div className="flex-1">
-                        <p className="text-sm font-medium text-gray-900">{transaction.description}</p>
-                        <p className="text-xs text-gray-500">{formatDate(transaction.created_at)}</p>
+                        <p className="text-sm font-medium text-gray-900">
+                          {transaction.description}
+                        </p>
+                        <p className="text-xs text-gray-500">
+                          {formatDate(transaction.created_at)}
+                        </p>
                       </div>
                       <div className="text-right">
-                        <p className={`font-semibold ${transaction.amount > 0 ? 'text-green-600' : 'text-red-600'}`}>
-                          {transaction.amount > 0 ? '+' : ''}{transaction.amount}
+                        <p
+                          className={`font-semibold ${transaction.amount > 0 ? 'text-green-600' : 'text-red-600'}`}
+                        >
+                          {transaction.amount > 0 ? '+' : ''}
+                          {transaction.amount}
                         </p>
-                        <p className="text-xs text-gray-500">Balance: {transaction.balance_after}</p>
+                        <p className="text-xs text-gray-500">
+                          Balance: {transaction.balance_after}
+                        </p>
                       </div>
                     </div>
                   ))}
@@ -412,7 +486,9 @@ export function UserDetailView({ userId }: UserDetailViewProps) {
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="text-center py-4">
-                <p className="text-4xl font-bold text-gray-900">{user.credits_remaining}</p>
+                <p className="text-4xl font-bold text-gray-900">
+                  {user.credits_remaining}
+                </p>
                 <p className="text-sm text-gray-500">Credits Remaining</p>
               </div>
               <Button
@@ -442,16 +518,32 @@ export function UserDetailView({ userId }: UserDetailViewProps) {
               <CardTitle>Quick Actions</CardTitle>
             </CardHeader>
             <CardContent className="space-y-2">
-              <Button variant="outline" fullWidth leftIcon={<Mail className="h-4 w-4" />}>
+              <Button
+                variant="outline"
+                fullWidth
+                leftIcon={<Mail className="h-4 w-4" />}
+              >
                 Send Email
               </Button>
-              <Button variant="outline" fullWidth leftIcon={<RefreshCw className="h-4 w-4" />}>
+              <Button
+                variant="outline"
+                fullWidth
+                leftIcon={<RefreshCw className="h-4 w-4" />}
+              >
                 Reset Password
               </Button>
-              <Button variant="outline" fullWidth leftIcon={<Download className="h-4 w-4" />}>
+              <Button
+                variant="outline"
+                fullWidth
+                leftIcon={<Download className="h-4 w-4" />}
+              >
                 Export Data
               </Button>
-              <Button variant="outline" fullWidth leftIcon={<Shield className="h-4 w-4" />}>
+              <Button
+                variant="outline"
+                fullWidth
+                leftIcon={<Shield className="h-4 w-4" />}
+              >
                 View Audit Log
               </Button>
             </CardContent>
@@ -464,13 +556,17 @@ export function UserDetailView({ userId }: UserDetailViewProps) {
             </CardHeader>
             <CardContent>
               {user.recent_activity.length === 0 ? (
-                <p className="text-gray-500 text-center py-4">No recent activity</p>
+                <p className="text-gray-500 text-center py-4">
+                  No recent activity
+                </p>
               ) : (
                 <div className="space-y-3">
-                  {user.recent_activity.slice(0, 5).map((activity) => (
+                  {user.recent_activity.slice(0, 5).map(activity => (
                     <div key={activity.id} className="text-sm">
                       <p className="text-gray-900">{activity.description}</p>
-                      <p className="text-xs text-gray-500">{formatDate(activity.created_at)}</p>
+                      <p className="text-xs text-gray-500">
+                        {formatDate(activity.created_at)}
+                      </p>
                     </div>
                   ))}
                 </div>

@@ -16,15 +16,16 @@ async function resetUserAccount(email) {
 
   try {
     // Step 1: Find the user in auth.users
-    const { data: authUsers, error: authError } = await supabase.auth.admin.listUsers();
-    
+    const { data: authUsers, error: authError } =
+      await supabase.auth.admin.listUsers();
+
     if (authError) {
       console.error('❌ Error fetching users:', authError);
       return;
     }
 
     const user = authUsers.users.find(u => u.email === email);
-    
+
     if (!user) {
       console.log(`⚠️  No user found with email: ${email}`);
       return;
@@ -41,7 +42,7 @@ async function resetUserAccount(email) {
       .delete()
       .eq('user_id', user.id)
       .select();
-    
+
     if (imagesError) {
       console.error('❌ Error deleting images:', imagesError);
     } else {
@@ -54,11 +55,13 @@ async function resetUserAccount(email) {
       .delete()
       .eq('user_id', user.id)
       .select();
-    
+
     if (transError) {
       console.error('❌ Error deleting transactions:', transError);
     } else {
-      console.log(`   - Deleted ${transactions?.length || 0} credit transactions`);
+      console.log(
+        `   - Deleted ${transactions?.length || 0} credit transactions`
+      );
     }
 
     // Delete support messages (from tickets)
@@ -66,16 +69,16 @@ async function resetUserAccount(email) {
       .from('support_tickets')
       .select('id')
       .eq('user_id', user.id);
-    
+
     if (tickets && tickets.length > 0) {
       const ticketIds = tickets.map(t => t.id);
-      
+
       const { data: messages, error: msgError } = await supabase
         .from('support_messages')
         .delete()
         .in('ticket_id', ticketIds)
         .select();
-      
+
       if (msgError) {
         console.error('❌ Error deleting support messages:', msgError);
       } else {
@@ -89,11 +92,13 @@ async function resetUserAccount(email) {
       .delete()
       .eq('user_id', user.id)
       .select();
-    
+
     if (ticketsError) {
       console.error('❌ Error deleting support tickets:', ticketsError);
     } else {
-      console.log(`   - Deleted ${supportTickets?.length || 0} support tickets`);
+      console.log(
+        `   - Deleted ${supportTickets?.length || 0} support tickets`
+      );
     }
 
     // Delete notification preferences
@@ -102,11 +107,13 @@ async function resetUserAccount(email) {
       .delete()
       .eq('user_id', user.id)
       .select();
-    
+
     if (notifError) {
       console.error('❌ Error deleting notification preferences:', notifError);
     } else {
-      console.log(`   - Deleted ${notifPrefs?.length || 0} notification preferences`);
+      console.log(
+        `   - Deleted ${notifPrefs?.length || 0} notification preferences`
+      );
     }
 
     // Delete admin logs related to this user
@@ -115,7 +122,7 @@ async function resetUserAccount(email) {
       .delete()
       .eq('metadata->user_id', user.id)
       .select();
-    
+
     if (logsError) {
       console.error('❌ Error deleting admin logs:', logsError);
     } else {
@@ -124,11 +131,11 @@ async function resetUserAccount(email) {
 
     // Step 3: Reset the profile to fresh state
     console.log('\n📝 Resetting profile to fresh state...');
-    
+
     const { error: profileError } = await supabase
       .from('profiles')
       .update({
-        credits_remaining: 2,  // Free tier starting credits
+        credits_remaining: 2, // Free tier starting credits
         subscription_status: 'free',
         subscription_plan: 'free',
         stripe_customer_id: null,
@@ -153,11 +160,11 @@ async function resetUserAccount(email) {
           credit_alerts: true,
           email_updates: true,
           email_marketing: false,
-          subscription_reminders: true
+          subscription_reminders: true,
         },
         last_credit_purchase_at: null,
         last_activity_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
+        updated_at: new Date().toISOString(),
       })
       .eq('id', user.id);
 
@@ -175,8 +182,12 @@ async function resetUserAccount(email) {
       .single();
 
     if (profile?.stripe_customer_id) {
-      console.log(`\n⚠️  Note: Stripe customer ${profile.stripe_customer_id} still exists in Stripe`);
-      console.log('   You may want to cancel any active subscriptions in Stripe dashboard');
+      console.log(
+        `\n⚠️  Note: Stripe customer ${profile.stripe_customer_id} still exists in Stripe`
+      );
+      console.log(
+        '   You may want to cancel any active subscriptions in Stripe dashboard'
+      );
     }
 
     console.log('\n✅ Account reset complete!');
@@ -184,7 +195,6 @@ async function resetUserAccount(email) {
     console.log(`   Email: ${email}`);
     console.log('   Starting credits: 2');
     console.log('   Subscription: Free tier');
-
   } catch (error) {
     console.error('❌ Unexpected error:', error);
   }
@@ -195,7 +205,9 @@ async function main() {
 
   if (!email) {
     console.log('Usage: node scripts/reset-user-account.js <email>');
-    console.log('Example: node scripts/reset-user-account.js shannonherod@gmail.com');
+    console.log(
+      'Example: node scripts/reset-user-account.js shannonherod@gmail.com'
+    );
     process.exit(1);
   }
 

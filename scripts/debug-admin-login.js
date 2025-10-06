@@ -17,12 +17,18 @@ const supabase = createClient(
 
 async function debugAdminLogin() {
   console.log('🔍 Admin Login Debug Script\n');
-  
+
   // Check environment
   console.log('1. Environment Check:');
   console.log('   - NODE_ENV:', process.env.NODE_ENV || 'development');
-  console.log('   - Supabase URL:', process.env.NEXT_PUBLIC_SUPABASE_URL ? '✅ Set' : '❌ Missing');
-  console.log('   - Service Key:', process.env.SUPABASE_SERVICE_ROLE_KEY ? '✅ Set' : '❌ Missing');
+  console.log(
+    '   - Supabase URL:',
+    process.env.NEXT_PUBLIC_SUPABASE_URL ? '✅ Set' : '❌ Missing'
+  );
+  console.log(
+    '   - Service Key:',
+    process.env.SUPABASE_SERVICE_ROLE_KEY ? '✅ Set' : '❌ Missing'
+  );
   console.log('');
 
   // Check admin users
@@ -41,16 +47,23 @@ async function debugAdminLogin() {
     admins.forEach(admin => {
       console.log(`      - ${admin.email} (${admin.full_name || 'No name'})`);
       console.log(`        ID: ${admin.id}`);
-      console.log(`        Created: ${new Date(admin.created_at).toLocaleString()}`);
-      console.log(`        Last activity: ${admin.last_activity_at ? new Date(admin.last_activity_at).toLocaleString() : 'Never'}`);
+      console.log(
+        `        Created: ${new Date(admin.created_at).toLocaleString()}`
+      );
+      console.log(
+        `        Last activity: ${admin.last_activity_at ? new Date(admin.last_activity_at).toLocaleString() : 'Never'}`
+      );
     });
   }
   console.log('');
 
   // Check auth sessions
   console.log('3. Active Auth Sessions:');
-  const { data: { sessions }, error: sessionError } = await supabase.auth.admin.listUsers();
-  
+  const {
+    data: { sessions },
+    error: sessionError,
+  } = await supabase.auth.admin.listUsers();
+
   if (sessionError) {
     console.error('   ❌ Error fetching sessions:', sessionError.message);
   } else {
@@ -58,10 +71,14 @@ async function debugAdminLogin() {
     if (activeSessions.length === 0) {
       console.log('   ⚠️  No active sessions found');
     } else {
-      console.log(`   ✅ Found ${activeSessions.length} user(s) with sessions:`);
+      console.log(
+        `   ✅ Found ${activeSessions.length} user(s) with sessions:`
+      );
       activeSessions.forEach(user => {
         console.log(`      - ${user.email}`);
-        console.log(`        Last sign in: ${new Date(user.last_sign_in_at).toLocaleString()}`);
+        console.log(
+          `        Last sign in: ${new Date(user.last_sign_in_at).toLocaleString()}`
+        );
       });
     }
   }
@@ -71,43 +88,51 @@ async function debugAdminLogin() {
   console.log('4. Test Admin Authentication:');
   const testEmail = process.argv[2];
   const testPassword = process.argv[3];
-  
+
   if (testEmail && testPassword) {
     console.log(`   Testing login for: ${testEmail}`);
-    
-    const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
-      email: testEmail,
-      password: testPassword,
-    });
+
+    const { data: authData, error: authError } =
+      await supabase.auth.signInWithPassword({
+        email: testEmail,
+        password: testPassword,
+      });
 
     if (authError) {
       console.error('   ❌ Authentication failed:', authError.message);
     } else if (authData.user) {
       console.log('   ✅ Authentication successful!');
       console.log(`      User ID: ${authData.user.id}`);
-      console.log(`      Session expires: ${new Date(authData.session.expires_at * 1000).toLocaleString()}`);
-      
+      console.log(
+        `      Session expires: ${new Date(authData.session.expires_at * 1000).toLocaleString()}`
+      );
+
       // Check if user is admin
       const { data: profile } = await supabase
         .from('profiles')
         .select('is_admin')
         .eq('id', authData.user.id)
         .single();
-      
+
       console.log(`      Is admin: ${profile?.is_admin ? '✅ Yes' : '❌ No'}`);
-      
+
       // Sign out
       await supabase.auth.signOut();
     }
   } else {
-    console.log('   ℹ️  To test authentication, run: node scripts/debug-admin-login.js <email> <password>');
+    console.log(
+      '   ℹ️  To test authentication, run: node scripts/debug-admin-login.js <email> <password>'
+    );
   }
   console.log('');
 
   // Check cookie configuration
   console.log('5. Cookie Configuration (from code):');
   console.log('   - HttpOnly: true');
-  console.log('   - Secure:', process.env.NODE_ENV === 'production' ? 'true' : 'false');
+  console.log(
+    '   - Secure:',
+    process.env.NODE_ENV === 'production' ? 'true' : 'false'
+  );
   console.log('   - SameSite: lax');
   console.log('   - Path: /');
   console.log('');
@@ -124,7 +149,7 @@ async function debugAdminLogin() {
   console.log('      - Look for admin_session cookie');
   console.log('   6. Try navigating directly to /admin after login');
   console.log('');
-  
+
   console.log('7. Common Issues:');
   console.log('   - Cookie blocked by browser (check console for warnings)');
   console.log('   - JavaScript redirect blocked by extension');

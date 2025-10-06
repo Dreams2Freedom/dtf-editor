@@ -1,11 +1,11 @@
 import { createClientSupabaseClient } from '@/lib/supabase/client';
-import type { 
-  SupportTicket, 
-  SupportMessage, 
-  CreateTicketData, 
+import type {
+  SupportTicket,
+  SupportMessage,
+  CreateTicketData,
   CreateMessageData,
   TicketStatus,
-  SupportNotification
+  SupportNotification,
 } from '@/types/support';
 
 export class SupportService {
@@ -17,26 +17,31 @@ export class SupportService {
   /**
    * Create a new support ticket
    */
-  async createTicket(userId: string, data: CreateTicketData): Promise<SupportTicket> {
+  async createTicket(
+    userId: string,
+    data: CreateTicketData
+  ): Promise<SupportTicket> {
     try {
       const supabase = this.getSupabase();
-      
+
       // Generate a temporary ticket number if the trigger doesn't work
       // Format: TKT-YYYYMM-XXXX
       const now = new Date();
       const yearMonth = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}`;
-      const randomNum = Math.floor(Math.random() * 10000).toString().padStart(4, '0');
+      const randomNum = Math.floor(Math.random() * 10000)
+        .toString()
+        .padStart(4, '0');
       const ticketNumber = `TKT-${yearMonth}-${randomNum}`;
-      
+
       // Create the ticket with explicit ticket_number
       const { data: ticket, error: ticketError } = await supabase
         .from('support_tickets')
         .insert({
           user_id: userId,
-          ticket_number: ticketNumber,  // Provide ticket_number explicitly
+          ticket_number: ticketNumber, // Provide ticket_number explicitly
           subject: data.subject,
           category: data.category,
-          priority: data.priority || 'medium'
+          priority: data.priority || 'medium',
         })
         .select()
         .single();
@@ -50,7 +55,7 @@ export class SupportService {
           ticket_id: ticket.id,
           user_id: userId,
           message: data.message,
-          is_admin: false
+          is_admin: false,
         });
 
       if (messageError) throw messageError;
@@ -72,12 +77,17 @@ export class SupportService {
           priority: ticket.priority,
           message: data.message,
           userEmail: profile?.email || 'unknown',
-          userName: profile ? `${profile.first_name || ''} ${profile.last_name || ''}`.trim() : undefined,
-          createdAt: ticket.created_at
+          userName: profile
+            ? `${profile.first_name || ''} ${profile.last_name || ''}`.trim()
+            : undefined,
+          createdAt: ticket.created_at,
         });
       } catch (emailError) {
         // Don't fail ticket creation if email fails
-        console.error('Failed to send support ticket notification email:', emailError);
+        console.error(
+          'Failed to send support ticket notification email:',
+          emailError
+        );
       }
 
       return ticket;
@@ -102,31 +112,33 @@ export class SupportService {
       if (error) throw error;
 
       // Get message counts and check for admin replies for each ticket
-      const ticketsWithCounts = await Promise.all((tickets || []).map(async (ticket) => {
-        // Get all messages for this ticket
-        const { data: messages, error: msgError } = await supabase
-          .from('support_messages')
-          .select('id, is_admin')
-          .eq('ticket_id', ticket.id);
+      const ticketsWithCounts = await Promise.all(
+        (tickets || []).map(async ticket => {
+          // Get all messages for this ticket
+          const { data: messages, error: msgError } = await supabase
+            .from('support_messages')
+            .select('id, is_admin')
+            .eq('ticket_id', ticket.id);
 
-        if (msgError) {
-          console.error('Error fetching messages for ticket:', msgError);
+          if (msgError) {
+            console.error('Error fetching messages for ticket:', msgError);
+            return {
+              ...ticket,
+              message_count: 0,
+              has_admin_reply: false,
+            };
+          }
+
+          const messageCount = messages?.length || 0;
+          const hasAdminReply = messages?.some(msg => msg.is_admin) || false;
+
           return {
             ...ticket,
-            message_count: 0,
-            has_admin_reply: false
+            message_count: messageCount,
+            has_admin_reply: hasAdminReply,
           };
-        }
-
-        const messageCount = messages?.length || 0;
-        const hasAdminReply = messages?.some(msg => msg.is_admin) || false;
-
-        return {
-          ...ticket,
-          message_count: messageCount,
-          has_admin_reply: hasAdminReply
-        };
-      }));
+        })
+      );
 
       return ticketsWithCounts;
     } catch (error) {
@@ -144,7 +156,7 @@ export class SupportService {
   }> {
     try {
       const supabase = this.getSupabase();
-      
+
       // Get ticket
       const { data: ticket, error: ticketError } = await supabase
         .from('support_tickets')
@@ -164,40 +176,46 @@ export class SupportService {
       if (messagesError) throw messagesError;
 
       // For each message, get the user profile separately if needed
-      const formattedMessages = await Promise.all((messages || []).map(async (msg) => {
-        if (msg.user_id && !msg.is_admin) {
-          // Try to get user profile
-          const { data: profile } = await supabase
-            .from('profiles')
-            .select('first_name, last_name, email')
-            .eq('id', msg.user_id)
-            .single();
-          
-          return {
-            ...msg,
-            author: profile ? {
-              name: `${profile.first_name || ''} ${profile.last_name || ''}`.trim() || 'User',
-              email: profile.email
-            } : {
-              name: 'User',
-              email: null
-            }
-          };
-        } else if (msg.is_admin) {
-          return {
-            ...msg,
-            author: {
-              name: 'Support Team',
-              email: 'support@dtfeditor.com'
-            }
-          };
-        }
-        return msg;
-      }));
+      const formattedMessages = await Promise.all(
+        (messages || []).map(async msg => {
+          if (msg.user_id && !msg.is_admin) {
+            // Try to get user profile
+            const { data: profile } = await supabase
+              .from('profiles')
+              .select('first_name, last_name, email')
+              .eq('id', msg.user_id)
+              .single();
+
+            return {
+              ...msg,
+              author: profile
+                ? {
+                    name:
+                      `${profile.first_name || ''} ${profile.last_name || ''}`.trim() ||
+                      'User',
+                    email: profile.email,
+                  }
+                : {
+                    name: 'User',
+                    email: null,
+                  },
+            };
+          } else if (msg.is_admin) {
+            return {
+              ...msg,
+              author: {
+                name: 'Support Team',
+                email: 'support@dtfeditor.com',
+              },
+            };
+          }
+          return msg;
+        })
+      );
 
       return {
         ticket,
-        messages: formattedMessages
+        messages: formattedMessages,
       };
     } catch (error) {
       console.error('Error fetching ticket:', error);
@@ -208,10 +226,13 @@ export class SupportService {
   /**
    * Add a message to a ticket
    */
-  async addMessage(data: CreateMessageData, userId: string): Promise<SupportMessage> {
+  async addMessage(
+    data: CreateMessageData,
+    userId: string
+  ): Promise<SupportMessage> {
     try {
       const supabase = this.getSupabase();
-      
+
       const { data: message, error } = await supabase
         .from('support_messages')
         .insert({
@@ -219,7 +240,7 @@ export class SupportService {
           user_id: userId,
           message: data.message,
           attachments: data.attachments || [],
-          is_admin: false
+          is_admin: false,
         })
         .select()
         .single();
@@ -229,9 +250,9 @@ export class SupportService {
       // Update ticket status if it was waiting on user
       await supabase
         .from('support_tickets')
-        .update({ 
+        .update({
           status: 'open',
-          updated_at: new Date().toISOString()
+          updated_at: new Date().toISOString(),
         })
         .eq('id', data.ticket_id)
         .eq('status', 'waiting_on_user');
@@ -257,9 +278,11 @@ export class SupportService {
           await emailService.sendTicketReplyToAdmin({
             ticketNumber: ticket.ticket_number,
             userEmail: profile.email,
-            userName: profile.first_name ? `${profile.first_name} ${profile.last_name || ''}`.trim() : undefined,
+            userName: profile.first_name
+              ? `${profile.first_name} ${profile.last_name || ''}`.trim()
+              : undefined,
             userMessage: data.message,
-            ticketSubject: ticket.subject
+            ticketSubject: ticket.subject,
           });
         } catch (emailError) {
           console.error('Failed to send user reply notification:', emailError);
@@ -277,11 +300,14 @@ export class SupportService {
   /**
    * Update ticket status
    */
-  async updateTicketStatus(ticketId: string, status: TicketStatus): Promise<void> {
+  async updateTicketStatus(
+    ticketId: string,
+    status: TicketStatus
+  ): Promise<void> {
     try {
       const supabase = this.getSupabase();
       const updateData: Record<string, unknown> = { status };
-      
+
       if (status === 'resolved') {
         updateData.resolved_at = new Date().toISOString();
       } else if (status === 'closed') {
@@ -308,13 +334,15 @@ export class SupportService {
       const supabase = this.getSupabase();
       const { data, error } = await supabase
         .from('support_notifications')
-        .select(`
+        .select(
+          `
           *,
           support_tickets!inner (
             ticket_number,
             subject
           )
-        `)
+        `
+        )
         .eq('user_id', userId)
         .eq('is_read', false)
         .order('created_at', { ascending: false });
@@ -323,7 +351,7 @@ export class SupportService {
 
       return (data || []).map(notif => ({
         ...notif,
-        ticket: notif.support_tickets
+        ticket: notif.support_tickets,
       }));
     } catch (error) {
       console.error('Error fetching notifications:', error);

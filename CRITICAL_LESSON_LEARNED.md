@@ -3,26 +3,33 @@
 ## The 6-Hour Admin Email Mistake
 
 ### What Happened
+
 Spent **6 hours** debugging "admin access denied" and "0 affiliate applications" issues, thinking it was a database/RLS problem.
 
 ### The Real Problem
+
 1. **Wrong Admin Email:** Using `shannonherod@gmail.com` instead of `Shannon@S2Transfers.com`
 2. **Not Logged In:** Wasn't authenticated in production environment
 3. **Wrong Assumption:** Thought local session would work in production
 
 ### What Was Actually Wrong
+
 **NOTHING IN THE CODE OR DATABASE!** Just needed to:
+
 1. Log in to production (separate from local)
 2. Use the correct admin email: `Shannon@S2Transfers.com`
 
 ### Time Breakdown
+
 - **Session 1 (Oct 3-4):** 4 hours debugging database, RLS policies, functions
 - **Session 2 (Oct 4):** 2 hours before realizing it was just login issue
 - **Total Time Wasted:** 6 hours
 - **Should Have Taken:** 5 minutes (check login status)
 
 ### The Fix That Wasn't Needed
+
 All the database work we did was actually correct:
+
 - ✅ is_admin() function works perfectly
 - ✅ RLS policies function correctly
 - ✅ admin_users table properly configured
@@ -58,20 +65,24 @@ We just needed to **LOG IN AS THE RIGHT EMAIL!**
 **BEFORE debugging ANY admin access issue:**
 
 ### Step 1: Check Authentication ✅
+
 - Is the user logged in?
 - Look for "Sign In" button in header
 - If not logged in → USER ERROR, not system error
 
 ### Step 2: Check Email ✅
+
 - Using `Shannon@S2Transfers.com`? (correct)
 - Using `shannonherod@gmail.com`? (wrong for production admin)
 
 ### Step 3: Check Environment ✅
+
 - Production and local have SEPARATE sessions
 - Must log in to each environment separately
 - Local login ≠ Production login
 
 ### Step 4: Check Database ⚠️
+
 - ONLY if steps 1-3 are confirmed correct
 - Check is_admin() function
 - Check RLS policies
@@ -80,12 +91,14 @@ We just needed to **LOG IN AS THE RIGHT EMAIL!**
 ## 📊 Correct Admin Information
 
 **SUPER ADMIN (Primary):**
+
 - Email: `Shannon@S2Transfers.com` (capital S, capital T)
 - User ID: `1596097b-8333-452a-a2bd-ea27340677ec`
 - Role: super_admin
 - Use this for: Production admin access
 
 **Testing Admin (Secondary):**
+
 - Email: `shannonherod@gmail.com`
 - User ID: `fcc1b251-6307-457c-ac1e-064aa43b2449`
 - Role: super_admin (added during debugging)
@@ -102,6 +115,7 @@ We just needed to **LOG IN AS THE RIGHT EMAIL!**
 ## 🎯 This Will Never Happen Again
 
 Files created to prevent this:
+
 - ✅ `ADMIN_CREDENTIALS.md` - Mandatory reference
 - ✅ `CLAUDE.md` - Updated with admin info at top
 - ✅ `BUGS_TRACKER.md` - LESSON-001 documented
@@ -109,6 +123,7 @@ Files created to prevent this:
 - ✅ `CRITICAL_LESSON_LEARNED.md` - This summary
 
 **Next session, Claude will:**
+
 1. Read ADMIN_CREDENTIALS.md first
 2. Check auth status before debugging database
 3. Verify correct admin email before anything else
@@ -121,7 +136,9 @@ Files created to prevent this:
 After documenting the authentication lesson, we discovered **one more real issue**:
 
 ### Missing Database Functions + Parameter Name Mismatch
+
 The admin panel (`/admin/users/admins`) calls these RPC functions:
+
 - `get_admin_role(user_id)` ❌ Not in production
 - `is_super_admin(user_id)` ❌ Not in production
 - `has_permission(user_id, permission_key)` ❌ Not in production
@@ -129,6 +146,7 @@ The admin panel (`/admin/users/admins`) calls these RPC functions:
 **Cause 1:** Migration `20250103_create_admin_roles_system.sql` was committed to codebase but never applied to production Supabase.
 
 **Cause 2:** Inconsistent parameter naming across migrations:
+
 - `FIX_ADMIN_ACCESS_FINAL.sql` used parameter name `check_user_id`
 - `20250103_create_admin_roles_system.sql` used parameter name `user_id`
 - Client code expects `user_id`
@@ -137,6 +155,7 @@ The admin panel (`/admin/users/admins`) calls these RPC functions:
 **Fix:** Apply `scripts/FIX_ADMIN_FUNCTIONS_CORRECT.sql` to production database.
 
 **Lessons Learned:**
+
 1. Always verify migrations are applied to production, not just committed to git
 2. **CRITICAL: Use consistent parameter naming across all PostgreSQL functions**
 3. When creating database functions, check what parameter names the client code expects
@@ -146,11 +165,13 @@ The admin panel (`/admin/users/admins`) calls these RPC functions:
 ## 🔧 UPDATE 2: October 4, 2025 - RLS Circular Dependency (Affiliate Access)
 
 After fixing the admin functions, we discovered the affiliate admin dashboard still showed "permission denied" even though:
+
 - ✅ User was authenticated (session exists, email = shannon@s2transfers.com)
 - ✅ User had `profiles.is_admin = true`
 - ✅ RLS policies existed on affiliate tables
 
 **Root Cause:** RLS policies used subquery to check admin status:
+
 ```sql
 EXISTS (
   SELECT 1 FROM public.profiles
@@ -160,12 +181,14 @@ EXISTS (
 ```
 
 But the `profiles` table itself has RLS enabled! This created a circular dependency:
+
 1. RLS policy needs to check if user is admin
 2. To check admin, it queries profiles table
 3. But profiles table RLS blocks the query
 4. Result: Admin check always fails
 
 **Fix:** Use direct UUID matching instead of subqueries:
+
 ```sql
 USING (auth.uid() = '1596097b-8333-452a-a2bd-ea27340677ec'::uuid)
 ```
@@ -173,6 +196,7 @@ USING (auth.uid() = '1596097b-8333-452a-a2bd-ea27340677ec'::uuid)
 **Time Wasted:** Additional 2 hours (8 hours total for this whole saga)
 
 **Lesson:** NEVER use subqueries to RLS-protected tables in RLS policies. Use:
+
 - Direct UUID comparisons, OR
 - SECURITY DEFINER functions that bypass RLS
 
@@ -201,6 +225,7 @@ USING (auth.uid() = '1596097b-8333-452a-a2bd-ea27340677ec'::uuid)
 ```
 
 **Going Forward:**
+
 - ✅ Use MCP server for all database debugging
 - ✅ No more manual SQL Editor copy/paste
 - ✅ Direct query execution from Claude Code

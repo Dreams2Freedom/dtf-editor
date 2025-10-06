@@ -16,15 +16,16 @@ async function deleteUserAccount(email) {
 
   try {
     // Step 1: Find the user in auth.users
-    const { data: authUsers, error: authError } = await supabase.auth.admin.listUsers();
-    
+    const { data: authUsers, error: authError } =
+      await supabase.auth.admin.listUsers();
+
     if (authError) {
       console.error('❌ Error fetching users:', authError);
       return;
     }
 
     const user = authUsers.users.find(u => u.email === email);
-    
+
     if (!user) {
       console.log(`⚠️  No user found with email: ${email}`);
       return;
@@ -41,7 +42,7 @@ async function deleteUserAccount(email) {
       .delete()
       .eq('user_id', user.id)
       .select();
-    
+
     if (imagesError) {
       console.error('❌ Error deleting images:', imagesError);
     } else {
@@ -54,11 +55,13 @@ async function deleteUserAccount(email) {
       .delete()
       .eq('user_id', user.id)
       .select();
-    
+
     if (transError) {
       console.error('❌ Error deleting transactions:', transError);
     } else {
-      console.log(`   - Deleted ${transactions?.length || 0} credit transactions`);
+      console.log(
+        `   - Deleted ${transactions?.length || 0} credit transactions`
+      );
     }
 
     // Delete support messages (from tickets)
@@ -66,16 +69,16 @@ async function deleteUserAccount(email) {
       .from('support_tickets')
       .select('id')
       .eq('user_id', user.id);
-    
+
     if (tickets && tickets.length > 0) {
       const ticketIds = tickets.map(t => t.id);
-      
+
       const { data: messages, error: msgError } = await supabase
         .from('support_messages')
         .delete()
         .in('ticket_id', ticketIds)
         .select();
-      
+
       if (msgError) {
         console.error('❌ Error deleting support messages:', msgError);
       } else {
@@ -89,16 +92,18 @@ async function deleteUserAccount(email) {
       .delete()
       .eq('user_id', user.id)
       .select();
-    
+
     if (ticketsError) {
       console.error('❌ Error deleting support tickets:', ticketsError);
     } else {
-      console.log(`   - Deleted ${supportTickets?.length || 0} support tickets`);
+      console.log(
+        `   - Deleted ${supportTickets?.length || 0} support tickets`
+      );
     }
 
     // Step 3: Delete the profile
     console.log('\n📝 Deleting profile...');
-    
+
     const { error: profileError } = await supabase
       .from('profiles')
       .delete()
@@ -112,8 +117,10 @@ async function deleteUserAccount(email) {
 
     // Step 4: Delete the auth user
     console.log('\n🔐 Deleting auth user...');
-    
-    const { error: deleteAuthError } = await supabase.auth.admin.deleteUser(user.id);
+
+    const { error: deleteAuthError } = await supabase.auth.admin.deleteUser(
+      user.id
+    );
 
     if (deleteAuthError) {
       console.error('❌ Error deleting auth user:', deleteAuthError);
@@ -123,7 +130,6 @@ async function deleteUserAccount(email) {
 
     console.log('\n✅ Account completely deleted!');
     console.log(`   ${email} can now sign up as a brand new user`);
-
   } catch (error) {
     console.error('❌ Unexpected error:', error);
   }
@@ -134,7 +140,9 @@ async function main() {
 
   if (!email) {
     console.log('Usage: node scripts/delete-user-account.js <email>');
-    console.log('Example: node scripts/delete-user-account.js shannonherod@gmail.com');
+    console.log(
+      'Example: node scripts/delete-user-account.js shannonherod@gmail.com'
+    );
     process.exit(1);
   }
 

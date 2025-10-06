@@ -4,6 +4,7 @@
 **Target:** Vercel Production
 
 ## 🎯 Current Status
+
 - ✅ Code is pushed to GitHub
 - ✅ Email system (Mailgun) integrated
 - ✅ All features tested locally
@@ -16,6 +17,7 @@
 First, let's fix the missing NEXT_PUBLIC variables in your env config:
 
 1. **Update your env.ts file** to use the correct variable names:
+
    ```typescript
    // In src/config/env.ts, update:
    STRIPE_PUBLISHABLE_KEY: process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || process.env.STRIPE_PUBLISHABLE_KEY || '',
@@ -31,19 +33,23 @@ First, let's fix the missing NEXT_PUBLIC variables in your env config:
 ### Step 2: Configure Vercel Project ⏳
 
 1. **Install Vercel CLI** (if not already installed):
+
    ```bash
    npm i -g vercel
    ```
 
 2. **Login to Vercel**:
+
    ```bash
    vercel login
    ```
 
 3. **Link your project** (in the project directory):
+
    ```bash
    vercel link
    ```
+
    - Choose your team/account
    - Link to existing project or create new
    - Confirm the settings
@@ -57,7 +63,7 @@ First, let's fix the missing NEXT_PUBLIC variables in your env config:
 
    **Supabase Variables:**
    - `NEXT_PUBLIC_SUPABASE_URL` → Your Supabase URL
-   - `NEXT_PUBLIC_SUPABASE_ANON_KEY` → Your anon key  
+   - `NEXT_PUBLIC_SUPABASE_ANON_KEY` → Your anon key
    - `SUPABASE_SERVICE_ROLE_KEY` → Your service role key (keep secret!)
 
    **AI Service Variables:**
@@ -89,6 +95,7 @@ First, let's fix the missing NEXT_PUBLIC variables in your env config:
    - `CRON_SECRET` → The value you generated in Step 1
 
 **Option B: Using Vercel CLI**
+
 ```bash
 # For each variable, run:
 vercel env add VARIABLE_NAME production
@@ -100,6 +107,7 @@ vercel env add NEXT_PUBLIC_SUPABASE_URL production preview
 ### Step 4: Deploy to Production ⏳
 
 1. **Deploy the application**:
+
    ```bash
    vercel --prod
    ```
@@ -132,12 +140,14 @@ vercel env add NEXT_PUBLIC_SUPABASE_URL production preview
 ### Step 6: Configure Supabase for Production ⏳
 
 1. **Deploy Edge Functions**:
+
    ```bash
    cd supabase/functions/auth-email-handler
    supabase functions deploy auth-email-handler --project-ref [YOUR-PROJECT-REF]
    ```
 
 2. **Set Edge Function Secrets**:
+
    ```bash
    supabase secrets set MAILGUN_API_KEY=[YOUR-KEY] --project-ref [YOUR-PROJECT-REF]
    supabase secrets set MAILGUN_DOMAIN=[YOUR-DOMAIN] --project-ref [YOUR-PROJECT-REF]
@@ -195,16 +205,19 @@ vercel env add NEXT_PUBLIC_SUPABASE_URL production preview
 ## 🚨 Troubleshooting
 
 ### If emails aren't sending:
+
 - Check Mailgun API key and domain
 - Verify DNS records are propagated
 - Check Vercel function logs for errors
 
 ### If payments aren't working:
+
 - Verify Stripe is in production mode
 - Check webhook signature is correct
 - Monitor webhook attempts in Stripe dashboard
 
 ### If images aren't processing:
+
 - Verify AI service API keys are correct
 - Check API rate limits aren't exceeded
 - Monitor Vercel function logs
@@ -231,7 +244,8 @@ vercel env add NEXT_PUBLIC_SUPABASE_URL production preview
 
 ---
 
-**Need Help?** 
+**Need Help?**
+
 - Vercel Docs: https://vercel.com/docs
 - Stripe Docs: https://stripe.com/docs
 - Supabase Docs: https://supabase.com/docs

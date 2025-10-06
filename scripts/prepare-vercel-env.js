@@ -13,7 +13,7 @@ const REQUIRED_VARS = [
   'NEXT_PUBLIC_SUPABASE_URL',
   'NEXT_PUBLIC_SUPABASE_ANON_KEY',
   'SUPABASE_SERVICE_ROLE_KEY',
-  
+
   // AI Services
   'DEEP_IMAGE_API_KEY',
   'CLIPPINGMAGIC_API_KEY',
@@ -21,7 +21,7 @@ const REQUIRED_VARS = [
   'VECTORIZER_API_KEY',
   'VECTORIZER_API_SECRET',
   'OPENAI_API_KEY',
-  
+
   // Stripe
   'NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY',
   'STRIPE_SECRET_KEY',
@@ -31,16 +31,16 @@ const REQUIRED_VARS = [
   'STRIPE_PAYG_10_CREDITS_PRICE_ID',
   'STRIPE_PAYG_20_CREDITS_PRICE_ID',
   'STRIPE_PAYG_50_CREDITS_PRICE_ID',
-  
+
   // Mailgun
   'MAILGUN_API_KEY',
   'MAILGUN_DOMAIN',
   'MAILGUN_FROM_EMAIL',
   'MAILGUN_FROM_NAME',
-  
+
   // App Config
   'NEXT_PUBLIC_APP_URL',
-  'CRON_SECRET'
+  'CRON_SECRET',
 ];
 
 // Parse env file
@@ -56,7 +56,9 @@ envContent.split('\n').forEach(line => {
 
 // Create Vercel CLI commands
 console.log('# Vercel Environment Variable Commands\n');
-console.log('# Run these commands in your terminal to set production environment variables:\n');
+console.log(
+  '# Run these commands in your terminal to set production environment variables:\n'
+);
 
 // First, ensure we're in the right project
 console.log('# 1. First, link your Vercel project (if not already done):');
@@ -77,7 +79,9 @@ REQUIRED_VARS.forEach(varName => {
   }
 });
 
-console.log('\n# 3. After running the commands above, Vercel will prompt for each value.');
+console.log(
+  '\n# 3. After running the commands above, Vercel will prompt for each value.'
+);
 console.log('# Copy the values from your .env.local file when prompted.\n');
 
 // Check for missing required variables
@@ -100,7 +104,9 @@ stripePriceVars.forEach(varName => {
 });
 
 console.log('\n# 4. Update production URL:');
-console.log('# Make sure to update NEXT_PUBLIC_APP_URL to your production domain');
+console.log(
+  '# Make sure to update NEXT_PUBLIC_APP_URL to your production domain'
+);
 console.log('# Current value:', envVars.NEXT_PUBLIC_APP_URL || 'NOT SET');
 
 console.log('\n# 5. Generate new CRON_SECRET for production:');

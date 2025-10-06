@@ -15,7 +15,7 @@ import {
   AlertCircle,
   ArrowUpRight,
   ArrowDownRight,
-  Trophy
+  Trophy,
 } from 'lucide-react';
 
 interface AffiliateStats {
@@ -46,7 +46,6 @@ export default function AdminAffiliatesPage() {
 
   useEffect(() => {
     fetchAffiliateStats();
-     
   }, []);
 
   async function fetchAffiliateStats() {
@@ -70,7 +69,7 @@ export default function AdminAffiliatesPage() {
         pendingApplications,
         totalReferrals,
         totalCommissionsEarned,
-        pendingPayouts
+        pendingPayouts,
       } = data;
 
       // Get top performers
@@ -79,7 +78,10 @@ export default function AdminAffiliatesPage() {
 
       commissions?.forEach(c => {
         const current = affiliateEarnings.get(c.affiliate_id) || 0;
-        affiliateEarnings.set(c.affiliate_id, current + parseFloat(c.amount || 0));
+        affiliateEarnings.set(
+          c.affiliate_id,
+          current + parseFloat(c.amount || 0)
+        );
       });
 
       referrals?.forEach(r => {
@@ -93,9 +95,8 @@ export default function AdminAffiliatesPage() {
         .slice(0, 5)
         .map(([affiliateId]) => affiliateId);
 
-      const topPerformerAffiliates = affiliates?.filter(a =>
-        topPerformerIds.includes(a.id)
-      ) || [];
+      const topPerformerAffiliates =
+        affiliates?.filter(a => topPerformerIds.includes(a.id)) || [];
 
       const userIds = topPerformerAffiliates.map(a => a.user_id);
 
@@ -103,7 +104,7 @@ export default function AdminAffiliatesPage() {
       const profilesResponse = await fetch('/api/admin/users/profiles', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userIds })
+        body: JSON.stringify({ userIds }),
       });
 
       const profilesData = await profilesResponse.json();
@@ -121,7 +122,7 @@ export default function AdminAffiliatesPage() {
           name: profile?.full_name || 'Unknown',
           email: profile?.email || '',
           totalEarnings: earnings,
-          referrals: affiliateReferrals.get(affiliateId) || 0
+          referrals: affiliateReferrals.get(affiliateId) || 0,
         };
       });
 
@@ -133,7 +134,7 @@ export default function AdminAffiliatesPage() {
         recentActivity.push({
           type: 'application',
           description: `New affiliate application from ${a.referral_code}`,
-          timestamp: a.created_at
+          timestamp: a.created_at,
         });
       });
 
@@ -142,14 +143,17 @@ export default function AdminAffiliatesPage() {
         recentActivity.push({
           type: 'referral',
           description: `New referral tracked`,
-          timestamp: r.created_at
+          timestamp: r.created_at,
         });
       });
 
       // Sort by timestamp
-      recentActivity.sort((a, b) =>
-        new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
-      ).slice(0, 10);
+      recentActivity
+        .sort(
+          (a, b) =>
+            new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+        )
+        .slice(0, 10);
 
       setStats({
         totalAffiliates,
@@ -159,7 +163,7 @@ export default function AdminAffiliatesPage() {
         totalCommissionsEarned,
         pendingPayouts,
         topPerformers,
-        recentActivity
+        recentActivity,
       });
     } catch (error) {
       console.error('Error fetching affiliate stats:', error);
@@ -182,9 +186,7 @@ export default function AdminAffiliatesPage() {
       <Breadcrumb
         homeHref="/admin"
         homeLabel="Admin Dashboard"
-        items={[
-          { label: 'Affiliates' }
-        ]}
+        items={[{ label: 'Affiliates' }]}
       />
 
       <AffiliateAdminNav />
@@ -196,7 +198,9 @@ export default function AdminAffiliatesPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-gray-600">Total Affiliates</p>
-                <p className="text-2xl font-bold">{stats?.totalAffiliates || 0}</p>
+                <p className="text-2xl font-bold">
+                  {stats?.totalAffiliates || 0}
+                </p>
               </div>
               <UsersRound className="h-8 w-8 text-blue-600" />
             </div>
@@ -208,7 +212,9 @@ export default function AdminAffiliatesPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-gray-600">Active Affiliates</p>
-                <p className="text-2xl font-bold">{stats?.activeAffiliates || 0}</p>
+                <p className="text-2xl font-bold">
+                  {stats?.activeAffiliates || 0}
+                </p>
               </div>
               <CheckCircle className="h-8 w-8 text-success-600" />
             </div>
@@ -220,7 +226,9 @@ export default function AdminAffiliatesPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-gray-600">Pending Applications</p>
-                <p className="text-2xl font-bold">{stats?.pendingApplications || 0}</p>
+                <p className="text-2xl font-bold">
+                  {stats?.pendingApplications || 0}
+                </p>
               </div>
               <Clock className="h-8 w-8 text-warning-600" />
             </div>
@@ -240,7 +248,9 @@ export default function AdminAffiliatesPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-gray-600">Total Referrals</p>
-                <p className="text-2xl font-bold">{stats?.totalReferrals || 0}</p>
+                <p className="text-2xl font-bold">
+                  {stats?.totalReferrals || 0}
+                </p>
               </div>
               <TrendingUp className="h-8 w-8 text-purple-600" />
             </div>
@@ -254,8 +264,12 @@ export default function AdminAffiliatesPage() {
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-600">Total Commissions Earned</p>
-                <p className="text-3xl font-bold">${(stats?.totalCommissionsEarned || 0).toFixed(2)}</p>
+                <p className="text-sm text-gray-600">
+                  Total Commissions Earned
+                </p>
+                <p className="text-3xl font-bold">
+                  ${(stats?.totalCommissionsEarned || 0).toFixed(2)}
+                </p>
               </div>
               <DollarSign className="h-10 w-10 text-success-600" />
             </div>
@@ -267,7 +281,9 @@ export default function AdminAffiliatesPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-gray-600">Pending Payouts</p>
-                <p className="text-3xl font-bold">${(stats?.pendingPayouts || 0).toFixed(2)}</p>
+                <p className="text-3xl font-bold">
+                  ${(stats?.pendingPayouts || 0).toFixed(2)}
+                </p>
               </div>
               <AlertCircle className="h-10 w-10 text-orange-600" />
             </div>
@@ -296,10 +312,18 @@ export default function AdminAffiliatesPage() {
             <table className="min-w-full divide-y divide-gray-200">
               <thead>
                 <tr>
-                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Affiliate</th>
-                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Total Earnings</th>
-                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Referrals</th>
-                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Avg. Per Referral</th>
+                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">
+                    Affiliate
+                  </th>
+                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">
+                    Total Earnings
+                  </th>
+                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">
+                    Referrals
+                  </th>
+                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">
+                    Avg. Per Referral
+                  </th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200">
@@ -311,8 +335,12 @@ export default function AdminAffiliatesPage() {
                         {index === 1 && <span className="mr-2">🥈</span>}
                         {index === 2 && <span className="mr-2">🥉</span>}
                         <div>
-                          <div className="text-sm font-medium text-gray-900">{performer.name}</div>
-                          <div className="text-xs text-gray-500">{performer.email}</div>
+                          <div className="text-sm font-medium text-gray-900">
+                            {performer.name}
+                          </div>
+                          <div className="text-xs text-gray-500">
+                            {performer.email}
+                          </div>
                         </div>
                       </div>
                     </td>
@@ -323,7 +351,12 @@ export default function AdminAffiliatesPage() {
                       {performer.referrals}
                     </td>
                     <td className="px-4 py-3 text-sm text-gray-900">
-                      ${performer.referrals > 0 ? (performer.totalEarnings / performer.referrals).toFixed(2) : '0.00'}
+                      $
+                      {performer.referrals > 0
+                        ? (
+                            performer.totalEarnings / performer.referrals
+                          ).toFixed(2)
+                        : '0.00'}
                     </td>
                   </tr>
                 ))}
@@ -341,12 +374,23 @@ export default function AdminAffiliatesPage() {
         <CardContent>
           <div className="space-y-3">
             {stats?.recentActivity.map((activity, index) => (
-              <div key={index} className="flex items-center justify-between py-2 border-b last:border-0">
+              <div
+                key={index}
+                className="flex items-center justify-between py-2 border-b last:border-0"
+              >
                 <div className="flex items-center">
-                  {activity.type === 'application' && <UsersRound className="h-4 w-4 mr-2 text-blue-600" />}
-                  {activity.type === 'referral' && <ArrowUpRight className="h-4 w-4 mr-2 text-success-600" />}
-                  {activity.type === 'commission' && <DollarSign className="h-4 w-4 mr-2 text-purple-600" />}
-                  {activity.type === 'payout' && <ArrowDownRight className="h-4 w-4 mr-2 text-orange-600" />}
+                  {activity.type === 'application' && (
+                    <UsersRound className="h-4 w-4 mr-2 text-blue-600" />
+                  )}
+                  {activity.type === 'referral' && (
+                    <ArrowUpRight className="h-4 w-4 mr-2 text-success-600" />
+                  )}
+                  {activity.type === 'commission' && (
+                    <DollarSign className="h-4 w-4 mr-2 text-purple-600" />
+                  )}
+                  {activity.type === 'payout' && (
+                    <ArrowDownRight className="h-4 w-4 mr-2 text-orange-600" />
+                  )}
                   <span className="text-sm">{activity.description}</span>
                 </div>
                 <span className="text-xs text-gray-500">

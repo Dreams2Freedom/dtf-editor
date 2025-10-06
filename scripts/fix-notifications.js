@@ -14,17 +14,21 @@ const supabase = createClient(supabaseUrl, supabaseServiceKey);
 async function checkAndFixNotifications() {
   try {
     console.log('🔔 Checking notification system...\n');
-    
+
     // Check if notifications table exists
     const { data: tables, error: tableError } = await supabase
       .from('notifications')
       .select('id')
       .limit(1);
-    
+
     if (tableError && tableError.code === '42P01') {
       console.log('❌ Notifications table does not exist');
-      console.log('\n📋 Please run the following SQL in your Supabase SQL editor:');
-      console.log('-------------------------------------------------------------');
+      console.log(
+        '\n📋 Please run the following SQL in your Supabase SQL editor:'
+      );
+      console.log(
+        '-------------------------------------------------------------'
+      );
       console.log(`
 -- Create notifications table
 CREATE TABLE IF NOT EXISTS notifications (
@@ -96,15 +100,17 @@ CREATE POLICY "System can create notification status" ON user_notifications
   FOR INSERT
   WITH CHECK (true);
       `);
-      console.log('-------------------------------------------------------------\n');
+      console.log(
+        '-------------------------------------------------------------\n'
+      );
       return;
     }
-    
+
     console.log('✅ Notifications table exists');
-    
+
     // Check if RPC function exists by trying to use it
     console.log('🔍 Checking RPC function...');
-    
+
     // Create a test notification
     const { data: testNotif, error: createError } = await supabase
       .from('notifications')
@@ -114,28 +120,40 @@ CREATE POLICY "System can create notification status" ON user_notifications
         type: 'info',
         target_audience: 'all',
         priority: 'normal',
-        is_active: true
+        is_active: true,
       })
       .select()
       .single();
-    
+
     if (createError) {
-      console.error('❌ Error creating test notification:', createError.message);
+      console.error(
+        '❌ Error creating test notification:',
+        createError.message
+      );
       return;
     }
-    
+
     console.log('✅ Test notification created:', testNotif.id);
-    
+
     // Try to call the RPC function
-    const { data: userCount, error: rpcError } = await supabase
-      .rpc('send_notification_to_audience', {
-        p_notification_id: testNotif.id
-      });
-    
+    const { data: userCount, error: rpcError } = await supabase.rpc(
+      'send_notification_to_audience',
+      {
+        p_notification_id: testNotif.id,
+      }
+    );
+
     if (rpcError) {
-      console.log('❌ RPC function does not exist or has errors:', rpcError.message);
-      console.log('\n📋 Please run the following SQL in your Supabase SQL editor:');
-      console.log('-------------------------------------------------------------');
+      console.log(
+        '❌ RPC function does not exist or has errors:',
+        rpcError.message
+      );
+      console.log(
+        '\n📋 Please run the following SQL in your Supabase SQL editor:'
+      );
+      console.log(
+        '-------------------------------------------------------------'
+      );
       console.log(`
 -- Simple notification sending function
 CREATE OR REPLACE FUNCTION send_notification_to_audience(p_notification_id UUID)
@@ -193,36 +211,38 @@ $$;
 -- Grant permission
 GRANT EXECUTE ON FUNCTION send_notification_to_audience TO authenticated;
       `);
-      console.log('-------------------------------------------------------------\n');
+      console.log(
+        '-------------------------------------------------------------\n'
+      );
     } else {
       console.log('✅ RPC function works! Users notified:', userCount);
     }
-    
+
     // Clean up test notification
     await supabase
       .from('user_notifications')
       .delete()
       .eq('notification_id', testNotif.id);
-      
-    await supabase
-      .from('notifications')
-      .delete()
-      .eq('id', testNotif.id);
-    
+
+    await supabase.from('notifications').delete().eq('id', testNotif.id);
+
     console.log('🧹 Cleaned up test notification');
-    
+
     // Test creating a real notification via API
     console.log('\n🧪 Testing API endpoint...');
-    
+
     // Get an admin session
-    const { data: { session } } = await supabase.auth.getSession();
-    
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
+
     if (!session) {
-      console.log('⚠️  No session available. Please test the API endpoint from the admin panel.');
+      console.log(
+        '⚠️  No session available. Please test the API endpoint from the admin panel.'
+      );
     }
-    
+
     console.log('\n✅ Notification system is ready to use!');
-    
   } catch (error) {
     console.error('❌ Error:', error.message);
   }

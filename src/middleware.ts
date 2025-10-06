@@ -29,26 +29,25 @@ const getCSP = () => {
     "form-action 'self' https://checkout.stripe.com https://clippingmagic.com https://*.clippingmagic.com",
     "frame-ancestors 'none'",
   ];
-  
+
   return policy.join('; ');
 };
 
 export async function middleware(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
-  
+
   // Block access to debug/test endpoints in production
   if (process.env.NODE_ENV === 'production') {
-    if (pathname.startsWith('/api/debug-') || 
-        pathname.startsWith('/api/test-') ||
-        pathname.startsWith('/test-') ||
-        pathname.startsWith('/debug-')) {
-      return NextResponse.json(
-        { error: 'Not found' },
-        { status: 404 }
-      );
+    if (
+      pathname.startsWith('/api/debug-') ||
+      pathname.startsWith('/api/test-') ||
+      pathname.startsWith('/test-') ||
+      pathname.startsWith('/debug-')
+    ) {
+      return NextResponse.json({ error: 'Not found' }, { status: 404 });
     }
   }
-  
+
   // Handle admin routes
   if (pathname.startsWith('/admin')) {
     return await adminMiddleware(request);
@@ -61,31 +60,29 @@ export async function middleware(request: NextRequest) {
     },
   });
 
-  const supabase = createServerClient(
-    env.SUPABASE_URL,
-    env.SUPABASE_ANON_KEY,
-    {
-      cookies: {
-        getAll() {
-          return request.cookies.getAll();
-        },
-        setAll(cookiesToSet) {
-          cookiesToSet.forEach(({ name, value }) =>
-            request.cookies.set(name, value)
-          );
-          response = NextResponse.next({
-            request,
-          });
-          cookiesToSet.forEach(({ name, value, options }) =>
-            response.cookies.set(name, value, options)
-          );
-        },
+  const supabase = createServerClient(env.SUPABASE_URL, env.SUPABASE_ANON_KEY, {
+    cookies: {
+      getAll() {
+        return request.cookies.getAll();
       },
-    }
-  );
+      setAll(cookiesToSet) {
+        cookiesToSet.forEach(({ name, value }) =>
+          request.cookies.set(name, value)
+        );
+        response = NextResponse.next({
+          request,
+        });
+        cookiesToSet.forEach(({ name, value, options }) =>
+          response.cookies.set(name, value, options)
+        );
+      },
+    },
+  });
 
   // This will refresh the session if needed and update cookies
-  const { data: { user } } = await supabase.auth.getUser();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
 
   // Pass the session status to the request headers for debugging
   if (user) {
@@ -98,15 +95,18 @@ export async function middleware(request: NextRequest) {
   Object.entries(securityHeaders).forEach(([key, value]) => {
     response.headers.set(key, value);
   });
-  
+
   // Add CSP header
   response.headers.set('Content-Security-Policy', getCSP());
-  
+
   // Add HSTS in production
   if (process.env.NODE_ENV === 'production') {
-    response.headers.set('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
+    response.headers.set(
+      'Strict-Transport-Security',
+      'max-age=31536000; includeSubDomains'
+    );
   }
-  
+
   // Handle impersonation for all routes
   await handleImpersonation(request, response);
 

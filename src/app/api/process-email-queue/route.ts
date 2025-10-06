@@ -29,22 +29,29 @@ export async function POST(request: NextRequest) {
 
     if (fetchError) {
       console.error('Error fetching email queue:', fetchError);
-      return NextResponse.json({ error: 'Failed to fetch email queue' }, { status: 500 });
+      return NextResponse.json(
+        { error: 'Failed to fetch email queue' },
+        { status: 500 }
+      );
     }
 
     if (!pendingEmails || pendingEmails.length === 0) {
       return NextResponse.json({ message: 'No pending emails' });
     }
 
-    console.log(`[EMAIL QUEUE] Processing ${pendingEmails.length} pending emails`);
+    console.log(
+      `[EMAIL QUEUE] Processing ${pendingEmails.length} pending emails`
+    );
 
     const results = [];
     for (const email of pendingEmails) {
       try {
-        console.log(`[EMAIL QUEUE] Processing email ${email.id} of type ${email.email_type}`);
-        
+        console.log(
+          `[EMAIL QUEUE] Processing email ${email.id} of type ${email.email_type}`
+        );
+
         let sent = false;
-        
+
         // Process based on email type
         switch (email.email_type) {
           case 'welcome':
@@ -54,14 +61,15 @@ export async function POST(request: NextRequest) {
               .select('first_name, subscription_plan')
               .eq('id', email.user_id)
               .single();
-            
+
             sent = await emailService.sendWelcomeEmail({
               email: email.email_to,
-              firstName: profile?.first_name || email.email_data?.firstName || '',
+              firstName:
+                profile?.first_name || email.email_data?.firstName || '',
               planName: profile?.subscription_plan || 'Free',
             });
             break;
-            
+
           case 'subscription_confirmation':
             sent = await emailService.sendSubscriptionConfirmation({
               email: email.email_to,
@@ -71,7 +79,7 @@ export async function POST(request: NextRequest) {
               nextBillingDate: email.email_data?.nextBillingDate || '',
             });
             break;
-            
+
           case 'payment_failed':
             sent = await emailService.sendPaymentFailedNotification({
               email: email.email_to,
@@ -81,7 +89,7 @@ export async function POST(request: NextRequest) {
               retryDate: email.email_data?.retryDate || '',
             });
             break;
-            
+
           default:
             console.error(`Unknown email type: ${email.email_type}`);
             sent = false;
@@ -96,7 +104,7 @@ export async function POST(request: NextRequest) {
               processed_at: new Date().toISOString(),
             })
             .eq('id', email.id);
-          
+
           results.push({ id: email.id, status: 'sent' });
           console.log(`[EMAIL QUEUE] Email ${email.id} sent successfully`);
         } else {
@@ -108,23 +116,28 @@ export async function POST(request: NextRequest) {
               error_message: 'Failed to send email',
             })
             .eq('id', email.id);
-          
+
           results.push({ id: email.id, status: 'failed' });
           console.log(`[EMAIL QUEUE] Email ${email.id} failed to send`);
         }
       } catch (error) {
         console.error(`Error processing email ${email.id}:`, error);
-        
+
         // Mark as failed and increment attempts
         await supabase
           .from('email_queue')
           .update({
             attempts: email.attempts + 1,
-            error_message: error instanceof Error ? error.message : 'Unknown error',
+            error_message:
+              error instanceof Error ? error.message : 'Unknown error',
           })
           .eq('id', email.id);
-        
-        results.push({ id: email.id, status: 'error', error: error instanceof Error ? error.message : 'Unknown error' });
+
+        results.push({
+          id: email.id,
+          status: 'error',
+          error: error instanceof Error ? error.message : 'Unknown error',
+        });
       }
     }
 

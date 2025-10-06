@@ -11,29 +11,34 @@ import {
   Copy,
   ExternalLink,
   RefreshCw,
-  Database
+  Database,
 } from 'lucide-react';
 
 export default function TestTrackingPage() {
   const [testEmail, setTestEmail] = useState('');
   const [referralCode, setReferralCode] = useState('SNSMAR');
   const [cookieValue, setCookieValue] = useState('');
-  const [testResults, setTestResults] = useState<Array<{
-    timestamp: string;
-    test: string;
-    action: string;
-    url?: string;
-    data?: unknown;
-    status: string;
-  }>>([]);
+  const [testResults, setTestResults] = useState<
+    Array<{
+      timestamp: string;
+      test: string;
+      action: string;
+      url?: string;
+      data?: unknown;
+      status: string;
+    }>
+  >([]);
 
   // Check current cookies
   const checkCookies = () => {
-    const cookies = document.cookie.split(';').reduce((acc, cookie) => {
-      const [key, value] = cookie.trim().split('=');
-      acc[key] = value;
-      return acc;
-    }, {} as Record<string, string>);
+    const cookies = document.cookie.split(';').reduce(
+      (acc, cookie) => {
+        const [key, value] = cookie.trim().split('=');
+        acc[key] = value;
+        return acc;
+      },
+      {} as Record<string, string>
+    );
 
     setCookieValue(JSON.stringify(cookies, null, 2));
 
@@ -52,13 +57,16 @@ export default function TestTrackingPage() {
       // Open in new tab
       window.open(testUrl, '_blank');
 
-      setTestResults(prev => [...prev, {
-        timestamp: new Date().toISOString(),
-        test: 'Click Tracking',
-        action: 'Opened referral link in new tab',
-        url: testUrl,
-        status: 'pending'
-      }]);
+      setTestResults(prev => [
+        ...prev,
+        {
+          timestamp: new Date().toISOString(),
+          test: 'Click Tracking',
+          action: 'Opened referral link in new tab',
+          url: testUrl,
+          status: 'pending',
+        },
+      ]);
 
       toast.success('Referral link opened! Check cookies in new tab.');
     } catch (error) {
@@ -70,7 +78,9 @@ export default function TestTrackingPage() {
   // Test 2: Check database for recent visits
   const checkRecentVisits = async () => {
     try {
-      const response = await fetch(`/api/admin/affiliates/test-tracking/visits?code=${referralCode}`);
+      const response = await fetch(
+        `/api/admin/affiliates/test-tracking/visits?code=${referralCode}`
+      );
 
       if (!response.ok) {
         throw new Error('Failed to fetch visits');
@@ -78,13 +88,16 @@ export default function TestTrackingPage() {
 
       const data = await response.json();
 
-      setTestResults(prev => [...prev, {
-        timestamp: new Date().toISOString(),
-        test: 'Database Check',
-        action: 'Fetched recent visits',
-        data: data.visits,
-        status: 'success'
-      }]);
+      setTestResults(prev => [
+        ...prev,
+        {
+          timestamp: new Date().toISOString(),
+          test: 'Database Check',
+          action: 'Fetched recent visits',
+          data: data.visits,
+          status: 'success',
+        },
+      ]);
 
       toast.success(`Found ${data.visits?.length || 0} recent visits`);
     } catch (error) {
@@ -96,7 +109,9 @@ export default function TestTrackingPage() {
   // Test 3: Check referrals for code
   const checkReferrals = async () => {
     try {
-      const response = await fetch(`/api/admin/affiliates/test-tracking/referrals?code=${referralCode}`);
+      const response = await fetch(
+        `/api/admin/affiliates/test-tracking/referrals?code=${referralCode}`
+      );
 
       if (!response.ok) {
         throw new Error('Failed to fetch referrals');
@@ -104,13 +119,16 @@ export default function TestTrackingPage() {
 
       const data = await response.json();
 
-      setTestResults(prev => [...prev, {
-        timestamp: new Date().toISOString(),
-        test: 'Referrals Check',
-        action: 'Fetched referrals',
-        data: data.referrals,
-        status: 'success'
-      }]);
+      setTestResults(prev => [
+        ...prev,
+        {
+          timestamp: new Date().toISOString(),
+          test: 'Referrals Check',
+          action: 'Fetched referrals',
+          data: data.referrals,
+          status: 'success',
+        },
+      ]);
 
       toast.success(`Found ${data.referrals?.length || 0} referrals`);
     } catch (error) {
@@ -133,9 +151,12 @@ export default function TestTrackingPage() {
   return (
     <div className="p-6 max-w-7xl mx-auto">
       <div className="mb-6">
-        <h1 className="text-2xl font-bold mb-2">Affiliate Tracking Test Tool</h1>
+        <h1 className="text-2xl font-bold mb-2">
+          Affiliate Tracking Test Tool
+        </h1>
         <p className="text-gray-600">
-          Test click tracking, signup tracking, and verify data is being stored correctly
+          Test click tracking, signup tracking, and verify data is being stored
+          correctly
         </p>
       </div>
 
@@ -153,7 +174,7 @@ export default function TestTrackingPage() {
               <input
                 type="text"
                 value={referralCode}
-                onChange={(e) => setReferralCode(e.target.value.toUpperCase())}
+                onChange={e => setReferralCode(e.target.value.toUpperCase())}
                 className="w-full px-3 py-2 border rounded-lg"
                 placeholder="SNSMAR"
               />
@@ -165,7 +186,7 @@ export default function TestTrackingPage() {
               <input
                 type="email"
                 value={testEmail}
-                onChange={(e) => setTestEmail(e.target.value)}
+                onChange={e => setTestEmail(e.target.value)}
                 className="w-full px-3 py-2 border rounded-lg"
                 placeholder="test@example.com"
               />
@@ -207,7 +228,11 @@ export default function TestTrackingPage() {
               <ExternalLink className="h-4 w-4 mr-2" />
               Open Referral Link
             </Button>
-            <Button onClick={checkCookies} variant="secondary" className="w-full">
+            <Button
+              onClick={checkCookies}
+              variant="secondary"
+              className="w-full"
+            >
               Check Cookies
             </Button>
           </CardContent>
@@ -226,7 +251,11 @@ export default function TestTrackingPage() {
             <Button onClick={checkRecentVisits} className="w-full mb-2">
               Check Recent Visits
             </Button>
-            <Button onClick={checkReferrals} variant="secondary" className="w-full">
+            <Button
+              onClick={checkReferrals}
+              variant="secondary"
+              className="w-full"
+            >
               Check Referrals
             </Button>
           </CardContent>
@@ -303,7 +332,9 @@ export default function TestTrackingPage() {
                   </div>
                   <p className="text-sm text-gray-600 mb-2">{result.action}</p>
                   {result.url && (
-                    <p className="text-xs text-blue-600 break-all">{result.url}</p>
+                    <p className="text-xs text-blue-600 break-all">
+                      {result.url}
+                    </p>
                   )}
                   {result.data && (
                     <pre className="bg-gray-50 p-2 rounded text-xs mt-2 overflow-x-auto">
@@ -327,29 +358,57 @@ export default function TestTrackingPage() {
             <div>
               <h4 className="font-semibold mb-2">1. Test Click Tracking:</h4>
               <ol className="list-decimal ml-5 space-y-1 text-gray-600">
-                <li>Click &quot;Open Referral Link&quot; to open the referral URL in a new tab</li>
-                <li>In the new tab, click &quot;Check Cookies&quot; to verify dtf_ref and dtf_ref_code are set</li>
-                <li>Click &quot;Check Recent Visits&quot; to see if the visit was recorded in the database</li>
+                <li>
+                  Click &quot;Open Referral Link&quot; to open the referral URL
+                  in a new tab
+                </li>
+                <li>
+                  In the new tab, click &quot;Check Cookies&quot; to verify
+                  dtf_ref and dtf_ref_code are set
+                </li>
+                <li>
+                  Click &quot;Check Recent Visits&quot; to see if the visit was
+                  recorded in the database
+                </li>
               </ol>
             </div>
 
             <div>
               <h4 className="font-semibold mb-2">2. Test Signup Tracking:</h4>
               <ol className="list-decimal ml-5 space-y-1 text-gray-600">
-                <li>First, click &quot;Open Referral Link&quot; to set tracking cookies</li>
-                <li>Then click &quot;Open Signup Page&quot; to create a test account</li>
-                <li>After signup, click &quot;Check Referrals&quot; to verify the referral was created</li>
-                <li>Check the affiliate dashboard to see the new signup appear</li>
+                <li>
+                  First, click &quot;Open Referral Link&quot; to set tracking
+                  cookies
+                </li>
+                <li>
+                  Then click &quot;Open Signup Page&quot; to create a test
+                  account
+                </li>
+                <li>
+                  After signup, click &quot;Check Referrals&quot; to verify the
+                  referral was created
+                </li>
+                <li>
+                  Check the affiliate dashboard to see the new signup appear
+                </li>
               </ol>
             </div>
 
             <div>
-              <h4 className="font-semibold mb-2">3. Verify in Admin Dashboard:</h4>
+              <h4 className="font-semibold mb-2">
+                3. Verify in Admin Dashboard:
+              </h4>
               <ol className="list-decimal ml-5 space-y-1 text-gray-600">
                 <li>Go to Admin → Affiliates → Overview</li>
                 <li>Check that Total Clicks incremented</li>
-                <li>Check that Total Signups incremented (if you completed signup test)</li>
-                <li>View the affiliate&apos;s details to see visit and referral records</li>
+                <li>
+                  Check that Total Signups incremented (if you completed signup
+                  test)
+                </li>
+                <li>
+                  View the affiliate&apos;s details to see visit and referral
+                  records
+                </li>
               </ol>
             </div>
           </div>

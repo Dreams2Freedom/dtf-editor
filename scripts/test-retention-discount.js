@@ -9,7 +9,7 @@ const supabase = createClient(
 );
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
-  apiVersion: '2024-11-20.acacia'
+  apiVersion: '2024-11-20.acacia',
 });
 
 async function testRetentionDiscount() {
@@ -35,8 +35,10 @@ async function testRetentionDiscount() {
 
   // Check discount eligibility
   console.log('\n=== CHECKING DISCOUNT ELIGIBILITY ===');
-  const { data: eligibility, error: eligError } = await supabase
-    .rpc('check_discount_eligibility', { p_user_id: user.id });
+  const { data: eligibility, error: eligError } = await supabase.rpc(
+    'check_discount_eligibility',
+    { p_user_id: user.id }
+  );
 
   if (eligError) {
     console.error('Error checking eligibility:', eligError);
@@ -70,14 +72,20 @@ async function testRetentionDiscount() {
     console.log('\n=== STRIPE CUSTOMER COUPONS ===');
     try {
       const customer = await stripe.customers.retrieve(user.stripe_customer_id);
-      
+
       if (customer.discount) {
-        console.log('Active Discount:', customer.discount.coupon.name || customer.discount.coupon.id);
+        console.log(
+          'Active Discount:',
+          customer.discount.coupon.name || customer.discount.coupon.id
+        );
         console.log('Percent Off:', customer.discount.coupon.percent_off + '%');
         console.log('Valid:', customer.discount.coupon.valid);
-        
+
         if (customer.discount.end) {
-          console.log('Expires:', new Date(customer.discount.end * 1000).toLocaleString());
+          console.log(
+            'Expires:',
+            new Date(customer.discount.end * 1000).toLocaleString()
+          );
         }
       } else {
         console.log('No active discounts on customer');
@@ -85,12 +93,20 @@ async function testRetentionDiscount() {
 
       // Check subscription for discounts
       if (user.stripe_subscription_id) {
-        const subscription = await stripe.subscriptions.retrieve(user.stripe_subscription_id);
-        
+        const subscription = await stripe.subscriptions.retrieve(
+          user.stripe_subscription_id
+        );
+
         if (subscription.discount) {
           console.log('\n=== SUBSCRIPTION DISCOUNT ===');
-          console.log('Coupon:', subscription.discount.coupon.name || subscription.discount.coupon.id);
-          console.log('Percent Off:', subscription.discount.coupon.percent_off + '%');
+          console.log(
+            'Coupon:',
+            subscription.discount.coupon.name || subscription.discount.coupon.id
+          );
+          console.log(
+            'Percent Off:',
+            subscription.discount.coupon.percent_off + '%'
+          );
         }
       }
     } catch (stripeErr) {

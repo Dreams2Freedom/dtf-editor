@@ -16,12 +16,9 @@ async function handlePost(request: NextRequest) {
 
     // If not authorized via API key, check if it's from a webhook
     const stripeSignature = request.headers.get('stripe-signature');
-    
+
     if (!isAuthorized && !stripeSignature) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     const body = await request.json();
@@ -44,12 +41,14 @@ async function handlePost(request: NextRequest) {
       return NextResponse.json({
         success: true,
         message: 'Monthly credits reset completed',
-        result: data
+        result: data,
       });
     } else if (userId) {
       // Check if specific user needs credit reset
-      const { data: needsReset, error: checkError } = await supabase
-        .rpc('check_credit_reset_needed', { p_user_id: userId });
+      const { data: needsReset, error: checkError } = await supabase.rpc(
+        'check_credit_reset_needed',
+        { p_user_id: userId }
+      );
 
       if (checkError) {
         console.error('Error checking credit reset:', checkError);
@@ -63,7 +62,7 @@ async function handlePost(request: NextRequest) {
         return NextResponse.json({
           success: true,
           message: 'Credit reset not needed',
-          reset: false
+          reset: false,
         });
       }
 
@@ -75,20 +74,18 @@ async function handlePost(request: NextRequest) {
         .single();
 
       if (!profile) {
-        return NextResponse.json(
-          { error: 'User not found' },
-          { status: 404 }
-        );
+        return NextResponse.json({ error: 'User not found' }, { status: 404 });
       }
 
       // Determine credits based on plan
       const planCredits = {
         basic: 20,
         starter: 60,
-        free: 2
+        free: 2,
       };
 
-      const credits = planCredits[profile.subscription_plan as keyof typeof planCredits] || 0;
+      const credits =
+        planCredits[profile.subscription_plan as keyof typeof planCredits] || 0;
 
       // Reset user credits
       const { error: updateError } = await supabase
@@ -97,7 +94,7 @@ async function handlePost(request: NextRequest) {
           credits,
           credits_remaining: credits,
           credits_reset_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
+          updated_at: new Date().toISOString(),
         })
         .eq('id', userId);
 
@@ -110,21 +107,19 @@ async function handlePost(request: NextRequest) {
       }
 
       // Log the transaction
-      await supabase
-        .from('credit_transactions')
-        .insert({
-          user_id: userId,
-          amount: credits,
-          operation: 'monthly_reset',
-          description: `Monthly credit reset for ${profile.subscription_plan} plan`,
-          created_at: new Date().toISOString()
-        });
+      await supabase.from('credit_transactions').insert({
+        user_id: userId,
+        amount: credits,
+        operation: 'monthly_reset',
+        description: `Monthly credit reset for ${profile.subscription_plan} plan`,
+        created_at: new Date().toISOString(),
+      });
 
       return NextResponse.json({
         success: true,
         message: 'Credits reset successfully',
         credits,
-        reset: true
+        reset: true,
       });
     } else {
       return NextResponse.json(

@@ -17,22 +17,22 @@ export default function AdminAuditPage() {
       if (!user) {
         await initialize();
       }
-      
+
       const state = useAuthStore.getState();
-      
+
       if (!state.user) {
         toast.error('Please login to access admin audit logs');
         router.push('/admin/login');
         return;
       }
-      
+
       if (!state.isAdmin) {
         toast.error('Access denied. Admin privileges required.');
         router.push('/dashboard');
         return;
       }
     };
-    
+
     checkAuth();
   }, [router, initialize]);
 
@@ -44,17 +44,16 @@ export default function AdminAuditPage() {
     <AdminLayout>
       <div className="space-y-6">
         {/* Breadcrumb */}
-        <Breadcrumb 
-          items={[
-            { label: 'Admin', href: '/admin' },
-            { label: 'Audit Logs' }
-          ]} 
+        <Breadcrumb
+          items={[{ label: 'Admin', href: '/admin' }, { label: 'Audit Logs' }]}
         />
 
         {/* Page Header */}
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Audit Logs</h1>
-          <p className="text-gray-600">Track all administrative actions and changes</p>
+          <p className="text-gray-600">
+            Track all administrative actions and changes
+          </p>
         </div>
 
         {/* Audit Log Viewer */}

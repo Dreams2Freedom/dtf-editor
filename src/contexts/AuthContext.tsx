@@ -16,7 +16,7 @@ interface UserProfile {
   first_name?: string;
   last_name?: string;
   email?: string;
-  company_name?: string;  // Changed from company to company_name to match database
+  company_name?: string; // Changed from company to company_name to match database
   phone?: string;
   avatar_url?: string;
   credits_remaining: number;
@@ -89,7 +89,7 @@ interface AuthProviderProps {
 export function AuthProvider({ children }: AuthProviderProps) {
   // Get all state and actions from the store at once
   const authStore = useAuthStore();
-  
+
   // Initialize auth state on mount
   useEffect(() => {
     try {
@@ -98,18 +98,18 @@ export function AuthProvider({ children }: AuthProviderProps) {
       // Error is handled by the auth store
     }
   }, []); // Empty dependency array - only run once on mount
-  
+
   // Periodically check session validity
   useEffect(() => {
     if (!authStore.user) return;
-    
+
     // Check session validity every 5 minutes
     const checkSession = async () => {
       try {
         const response = await fetch('/api/auth/session', {
-          credentials: 'include'
+          credentials: 'include',
         });
-        
+
         if (response.status === 401) {
           console.log('Session expired, signing out...');
           await authStore.signOut();
@@ -118,13 +118,13 @@ export function AuthProvider({ children }: AuthProviderProps) {
         console.error('Session check failed:', error);
       }
     };
-    
+
     // Initial check after 30 seconds
     const initialTimer = setTimeout(checkSession, 30000);
-    
+
     // Then check every 5 minutes
     const interval = setInterval(checkSession, 5 * 60 * 1000);
-    
+
     return () => {
       clearTimeout(initialTimer);
       clearInterval(interval);

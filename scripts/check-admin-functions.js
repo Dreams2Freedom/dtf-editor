@@ -13,8 +13,10 @@ const supabase = createClient(
 
   // Test get_admin_role
   console.log('1. Testing get_admin_role function:');
-  const { data: role, error: roleError } = await supabase
-    .rpc('get_admin_role', { user_id: userId });
+  const { data: role, error: roleError } = await supabase.rpc(
+    'get_admin_role',
+    { user_id: userId }
+  );
 
   if (roleError) {
     console.error('   ❌ Error:', roleError.message);
@@ -25,8 +27,10 @@ const supabase = createClient(
 
   // Test is_super_admin
   console.log('\n2. Testing is_super_admin function:');
-  const { data: isSuperAdmin, error: superAdminError } = await supabase
-    .rpc('is_super_admin', { user_id: userId });
+  const { data: isSuperAdmin, error: superAdminError } = await supabase.rpc(
+    'is_super_admin',
+    { user_id: userId }
+  );
 
   if (superAdminError) {
     console.error('   ❌ Error:', superAdminError.message);
@@ -37,8 +41,10 @@ const supabase = createClient(
 
   // Test has_permission
   console.log('\n3. Testing has_permission function:');
-  const { data: hasPermission, error: permError } = await supabase
-    .rpc('has_permission', { user_id: userId, permission_key: 'manage_affiliates' });
+  const { data: hasPermission, error: permError } = await supabase.rpc(
+    'has_permission',
+    { user_id: userId, permission_key: 'manage_affiliates' }
+  );
 
   if (permError) {
     console.error('   ❌ Error:', permError.message);

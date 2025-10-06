@@ -12,7 +12,10 @@ const supabase = createClient(
   console.log('=== Applying RLS Fix Migration ===\n');
 
   // Read the migration file
-  const migrationPath = path.join(__dirname, '../supabase/migrations/20250104_fix_admin_rls_use_profiles.sql');
+  const migrationPath = path.join(
+    __dirname,
+    '../supabase/migrations/20250104_fix_admin_rls_use_profiles.sql'
+  );
   let sql = fs.readFileSync(migrationPath, 'utf8');
 
   // Remove comments and DO blocks (they won't work via client)

@@ -13,18 +13,18 @@ import { createClient } from '@supabase/supabase-js';
 import { env } from '@/config/env';
 
 // Reset password form schema
-const resetPasswordSchema = z.object({
-  password: z
-    .string()
-    .min(1, 'Password is required')
-    .min(6, 'Password must be at least 6 characters'),
-  confirmPassword: z
-    .string()
-    .min(1, 'Please confirm your password'),
-}).refine((data) => data.password === data.confirmPassword, {
-  message: "Passwords don't match",
-  path: ["confirmPassword"],
-});
+const resetPasswordSchema = z
+  .object({
+    password: z
+      .string()
+      .min(1, 'Password is required')
+      .min(6, 'Password must be at least 6 characters'),
+    confirmPassword: z.string().min(1, 'Please confirm your password'),
+  })
+  .refine(data => data.password === data.confirmPassword, {
+    message: "Passwords don't match",
+    path: ['confirmPassword'],
+  });
 
 type ResetPasswordFormData = z.infer<typeof resetPasswordSchema>;
 
@@ -55,7 +55,6 @@ export function ResetPasswordForm({ onSuccess }: ResetPasswordFormProps) {
     const refreshToken = searchParams.get('refresh_token');
     const type = searchParams.get('type');
 
-
     // For now, let's allow the form to be submitted even without tokens
     // We'll handle the token validation in the onSubmit function
   }, [searchParams]);
@@ -65,7 +64,6 @@ export function ResetPasswordForm({ onSuccess }: ResetPasswordFormProps) {
 
     const accessToken = searchParams.get('access_token');
     const refreshToken = searchParams.get('refresh_token');
-
 
     // If we have an access token, use it for password reset
     if (accessToken) {
@@ -77,7 +75,7 @@ export function ResetPasswordForm({ onSuccess }: ResetPasswordFormProps) {
             },
           },
         });
-        
+
         const { error } = await supabase.auth.updateUser({
           password: data.password,
         });
@@ -85,7 +83,8 @@ export function ResetPasswordForm({ onSuccess }: ResetPasswordFormProps) {
         if (error) {
           setFormError('root', {
             type: 'manual',
-            message: error.message || 'Failed to reset password. Please try again.',
+            message:
+              error.message || 'Failed to reset password. Please try again.',
           });
           return;
         }
@@ -104,7 +103,8 @@ export function ResetPasswordForm({ onSuccess }: ResetPasswordFormProps) {
     // If no access token, show an error message
     setFormError('root', {
       type: 'manual',
-      message: 'Invalid or expired reset link. Please request a new password reset from the forgot password page.',
+      message:
+        'Invalid or expired reset link. Please request a new password reset from the forgot password page.',
     });
   };
 
@@ -119,7 +119,8 @@ export function ResetPasswordForm({ onSuccess }: ResetPasswordFormProps) {
             Password updated successfully
           </h1>
           <p className="text-gray-600">
-            Your password has been reset. You can now sign in with your new password.
+            Your password has been reset. You can now sign in with your new
+            password.
           </p>
         </div>
 
@@ -197,8 +198,8 @@ export function ResetPasswordForm({ onSuccess }: ResetPasswordFormProps) {
         )}
 
         {/* Submit Button */}
-        <button 
-          type="submit" 
+        <button
+          type="submit"
           className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-4 rounded-lg shadow-sm border-2 border-blue-500"
           disabled={loading}
         >
@@ -207,9 +208,19 @@ export function ResetPasswordForm({ onSuccess }: ResetPasswordFormProps) {
 
         {/* Debug Info */}
         <div className="mt-4 p-3 bg-gray-50 border border-gray-200 rounded-lg text-xs text-gray-600">
-          <p><strong>Debug Info:</strong></p>
-          <p>URL Parameters: {Array.from(searchParams.entries()).map(([k, v]) => `${k}=${v ? 'present' : 'missing'}`).join(', ')}</p>
-          <p>Current URL: {typeof window !== 'undefined' ? window.location.href : 'server'}</p>
+          <p>
+            <strong>Debug Info:</strong>
+          </p>
+          <p>
+            URL Parameters:{' '}
+            {Array.from(searchParams.entries())
+              .map(([k, v]) => `${k}=${v ? 'present' : 'missing'}`)
+              .join(', ')}
+          </p>
+          <p>
+            Current URL:{' '}
+            {typeof window !== 'undefined' ? window.location.href : 'server'}
+          </p>
         </div>
 
         {/* Back to Login */}
@@ -225,4 +236,4 @@ export function ResetPasswordForm({ onSuccess }: ResetPasswordFormProps) {
       </form>
     </div>
   );
-} 
+}

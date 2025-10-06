@@ -16,7 +16,10 @@ interface AffiliateSettingsProps {
   } | null;
 }
 
-export function AffiliateSettings({ affiliate, userProfile }: AffiliateSettingsProps) {
+export function AffiliateSettings({
+  affiliate,
+  userProfile,
+}: AffiliateSettingsProps) {
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -39,19 +42,25 @@ export function AffiliateSettings({ affiliate, userProfile }: AffiliateSettingsP
     affiliate.payment_method || 'paypal'
   );
   const [paypalEmail, setPaypalEmail] = useState(affiliate.paypal_email || '');
-  const [checkPayableTo, setCheckPayableTo] = useState(affiliate.check_payable_to || '');
-  const [mailingAddress, setMailingAddress] = useState(affiliate.mailing_address || '');
+  const [checkPayableTo, setCheckPayableTo] = useState(
+    affiliate.check_payable_to || ''
+  );
+  const [mailingAddress, setMailingAddress] = useState(
+    affiliate.mailing_address || ''
+  );
 
   // Profile Settings
   const [displayName, setDisplayName] = useState(getDefaultDisplayName());
   const [websiteUrl, setWebsiteUrl] = useState(affiliate.website_url || '');
-  const [socialMedia, setSocialMedia] = useState(affiliate.social_media || {
-    twitter: '',
-    facebook: '',
-    instagram: '',
-    youtube: '',
-    tiktok: ''
-  });
+  const [socialMedia, setSocialMedia] = useState(
+    affiliate.social_media || {
+      twitter: '',
+      facebook: '',
+      instagram: '',
+      youtube: '',
+      tiktok: '',
+    }
+  );
 
   // Notification Settings
   const [emailNotifications, setEmailNotifications] = useState(
@@ -74,8 +83,8 @@ export function AffiliateSettings({ affiliate, userProfile }: AffiliateSettingsP
           display_name: displayName,
           website_url: websiteUrl,
           social_media: socialMedia,
-          email_notifications: emailNotifications
-        })
+          email_notifications: emailNotifications,
+        }),
       });
 
       const data = await response.json();
@@ -139,7 +148,7 @@ export function AffiliateSettings({ affiliate, userProfile }: AffiliateSettingsP
                   type="radio"
                   value="paypal"
                   checked={paymentMethod === 'paypal'}
-                  onChange={(e) => setPaymentMethod(e.target.value as 'paypal')}
+                  onChange={e => setPaymentMethod(e.target.value as 'paypal')}
                   className="mr-2"
                 />
                 PayPal
@@ -149,7 +158,7 @@ export function AffiliateSettings({ affiliate, userProfile }: AffiliateSettingsP
                   type="radio"
                   value="check"
                   checked={paymentMethod === 'check'}
-                  onChange={(e) => setPaymentMethod(e.target.value as 'check')}
+                  onChange={e => setPaymentMethod(e.target.value as 'check')}
                   className="mr-2"
                 />
                 Check
@@ -160,14 +169,17 @@ export function AffiliateSettings({ affiliate, userProfile }: AffiliateSettingsP
           {/* PayPal Email */}
           {paymentMethod === 'paypal' && (
             <div>
-              <label htmlFor="paypal-email" className="block text-sm font-medium text-gray-700 mb-2">
+              <label
+                htmlFor="paypal-email"
+                className="block text-sm font-medium text-gray-700 mb-2"
+              >
                 PayPal Email Address
               </label>
               <Input
                 id="paypal-email"
                 type="email"
                 value={paypalEmail}
-                onChange={(e) => setPaypalEmail(e.target.value)}
+                onChange={e => setPaypalEmail(e.target.value)}
                 placeholder="your-paypal@example.com"
               />
             </div>
@@ -177,25 +189,31 @@ export function AffiliateSettings({ affiliate, userProfile }: AffiliateSettingsP
           {paymentMethod === 'check' && (
             <>
               <div>
-                <label htmlFor="check-payable" className="block text-sm font-medium text-gray-700 mb-2">
+                <label
+                  htmlFor="check-payable"
+                  className="block text-sm font-medium text-gray-700 mb-2"
+                >
                   Check Payable To
                 </label>
                 <Input
                   id="check-payable"
                   type="text"
                   value={checkPayableTo}
-                  onChange={(e) => setCheckPayableTo(e.target.value)}
+                  onChange={e => setCheckPayableTo(e.target.value)}
                   placeholder="Full name or business name"
                 />
               </div>
               <div>
-                <label htmlFor="mailing-address" className="block text-sm font-medium text-gray-700 mb-2">
+                <label
+                  htmlFor="mailing-address"
+                  className="block text-sm font-medium text-gray-700 mb-2"
+                >
                   Mailing Address
                 </label>
                 <textarea
                   id="mailing-address"
                   value={mailingAddress}
-                  onChange={(e) => setMailingAddress(e.target.value)}
+                  onChange={e => setMailingAddress(e.target.value)}
                   rows={3}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                   placeholder="Street Address&#10;City, State ZIP&#10;Country"
@@ -215,30 +233,37 @@ export function AffiliateSettings({ affiliate, userProfile }: AffiliateSettingsP
 
         <div className="space-y-4">
           <div>
-            <label htmlFor="display-name" className="block text-sm font-medium text-gray-700 mb-2">
+            <label
+              htmlFor="display-name"
+              className="block text-sm font-medium text-gray-700 mb-2"
+            >
               Display Name
             </label>
             <Input
               id="display-name"
               type="text"
               value={displayName}
-              onChange={(e) => setDisplayName(e.target.value)}
+              onChange={e => setDisplayName(e.target.value)}
               placeholder="e.g., John D"
             />
             <p className="text-xs text-gray-500 mt-1">
-              Defaults to your first name and last initial. Leave blank to appear as "Anonymous".
+              Defaults to your first name and last initial. Leave blank to
+              appear as "Anonymous".
             </p>
           </div>
 
           <div>
-            <label htmlFor="website" className="block text-sm font-medium text-gray-700 mb-2">
+            <label
+              htmlFor="website"
+              className="block text-sm font-medium text-gray-700 mb-2"
+            >
               Website URL
             </label>
             <Input
               id="website"
               type="url"
               value={websiteUrl}
-              onChange={(e) => setWebsiteUrl(e.target.value)}
+              onChange={e => setWebsiteUrl(e.target.value)}
               placeholder="https://yourwebsite.com"
             />
           </div>
@@ -251,31 +276,41 @@ export function AffiliateSettings({ affiliate, userProfile }: AffiliateSettingsP
               <Input
                 type="text"
                 value={socialMedia.twitter || ''}
-                onChange={(e) => setSocialMedia({ ...socialMedia, twitter: e.target.value })}
+                onChange={e =>
+                  setSocialMedia({ ...socialMedia, twitter: e.target.value })
+                }
                 placeholder="Twitter/X username (e.g., @yourusername)"
               />
               <Input
                 type="text"
                 value={socialMedia.facebook || ''}
-                onChange={(e) => setSocialMedia({ ...socialMedia, facebook: e.target.value })}
+                onChange={e =>
+                  setSocialMedia({ ...socialMedia, facebook: e.target.value })
+                }
                 placeholder="Facebook URL"
               />
               <Input
                 type="text"
                 value={socialMedia.instagram || ''}
-                onChange={(e) => setSocialMedia({ ...socialMedia, instagram: e.target.value })}
+                onChange={e =>
+                  setSocialMedia({ ...socialMedia, instagram: e.target.value })
+                }
                 placeholder="Instagram username"
               />
               <Input
                 type="text"
                 value={socialMedia.youtube || ''}
-                onChange={(e) => setSocialMedia({ ...socialMedia, youtube: e.target.value })}
+                onChange={e =>
+                  setSocialMedia({ ...socialMedia, youtube: e.target.value })
+                }
                 placeholder="YouTube channel URL"
               />
               <Input
                 type="text"
                 value={socialMedia.tiktok || ''}
-                onChange={(e) => setSocialMedia({ ...socialMedia, tiktok: e.target.value })}
+                onChange={e =>
+                  setSocialMedia({ ...socialMedia, tiktok: e.target.value })
+                }
                 placeholder="TikTok username"
               />
             </div>
@@ -301,7 +336,7 @@ export function AffiliateSettings({ affiliate, userProfile }: AffiliateSettingsP
             <input
               type="checkbox"
               checked={emailNotifications}
-              onChange={(e) => setEmailNotifications(e.target.checked)}
+              onChange={e => setEmailNotifications(e.target.checked)}
               className="sr-only peer"
             />
             <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
@@ -312,18 +347,15 @@ export function AffiliateSettings({ affiliate, userProfile }: AffiliateSettingsP
       {/* Tax Form Note */}
       <Card className="p-6 bg-blue-50 border-blue-200">
         <p className="text-sm text-blue-800">
-          <strong>Tax Information:</strong> Your tax form has been submitted and is on file.
-          If you need to update your tax information, please contact support.
+          <strong>Tax Information:</strong> Your tax form has been submitted and
+          is on file. If you need to update your tax information, please contact
+          support.
         </p>
       </Card>
 
       {/* Save Button */}
       <div className="flex justify-end">
-        <Button
-          onClick={handleSave}
-          disabled={loading}
-          size="lg"
-        >
+        <Button onClick={handleSave} disabled={loading} size="lg">
           <Save className="w-4 h-4 mr-2" />
           {loading ? 'Saving...' : 'Save Changes'}
         </Button>

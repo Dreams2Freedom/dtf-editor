@@ -6,6 +6,7 @@
 ## 🎓 **LESSONS LEARNED - NOT BUGS, USER ERRORS**
 
 ### **LESSON-001: Admin Email Confusion & Authentication (October 4, 2025)**
+
 - **What Happened:** Spent 6 hours debugging "admin access denied" issues
 - **Root Cause:**
   1. Using wrong admin email (shannonherod@gmail.com instead of Shannon@S2Transfers.com)
@@ -23,6 +24,7 @@
 ## 🐛 **Critical Bugs (P0)**
 
 ### **BUG-057: Affiliate Admin Panel Shows 0 Applications (Parameter Mismatch)**
+
 - **Status:** 🟢 FIXED
 - **Severity:** Critical
 - **Component:** Admin Dashboard / RLS Policies / SQL Function Signatures
@@ -100,6 +102,7 @@
 - **Next Steps:** Hard refresh browser (Cmd+Shift+R) to see applications
 
 ### **BUG-056: Admin Cannot Access Affiliate Dashboard**
+
 - **Status:** 🟢 FIXED (Related to BUG-057)
 - **Severity:** Critical
 - **Component:** Admin Dashboard / RLS Policies / SQL Functions
@@ -111,6 +114,7 @@
 ## 🐛 **Critical Bugs (P0)**
 
 ### **BUG-055: Incorrect Pricing Information Displayed**
+
 - **Status:** 🟢 FIXED
 - **Severity:** High
 - **Component:** Pricing / Documentation
@@ -120,7 +124,7 @@
   - FAQ showed Starter Plan at $14.99 instead of Pro at $19.99
   - Pay-as-you-go prices were incorrect
   - No single source of truth for pricing
-- **Root Cause:** 
+- **Root Cause:**
   - Multiple files had hardcoded pricing that wasn't updated
   - No centralized pricing documentation
 - **Solution Applied:**
@@ -135,6 +139,7 @@
 - **Date Fixed:** August 20, 2025
 
 ### **BUG-054: Duplicate Credit Allocation on Payment**
+
 - **Status:** 🟢 FIXED (FULLY RESOLVED)
 - **Severity:** Critical
 - **Component:** Payment Processing / Webhooks
@@ -162,6 +167,7 @@
 - **Date Fixed:** August 19, 2025 (final fix deployed 8:44 AM)
 
 ### **BUG-053: Welcome Email Not Sent During Signup**
+
 - **Status:** 🟢 FIXED
 - **Severity:** Critical
 - **Component:** Email System / Signup Flow
@@ -185,6 +191,7 @@
 - **Date Fixed:** August 19, 2025
 
 ### **BUG-017: Subscription Updates Create New Subscriptions**
+
 - **Status:** 🟢 FIXED
 - **Severity:** Critical
 - **Component:** Stripe Webhooks / Billing
@@ -202,6 +209,7 @@
 - **Date Fixed:** August 15, 2025
 
 ### **BUG-005: Database Column Inconsistency (credits vs credits_remaining)**
+
 - **Status:** 🟢 FIXED
 - **Severity:** High
 - **Component:** Database / Credit System
@@ -218,6 +226,7 @@
 - **Date Fixed:** August 15, 2025
 
 ### **BUG-008: Missing Error Boundaries Causing App Crashes**
+
 - **Status:** 🟢 FIXED
 - **Severity:** Critical
 - **Component:** Error Handling / UX
@@ -238,6 +247,7 @@
 - **Date Fixed:** August 15, 2025
 
 ### **BUG-009: TypeScript Build Errors Ignored**
+
 - **Status:** 🟢 FIXED
 - **Severity:** High
 - **Component:** Build Configuration
@@ -253,6 +263,7 @@
 - **Date Fixed:** August 15, 2025
 
 ### **BUG-052: ClippingMagic White Label Editor Opens Blank Page**
+
 - **Status:** 🟢 FIXED
 - **Severity:** Critical
 - **Component:** Background Removal / ClippingMagic Integration
@@ -262,7 +273,7 @@
   - Editor popup opened
   - Editor content was completely blank/white
   - No error messages displayed
-- **Root Cause:** 
+- **Root Cause:**
   - Test mode (`test: 'true'`) was enabled in development environment
   - Test mode returns test image IDs that don't work with the white label editor
   - ClippingMagic's test images are only for API testing, not for the visual editor
@@ -280,6 +291,7 @@
 - **Date Fixed:** August 17, 2025
 
 ### **BUG-051: Background Removal 413 Error After Security Updates**
+
 - **Status:** 🟢 FIXED
 - **Severity:** Critical
 - **Component:** Background Removal / File Upload
@@ -288,7 +300,7 @@
   - Files over 4MB rejected with 413 error
   - Error persisted after removing rate limiting
   - ClippingMagic upload completely broken
-- **Root Cause:** 
+- **Root Cause:**
   - Next.js App Router has 4MB default body size limit
   - The `export const config` pattern for setting body size doesn't work in App Router (it's a Pages Router pattern)
   - Security updates exposed this latent issue
@@ -308,6 +320,7 @@
 - **Date Fixed:** August 17, 2025
 
 ### **BUG-050: Support Ticket Creation Visual Feedback Issues**
+
 - **Status:** 🟢 FIXED
 - **Severity:** High
 - **Component:** Support System / User Experience
@@ -317,7 +330,7 @@
   - Admin couldn't see when users had replied to tickets
   - No indication of message count or activity on ticket lists
   - Confusing UX as users didn't know there were responses
-- **Root Cause:** 
+- **Root Cause:**
   - Missing visual indicators in both user and admin ticket lists
   - No message count or reply status tracking in UI
   - Database queries not fetching message metadata
@@ -335,6 +348,7 @@
 - **Date Fixed:** August 14, 2025
 
 ### **BUG-049: Admin Support Dashboard 404 Error**
+
 - **Status:** 🟢 FIXED
 - **Severity:** Critical
 - **Component:** Admin Dashboard / Support System
@@ -343,7 +357,7 @@
   - Clicking "Support" in admin sidebar led to 404 page
   - No way for admins to view and manage support tickets
   - Support tickets created but not viewable by admins
-- **Root Cause:** 
+- **Root Cause:**
   - Admin support page didn't exist at /admin/support
   - Route not implemented despite navigation link being present
 - **Solution Applied:**
@@ -359,6 +373,7 @@
 - **Date Fixed:** August 14, 2025
 
 ### **BUG-048: Support Ticket Detail View Not Working**
+
 - **Status:** 🟢 FIXED
 - **Severity:** Critical
 - **Component:** Support System
@@ -367,7 +382,7 @@
   - Ticket list displayed correctly but clicking tickets did nothing
   - Page refresh instead of navigation to ticket detail
   - Unable to view or reply to tickets
-- **Root Cause:** 
+- **Root Cause:**
   - Database query error when joining support_messages with profiles
   - Complex join causing 400 Bad Request errors
   - Missing ticket detail page implementation
@@ -383,6 +398,7 @@
 - **Date Fixed:** August 14, 2025
 
 ### **BUG-047: Support Page Logout on Refresh**
+
 - **Status:** 🟢 FIXED
 - **Severity:** Critical
 - **Component:** Authentication / Support System
@@ -392,7 +408,7 @@
   - Refresh the page → automatically logged out
   - Redirect to login page on every refresh
   - Session not persisting properly
-- **Root Cause:** 
+- **Root Cause:**
   - Supabase client singleton being recreated in dev mode
   - Lost authentication session when client was recreated
   - Dev mode check causing client recreation on each request
@@ -408,6 +424,7 @@
 - **Date Fixed:** August 14, 2025
 
 ### **BUG-046: Support Ticket Creation 403 Forbidden Error**
+
 - **Status:** 🟢 FIXED
 - **Severity:** Critical
 - **Component:** Support System / Database
@@ -417,7 +434,7 @@
   - 403 Forbidden when inserting into support_tickets table
   - Error: "new row violates row-level security policy"
   - Ticket creation completely blocked
-- **Root Cause:** 
+- **Root Cause:**
   - Missing ticket_number field (UNIQUE NOT NULL constraint)
   - RLS policies not properly configured
   - Service not generating ticket number before insert
@@ -433,6 +450,7 @@
 - **Date Fixed:** August 14, 2025
 
 ### **BUG-045: AI Image-to-Image Generation Not Saving to My Images**
+
 - **Status:** 🟢 FIXED
 - **Severity:** Critical
 - **Component:** AI Image Generation / Image Gallery
@@ -441,7 +459,7 @@
   - User creates images using image-to-image AI generation
   - Images generated successfully but don't show in My Images gallery
   - Images were saved to `uploads` table but not `processed_images` table
-- **Root Cause:** 
+- **Root Cause:**
   - `/api/generate/from-image/route.ts` was saving to `uploads` table only
   - Missing call to `insert_processed_image` RPC function
   - My Images gallery only shows items from `processed_images` table
@@ -456,6 +474,7 @@
 - **Date Fixed:** August 11, 2025
 
 ### **BUG-044: OpenAI Client-Side Initialization Error**
+
 - **Status:** 🟢 FIXED
 - **Severity:** Critical
 - **Component:** AI Image Generation / ChatGPT Service
@@ -464,7 +483,7 @@
   - Error when clicking "AI" checkbox: "It looks like you're running in a browser-like environment"
   - OpenAI SDK refusing to run without `dangerouslyAllowBrowser: true`
   - AI generation feature completely broken in production
-- **Root Cause:** 
+- **Root Cause:**
   - OpenAI client was being initialized at module level in chatgpt.ts
   - PromptBuilder component importing the service on client-side
   - OpenAI SDK designed for server-side use only
@@ -483,6 +502,7 @@
 - **Date Fixed:** August 7, 2025
 
 ### **BUG-042: Stripe Webhook Integration Issues**
+
 - **Status:** 🟢 FIXED
 - **Severity:** Critical
 - **Component:** Stripe Webhooks / Payment Processing
@@ -515,6 +535,7 @@
 - **Date Fixed:** August 6, 2025
 
 ### **BUG-043: Notification System Build Errors**
+
 - **Status:** 🟢 FIXED
 - **Severity:** High
 - **Component:** Notification System
@@ -522,7 +543,7 @@
 - **Symptoms:**
   - "Module not found: Can't resolve '@/hooks/useAuth'"
   - Build failure preventing deployment
-- **Root Cause:** 
+- **Root Cause:**
   - Imported non-existent `useAuth` hook instead of `useAuthStore`
   - Wrong authentication pattern for getting session tokens
 - **Solution Applied:**
@@ -533,6 +554,7 @@
 - **Date Fixed:** August 6, 2025
 
 ### **BUG-039: Image Gallery and Vectorization Save Issues**
+
 - **Status:** 🟢 FIXED
 - **Severity:** Critical
 - **Component:** Image Gallery / Storage / Database
@@ -564,6 +586,7 @@
 - **Date Fixed:** August 5, 2025
 
 ### **BUG-038: Bulk Credit Adjustment Not Working**
+
 - **Status:** 🟢 FIXED
 - **Severity:** Critical
 - **Component:** Admin User Management / Bulk Operations
@@ -572,7 +595,7 @@
   - User reported: "i used the bulk add credits feature for the two free users in the screenshot and it did not work"
   - Users had 2 credits, tried to add 2 more, still showed 2 credits
   - Success toast appeared but credits didn't update
-- **Root Cause:** 
+- **Root Cause:**
   - API was trying to call non-existent `add_credits_bulk` RPC function
   - Fallback code was working but only after initial RPC failure
   - Database column is `credits_remaining`, not `credits`
@@ -585,6 +608,7 @@
 - **Date Fixed:** July 31, 2025
 
 ### **BUG-036: My Images Gallery Not Saving Processed Images**
+
 - **Status:** 🟢 FIXED
 - **Severity:** Critical
 - **Component:** Image Gallery / Image Processing
@@ -613,6 +637,7 @@
 - **Date Fixed:** July 30, 2025
 
 ### **BUG-035: Admin Sidebar Not Collapsing Properly**
+
 - **Status:** 🟢 FIXED
 - **Severity:** Medium
 - **Component:** Admin Layout / AdminSidebar
@@ -621,7 +646,7 @@
   - Hamburger menu toggles sidebar visibility
   - Main content stays in same position when sidebar collapses
   - Wasted screen space on desktop when sidebar is hidden
-- **Root Cause:** 
+- **Root Cause:**
   - Sidebar had `lg:translate-x-0` forcing it visible on desktop
   - Main content margin logic wasn't properly adjusting
   - Fixed positioning wasn't working correctly with margin transitions
@@ -634,6 +659,7 @@
 - **Date Fixed:** July 30, 2025
 
 ### **BUG-034: Analytics Page Server Component Error**
+
 - **Status:** 🟢 FIXED
 - **Severity:** Critical
 - **Component:** Admin Analytics / CostTrackingService
@@ -642,7 +668,7 @@
   - Build error on /admin/analytics page
   - Error: "You're importing a component that needs 'next/headers'"
   - CostTrackingService importing server-side Supabase client
-- **Root Cause:** 
+- **Root Cause:**
   - CostTrackingService was importing createServerSupabaseClient
   - This service is used in client components (CostAnalyticsDashboard)
   - Server-side imports can't be used in client components
@@ -654,6 +680,7 @@
 - **Date Fixed:** July 30, 2025
 
 ### **BUG-033: Admin Page 500 Errors After Adding User Management**
+
 - **Status:** 🟢 FIXED
 - **Severity:** Critical
 - **Component:** Admin Dashboard / API Routes
@@ -663,7 +690,7 @@
   - Multiple 500 errors for webpack.js, main.js, react-refresh.js
   - 401 unauthorized error from contentOverview.js
   - Server not responding properly
-- **Root Cause:** 
+- **Root Cause:**
   - TypeScript errors in new admin API routes
   - createServerSupabaseClient returns Promise in Next.js 15
   - Missing await keywords in API routes
@@ -685,6 +712,7 @@
 - **Date Fixed:** July 30, 2025
 
 ### **BUG-032: Admin Login Cookie Not Persisting**
+
 - **Status:** 🟢 FIXED
 - **Severity:** Critical
 - **Component:** Admin Authentication
@@ -695,7 +723,7 @@
   - Redirect to /admin occurs
   - Middleware redirects back to /admin/login (cookie not found)
   - Session stored in localStorage but not accessible to middleware
-- **Root Causes Identified:** 
+- **Root Causes Identified:**
   1. Dual authentication systems (regular Supabase auth + custom admin auth)
   2. HttpOnly cookie can't be read by JavaScript (mismatch in design)
   3. Middleware checks cookie, client checks localStorage
@@ -727,6 +755,7 @@
 - **Date Fixed:** July 30, 2025
 
 ### **BUG-031: Admin Login Cookie/Session Issue**
+
 - **Status:** 🟢 FIXED
 - **Severity:** Critical
 - **Component:** Admin Authentication
@@ -737,7 +766,7 @@
   - Middleware redirects /admin back to /admin/login
   - Cookie not being read by middleware
   - Direct navigation to /admin shows hydration error
-- **Root Causes Found:** 
+- **Root Causes Found:**
   1. Wrong Supabase package imports - FIXED
   2. 2FA requirement in code but not implemented - FIXED
   3. Session stored in localStorage but middleware checks cookie - FIXED
@@ -765,11 +794,12 @@
 - **Date Fixed:** July 30, 2025 (Security hardened: July 30, 2025 - Session 2)
 
 ### **BUG-020: Background Removal Early Credit Deduction**
+
 - **Status:** 🟢 FIXED
 - **Severity:** Critical
 - **Component:** Credit System / ClippingMagic Integration
 - **Description:** Credits were deducted when opening the background removal editor, not when processing completed
-- **Root Cause:** 
+- **Root Cause:**
   - Credit deduction happened on editor initialization
   - No distinction between opening editor and completing processing
 - **Symptoms:**
@@ -782,6 +812,7 @@
 - **Date:** July 2025
 
 ### **BUG-021: Stripe API Compatibility Issues**
+
 - **Status:** 🟢 FIXED
 - **Severity:** High
 - **Component:** Stripe Integration
@@ -797,6 +828,7 @@
 - **Date:** July 2025
 
 ### **BUG-022: Retention System Eligibility Check Failures**
+
 - **Status:** 🟢 FIXED
 - **Severity:** High
 - **Component:** Subscription Retention / Database
@@ -811,11 +843,12 @@
 - **Date:** July 2025
 
 ### **BUG-023: Credit Column Mismatch**
+
 - **Status:** 🟢 FIXED
 - **Severity:** Critical
 - **Component:** Credit System / Database
 - **Description:** Credit checks failing due to inconsistent column names (credits vs credits_remaining)
-- **Root Cause:** 
+- **Root Cause:**
   - Database has `credits` column but code was checking `credits_remaining`
   - Migration inconsistency between different environments
 - **Symptoms:**
@@ -828,11 +861,12 @@
 - **Date:** July 29, 2025
 
 ### **BUG-024: Deep-Image API Invalid Key**
+
 - **Status:** 🟢 FIXED
 - **Severity:** High
 - **Component:** Deep-Image Integration
 - **Description:** "No user found for provided token" error on upscaling
-- **Root Cause:** 
+- **Root Cause:**
   - API key set to test/invalid value: `73e72360-67b3-11f0-aac1-2d32901b6ec4-invalid_key_for_testing`
 - **Solution Applied:**
   - User updated DEEP_IMAGE_API_KEY in .env.local with valid key
@@ -840,6 +874,7 @@
 - **Date Fixed:** July 29, 2025
 
 ### **BUG-025: Credit Display Not Updating on Processing Pages**
+
 - **Status:** 🟢 FIXED
 - **Severity:** High
 - **Component:** UI / Credit System
@@ -848,7 +883,7 @@
   - After processing, credit count shows old value
   - User must refresh page to see updated credits
   - Confusing UX as users think credits weren't deducted
-- **Root Cause:** 
+- **Root Cause:**
   - Processing pages didn't refresh credits from authStore
   - No event listeners for focus/visibility changes
 - **Solution Applied:**
@@ -858,6 +893,7 @@
 - **Date Fixed:** July 29, 2025
 
 ### **BUG-026: Phantom Credits from Failed Operations**
+
 - **Status:** 🟢 FIXED
 - **Severity:** High
 - **Component:** Credit System
@@ -865,7 +901,7 @@
 - **Symptoms:**
   - User had 4 credits in DB but only 2 were real
   - Failed operations with "insufficient credits" still gave refunds
-- **Root Cause:** 
+- **Root Cause:**
   - Refund logic triggered for ALL errors including insufficient credits
 - **Solution Applied:**
   - Added check: don't refund if error contains "insufficient credits"
@@ -873,6 +909,7 @@
 - **Date Fixed:** July 29, 2025
 
 ### **BUG-027: Webhook Not Processing Subscriptions**
+
 - **Status:** 🟢 FIXED
 - **Severity:** Critical
 - **Component:** Stripe Webhooks
@@ -883,7 +920,7 @@
   - Credits not allocated automatically
   - Dashboard shows old plan/credit info
   - Manual database sync required for all operations
-- **Root Cause Found:** 
+- **Root Cause Found:**
   - Stripe CLI was forwarding to `/api/webhooks/stripe-simple`
   - That endpoint only handled `payment_intent.succeeded` events
   - Subscription events need `checkout.session.completed` and `customer.subscription.updated`
@@ -896,6 +933,7 @@
 - **Date Fixed:** July 29, 2025
 
 ### **BUG-028: Retention Flow Bypassed in Stripe Portal**
+
 - **Status:** 🟢 FIXED
 - **Severity:** High
 - **Component:** Subscription Retention
@@ -912,6 +950,7 @@
 - **Date Fixed:** July 29, 2025
 
 ### **BUG-029: No Insufficient Credits Warning on Processing Pages**
+
 - **Status:** 🟢 FIXED
 - **Severity:** Medium
 - **Component:** UI/UX
@@ -927,6 +966,7 @@
 - **Date Fixed:** July 29, 2025
 
 ### **BUG-030: Cancellation Shows Wrong Success Message**
+
 - **Status:** 🟢 FIXED
 - **Severity:** Medium
 - **Component:** Cancellation Flow
@@ -945,11 +985,12 @@
 - **Date Fixed:** July 29, 2025
 
 ### **BUG-015: Credit Addition RPC Function Permission Error**
+
 - **Status:** 🟢 FIXED
 - **Severity:** Critical
 - **Component:** Database / Credit System
 - **Description:** The add_user_credits RPC function fails with "permission denied for table credit_transactions"
-- **Root Cause:** 
+- **Root Cause:**
   - The credit_transactions table was missing entirely
   - The add_user_credits function wasn't created in the database
   - RLS policies weren't configured
@@ -961,22 +1002,24 @@
 - **Date:** January 2025
 
 ### **BUG-016: Stripe Customer Portal Not Configured**
+
 - **Status:** 🟢 FIXED
 - **Severity:** High
 - **Component:** Stripe Integration
 - **Description:** Customer portal access fails with configuration error
-- **Root Cause:** 
+- **Root Cause:**
   - Stripe customer portal not configured in Stripe dashboard
   - Error: "No configuration provided and your test mode default configuration has not been created"
 - **Symptoms:**
   - "Unable to access subscription management" error in UI
   - 500 error on /api/stripe/create-portal-session endpoint
-- **Solution Applied:** 
+- **Solution Applied:**
   - Configured customer portal in Stripe dashboard
   - Portal now accessible and functional
 - **Date:** January 2025
 
 ### **BUG-037: Enhanced Gallery Implementation In Progress**
+
 - **Status:** 🟢 FIXED
 - **Severity:** Low
 - **Component:** Image Gallery
@@ -1001,11 +1044,12 @@
 - **Date Fixed:** July 31, 2025
 
 ### **BUG-017: Subscription Updates Through Portal Create New Subscriptions**
+
 - **Status:** 🔴 ACTIVE
 - **Severity:** High
 - **Component:** Stripe Integration / Webhooks
 - **Description:** When customers upgrade/downgrade through Stripe portal, it creates new subscriptions instead of updating existing ones
-- **Root Cause:** 
+- **Root Cause:**
   - Stripe portal configuration issue or API behavior
   - New subscriptions don't have userId in metadata
   - Webhook can't automatically update user profile without metadata
@@ -1013,18 +1057,19 @@
   - Multiple active subscriptions for same customer
   - Dashboard doesn't reflect plan changes
   - Potential double-billing
-- **Workaround:** 
+- **Workaround:**
   - Manually update subscription in database
   - Cancel old subscriptions to prevent double-billing
   - Need to implement subscription lookup by customer ID as fallback
 - **Date:** January 2025
 
 ### **BUG-018: Main Webhook Handler Not Processing Credits**
+
 - **Status:** 🟢 FIXED
 - **Severity:** High
 - **Component:** Webhook Handler
 - **Description:** The main webhook handler at /api/webhooks/stripe was not adding credits after payment
-- **Root Cause:** 
+- **Root Cause:**
   - Complex initialization or dependency issues in the main webhook handler
   - Possible async/await timing issues
 - **Solution Applied:**
@@ -1035,6 +1080,7 @@
 - **Date:** January 2025
 
 ### **BUG-019: Credit Deduction Functions Missing**
+
 - **Status:** 🟢 FIXED
 - **Severity:** Critical
 - **Component:** Database / Credit System
@@ -1044,10 +1090,10 @@
   - "function add_credit_transaction does not exist" error
   - Credits not deducted when processing images
   - No credit refunds on processing failures
-- **Root Cause:** 
+- **Root Cause:**
   - Database functions `use_credits_with_expiration` and `add_credit_transaction` were never created
   - Supabase schema cache doesn't immediately reflect new functions
-- **Solution Applied:** 
+- **Solution Applied:**
   - Implemented fallback mechanism in `imageProcessingService`
   - Service tries RPC functions first, falls back to direct DB updates
   - Credit deduction now works reliably without requiring specific functions
@@ -1056,11 +1102,12 @@
 - **Date Fixed:** January 2025
 
 ### **BUG-012: ClippingMagic White Label Editor Implementation**
+
 - **Status:** 🟡 IN PROGRESS
 - **Severity:** Critical
 - **Component:** ClippingMagic Integration
 - **Description:** Initial implementation incorrectly assumed iframe embedding, but editor opens in popup
-- **Root Cause:** 
+- **Root Cause:**
   - Misunderstood API documentation - ClippingMagic.edit() opens a popup window, not iframe
   - Internal iframe created by ClippingMagic.js is for internal use only
   - The `X-Frame-Options: sameorigin` error is from internal implementation, not the actual editor
@@ -1069,7 +1116,7 @@
   - Discovered ClippingMagic.js creates internal iframe for communication
   - API docs clearly state editor opens in popup window
   - Browser popup blockers may prevent editor from opening
-- **Solution Being Implemented:** 
+- **Solution Being Implemented:**
   - Upload image to ClippingMagic first to get ID and secret
   - Use ClippingMagic.edit() to open editor in popup window
   - Handle callback events for result/error/exit
@@ -1079,11 +1126,12 @@
 ## 🐛 **Critical Bugs (P0)**
 
 ### **BUG-001: Authentication RLS Policies Causing Signup Failures**
+
 - **Status:** 🟢 FIXED
 - **Severity:** Critical
 - **Component:** Authentication / Database
 - **Description:** Multiple SQL fix attempts indicate RLS policies are preventing user signups
-- **Symptoms Fixed:** 
+- **Symptoms Fixed:**
   - New users can now create accounts ✅
   - No more "Failed to create user profile" errors ✅
   - Recursive policy issues resolved ✅
@@ -1092,11 +1140,12 @@
   - Database trigger now handles profile creation ✅
   - Non-recursive RLS policies implemented ✅
   - Cleaned up auth service code ✅
-- **Files Fixed:** 
+- **Files Fixed:**
   - `supabase/migrations/004_consolidated_auth_fix_v2.sql` (APPLIED)
   - `src/services/auth.ts` (UPDATED)
 
 ### **BUG-002: Console Logs Exposing Sensitive Information**
+
 - **Status:** 🟢 FIXED
 - **Severity:** Critical
 - **Component:** All services
@@ -1104,13 +1153,14 @@
 - **Security Risk:** API keys, user data, request bodies logged
 - **Files Cleaned:**
   - `src/services/deepImage.ts` (14 removed)
-  - `src/services/storage.ts` (14 removed)  
+  - `src/services/storage.ts` (14 removed)
   - `src/services/auth.ts` (14 removed)
   - All API routes and components cleaned
 - **Solution:** Removed ALL console statements from src/ directory
 - **Verification:** Zero console statements remain in codebase
 
 ### **BUG-011: Image Processing Not Working**
+
 - **Status:** 🟢 FIXED
 - **Severity:** Critical
 - **Component:** Image Processing / Deep-Image.ai Integration
@@ -1121,12 +1171,12 @@
   - Next.js Image component hostname error ✅
 - **Root Causes:**
   - Incorrect Supabase client references in storage service
-  - Wrong environment variable names (NEXT_PUBLIC_ prefix on server-side keys)
+  - Wrong environment variable names (NEXT*PUBLIC* prefix on server-side keys)
   - Missing Next.js remote image configuration
   - Incorrect API header case (X-API-KEY vs x-api-key)
 - **Solution Applied:**
   - Fixed storage.ts to use `this.supabase` instead of `supabase`
-  - Removed NEXT_PUBLIC_ prefix from server-side env vars
+  - Removed NEXT*PUBLIC* prefix from server-side env vars
   - Added Deep-Image.ai domains to next.config.js remotePatterns
   - Updated API header to lowercase `x-api-key`
 - **Fixed Date:** January 2025 (Current Session - Part 12-13)
@@ -1137,6 +1187,7 @@
 ## 🟡 **High Priority Bugs (P1)**
 
 ### **BUG-003: Infinite Re-render Loop in AuthContext**
+
 - **Status:** 🟡 PARTIALLY FIXED
 - **Severity:** High
 - **Component:** AuthContext
@@ -1147,8 +1198,9 @@
 - **Solution:** Simplify state management, remove redundancy
 
 ### **BUG-004: Environment Variables Inconsistency**
+
 - **Status:** 🟢 FIXED
-- **Severity:** High  
+- **Severity:** High
 - **Component:** Environment Configuration
 - **Description:** Mixed use of public/private env vars
 - **Fixed Issues:**
@@ -1159,6 +1211,7 @@
 - **Solution:** Complete env.ts refactor with security-first approach
 
 ### **BUG-005: Credits vs Credits_Remaining Column Confusion**
+
 - **Status:** 🔴 OPEN
 - **Severity:** High
 - **Component:** Database Schema
@@ -1171,6 +1224,7 @@
 ## 🟢 **Medium Priority Bugs (P2)**
 
 ### **BUG-006: Test Pages in Production Build**
+
 - **Status:** 🟢 FIXED
 - **Severity:** Medium
 - **Component:** Pages/Routes
@@ -1184,6 +1238,7 @@
 - **Solution:** Deleted all test pages and empty API directories
 
 ### **BUG-007: Hydration Errors on Home Page**
+
 - **Status:** 🟢 FIXED
 - **Severity:** Medium
 - **Component:** Home Page
@@ -1192,6 +1247,7 @@
 - **Verified:** Working correctly
 
 ### **BUG-008: Missing Error Boundaries**
+
 - **Status:** 🔴 OPEN
 - **Severity:** Medium
 - **Component:** Global
@@ -1204,6 +1260,7 @@
 ## 🔵 **Low Priority Bugs (P3)**
 
 ### **BUG-009: TypeScript Errors Not Failing Build**
+
 - **Status:** 🔴 OPEN
 - **Severity:** Low
 - **Component:** Build Configuration
@@ -1211,6 +1268,7 @@
 - **Solution:** Strict TypeScript configuration
 
 ### **BUG-010: Unused Imports and Dead Code**
+
 - **Status:** 🔴 OPEN
 - **Severity:** Low
 - **Component:** Various
@@ -1220,11 +1278,12 @@
 ---
 
 ### **BUG-013: Dashboard Hydration Error and Infinite Loading**
+
 - **Status:** 🟢 FIXED
 - **Severity:** Critical
 - **Component:** Dashboard Page / Authentication
 - **Description:** Dashboard stuck in loading state with hydration error
-- **Symptoms:** 
+- **Symptoms:**
   - Page shows "Loading your dashboard..." indefinitely
   - Console error: "Hydration failed because the server rendered HTML didn't match the client"
   - 401 error in console
@@ -1236,6 +1295,7 @@
 - **Verification:** User confirmed dashboard loads correctly
 
 ### **BUG-020: Background Removal Credits Deducted on Cancel**
+
 - **Status:** 🟢 FIXED
 - **Severity:** High
 - **Component:** Background Removal / Credit System
@@ -1244,10 +1304,10 @@
   - Credit deducted immediately on image upload to ClippingMagic
   - Refund mechanism existed but didn't trigger reliably
   - User lost credit even if they cancelled the operation
-- **Root Cause:** 
+- **Root Cause:**
   - Credits were deducted on upload, not on completion
   - `editor-exit` event didn't fire reliably when popup was closed
-- **Solution Applied:** 
+- **Solution Applied:**
   - Moved credit deduction to AFTER result is generated
   - Credits now only deducted when `result-generated` event fires
   - Removed automatic deduction on upload
@@ -1257,22 +1317,23 @@
 
 ## 📊 **Bug Statistics**
 
-| Priority | Total | Open | In Progress | Fixed | Fix Rate |
-|----------|-------|------|-------------|-------|----------|
-| P0 Critical | 49 | 0 | 0 | 49 | 100% |
-| P1 High | 4 | 1 | 0 | 3 | 75% |
-| P2 Medium | 3 | 1 | 0 | 2 | 67% |
-| P3 Low | 2 | 2 | 0 | 0 | 0% |
-| **Total** | **58** | **4** | **0** | **54** | **93%** |
+| Priority    | Total  | Open  | In Progress | Fixed  | Fix Rate |
+| ----------- | ------ | ----- | ----------- | ------ | -------- |
+| P0 Critical | 49     | 0     | 0           | 49     | 100%     |
+| P1 High     | 4      | 1     | 0           | 3      | 75%      |
+| P2 Medium   | 3      | 1     | 0           | 2      | 67%      |
+| P3 Low      | 2      | 2     | 0           | 0      | 0%       |
+| **Total**   | **58** | **4** | **0**       | **54** | **93%**  |
 
 ---
 
 ### **BUG-014: Stripe Price ID Mismatch**
+
 - **Status:** 🟢 FIXED
 - **Severity:** Critical
 - **Component:** Stripe Integration / Payment
 - **Description:** Stripe checkout fails with "No such price" error
-- **Symptoms:** 
+- **Symptoms:**
   - Error message: "No such price: 'prod_SjzkSwdjCgAa8G'"
   - Cannot proceed with subscription checkout
   - Blocks all payment testing
@@ -1288,6 +1349,7 @@
 - **Verification:** Ready to test payment flows
 
 ### **BUG-040: File Size Limit Preventing Large Uploads After Vercel Pro Upgrade**
+
 - **Status:** 🟢 FIXED
 - **Severity:** Critical
 - **Component:** File Upload / File Size Validation
@@ -1296,8 +1358,8 @@
   - User upgraded to Vercel Pro specifically to handle larger files
   - Still getting 413 errors when uploading files over 10MB
   - Error persisted even after redeployment
-- **Root Cause:** 
-  - Hard-coded 10MB (10 * 1024 * 1024) limits throughout the codebase
+- **Root Cause:**
+  - Hard-coded 10MB (10 _ 1024 _ 1024) limits throughout the codebase
   - Multiple components had their own file size validation
   - Limits were not using a centralized configuration
 - **Files with Hard-coded Limits Found:**
@@ -1307,7 +1369,7 @@
   - `/src/components/image/ImageProcessor.tsx` - Line 156: `const maxSize = 10 * 1024 * 1024;`
   - `/src/components/image/ImageUpload.tsx` - Line 35: `const DEFAULT_MAX_FILE_SIZE = 10 * 1024 * 1024;`
 - **Solution Applied:**
-  - Updated all hard-coded 10MB limits to 50MB (50 * 1024 * 1024)
+  - Updated all hard-coded 10MB limits to 50MB (50 _ 1024 _ 1024)
   - Changed DEFAULT_MAX_FILE_SIZE constant in ImageUpload.tsx to 50MB
   - All file size validation now supports Vercel Pro's 50MB limit
 - **Technical Details:**
@@ -1318,6 +1380,7 @@
 - **Date Fixed:** August 5, 2025
 
 ### **BUG-041: ClippingMagic Upload 413 Error for Files Over 4MB**
+
 - **Status:** 🟢 FIXED
 - **Severity:** Critical
 - **Component:** Background Removal / API Routes
@@ -1326,7 +1389,7 @@
   - 413 errors in console for files over 4MB
   - "Unexpected token 'R', 'Request En'... is not valid JSON" error
   - Works fine for smaller files under 4MB
-- **Root Cause:** 
+- **Root Cause:**
   - Next.js App Router has default 4MB body parser limit
   - Previous fix only updated application-level validation (50MB)
   - Platform-level limit not configured in vercel.json
@@ -1346,21 +1409,25 @@
 ## 🔧 **Recently Fixed Bugs**
 
 ### **BUG-011: Image Processing Not Working**
+
 - **Fixed Date:** January 2025 (Current Session)
 - **Fixed By:** Environment config fixes + Next.js config
 - **Verification:** Image upscaling tested and fully functional
 
 ### **BUG-002: Console Logs Security Issue**
+
 - **Fixed Date:** January 2025 (Current Session)
 - **Fixed By:** Complete codebase cleanup
 - **Verification:** Zero console statements remain
 
 ### **BUG-001: Authentication RLS Policies**
+
 - **Fixed Date:** January 2025 (Current Session)
 - **Fixed By:** Database migration + trigger
 - **Verification:** User signup/login working correctly
 
-### **BUG-007: Hydration Errors** 
+### **BUG-007: Hydration Errors**
+
 - **Fixed Date:** Recent
 - **Fixed By:** Commit d5a477b
 - **Verification:** Tested and working
@@ -1370,17 +1437,20 @@
 ## 🎯 **Bug Fix Priority Order**
 
 ### **Week 1 (Current)**
+
 1. BUG-001: Fix authentication RLS policies
 2. BUG-002: Remove all console.logs
 3. BUG-004: Fix environment variables
 4. BUG-005: Standardize database columns
 
 ### **Week 2**
+
 1. BUG-003: Properly fix AuthContext
 2. BUG-006: Remove test pages
 3. BUG-008: Add error boundaries
 
 ### **Week 3+**
+
 1. BUG-009: TypeScript configuration
 2. BUG-010: Code cleanup
 
@@ -1389,6 +1459,7 @@
 ## 📝 **Bug Reporting Template**
 
 ### **BUG-XXX: [Title]**
+
 - **Status:** 🔴 OPEN / 🟡 IN PROGRESS / 🟢 FIXED
 - **Severity:** Critical/High/Medium/Low
 - **Component:** [Affected component]

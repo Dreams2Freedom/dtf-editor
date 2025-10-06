@@ -35,7 +35,10 @@ export function ErrorSuppressor() {
     // Cleanup
     return () => {
       console.error = originalError;
-      window.removeEventListener('unhandledrejection', handleUnhandledRejection);
+      window.removeEventListener(
+        'unhandledrejection',
+        handleUnhandledRejection
+      );
     };
   }, []);
 

@@ -40,7 +40,8 @@ const AdminNavTestPage = () => {
   };
 
   const testMeta = () => {
-    if (typeof window === 'undefined' || typeof document === 'undefined') return;
+    if (typeof window === 'undefined' || typeof document === 'undefined')
+      return;
     setResult('Using meta refresh...');
     const meta = document.createElement('meta');
     meta.httpEquiv = 'refresh';
@@ -52,56 +53,54 @@ const AdminNavTestPage = () => {
     <div className="min-h-screen bg-gray-50 p-8">
       <div className="max-w-4xl mx-auto">
         <h1 className="text-2xl font-bold mb-8">Admin Navigation Test</h1>
-        
+
         <Card className="p-6">
           <h2 className="text-lg font-semibold mb-4">Navigation Methods</h2>
-          
+
           <div className="space-y-4">
             <div>
               <Button onClick={testNextRouter} className="w-full">
                 Test Next.js Router Push
               </Button>
             </div>
-            
+
             <div>
               <Button onClick={testNextRouterReplace} className="w-full">
                 Test Next.js Router Replace
               </Button>
             </div>
-            
+
             <div>
               <Button onClick={testWindowLocation} className="w-full">
                 Test window.location.href
               </Button>
             </div>
-            
+
             <div>
               <Button onClick={testLocationReplace} className="w-full">
                 Test window.location.replace
               </Button>
             </div>
-            
+
             <div>
               <Button onClick={testWindowOpen} className="w-full">
                 Test window.open
               </Button>
             </div>
-            
+
             <div>
               <Button onClick={testMeta} className="w-full">
                 Test Meta Refresh
               </Button>
             </div>
-            
+
             <div>
               <Link href="/admin" className="block">
-                <Button className="w-full">
-                  Test Next.js Link Component
-                </Button>
+                <Button className="w-full">Test Next.js Link Component</Button>
               </Link>
             </div>
           </div>
-          
+
           {result && (
             <div className="mt-6 p-4 bg-gray-100 rounded">
               <p className="text-sm">{result}</p>
@@ -115,5 +114,5 @@ const AdminNavTestPage = () => {
 
 // Export with SSR disabled
 export default dynamic(() => Promise.resolve(AdminNavTestPage), {
-  ssr: false
+  ssr: false,
 });

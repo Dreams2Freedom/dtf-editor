@@ -7,7 +7,10 @@ async function handlePost(request: NextRequest) {
   try {
     // Check authentication
     const supabase = await createServerSupabaseClient();
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
 
     if (authError || !user) {
       return NextResponse.json(
@@ -22,10 +25,7 @@ async function handlePost(request: NextRequest) {
 
     // Verify the user matches
     if (userId !== user.id) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 403 }
-      );
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
     }
 
     // Deduct credits
@@ -39,11 +39,10 @@ async function handlePost(request: NextRequest) {
       'success'
     );
 
-    return NextResponse.json({ 
+    return NextResponse.json({
       success: true,
-      message: 'Credits deducted successfully' 
+      message: 'Credits deducted successfully',
     });
-
   } catch (error) {
     console.error('Credit deduction error:', error);
     return NextResponse.json(

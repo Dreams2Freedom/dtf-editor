@@ -12,7 +12,9 @@ const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
 if (!supabaseUrl || !supabaseServiceKey) {
-  console.error('❌ Missing NEXT_PUBLIC_SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY');
+  console.error(
+    '❌ Missing NEXT_PUBLIC_SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY'
+  );
   process.exit(1);
 }
 
@@ -34,7 +36,7 @@ async function testAddCreditPurchase(userId, purchaseType = 'one_time') {
     p_price_paid: purchase.price,
     p_purchase_type: purchaseType,
     p_payment_method: 'test',
-    p_stripe_payment_intent_id: `pi_test_${Date.now()}`
+    p_stripe_payment_intent_id: `pi_test_${Date.now()}`,
   });
 
   if (error) {
@@ -47,7 +49,9 @@ async function testAddCreditPurchase(userId, purchaseType = 'one_time') {
   console.log(`   Credits: ${data.credits_amount}`);
   console.log(`   Expires: ${new Date(data.expires_at).toLocaleDateString()}`);
   if (data.rollover_expires_at) {
-    console.log(`   Rollover expires: ${new Date(data.rollover_expires_at).toLocaleDateString()}`);
+    console.log(
+      `   Rollover expires: ${new Date(data.rollover_expires_at).toLocaleDateString()}`
+    );
   }
 
   return data.id;
@@ -59,7 +63,7 @@ async function testUseCreditsFIFO(userId, creditsToUse) {
   const { data, error } = await supabase.rpc('use_credits_with_expiration', {
     p_user_id: userId,
     p_credits_to_use: creditsToUse,
-    p_operation: 'Test operation - FIFO usage'
+    p_operation: 'Test operation - FIFO usage',
   });
 
   if (error) {
@@ -94,7 +98,9 @@ async function showCreditSummary(userId) {
     console.log(`   Active credits: ${summary.active_credits}`);
     console.log(`   Rollover credits: ${summary.rollover_credits}`);
     if (summary.next_expiration_date) {
-      console.log(`   Next expiration: ${new Date(summary.next_expiration_date).toLocaleDateString()}`);
+      console.log(
+        `   Next expiration: ${new Date(summary.next_expiration_date).toLocaleDateString()}`
+      );
     }
     console.log(`   Active purchases: ${summary.active_purchases}`);
   }
@@ -114,7 +120,9 @@ async function showCreditSummary(userId) {
       console.log(`   Credits: ${p.credits_remaining}/${p.credits_amount}`);
       console.log(`   Expires: ${new Date(p.expires_at).toLocaleDateString()}`);
       if (p.rollover_expires_at) {
-        console.log(`   Rollover until: ${new Date(p.rollover_expires_at).toLocaleDateString()}`);
+        console.log(
+          `   Rollover until: ${new Date(p.rollover_expires_at).toLocaleDateString()}`
+        );
       }
     });
   } else {
@@ -135,7 +143,9 @@ async function testExpiredCreditsCleanup() {
   if (data && data.length > 0) {
     console.log(`✅ Cleaned up expired credits for ${data.length} users:`);
     data.forEach(d => {
-      console.log(`   User ${d.user_id.substring(0, 8)}...: ${d.credits_expired} credits expired`);
+      console.log(
+        `   User ${d.user_id.substring(0, 8)}...: ${d.credits_expired} credits expired`
+      );
     });
   } else {
     console.log('⚠️  No expired credits to clean up');
@@ -146,7 +156,7 @@ async function main() {
   console.log('🚀 Credit Expiration Test\n');
 
   const args = process.argv.slice(2);
-  
+
   // Get a test user
   const { data: users } = await supabase
     .from('profiles')
@@ -179,9 +189,15 @@ async function main() {
     await testExpiredCreditsCleanup();
   } else {
     console.log('\n💡 Usage:');
-    console.log('   node test-credit-expiration.js [user-id] purchase     # Add test purchases');
-    console.log('   node test-credit-expiration.js [user-id] use [amount] # Use credits (FIFO)');
-    console.log('   node test-credit-expiration.js [user-id] cleanup      # Clean expired credits');
+    console.log(
+      '   node test-credit-expiration.js [user-id] purchase     # Add test purchases'
+    );
+    console.log(
+      '   node test-credit-expiration.js [user-id] use [amount] # Use credits (FIFO)'
+    );
+    console.log(
+      '   node test-credit-expiration.js [user-id] cleanup      # Clean expired credits'
+    );
   }
 }
 

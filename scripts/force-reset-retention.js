@@ -9,11 +9,13 @@ const supabase = createClient(
 
 async function forceResetRetention() {
   console.log('Force resetting all retention data for testing...\n');
-  
+
   // Get the user
   const { data: authUsers } = await supabase.auth.admin.listUsers();
-  const authUser = authUsers.users.find(u => u.email === 'snsmarketing@gmail.com');
-  
+  const authUser = authUsers.users.find(
+    u => u.email === 'snsmarketing@gmail.com'
+  );
+
   if (!authUser) {
     console.error('User not found');
     return;
@@ -27,7 +29,7 @@ async function forceResetRetention() {
       last_discount_date: null,
       pause_count: 0,
       last_pause_date: null,
-      subscription_paused_until: null
+      subscription_paused_until: null,
     })
     .eq('id', authUser.id);
 
@@ -40,12 +42,16 @@ async function forceResetRetention() {
   // Delete all retention-related events from today
   const today = new Date();
   today.setHours(0, 0, 0, 0);
-  
+
   const { error: deleteError } = await supabase
     .from('subscription_events')
     .delete()
     .eq('user_id', authUser.id)
-    .in('event_type', ['discount_offered', 'discount_used', 'subscription_paused'])
+    .in('event_type', [
+      'discount_offered',
+      'discount_used',
+      'subscription_paused',
+    ])
     .gte('created_at', today.toISOString());
 
   if (deleteError) {
@@ -53,29 +59,34 @@ async function forceResetRetention() {
   } else {
     console.log('✓ Retention events deleted');
   }
-  
+
   // Verify the reset
   const { data: profile } = await supabase
     .from('profiles')
-    .select('discount_used_count, last_discount_date, pause_count, last_pause_date')
+    .select(
+      'discount_used_count, last_discount_date, pause_count, last_pause_date'
+    )
     .eq('id', authUser.id)
     .single();
-    
+
   console.log('\n=== VERIFICATION ===');
   console.log('Discount Used Count:', profile.discount_used_count);
   console.log('Last Discount Date:', profile.last_discount_date);
   console.log('Pause Count:', profile.pause_count);
   console.log('Last Pause Date:', profile.last_pause_date);
-  
+
   // Check eligibility
   console.log('\n=== CHECKING ELIGIBILITY ===');
-  
-  const { data: pauseElig } = await supabase
-    .rpc('check_pause_eligibility', { p_user_id: authUser.id });
-  
-  const { data: discountElig } = await supabase
-    .rpc('check_discount_eligibility', { p_user_id: authUser.id });
-    
+
+  const { data: pauseElig } = await supabase.rpc('check_pause_eligibility', {
+    p_user_id: authUser.id,
+  });
+
+  const { data: discountElig } = await supabase.rpc(
+    'check_discount_eligibility',
+    { p_user_id: authUser.id }
+  );
+
   console.log('Pause Eligibility:', pauseElig);
   console.log('Discount Eligibility:', discountElig);
 }

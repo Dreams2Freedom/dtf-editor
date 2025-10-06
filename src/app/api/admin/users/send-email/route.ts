@@ -6,9 +6,11 @@ import { withRateLimit } from '@/lib/rate-limit';
 async function handlePost(request: NextRequest) {
   try {
     const supabase = await createServerSupabaseClient();
-    
+
     // Check if user is admin
-    const { data: { user } } = await supabase.auth.getUser();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
@@ -20,17 +22,24 @@ async function handlePost(request: NextRequest) {
       .single();
 
     if (!profile?.is_admin) {
-      return NextResponse.json({ error: 'Admin access required' }, { status: 403 });
+      return NextResponse.json(
+        { error: 'Admin access required' },
+        { status: 403 }
+      );
     }
 
-    const { userIds, subject, body, includeUnsubscribe, testMode, template } = await request.json();
+    const { userIds, subject, body, includeUnsubscribe, testMode, template } =
+      await request.json();
 
     if (!userIds || !Array.isArray(userIds) || userIds.length === 0) {
       return NextResponse.json({ error: 'No users selected' }, { status: 400 });
     }
 
     if (!subject || !body) {
-      return NextResponse.json({ error: 'Subject and body are required' }, { status: 400 });
+      return NextResponse.json(
+        { error: 'Subject and body are required' },
+        { status: 400 }
+      );
     }
 
     // Get user details
@@ -41,30 +50,34 @@ async function handlePost(request: NextRequest) {
 
     if (usersError) {
       console.error('Error fetching user data:', usersError);
-      return NextResponse.json({
-        error: 'Failed to fetch user data',
-        details: usersError.message
-      }, { status: 500 });
+      return NextResponse.json(
+        {
+          error: 'Failed to fetch user data',
+          details: usersError.message,
+        },
+        { status: 500 }
+      );
     }
 
     if (!users || users.length === 0) {
-      return NextResponse.json({ error: 'No valid users found' }, { status: 400 });
+      return NextResponse.json(
+        { error: 'No valid users found' },
+        { status: 400 }
+      );
     }
 
     // Log the email activity
-    const { error: logError } = await supabase
-      .from('admin_audit_logs')
-      .insert({
-        admin_id: user.id,
-        action: testMode ? 'test_email_sent' : 'bulk_email_sent',
-        details: {
-          recipient_count: users.length,
-          subject,
-          template,
-          test_mode: testMode,
-          user_ids: testMode ? [] : userIds // Don't log user IDs in test mode
-        }
-      });
+    const { error: logError } = await supabase.from('admin_audit_logs').insert({
+      admin_id: user.id,
+      action: testMode ? 'test_email_sent' : 'bulk_email_sent',
+      details: {
+        recipient_count: users.length,
+        subject,
+        template,
+        test_mode: testMode,
+        user_ids: testMode ? [] : userIds, // Don't log user IDs in test mode
+      },
+    });
 
     // In test mode, send a test email to the admin
     if (testMode) {
@@ -82,11 +95,13 @@ async function handlePost(request: NextRequest) {
         profile.first_name
       );
 
-      return NextResponse.json({ 
-        success, 
+      return NextResponse.json({
+        success,
         sent: success ? 1 : 0,
         testMode: true,
-        message: success ? 'Test email sent to admin' : 'Failed to send test email'
+        message: success
+          ? 'Test email sent to admin'
+          : 'Failed to send test email',
       });
     }
 
@@ -116,7 +131,7 @@ async function handlePost(request: NextRequest) {
 
         // Format body with HTML and optional unsubscribe
         let htmlBody = personalizedBody.replace(/\n/g, '<br>');
-        
+
         if (includeUnsubscribe) {
           htmlBody += `
             <br><br>
@@ -149,13 +164,12 @@ async function handlePost(request: NextRequest) {
       }
     }
 
-    return NextResponse.json({ 
-      success: true, 
+    return NextResponse.json({
+      success: true,
       sent,
       failed,
-      message: `Emails sent to ${sent} users${failed > 0 ? `, ${failed} failed` : ''}`
+      message: `Emails sent to ${sent} users${failed > 0 ? `, ${failed} failed` : ''}`,
     });
-
   } catch (error) {
     console.error('Error sending emails:', error);
     return NextResponse.json(

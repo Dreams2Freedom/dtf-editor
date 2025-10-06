@@ -20,8 +20,8 @@ import { GenerationConfigStep } from './GenerationConfigStep';
 // Types
 export interface GenerationOptions {
   size: '1024x1024' | '1024x1792' | '1792x1024';
-  quality: 'standard' | 'hd';
-  style: 'vivid' | 'natural';
+  quality: 'low' | 'medium' | 'high' | 'auto';
+  style?: 'vivid' | 'natural'; // Not supported by gpt-image-1, but kept for compatibility
   count: number;
 }
 
@@ -67,8 +67,7 @@ export function PromptWizard() {
   const [generationOptions, setGenerationOptions] = useState<GenerationOptions>(
     {
       size: '1024x1024',
-      quality: 'standard',
-      style: 'vivid',
+      quality: 'medium',
       count: 1,
     }
   );

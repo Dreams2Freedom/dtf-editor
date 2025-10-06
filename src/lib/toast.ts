@@ -26,7 +26,7 @@ class ToastManager {
   show(type: ToastType, message: string, duration = 3000) {
     const id = Math.random().toString(36).substr(2, 9);
     const toast: ToastMessage = { id, type, message, duration };
-    
+
     this.toasts = [...this.toasts, toast];
     this.notify();
 

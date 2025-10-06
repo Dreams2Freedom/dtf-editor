@@ -1,7 +1,7 @@
 import { env, isFeatureAvailable } from '@/config/env';
 
 // Email template types
-export type EmailTemplate = 
+export type EmailTemplate =
   | 'welcome'
   | 'purchase'
   | 'creditWarning'
@@ -96,7 +96,12 @@ export interface SupportTicketEmailData {
 }
 
 export interface AdminNotificationEmailData {
-  type: 'new_signup' | 'new_subscription' | 'cancellation' | 'refund_request' | 'support_ticket';
+  type:
+    | 'new_signup'
+    | 'new_subscription'
+    | 'cancellation'
+    | 'refund_request'
+    | 'support_ticket';
   userEmail: string;
   userName?: string;
   details?: Record<string, string | number | boolean>;
@@ -116,11 +121,13 @@ export class EmailService {
     this.mailgunApiKey = env.MAILGUN_API_KEY;
     this.mailgunDomain = env.MAILGUN_DOMAIN;
     this.mailgunUrl = `https://api.mailgun.net/v3/${this.mailgunDomain}/messages`;
-    
+
     if (this.enabled && this.mailgunApiKey && this.mailgunDomain) {
       console.log('EmailService: Mailgun configured successfully');
     } else {
-      console.warn('EmailService: Mailgun not configured. Emails will not be sent.');
+      console.warn(
+        'EmailService: Mailgun not configured. Emails will not be sent.'
+      );
     }
   }
 
@@ -137,14 +144,14 @@ export class EmailService {
   private async sendMailgunEmail(mailData: any): Promise<boolean> {
     try {
       const formData = new URLSearchParams();
-      
+
       // Add basic fields
       formData.append('from', mailData.from);
       formData.append('to', mailData.to);
       formData.append('subject', mailData.subject);
       formData.append('html', mailData.html);
       formData.append('text', mailData.text);
-      
+
       // Add Mailgun-specific options
       if (mailData['o:tag']) {
         mailData['o:tag'].forEach((tag: string) => {
@@ -155,12 +162,18 @@ export class EmailService {
         formData.append('o:tracking', mailData['o:tracking'].toString());
       }
       if (mailData['o:tracking-clicks'] !== undefined) {
-        formData.append('o:tracking-clicks', mailData['o:tracking-clicks'].toString());
+        formData.append(
+          'o:tracking-clicks',
+          mailData['o:tracking-clicks'].toString()
+        );
       }
       if (mailData['o:tracking-opens'] !== undefined) {
-        formData.append('o:tracking-opens', mailData['o:tracking-opens'].toString());
+        formData.append(
+          'o:tracking-opens',
+          mailData['o:tracking-opens'].toString()
+        );
       }
-      
+
       // Add custom variables
       Object.keys(mailData).forEach(key => {
         if (key.startsWith('v:')) {
@@ -177,14 +190,14 @@ export class EmailService {
       const response = await fetch(this.mailgunUrl, {
         method: 'POST',
         headers: {
-          'Authorization': `Basic ${auth}`,
+          Authorization: `Basic ${auth}`,
           'Content-Type': 'application/x-www-form-urlencoded',
         },
         body: formData.toString(),
       });
 
       const responseText = await response.text();
-      
+
       if (response.ok) {
         const result = JSON.parse(responseText);
         console.log('Email sent successfully:', result.id);
@@ -207,10 +220,15 @@ export class EmailService {
     console.log('[EmailService] Enabled:', this.enabled);
     console.log('[EmailService] Has API Key:', !!this.mailgunApiKey);
     console.log('[EmailService] Mailgun Domain:', this.mailgunDomain);
-    
+
     if (!this.enabled || !this.mailgunApiKey) {
       console.log('EmailService: Would send welcome email to', data.email);
-      console.log('EmailService: Skipping because enabled=', this.enabled, 'hasKey=', !!this.mailgunApiKey);
+      console.log(
+        'EmailService: Skipping because enabled=',
+        this.enabled,
+        'hasKey=',
+        !!this.mailgunApiKey
+      );
       return true;
     }
 
@@ -251,9 +269,10 @@ export class EmailService {
     }
 
     try {
-      const subject = data.purchaseType === 'subscription' 
-        ? `Subscription to ${data.planName} Plan Confirmed`
-        : `Purchase of ${data.credits} Credits Confirmed`;
+      const subject =
+        data.purchaseType === 'subscription'
+          ? `Subscription to ${data.planName} Plan Confirmed`
+          : `Purchase of ${data.credits} Credits Confirmed`;
 
       const mailOptions = {
         from: `${env.MAILGUN_FROM_NAME} <${env.MAILGUN_FROM_EMAIL}>`,
@@ -261,7 +280,12 @@ export class EmailService {
         subject,
         html: this.getPurchaseEmailHTML(data),
         text: this.getPurchaseEmailText(data),
-        'o:tag': [data.purchaseType === 'subscription' ? 'subscription-purchase' : 'credit-purchase', 'transaction'],
+        'o:tag': [
+          data.purchaseType === 'subscription'
+            ? 'subscription-purchase'
+            : 'credit-purchase',
+          'transaction',
+        ],
         'o:tracking': true,
         'o:tracking-clicks': true,
         'o:tracking-opens': true,
@@ -282,7 +306,10 @@ export class EmailService {
    */
   async sendCreditWarningEmail(data: CreditWarningEmailData): Promise<boolean> {
     if (!this.enabled || !this.mailgunApiKey) {
-      console.log('EmailService: Would send credit warning email to', data.email);
+      console.log(
+        'EmailService: Would send credit warning email to',
+        data.email
+      );
       return true;
     }
 
@@ -423,7 +450,11 @@ export class EmailService {
     content: string
   ): Promise<{ sent: number; failed: number }> {
     if (!this.enabled || !this.mailgunApiKey) {
-      console.log('EmailService: Would send batch emails to', recipients.length, 'recipients');
+      console.log(
+        'EmailService: Would send batch emails to',
+        recipients.length,
+        'recipients'
+      );
       return { sent: recipients.length, failed: 0 };
     }
 
@@ -465,7 +496,10 @@ export class EmailService {
    */
   async sendPasswordResetEmail(data: PasswordResetEmailData): Promise<boolean> {
     if (!this.enabled || !this.mailgunApiKey) {
-      console.log('EmailService: Would send password reset email to', data.email);
+      console.log(
+        'EmailService: Would send password reset email to',
+        data.email
+      );
       return true;
     }
 
@@ -564,7 +598,10 @@ export class EmailService {
     ticketSubject: string;
   }): Promise<boolean> {
     if (!this.enabled || !this.mailgunApiKey) {
-      console.log('EmailService: Would send ticket reply notification to', data.userEmail);
+      console.log(
+        'EmailService: Would send ticket reply notification to',
+        data.userEmail
+      );
       return true;
     }
 
@@ -637,9 +674,12 @@ export class EmailService {
     ticketSubject: string;
   }): Promise<boolean> {
     const adminEmail = 's2transfers@gmail.com';
-    
+
     if (!this.enabled || !this.mailgunApiKey) {
-      console.log('EmailService: Would send user reply notification to', adminEmail);
+      console.log(
+        'EmailService: Would send user reply notification to',
+        adminEmail
+      );
       return true;
     }
 
@@ -719,13 +759,16 @@ export class EmailService {
     amount: number;
   }): Promise<boolean> {
     if (!this.enabled || !this.mailgunApiKey) {
-      console.log('EmailService: Would send payment failed email to', data.email);
+      console.log(
+        'EmailService: Would send payment failed email to',
+        data.email
+      );
       return true;
     }
 
     try {
       const isFirstAttempt = data.attemptCount === 1;
-      const subject = isFirstAttempt 
+      const subject = isFirstAttempt
         ? `Payment Failed - Action Required`
         : `Payment Retry Failed - ${data.attemptCount} Attempts`;
 
@@ -756,11 +799,15 @@ export class EmailService {
                   but the payment was declined.
                 </p>
                 
-                ${data.nextRetryDate ? `
+                ${
+                  data.nextRetryDate
+                    ? `
                   <p style="color: #666; font-size: 16px;">
                     <strong>We'll automatically retry the payment on ${data.nextRetryDate.toLocaleDateString()}.</strong>
                   </p>
-                ` : ''}
+                `
+                    : ''
+                }
                 
                 <div style="background: #f8f9fa; padding: 15px; margin: 20px 0; border-radius: 4px;">
                   <h3 style="color: #333; margin-top: 0;">What you can do:</h3>
@@ -826,7 +873,7 @@ export class EmailService {
 
     try {
       const topFeatures = data.popularFeatures.slice(0, 3);
-      
+
       const mailOptions = {
         from: `${env.MAILGUN_FROM_NAME} <${env.MAILGUN_FROM_EMAIL}>`,
         to: data.email,
@@ -870,38 +917,51 @@ export class EmailService {
                   </div>
                 </div>
                 
-                ${topFeatures.length > 0 ? `
+                ${
+                  topFeatures.length > 0
+                    ? `
                   <div style="margin: 30px 0;">
                     <h3 style="color: #333; margin-bottom: 15px;">Your Most Used Features</h3>
                     <div style="background: #f8f9fa; padding: 20px; border-radius: 4px;">
-                      ${topFeatures.map((feature, index) => `
+                      ${topFeatures
+                        .map(
+                          (feature, index) => `
                         <div style="display: flex; justify-content: space-between; padding: 10px 0; ${index < topFeatures.length - 1 ? 'border-bottom: 1px solid #e9ecef;' : ''}">
                           <span style="color: #495057;">${feature.feature}</span>
                           <span style="color: #366494; font-weight: bold;">${feature.count} uses</span>
                         </div>
-                      `).join('')}
+                      `
+                        )
+                        .join('')}
                     </div>
                   </div>
-                ` : ''}
+                `
+                    : ''
+                }
                 
                 <div style="background: #e7f5ff; border-left: 4px solid #339af0; padding: 15px; margin: 20px 0;">
                   <p style="color: #1971c2; margin: 0;">
                     <strong>Your Plan:</strong> ${data.planName}<br>
-                    ${data.creditsRemaining < 5 ? 
-                      `<span style="color: #e03131;">⚠️ Running low on credits!</span>` : 
-                      `You have ${data.creditsRemaining} credits remaining this month.`
+                    ${
+                      data.creditsRemaining < 5
+                        ? `<span style="color: #e03131;">⚠️ Running low on credits!</span>`
+                        : `You have ${data.creditsRemaining} credits remaining this month.`
                     }
                   </p>
                 </div>
                 
-                ${data.creditsRemaining < 5 ? `
+                ${
+                  data.creditsRemaining < 5
+                    ? `
                   <div style="margin-top: 30px; text-align: center;">
                     <a href="${process.env.NEXT_PUBLIC_APP_URL || 'https://dtfeditor.com'}/pricing" 
                        style="display: inline-block; background: #366494; color: white; padding: 12px 30px; text-decoration: none; border-radius: 4px;">
                       Get More Credits
                     </a>
                   </div>
-                ` : ''}
+                `
+                    : ''
+                }
                 
                 <hr style="margin: 30px 0; border: none; border-top: 1px solid #eee;">
                 
@@ -935,13 +995,21 @@ export class EmailService {
   async sendProcessingErrorEmail(data: {
     email: string;
     firstName?: string;
-    errorType: 'upscale' | 'background_removal' | 'vectorize' | 'generation' | 'upload';
+    errorType:
+      | 'upscale'
+      | 'background_removal'
+      | 'vectorize'
+      | 'generation'
+      | 'upload';
     errorMessage: string;
     creditsRefunded?: number;
     fileName?: string;
   }): Promise<boolean> {
     if (!this.enabled || !this.mailgunApiKey) {
-      console.log('EmailService: Would send processing error email to', data.email);
+      console.log(
+        'EmailService: Would send processing error email to',
+        data.email
+      );
       return true;
     }
 
@@ -951,7 +1019,7 @@ export class EmailService {
         background_removal: 'Background Removal',
         vectorize: 'Vectorization',
         generation: 'AI Image Generation',
-        upload: 'File Upload'
+        upload: 'File Upload',
       };
 
       const mailOptions = {
@@ -990,13 +1058,17 @@ export class EmailService {
                   </p>
                 </div>
                 
-                ${data.creditsRefunded ? `
+                ${
+                  data.creditsRefunded
+                    ? `
                   <div style="background: #d3f9d8; border-left: 4px solid #51cf66; padding: 15px; margin: 20px 0;">
                     <p style="color: #2b8a3e; margin: 0;">
                       ✓ <strong>${data.creditsRefunded} credit${data.creditsRefunded > 1 ? 's have' : ' has'} been refunded</strong> to your account.
                     </p>
                   </div>
-                ` : ''}
+                `
+                    : ''
+                }
                 
                 <div style="margin: 30px 0;">
                   <h3 style="color: #333; margin-bottom: 15px;">What to do next:</h3>
@@ -1049,12 +1121,17 @@ export class EmailService {
   /**
    * Send support ticket notification to admin
    */
-  async sendSupportTicketNotification(data: SupportTicketEmailData): Promise<boolean> {
+  async sendSupportTicketNotification(
+    data: SupportTicketEmailData
+  ): Promise<boolean> {
     // Always send to Shannon at s2transfers
     const adminEmail = 's2transfers@gmail.com';
-    
+
     if (!this.enabled || !this.mailgunApiKey) {
-      console.log('EmailService: Would send support ticket notification to', adminEmail);
+      console.log(
+        'EmailService: Would send support ticket notification to',
+        adminEmail
+      );
       console.log('Ticket details:', data);
       return true;
     }
@@ -1156,7 +1233,7 @@ Need help? Visit ${env.APP_URL}/help or reply to this email.
 
   private getPurchaseEmailHTML(data: PurchaseEmailData): string {
     const amount = (data.amount / 100).toFixed(2);
-    
+
     return `
       <!DOCTYPE html>
       <html>
@@ -1179,13 +1256,17 @@ Need help? Visit ${env.APP_URL}/help or reply to this email.
               ${data.credits ? `<p style="margin: 5px 0;"><strong>Credits:</strong> ${data.credits}</p>` : ''}
               <p style="margin: 5px 0;"><strong>Amount:</strong> $${amount}</p>
             </div>
-            ${data.invoiceUrl ? `
+            ${
+              data.invoiceUrl
+                ? `
               <div style="text-align: center; margin: 30px 0;">
                 <a href="${data.invoiceUrl}" style="display: inline-block; background-color: #E88B4B; color: #ffffff; padding: 15px 30px; text-decoration: none; border-radius: 5px; font-weight: bold;">
                   View Invoice
                 </a>
               </div>
-            ` : ''}
+            `
+                : ''
+            }
             <p style="color: #666; line-height: 1.6;">
               Your credits are now available in your account. Start creating at <a href="${env.APP_URL}/process" style="color: #366494;">DTF Editor</a>.
             </p>
@@ -1203,7 +1284,7 @@ Need help? Visit ${env.APP_URL}/help or reply to this email.
 
   private getPurchaseEmailText(data: PurchaseEmailData): string {
     const amount = (data.amount / 100).toFixed(2);
-    
+
     return `
 Purchase Confirmed!
 
@@ -1223,8 +1304,13 @@ Your credits are now available in your account. Start creating at ${env.APP_URL}
   }
 
   private getCreditWarningEmailHTML(data: CreditWarningEmailData): string {
-    const urgencyColor = data.urgencyLevel === 'critical' ? '#dc2626' : data.urgencyLevel === 'warning' ? '#d97706' : '#2563eb';
-    
+    const urgencyColor =
+      data.urgencyLevel === 'critical'
+        ? '#dc2626'
+        : data.urgencyLevel === 'warning'
+          ? '#d97706'
+          : '#2563eb';
+
     return `
       <!DOCTYPE html>
       <html>
@@ -1289,7 +1375,7 @@ Use your credits now: ${env.APP_URL}/process
       paused: 'paused',
       resumed: 'resumed',
     };
-    
+
     return `
       <!DOCTYPE html>
       <html>
@@ -1309,16 +1395,24 @@ Use your credits now: ${env.APP_URL}/process
             <p style="color: #666; line-height: 1.6; margin-bottom: 20px;">
               Your <strong>${data.planName}</strong> subscription has been ${actionText[data.action]}.
             </p>
-            ${data.nextBillingDate ? `
+            ${
+              data.nextBillingDate
+                ? `
               <p style="color: #666; line-height: 1.6; margin-bottom: 20px;">
                 Next billing date: <strong>${data.nextBillingDate.toLocaleDateString()}</strong>
               </p>
-            ` : ''}
-            ${data.pauseUntil ? `
+            `
+                : ''
+            }
+            ${
+              data.pauseUntil
+                ? `
               <p style="color: #666; line-height: 1.6; margin-bottom: 20px;">
                 Your subscription is paused until: <strong>${data.pauseUntil.toLocaleDateString()}</strong>
               </p>
-            ` : ''}
+            `
+                : ''
+            }
             <div style="text-align: center; margin: 30px 0;">
               <a href="${env.APP_URL}/settings" style="display: inline-block; background-color: #E88B4B; color: #ffffff; padding: 15px 30px; text-decoration: none; border-radius: 5px; font-weight: bold;">
                 Manage Subscription
@@ -1344,7 +1438,7 @@ Use your credits now: ${env.APP_URL}/process
       paused: 'paused',
       resumed: 'resumed',
     };
-    
+
     return `
 Subscription ${actionText[data.action]}!
 
@@ -1543,11 +1637,18 @@ This link will expire in ${data.expiresIn || '10 minutes'}.
     `.trim();
   }
 
-  private getSupportTicketNotificationHTML(data: SupportTicketEmailData): string {
-    const priorityColor = data.priority === 'urgent' ? '#ef4444' : 
-                          data.priority === 'high' ? '#f97316' : 
-                          data.priority === 'medium' ? '#eab308' : '#22c55e';
-    
+  private getSupportTicketNotificationHTML(
+    data: SupportTicketEmailData
+  ): string {
+    const priorityColor =
+      data.priority === 'urgent'
+        ? '#ef4444'
+        : data.priority === 'high'
+          ? '#f97316'
+          : data.priority === 'medium'
+            ? '#eab308'
+            : '#22c55e';
+
     return `
       <!DOCTYPE html>
       <html>
@@ -1635,7 +1736,9 @@ This link will expire in ${data.expiresIn || '10 minutes'}.
     `.trim();
   }
 
-  private getSupportTicketNotificationText(data: SupportTicketEmailData): string {
+  private getSupportTicketNotificationText(
+    data: SupportTicketEmailData
+  ): string {
     return `
 NEW SUPPORT TICKET
 
@@ -1665,7 +1768,11 @@ ${process.env.NEXT_PUBLIC_APP_URL || 'https://dtfeditor.com'}/admin/support
   async sendSecurityAlert(data: {
     email: string;
     userName?: string;
-    alertType: 'new_login' | 'password_changed' | 'email_changed' | 'suspicious_activity';
+    alertType:
+      | 'new_login'
+      | 'password_changed'
+      | 'email_changed'
+      | 'suspicious_activity';
     deviceInfo?: {
       browser?: string;
       os?: string;
@@ -1683,25 +1790,31 @@ ${process.env.NEXT_PUBLIC_APP_URL || 'https://dtfeditor.com'}/admin/support
       new_login: 'New Login Detected',
       password_changed: 'Password Changed',
       email_changed: 'Email Address Changed',
-      suspicious_activity: 'Suspicious Activity Detected'
+      suspicious_activity: 'Suspicious Activity Detected',
     };
 
     const alertActions = {
       new_login: 'A new login to your account was detected',
       password_changed: 'Your password has been successfully changed',
       email_changed: 'Your email address has been updated',
-      suspicious_activity: 'We detected unusual activity on your account'
+      suspicious_activity: 'We detected unusual activity on your account',
     };
 
     try {
       const formData = new FormData();
-      formData.append('from', `${env.MAILGUN_FROM_NAME} <${env.MAILGUN_FROM_EMAIL}>`);
+      formData.append(
+        'from',
+        `${env.MAILGUN_FROM_NAME} <${env.MAILGUN_FROM_EMAIL}>`
+      );
       formData.append('to', data.email);
-      formData.append('subject', `🔐 Security Alert: ${alertMessages[data.alertType]}`);
-      
+      formData.append(
+        'subject',
+        `🔐 Security Alert: ${alertMessages[data.alertType]}`
+      );
+
       const timestamp = data.timestamp || new Date();
       const deviceInfo = data.deviceInfo || {};
-      
+
       const htmlContent = `
         <!DOCTYPE html>
         <html>
@@ -1730,7 +1843,9 @@ ${process.env.NEXT_PUBLIC_APP_URL || 'https://dtfeditor.com'}/admin/support
               <p>Time: ${timestamp.toLocaleString()}</p>
             </div>
 
-            ${deviceInfo.browser || deviceInfo.os || deviceInfo.location ? `
+            ${
+              deviceInfo.browser || deviceInfo.os || deviceInfo.location
+                ? `
             <div class="device-info">
               <strong>Device Information:</strong>
               ${deviceInfo.browser ? `<p>Browser: ${deviceInfo.browser}</p>` : ''}
@@ -1738,29 +1853,47 @@ ${process.env.NEXT_PUBLIC_APP_URL || 'https://dtfeditor.com'}/admin/support
               ${deviceInfo.location ? `<p>Location: ${deviceInfo.location}</p>` : ''}
               ${deviceInfo.ip ? `<p>IP Address: ${deviceInfo.ip}</p>` : ''}
             </div>
-            ` : ''}
+            `
+                : ''
+            }
 
-            ${data.alertType === 'new_login' ? `
+            ${
+              data.alertType === 'new_login'
+                ? `
             <p><strong>Was this you?</strong></p>
             <p>If you recognize this activity, you can safely ignore this email.</p>
             <p>If you don't recognize this activity, please secure your account immediately:</p>
             <a href="${process.env.NEXT_PUBLIC_APP_URL}/account/security" class="button">Secure My Account</a>
-            ` : ''}
+            `
+                : ''
+            }
 
-            ${data.alertType === 'password_changed' ? `
+            ${
+              data.alertType === 'password_changed'
+                ? `
             <p>If you made this change, no further action is needed.</p>
             <p><strong>If you didn't change your password, your account may be compromised.</strong> Please contact support immediately.</p>
-            ` : ''}
+            `
+                : ''
+            }
 
-            ${data.alertType === 'email_changed' ? `
+            ${
+              data.alertType === 'email_changed'
+                ? `
             <p>Your email address has been updated. You'll now receive all account notifications at this address.</p>
             <p>If you didn't make this change, please contact support immediately.</p>
-            ` : ''}
+            `
+                : ''
+            }
 
-            ${data.alertType === 'suspicious_activity' ? `
+            ${
+              data.alertType === 'suspicious_activity'
+                ? `
             <p>We've temporarily secured your account. Please verify your identity to continue using DTF Editor.</p>
             <a href="${process.env.NEXT_PUBLIC_APP_URL}/account/verify" class="button">Verify My Account</a>
-            ` : ''}
+            `
+                : ''
+            }
 
             <div class="footer">
               <p>This is an automated security notification from DTF Editor.</p>
@@ -1790,7 +1923,9 @@ ${process.env.NEXT_PUBLIC_APP_URL || 'https://dtfeditor.com'}/admin/support
       );
 
       if (!response.ok) {
-        throw new Error(`Failed to send security alert: ${response.statusText}`);
+        throw new Error(
+          `Failed to send security alert: ${response.statusText}`
+        );
       }
 
       return true;
@@ -1805,7 +1940,7 @@ ${process.env.NEXT_PUBLIC_APP_URL || 'https://dtfeditor.com'}/admin/support
       new_login: 'New Login Detected',
       password_changed: 'Password Changed',
       email_changed: 'Email Address Changed',
-      suspicious_activity: 'Suspicious Activity Detected'
+      suspicious_activity: 'Suspicious Activity Detected',
     };
 
     const timestamp = data.timestamp || new Date();
@@ -1828,20 +1963,32 @@ ${deviceInfo.os ? `Operating System: ${deviceInfo.os}` : ''}
 ${deviceInfo.location ? `Location: ${deviceInfo.location}` : ''}
 ${deviceInfo.ip ? `IP Address: ${deviceInfo.ip}` : ''}
 
-${data.alertType === 'new_login' ? `
+${
+  data.alertType === 'new_login'
+    ? `
 If you recognize this activity, you can safely ignore this email.
 If you don't recognize this activity, please secure your account at:
 ${process.env.NEXT_PUBLIC_APP_URL}/account/security
-` : ''}
+`
+    : ''
+}
 
-${data.alertType === 'password_changed' || data.alertType === 'email_changed' ? `
+${
+  data.alertType === 'password_changed' || data.alertType === 'email_changed'
+    ? `
 If you didn't make this change, please contact support immediately.
-` : ''}
+`
+    : ''
+}
 
-${data.alertType === 'suspicious_activity' ? `
+${
+  data.alertType === 'suspicious_activity'
+    ? `
 We've temporarily secured your account. Please verify your identity at:
 ${process.env.NEXT_PUBLIC_APP_URL}/account/verify
-` : ''}
+`
+    : ''
+}
 
 © ${new Date().getFullYear()} DTF Editor
     `.trim();
@@ -1861,16 +2008,25 @@ ${process.env.NEXT_PUBLIC_APP_URL}/account/verify
     };
   }): Promise<boolean> {
     if (!isFeatureAvailable('mailgun')) {
-      console.log('Account activity summary email (Mailgun not configured):', data);
+      console.log(
+        'Account activity summary email (Mailgun not configured):',
+        data
+      );
       return false;
     }
 
     try {
       const formData = new FormData();
-      formData.append('from', `${env.MAILGUN_FROM_NAME} <${env.MAILGUN_FROM_EMAIL}>`);
+      formData.append(
+        'from',
+        `${env.MAILGUN_FROM_NAME} <${env.MAILGUN_FROM_EMAIL}>`
+      );
       formData.append('to', data.email);
-      formData.append('subject', `📊 Your ${data.period === 'weekly' ? 'Weekly' : 'Monthly'} Activity Summary`);
-      
+      formData.append(
+        'subject',
+        `📊 Your ${data.period === 'weekly' ? 'Weekly' : 'Monthly'} Activity Summary`
+      );
+
       const htmlContent = `
         <!DOCTYPE html>
         <html>
@@ -1914,13 +2070,21 @@ ${process.env.NEXT_PUBLIC_APP_URL}/account/verify
               </div>
             </div>
 
-            ${data.stats.lastLogin ? `
+            ${
+              data.stats.lastLogin
+                ? `
             <p><strong>Last Login:</strong> ${data.stats.lastLogin.toLocaleString()}</p>
-            ` : ''}
+            `
+                : ''
+            }
 
-            ${data.stats.mostUsedFeature ? `
+            ${
+              data.stats.mostUsedFeature
+                ? `
             <p><strong>Most Used Feature:</strong> ${data.stats.mostUsedFeature}</p>
-            ` : ''}
+            `
+                : ''
+            }
 
             <p>Keep creating amazing DTF transfers!</p>
 
@@ -1953,7 +2117,9 @@ ${process.env.NEXT_PUBLIC_APP_URL}/account/verify
       );
 
       if (!response.ok) {
-        throw new Error(`Failed to send activity summary: ${response.statusText}`);
+        throw new Error(
+          `Failed to send activity summary: ${response.statusText}`
+        );
       }
 
       return true;
@@ -1966,9 +2132,14 @@ ${process.env.NEXT_PUBLIC_APP_URL}/account/verify
   /**
    * Send retention discount confirmation email
    */
-  async sendRetentionDiscountEmail(data: RetentionDiscountEmailData): Promise<boolean> {
+  async sendRetentionDiscountEmail(
+    data: RetentionDiscountEmailData
+  ): Promise<boolean> {
     if (!this.enabled || !this.mailgunApiKey) {
-      console.log('EmailService: Would send retention discount email to', data.email);
+      console.log(
+        'EmailService: Would send retention discount email to',
+        data.email
+      );
       return true;
     }
 
@@ -2003,10 +2174,12 @@ ${process.env.NEXT_PUBLIC_APP_URL}/account/verify
                     <li><strong>Your Plan:</strong> ${data.planName}</li>
                     <li><strong>Original Price:</strong> <span style="text-decoration: line-through;">$${data.originalAmount.toFixed(2)}</span></li>
                     <li><strong>Your Price:</strong> <span style="color: #10b981; font-size: 18px; font-weight: bold;">$${data.discountedAmount.toFixed(2)}</span></li>
-                    <li><strong>Next Billing Date:</strong> ${new Date(data.nextBillingDate).toLocaleDateString('en-US', { 
-                      year: 'numeric', 
-                      month: 'long', 
-                      day: 'numeric' 
+                    <li><strong>Next Billing Date:</strong> ${new Date(
+                      data.nextBillingDate
+                    ).toLocaleDateString('en-US', {
+                      year: 'numeric',
+                      month: 'long',
+                      day: 'numeric',
                     })}</li>
                   </ul>
                 </div>
@@ -2032,15 +2205,16 @@ ${process.env.NEXT_PUBLIC_APP_URL}/account/verify
           </body>
           </html>
         `,
-        text: `Great News! Your 50% Discount is Active\n\n` +
-              `We've successfully applied your 50% discount to your next billing cycle.\n\n` +
-              `Discount Details:\n` +
-              `- Discount: ${data.discountPercent}% OFF\n` +
-              `- Your Plan: ${data.planName}\n` +
-              `- Your Price: $${data.discountedAmount.toFixed(2)} (was $${data.originalAmount.toFixed(2)})\n` +
-              `- Next Billing Date: ${new Date(data.nextBillingDate).toLocaleDateString()}\n\n` +
-              `Note: This discount applies to your next billing cycle only.\n\n` +
-              `Thank you for being a valued member of the DTF Editor community!`,
+        text:
+          `Great News! Your 50% Discount is Active\n\n` +
+          `We've successfully applied your 50% discount to your next billing cycle.\n\n` +
+          `Discount Details:\n` +
+          `- Discount: ${data.discountPercent}% OFF\n` +
+          `- Your Plan: ${data.planName}\n` +
+          `- Your Price: $${data.discountedAmount.toFixed(2)} (was $${data.originalAmount.toFixed(2)})\n` +
+          `- Next Billing Date: ${new Date(data.nextBillingDate).toLocaleDateString()}\n\n` +
+          `Note: This discount applies to your next billing cycle only.\n\n` +
+          `Thank you for being a valued member of the DTF Editor community!`,
         'o:tag': ['retention-discount', 'billing'],
         'o:tracking': true,
         'o:tracking-clicks': true,
@@ -2095,11 +2269,17 @@ ${process.env.NEXT_PUBLIC_APP_URL}/account/verify
                   <h3 style="color: #991b1b; margin-top: 0;">Refund Details:</h3>
                   <ul style="color: #666; font-size: 15px; line-height: 1.8;">
                     <li><strong>Refund Amount:</strong> $${data.refundAmount.toFixed(2)}</li>
-                    ${data.originalPaymentDate ? `<li><strong>Original Payment Date:</strong> ${new Date(data.originalPaymentDate).toLocaleDateString('en-US', { 
-                      year: 'numeric', 
-                      month: 'long', 
-                      day: 'numeric' 
-                    })}</li>` : ''}
+                    ${
+                      data.originalPaymentDate
+                        ? `<li><strong>Original Payment Date:</strong> ${new Date(
+                            data.originalPaymentDate
+                          ).toLocaleDateString('en-US', {
+                            year: 'numeric',
+                            month: 'long',
+                            day: 'numeric',
+                          })}</li>`
+                        : ''
+                    }
                     ${data.creditDeducted ? `<li><strong>Credits Deducted:</strong> ${data.creditDeducted} credits</li>` : ''}
                     ${data.refundReason ? `<li><strong>Reason:</strong> ${data.refundReason}</li>` : ''}
                   </ul>
@@ -2134,18 +2314,19 @@ ${process.env.NEXT_PUBLIC_APP_URL}/account/verify
           </body>
           </html>
         `,
-        text: `Refund Confirmation\n\n` +
-              `Hello ${data.firstName || 'Valued Customer'},\n\n` +
-              `We've successfully processed your refund request.\n\n` +
-              `Refund Details:\n` +
-              `- Refund Amount: $${data.refundAmount.toFixed(2)}\n` +
-              `${data.originalPaymentDate ? `- Original Payment Date: ${new Date(data.originalPaymentDate).toLocaleDateString()}\n` : ''}` +
-              `${data.creditDeducted ? `- Credits Deducted: ${data.creditDeducted} credits\n` : ''}` +
-              `${data.refundReason ? `- Reason: ${data.refundReason}\n` : ''}` +
-              `\nProcessing Time:\n` +
-              `Please allow 3-7 business days for the refund to appear in your account.\n\n` +
-              `If you have any questions, please contact our support team.\n\n` +
-              `Thank you for giving DTF Editor a try!`,
+        text:
+          `Refund Confirmation\n\n` +
+          `Hello ${data.firstName || 'Valued Customer'},\n\n` +
+          `We've successfully processed your refund request.\n\n` +
+          `Refund Details:\n` +
+          `- Refund Amount: $${data.refundAmount.toFixed(2)}\n` +
+          `${data.originalPaymentDate ? `- Original Payment Date: ${new Date(data.originalPaymentDate).toLocaleDateString()}\n` : ''}` +
+          `${data.creditDeducted ? `- Credits Deducted: ${data.creditDeducted} credits\n` : ''}` +
+          `${data.refundReason ? `- Reason: ${data.refundReason}\n` : ''}` +
+          `\nProcessing Time:\n` +
+          `Please allow 3-7 business days for the refund to appear in your account.\n\n` +
+          `If you have any questions, please contact our support team.\n\n` +
+          `Thank you for giving DTF Editor a try!`,
         'o:tag': ['refund', 'billing'],
         'o:tracking': true,
         'o:tracking-clicks': true,
@@ -2191,40 +2372,50 @@ ${process.env.NEXT_PUBLIC_APP_URL}/account/preferences
   /**
    * Send admin notification email
    */
-  async sendAdminNotification(data: AdminNotificationEmailData): Promise<boolean> {
+  async sendAdminNotification(
+    data: AdminNotificationEmailData
+  ): Promise<boolean> {
     // Super admin email
     const SUPER_ADMIN_EMAIL = 'Shannon@S2Transfers.com';
-    
+
     if (!this.enabled || !this.mailgunApiKey) {
-      console.log('EmailService: Would send admin notification to', SUPER_ADMIN_EMAIL);
+      console.log(
+        'EmailService: Would send admin notification to',
+        SUPER_ADMIN_EMAIL
+      );
       return true;
     }
 
     try {
       // Check if admin has this notification type enabled
-      const prefsResponse = await fetch(`${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/admin/notification-preferences`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          adminEmail: SUPER_ADMIN_EMAIL,
-          notificationType: data.type
-        })
-      });
+      const prefsResponse = await fetch(
+        `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/admin/notification-preferences`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            adminEmail: SUPER_ADMIN_EMAIL,
+            notificationType: data.type,
+          }),
+        }
+      );
 
       if (prefsResponse.ok) {
         const { shouldSend, reason, message } = await prefsResponse.json();
         if (!shouldSend) {
-          console.log(`Admin notification not sent: ${message || reason || 'Disabled in preferences'}`);
+          console.log(
+            `Admin notification not sent: ${message || reason || 'Disabled in preferences'}`
+          );
           return true; // Return true since this is not an error
         }
       }
-      
+
       const typeDisplay = {
-        'new_signup': 'New User Signup',
-        'new_subscription': 'New Subscription',
-        'cancellation': 'Subscription Cancellation',
-        'refund_request': 'Refund Request',
-        'support_ticket': 'Support Ticket'
+        new_signup: 'New User Signup',
+        new_subscription: 'New Subscription',
+        cancellation: 'Subscription Cancellation',
+        refund_request: 'Refund Request',
+        support_ticket: 'Support Ticket',
       };
 
       const mailOptions = {
@@ -2255,14 +2446,21 @@ ${process.env.NEXT_PUBLIC_APP_URL}/account/preferences
                   ${data.userName ? `<p style="color: #666; margin: 5px 0;"><strong>Name:</strong> ${data.userName}</p>` : ''}
                 </div>
                 
-                ${data.details ? `
+                ${
+                  data.details
+                    ? `
                   <div style="background: #fff; border: 1px solid #e9ecef; padding: 20px; border-radius: 8px;">
                     <h3 style="color: #333; margin-top: 0;">Additional Details</h3>
-                    ${Object.entries(data.details).map(([key, value]) => 
-                      `<p style="color: #666; margin: 5px 0;"><strong>${key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}:</strong> ${value}</p>`
-                    ).join('')}
+                    ${Object.entries(data.details)
+                      .map(
+                        ([key, value]) =>
+                          `<p style="color: #666; margin: 5px 0;"><strong>${key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}:</strong> ${value}</p>`
+                      )
+                      .join('')}
                   </div>
-                ` : ''}
+                `
+                    : ''
+                }
                 
                 <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #e9ecef;">
                   <p style="color: #999; font-size: 12px; margin: 0;">
@@ -2281,8 +2479,14 @@ User: ${data.userEmail}
 ${data.userName ? `Name: ${data.userName}` : ''}
 Timestamp: ${data.timestamp}
 
-${data.details ? `Additional Details:
-${Object.entries(data.details).map(([key, value]) => `${key}: ${value}`).join('\n')}` : ''}
+${
+  data.details
+    ? `Additional Details:
+${Object.entries(data.details)
+  .map(([key, value]) => `${key}: ${value}`)
+  .join('\n')}`
+    : ''
+}
 
 ---
 This is an automated admin notification.

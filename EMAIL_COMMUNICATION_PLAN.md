@@ -9,7 +9,7 @@
    - Template: `sendWelcomeEmail()`
    - Status: **NOW WORKING** - Added to signup flows
 
-2. **Purchase Confirmation Email** ✅ 
+2. **Purchase Confirmation Email** ✅
    - Sent for credit purchases (pay-as-you-go)
    - Template: `sendPurchaseEmail()`
    - Triggered in: Stripe webhook for `payment_intent.succeeded`
@@ -123,15 +123,17 @@ These are critical touchpoints where we should be sending emails but aren't:
 ### Phase 1: Critical Business Communications (Week 1)
 
 1. **Support Ticket Reply Notifications** 🔴 HIGH PRIORITY
+
    ```typescript
    // When admin replies to ticket
    async sendTicketReplyToUser(ticketId, adminMessage)
-   
-   // When user replies to ticket  
+
+   // When user replies to ticket
    async sendTicketReplyToAdmin(ticketId, userMessage)
    ```
 
 2. **Subscription Creation Confirmation** 🔴 HIGH PRIORITY
+
    ```typescript
    // In Stripe webhook for subscription.created
    async sendSubscriptionEmail(action: 'created')
@@ -146,6 +148,7 @@ These are critical touchpoints where we should be sending emails but aren't:
 ### Phase 2: Retention & Engagement (Week 2)
 
 4. **Credit Expiration Warnings** 🟡 MEDIUM PRIORITY
+
    ```typescript
    // Cron job to check expiring credits daily
    async checkExpiringCredits()
@@ -155,6 +158,7 @@ These are critical touchpoints where we should be sending emails but aren't:
    ```
 
 5. **Monthly Usage Summary** 🟡 MEDIUM PRIORITY
+
    ```typescript
    // Cron job on 1st of each month
    async sendMonthlyUsageSummary(creditsUsed, imagesProcessed, popularFeatures)
@@ -214,6 +218,7 @@ These are critical touchpoints where we should be sending emails but aren't:
 ## Monitoring & Analytics
 
 ### Track These Metrics:
+
 - Open rates per email type
 - Click rates for CTAs
 - Bounce rates
@@ -221,6 +226,7 @@ These are critical touchpoints where we should be sending emails but aren't:
 - Support ticket response times
 
 ### Use Mailgun Dashboard For:
+
 - Delivery logs
 - Bounce management
 - Suppression lists

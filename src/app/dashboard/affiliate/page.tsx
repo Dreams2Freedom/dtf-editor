@@ -1,7 +1,10 @@
 import { redirect } from 'next/navigation';
 import { getServerUser } from '@/lib/auth';
 import { AffiliateDashboard } from '@/components/affiliate/AffiliateDashboard';
-import { getAffiliateByUserId, getAffiliateDashboardStats } from '@/services/affiliate';
+import {
+  getAffiliateByUserId,
+  getAffiliateDashboardStats,
+} from '@/services/affiliate';
 import { createServiceClient } from '@/services/affiliate';
 import { Button } from '@/components/ui/Button';
 import Link from 'next/link';
@@ -22,9 +25,12 @@ export default async function AffiliateDashboardPage() {
       <div className="min-h-screen bg-gray-50 py-12 px-4">
         <div className="max-w-4xl mx-auto">
           <div className="bg-white rounded-lg shadow-lg p-8 text-center">
-            <h1 className="text-3xl font-bold mb-4">Join Our Affiliate Program</h1>
+            <h1 className="text-3xl font-bold mb-4">
+              Join Our Affiliate Program
+            </h1>
             <p className="text-gray-600 mb-6">
-              Earn 20% recurring commissions by referring customers to DTF Editor!
+              Earn 20% recurring commissions by referring customers to DTF
+              Editor!
             </p>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
               <div>
@@ -55,10 +61,12 @@ export default async function AffiliateDashboardPage() {
       <div className="min-h-screen bg-gray-50 py-12 px-4">
         <div className="max-w-4xl mx-auto">
           <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-8 text-center">
-            <h1 className="text-2xl font-bold mb-4">Application Under Review</h1>
+            <h1 className="text-2xl font-bold mb-4">
+              Application Under Review
+            </h1>
             <p className="text-gray-700">
-              Thank you for applying to our affiliate program! We're reviewing your application
-              and will notify you within 24-48 hours.
+              Thank you for applying to our affiliate program! We're reviewing
+              your application and will notify you within 24-48 hours.
             </p>
           </div>
         </div>
@@ -71,9 +79,12 @@ export default async function AffiliateDashboardPage() {
       <div className="min-h-screen bg-gray-50 py-12 px-4">
         <div className="max-w-4xl mx-auto">
           <div className="bg-red-50 border border-red-200 rounded-lg p-8 text-center">
-            <h1 className="text-2xl font-bold mb-4">Application Not Approved</h1>
+            <h1 className="text-2xl font-bold mb-4">
+              Application Not Approved
+            </h1>
             <p className="text-gray-700 mb-4">
-              Unfortunately, your affiliate application was not approved at this time.
+              Unfortunately, your affiliate application was not approved at this
+              time.
             </p>
             {affiliate.rejection_reason && (
               <p className="text-sm text-gray-600">
@@ -117,7 +128,9 @@ export default async function AffiliateDashboardPage() {
       <div className="min-h-screen bg-gray-50 py-12 px-4">
         <div className="max-w-4xl mx-auto">
           <div className="bg-white rounded-lg shadow-lg p-8">
-            <p className="text-gray-600">Unable to load dashboard data. Please try again later.</p>
+            <p className="text-gray-600">
+              Unable to load dashboard data. Please try again later.
+            </p>
           </div>
         </div>
       </div>
@@ -136,7 +149,8 @@ export default async function AffiliateDashboardPage() {
     .limit(10);
 
   // Get user profiles for referrals
-  const userIds = rawReferrals?.map(r => r.referred_user_id).filter(Boolean) || [];
+  const userIds =
+    rawReferrals?.map(r => r.referred_user_id).filter(Boolean) || [];
   let profiles = null;
 
   if (userIds.length > 0) {
@@ -149,10 +163,11 @@ export default async function AffiliateDashboardPage() {
 
   // Merge profiles with referrals
   const profilesMap = new Map(profiles?.map(p => [p.id, p]) || []);
-  const recentReferrals = rawReferrals?.map(ref => ({
-    ...ref,
-    referred_user: profilesMap.get(ref.referred_user_id) || null
-  })) || [];
+  const recentReferrals =
+    rawReferrals?.map(ref => ({
+      ...ref,
+      referred_user: profilesMap.get(ref.referred_user_id) || null,
+    })) || [];
 
   const { data: recentCommissions } = await supabase
     .from('commissions')
@@ -180,7 +195,7 @@ export default async function AffiliateDashboardPage() {
             recentReferrals: recentReferrals || [],
             recentCommissions: recentCommissions || [],
             payouts: payouts || [],
-            referralLink
+            referralLink,
           }}
         />
       </div>

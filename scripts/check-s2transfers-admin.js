@@ -35,8 +35,10 @@ async function checkS2TransfersAdmin() {
     console.log(`   User ID: ${s2User.id}\n`);
 
     // Test is_admin function for this user
-    const { data: isAdmin, error: adminError } = await supabase
-      .rpc('is_admin', { user_id: s2User.id });
+    const { data: isAdmin, error: adminError } = await supabase.rpc(
+      'is_admin',
+      { user_id: s2User.id }
+    );
 
     if (adminError) {
       console.log('❌ is_admin function error:', adminError.message);
@@ -80,7 +82,9 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
       if (affError) {
         console.log('❌ Error accessing affiliates:', affError.message);
       } else {
-        console.log(`✅ Can access affiliates table: ${affiliates.length} records found`);
+        console.log(
+          `✅ Can access affiliates table: ${affiliates.length} records found`
+        );
         if (affiliates.length > 0) {
           affiliates.forEach(aff => {
             console.log(`   - ${aff.referral_code}: ${aff.status}`);
@@ -88,7 +92,6 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
         }
       }
     }
-
   } catch (error) {
     console.error('❌ Error:', error);
   }

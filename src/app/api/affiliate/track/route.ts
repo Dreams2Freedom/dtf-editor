@@ -15,7 +15,10 @@ export async function GET(request: NextRequest) {
 
     if (!referralCode) {
       if (format === 'json') {
-        return NextResponse.json({ success: false, error: 'No referral code provided' }, { status: 400 });
+        return NextResponse.json(
+          { success: false, error: 'No referral code provided' },
+          { status: 400 }
+        );
       }
       return NextResponse.redirect(new URL(redirectTo, request.url));
     }
@@ -28,9 +31,12 @@ export async function GET(request: NextRequest) {
       utm_campaign: searchParams.get('utm_campaign') || undefined,
       utm_content: searchParams.get('utm_content') || undefined,
       utm_term: searchParams.get('utm_term') || undefined,
-      ip_address: request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || undefined,
+      ip_address:
+        request.headers.get('x-forwarded-for') ||
+        request.headers.get('x-real-ip') ||
+        undefined,
       user_agent: request.headers.get('user-agent') || undefined,
-      referer: request.headers.get('referer') || undefined
+      referer: request.headers.get('referer') || undefined,
     };
 
     console.log('[TRACK API] Tracking visit for:', referralCode, visitData);
@@ -46,7 +52,7 @@ export async function GET(request: NextRequest) {
         success: result.success,
         cookieId: result.cookieId,
         error: result.error,
-        referralCode
+        referralCode,
       });
 
       if (result.success && result.cookieId) {
@@ -56,7 +62,7 @@ export async function GET(request: NextRequest) {
           maxAge: 30 * 24 * 60 * 60,
           path: '/',
           sameSite: 'lax',
-          secure: process.env.NODE_ENV === 'production'
+          secure: process.env.NODE_ENV === 'production',
         });
 
         response.cookies.set({
@@ -65,7 +71,7 @@ export async function GET(request: NextRequest) {
           maxAge: 30 * 24 * 60 * 60,
           path: '/',
           sameSite: 'lax',
-          secure: process.env.NODE_ENV === 'production'
+          secure: process.env.NODE_ENV === 'production',
         });
       }
 
@@ -82,7 +88,7 @@ export async function GET(request: NextRequest) {
         maxAge: 30 * 24 * 60 * 60,
         path: '/',
         sameSite: 'lax',
-        secure: process.env.NODE_ENV === 'production'
+        secure: process.env.NODE_ENV === 'production',
       });
 
       response.cookies.set({
@@ -91,12 +97,11 @@ export async function GET(request: NextRequest) {
         maxAge: 30 * 24 * 60 * 60,
         path: '/',
         sameSite: 'lax',
-        secure: process.env.NODE_ENV === 'production'
+        secure: process.env.NODE_ENV === 'production',
       });
     }
 
     return response;
-
   } catch (error) {
     console.error('Error tracking affiliate:', error);
     // Still redirect even if tracking fails

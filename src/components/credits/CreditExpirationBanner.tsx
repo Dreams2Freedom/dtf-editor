@@ -44,11 +44,20 @@ export function CreditExpirationBanner() {
   }
 
   // Group by days until expiration
-  const criticalExpiring = expiringCredits.filter(c => c.daysUntilExpiration <= 3);
-  const warningExpiring = expiringCredits.filter(c => c.daysUntilExpiration > 3 && c.daysUntilExpiration <= 7);
-  const infoExpiring = expiringCredits.filter(c => c.daysUntilExpiration > 7 && c.daysUntilExpiration <= 14);
+  const criticalExpiring = expiringCredits.filter(
+    c => c.daysUntilExpiration <= 3
+  );
+  const warningExpiring = expiringCredits.filter(
+    c => c.daysUntilExpiration > 3 && c.daysUntilExpiration <= 7
+  );
+  const infoExpiring = expiringCredits.filter(
+    c => c.daysUntilExpiration > 7 && c.daysUntilExpiration <= 14
+  );
 
-  const totalExpiringCredits = expiringCredits.reduce((sum, c) => sum + c.credits, 0);
+  const totalExpiringCredits = expiringCredits.reduce(
+    (sum, c) => sum + c.credits,
+    0
+  );
 
   if (criticalExpiring.length > 0) {
     const soonestExpiring = criticalExpiring[0];
@@ -58,12 +67,17 @@ export function CreditExpirationBanner() {
           <div className="flex items-start gap-3">
             <AlertCircle className="w-5 h-5 text-red-600 mt-0.5" />
             <div className="flex-1">
-              <h3 className="font-semibold text-red-900">Credits Expiring Soon!</h3>
+              <h3 className="font-semibold text-red-900">
+                Credits Expiring Soon!
+              </h3>
               <p className="text-red-700 text-sm mt-1">
-                {soonestExpiring.credits} credit{soonestExpiring.credits > 1 ? 's' : ''} will expire 
-                {soonestExpiring.daysUntilExpiration === 0 ? ' today' : 
-                 soonestExpiring.daysUntilExpiration === 1 ? ' tomorrow' : 
-                 ` in ${soonestExpiring.daysUntilExpiration} days`}
+                {soonestExpiring.credits} credit
+                {soonestExpiring.credits > 1 ? 's' : ''} will expire
+                {soonestExpiring.daysUntilExpiration === 0
+                  ? ' today'
+                  : soonestExpiring.daysUntilExpiration === 1
+                    ? ' tomorrow'
+                    : ` in ${soonestExpiring.daysUntilExpiration} days`}
               </p>
               <div className="mt-3 flex gap-2">
                 <Link href="/process">
@@ -91,9 +105,13 @@ export function CreditExpirationBanner() {
           <div className="flex items-start gap-3">
             <Clock className="w-5 h-5 text-amber-600 mt-0.5" />
             <div className="flex-1">
-              <h3 className="font-semibold text-amber-900">Credits Expiring This Week</h3>
+              <h3 className="font-semibold text-amber-900">
+                Credits Expiring This Week
+              </h3>
               <p className="text-amber-700 text-sm mt-1">
-                {totalExpiringCredits} credit{totalExpiringCredits > 1 ? 's' : ''} will expire within the next week
+                {totalExpiringCredits} credit
+                {totalExpiringCredits > 1 ? 's' : ''} will expire within the
+                next week
               </p>
               <Link href="/process">
                 <Button size="sm" className="mt-2">
@@ -115,7 +133,9 @@ export function CreditExpirationBanner() {
             <Info className="w-5 h-5 text-blue-600 mt-0.5" />
             <div className="flex-1">
               <p className="text-blue-700 text-sm">
-                You have {totalExpiringCredits} credit{totalExpiringCredits > 1 ? 's' : ''} expiring in the next 2 weeks
+                You have {totalExpiringCredits} credit
+                {totalExpiringCredits > 1 ? 's' : ''} expiring in the next 2
+                weeks
               </p>
             </div>
           </div>

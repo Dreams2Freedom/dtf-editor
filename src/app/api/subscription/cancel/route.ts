@@ -7,7 +7,10 @@ import { withRateLimit } from '@/lib/rate-limit';
 async function handlePost(request: NextRequest) {
   try {
     const supabase = await createServerSupabaseClient();
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
 
     if (authError || !user) {
       return NextResponse.json(
@@ -37,7 +40,7 @@ async function handlePost(request: NextRequest) {
       const subscription = await getStripe().subscriptions.update(
         profile.stripe_subscription_id,
         {
-          cancel_at_period_end: true
+          cancel_at_period_end: true,
         }
       );
 
@@ -46,7 +49,7 @@ async function handlePost(request: NextRequest) {
         .from('profiles')
         .update({
           subscription_status: 'cancelling',
-          updated_at: new Date().toISOString()
+          updated_at: new Date().toISOString(),
         })
         .eq('id', user.id);
 
@@ -55,18 +58,18 @@ async function handlePost(request: NextRequest) {
       }
 
       // Log event
-      await supabase
-        .from('subscription_events')
-        .insert({
-          user_id: user.id,
-          event_type: 'cancelled',
-          event_data: {
-            reason,
-            cancel_at_period_end: true,
-            current_period_end: new Date(subscription.current_period_end * 1000).toISOString(),
-            stripe_subscription_id: profile.stripe_subscription_id
-          }
-        });
+      await supabase.from('subscription_events').insert({
+        user_id: user.id,
+        event_type: 'cancelled',
+        event_data: {
+          reason,
+          cancel_at_period_end: true,
+          current_period_end: new Date(
+            subscription.current_period_end * 1000
+          ).toISOString(),
+          stripe_subscription_id: profile.stripe_subscription_id,
+        },
+      });
 
       // Send cancellation confirmation email
       try {
@@ -89,10 +92,11 @@ async function handlePost(request: NextRequest) {
           id: subscription.id,
           status: subscription.status,
           cancel_at_period_end: subscription.cancel_at_period_end,
-          current_period_end: new Date(subscription.current_period_end * 1000).toISOString()
-        }
+          current_period_end: new Date(
+            subscription.current_period_end * 1000
+          ).toISOString(),
+        },
       });
-
     } catch (stripeError: any) {
       console.error('Stripe error:', stripeError);
       return NextResponse.json(
@@ -100,7 +104,6 @@ async function handlePost(request: NextRequest) {
         { status: 500 }
       );
     }
-
   } catch (error) {
     console.error('Error cancelling subscription:', error);
     return NextResponse.json(

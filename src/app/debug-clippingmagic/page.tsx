@@ -12,7 +12,9 @@ export default function DebugClippingMagic() {
 
   useEffect(() => {
     // Check if ClippingMagic exists
-    addLog(`Initial check - window.ClippingMagic exists: ${!!window.ClippingMagic}`);
+    addLog(
+      `Initial check - window.ClippingMagic exists: ${!!window.ClippingMagic}`
+    );
 
     // Load script
     const script = document.createElement('script');
@@ -20,19 +22,27 @@ export default function DebugClippingMagic() {
     script.onload = () => {
       addLog('Script loaded');
       addLog(`window.ClippingMagic type: ${typeof window.ClippingMagic}`);
-      addLog(`window.ClippingMagic.initialize exists: ${!!window.ClippingMagic?.initialize}`);
-      addLog(`window.ClippingMagic.edit exists: ${!!window.ClippingMagic?.edit}`);
-      
+      addLog(
+        `window.ClippingMagic.initialize exists: ${!!window.ClippingMagic?.initialize}`
+      );
+      addLog(
+        `window.ClippingMagic.edit exists: ${!!window.ClippingMagic?.edit}`
+      );
+
       // Initialize
       if (window.ClippingMagic) {
         const errors = window.ClippingMagic.initialize({ apiId: 24469 });
         addLog(`Initialize errors: ${JSON.stringify(errors)}`);
-        
+
         // Check what's in ClippingMagic object
-        addLog(`ClippingMagic properties: ${Object.keys(window.ClippingMagic).join(', ')}`);
-        
+        addLog(
+          `ClippingMagic properties: ${Object.keys(window.ClippingMagic).join(', ')}`
+        );
+
         // Try to inspect the edit function
-        addLog(`edit function: ${window.ClippingMagic.edit.toString().substring(0, 100)}...`);
+        addLog(
+          `edit function: ${window.ClippingMagic.edit.toString().substring(0, 100)}...`
+        );
       }
     };
     document.body.appendChild(script);
@@ -43,17 +53,20 @@ export default function DebugClippingMagic() {
     if (window.ClippingMagic && window.ClippingMagic.edit) {
       try {
         // Use a test image ID from earlier
-        window.ClippingMagic.edit({
-          image: { 
-            id: 207794051,
-            secret: "g5rssaot702277tqfdpufdmqjtkc2u8j9h9t7fhro879csnbmtv"
+        window.ClippingMagic.edit(
+          {
+            image: {
+              id: 207794051,
+              secret: 'g5rssaot702277tqfdpufdmqjtkc2u8j9h9t7fhro879csnbmtv',
+            },
+            useStickySettings: true,
+            hideBottomToolbar: false,
+            locale: 'en-US',
           },
-          useStickySettings: true,
-          hideBottomToolbar: false,
-          locale: 'en-US'
-        }, (opts: any) => {
-          addLog(`Callback: ${JSON.stringify(opts)}`);
-        });
+          (opts: any) => {
+            addLog(`Callback: ${JSON.stringify(opts)}`);
+          }
+        );
         addLog('edit() called successfully');
       } catch (e) {
         addLog(`edit() error: ${e}`);
@@ -66,8 +79,8 @@ export default function DebugClippingMagic() {
   return (
     <div className="p-8">
       <h1 className="text-2xl font-bold mb-4">ClippingMagic Debug</h1>
-      
-      <button 
+
+      <button
         onClick={testEdit}
         className="mb-4 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
       >

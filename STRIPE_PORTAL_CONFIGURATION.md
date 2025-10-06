@@ -53,7 +53,7 @@ Add a custom cancellation button that triggers the retention flow:
   className="text-red-600"
 >
   Cancel Subscription
-</Button>
+</Button>;
 
 const handleCancelSubscription = async () => {
   // Redirect to retention page

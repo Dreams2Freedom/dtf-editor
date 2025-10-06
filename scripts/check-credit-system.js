@@ -13,7 +13,9 @@ const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
 if (!supabaseUrl || !supabaseServiceKey) {
-  console.error('❌ Missing NEXT_PUBLIC_SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY');
+  console.error(
+    '❌ Missing NEXT_PUBLIC_SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY'
+  );
   process.exit(1);
 }
 
@@ -61,13 +63,16 @@ async function checkTables() {
   if (!profileError) {
     console.log('✅ profiles table has credit tracking columns');
   } else {
-    console.log('⚠️  profiles table may be missing credit columns:', profileError.message);
+    console.log(
+      '⚠️  profiles table may be missing credit columns:',
+      profileError.message
+    );
   }
 
   return {
     creditTransactions: !ctError,
     creditPurchases: !cpError,
-    profileColumns: !profileError
+    profileColumns: !profileError,
   };
 }
 
@@ -80,7 +85,7 @@ async function checkFunctions() {
       p_user_id: '00000000-0000-0000-0000-000000000000',
       p_amount: 0,
       p_type: 'manual',
-      p_description: 'Test'
+      p_description: 'Test',
     });
 
     // If we get a "user not found" error, the function exists
@@ -107,7 +112,11 @@ async function main() {
 
   console.log('\n📋 Migration Status:\n');
 
-  if (tablesExist.creditTransactions && tablesExist.creditPurchases && tablesExist.profileColumns) {
+  if (
+    tablesExist.creditTransactions &&
+    tablesExist.creditPurchases &&
+    tablesExist.profileColumns
+  ) {
     console.log('✅ All credit system tables are properly set up!');
   } else {
     console.log('❌ Some credit system tables are missing.\n');
@@ -115,12 +124,16 @@ async function main() {
     console.log('1. Go to your Supabase dashboard');
     console.log('2. Navigate to SQL Editor');
     console.log('3. Run the following migrations in order:\n');
-    
+
     if (!tablesExist.creditTransactions) {
-      console.log('   - supabase/migrations/008_create_credit_transactions.sql');
+      console.log(
+        '   - supabase/migrations/008_create_credit_transactions.sql'
+      );
     }
     if (!tablesExist.creditPurchases) {
-      console.log('   - supabase/migrations/009_credit_expiration_tracking.sql');
+      console.log(
+        '   - supabase/migrations/009_credit_expiration_tracking.sql'
+      );
     }
   }
 
@@ -135,8 +148,12 @@ async function main() {
 
     if (transactions && transactions.length > 0) {
       transactions.forEach(t => {
-        console.log(`   ${t.type}: ${t.amount} credits - ${t.description || 'No description'}`);
-        console.log(`   User: ${t.user_id.substring(0, 8)}... | Balance After: ${t.balance_after}`);
+        console.log(
+          `   ${t.type}: ${t.amount} credits - ${t.description || 'No description'}`
+        );
+        console.log(
+          `   User: ${t.user_id.substring(0, 8)}... | Balance After: ${t.balance_after}`
+        );
         console.log(`   Created: ${new Date(t.created_at).toLocaleString()}\n`);
       });
     } else {

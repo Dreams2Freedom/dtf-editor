@@ -46,14 +46,41 @@ export function Loading({
 
   const renderDots = () => (
     <div className={cn('flex space-x-1', className)}>
-      <div className={cn('animate-bounce', sizeClasses[size], 'bg-current rounded-full')} style={{ animationDelay: '0ms' }} />
-      <div className={cn('animate-bounce', sizeClasses[size], 'bg-current rounded-full')} style={{ animationDelay: '150ms' }} />
-      <div className={cn('animate-bounce', sizeClasses[size], 'bg-current rounded-full')} style={{ animationDelay: '300ms' }} />
+      <div
+        className={cn(
+          'animate-bounce',
+          sizeClasses[size],
+          'bg-current rounded-full'
+        )}
+        style={{ animationDelay: '0ms' }}
+      />
+      <div
+        className={cn(
+          'animate-bounce',
+          sizeClasses[size],
+          'bg-current rounded-full'
+        )}
+        style={{ animationDelay: '150ms' }}
+      />
+      <div
+        className={cn(
+          'animate-bounce',
+          sizeClasses[size],
+          'bg-current rounded-full'
+        )}
+        style={{ animationDelay: '300ms' }}
+      />
     </div>
   );
 
   const renderPulse = () => (
-    <div className={cn('animate-pulse bg-current rounded-full', sizeClasses[size], className)} />
+    <div
+      className={cn(
+        'animate-pulse bg-current rounded-full',
+        sizeClasses[size],
+        className
+      )}
+    />
   );
 
   const renderContent = () => {
@@ -118,4 +145,4 @@ export function LoadingSkeleton({
       ))}
     </div>
   );
-} 
+}

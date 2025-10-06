@@ -30,6 +30,7 @@ git checkout pre-shadcn-refactor -- <file-path>
 **New Components Needed:** 3
 
 ### Issues by Priority:
+
 - **Critical:** 15 (raw HTML form elements)
 - **High:** 28 (arbitrary color values, inconsistent design tokens)
 - **Medium:** 14 (custom patterns, inconsistent component usage)
@@ -49,12 +50,12 @@ git checkout pre-shadcn-refactor -- <file-path>
 **File:** `src/components/ui/Checkbox.tsx`
 
 ```tsx
-"use client";
+'use client';
 
-import * as React from "react";
-import * as CheckboxPrimitive from "@radix-ui/react-checkbox";
-import { Check } from "lucide-react";
-import { cn } from "@/utils/cn";
+import * as React from 'react';
+import * as CheckboxPrimitive from '@radix-ui/react-checkbox';
+import { Check } from 'lucide-react';
+import { cn } from '@/utils/cn';
 
 const Checkbox = React.forwardRef<
   React.ElementRef<typeof CheckboxPrimitive.Root>,
@@ -63,11 +64,11 @@ const Checkbox = React.forwardRef<
   <CheckboxPrimitive.Root
     ref={ref}
     className={cn(
-      "peer h-4 w-4 shrink-0 rounded border border-gray-300 shadow-sm",
-      "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2",
-      "disabled:cursor-not-allowed disabled:opacity-50",
-      "data-[state=checked]:bg-primary-500 data-[state=checked]:border-primary-500 data-[state=checked]:text-white",
-      "transition-colors",
+      'peer h-4 w-4 shrink-0 rounded border border-gray-300 shadow-sm',
+      'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2',
+      'disabled:cursor-not-allowed disabled:opacity-50',
+      'data-[state=checked]:bg-primary-500 data-[state=checked]:border-primary-500 data-[state=checked]:text-white',
+      'transition-colors',
       className
     )}
     {...props}
@@ -83,11 +84,13 @@ export { Checkbox };
 ```
 
 **Install Dependency:**
+
 ```bash
 npm install @radix-ui/react-checkbox
 ```
 
 **Used In:**
+
 - Settings page (5 checkboxes)
 - Future form components
 
@@ -98,12 +101,12 @@ npm install @radix-ui/react-checkbox
 **File:** `src/components/ui/DropdownMenu.tsx`
 
 ```tsx
-"use client";
+'use client';
 
-import * as React from "react";
-import * as DropdownMenuPrimitive from "@radix-ui/react-dropdown-menu";
-import { Check, ChevronRight } from "lucide-react";
-import { cn } from "@/utils/cn";
+import * as React from 'react';
+import * as DropdownMenuPrimitive from '@radix-ui/react-dropdown-menu';
+import { Check, ChevronRight } from 'lucide-react';
+import { cn } from '@/utils/cn';
 
 const DropdownMenu = DropdownMenuPrimitive.Root;
 const DropdownMenuTrigger = DropdownMenuPrimitive.Trigger;
@@ -121,9 +124,9 @@ const DropdownMenuSubTrigger = React.forwardRef<
   <DropdownMenuPrimitive.SubTrigger
     ref={ref}
     className={cn(
-      "flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none",
-      "focus:bg-gray-100 data-[state=open]:bg-gray-100",
-      inset && "pl-8",
+      'flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none',
+      'focus:bg-gray-100 data-[state=open]:bg-gray-100',
+      inset && 'pl-8',
       className
     )}
     {...props}
@@ -132,7 +135,8 @@ const DropdownMenuSubTrigger = React.forwardRef<
     <ChevronRight className="ml-auto h-4 w-4" />
   </DropdownMenuPrimitive.SubTrigger>
 ));
-DropdownMenuSubTrigger.displayName = DropdownMenuPrimitive.SubTrigger.displayName;
+DropdownMenuSubTrigger.displayName =
+  DropdownMenuPrimitive.SubTrigger.displayName;
 
 const DropdownMenuSubContent = React.forwardRef<
   React.ElementRef<typeof DropdownMenuPrimitive.SubContent>,
@@ -141,18 +145,19 @@ const DropdownMenuSubContent = React.forwardRef<
   <DropdownMenuPrimitive.SubContent
     ref={ref}
     className={cn(
-      "z-50 min-w-[8rem] overflow-hidden rounded-md border border-gray-200 bg-white p-1 shadow-lg",
-      "data-[state=open]:animate-in data-[state=closed]:animate-out",
-      "data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
-      "data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95",
-      "data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2",
-      "data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2",
+      'z-50 min-w-[8rem] overflow-hidden rounded-md border border-gray-200 bg-white p-1 shadow-lg',
+      'data-[state=open]:animate-in data-[state=closed]:animate-out',
+      'data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0',
+      'data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95',
+      'data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2',
+      'data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2',
       className
     )}
     {...props}
   />
 ));
-DropdownMenuSubContent.displayName = DropdownMenuPrimitive.SubContent.displayName;
+DropdownMenuSubContent.displayName =
+  DropdownMenuPrimitive.SubContent.displayName;
 
 const DropdownMenuContent = React.forwardRef<
   React.ElementRef<typeof DropdownMenuPrimitive.Content>,
@@ -163,12 +168,12 @@ const DropdownMenuContent = React.forwardRef<
       ref={ref}
       sideOffset={sideOffset}
       className={cn(
-        "z-50 min-w-[8rem] overflow-hidden rounded-md border border-gray-200 bg-white p-1 shadow-md",
-        "data-[state=open]:animate-in data-[state=closed]:animate-out",
-        "data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
-        "data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95",
-        "data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2",
-        "data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2",
+        'z-50 min-w-[8rem] overflow-hidden rounded-md border border-gray-200 bg-white p-1 shadow-md',
+        'data-[state=open]:animate-in data-[state=closed]:animate-out',
+        'data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0',
+        'data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95',
+        'data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2',
+        'data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2',
         className
       )}
       {...props}
@@ -186,10 +191,10 @@ const DropdownMenuItem = React.forwardRef<
   <DropdownMenuPrimitive.Item
     ref={ref}
     className={cn(
-      "relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none",
-      "transition-colors focus:bg-gray-100 focus:text-gray-900",
-      "data-[disabled]:pointer-events-none data-[disabled]:opacity-50",
-      inset && "pl-8",
+      'relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none',
+      'transition-colors focus:bg-gray-100 focus:text-gray-900',
+      'data-[disabled]:pointer-events-none data-[disabled]:opacity-50',
+      inset && 'pl-8',
       className
     )}
     {...props}
@@ -204,9 +209,9 @@ const DropdownMenuCheckboxItem = React.forwardRef<
   <DropdownMenuPrimitive.CheckboxItem
     ref={ref}
     className={cn(
-      "relative flex cursor-default select-none items-center rounded-sm py-1.5 pl-8 pr-2 text-sm outline-none",
-      "transition-colors focus:bg-gray-100 focus:text-gray-900",
-      "data-[disabled]:pointer-events-none data-[disabled]:opacity-50",
+      'relative flex cursor-default select-none items-center rounded-sm py-1.5 pl-8 pr-2 text-sm outline-none',
+      'transition-colors focus:bg-gray-100 focus:text-gray-900',
+      'data-[disabled]:pointer-events-none data-[disabled]:opacity-50',
       className
     )}
     checked={checked}
@@ -220,7 +225,8 @@ const DropdownMenuCheckboxItem = React.forwardRef<
     {children}
   </DropdownMenuPrimitive.CheckboxItem>
 ));
-DropdownMenuCheckboxItem.displayName = DropdownMenuPrimitive.CheckboxItem.displayName;
+DropdownMenuCheckboxItem.displayName =
+  DropdownMenuPrimitive.CheckboxItem.displayName;
 
 const DropdownMenuRadioItem = React.forwardRef<
   React.ElementRef<typeof DropdownMenuPrimitive.RadioItem>,
@@ -229,9 +235,9 @@ const DropdownMenuRadioItem = React.forwardRef<
   <DropdownMenuPrimitive.RadioItem
     ref={ref}
     className={cn(
-      "relative flex cursor-default select-none items-center rounded-sm py-1.5 pl-8 pr-2 text-sm outline-none",
-      "transition-colors focus:bg-gray-100 focus:text-gray-900",
-      "data-[disabled]:pointer-events-none data-[disabled]:opacity-50",
+      'relative flex cursor-default select-none items-center rounded-sm py-1.5 pl-8 pr-2 text-sm outline-none',
+      'transition-colors focus:bg-gray-100 focus:text-gray-900',
+      'data-[disabled]:pointer-events-none data-[disabled]:opacity-50',
       className
     )}
     {...props}
@@ -255,8 +261,8 @@ const DropdownMenuLabel = React.forwardRef<
   <DropdownMenuPrimitive.Label
     ref={ref}
     className={cn(
-      "px-2 py-1.5 text-sm font-semibold",
-      inset && "pl-8",
+      'px-2 py-1.5 text-sm font-semibold',
+      inset && 'pl-8',
       className
     )}
     {...props}
@@ -270,7 +276,7 @@ const DropdownMenuSeparator = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <DropdownMenuPrimitive.Separator
     ref={ref}
-    className={cn("-mx-1 my-1 h-px bg-gray-200", className)}
+    className={cn('-mx-1 my-1 h-px bg-gray-200', className)}
     {...props}
   />
 ));
@@ -282,12 +288,12 @@ const DropdownMenuShortcut = ({
 }: React.HTMLAttributes<HTMLSpanElement>) => {
   return (
     <span
-      className={cn("ml-auto text-xs tracking-widest opacity-60", className)}
+      className={cn('ml-auto text-xs tracking-widest opacity-60', className)}
       {...props}
     />
   );
 };
-DropdownMenuShortcut.displayName = "DropdownMenuShortcut";
+DropdownMenuShortcut.displayName = 'DropdownMenuShortcut';
 
 export {
   DropdownMenu,
@@ -309,11 +315,13 @@ export {
 ```
 
 **Install Dependency:**
+
 ```bash
 npm install @radix-ui/react-dropdown-menu
 ```
 
 **Used In:**
+
 - UserListTable export dropdown
 - UserListTable actions dropdown
 - Future dropdown menus
@@ -325,30 +333,27 @@ npm install @radix-ui/react-dropdown-menu
 **File:** `src/components/ui/Alert.tsx`
 
 ```tsx
-"use client";
+'use client';
 
-import * as React from "react";
-import { cva, type VariantProps } from "class-variance-authority";
-import { AlertCircle, CheckCircle, XCircle, Info } from "lucide-react";
-import { cn } from "@/utils/cn";
+import * as React from 'react';
+import { cva, type VariantProps } from 'class-variance-authority';
+import { AlertCircle, CheckCircle, XCircle, Info } from 'lucide-react';
+import { cn } from '@/utils/cn';
 
-const alertVariants = cva(
-  "relative w-full rounded-lg border p-4",
-  {
-    variants: {
-      variant: {
-        default: "bg-gray-50 text-gray-900 border-gray-200",
-        info: "bg-info-50 text-info-900 border-info-200",
-        success: "bg-success-50 text-success-900 border-success-200",
-        warning: "bg-warning-50 text-warning-900 border-warning-200",
-        error: "bg-error-50 text-error-900 border-error-200",
-      },
+const alertVariants = cva('relative w-full rounded-lg border p-4', {
+  variants: {
+    variant: {
+      default: 'bg-gray-50 text-gray-900 border-gray-200',
+      info: 'bg-info-50 text-info-900 border-info-200',
+      success: 'bg-success-50 text-success-900 border-success-200',
+      warning: 'bg-warning-50 text-warning-900 border-warning-200',
+      error: 'bg-error-50 text-error-900 border-error-200',
     },
-    defaultVariants: {
-      variant: "default",
-    },
-  }
-);
+  },
+  defaultVariants: {
+    variant: 'default',
+  },
+});
 
 const Alert = React.forwardRef<
   HTMLDivElement,
@@ -361,7 +366,7 @@ const Alert = React.forwardRef<
     {...props}
   />
 ));
-Alert.displayName = "Alert";
+Alert.displayName = 'Alert';
 
 const AlertTitle = React.forwardRef<
   HTMLParagraphElement,
@@ -369,11 +374,11 @@ const AlertTitle = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <h5
     ref={ref}
-    className={cn("mb-1 font-medium leading-none tracking-tight", className)}
+    className={cn('mb-1 font-medium leading-none tracking-tight', className)}
     {...props}
   />
 ));
-AlertTitle.displayName = "AlertTitle";
+AlertTitle.displayName = 'AlertTitle';
 
 const AlertDescription = React.forwardRef<
   HTMLParagraphElement,
@@ -381,16 +386,17 @@ const AlertDescription = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <div
     ref={ref}
-    className={cn("text-sm [&_p]:leading-relaxed", className)}
+    className={cn('text-sm [&_p]:leading-relaxed', className)}
     {...props}
   />
 ));
-AlertDescription.displayName = "AlertDescription";
+AlertDescription.displayName = 'AlertDescription';
 
 export { Alert, AlertTitle, AlertDescription };
 ```
 
 **Used In:**
+
 - Admin login warning
 - Settings page status indicators
 - Error/success messages
@@ -402,11 +408,13 @@ export { Alert, AlertTitle, AlertDescription };
 **File:** `src/components/ui/Button.tsx`
 
 **Changes Required:**
+
 - Line 12-24: Replace `blue-600` with `primary-500`
 - Replace `orange-500` with `accent-500`
 - Replace arbitrary red/green with `error-500` and `success-500`
 
 **Current:**
+
 ```tsx
 variant: {
   default: 'bg-blue-600 text-white hover:bg-blue-700',
@@ -417,6 +425,7 @@ variant: {
 ```
 
 **Fixed:**
+
 ```tsx
 variant: {
   default: 'bg-primary-500 text-white hover:bg-primary-600',
@@ -437,26 +446,33 @@ variant: {
 #### 3.1 Replace Raw Checkboxes (Lines 121-162)
 
 **Before:**
+
 ```tsx
 <input
   type="checkbox"
   checked={settings.new_user_alerts}
-  onChange={(e) => setSettings({ ...settings, new_user_alerts: e.target.checked })}
+  onChange={e =>
+    setSettings({ ...settings, new_user_alerts: e.target.checked })
+  }
   className="h-4 w-4 text-primary-blue rounded"
 />
 ```
 
 **After:**
+
 ```tsx
 import { Checkbox } from '@/components/ui/Checkbox';
 
 <Checkbox
   checked={settings.new_user_alerts}
-  onCheckedChange={(checked) => setSettings({ ...settings, new_user_alerts: checked as boolean })}
-/>
+  onCheckedChange={checked =>
+    setSettings({ ...settings, new_user_alerts: checked as boolean })
+  }
+/>;
 ```
 
 **Apply to all 5 checkboxes:**
+
 - Line 121: `new_user_alerts`
 - Line 135: `subscription_changes`
 - Line 149: `api_errors`
@@ -464,11 +480,14 @@ import { Checkbox } from '@/components/ui/Checkbox';
 #### 3.2 Replace Raw Number Inputs (Lines 190, 256)
 
 **Before:**
+
 ```tsx
 <input
   type="number"
   value={settings.session_timeout}
-  onChange={(e) => setSettings({ ...settings, session_timeout: parseInt(e.target.value) })}
+  onChange={e =>
+    setSettings({ ...settings, session_timeout: parseInt(e.target.value) })
+  }
   className="w-full px-3 py-2 border rounded-lg"
   min="15"
   max="480"
@@ -476,43 +495,49 @@ import { Checkbox } from '@/components/ui/Checkbox';
 ```
 
 **After:**
+
 ```tsx
 import { Input } from '@/components/ui/Input';
 
 <Input
   type="number"
   value={settings.session_timeout}
-  onChange={(e) => setSettings({ ...settings, session_timeout: parseInt(e.target.value) })}
+  onChange={e =>
+    setSettings({ ...settings, session_timeout: parseInt(e.target.value) })
+  }
   min="15"
   max="480"
-/>
+/>;
 ```
 
 #### 3.3 Replace Raw Email Input (Line 284)
 
 **Before:**
+
 ```tsx
 <input
   type="email"
   value={settings.support_email}
-  onChange={(e) => setSettings({ ...settings, support_email: e.target.value })}
+  onChange={e => setSettings({ ...settings, support_email: e.target.value })}
   className="w-full px-3 py-2 border rounded-lg"
 />
 ```
 
 **After:**
+
 ```tsx
 <Input
   type="email"
   label="Support Email Address"
   value={settings.support_email}
-  onChange={(e) => setSettings({ ...settings, support_email: e.target.value })}
+  onChange={e => setSettings({ ...settings, support_email: e.target.value })}
 />
 ```
 
 #### 3.4 Fix Badge Variants (Lines 184, 228, 230, 326, 333, 340, 347)
 
 **Invalid Variants to Fix:**
+
 - `variant="gray"` → `variant="secondary"`
 - `variant="yellow"` → `variant="warning"`
 - `variant="green"` → `variant="success"`
@@ -520,6 +545,7 @@ import { Input } from '@/components/ui/Input';
 #### 3.5 Fix Status Box Colors (Lines 321-349)
 
 **Before:**
+
 ```tsx
 <div className="flex items-center justify-between p-3 bg-green-50 rounded-lg">
   <Check className="w-5 h-5 text-green-600 mr-2" />
@@ -528,6 +554,7 @@ import { Input } from '@/components/ui/Input';
 ```
 
 **After:**
+
 ```tsx
 <div className="flex items-center justify-between p-3 bg-success-50 rounded-lg">
   <Check className="w-5 h-5 text-success-600 mr-2" />
@@ -546,17 +573,19 @@ import { Input } from '@/components/ui/Input';
 #### 4.1 Replace Raw Search Input (Lines 423-429)
 
 **Before:**
+
 ```tsx
 <input
   type="text"
   placeholder="Search by email or name..."
   value={params.search || ''}
-  onChange={(e) => handleSearch(e.target.value)}
+  onChange={e => handleSearch(e.target.value)}
   className="pl-10 pr-4 py-2 w-full border border-gray-300 rounded-lg"
 />
 ```
 
 **After:**
+
 ```tsx
 import { Input } from '@/components/ui/Input';
 import { Search } from 'lucide-react';
@@ -565,18 +594,21 @@ import { Search } from 'lucide-react';
   type="text"
   placeholder="Search by email or name..."
   value={params.search || ''}
-  onChange={(e) => handleSearch(e.target.value)}
+  onChange={e => handleSearch(e.target.value)}
   leftIcon={<Search />}
-/>
+/>;
 ```
 
 #### 4.2 Replace Raw Select (Lines 436-444)
 
 **Before:**
+
 ```tsx
 <select
   value={params.status}
-  onChange={(e) => handleStatusFilter(e.target.value as AdminUserListParams['status'])}
+  onChange={e =>
+    handleStatusFilter(e.target.value as AdminUserListParams['status'])
+  }
   className="border border-gray-300 rounded-lg px-3 py-2 text-sm"
 >
   <option value="all">All Status</option>
@@ -586,62 +618,78 @@ import { Search } from 'lucide-react';
 ```
 
 **After:**
+
 ```tsx
 import { Select } from '@/components/ui/Select';
 import { Filter } from 'lucide-react';
 
 <Select
   value={params.status}
-  onChange={(e) => handleStatusFilter(e.target.value as AdminUserListParams['status'])}
+  onChange={e =>
+    handleStatusFilter(e.target.value as AdminUserListParams['status'])
+  }
   leftIcon={<Filter />}
 >
   <option value="all">All Status</option>
   <option value="active">Active</option>
   <option value="suspended">Suspended</option>
-</Select>
+</Select>;
 ```
 
 #### 4.3 Fix Plan Badge Colors (Lines 321-332)
 
 **Before:**
+
 ```tsx
 const getPlanBadgeColor = (plan: string) => {
   switch (plan) {
-    case 'starter': return 'bg-blue-100 text-blue-800';
-    case 'basic': return 'bg-green-100 text-green-800';
-    case 'pro': return 'bg-purple-100 text-purple-800';
-    default: return 'bg-gray-100 text-gray-800';
+    case 'starter':
+      return 'bg-blue-100 text-blue-800';
+    case 'basic':
+      return 'bg-green-100 text-green-800';
+    case 'pro':
+      return 'bg-purple-100 text-purple-800';
+    default:
+      return 'bg-gray-100 text-gray-800';
   }
 };
 
 // Usage
-<span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getPlanBadgeColor(user.plan)}`}>
+<span
+  className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getPlanBadgeColor(user.plan)}`}
+>
   {user.plan}
-</span>
+</span>;
 ```
 
 **After:**
+
 ```tsx
 import { Badge } from '@/components/ui/Badge';
 
-const getPlanBadgeVariant = (plan: string): 'default' | 'secondary' | 'success' | 'info' => {
+const getPlanBadgeVariant = (
+  plan: string
+): 'default' | 'secondary' | 'success' | 'info' => {
   switch (plan) {
-    case 'starter': return 'info';
-    case 'basic': return 'success';
-    case 'pro': return 'default';
-    default: return 'secondary';
+    case 'starter':
+      return 'info';
+    case 'basic':
+      return 'success';
+    case 'pro':
+      return 'default';
+    default:
+      return 'secondary';
   }
 };
 
 // Usage
-<Badge variant={getPlanBadgeVariant(user.plan)}>
-  {user.plan}
-</Badge>
+<Badge variant={getPlanBadgeVariant(user.plan)}>{user.plan}</Badge>;
 ```
 
 #### 4.4 Fix Status Badge (Lines 335-346)
 
 **Before:**
+
 ```tsx
 const getStatusBadge = (status: string) => {
   return status === 'active' ? (
@@ -659,6 +707,7 @@ const getStatusBadge = (status: string) => {
 ```
 
 **After:**
+
 ```tsx
 import { Badge } from '@/components/ui/Badge';
 
@@ -680,6 +729,7 @@ const getStatusBadge = (status: string) => {
 #### 4.5 Replace Bulk Action Buttons (Lines 465-506)
 
 **Before:**
+
 ```tsx
 <button
   onClick={() => handleBulkAction('activate')}
@@ -692,6 +742,7 @@ const getStatusBadge = (status: string) => {
 ```
 
 **After:**
+
 ```tsx
 <Button
   variant="outline"
@@ -710,6 +761,7 @@ Apply same pattern to: suspend, email, credits, delete buttons
 #### 4.6 Replace Pagination Buttons (Lines 724-760)
 
 **Before:**
+
 ```tsx
 <button
   onClick={() => handlePageChange(params.page! - 1)}
@@ -721,6 +773,7 @@ Apply same pattern to: suspend, email, credits, delete buttons
 ```
 
 **After:**
+
 ```tsx
 <Button
   variant="outline"
@@ -735,6 +788,7 @@ Apply same pattern to: suspend, email, credits, delete buttons
 #### 4.7 Fix Export Dropdown (Lines 363-411)
 
 **Before:**
+
 ```tsx
 <button
   onClick={() => setExportDropdownOpen(!exportDropdownOpen)}
@@ -746,6 +800,7 @@ Apply same pattern to: suspend, email, credits, delete buttons
 ```
 
 **After:**
+
 ```tsx
 import {
   DropdownMenu,
@@ -772,7 +827,7 @@ import {
       Export as PDF
     </DropdownMenuItem>
   </DropdownMenuContent>
-</DropdownMenu>
+</DropdownMenu>;
 ```
 
 #### 4.8 Fix Action Dropdown (Lines 629-702)
@@ -790,6 +845,7 @@ Replace custom dropdown with DropdownMenu component (similar pattern to export d
 #### 5.1 Replace Quick Action Buttons (Lines 265-292)
 
 **Before:**
+
 ```tsx
 <button
   onClick={() => router.push('/admin/users')}
@@ -801,6 +857,7 @@ Replace custom dropdown with DropdownMenu component (similar pattern to export d
 ```
 
 **After:**
+
 ```tsx
 <Button
   variant="outline"
@@ -817,27 +874,39 @@ Apply to all 4 quick action buttons
 #### 5.2 Fix Stat Card Icon Colors (Lines 130-136)
 
 **Before:**
+
 ```tsx
-<div className={`p-3 rounded-full ${trend === 'up' ? 'bg-green-100' : 'bg-blue-100'}`}>
-  <Icon className={`w-6 h-6 ${trend === 'up' ? 'text-green-600' : 'text-blue-600'}`} />
+<div
+  className={`p-3 rounded-full ${trend === 'up' ? 'bg-green-100' : 'bg-blue-100'}`}
+>
+  <Icon
+    className={`w-6 h-6 ${trend === 'up' ? 'text-green-600' : 'text-blue-600'}`}
+  />
 </div>
 ```
 
 **After:**
+
 ```tsx
-<div className={`p-3 rounded-full ${trend === 'up' ? 'bg-success-100' : 'bg-info-100'}`}>
-  <Icon className={`w-6 h-6 ${trend === 'up' ? 'text-success-600' : 'text-info-600'}`} />
+<div
+  className={`p-3 rounded-full ${trend === 'up' ? 'bg-success-100' : 'bg-info-100'}`}
+>
+  <Icon
+    className={`w-6 h-6 ${trend === 'up' ? 'text-success-600' : 'text-info-600'}`}
+  />
 </div>
 ```
 
 #### 5.3 Fix Trend Text Colors (Lines 118-127)
 
 **Before:**
+
 ```tsx
 <p className={`text-sm mt-2 flex items-center ${trend === 'up' ? 'text-green-600' : 'text-red-600'}`}>
 ```
 
 **After:**
+
 ```tsx
 <p className={`text-sm mt-2 flex items-center ${trend === 'up' ? 'text-success-600' : 'text-error-600'}`}>
 ```
@@ -847,11 +916,13 @@ Apply to all 4 quick action buttons
 ### Phase 6: Fix Badge Component Usage (30 min)
 
 **Files:**
+
 - Settings page
 - UserListTable
 - Other admin pages using Badge
 
 **Invalid Variants to Replace:**
+
 - `gray` → `secondary`
 - `yellow` → `warning`
 - `green` → `success`
@@ -883,6 +954,7 @@ grep -r "bg-amber-" src/ --include="*.tsx"
 ```
 
 **Replace with Design Tokens:**
+
 - `green-{n}` → `success-{n}`
 - `red-{n}` → `error-{n}`
 - `blue-{n}` → `primary-{n}` (for brand) or `info-{n}` (for informational)
@@ -913,6 +985,7 @@ grep -r "bg-amber-" src/ --include="*.tsx"
 ### Phase 9: Audit User-Facing Pages (2 hours)
 
 **Files to Check:**
+
 - `/dashboard`
 - `/process`
 - `/generate`
@@ -921,6 +994,7 @@ grep -r "bg-amber-" src/ --include="*.tsx"
 - Auth pages (login, signup, forgot password)
 
 **Look For:**
+
 - Raw HTML form elements
 - Arbitrary color values
 - Inconsistent button usage
@@ -933,6 +1007,7 @@ grep -r "bg-amber-" src/ --include="*.tsx"
 **BEFORE DEPLOYMENT:** Run all changes through code-quality-guardian agent
 
 **Code Quality Guardian Review:**
+
 ```bash
 # This will be done via Claude Code Task tool
 # The agent will check for:
@@ -945,6 +1020,7 @@ grep -r "bg-amber-" src/ --include="*.tsx"
 ```
 
 **What the Agent Checks:**
+
 - [ ] No security vulnerabilities introduced
 - [ ] Proper error handling in all new code
 - [ ] TypeScript types are correct and strict
@@ -957,6 +1033,7 @@ grep -r "bg-amber-" src/ --include="*.tsx"
 ### Phase 11: Final QA (1 hour)
 
 **Cross-Browser Testing:**
+
 - [ ] Chrome
 - [ ] Firefox
 - [ ] Safari
@@ -964,12 +1041,14 @@ grep -r "bg-amber-" src/ --include="*.tsx"
 - [ ] Chrome Mobile (Android)
 
 **Accessibility Audit:**
+
 - [ ] Run Lighthouse accessibility audit
 - [ ] Test with keyboard only
 - [ ] Test with screen reader (VoiceOver/NVDA)
 - [ ] Verify color contrast ratios
 
 **Performance Check:**
+
 - [ ] Run Lighthouse performance audit
 - [ ] Check bundle size hasn't increased significantly
 - [ ] Verify no console errors/warnings
@@ -1000,6 +1079,7 @@ npm run dev
 ## 🎨 Design Token Reference
 
 **Use These:**
+
 ```tsx
 // Brand Colors
 primary-{50-900}    // #366494
@@ -1018,15 +1098,16 @@ gray-{50-950}
 ```
 
 **Avoid These:**
+
 ```tsx
 // Arbitrary colors
-blue-{n}           // Use primary-{n} or info-{n}
-green-{n}          // Use success-{n}
-red-{n}            // Use error-{n}
-orange-{n}         // Use accent-{n}
-yellow-{n}         // Use warning-{n}
-amber-{n}          // Use warning-{n}
-purple-{n}         // Not in design system
+blue - { n }; // Use primary-{n} or info-{n}
+green - { n }; // Use success-{n}
+red - { n }; // Use error-{n}
+orange - { n }; // Use accent-{n}
+yellow - { n }; // Use warning-{n}
+amber - { n }; // Use warning-{n}
+purple - { n }; // Not in design system
 ```
 
 ---
@@ -1042,11 +1123,13 @@ npm install @radix-ui/react-checkbox @radix-ui/react-dropdown-menu
 ## 🔍 Files Changed Summary
 
 ### New Files Created (3):
+
 1. `src/components/ui/Checkbox.tsx`
 2. `src/components/ui/DropdownMenu.tsx`
 3. `src/components/ui/Alert.tsx` (optional)
 
 ### Files Modified (9):
+
 1. `src/components/ui/Button.tsx`
 2. `src/app/admin/settings/page.tsx`
 3. `src/components/admin/users/UserListTable.tsx`
@@ -1058,6 +1141,7 @@ npm install @radix-ui/react-checkbox @radix-ui/react-dropdown-menu
 9. `src/app/admin/financial/page.tsx`
 
 ### Additional Files (found during Phase 9):
+
 - TBD based on user-facing page audit
 
 ---

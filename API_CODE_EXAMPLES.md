@@ -5,18 +5,21 @@ This document contains verified code examples from official API documentation fo
 ## API Costs (2025 Rates)
 
 ### Service Pricing
+
 - **Deep-Image.ai**: $0.08 per image
-- **ClippingMagic**: $0.125 per image  
+- **ClippingMagic**: $0.125 per image
 - **Vectorizer.ai**: $0.20 per image
 - **OpenAI DALL-E 3**: $0.04 per image (standard quality 1024x1024)
 - **Stripe**: 2.9% + $0.30 per transaction
 
 ### Profitability by Plan
+
 - **Pay-as-you-go**: 70-80% profit margin
 - **Basic Plan**: 80-85% profit margin
 - **Starter Plan**: 83-90% profit margin
 
 ## Table of Contents
+
 - [Deep-Image.ai](#deep-imageai)
 - [ClippingMagic](#clippingmagic)
 - [Vectorizer.ai](#vectorizerai)
@@ -32,12 +35,15 @@ This document contains verified code examples from official API documentation fo
 **Official Docs: https://documentation.deep-image.ai/**
 
 ### Authentication
+
 ```http
 Header: x-api-key: YOUR_API_KEY
 ```
+
 Get your API key from: https://deep-image.ai/app/my-profile/api
 
 ### Basic Upscaling Example
+
 ```json
 // Request - Upscale image by 2x
 POST https://deep-image.ai/rest_api/process_result
@@ -62,6 +68,7 @@ POST https://deep-image.ai/rest_api/process_result
 ```
 
 ### Upscaling with Enhancements
+
 ```json
 // Request - Upscale 4x with all enhancements
 {
@@ -91,37 +98,43 @@ POST https://deep-image.ai/rest_api/process_result
 ```
 
 ### Form-data Upload Example
+
 ```javascript
 // Using FormData for direct file upload
 const formData = new FormData();
 formData.append('image', fileBlob);
-formData.append('json', JSON.stringify({
-  "width": 2000,
-  "enhancements": ["denoise", "deblur", "light"]
-}));
+formData.append(
+  'json',
+  JSON.stringify({
+    width: 2000,
+    enhancements: ['denoise', 'deblur', 'light'],
+  })
+);
 
 fetch('https://deep-image.ai/rest_api/process_result', {
   method: 'POST',
   headers: {
-    'x-api-key': 'YOUR_API_KEY'
+    'x-api-key': 'YOUR_API_KEY',
   },
-  body: formData
+  body: formData,
 });
 ```
 
 ### Advanced Features
 
 #### Background Generation
+
 ```json
 {
   "url": "image_url",
   "generate_background": true,
-  "face": true,  // For avatar creation
+  "face": true, // For avatar creation
   "control_mode": "image_to_image"
 }
 ```
 
 #### Face Enhancement
+
 ```json
 {
   "url": "image_url",
@@ -131,6 +144,7 @@ fetch('https://deep-image.ai/rest_api/process_result', {
 ```
 
 #### Canvas Extension
+
 ```json
 {
   "url": "image_url",
@@ -144,6 +158,7 @@ fetch('https://deep-image.ai/rest_api/process_result', {
 ```
 
 ### API Endpoints
+
 - `POST /rest_api/process_result` - Process and wait for result (up to 25 seconds)
 - `POST /rest_api/process` - Schedule processing job (returns immediately)
 - `GET /rest_api/result/{hash}` - Get job result by hash
@@ -151,21 +166,25 @@ fetch('https://deep-image.ai/rest_api/process_result', {
 - `GET /rest_api/me` - Get user profile and credits info
 
 ### Polling for Results
+
 ```javascript
 // When you get a job hash, poll for results
 async function pollForResult(jobHash, apiKey) {
   const maxAttempts = 24;
   const delayMs = 5000;
-  
+
   for (let i = 0; i < maxAttempts; i++) {
     if (i > 0) await new Promise(r => setTimeout(r, delayMs));
-    
-    const response = await fetch(`https://deep-image.ai/rest_api/result/${jobHash}`, {
-      headers: { 'x-api-key': apiKey }
-    });
-    
+
+    const response = await fetch(
+      `https://deep-image.ai/rest_api/result/${jobHash}`,
+      {
+        headers: { 'x-api-key': apiKey },
+      }
+    );
+
     const result = await response.json();
-    
+
     if (result.status === 'complete') {
       return result.result_url;
     } else if (result.status === 'failed') {
@@ -177,12 +196,14 @@ async function pollForResult(jobHash, apiKey) {
 ```
 
 ### Width/Height Parameters
+
 - Percentage format: `"200%"` for 2x scale, `"400%"` for 4x scale
-- Pixel format: `2000` for exact pixel dimensions  
+- Pixel format: `2000` for exact pixel dimensions
 - Set to `0` or omit for auto-calculation based on aspect ratio
 - Maximum output: 300 megapixels or 16x upscaling
 
 ### Available Enhancements
+
 - `denoise` - Remove noise from image (supports v1 and v2 models)
 - `deblur` - Sharpen blurry images
 - `clean` - Remove artifacts from previous upscaling
@@ -195,6 +216,7 @@ async function pollForResult(jobHash, apiKey) {
 ### Complete Parameter Reference
 
 #### Main Processing Parameters
+
 - **url**: (string) Image URL or base64 encoded image in JSON requests
 - **image**: (file) Image file for form-data requests
 - **width**: (integer/string) Target width in pixels (e.g., 2000) or percentage (e.g., "200%")
@@ -204,9 +226,11 @@ async function pollForResult(jobHash, apiKey) {
 - **max_file_size**: (string) Maximum output file size (e.g., "5MB")
 
 #### Enhancements Array
+
 ```json
 "enhancements": ["denoise", "deblur", "light", "color", "clean", "face_enhance"]
 ```
+
 - **denoise**: Remove image noise
 - **deblur**: Sharpen blurry images
 - **light**: Enhance lighting and exposure
@@ -217,6 +241,7 @@ async function pollForResult(jobHash, apiKey) {
 - **sharpen**: Additional sharpening
 
 #### Background Object
+
 ```json
 "background": {
   "remove": "auto",           // Automatic background removal
@@ -229,6 +254,7 @@ async function pollForResult(jobHash, apiKey) {
 ```
 
 #### Image Generation Parameters
+
 ```json
 "background": {
   "generate": {
@@ -243,6 +269,7 @@ async function pollForResult(jobHash, apiKey) {
 ```
 
 **Adapter Types:**
+
 - `generate_background`: Generates background around main object (default)
 - `face`: Creates avatar using first found face
 - `control`: Image-to-image generation based on image and edges
@@ -251,6 +278,7 @@ async function pollForResult(jobHash, apiKey) {
 - `inpainting`: Specialized image modification
 
 #### Light & Color Parameters
+
 ```json
 "light_parameters": {
   "type": "hdr_light_advanced",
@@ -263,6 +291,7 @@ async function pollForResult(jobHash, apiKey) {
 ```
 
 #### Denoise Parameters
+
 ```json
 "denoise_parameters": {
   "type": "v2"  // "v1" (default) or "v2" (for heavily noisy images)
@@ -270,6 +299,7 @@ async function pollForResult(jobHash, apiKey) {
 ```
 
 #### Caption/Watermark Parameters
+
 ```json
 "caption": {
   "url": "https://example.com/watermark.png",
@@ -281,6 +311,7 @@ async function pollForResult(jobHash, apiKey) {
 ```
 
 ### Error Responses
+
 ```json
 // Authentication error
 {
@@ -316,6 +347,7 @@ async function pollForResult(jobHash, apiKey) {
 ### Complete Examples
 
 #### Advanced Processing with All Features
+
 ```json
 POST /rest_api/process_result
 {
@@ -357,6 +389,7 @@ POST /rest_api/process_result
 ```
 
 #### Python Form-Data Example
+
 ```python
 import requests
 import json
@@ -388,12 +421,13 @@ with open('input.jpg', 'rb') as f:
         files={'image': f},
         data=data_dumped
     )
-    
+
 result = response.json()
 print(f"Result URL: {result['result_url']}")
 ```
 
 #### Face Avatar Generation
+
 ```json
 {
   "url": "https://example.com/face.jpg",
@@ -412,6 +446,7 @@ print(f"Result URL: {result['result_url']}")
 ```
 
 ### User Profile Endpoint
+
 ```http
 GET /rest_api/me
 x-api-key: YOUR_API_KEY
@@ -441,11 +476,13 @@ Response:
 **Official Docs: https://clippingmagic.com/api/overview**
 
 ### Authentication
+
 ```http
 Authorization: Basic [base64(api_id:api_secret)]
 ```
 
 ### White Label Editor Upload (Java Example)
+
 ```java
 // Requires: org.apache.httpcomponents.client5:httpclient5-fluent
 //      and: com.fasterxml.jackson.core:jackson-databind
@@ -481,6 +518,7 @@ if (response.getCode() == 200) {
 ```
 
 ### Upload Response Format
+
 ```json
 {
   "image": {
@@ -492,6 +530,7 @@ if (response.getCode() == 200) {
 ```
 
 ### JavaScript/Node.js Example (Converted)
+
 ```javascript
 const FormData = require('form-data');
 const fs = require('fs');
@@ -504,12 +543,17 @@ formData.append('format', 'json');
 formData.append('test', 'true'); // Remove for production
 
 // Make request
-const response = await axios.post('https://clippingmagic.com/api/v1/images', formData, {
-  headers: {
-    'Authorization': 'Basic ' + Buffer.from(apiId + ':' + apiSecret).toString('base64'),
-    ...formData.getHeaders()
+const response = await axios.post(
+  'https://clippingmagic.com/api/v1/images',
+  formData,
+  {
+    headers: {
+      Authorization:
+        'Basic ' + Buffer.from(apiId + ':' + apiSecret).toString('base64'),
+      ...formData.getHeaders(),
+    },
   }
-});
+);
 
 if (response.status === 200) {
   const { image } = response.data;
@@ -520,6 +564,7 @@ if (response.status === 200) {
 ```
 
 ### Upload Parameters
+
 - **image**: Binary image file (required)
 - **format**: Response format - "json" or "result" (default: "result")
 - **test**: Set to "true" for testing without using credits
@@ -527,58 +572,81 @@ if (response.status === 200) {
 - **foreground**: Foreground processing options
 
 ### Retrieving Results
+
 After uploading, use the image ID and secret to retrieve the processed result:
+
 ```http
 GET https://clippingmagic.com/api/v1/images/{id}
 Authorization: Basic [base64(api_id:api_secret)]
 ```
 
 ### Important Notes
+
 - The `test` parameter should be removed in production to actually process images
 - Store the returned `id` and `secret` - they're needed to retrieve results
 - Images are processed asynchronously - poll for results
 - White label editor allows custom branding and integration
 
 ### White Label Smart Editor Embedding
+
 ```html
-<script src="https://clippingmagic.com/api/v1/ClippingMagic.js" type="text/javascript"></script>
+<script
+  src="https://clippingmagic.com/api/v1/ClippingMagic.js"
+  type="text/javascript"
+></script>
 <script type="text/javascript">
   function myCallback(opts) {
     // TODO: Replace this with your own functionality
     switch (opts.event) {
-      case "error":
-          alert("An error occurred: " + opts.error.status + ", " + opts.error.code + ", " + opts.error.message);
-          break;
+      case 'error':
+        alert(
+          'An error occurred: ' +
+            opts.error.status +
+            ', ' +
+            opts.error.code +
+            ', ' +
+            opts.error.message
+        );
+        break;
 
-      case "result-generated":
-          alert("Generated a result for " + opts.image.id + ", " + opts.image.secret);
-          break;
+      case 'result-generated':
+        alert(
+          'Generated a result for ' + opts.image.id + ', ' + opts.image.secret
+        );
+        break;
 
-      case "editor-exit":
-          alert("The editor dialog closed");
-          break;
+      case 'editor-exit':
+        alert('The editor dialog closed');
+        break;
     }
   }
-  
-  var errorsArray = ClippingMagic.initialize({apiId: 123});
-  
+
+  var errorsArray = ClippingMagic.initialize({ apiId: 123 });
+
   if (errorsArray.length > 0) {
-    alert("Sorry, your browser is missing some required features: \n\n " + errorsArray.join("\n "));
+    alert(
+      'Sorry, your browser is missing some required features: \n\n ' +
+        errorsArray.join('\n ')
+    );
   } else {
-    ClippingMagic.edit({
-      "image" : {
-        "id" : 2346,
-        "secret" : "image_secret1"
+    ClippingMagic.edit(
+      {
+        image: {
+          id: 2346,
+          secret: 'image_secret1',
+        },
+        useStickySettings: true,
+        hideBottomToolbar: false,
+        locale: 'en-US',
       },
-      "useStickySettings" : true,
-      "hideBottomToolbar" : false,
-      "locale" : "en-US"
-    }, myCallback);
+      myCallback
+    );
   }
 </script>
 ```
 
 ### Editor Integration Notes
+
 - Replace hardcoded `id` and `secret` with values from upload response
 - The `apiId` in `initialize()` should be your actual API ID
 - Callback events:
@@ -591,6 +659,7 @@ Authorization: Basic [base64(api_id:api_secret)]
   - `locale`: Sets the editor language
 
 ### React/Next.js Integration Example
+
 ```javascript
 // ClippingMagic editor component
 import { useEffect, useState } from 'react';
@@ -653,27 +722,34 @@ export function ClippingMagicEditor({ imageId, imageSecret, apiId, onComplete })
 ```
 
 ### White Label Editor Configuration
+
 The ClippingMagic.edit() function opens the editor in a popup window (not an iframe). Key configuration options:
 
 ```javascript
-ClippingMagic.edit({
-  "image": {
-    "id": imageId,
-    "secret": imageSecret
+ClippingMagic.edit(
+  {
+    image: {
+      id: imageId,
+      secret: imageSecret,
+    },
+    useStickySettings: true, // Use saved settings across images
+    hideBottomToolbar: false, // Show/hide editor toolbar
+    locale: 'en-US', // Set editor language
   },
-  "useStickySettings": true,    // Use saved settings across images
-  "hideBottomToolbar": false,   // Show/hide editor toolbar
-  "locale": "en-US"             // Set editor language
-}, callback);
+  callback
+);
 ```
 
 ### Callback Events
+
 - `result-generated`: User clicked 'Done', result is ready for download
 - `editor-exit`: User closed the editor without saving
 - `error`: An error occurred
 
 ### Browser Requirements
+
 The editor opens in a **popup window**. Users must:
+
 1. Allow popups for your domain
 2. Disable popup blockers
 3. Click to open (cannot auto-open due to browser restrictions)
@@ -686,12 +762,15 @@ The editor opens in a **popup window**. Users must:
 **Official Docs: https://vectorizer.ai/api**
 
 ### Authentication
+
 Vectorizer.ai uses HTTP Basic Authentication. All requests must be made over HTTPS.
+
 ```http
 Authorization: Basic [base64(API_ID:API_SECRET)]
 ```
 
 ### Basic Vectorization Example (PHP/cURL)
+
 ```php
 $ch = curl_init('https://vectorizer.ai/api/v1/vectorize');
 curl_setopt($ch, CURLOPT_POST, true);
@@ -716,6 +795,7 @@ curl_close($ch);
 ```
 
 ### Python Example
+
 ```python
 import requests
 
@@ -739,6 +819,7 @@ if response.status_code == 200:
 ```
 
 ### JavaScript/Node.js Example
+
 ```javascript
 const FormData = require('form-data');
 const fs = require('fs');
@@ -756,9 +837,10 @@ const response = await axios.post(
   {
     headers: {
       ...formData.getHeaders(),
-      'Authorization': 'Basic ' + Buffer.from('API_ID:API_SECRET').toString('base64')
+      Authorization:
+        'Basic ' + Buffer.from('API_ID:API_SECRET').toString('base64'),
     },
-    responseType: 'arraybuffer'
+    responseType: 'arraybuffer',
   }
 );
 
@@ -771,11 +853,13 @@ if (response.status === 200) {
 ### Input Methods
 
 #### 1. File Upload
+
 ```javascript
 formData.append('image', fileStream);
 ```
 
 #### 2. Base64 Encoded (Max 1MB)
+
 ```javascript
 data: {
   'image.base64': base64EncodedImageString,
@@ -784,6 +868,7 @@ data: {
 ```
 
 #### 3. URL
+
 ```javascript
 data: {
   'image.url': 'https://example.com/image.jpg',
@@ -792,6 +877,7 @@ data: {
 ```
 
 #### 4. Image Token (for re-processing)
+
 ```javascript
 data: {
   'image.token': 'previously_returned_token',
@@ -801,12 +887,12 @@ data: {
 
 ### Processing Modes
 
-| Mode | Credits | Description |
-|------|---------|-------------|
-| `test` | 0.000 | Free testing mode |
-| `test_preview` | 0.000 | Free preview testing |
-| `preview` | 0.200 | Quick preview result |
-| `production` | 1.000 | Full quality result |
+| Mode           | Credits | Description          |
+| -------------- | ------- | -------------------- |
+| `test`         | 0.000   | Free testing mode    |
+| `test_preview` | 0.000   | Free preview testing |
+| `preview`      | 0.200   | Quick preview result |
+| `production`   | 1.000   | Full quality result  |
 
 ### Key Processing Parameters
 
@@ -828,14 +914,14 @@ data: {
     {'color': '#00FF00'},
     {'color': '#0000FF'}
   ],
-  
+
   // Output options
   'output.file_format': 'svg',     // svg, eps, pdf, dxf, png
   'output.bitmap.anti_aliasing_mode': 'anti_aliased',
   'output.size.scale': 1.0,
   'output.size.width': 1024,       // Pixels or percentage
   'output.size.height': 'auto',
-  
+
   // Storage
   'policy.retention_days': 1       // 0-30 days (first day free)
 }
@@ -847,7 +933,7 @@ data: {
 // Basic palette
 'processing.palette': [
   {'color': '#FF0000'},
-  {'color': '#00FF00'}, 
+  {'color': '#00FF00'},
   {'color': '#0000FF'}
 ]
 
@@ -864,17 +950,19 @@ data: {
 ### Output Format Options
 
 #### SVG Options
+
 ```javascript
 {
   'output.file_format': 'svg',
   'output.svg.stroke_style': 'none',        // none, black, color
-  'output.svg.fill_style': 'color',         // none, black, color  
+  'output.svg.fill_style': 'color',         // none, black, color
   'output.svg.path_precision': 3,
   'output.svg.coordinate_precision': 3
 }
 ```
 
 #### PDF/EPS Options
+
 ```javascript
 {
   'output.file_format': 'pdf',              // or 'eps'
@@ -884,6 +972,7 @@ data: {
 ```
 
 #### DXF Options
+
 ```javascript
 {
   'output.file_format': 'dxf',
@@ -899,10 +988,10 @@ data: {
 ```javascript
 // Step 1: Initial vectorization with retention
 const response1 = await vectorize({
-  'image': file,
-  'mode': 'production',
+  image: file,
+  mode: 'production',
   'output.file_format': 'svg',
-  'policy.retention_days': 1  // Important!
+  'policy.retention_days': 1, // Important!
 });
 
 const imageToken = response1.headers['x-image-token'];
@@ -910,13 +999,13 @@ const imageToken = response1.headers['x-image-token'];
 // Step 2: Get different format using token
 const response2 = await vectorize({
   'image.token': imageToken,
-  'output.file_format': 'pdf'
+  'output.file_format': 'pdf',
 });
 
 // Step 3: Get another format (0.1 credits each)
 const response3 = await vectorize({
   'image.token': imageToken,
-  'output.file_format': 'dxf'
+  'output.file_format': 'dxf',
 });
 ```
 
@@ -928,11 +1017,11 @@ const downloadResponse = await axios.post(
   'https://vectorizer.ai/api/v1/download',
   {
     'image.token': imageToken,
-    'output.file_format': 'svg'
+    'output.file_format': 'svg',
   },
   {
     auth: ['API_ID', 'API_SECRET'],
-    responseType: 'arraybuffer'
+    responseType: 'arraybuffer',
   }
 );
 ```
@@ -959,10 +1048,10 @@ const accountResponse = await axios.get(
 
 ### Response Headers
 
-| Header | Description |
-|--------|-------------|
-| `X-Image-Token` | Token for re-downloading/processing |
-| `X-Credits-Charged` | Actual credits used |
+| Header                 | Description                               |
+| ---------------------- | ----------------------------------------- |
+| `X-Image-Token`        | Token for re-downloading/processing       |
+| `X-Credits-Charged`    | Actual credits used                       |
 | `X-Credits-Calculated` | Credits that would be charged (test mode) |
 
 ### Error Handling
@@ -994,10 +1083,10 @@ const accountResponse = await axios.get(
 ### Complete Advanced Example
 
 ```javascript
-const vectorizeImage = async (imagePath) => {
+const vectorizeImage = async imagePath => {
   const formData = new FormData();
   formData.append('image', fs.createReadStream(imagePath));
-  
+
   // Advanced processing options
   formData.append('mode', 'production');
   formData.append('processing.max_colors', '16');
@@ -1005,16 +1094,16 @@ const vectorizeImage = async (imagePath) => {
   formData.append('processing.corner_threshold', '60');
   formData.append('processing.length_threshold', '4.0');
   formData.append('processing.splice_threshold', '45');
-  
+
   // Output configuration
   formData.append('output.file_format', 'svg');
   formData.append('output.svg.stroke_style', 'none');
   formData.append('output.svg.fill_style', 'color');
   formData.append('output.size.scale', '2.0');
-  
+
   // Retention for multiple format downloads
   formData.append('policy.retention_days', '7');
-  
+
   try {
     const response = await axios.post(
       'https://vectorizer.ai/api/v1/vectorize',
@@ -1022,28 +1111,30 @@ const vectorizeImage = async (imagePath) => {
       {
         headers: {
           ...formData.getHeaders(),
-          'Authorization': 'Basic ' + Buffer.from(`${API_ID}:${API_SECRET}`).toString('base64')
+          Authorization:
+            'Basic ' +
+            Buffer.from(`${API_ID}:${API_SECRET}`).toString('base64'),
         },
         responseType: 'arraybuffer',
-        timeout: 180000 // 180 seconds
+        timeout: 180000, // 180 seconds
       }
     );
-    
+
     if (response.status === 200) {
       const imageToken = response.headers['x-image-token'];
       const creditsCharged = response.headers['x-credits-charged'];
-      
+
       return {
         data: response.data,
         token: imageToken,
-        credits: creditsCharged
+        credits: creditsCharged,
       };
     }
   } catch (error) {
     if (error.response) {
       const errorData = JSON.parse(error.response.data.toString());
       console.error('API Error:', errorData.message);
-      
+
       // Handle specific errors
       switch (error.response.status) {
         case 402:
@@ -1070,15 +1161,15 @@ class VectorizerClient {
     this.activeRequests = 0;
     this.queue = [];
   }
-  
+
   async vectorize(options) {
     // Wait if at thread limit
     while (this.activeRequests >= this.maxThreads) {
       await new Promise(resolve => setTimeout(resolve, 100));
     }
-    
+
     this.activeRequests++;
-    
+
     try {
       const response = await this._makeRequest(options);
       return response;
@@ -1112,6 +1203,7 @@ class VectorizerClient {
 ## OpenAI
 
 ### ChatGPT Image Generation
+
 ```json
 // IMPORTANT: Check Context7 MCP for latest ChatGPT image generation API
 // Search: "ChatGPT image generation API 2025" or "OpenAI image generation with ChatGPT"
@@ -1127,7 +1219,7 @@ class VectorizerClient {
   "model": "gpt-4-vision-preview",
   "messages": [
     {
-      "role": "user", 
+      "role": "user",
       "content": "Generate an image of [description]"
     }
   ]
@@ -1144,62 +1236,65 @@ class VectorizerClient {
 ### Subscription Plan Switching with Proration
 
 #### Basic Plan Switch
+
 ```javascript
 const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 
 // Update subscription to new price with default proration
-const subscription = await stripe.subscriptions.update(
-  'sub_1234567890',
-  {
-    items: [{
+const subscription = await stripe.subscriptions.update('sub_1234567890', {
+  items: [
+    {
       id: 'si_1234567890', // subscription item ID
-      price: 'price_new_plan_id'
-    }],
-    proration_behavior: 'create_prorations' // default behavior
-  }
-);
+      price: 'price_new_plan_id',
+    },
+  ],
+  proration_behavior: 'create_prorations', // default behavior
+});
 ```
 
 #### Immediate Billing (Charge Now)
+
 ```javascript
 // Bill customer immediately for proration adjustments
-const subscription = await stripe.subscriptions.update(
-  subscriptionId,
-  {
-    items: [{
+const subscription = await stripe.subscriptions.update(subscriptionId, {
+  items: [
+    {
       id: subscriptionItemId,
-      price: newPriceId
-    }],
-    proration_behavior: 'always_invoice' // generates invoice immediately
-  }
-);
+      price: newPriceId,
+    },
+  ],
+  proration_behavior: 'always_invoice', // generates invoice immediately
+});
 ```
 
 #### No Proration (Switch at Next Cycle)
+
 ```javascript
 // Switch plans without any proration adjustments
-const subscription = await stripe.subscriptions.update(
-  subscriptionId,
-  {
-    items: [{
+const subscription = await stripe.subscriptions.update(subscriptionId, {
+  items: [
+    {
       id: subscriptionItemId,
-      price: newPriceId
-    }],
-    proration_behavior: 'none' // no credit or charge adjustments
-  }
-);
+      price: newPriceId,
+    },
+  ],
+  proration_behavior: 'none', // no credit or charge adjustments
+});
 ```
 
 #### Preview Proration Before Applying
+
 ```javascript
 // Preview what the customer would be charged
 const upcomingInvoice = await stripe.invoices.retrieveUpcoming({
   subscription: subscriptionId,
-  subscription_items: [{
-    id: subscriptionItemId,
-    price: newPriceId
-  }],
-  subscription_proration_behavior: 'create_prorations'
+  subscription_items: [
+    {
+      id: subscriptionItemId,
+      price: newPriceId,
+    },
+  ],
+  subscription_proration_behavior: 'create_prorations',
 });
 
 // Calculate proration amount
@@ -1211,81 +1306,86 @@ console.log('Proration amount:', prorationAmount / 100); // Convert cents to dol
 ```
 
 #### Handle Downgrade with Credit Refund
+
 ```javascript
 // Downgrade subscription and optionally refund credit
 async function downgradeWithRefund(subscriptionId, newPriceId) {
   // Update subscription (creates credit)
-  const subscription = await stripe.subscriptions.update(
-    subscriptionId,
-    {
-      items: [{
-        id: (await stripe.subscriptions.retrieve(subscriptionId)).items.data[0].id,
-        price: newPriceId
-      }],
-      proration_behavior: 'create_prorations'
-    }
-  );
-  
+  const subscription = await stripe.subscriptions.update(subscriptionId, {
+    items: [
+      {
+        id: (await stripe.subscriptions.retrieve(subscriptionId)).items.data[0]
+          .id,
+        price: newPriceId,
+      },
+    ],
+    proration_behavior: 'create_prorations',
+  });
+
   // Check for credit balance
   const customer = await stripe.customers.retrieve(subscription.customer);
-  
-  if (customer.balance < 0) { // Negative balance = credit
+
+  if (customer.balance < 0) {
+    // Negative balance = credit
     const creditAmount = Math.abs(customer.balance);
-    
+
     // Create refund for credit
     const refund = await stripe.refunds.create({
       customer: customer.id,
       amount: creditAmount,
       reason: 'requested_by_customer',
       metadata: {
-        reason: 'subscription_downgrade_credit'
-      }
+        reason: 'subscription_downgrade_credit',
+      },
     });
-    
+
     // Reset customer balance
     await stripe.customers.update(customer.id, {
-      balance: 0
+      balance: 0,
     });
-    
+
     return { subscription, refund };
   }
-  
+
   return { subscription };
 }
 ```
 
 #### Schedule Future Plan Change
+
 ```javascript
 // Schedule a plan change for a specific date
 const schedule = await stripe.subscriptionSchedules.create({
-  from_subscription: subscriptionId
+  from_subscription: subscriptionId,
 });
 
-const updatedSchedule = await stripe.subscriptionSchedules.update(
-  schedule.id,
-  {
-    phases: [
-      {
-        start_date: subscription.current_period_start,
-        end_date: Math.floor(Date.now() / 1000) + 30 * 24 * 60 * 60, // 30 days from now
-        items: [{
+const updatedSchedule = await stripe.subscriptionSchedules.update(schedule.id, {
+  phases: [
+    {
+      start_date: subscription.current_period_start,
+      end_date: Math.floor(Date.now() / 1000) + 30 * 24 * 60 * 60, // 30 days from now
+      items: [
+        {
           price: currentPriceId,
-          quantity: 1
-        }]
-      },
-      {
-        items: [{
+          quantity: 1,
+        },
+      ],
+    },
+    {
+      items: [
+        {
           price: newPriceId,
-          quantity: 1
-        }],
-        proration_behavior: 'create_prorations'
-      }
-    ]
-  }
-);
+          quantity: 1,
+        },
+      ],
+      proration_behavior: 'create_prorations',
+    },
+  ],
+});
 ```
 
 ### Create Payment Intent
+
 ```javascript
 // Create a payment intent for one-time payment
 const paymentIntent = await stripe.paymentIntents.create({
@@ -1309,6 +1409,7 @@ const paymentIntent = await stripe.paymentIntents.create({
 ```
 
 ### Create Subscription
+
 ```javascript
 // Create a new subscription
 const subscription = await stripe.subscriptions.create({
@@ -1338,54 +1439,60 @@ const subscription = await stripe.subscriptions.create({
 ```
 
 ### Webhook Event Handling
+
 ```javascript
 // Verify webhook signature and handle events
 const endpointSecret = process.env.STRIPE_WEBHOOK_SECRET;
 
-app.post('/api/webhooks/stripe', express.raw({type: 'application/json'}), (req, res) => {
-  const sig = req.headers['stripe-signature'];
-  
-  let event;
-  try {
-    event = stripe.webhooks.constructEvent(req.body, sig, endpointSecret);
-  } catch (err) {
-    return res.status(400).send(`Webhook Error: ${err.message}`);
+app.post(
+  '/api/webhooks/stripe',
+  express.raw({ type: 'application/json' }),
+  (req, res) => {
+    const sig = req.headers['stripe-signature'];
+
+    let event;
+    try {
+      event = stripe.webhooks.constructEvent(req.body, sig, endpointSecret);
+    } catch (err) {
+      return res.status(400).send(`Webhook Error: ${err.message}`);
+    }
+
+    // Handle the event
+    switch (event.type) {
+      case 'customer.subscription.updated':
+        const subscription = event.data.object;
+        // Handle subscription update (plan changes, etc.)
+        break;
+
+      case 'invoice.payment_succeeded':
+        const invoice = event.data.object;
+        // Handle successful payment
+        break;
+
+      case 'customer.subscription.deleted':
+        const deletedSub = event.data.object;
+        // Handle subscription cancellation
+        break;
+
+      default:
+        console.log(`Unhandled event type ${event.type}`);
+    }
+
+    res.json({ received: true });
   }
-  
-  // Handle the event
-  switch (event.type) {
-    case 'customer.subscription.updated':
-      const subscription = event.data.object;
-      // Handle subscription update (plan changes, etc.)
-      break;
-      
-    case 'invoice.payment_succeeded':
-      const invoice = event.data.object;
-      // Handle successful payment
-      break;
-      
-    case 'customer.subscription.deleted':
-      const deletedSub = event.data.object;
-      // Handle subscription cancellation
-      break;
-      
-    default:
-      console.log(`Unhandled event type ${event.type}`);
-  }
-  
-  res.json({received: true});
-});
+);
 ```
 
 ### Proration Behavior Reference
 
-| Behavior | Description | Use Case |
-|----------|-------------|----------|
-| `create_prorations` | Creates prorations, bills at next cycle | Default behavior |
-| `always_invoice` | Creates prorations and bills immediately | Immediate upgrades |
-| `none` | No prorations, new price at next cycle | Simple plan switches |
+| Behavior            | Description                              | Use Case             |
+| ------------------- | ---------------------------------------- | -------------------- |
+| `create_prorations` | Creates prorations, bills at next cycle  | Default behavior     |
+| `always_invoice`    | Creates prorations and bills immediately | Immediate upgrades   |
+| `none`              | No prorations, new price at next cycle   | Simple plan switches |
 
 ### Proration Calculation Example
+
 - Customer on $100/month plan since May 1
 - Upgrades to $200/month plan on May 15
 - June 1 invoice will be $250:
@@ -1393,6 +1500,7 @@ app.post('/api/webhooks/stripe', express.raw({type: 'application/json'}), (req, 
   - $50 proration (half month at +$100 difference)
 
 ### Best Practices
+
 1. Always preview prorations before applying changes
 2. Handle webhook events for subscription updates
 3. Store subscription item IDs in your database
@@ -1405,11 +1513,13 @@ app.post('/api/webhooks/stripe', express.raw({type: 'application/json'}), (req, 
 ## Supabase
 
 ### Authentication Examples
+
 ```javascript
 // Coming soon - add examples when provided
 ```
 
 ### Database Operations
+
 ```javascript
 // Coming soon - add examples when provided
 ```
@@ -1427,6 +1537,7 @@ app.post('/api/webhooks/stripe', express.raw({type: 'application/json'}), (req, 
 ## Contributing
 
 When adding new examples:
+
 1. Include both request and response examples
 2. Add comments explaining parameters
 3. Include error response examples when available

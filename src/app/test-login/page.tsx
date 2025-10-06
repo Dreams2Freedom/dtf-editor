@@ -12,17 +12,17 @@ export default function TestLoginPage() {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<any>(null);
-  
+
   const { signIn: storeSignIn } = useAuthStore();
 
   const testDirectAuth = async () => {
     setLoading(true);
     setResult(null);
-    
+
     try {
       // Test direct auth service
       const authResult = await authService.signIn(email, password);
-      
+
       setResult({
         method: 'Direct AuthService',
         success: !authResult.error,
@@ -30,14 +30,14 @@ export default function TestLoginPage() {
         errorCode: authResult.error?.code || null,
         hasUser: !!authResult.user,
         userId: authResult.user?.id || null,
-        email: authResult.user?.email || null
+        email: authResult.user?.email || null,
       });
     } catch (err: any) {
       setResult({
         method: 'Direct AuthService',
         success: false,
         error: err.message,
-        exception: true
+        exception: true,
       });
     } finally {
       setLoading(false);
@@ -47,22 +47,22 @@ export default function TestLoginPage() {
   const testStoreAuth = async () => {
     setLoading(true);
     setResult(null);
-    
+
     try {
       // Test through auth store
       const storeResult = await storeSignIn(email, password);
-      
+
       setResult({
         method: 'Auth Store',
         ...storeResult,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
       });
     } catch (err: any) {
       setResult({
         method: 'Auth Store',
         success: false,
         error: err.message,
-        exception: true
+        exception: true,
       });
     } finally {
       setLoading(false);
@@ -72,16 +72,18 @@ export default function TestLoginPage() {
   const testSupabaseDirectly = async () => {
     setLoading(true);
     setResult(null);
-    
+
     try {
-      const { createClientSupabaseClient } = await import('@/lib/supabase/client');
+      const { createClientSupabaseClient } = await import(
+        '@/lib/supabase/client'
+      );
       const supabase = createClientSupabaseClient();
-      
+
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
-        password
+        password,
       });
-      
+
       setResult({
         method: 'Direct Supabase',
         success: !error,
@@ -91,14 +93,14 @@ export default function TestLoginPage() {
         hasSession: !!data?.session,
         hasUser: !!data?.user,
         userId: data?.user?.id || null,
-        email: data?.user?.email || null
+        email: data?.user?.email || null,
       });
     } catch (err: any) {
       setResult({
         method: 'Direct Supabase',
         success: false,
         error: err.message,
-        exception: true
+        exception: true,
       });
     } finally {
       setLoading(false);
@@ -109,7 +111,7 @@ export default function TestLoginPage() {
     <div className="min-h-screen bg-gray-50 p-8">
       <div className="max-w-2xl mx-auto space-y-6">
         <h1 className="text-2xl font-bold">Test Login Methods</h1>
-        
+
         <Card className="p-6">
           <h2 className="text-lg font-semibold mb-4">Login Credentials</h2>
           <div className="space-y-4">
@@ -118,7 +120,7 @@ export default function TestLoginPage() {
               <Input
                 type="email"
                 value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                onChange={e => setEmail(e.target.value)}
                 placeholder="Enter your email"
               />
             </div>
@@ -127,7 +129,7 @@ export default function TestLoginPage() {
               <Input
                 type="password"
                 value={password}
-                onChange={(e) => setPassword(e.target.value)}
+                onChange={e => setPassword(e.target.value)}
                 placeholder="Enter your password"
               />
             </div>
@@ -144,7 +146,7 @@ export default function TestLoginPage() {
             >
               Test Direct Supabase Auth
             </Button>
-            
+
             <Button
               onClick={testDirectAuth}
               disabled={loading || !email || !password}
@@ -153,7 +155,7 @@ export default function TestLoginPage() {
             >
               Test Auth Service
             </Button>
-            
+
             <Button
               onClick={testStoreAuth}
               disabled={loading || !email || !password}

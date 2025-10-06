@@ -6,7 +6,9 @@ export async function GET() {
   try {
     // First verify the request is from an authenticated admin
     const supabase = await createServerSupabaseClient();
-    const { data: { session } } = await supabase.auth.getSession();
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
 
     if (!session) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -20,7 +22,10 @@ export async function GET() {
       .single();
 
     if (!profile?.is_admin) {
-      return NextResponse.json({ error: 'Forbidden - Admin access required' }, { status: 403 });
+      return NextResponse.json(
+        { error: 'Forbidden - Admin access required' },
+        { status: 403 }
+      );
     }
 
     // Now use service role client to bypass RLS
@@ -29,7 +34,8 @@ export async function GET() {
     // Fetch all commissions
     const { data: commissions, error: commissionsError } = await serviceClient
       .from('commissions')
-      .select(`
+      .select(
+        `
         *,
         affiliates!inner (
           referral_code,
@@ -39,14 +45,18 @@ export async function GET() {
           referred_user_id,
           conversion_value
         )
-      `)
+      `
+      )
       .order('created_at', { ascending: false });
 
     if (commissionsError) throw commissionsError;
 
     // Get all unique user IDs (affiliate users and referred users)
-    const affiliateUserIds = commissions?.map(c => c.affiliates?.user_id).filter(Boolean) || [];
-    const referredUserIds = commissions?.map(c => c.referrals?.referred_user_id).filter(Boolean) || [];
+    const affiliateUserIds =
+      commissions?.map(c => c.affiliates?.user_id).filter(Boolean) || [];
+    const referredUserIds =
+      commissions?.map(c => c.referrals?.referred_user_id).filter(Boolean) ||
+      [];
     const allUserIds = [...new Set([...affiliateUserIds, ...referredUserIds])];
 
     // Fetch all user profiles in one query
@@ -61,24 +71,29 @@ export async function GET() {
     const profilesMap = new Map(profiles?.map(p => [p.id, p]) || []);
 
     // Enhance commissions with user data
-    const commissionsWithUsers = commissions?.map(commission => {
-      const affiliateProfile = profilesMap.get(commission.affiliates?.user_id);
-      const referredProfile = commission.referrals?.referred_user_id
-        ? profilesMap.get(commission.referrals.referred_user_id)
-        : null;
+    const commissionsWithUsers =
+      commissions?.map(commission => {
+        const affiliateProfile = profilesMap.get(
+          commission.affiliates?.user_id
+        );
+        const referredProfile = commission.referrals?.referred_user_id
+          ? profilesMap.get(commission.referrals.referred_user_id)
+          : null;
 
-      return {
-        ...commission,
-        affiliate: {
-          ...commission.affiliates,
-          user: affiliateProfile
-        },
-        referral: commission.referrals ? {
-          user_email: referredProfile?.email || 'Unknown',
-          conversion_value: commission.referrals.conversion_value
-        } : null
-      };
-    }) || [];
+        return {
+          ...commission,
+          affiliate: {
+            ...commission.affiliates,
+            user: affiliateProfile,
+          },
+          referral: commission.referrals
+            ? {
+                user_email: referredProfile?.email || 'Unknown',
+                conversion_value: commission.referrals.conversion_value,
+              }
+            : null,
+        };
+      }) || [];
 
     return NextResponse.json({ commissions: commissionsWithUsers });
   } catch (error) {

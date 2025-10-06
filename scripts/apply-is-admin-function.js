@@ -12,7 +12,10 @@ const supabase = createClient(
   console.log('=== Applying is_admin Function ===\n');
 
   // Read the migration file
-  const migrationPath = path.join(__dirname, '../supabase/migrations/20250103_update_admin_email.sql');
+  const migrationPath = path.join(
+    __dirname,
+    '../supabase/migrations/20250103_update_admin_email.sql'
+  );
   let sql = fs.readFileSync(migrationPath, 'utf8');
 
   // Remove the test block (DO $$ ... END $$;) as it won't work via RPC
@@ -45,13 +48,17 @@ END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
   `.trim();
 
-  console.log('Unfortunately, we cannot execute raw SQL functions via the Supabase client.');
+  console.log(
+    'Unfortunately, we cannot execute raw SQL functions via the Supabase client.'
+  );
   console.log('You need to run this SQL manually in the Supabase dashboard:\n');
-  console.log('=' .repeat(80));
+  console.log('='.repeat(80));
   console.log(functionSQL);
-  console.log('=' .repeat(80));
+  console.log('='.repeat(80));
   console.log('\nSteps:');
-  console.log('1. Go to https://supabase.com/dashboard/project/YOUR_PROJECT/editor');
+  console.log(
+    '1. Go to https://supabase.com/dashboard/project/YOUR_PROJECT/editor'
+  );
   console.log('2. Click the SQL Editor');
   console.log('3. Paste the SQL above');
   console.log('4. Click "Run"');

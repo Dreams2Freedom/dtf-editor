@@ -242,12 +242,14 @@ My Images/
 ### **11.1 Authentication & Authorization**
 
 #### **Admin Roles**
+
 - **Super Admin**: Full system access, can manage other admins
 - **Admin**: User management, financial viewing, no system settings
 - **Support**: View-only access, can add credits, view user data
 - **Analytics**: Read-only access to reports and metrics
 
 #### **Security Requirements**
+
 - Two-factor authentication (2FA) mandatory for all admin accounts
 - IP whitelist for admin access (configurable)
 - Session timeout after 30 minutes of inactivity
@@ -257,11 +259,13 @@ My Images/
 ### **11.2 User Management**
 
 #### **Search & Filtering**
+
 - Search by: email, name, user ID
 - Filter by: account status, subscription plan, credit balance, registration date, last activity, total spend, country
 - Bulk selection for operations
 
 #### **User Actions**
+
 - **View detailed profile** and complete history
 - **Edit user information** (name, email, subscription)
 - **Add/remove credits** with reason tracking
@@ -273,6 +277,7 @@ My Images/
 - **Suspend/activate** user accounts
 
 #### **Bulk Operations**
+
 - Add/remove credits to multiple users
 - Send email notifications to segments
 - Export user data (CSV, PDF)
@@ -282,6 +287,7 @@ My Images/
 ### **11.3 Financial Management**
 
 #### **Transaction Management**
+
 - View all transactions with advanced filters
 - Process refunds with reason tracking
 - Void/cancel transactions
@@ -289,6 +295,7 @@ My Images/
 - Export transactions (CSV, PDF, Excel)
 
 #### **Coupon System**
+
 - Create discount codes (percentage or fixed amount)
 - Set usage limits and expiration dates
 - Apply plan restrictions
@@ -297,6 +304,7 @@ My Images/
 - Deactivate codes instantly
 
 #### **Financial Reporting**
+
 - Revenue by period (daily, weekly, monthly, yearly)
 - Revenue by plan type and country
 - API costs breakdown by service:
@@ -313,6 +321,7 @@ My Images/
 ### **11.4 Analytics & Business Intelligence**
 
 #### **Real-time Dashboard**
+
 - Active users (last 24h, 7d, 30d)
 - Current processed images status
 - API health and response times
@@ -321,6 +330,7 @@ My Images/
 - Live profitability metrics per service
 
 #### **User Analytics**
+
 - User acquisition funnel visualization
 - Feature adoption rates
 - User engagement scoring
@@ -328,6 +338,7 @@ My Images/
 - Behavioral segmentation
 
 #### **Custom Reports**
+
 - Drag-and-drop report builder
 - Saved report templates
 - Scheduled report generation
@@ -335,6 +346,7 @@ My Images/
 - Export formats: CSV, PDF, Excel
 
 #### **Key Performance Indicators (KPIs)**
+
 - **Financial**: MRR, ARR, ARPU, CAC, LTV, LTV:CAC ratio
 - **Operational**: DAU/MAU, processing success rate, avg processing time
 - **Growth**: User acquisition rate, conversion rates, referral metrics
@@ -344,6 +356,7 @@ My Images/
 ### **11.5 System Management**
 
 #### **Configuration**
+
 - Feature flags management
 - API rate limits per plan
 - Dynamic pricing configuration
@@ -351,6 +364,7 @@ My Images/
 - System-wide announcements
 
 #### **Monitoring**
+
 - API health dashboard with uptime tracking
 - Service status for all integrations
 - Error log viewer with search
@@ -358,6 +372,7 @@ My Images/
 - Queue monitoring for processing jobs
 
 #### **Support Tools**
+
 - View user's current session
 - Access processing history
 - Simulate user's view
@@ -367,6 +382,7 @@ My Images/
 ### **11.6 Compliance & Security**
 
 #### **GDPR Compliance**
+
 - User data export tool
 - Right to be forgotten implementation
 - Consent management tracking
@@ -374,6 +390,7 @@ My Images/
 - Privacy policy versioning
 
 #### **Audit & Security**
+
 - All admin actions logged with timestamps
 - User data access tracking
 - Financial transaction audit trail
@@ -728,6 +745,7 @@ src/
 ```
 
 **Processing Modes:**
+
 - **Auto Enhance:** `enhancements: ["denoise", "deblur", "light"]`
 - **Generative Upscale:** `generative_upscale: true`
 - **Basic Upscale:** No additional parameters
@@ -972,8 +990,8 @@ const response = await fetch('https://api.vercel.com/v13/deployments', {
     gitSource: {
       type: 'github',
       repo: 'Dreams2Freedom/dtf-editor',
-      ref: 'main'
-    }
+      ref: 'main',
+    },
   }),
 });
 ```
@@ -1180,6 +1198,7 @@ class CreditManager {
 **Description:** Advanced AI-powered image editing using ChatGPT's GPT-Image-1 model to modify existing images based on text prompts.
 
 **Features Implemented:**
+
 - Upload existing image for AI modification
 - Text prompt-based editing (e.g., "add a blue hat", "change background to sunset")
 - Mask-based selective editing
@@ -1187,6 +1206,7 @@ class CreditManager {
 - Color and lighting adjustments via prompts
 
 **Why Deferred:**
+
 - Needs UI/UX refinement for better user experience
 - Requires more comprehensive prompt templates
 - Credit cost optimization needed
@@ -1195,10 +1215,12 @@ class CreditManager {
 **Location:** `/generate/edit` route (currently disabled in navigation)
 
 **Components:**
+
 - `ImageEditor.tsx` - Main editing interface
 - `/api/generate/edit/route.ts` - API endpoint
 
 **To Re-enable:**
+
 1. Add back to navigation menu in `Header.tsx`
 2. Review and refine UI/UX
 3. Add prompt templates library

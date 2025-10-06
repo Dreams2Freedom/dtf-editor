@@ -30,8 +30,10 @@ async function testEligibility() {
 
   // Test pause eligibility
   try {
-    const { data: pauseEligibility, error: pauseError } = await supabase
-      .rpc('check_pause_eligibility', { p_user_id: user.id });
+    const { data: pauseEligibility, error: pauseError } = await supabase.rpc(
+      'check_pause_eligibility',
+      { p_user_id: user.id }
+    );
 
     if (pauseError) {
       console.error('Pause eligibility error:', pauseError);
@@ -44,8 +46,8 @@ async function testEligibility() {
 
   // Test discount eligibility
   try {
-    const { data: discountEligibility, error: discountError } = await supabase
-      .rpc('check_discount_eligibility', { p_user_id: user.id });
+    const { data: discountEligibility, error: discountError } =
+      await supabase.rpc('check_discount_eligibility', { p_user_id: user.id });
 
     if (discountError) {
       console.error('Discount eligibility error:', discountError);
@@ -58,12 +60,16 @@ async function testEligibility() {
 
   // Check if functions exist
   const { data: functions, error: funcError } = await supabase
-    .rpc('exec_sql', { 
-      query: "SELECT proname FROM pg_proc WHERE proname IN ('check_pause_eligibility', 'check_discount_eligibility')" 
-    }).catch(() => ({ data: null, error: 'exec_sql not available' }));
+    .rpc('exec_sql', {
+      query:
+        "SELECT proname FROM pg_proc WHERE proname IN ('check_pause_eligibility', 'check_discount_eligibility')",
+    })
+    .catch(() => ({ data: null, error: 'exec_sql not available' }));
 
   if (funcError) {
-    console.log('\nNote: Could not verify functions directly, but they should exist if no errors above.');
+    console.log(
+      '\nNote: Could not verify functions directly, but they should exist if no errors above.'
+    );
   }
 }
 

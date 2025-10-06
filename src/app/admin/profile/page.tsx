@@ -5,17 +5,23 @@ import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/Card';
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 import { toast } from '@/lib/toast';
-import { 
+import {
   ArrowLeft,
   User,
   Mail,
   Shield,
   Calendar,
   Save,
-  Key
+  Key,
 } from 'lucide-react';
 import Link from 'next/link';
 
@@ -90,7 +96,9 @@ export default function AdminProfilePage() {
                 </Button>
               </Link>
               <div>
-                <h1 className="text-2xl font-bold text-gray-900">Admin Profile</h1>
+                <h1 className="text-2xl font-bold text-gray-900">
+                  Admin Profile
+                </h1>
                 <p className="text-gray-600">Manage your admin account</p>
               </div>
             </div>
@@ -139,7 +147,9 @@ export default function AdminProfilePage() {
                     <Key className="w-4 h-4 inline mr-1" />
                     Account ID
                   </label>
-                  <p className="font-mono text-sm text-gray-600">{user.id.slice(0, 8)}...</p>
+                  <p className="font-mono text-sm text-gray-600">
+                    {user.id.slice(0, 8)}...
+                  </p>
                 </div>
               </div>
             </CardContent>
@@ -163,7 +173,9 @@ export default function AdminProfilePage() {
                     <Input
                       type="text"
                       value={formData.first_name}
-                      onChange={(e) => setFormData({ ...formData, first_name: e.target.value })}
+                      onChange={e =>
+                        setFormData({ ...formData, first_name: e.target.value })
+                      }
                       placeholder="John"
                     />
                   </div>
@@ -174,7 +186,9 @@ export default function AdminProfilePage() {
                     <Input
                       type="text"
                       value={formData.last_name}
-                      onChange={(e) => setFormData({ ...formData, last_name: e.target.value })}
+                      onChange={e =>
+                        setFormData({ ...formData, last_name: e.target.value })
+                      }
                       placeholder="Doe"
                     />
                   </div>
@@ -186,7 +200,9 @@ export default function AdminProfilePage() {
                   <Input
                     type="tel"
                     value={formData.phone}
-                    onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                    onChange={e =>
+                      setFormData({ ...formData, phone: e.target.value })
+                    }
                     placeholder="+1 (555) 123-4567"
                   />
                 </div>
@@ -215,7 +231,11 @@ export default function AdminProfilePage() {
                   Change Password
                 </Button>
               </Link>
-              <Button variant="outline" className="w-full justify-start" disabled>
+              <Button
+                variant="outline"
+                className="w-full justify-start"
+                disabled
+              >
                 <Shield className="w-4 h-4 mr-2" />
                 Two-Factor Authentication (Coming Soon)
               </Button>

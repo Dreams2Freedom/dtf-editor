@@ -1,4 +1,4 @@
-"use client";
+'use client';
 
 import React from 'react';
 import { cn } from '@/lib/utils';
@@ -14,16 +14,7 @@ export interface SelectProps
 
 const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
   (
-    {
-      className,
-      label,
-      error,
-      helperText,
-      leftIcon,
-      id,
-      children,
-      ...props
-    },
+    { className, label, error, helperText, leftIcon, id, children, ...props },
     ref
   ) => {
     const selectId = id || `select-${Math.random().toString(36).substr(2, 9)}`;

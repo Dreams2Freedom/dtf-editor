@@ -27,13 +27,15 @@ import {
   Shield,
   Clock,
   CreditCard,
-  Ruler
+  Ruler,
 } from 'lucide-react';
 
 export default function HomePage() {
   const router = useRouter();
   const { user, loading, initialize } = useAuthStore();
-  const [activeTab, setActiveTab] = useState<'upscale' | 'background' | 'vectorize'>('upscale');
+  const [activeTab, setActiveTab] = useState<
+    'upscale' | 'background' | 'vectorize'
+  >('upscale');
 
   // Track affiliate referrals
   useReferralTracking();
@@ -60,18 +62,24 @@ export default function HomePage() {
     {
       id: 'generate',
       title: 'AI Design Generation',
-      description: 'Create unique shirt designs from text prompts or reference images',
+      description:
+        'Create unique shirt designs from text prompts or reference images',
       icon: Sparkles,
       color: 'purple',
-      benefits: ['Custom designs from text', 'Upload & reimagine', 'Endless creativity']
+      benefits: [
+        'Custom designs from text',
+        'Upload & reimagine',
+        'Endless creativity',
+      ],
     },
     {
       id: 'upscale',
       title: 'AI Upscaling',
-      description: 'Transform low-resolution images into crystal-clear, print-ready artwork',
+      description:
+        'Transform low-resolution images into crystal-clear, print-ready artwork',
       icon: Wand2,
       color: 'blue',
-      benefits: ['4K resolution', 'Enhanced details', 'No quality loss']
+      benefits: ['4K resolution', 'Enhanced details', 'No quality loss'],
     },
     {
       id: 'background',
@@ -79,7 +87,7 @@ export default function HomePage() {
       description: 'Perfect cutouts every time with AI-powered edge detection',
       icon: Scissors,
       color: 'green',
-      benefits: ['Precise edges', 'Hair & fur detection', 'Transparent PNG']
+      benefits: ['Precise edges', 'Hair & fur detection', 'Transparent PNG'],
     },
     {
       id: 'vectorize',
@@ -87,10 +95,9 @@ export default function HomePage() {
       description: 'Convert any image to scalable vectors for unlimited sizing',
       icon: Zap,
       color: 'orange',
-      benefits: ['SVG format', 'Infinite scaling', 'Perfect for vinyl']
-    }
+      benefits: ['SVG format', 'Infinite scaling', 'Perfect for vinyl'],
+    },
   ];
-
 
   return (
     <ClientOnly fallback={<LoadingPage message="Initializing..." />}>
@@ -101,45 +108,64 @@ export default function HomePage() {
             <div className="text-center max-w-4xl mx-auto">
               <div className="inline-flex items-center px-3 py-1 rounded-full bg-[#E88B4B]/10 text-[#E88B4B] text-sm font-medium mb-6">
                 <Sparkles className="w-4 h-4 mr-2" />
-                NEW: Create custom DTF designs with AI - from text or upload reference images!
-                <a href="#generate" className="ml-2 text-[#E88B4B] font-semibold">Learn more →</a>
+                NEW: Create custom DTF designs with AI - from text or upload
+                reference images!
+                <a
+                  href="#generate"
+                  className="ml-2 text-[#E88B4B] font-semibold"
+                >
+                  Learn more →
+                </a>
               </div>
-              
+
               <h1 className="text-5xl md:text-7xl font-bold text-gray-900 mb-6 leading-tight">
                 Fix Dull, Low-Res Art into
                 <span className="text-[#366494]"> Transfer-Ready Files</span>
-                <span className="block text-4xl md:text-5xl mt-2">In Seconds</span>
+                <span className="block text-4xl md:text-5xl mt-2">
+                  In Seconds
+                </span>
               </h1>
-              
+
               <p className="text-xl text-gray-600 mb-10 max-w-3xl mx-auto leading-relaxed">
-                Upscale 1–4× with AI, remove backgrounds flawlessly, and export true 300 DPI PNGs—no design skills required.
+                Upscale 1–4× with AI, remove backgrounds flawlessly, and export
+                true 300 DPI PNGs—no design skills required.
               </p>
-              
+
               <div className="flex flex-col sm:flex-row gap-4 justify-center mb-8">
                 <Link href="/free-dpi-checker">
-                  <Button size="lg" className="text-lg px-8 py-6 bg-[#E88B4B] hover:bg-[#D67A3A] text-white">
+                  <Button
+                    size="lg"
+                    className="text-lg px-8 py-6 bg-[#E88B4B] hover:bg-[#D67A3A] text-white"
+                  >
                     <Ruler className="mr-2 w-5 h-5" />
                     Check Your Image Resolution
                   </Button>
                 </Link>
                 <Link href="/auth/signup">
-                  <Button size="lg" className="text-lg px-8 py-6 bg-transparent border-2 border-[#366494] text-[#366494] hover:bg-[#366494] hover:text-white">
+                  <Button
+                    size="lg"
+                    className="text-lg px-8 py-6 bg-transparent border-2 border-[#366494] text-[#366494] hover:bg-[#366494] hover:text-white"
+                  >
                     Sign Up & Get 2 Free Credits
                     <ArrowRight className="ml-2 w-5 h-5" />
                   </Button>
                 </Link>
               </div>
-              
+
               <div className="mb-8">
-                <Link href="#pricing" className="text-[#366494] hover:text-[#233E5C] font-medium inline-flex items-center">
+                <Link
+                  href="#pricing"
+                  className="text-[#366494] hover:text-[#233E5C] font-medium inline-flex items-center"
+                >
                   See Plans & Pricing
                   <ChevronRight className="ml-1 w-4 h-4" />
                 </Link>
               </div>
-              
-              <p className="text-sm text-gray-500">No credit card required • 2 free credits to start</p>
-            </div>
 
+              <p className="text-sm text-gray-500">
+                No credit card required • 2 free credits to start
+              </p>
+            </div>
           </div>
         </section>
 
@@ -151,7 +177,8 @@ export default function HomePage() {
                 See the Magic in Action
               </h2>
               <p className="text-xl text-gray-600">
-                Transform your images with one click. Perfect results, every time.
+                Transform your images with one click. Perfect results, every
+                time.
               </p>
             </div>
 
@@ -160,13 +187,13 @@ export default function HomePage() {
               {/* Desktop Tabs */}
               <div className="hidden md:flex justify-center">
                 <div className="inline-flex bg-gray-100 rounded-lg p-1">
-                  {features.map((feature) => (
+                  {features.map(feature => (
                     <button
                       key={feature.id}
                       onClick={() => setActiveTab(feature.id as any)}
                       className={`px-6 py-3 rounded-lg font-medium transition-all ${
-                        activeTab === feature.id 
-                          ? 'bg-white text-gray-900 shadow-sm' 
+                        activeTab === feature.id
+                          ? 'bg-white text-gray-900 shadow-sm'
                           : 'text-gray-600 hover:text-gray-900'
                       }`}
                     >
@@ -175,16 +202,16 @@ export default function HomePage() {
                   ))}
                 </div>
               </div>
-              
+
               {/* Mobile Grid - 2x2 Modern Layout */}
               <div className="grid grid-cols-2 gap-2 md:hidden px-4">
-                {features.map((feature) => (
+                {features.map(feature => (
                   <button
                     key={feature.id}
                     onClick={() => setActiveTab(feature.id as any)}
                     className={`py-3 px-4 rounded-xl font-medium transition-all text-sm ${
-                      activeTab === feature.id 
-                        ? 'bg-gradient-to-r from-[#366494] to-[#447CBA] text-white shadow-lg transform scale-105' 
+                      activeTab === feature.id
+                        ? 'bg-gradient-to-r from-[#366494] to-[#447CBA] text-white shadow-lg transform scale-105'
                         : 'bg-white text-gray-700 border border-gray-200'
                     }`}
                   >
@@ -202,7 +229,7 @@ export default function HomePage() {
                     Before
                   </div>
                   <div className="bg-gray-100 rounded-lg h-96 overflow-hidden">
-                    <Image 
+                    <Image
                       src="/images/home/upscale-before.png"
                       alt="Low quality pixelated image before upscaling"
                       width={800}
@@ -216,7 +243,7 @@ export default function HomePage() {
                     After
                   </div>
                   <div className="bg-gradient-to-br from-blue-50 to-purple-50 rounded-lg h-96 overflow-hidden">
-                    <Image 
+                    <Image
                       src="/images/home/upscale-after.png"
                       alt="HD print-ready image after AI upscaling"
                       width={800}
@@ -226,15 +253,20 @@ export default function HomePage() {
                   </div>
                 </div>
               </div>
-              
+
               {/* Feature Benefits */}
               <div className="mt-8 flex flex-wrap gap-4 justify-center">
-                {features.find(f => f.id === activeTab)?.benefits.map((benefit, index) => (
-                  <div key={index} className="flex items-center bg-gray-50 px-4 py-2 rounded-lg">
-                    <Check className="w-5 h-5 text-green-500 mr-2" />
-                    <span className="text-gray-700">{benefit}</span>
-                  </div>
-                ))}
+                {features
+                  .find(f => f.id === activeTab)
+                  ?.benefits.map((benefit, index) => (
+                    <div
+                      key={index}
+                      className="flex items-center bg-gray-50 px-4 py-2 rounded-lg"
+                    >
+                      <Check className="w-5 h-5 text-green-500 mr-2" />
+                      <span className="text-gray-700">{benefit}</span>
+                    </div>
+                  ))}
               </div>
             </div>
           </div>
@@ -257,7 +289,9 @@ export default function HomePage() {
                 <div className="w-14 h-14 bg-gradient-to-br from-primary-500 to-primary-600 rounded-xl flex items-center justify-center mb-6">
                   <Zap className="w-8 h-8 text-white" />
                 </div>
-                <h3 className="text-2xl font-bold text-gray-900 mb-3">Instant Processing</h3>
+                <h3 className="text-2xl font-bold text-gray-900 mb-3">
+                  Instant Processing
+                </h3>
                 <p className="text-gray-600">
                   No waiting, no queues. Get your files in seconds, not hours.
                 </p>
@@ -267,9 +301,12 @@ export default function HomePage() {
                 <div className="w-14 h-14 bg-gradient-to-br from-success-500 to-success-600 rounded-xl flex items-center justify-center mb-6">
                   <Shield className="w-8 h-8 text-white" />
                 </div>
-                <h3 className="text-2xl font-bold text-gray-900 mb-3">100% Print-Ready Guarantee</h3>
+                <h3 className="text-2xl font-bold text-gray-900 mb-3">
+                  100% Print-Ready Guarantee
+                </h3>
                 <p className="text-gray-600">
-                  Every file is optimized for DTF printing. Perfect results, every time.
+                  Every file is optimized for DTF printing. Perfect results,
+                  every time.
                 </p>
               </div>
 
@@ -277,27 +314,41 @@ export default function HomePage() {
                 <div className="w-14 h-14 bg-gradient-to-br from-accent-500 to-accent-600 rounded-xl flex items-center justify-center mb-6">
                   <CreditCard className="w-8 h-8 text-white" />
                 </div>
-                <h3 className="text-2xl font-bold text-gray-900 mb-3">Save $1000s Monthly</h3>
+                <h3 className="text-2xl font-bold text-gray-900 mb-3">
+                  Save $1000s Monthly
+                </h3>
                 <p className="text-gray-600">
-                  Replace expensive design software and freelancers with AI-powered tools.
+                  Replace expensive design software and freelancers with
+                  AI-powered tools.
                 </p>
               </div>
             </div>
 
             {/* All Features Grid */}
             <div className="mt-16">
-              <h3 className="text-2xl font-bold text-gray-900 mb-8 text-center">All Features Included</h3>
+              <h3 className="text-2xl font-bold text-gray-900 mb-8 text-center">
+                All Features Included
+              </h3>
               <div className="grid md:grid-cols-4 gap-8">
-                {features.map((feature) => {
+                {features.map(feature => {
                   const Icon = feature.icon;
                   return (
-                    <div key={feature.id} className="group hover:scale-105 transition-transform duration-300">
+                    <div
+                      key={feature.id}
+                      className="group hover:scale-105 transition-transform duration-300"
+                    >
                       <div className="bg-gray-50 rounded-xl p-6 hover:bg-gray-100 transition-colors">
-                        <div className={`w-12 h-12 bg-gradient-to-br from-${feature.color}-500 to-${feature.color}-600 rounded-lg flex items-center justify-center mb-4`}>
+                        <div
+                          className={`w-12 h-12 bg-gradient-to-br from-${feature.color}-500 to-${feature.color}-600 rounded-lg flex items-center justify-center mb-4`}
+                        >
                           <Icon className="w-6 h-6 text-white" />
                         </div>
-                        <h4 className="text-lg font-bold text-gray-900 mb-2">{feature.title}</h4>
-                        <p className="text-sm text-gray-600">{feature.description}</p>
+                        <h4 className="text-lg font-bold text-gray-900 mb-2">
+                          {feature.title}
+                        </h4>
+                        <p className="text-sm text-gray-600">
+                          {feature.description}
+                        </p>
                       </div>
                     </div>
                   );
@@ -308,7 +359,10 @@ export default function HomePage() {
         </section>
 
         {/* How It Works */}
-        <section id="how-it-works" className="py-20 bg-gradient-to-b from-gray-50 to-white">
+        <section
+          id="how-it-works"
+          className="py-20 bg-gradient-to-b from-gray-50 to-white"
+        >
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="text-center mb-16">
               <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
@@ -329,7 +383,9 @@ export default function HomePage() {
                     <ChevronRight className="w-8 h-8 text-gray-300" />
                   </div>
                 </div>
-                <h3 className="text-xl font-bold text-gray-900 mb-3">Step 1: Upload</h3>
+                <h3 className="text-xl font-bold text-gray-900 mb-3">
+                  Step 1: Upload
+                </h3>
                 <p className="text-gray-600">
                   Upload any JPG, PNG, or SVG—even screenshots.
                 </p>
@@ -344,9 +400,12 @@ export default function HomePage() {
                     <ChevronRight className="w-8 h-8 text-gray-300" />
                   </div>
                 </div>
-                <h3 className="text-xl font-bold text-gray-900 mb-3">Step 2: Enhance</h3>
+                <h3 className="text-xl font-bold text-gray-900 mb-3">
+                  Step 2: Enhance
+                </h3>
                 <p className="text-gray-600">
-                  Enhance with AI upscaling & background removal; optional vector clean-up.
+                  Enhance with AI upscaling & background removal; optional
+                  vector clean-up.
                 </p>
               </div>
 
@@ -354,9 +413,12 @@ export default function HomePage() {
                 <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
                   <Download className="w-10 h-10 text-green-600" />
                 </div>
-                <h3 className="text-xl font-bold text-gray-900 mb-3">Step 3: Export</h3>
+                <h3 className="text-xl font-bold text-gray-900 mb-3">
+                  Step 3: Export
+                </h3>
                 <p className="text-gray-600">
-                  Export a transparent, true-size 300 DPI PNG (or SVG) ready for production.
+                  Export a transparent, true-size 300 DPI PNG (or SVG) ready for
+                  production.
                 </p>
               </div>
             </div>
@@ -377,8 +439,12 @@ export default function HomePage() {
                       <span className="text-red-600 font-bold">✕</span>
                     </div>
                     <div className="ml-4">
-                      <h4 className="font-semibold text-gray-900">Pixelated prints from small images</h4>
-                      <p className="text-gray-600">Customer logos come in tiny, unusable sizes</p>
+                      <h4 className="font-semibold text-gray-900">
+                        Pixelated prints from small images
+                      </h4>
+                      <p className="text-gray-600">
+                        Customer logos come in tiny, unusable sizes
+                      </p>
                     </div>
                   </div>
                   <div className="flex items-start">
@@ -386,8 +452,12 @@ export default function HomePage() {
                       <span className="text-red-600 font-bold">✕</span>
                     </div>
                     <div className="ml-4">
-                      <h4 className="font-semibold text-gray-900">Hours wasted removing backgrounds</h4>
-                      <p className="text-gray-600">Manual cutouts are tedious and imperfect</p>
+                      <h4 className="font-semibold text-gray-900">
+                        Hours wasted removing backgrounds
+                      </h4>
+                      <p className="text-gray-600">
+                        Manual cutouts are tedious and imperfect
+                      </p>
                     </div>
                   </div>
                   <div className="flex items-start">
@@ -395,8 +465,12 @@ export default function HomePage() {
                       <span className="text-red-600 font-bold">✕</span>
                     </div>
                     <div className="ml-4">
-                      <h4 className="font-semibold text-gray-900">Rejected orders due to poor quality</h4>
-                      <p className="text-gray-600">Losing customers and reputation</p>
+                      <h4 className="font-semibold text-gray-900">
+                        Rejected orders due to poor quality
+                      </h4>
+                      <p className="text-gray-600">
+                        Losing customers and reputation
+                      </p>
                     </div>
                   </div>
                 </div>
@@ -409,19 +483,27 @@ export default function HomePage() {
                 <div className="space-y-4">
                   <div className="flex items-center">
                     <Check className="w-6 h-6 text-green-500 mr-3" />
-                    <span className="text-gray-700">Transform any image to HD quality</span>
+                    <span className="text-gray-700">
+                      Transform any image to HD quality
+                    </span>
                   </div>
                   <div className="flex items-center">
                     <Check className="w-6 h-6 text-green-500 mr-3" />
-                    <span className="text-gray-700">Perfect cutouts in one click</span>
+                    <span className="text-gray-700">
+                      Perfect cutouts in one click
+                    </span>
                   </div>
                   <div className="flex items-center">
                     <Check className="w-6 h-6 text-green-500 mr-3" />
-                    <span className="text-gray-700">Print-ready files guaranteed</span>
+                    <span className="text-gray-700">
+                      Print-ready files guaranteed
+                    </span>
                   </div>
                   <div className="flex items-center">
                     <Check className="w-6 h-6 text-green-500 mr-3" />
-                    <span className="text-gray-700">Happy customers, 5-star reviews</span>
+                    <span className="text-gray-700">
+                      Happy customers, 5-star reviews
+                    </span>
                   </div>
                 </div>
                 <Link href="/auth/signup">
@@ -453,8 +535,9 @@ export default function HomePage() {
                     Real user reviews coming soon
                   </p>
                   <p className="text-gray-600">
-                    We&apos;re brand new and gathering feedback from our early users. 
-                    Check back soon for authentic reviews from DTF printing professionals!
+                    We&apos;re brand new and gathering feedback from our early
+                    users. Check back soon for authentic reviews from DTF
+                    printing professionals!
                   </p>
                 </div>
               </div>
@@ -477,10 +560,15 @@ export default function HomePage() {
             <div className="grid md:grid-cols-3 gap-8 max-w-5xl mx-auto">
               {/* Free Plan */}
               <div className="bg-white rounded-xl p-8 border-2 border-gray-200">
-                <h3 className="text-2xl font-bold text-gray-900 mb-2">Free Forever</h3>
+                <h3 className="text-2xl font-bold text-gray-900 mb-2">
+                  Free Forever
+                </h3>
                 <p className="text-gray-600 mb-6">Test the waters</p>
                 <div className="text-4xl font-bold text-gray-900 mb-6">
-                  $0<span className="text-lg font-normal text-gray-600">/month</span>
+                  $0
+                  <span className="text-lg font-normal text-gray-600">
+                    /month
+                  </span>
                 </div>
                 <ul className="space-y-3 mb-8">
                   <li className="flex items-center">
@@ -501,16 +589,23 @@ export default function HomePage() {
                   </li>
                 </ul>
                 <Link href="/auth/signup">
-                  <Button variant="default" className="w-full">Start Free</Button>
+                  <Button variant="default" className="w-full">
+                    Start Free
+                  </Button>
                 </Link>
               </div>
 
               {/* Hobbyist Plan */}
               <div className="bg-white rounded-xl p-8 border-2 border-gray-200">
-                <h3 className="text-2xl font-bold text-gray-900 mb-2">Hobbyist</h3>
+                <h3 className="text-2xl font-bold text-gray-900 mb-2">
+                  Hobbyist
+                </h3>
                 <p className="text-gray-600 mb-6">Side hustlers</p>
                 <div className="text-4xl font-bold text-gray-900 mb-6">
-                  $9.99<span className="text-lg font-normal text-gray-600">/month</span>
+                  $9.99
+                  <span className="text-lg font-normal text-gray-600">
+                    /month
+                  </span>
                 </div>
                 <ul className="space-y-3 mb-8">
                   <li className="flex items-center">
@@ -519,7 +614,9 @@ export default function HomePage() {
                   </li>
                   <li className="flex items-center">
                     <Check className="w-5 h-5 text-green-500 mr-3" />
-                    <span className="text-gray-700">2-month credit rollover</span>
+                    <span className="text-gray-700">
+                      2-month credit rollover
+                    </span>
                   </li>
                   <li className="flex items-center">
                     <Check className="w-5 h-5 text-green-500 mr-3" />
@@ -531,7 +628,9 @@ export default function HomePage() {
                   </li>
                 </ul>
                 <Link href="/auth/signup">
-                  <Button variant="default" className="w-full">Get Started</Button>
+                  <Button variant="default" className="w-full">
+                    Get Started
+                  </Button>
                 </Link>
               </div>
 
@@ -542,23 +641,34 @@ export default function HomePage() {
                     BEST VALUE
                   </span>
                 </div>
-                <h3 className="text-2xl font-bold text-gray-900 mb-2">Business</h3>
+                <h3 className="text-2xl font-bold text-gray-900 mb-2">
+                  Business
+                </h3>
                 <p className="text-gray-600 mb-6">Full-time printers</p>
                 <div className="text-4xl font-bold text-gray-900 mb-6">
-                  $24.99<span className="text-lg font-normal text-gray-600">/month</span>
+                  $24.99
+                  <span className="text-lg font-normal text-gray-600">
+                    /month
+                  </span>
                 </div>
                 <ul className="space-y-3 mb-8">
                   <li className="flex items-center">
                     <Check className="w-5 h-5 text-green-500 mr-3" />
-                    <span className="text-gray-700 font-semibold">60 credits monthly</span>
+                    <span className="text-gray-700 font-semibold">
+                      60 credits monthly
+                    </span>
                   </li>
                   <li className="flex items-center">
                     <Check className="w-5 h-5 text-green-500 mr-3" />
-                    <span className="text-gray-700">2-month credit rollover</span>
+                    <span className="text-gray-700">
+                      2-month credit rollover
+                    </span>
                   </li>
                   <li className="flex items-center">
                     <Check className="w-5 h-5 text-green-500 mr-3" />
-                    <span className="text-gray-700">Permanent file storage</span>
+                    <span className="text-gray-700">
+                      Permanent file storage
+                    </span>
                   </li>
                   <li className="flex items-center">
                     <Check className="w-5 h-5 text-green-500 mr-3" />
@@ -580,10 +690,14 @@ export default function HomePage() {
             {/* Need More Credits - Modern Card Design */}
             <div className="mt-16 bg-gradient-to-br from-gray-50 to-gray-100 rounded-2xl p-6 sm:p-8">
               <div className="text-center mb-8">
-                <h3 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">Need More Credits?</h3>
-                <p className="text-gray-600">Buy credit packs anytime. No subscription required.</p>
+                <h3 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">
+                  Need More Credits?
+                </h3>
+                <p className="text-gray-600">
+                  Buy credit packs anytime. No subscription required.
+                </p>
               </div>
-              
+
               {/* Mobile Vertical Stack / Desktop Horizontal */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 max-w-3xl mx-auto mb-6 pt-3">
                 {/* 10 Credits */}
@@ -592,46 +706,77 @@ export default function HomePage() {
                     <div className="absolute inset-0 bg-gradient-to-r from-gray-50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity rounded-xl"></div>
                     <div className="relative">
                       <div className="text-3xl font-bold text-gray-900">10</div>
-                      <div className="text-sm text-gray-600 font-medium">Credits</div>
-                      <div className="mt-3 text-2xl font-bold text-[#366494]">$7.99</div>
-                      <div className="text-xs text-gray-500 mt-1">$0.80 per credit</div>
+                      <div className="text-sm text-gray-600 font-medium">
+                        Credits
+                      </div>
+                      <div className="mt-3 text-2xl font-bold text-[#366494]">
+                        $7.99
+                      </div>
+                      <div className="text-xs text-gray-500 mt-1">
+                        $0.80 per credit
+                      </div>
                     </div>
                   </div>
                 </Link>
-                
+
                 {/* 20 Credits - Popular */}
                 <Link href="/pricing?tab=payasyougo" className="block relative">
-                  <div className="absolute -top-3 right-0 bg-[#E88B4B] text-white text-xs font-bold px-3 py-1 rounded-full z-10">POPULAR</div>
+                  <div className="absolute -top-3 right-0 bg-[#E88B4B] text-white text-xs font-bold px-3 py-1 rounded-full z-10">
+                    POPULAR
+                  </div>
                   <div className="bg-white rounded-xl p-5 shadow-md hover:shadow-xl transition-all hover:scale-105 cursor-pointer relative group border-2 border-[#E88B4B] h-full">
                     <div className="absolute inset-0 bg-gradient-to-r from-orange-50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity rounded-xl"></div>
                     <div className="relative">
                       <div className="text-3xl font-bold text-gray-900">20</div>
-                      <div className="text-sm text-gray-600 font-medium">Credits</div>
-                      <div className="mt-3 text-2xl font-bold text-[#E88B4B]">$14.99</div>
-                      <div className="text-xs text-green-600 font-semibold mt-1">Save 6% • $0.75 per credit</div>
+                      <div className="text-sm text-gray-600 font-medium">
+                        Credits
+                      </div>
+                      <div className="mt-3 text-2xl font-bold text-[#E88B4B]">
+                        $14.99
+                      </div>
+                      <div className="text-xs text-green-600 font-semibold mt-1">
+                        Save 6% • $0.75 per credit
+                      </div>
                     </div>
                   </div>
                 </Link>
-                
+
                 {/* 50 Credits - Best Value */}
                 <Link href="/pricing?tab=payasyougo" className="block relative">
-                  <div className="absolute -top-3 right-0 bg-green-500 text-white text-xs font-bold px-3 py-1 rounded-full z-10">BEST VALUE</div>
+                  <div className="absolute -top-3 right-0 bg-green-500 text-white text-xs font-bold px-3 py-1 rounded-full z-10">
+                    BEST VALUE
+                  </div>
                   <div className="bg-white rounded-xl p-5 shadow-md hover:shadow-xl transition-all hover:scale-105 cursor-pointer relative group h-full">
                     <div className="absolute inset-0 bg-gradient-to-r from-green-50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity rounded-xl"></div>
                     <div className="relative">
                       <div className="text-3xl font-bold text-gray-900">50</div>
-                      <div className="text-sm text-gray-600 font-medium">Credits</div>
-                      <div className="mt-3 text-2xl font-bold text-green-600">$29.99</div>
-                      <div className="text-xs text-green-600 font-semibold mt-1">Save 25% • $0.60 per credit</div>
+                      <div className="text-sm text-gray-600 font-medium">
+                        Credits
+                      </div>
+                      <div className="mt-3 text-2xl font-bold text-green-600">
+                        $29.99
+                      </div>
+                      <div className="text-xs text-green-600 font-semibold mt-1">
+                        Save 25% • $0.60 per credit
+                      </div>
                     </div>
                   </div>
                 </Link>
               </div>
-              
+
               <div className="flex flex-wrap justify-center gap-2 text-xs text-gray-600">
-                <span className="flex items-center"><Check className="w-3 h-3 mr-1 text-green-500" />Never expire</span>
-                <span className="flex items-center"><Check className="w-3 h-3 mr-1 text-green-500" />Use on any tool</span>
-                <span className="flex items-center"><Check className="w-3 h-3 mr-1 text-green-500" />Instant delivery</span>
+                <span className="flex items-center">
+                  <Check className="w-3 h-3 mr-1 text-green-500" />
+                  Never expire
+                </span>
+                <span className="flex items-center">
+                  <Check className="w-3 h-3 mr-1 text-green-500" />
+                  Use on any tool
+                </span>
+                <span className="flex items-center">
+                  <Check className="w-3 h-3 mr-1 text-green-500" />
+                  Instant delivery
+                </span>
               </div>
             </div>
           </div>
@@ -655,7 +800,8 @@ export default function HomePage() {
                   What file formats can I upload?
                 </h3>
                 <p className="text-gray-600">
-                  We accept JPG, PNG, SVG, and even screenshots. Our AI handles virtually any image format and optimizes it for DTF printing.
+                  We accept JPG, PNG, SVG, and even screenshots. Our AI handles
+                  virtually any image format and optimizes it for DTF printing.
                 </p>
               </div>
 
@@ -664,7 +810,10 @@ export default function HomePage() {
                   What's the difference between upscaling and vectorization?
                 </h3>
                 <p className="text-gray-600">
-                  Upscaling uses AI to increase resolution while maintaining raster format (PNG/JPG), perfect for photos and detailed artwork. Vectorization converts to SVG format for infinite scaling, ideal for logos and simple graphics.
+                  Upscaling uses AI to increase resolution while maintaining
+                  raster format (PNG/JPG), perfect for photos and detailed
+                  artwork. Vectorization converts to SVG format for infinite
+                  scaling, ideal for logos and simple graphics.
                 </p>
               </div>
 
@@ -673,7 +822,9 @@ export default function HomePage() {
                   Are my processed files print-ready?
                 </h3>
                 <p className="text-gray-600">
-                  Yes! Every file is optimized specifically for DTF printing with proper transparency, 300 DPI resolution, and correct color profiles. Just download and print.
+                  Yes! Every file is optimized specifically for DTF printing
+                  with proper transparency, 300 DPI resolution, and correct
+                  color profiles. Just download and print.
                 </p>
               </div>
 
@@ -682,7 +833,9 @@ export default function HomePage() {
                   How do credits work?
                 </h3>
                 <p className="text-gray-600">
-                  Each AI processing operation uses 1 credit. Free accounts get 2 credits monthly. Paid plans include 20-60 monthly credits with 2-month rollover. Need more? Buy credit packs anytime.
+                  Each AI processing operation uses 1 credit. Free accounts get
+                  2 credits monthly. Paid plans include 20-60 monthly credits
+                  with 2-month rollover. Need more? Buy credit packs anytime.
                 </p>
               </div>
 
@@ -691,7 +844,9 @@ export default function HomePage() {
                   Can I cancel my subscription anytime?
                 </h3>
                 <p className="text-gray-600">
-                  Absolutely! Cancel anytime from your dashboard. You'll keep access until the end of your billing period, and any remaining credits stay valid for 2 months.
+                  Absolutely! Cancel anytime from your dashboard. You'll keep
+                  access until the end of your billing period, and any remaining
+                  credits stay valid for 2 months.
                 </p>
               </div>
 
@@ -700,7 +855,9 @@ export default function HomePage() {
                   Do you offer bulk or enterprise pricing?
                 </h3>
                 <p className="text-gray-600">
-                  Yes! For print shops processing 100+ images monthly, we offer custom plans with volume discounts and dedicated support. Contact us for details.
+                  Yes! For print shops processing 100+ images monthly, we offer
+                  custom plans with volume discounts and dedicated support.
+                  Contact us for details.
                 </p>
               </div>
             </div>
@@ -714,17 +871,24 @@ export default function HomePage() {
               Stop Losing Orders to Poor Quality
             </h2>
             <p className="text-xl text-white/90 mb-8 max-w-2xl mx-auto">
-              Start delivering flawless DTF transfers that wow your customers. Try it free today.
+              Start delivering flawless DTF transfers that wow your customers.
+              Try it free today.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Link href="/auth/signup">
-                <Button size="lg" className="bg-[#E88B4B] text-white hover:bg-[#d67a3a] px-8 py-3 shadow-lg">
+                <Button
+                  size="lg"
+                  className="bg-[#E88B4B] text-white hover:bg-[#d67a3a] px-8 py-3 shadow-lg"
+                >
                   Start Free with 2 Credits
                   <ArrowRight className="ml-2 w-5 h-5" />
                 </Button>
               </Link>
               <Link href="#pricing">
-                <Button size="lg" className="bg-transparent text-white border-2 border-white hover:bg-white/20 px-8 py-3">
+                <Button
+                  size="lg"
+                  className="bg-transparent text-white border-2 border-white hover:bg-white/20 px-8 py-3"
+                >
                   View Pricing
                   <ChevronRight className="ml-2 w-5 h-5" />
                 </Button>
@@ -733,7 +897,7 @@ export default function HomePage() {
             <p className="text-white/70 mt-8 text-sm">
               No credit card • 2 free credits • Cancel anytime
             </p>
-            
+
             {/* Trust badges */}
             <div className="mt-12 flex justify-center items-center gap-8 text-white/60">
               <div className="flex items-center gap-2">
@@ -746,7 +910,9 @@ export default function HomePage() {
               </div>
               <div className="flex items-center gap-2">
                 <Sparkles className="w-5 h-5" />
-                <span className="text-sm">Developed by DTF Printing Company</span>
+                <span className="text-sm">
+                  Developed by DTF Printing Company
+                </span>
               </div>
             </div>
           </div>

@@ -27,7 +27,9 @@ async function checkAffiliateData() {
       console.log(`   Found ${affiliates?.length || 0} affiliate(s)`);
       if (affiliates && affiliates.length > 0) {
         affiliates.forEach(aff => {
-          console.log(`   - ${aff.referral_code}: Status=${aff.status}, User=${aff.user_id}`);
+          console.log(
+            `   - ${aff.referral_code}: Status=${aff.status}, User=${aff.user_id}`
+          );
         });
       }
     }
@@ -41,7 +43,9 @@ async function checkAffiliateData() {
 
     if (profilesError) {
       console.error('Error fetching profiles:', profilesError);
-      console.log('   Profiles table might not exist or have different structure');
+      console.log(
+        '   Profiles table might not exist or have different structure'
+      );
     } else {
       console.log(`   Found ${profiles?.length || 0} profile(s)`);
       if (profiles && profiles.length > 0) {
@@ -53,12 +57,15 @@ async function checkAffiliateData() {
 
     // 3. Check if we can find the specific user
     console.log('\n3. Looking for snsmarketing@gmail.com:');
-    const { data: authUser, error: authError } = await supabase.auth.admin.listUsers();
+    const { data: authUser, error: authError } =
+      await supabase.auth.admin.listUsers();
 
     if (authError) {
       console.error('Error fetching auth users:', authError);
     } else {
-      const snsUser = authUser?.users?.find(u => u.email === 'snsmarketing@gmail.com');
+      const snsUser = authUser?.users?.find(
+        u => u.email === 'snsmarketing@gmail.com'
+      );
       if (snsUser) {
         console.log(`   Found user in auth: ID=${snsUser.id}`);
 
@@ -70,7 +77,10 @@ async function checkAffiliateData() {
           .single();
 
         if (snsAffiliate) {
-          console.log('   ✅ User has affiliate record:', snsAffiliate.referral_code);
+          console.log(
+            '   ✅ User has affiliate record:',
+            snsAffiliate.referral_code
+          );
         } else {
           console.log('   ❌ No affiliate record found for this user');
         }
@@ -97,7 +107,6 @@ async function checkAffiliateData() {
     } else {
       console.log('   ✅ Profiles table is accessible');
     }
-
   } catch (error) {
     console.error('Unexpected error:', error);
   }

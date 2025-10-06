@@ -3,9 +3,9 @@
 /**
  * Setup Stripe Products and Prices
  * This script creates all the products and prices in Stripe based on our pricing structure
- * 
+ *
  * Usage: node scripts/setup-stripe-products.js [--live]
- * 
+ *
  * By default, it uses test mode. Add --live flag to create in production.
  */
 
@@ -16,8 +16,8 @@ require('dotenv').config({ path: '.env.local' });
 const isLive = process.argv.includes('--live');
 
 // Select the appropriate Stripe key
-const stripeKey = isLive 
-  ? process.env.STRIPE_LIVE_SECRET_KEY 
+const stripeKey = isLive
+  ? process.env.STRIPE_LIVE_SECRET_KEY
   : process.env.STRIPE_SECRET_KEY;
 
 if (!stripeKey) {
@@ -36,21 +36,21 @@ const products = [
     metadata: {
       credits_per_month: '20',
       plan_type: 'subscription',
-      plan_id: 'basic'
+      plan_id: 'basic',
     },
     prices: [
       {
         unit_amount: 999, // $9.99 in cents
         currency: 'usd',
         recurring: {
-          interval: 'month'
+          interval: 'month',
         },
         nickname: 'Basic Monthly',
         metadata: {
-          credits: '20'
-        }
-      }
-    ]
+          credits: '20',
+        },
+      },
+    ],
   },
   {
     id: 'starter_subscription',
@@ -59,21 +59,21 @@ const products = [
     metadata: {
       credits_per_month: '60',
       plan_type: 'subscription',
-      plan_id: 'starter'
+      plan_id: 'starter',
     },
     prices: [
       {
         unit_amount: 2499, // $24.99 in cents
         currency: 'usd',
         recurring: {
-          interval: 'month'
+          interval: 'month',
         },
         nickname: 'Starter Monthly',
         metadata: {
-          credits: '60'
-        }
-      }
-    ]
+          credits: '60',
+        },
+      },
+    ],
   },
   {
     id: 'professional_subscription',
@@ -82,21 +82,21 @@ const products = [
     metadata: {
       credits_per_month: '150',
       plan_type: 'subscription',
-      plan_id: 'professional'
+      plan_id: 'professional',
     },
     prices: [
       {
         unit_amount: 4999, // $49.99 in cents
         currency: 'usd',
         recurring: {
-          interval: 'month'
+          interval: 'month',
         },
         nickname: 'Professional Monthly',
         metadata: {
-          credits: '150'
-        }
-      }
-    ]
+          credits: '150',
+        },
+      },
+    ],
   },
   {
     id: 'payg_10_credits',
@@ -105,7 +105,7 @@ const products = [
     metadata: {
       credits: '10',
       plan_type: 'payg',
-      package_id: 'payg-10'
+      package_id: 'payg-10',
     },
     prices: [
       {
@@ -114,10 +114,10 @@ const products = [
         nickname: '10 Credits',
         metadata: {
           credits: '10',
-          type: 'one_time'
-        }
-      }
-    ]
+          type: 'one_time',
+        },
+      },
+    ],
   },
   {
     id: 'payg_20_credits',
@@ -126,7 +126,7 @@ const products = [
     metadata: {
       credits: '20',
       plan_type: 'payg',
-      package_id: 'payg-20'
+      package_id: 'payg-20',
     },
     prices: [
       {
@@ -135,10 +135,10 @@ const products = [
         nickname: '20 Credits',
         metadata: {
           credits: '20',
-          type: 'one_time'
-        }
-      }
-    ]
+          type: 'one_time',
+        },
+      },
+    ],
   },
   {
     id: 'payg_50_credits',
@@ -147,7 +147,7 @@ const products = [
     metadata: {
       credits: '50',
       plan_type: 'payg',
-      package_id: 'payg-50'
+      package_id: 'payg-50',
     },
     prices: [
       {
@@ -156,26 +156,28 @@ const products = [
         nickname: '50 Credits',
         metadata: {
           credits: '50',
-          type: 'one_time'
-        }
-      }
-    ]
-  }
+          type: 'one_time',
+        },
+      },
+    ],
+  },
 ];
 
 async function setupStripeProducts() {
-  console.log(`\n🚀 Setting up Stripe products in ${isLive ? 'LIVE' : 'TEST'} mode...\n`);
-  
+  console.log(
+    `\n🚀 Setting up Stripe products in ${isLive ? 'LIVE' : 'TEST'} mode...\n`
+  );
+
   const results = {
     products: [],
     prices: [],
-    errors: []
+    errors: [],
   };
 
   for (const productData of products) {
     try {
       console.log(`📦 Creating product: ${productData.name}...`);
-      
+
       // Create the product
       const product = await stripe.products.create({
         name: productData.name,
@@ -183,41 +185,45 @@ async function setupStripeProducts() {
         metadata: productData.metadata,
         active: true,
         tax_code: 'txcd_10103000', // SaaS - Business Use tax code
-        statement_descriptor: 'DTF EDITOR'
+        statement_descriptor: 'DTF EDITOR',
       });
-      
+
       console.log(`   ✅ Product created: ${product.id}`);
       results.products.push(product);
-      
+
       // Create prices for this product
       for (const priceData of productData.prices) {
         console.log(`   💰 Creating price: ${priceData.nickname}...`);
-        
+
         const priceConfig = {
           product: product.id,
           unit_amount: priceData.unit_amount,
           currency: priceData.currency,
           nickname: priceData.nickname,
-          metadata: priceData.metadata
+          metadata: priceData.metadata,
         };
-        
+
         // Add recurring config for subscriptions
         if (priceData.recurring) {
           priceConfig.recurring = priceData.recurring;
         }
-        
+
         const price = await stripe.prices.create(priceConfig);
-        console.log(`   ✅ Price created: ${price.id} ($${(price.unit_amount / 100).toFixed(2)})`);
+        console.log(
+          `   ✅ Price created: ${price.id} ($${(price.unit_amount / 100).toFixed(2)})`
+        );
         results.prices.push(price);
       }
-      
+
       console.log('');
     } catch (error) {
-      console.error(`   ❌ Error creating ${productData.name}: ${error.message}`);
+      console.error(
+        `   ❌ Error creating ${productData.name}: ${error.message}`
+      );
       results.errors.push({ product: productData.name, error: error.message });
     }
   }
-  
+
   // Print summary
   console.log('\n' + '='.repeat(60));
   console.log('📊 SETUP COMPLETE - SUMMARY');
@@ -225,26 +231,25 @@ async function setupStripeProducts() {
   console.log(`✅ Products created: ${results.products.length}`);
   console.log(`✅ Prices created: ${results.prices.length}`);
   console.log(`❌ Errors: ${results.errors.length}`);
-  
+
   if (results.errors.length > 0) {
     console.log('\n⚠️  Errors encountered:');
     results.errors.forEach(err => {
       console.log(`   - ${err.product}: ${err.error}`);
     });
   }
-  
+
   // Print environment variable configuration
   console.log('\n' + '='.repeat(60));
   console.log('🔧 UPDATE YOUR .env.local WITH THESE PRICE IDs:');
   console.log('='.repeat(60));
   console.log('\n# Subscription Plan Price IDs');
-  
+
   // Find and print subscription price IDs
   for (const product of results.products) {
     if (product.metadata.plan_type === 'subscription') {
-      const price = results.prices.find(p => 
-        p.product === product.id && 
-        p.recurring?.interval === 'month'
+      const price = results.prices.find(
+        p => p.product === product.id && p.recurring?.interval === 'month'
       );
       if (price) {
         const envKey = `STRIPE_${product.metadata.plan_id.toUpperCase()}_PLAN_PRICE_ID`;
@@ -252,9 +257,9 @@ async function setupStripeProducts() {
       }
     }
   }
-  
+
   console.log('\n# Pay-as-You-Go Package Price IDs');
-  
+
   // Find and print PAYG price IDs
   for (const product of results.products) {
     if (product.metadata.plan_type === 'payg') {
@@ -266,9 +271,11 @@ async function setupStripeProducts() {
       }
     }
   }
-  
+
   console.log('\n' + '='.repeat(60));
-  console.log('✨ Setup complete! Copy the price IDs above to your .env.local file');
+  console.log(
+    '✨ Setup complete! Copy the price IDs above to your .env.local file'
+  );
   console.log('='.repeat(60) + '\n');
 }
 

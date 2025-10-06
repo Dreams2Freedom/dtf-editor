@@ -11,16 +11,20 @@ This document tracks the changes made to integrate the image processing system w
 ## What Was Changed
 
 ### 1. Database Changes (ALREADY COMPLETED)
+
 - Added `processed_images` table to store image metadata
 - Added `last_credit_purchase_at` column to profiles table
 - Created functions for calculating image expiration dates
 
 ### 2. UI Changes (ALREADY COMPLETED)
+
 - Added ImageGallery component at `/src/components/image/ImageGallery.tsx`
 - Added "My Images" section to dashboard at `/src/app/dashboard/page.tsx`
 
 ### 3. Image Processing Changes (IMPLEMENTED - January 30, 2025)
+
 The following changes were made to `/src/services/imageProcessing.ts`:
+
 - Updated `saveProcessingResult()` method to save to `processed_images` table
 - Added automatic expiration date calculation using database function
 - Updated `getProcessingHistory()` to read from `processed_images` table
@@ -32,12 +36,14 @@ The following changes were made to `/src/services/imageProcessing.ts`:
 ## Changes to Image Processing Flow
 
 ### BEFORE (Current State)
+
 1. User uploads image
 2. Image is processed by external API
 3. Processed image is returned directly to user
 4. No record is kept of the processed image
 
 ### AFTER (Proposed State)
+
 1. User uploads image
 2. Image is processed by external API
 3. Processed image is saved to Supabase Storage
@@ -58,6 +64,7 @@ The following changes were made to `/src/services/imageProcessing.ts`:
 If the changes cause issues, here's how to revert:
 
 ### 1. Revert Image Processing Endpoints
+
 ```bash
 # Use git to revert the specific files
 git checkout HEAD -- src/app/api/process/upscale/route.ts
@@ -66,20 +73,28 @@ git checkout HEAD -- src/app/api/process/vectorize/route.ts
 ```
 
 ### 2. Keep Database Changes
+
 The database changes are backward compatible and don't need to be reverted. The tables will simply remain empty.
 
 ### 3. Hide Gallery UI (Optional)
+
 If needed, comment out the ImageGallery section in the dashboard:
+
 ```tsx
-{/* My Images Gallery - Temporarily disabled */}
-{/* <div id="my-images" className="mt-8">
+{
+  /* My Images Gallery - Temporarily disabled */
+}
+{
+  /* <div id="my-images" className="mt-8">
   <ImageGallery />
-</div> */}
+</div> */
+}
 ```
 
 ## Testing Checklist
 
 Before considering the integration complete, test:
+
 - [ ] Upscale operation still works
 - [ ] Background removal still works
 - [ ] Vectorize operation still works
@@ -93,6 +108,7 @@ Before considering the integration complete, test:
 ## Implementation Notes
 
 When implementing the changes:
+
 1. Add try-catch blocks around storage operations
 2. Make storage/database saves non-blocking if possible
 3. Always return the processed image even if storage fails

@@ -6,14 +6,14 @@ import { AdminAuditService } from '@/services/adminAudit';
 async function handlePost(request: NextRequest) {
   try {
     const supabase = await createServerSupabaseClient();
-    
+
     // Check if user is admin
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
     if (authError || !user) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     // Check admin status
@@ -74,66 +74,70 @@ async function handlePost(request: NextRequest) {
     let affected = 0;
     const errors: string[] = [];
 
-    console.log(`[Bulk Credits] Starting ${operation} operation for ${userIds.length} users with amount: ${amount}`);
+    console.log(
+      `[Bulk Credits] Starting ${operation} operation for ${userIds.length} users with amount: ${amount}`
+    );
 
     if (operation === 'add') {
       // Add credits to existing balance
       // Since add_credits_bulk RPC doesn't exist, we'll do manual updates
       for (const userId of userIds) {
-          try {
-            // Get current credits
-            const { data: currentUser, error: fetchError } = await supabase
-              .from('profiles')
-              .select('credits_remaining')
-              .eq('id', userId)
-              .single();
+        try {
+          // Get current credits
+          const { data: currentUser, error: fetchError } = await supabase
+            .from('profiles')
+            .select('credits_remaining')
+            .eq('id', userId)
+            .single();
 
-            if (fetchError) {
-              errors.push(`Failed to fetch user ${userId}: ${fetchError.message}`);
-              continue;
-            }
-
-            const currentCredits = currentUser?.credits_remaining ?? 0;
-            const newCredits = Math.min(currentCredits + amount, 1000); // Cap at 1000
-
-            // Update credits
-            const updateData = {
-              credits_remaining: newCredits,
-              updated_at: new Date().toISOString()
-            };
-
-            const { error: updateError } = await supabase
-              .from('profiles')
-              .update(updateData)
-              .eq('id', userId);
-
-            if (updateError) {
-              errors.push(`Failed to update user ${userId}: ${updateError.message}`);
-            } else {
-              affected++;
-
-              // Log credit transaction
-              await supabase
-                .from('credit_transactions')
-                .insert({
-                  user_id: userId,
-                  amount,
-                  type: 'admin_adjustment',
-                  description: `Admin bulk credit addition by ${user.email}`,
-                  created_at: new Date().toISOString()
-                });
-            }
-          } catch (err: any) {
-            errors.push(`Error processing user ${userId}: ${err.message}`);
+          if (fetchError) {
+            errors.push(
+              `Failed to fetch user ${userId}: ${fetchError.message}`
+            );
+            continue;
           }
+
+          const currentCredits = currentUser?.credits_remaining ?? 0;
+          const newCredits = Math.min(currentCredits + amount, 1000); // Cap at 1000
+
+          // Update credits
+          const updateData = {
+            credits_remaining: newCredits,
+            updated_at: new Date().toISOString(),
+          };
+
+          const { error: updateError } = await supabase
+            .from('profiles')
+            .update(updateData)
+            .eq('id', userId);
+
+          if (updateError) {
+            errors.push(
+              `Failed to update user ${userId}: ${updateError.message}`
+            );
+          } else {
+            affected++;
+
+            // Log credit transaction
+            await supabase.from('credit_transactions').insert({
+              user_id: userId,
+              amount,
+              type: 'admin_adjustment',
+              description: `Admin bulk credit addition by ${user.email}`,
+              created_at: new Date().toISOString(),
+            });
+          }
+        } catch (err: any) {
+          errors.push(`Error processing user ${userId}: ${err.message}`);
         }
+      }
     } else {
       // Set credits to specific amount
       const updateData = {
         credits_remaining: amount,
-        updated_at: new Date().toISOString()
+        updated_at: new Date().toISOString(),
       };
-      
+
       const { data: updatedUsers, error: updateError } = await supabase
         .from('profiles')
         .update(updateData)
@@ -147,21 +151,21 @@ async function handlePost(request: NextRequest) {
 
         // Log credit transactions for each user
         for (const userId of userIds) {
-          await supabase
-            .from('credit_transactions')
-            .insert({
-              user_id: userId,
-              amount,
-              type: 'admin_adjustment',
-              description: `Admin bulk credit set to ${amount} by ${user.email}`,
-              created_at: new Date().toISOString()
-            });
+          await supabase.from('credit_transactions').insert({
+            user_id: userId,
+            amount,
+            type: 'admin_adjustment',
+            description: `Admin bulk credit set to ${amount} by ${user.email}`,
+            created_at: new Date().toISOString(),
+          });
         }
       }
     }
 
     // Log the bulk action
-    console.log(`[Admin Bulk Credits] ${operation} ${amount} credits for ${affected} users by ${user.email}`);
+    console.log(
+      `[Admin Bulk Credits] ${operation} ${amount} credits for ${affected} users by ${user.email}`
+    );
 
     // Create audit log entry
     const auditService = AdminAuditService.getInstance();
@@ -169,10 +173,10 @@ async function handlePost(request: NextRequest) {
       {
         user: {
           id: user.id,
-          email: user.email || ''
+          email: user.email || '',
         },
         role: 'admin',
-        createdAt: new Date()
+        createdAt: new Date(),
       },
       {
         action: 'user.bulk_credits',
@@ -183,8 +187,8 @@ async function handlePost(request: NextRequest) {
           affected_users: affected,
           total_users: userIds.length,
           user_ids: userIds,
-          errors: errors.length > 0 ? errors : undefined
-        }
+          errors: errors.length > 0 ? errors : undefined,
+        },
       },
       request
     );
@@ -195,9 +199,8 @@ async function handlePost(request: NextRequest) {
       amount,
       affected,
       total: userIds.length,
-      errors: errors.length > 0 ? errors : undefined
+      errors: errors.length > 0 ? errors : undefined,
     });
-
   } catch (error) {
     console.error('Bulk credit adjustment error:', error);
     return NextResponse.json(

@@ -6,6 +6,7 @@
 ## 🎯 Quick Deployment Steps
 
 ### Option A: Use the Automated Script
+
 ```bash
 ./deploy-test-mode.sh
 ```
@@ -20,6 +21,7 @@
 ## 📋 Environment Variables to Add
 
 ### 🔷 Supabase (Add to Production + Preview)
+
 ```
 NEXT_PUBLIC_SUPABASE_URL=https://xysuxhdqukjtqgzetwps.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh5c3V4aGRxdWtqdHFnemV0d3BzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI1ODczNDgsImV4cCI6MjA2ODE2MzM0OH0.6RyKRNtisph9JeBOhcllQZvFmSxLzsnG2kYl7D-wKnw
@@ -27,6 +29,7 @@ SUPABASE_SERVICE_ROLE_KEY=[Copy from .env.local]
 ```
 
 ### 🎨 AI Services (Production only)
+
 ```
 DEEP_IMAGE_API_KEY=[Copy from .env.local]
 CLIPPINGMAGIC_API_KEY=[Copy from .env.local]
@@ -37,6 +40,7 @@ OPENAI_API_KEY=[Copy from .env.local or leave empty]
 ```
 
 ### 💳 Stripe TEST Mode (Important: TEST keys!)
+
 ```
 NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_test_51Rl8bgPHFzf1GpIrGtRWiO99fFOaVQZ1PDc4vlR90STU2EuRi6sZK2pHbhNphsv7zwJWhLITBExCdXGdQNti2FQX00jHL7NnCV
 STRIPE_SECRET_KEY=[Copy TEST secret key from .env.local]
@@ -51,6 +55,7 @@ STRIPE_PAYG_50_CREDITS_PRICE_ID=price_1RqD0QPHFzf1GpIrcAqSHy0u
 ```
 
 ### 📧 Mailgun (Production only)
+
 ```
 MAILGUN_API_KEY=[Copy from .env.local]
 MAILGUN_DOMAIN=mg.dtfeditor.com
@@ -59,6 +64,7 @@ MAILGUN_FROM_NAME=DTF Editor
 ```
 
 ### 🌐 App Configuration
+
 ```
 NEXT_PUBLIC_APP_URL=https://dtfeditor.com
 CRON_SECRET=67sggMk7N7n1WeeUMd1C59qpRvmVRBM7thBUEWXalK0=
@@ -67,6 +73,7 @@ CRON_SECRET=67sggMk7N7n1WeeUMd1C59qpRvmVRBM7thBUEWXalK0=
 ## 🔄 After Initial Deployment
 
 ### 1. Set Up Stripe TEST Webhook
+
 1. Go to Stripe Dashboard (TEST mode)
 2. Developers → Webhooks → Add endpoint
 3. Endpoint URL: `https://dtfeditor.com/api/webhooks/stripe`
@@ -81,6 +88,7 @@ CRON_SECRET=67sggMk7N7n1WeeUMd1C59qpRvmVRBM7thBUEWXalK0=
 7. Redeploy
 
 ### 2. Configure Custom Domain
+
 1. In Vercel: Settings → Domains
 2. Add `dtfeditor.com`
 3. Add `www.dtfeditor.com` → redirect to apex
@@ -89,6 +97,7 @@ CRON_SECRET=67sggMk7N7n1WeeUMd1C59qpRvmVRBM7thBUEWXalK0=
    - OR CNAME → cname.vercel-dns.com
 
 ### 3. Verify Test Mode
+
 - Visit the deployed site
 - Look for yellow banner: "🧪 TEST MODE"
 - Test a payment with card: 4242 4242 4242 4242
@@ -103,6 +112,7 @@ CRON_SECRET=67sggMk7N7n1WeeUMd1C59qpRvmVRBM7thBUEWXalK0=
 ## 🧪 Test Checklist
 
 After deployment, test:
+
 - [ ] User registration (2 free credits)
 - [ ] Subscribe to Basic plan
 - [ ] Subscribe to Starter plan

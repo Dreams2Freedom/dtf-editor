@@ -12,13 +12,13 @@ export async function POST(request: NextRequest) {
   try {
     // Get authenticated user
     const supabase = await createServerSupabaseClient();
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
 
     if (authError || !user) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     // Parse application data
@@ -35,7 +35,7 @@ export async function POST(request: NextRequest) {
       check_payable_to: body.check_payable_to,
       mailing_address: body.mailing_address,
       tax_form_type: body.tax_form_type,
-      agree_to_terms: body.agree_to_terms
+      agree_to_terms: body.agree_to_terms,
     };
 
     // Validate required fields
@@ -46,7 +46,10 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (!applicationData.promotional_methods || applicationData.promotional_methods.length === 0) {
+    if (
+      !applicationData.promotional_methods ||
+      applicationData.promotional_methods.length === 0
+    ) {
       return NextResponse.json(
         { error: 'Please select at least one promotional method' },
         { status: 400 }
@@ -74,16 +77,25 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (applicationData.payment_method === 'paypal' && !applicationData.paypal_email) {
+    if (
+      applicationData.payment_method === 'paypal' &&
+      !applicationData.paypal_email
+    ) {
       return NextResponse.json(
         { error: 'PayPal email is required for PayPal payments' },
         { status: 400 }
       );
     }
 
-    if (applicationData.payment_method === 'check' && (!applicationData.check_payable_to || !applicationData.mailing_address)) {
+    if (
+      applicationData.payment_method === 'check' &&
+      (!applicationData.check_payable_to || !applicationData.mailing_address)
+    ) {
       return NextResponse.json(
-        { error: 'Check payable name and mailing address are required for check payments' },
+        {
+          error:
+            'Check payable name and mailing address are required for check payments',
+        },
         { status: 400 }
       );
     }
@@ -108,11 +120,11 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       success: true,
       affiliate: result.affiliate,
-      message: result.affiliate?.status === 'approved'
-        ? 'Your application has been approved! You can now start earning commissions.'
-        : 'Your application has been submitted and is under review. We\'ll notify you within 24-48 hours.'
+      message:
+        result.affiliate?.status === 'approved'
+          ? 'Your application has been approved! You can now start earning commissions.'
+          : "Your application has been submitted and is under review. We'll notify you within 24-48 hours.",
     });
-
   } catch (error) {
     console.error('Error in affiliate apply API:', error);
     return NextResponse.json(

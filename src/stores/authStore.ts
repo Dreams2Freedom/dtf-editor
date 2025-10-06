@@ -100,11 +100,11 @@ export const useAuthStore = create<AuthStore>()(
             loading: false,
             error: null,
           });
-          
+
           // Track user activity (non-blocking)
-          fetch('/api/auth/activity', { 
+          fetch('/api/auth/activity', {
             method: 'POST',
-            credentials: 'include'
+            credentials: 'include',
           }).catch(err => console.log('Activity tracking failed:', err));
         } else {
           set({
@@ -174,11 +174,11 @@ export const useAuthStore = create<AuthStore>()(
           }).catch(error => {
             console.error('Failed to send login security alert:', error);
           });
-          
+
           // Track user activity on sign in (non-blocking)
-          fetch('/api/auth/activity', { 
+          fetch('/api/auth/activity', {
             method: 'POST',
-            credentials: 'include'
+            credentials: 'include',
           }).catch(err => console.log('Activity tracking failed:', err));
 
           return { success: true };
@@ -208,7 +208,7 @@ export const useAuthStore = create<AuthStore>()(
 
       try {
         console.log('[SIGNUP STORE] Step 1: Calling server-side signup API');
-        
+
         // Use server-side signup to ensure email is sent
         const response = await fetch('/api/auth/signup', {
           method: 'POST',
@@ -223,7 +223,7 @@ export const useAuthStore = create<AuthStore>()(
         });
 
         const result = await response.json();
-        
+
         console.log('[SIGNUP STORE] Step 2: Server response:', result);
 
         if (!result.success) {
@@ -248,8 +248,10 @@ export const useAuthStore = create<AuthStore>()(
               loading: false,
               error: null,
             });
-            
-            console.log('[SIGNUP STORE] Step 3: User state set, signup complete');
+
+            console.log(
+              '[SIGNUP STORE] Step 3: User state set, signup complete'
+            );
           } else {
             // User created but needs to sign in
             set({ loading: false, error: null });
@@ -454,18 +456,25 @@ export const useIsAuthenticated = () => useAuthStore(state => !!state.user);
 export const useIsAdmin = () => useAuthStore(state => state.isAdmin);
 
 export const useProfile = () => useAuthStore(state => state.profile);
-export const useCreditsRemaining = () => useAuthStore(state => state.creditsRemaining);
-export const useSubscriptionStatus = () => useAuthStore(state => state.subscriptionStatus);
-export const useSubscriptionPlan = () => useAuthStore(state => state.subscriptionPlan);
+export const useCreditsRemaining = () =>
+  useAuthStore(state => state.creditsRemaining);
+export const useSubscriptionStatus = () =>
+  useAuthStore(state => state.subscriptionStatus);
+export const useSubscriptionPlan = () =>
+  useAuthStore(state => state.subscriptionPlan);
 
 // Action hooks
 export const useSignIn = () => useAuthStore(state => state.signIn);
 export const useSignUp = () => useAuthStore(state => state.signUp);
 export const useSignOut = () => useAuthStore(state => state.signOut);
-export const useUpdateProfile = () => useAuthStore(state => state.updateProfile);
-export const useResetPassword = () => useAuthStore(state => state.resetPassword);
-export const useUpdatePassword = () => useAuthStore(state => state.updatePassword);
+export const useUpdateProfile = () =>
+  useAuthStore(state => state.updateProfile);
+export const useResetPassword = () =>
+  useAuthStore(state => state.resetPassword);
+export const useUpdatePassword = () =>
+  useAuthStore(state => state.updatePassword);
 export const useCheckCredits = () => useAuthStore(state => state.checkCredits);
-export const useRefreshCredits = () => useAuthStore(state => state.refreshCredits);
+export const useRefreshCredits = () =>
+  useAuthStore(state => state.refreshCredits);
 export const useClearError = () => useAuthStore(state => state.clearError);
 export const useInitialize = () => useAuthStore(state => state.initialize);

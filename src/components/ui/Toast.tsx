@@ -1,4 +1,4 @@
-"use client";
+'use client';
 
 import React from 'react';
 import * as ToastPrimitive from '@radix-ui/react-toast';
@@ -57,9 +57,7 @@ export function Toast({
         )}
       >
         <div className="flex items-center space-x-3">
-          {Icon && (
-            <Icon className="h-5 w-5 flex-shrink-0" />
-          )}
+          {Icon && <Icon className="h-5 w-5 flex-shrink-0" />}
           <div className="flex-1">
             <ToastPrimitive.Title className="text-sm font-semibold">
               {title}
@@ -71,11 +69,7 @@ export function Toast({
             )}
           </div>
         </div>
-        {action && (
-          <div className="flex-shrink-0">
-            {action}
-          </div>
-        )}
+        {action && <div className="flex-shrink-0">{action}</div>}
         <ToastPrimitive.Close className="absolute right-2 top-2 rounded-md p-1 opacity-0 transition-opacity hover:text-gray-500 focus:opacity-100 focus:outline-none focus:ring-2 group-hover:opacity-100">
           <X className="h-4 w-4" />
         </ToastPrimitive.Close>
@@ -95,4 +89,4 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
   );
 }
 
-export { ToastPrimitive }; 
+export { ToastPrimitive };

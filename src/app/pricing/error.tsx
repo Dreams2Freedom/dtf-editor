@@ -27,14 +27,14 @@ export default function PricingError({
           <div className="flex justify-center mb-4">
             <CreditCard className="h-12 w-12 text-gray-400" />
           </div>
-          
+
           <h1 className="text-2xl font-bold text-gray-900 mb-2">
             Payment System Unavailable
           </h1>
-          
+
           <p className="text-gray-600 mb-6">
-            We're having trouble loading pricing information. This is usually temporary. 
-            Please try again in a moment.
+            We're having trouble loading pricing information. This is usually
+            temporary. Please try again in a moment.
           </p>
 
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
@@ -45,7 +45,7 @@ export default function PricingError({
               <RefreshCw className="w-4 h-4" />
               Try Again
             </Button>
-            
+
             <Button
               variant="outline"
               onClick={() => router.push('/')}

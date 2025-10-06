@@ -28,14 +28,14 @@ export default function ClippingMagicEditorClient() {
     // Store values on window for the script to access
     window.cmImageData = {
       id: parseInt(imageId),
-      secret: imageSecret
+      secret: imageSecret,
     };
 
     // Load ClippingMagic SDK
     const script = document.createElement('script');
     script.src = 'https://clippingmagic.com/api/v1/ClippingMagic.js';
     script.async = true;
-    
+
     script.onload = () => {
       console.log('ClippingMagic script loaded');
       initializeEditor();
@@ -67,10 +67,10 @@ export default function ClippingMagicEditorClient() {
         apiId: parseInt(env.NEXT_PUBLIC_CLIPPING_MAGIC_API_ID || '12345'),
         image: {
           id: window.cmImageData.id,
-          secret: window.cmImageData.secret
+          secret: window.cmImageData.secret,
         },
         locale: 'en-US',
-        publicKey: env.NEXT_PUBLIC_CLIPPING_MAGIC_PUBLIC_KEY
+        publicKey: env.NEXT_PUBLIC_CLIPPING_MAGIC_PUBLIC_KEY,
       });
 
       editor.subscribe({
@@ -79,13 +79,13 @@ export default function ClippingMagicEditorClient() {
             console.error('ClippingMagic errors:', errors);
             return;
           }
-          
+
           if (image && image.resultUrl) {
             console.log('Image processed:', image);
             // Here you could redirect back to your app with the result
             // window.location.href = `/process/complete?url=${encodeURIComponent(image.resultUrl)}`;
           }
-        }
+        },
       });
 
       console.log('ClippingMagic editor initialized');
@@ -99,7 +99,9 @@ export default function ClippingMagicEditorClient() {
       <div id="clippingmagic-editor" className="w-full h-screen">
         <div className="flex items-center justify-center h-full">
           <div className="text-center">
-            <h2 className="text-2xl font-semibold mb-4">Loading ClippingMagic Editor...</h2>
+            <h2 className="text-2xl font-semibold mb-4">
+              Loading ClippingMagic Editor...
+            </h2>
             <p className="text-gray-600">This may take a few seconds</p>
           </div>
         </div>

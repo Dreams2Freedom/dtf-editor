@@ -16,41 +16,44 @@ async function check() {
     .from('profiles')
     .select('id, email, created_at')
     .like('email', '%test%');
-  
+
   if (error) {
     console.error('Error:', error);
     return;
   }
-  
+
   console.log(`Found ${profiles?.length || 0} test profiles:`);
   profiles?.forEach(p => {
     console.log(`  - ${p.email} (ID: ${p.id})`);
   });
-  
+
   // Check orphaned profiles
   const { data: authUsers } = await supabase.auth.admin.listUsers();
   const authUserIds = authUsers?.users?.map(u => u.id) || [];
-  
+
   const orphaned = profiles?.filter(p => !authUserIds.includes(p.id)) || [];
-  
+
   if (orphaned.length > 0) {
-    console.log('\n⚠️  Found orphaned profiles (no auth user):', orphaned.length);
-    
+    console.log(
+      '\n⚠️  Found orphaned profiles (no auth user):',
+      orphaned.length
+    );
+
     for (const profile of orphaned) {
       console.log(`  Deleting orphaned profile: ${profile.email}`);
-      
+
       // Delete transactions first
       await supabase
         .from('credit_transactions')
         .delete()
         .eq('user_id', profile.id);
-        
+
       // Delete profile
       const { error: deleteError } = await supabase
         .from('profiles')
         .delete()
         .eq('id', profile.id);
-        
+
       if (deleteError) {
         console.error(`    Error deleting: ${deleteError.message}`);
       } else {

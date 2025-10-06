@@ -32,7 +32,7 @@ async function handlePost(request: NextRequest) {
     }
 
     const stripeService = getStripeService();
-    
+
     // Create billing portal session
     const session = await stripeService.createPortalSession(
       profile.stripe_customer_id,

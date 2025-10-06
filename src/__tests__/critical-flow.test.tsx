@@ -46,19 +46,17 @@ describe('Critical User Flow - Image Processing', () => {
   });
 
   const renderWithAuth = (component: React.ReactElement) => {
-    return render(
-      <AuthProvider>
-        {component}
-      </AuthProvider>
-    );
+    return render(<AuthProvider>{component}</AuthProvider>);
   };
 
   it('should complete the full image upscaling flow', async () => {
     const user = userEvent.setup();
-    
+
     // Import after mocking
-    const { imageProcessingService } = await import('@/services/imageProcessing');
-    
+    const { imageProcessingService } = await import(
+      '@/services/imageProcessing'
+    );
+
     // Mock successful processing
     vi.mocked(imageProcessingService.processImage).mockResolvedValue({
       success: true,
@@ -75,10 +73,14 @@ describe('Critical User Flow - Image Processing', () => {
 
     // 1. Verify initial state
     expect(screen.getByText(/upload an image/i)).toBeInTheDocument();
-    expect(screen.getByText(/you have 10 credits remaining/i)).toBeInTheDocument();
+    expect(
+      screen.getByText(/you have 10 credits remaining/i)
+    ).toBeInTheDocument();
 
     // 2. Upload an image
-    const fileInput = screen.getByLabelText(/drag & drop an image here/i, { selector: 'input' });
+    const fileInput = screen.getByLabelText(/drag & drop an image here/i, {
+      selector: 'input',
+    });
     await user.upload(fileInput, mockFile);
 
     // 3. Verify image preview appears
@@ -94,7 +96,9 @@ describe('Critical User Flow - Image Processing', () => {
     await user.click(scale4xButton);
 
     // 5. Start processing
-    const processButton = screen.getByRole('button', { name: /upscale image \(1 credit\)/i });
+    const processButton = screen.getByRole('button', {
+      name: /upscale image \(1 credit\)/i,
+    });
     await user.click(processButton);
 
     // 6. Verify processing state
@@ -111,15 +115,19 @@ describe('Critical User Flow - Image Processing', () => {
     expect(screen.getByText(/credits used: 1/i)).toBeInTheDocument();
 
     // 9. Verify download button
-    expect(screen.getByRole('button', { name: /download/i })).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: /download/i })
+    ).toBeInTheDocument();
   });
 
   it('should handle processing errors gracefully', async () => {
     const user = userEvent.setup();
-    
+
     // Import after mocking
-    const { imageProcessingService } = await import('@/services/imageProcessing');
-    
+    const { imageProcessingService } = await import(
+      '@/services/imageProcessing'
+    );
+
     // Mock processing failure
     vi.mocked(imageProcessingService.processImage).mockResolvedValue({
       success: false,
@@ -135,26 +143,32 @@ describe('Critical User Flow - Image Processing', () => {
     renderWithAuth(<ImageProcessor />);
 
     // Upload and process image
-    const fileInput = screen.getByLabelText(/drag & drop an image here/i, { selector: 'input' });
+    const fileInput = screen.getByLabelText(/drag & drop an image here/i, {
+      selector: 'input',
+    });
     await user.upload(fileInput, mockFile);
 
     await waitFor(() => {
       expect(screen.getByAltText('Original')).toBeInTheDocument();
     });
 
-    const processButton = screen.getByRole('button', { name: /upscale image \(1 credit\)/i });
+    const processButton = screen.getByRole('button', {
+      name: /upscale image \(1 credit\)/i,
+    });
     await user.click(processButton);
 
     // Verify error handling
     await waitFor(() => {
       expect(screen.getByText(/processing failed/i)).toBeInTheDocument();
-      expect(screen.getByText(/processing failed due to server error/i)).toBeInTheDocument();
+      expect(
+        screen.getByText(/processing failed due to server error/i)
+      ).toBeInTheDocument();
     });
   });
 
   it('should prevent processing with insufficient credits', async () => {
     const user = userEvent.setup();
-    
+
     // Mock user with no credits
     vi.doMock('@/stores/authStore', () => ({
       useAuthStore: () => ({
@@ -166,7 +180,9 @@ describe('Critical User Flow - Image Processing', () => {
 
     renderWithAuth(<ImageProcessor />);
 
-    const fileInput = screen.getByLabelText(/drag & drop an image here/i, { selector: 'input' });
+    const fileInput = screen.getByLabelText(/drag & drop an image here/i, {
+      selector: 'input',
+    });
     await user.upload(fileInput, mockFile);
 
     await waitFor(() => {
@@ -174,7 +190,9 @@ describe('Critical User Flow - Image Processing', () => {
     });
 
     // Verify process button is disabled
-    const processButton = screen.getByRole('button', { name: /upscale image \(1 credit\)/i });
+    const processButton = screen.getByRole('button', {
+      name: /upscale image \(1 credit\)/i,
+    });
     expect(processButton).toBeDisabled();
 
     // Verify insufficient credits message
@@ -183,27 +201,33 @@ describe('Critical User Flow - Image Processing', () => {
 
   it('should validate file types correctly', async () => {
     const user = userEvent.setup();
-    
+
     renderWithAuth(<ImageProcessor />);
 
     // Try to upload invalid file type
     const invalidFile = new File(['test'], 'test.txt', { type: 'text/plain' });
-    const fileInput = screen.getByLabelText(/drag & drop an image here/i, { selector: 'input' });
-    
+    const fileInput = screen.getByLabelText(/drag & drop an image here/i, {
+      selector: 'input',
+    });
+
     await user.upload(fileInput, invalidFile);
 
     // Should show validation error
     await waitFor(() => {
-      expect(screen.getByText(/please upload a jpeg, png, or webp image file/i)).toBeInTheDocument();
+      expect(
+        screen.getByText(/please upload a jpeg, png, or webp image file/i)
+      ).toBeInTheDocument();
     });
   });
 
   it('should switch between different operations', async () => {
     const user = userEvent.setup();
-    
+
     renderWithAuth(<ImageProcessor />);
 
-    const fileInput = screen.getByLabelText(/drag & drop an image here/i, { selector: 'input' });
+    const fileInput = screen.getByLabelText(/drag & drop an image here/i, {
+      selector: 'input',
+    });
     await user.upload(fileInput, mockFile);
 
     await waitFor(() => {
@@ -211,55 +235,65 @@ describe('Critical User Flow - Image Processing', () => {
     });
 
     // Switch to background removal
-    const backgroundRemovalButton = screen.getByRole('button', { name: /remove bg/i });
+    const backgroundRemovalButton = screen.getByRole('button', {
+      name: /remove bg/i,
+    });
     await user.click(backgroundRemovalButton);
 
     // Verify UI updates
     expect(screen.getByText(/background color/i)).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /remove background \(1 credit\)/i })).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: /remove background \(1 credit\)/i })
+    ).toBeInTheDocument();
 
     // Switch to vectorization
-    const vectorizationButton = screen.getByRole('button', { name: /vectorize/i });
+    const vectorizationButton = screen.getByRole('button', {
+      name: /vectorize/i,
+    });
     await user.click(vectorizationButton);
 
     // Verify UI updates for vectorization
     expect(screen.getByText(/output format/i)).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /vectorize image \(2 credits\)/i })).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: /vectorize image \(2 credits\)/i })
+    ).toBeInTheDocument();
   });
 });
 
 describe('Performance Tests', () => {
   it('should render ImageProcessor within performance budget', async () => {
     const startTime = performance.now();
-    
+
     render(
       <AuthProvider>
         <ImageProcessor />
       </AuthProvider>
     );
-    
+
     const endTime = performance.now();
     const renderTime = endTime - startTime;
-    
+
     // Should render within 100ms
     expect(renderTime).toBeLessThan(100);
   });
 
   it('should handle file validation without blocking UI', async () => {
     const user = userEvent.setup();
-    
+
     render(
       <AuthProvider>
         <ImageProcessor />
       </AuthProvider>
     );
 
-    const fileInput = screen.getByLabelText(/drag & drop an image here/i, { selector: 'input' });
-    
+    const fileInput = screen.getByLabelText(/drag & drop an image here/i, {
+      selector: 'input',
+    });
+
     const startTime = performance.now();
     await user.upload(fileInput, mockFile);
     const endTime = performance.now();
-    
+
     // File validation should be fast
     expect(endTime - startTime).toBeLessThan(50);
   });

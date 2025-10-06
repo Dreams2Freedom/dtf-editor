@@ -3,7 +3,15 @@
 import React, { useState, useEffect } from 'react';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
-import { Bell, BellOff, Clock, Calendar, DollarSign, AlertCircle, CheckCircle } from 'lucide-react';
+import {
+  Bell,
+  BellOff,
+  Clock,
+  Calendar,
+  DollarSign,
+  AlertCircle,
+  CheckCircle,
+} from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 
 interface NotificationPreferences {
@@ -43,7 +51,9 @@ export function NotificationPreferences() {
   });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [saveStatus, setSaveStatus] = useState<'idle' | 'success' | 'error'>('idle');
+  const [saveStatus, setSaveStatus] = useState<'idle' | 'success' | 'error'>(
+    'idle'
+  );
 
   useEffect(() => {
     fetchPreferences();
@@ -54,7 +64,7 @@ export function NotificationPreferences() {
       const token = await user?.getIdToken();
       const response = await fetch('/api/admin/notification-preferences', {
         headers: {
-          'Authorization': `Bearer ${token}`,
+          Authorization: `Bearer ${token}`,
         },
       });
 
@@ -78,7 +88,7 @@ export function NotificationPreferences() {
       const response = await fetch('/api/admin/notification-preferences', {
         method: 'PUT',
         headers: {
-          'Authorization': `Bearer ${token}`,
+          Authorization: `Bearer ${token}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify(preferences),
@@ -105,7 +115,10 @@ export function NotificationPreferences() {
     }));
   };
 
-  const handleInputChange = (key: keyof NotificationPreferences, value: string | number) => {
+  const handleInputChange = (
+    key: keyof NotificationPreferences,
+    value: string | number
+  ) => {
     setPreferences(prev => ({
       ...prev,
       [key]: value,
@@ -125,8 +138,12 @@ export function NotificationPreferences() {
       <Card className="p-6">
         <div className="flex items-center justify-between mb-6">
           <div>
-            <h2 className="text-2xl font-bold text-gray-900">Notification Preferences</h2>
-            <p className="text-gray-600 mt-1">Control which notifications you receive and when</p>
+            <h2 className="text-2xl font-bold text-gray-900">
+              Notification Preferences
+            </h2>
+            <p className="text-gray-600 mt-1">
+              Control which notifications you receive and when
+            </p>
           </div>
           <Bell className="h-8 w-8 text-blue-600" />
         </div>
@@ -227,12 +244,19 @@ export function NotificationPreferences() {
                 <input
                   type="number"
                   value={preferences.min_purchase_value_for_notification}
-                  onChange={(e) => handleInputChange('min_purchase_value_for_notification', parseInt(e.target.value))}
+                  onChange={e =>
+                    handleInputChange(
+                      'min_purchase_value_for_notification',
+                      parseInt(e.target.value)
+                    )
+                  }
                   className="w-24 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                   min="0"
                 />
               </div>
-              <p className="text-sm text-gray-500 mt-1">Only notify for purchases above this amount</p>
+              <p className="text-sm text-gray-500 mt-1">
+                Only notify for purchases above this amount
+              </p>
             </div>
           </div>
         </div>
@@ -251,7 +275,9 @@ export function NotificationPreferences() {
               <input
                 type="time"
                 value={preferences.quiet_hours_start}
-                onChange={(e) => handleInputChange('quiet_hours_start', e.target.value)}
+                onChange={e =>
+                  handleInputChange('quiet_hours_start', e.target.value)
+                }
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
             </div>
@@ -262,7 +288,9 @@ export function NotificationPreferences() {
               <input
                 type="time"
                 value={preferences.quiet_hours_end}
-                onChange={(e) => handleInputChange('quiet_hours_end', e.target.value)}
+                onChange={e =>
+                  handleInputChange('quiet_hours_end', e.target.value)
+                }
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
             </div>
@@ -272,7 +300,7 @@ export function NotificationPreferences() {
               </label>
               <select
                 value={preferences.timezone}
-                onChange={(e) => handleInputChange('timezone', e.target.value)}
+                onChange={e => handleInputChange('timezone', e.target.value)}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
                 <option value="America/New_York">Eastern Time</option>
@@ -296,13 +324,17 @@ export function NotificationPreferences() {
             {saveStatus === 'success' && (
               <div className="flex items-center text-green-600">
                 <CheckCircle className="h-5 w-5 mr-2" />
-                <span className="text-sm font-medium">Preferences saved successfully</span>
+                <span className="text-sm font-medium">
+                  Preferences saved successfully
+                </span>
               </div>
             )}
             {saveStatus === 'error' && (
               <div className="flex items-center text-red-600">
                 <AlertCircle className="h-5 w-5 mr-2" />
-                <span className="text-sm font-medium">Failed to save preferences</span>
+                <span className="text-sm font-medium">
+                  Failed to save preferences
+                </span>
               </div>
             )}
           </div>
@@ -333,7 +365,10 @@ function NotificationToggle({
   return (
     <div className="flex items-center justify-between p-3 rounded-lg hover:bg-gray-50 transition-colors">
       <div className="flex-1">
-        <label className="font-medium text-gray-900 cursor-pointer" onClick={onChange}>
+        <label
+          className="font-medium text-gray-900 cursor-pointer"
+          onClick={onChange}
+        >
           {label}
         </label>
         <p className="text-sm text-gray-500">{description}</p>

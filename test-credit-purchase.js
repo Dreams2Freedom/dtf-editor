@@ -18,13 +18,13 @@ const testWebhookPayload = {
       metadata: {
         userId: 'f689bb22-89dd-4c3c-a941-d77feb84428d',
         credits: '10',
-        userEmail: 'snsmarketing@gmail.com'
+        userEmail: 'snsmarketing@gmail.com',
       },
       mode: 'payment',
       payment_status: 'paid',
-      status: 'complete'
-    }
-  }
+      status: 'complete',
+    },
+  },
 };
 
 // Send test webhook to production endpoint
@@ -35,24 +35,24 @@ const options = {
   method: 'POST',
   headers: {
     'Content-Type': 'application/json',
-    'stripe-signature': 'test_signature' // This will fail validation but shows if endpoint is reachable
-  }
+    'stripe-signature': 'test_signature', // This will fail validation but shows if endpoint is reachable
+  },
 };
 
-const req = https.request(options, (res) => {
+const req = https.request(options, res => {
   console.log(`Status Code: ${res.statusCode}`);
-  
+
   let data = '';
-  res.on('data', (chunk) => {
+  res.on('data', chunk => {
     data += chunk;
   });
-  
+
   res.on('end', () => {
     console.log('Response:', data);
   });
 });
 
-req.on('error', (error) => {
+req.on('error', error => {
   console.error('Error:', error);
 });
 

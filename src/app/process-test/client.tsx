@@ -55,15 +55,32 @@ export default function ProcessTestClient() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center py-4">
             <div className="flex items-center space-x-8">
-              <h1 className="text-2xl font-bold text-gray-900">DTF Editor - Test</h1>
+              <h1 className="text-2xl font-bold text-gray-900">
+                DTF Editor - Test
+              </h1>
               <nav className="hidden md:flex space-x-6">
-                <Link href="/dashboard" className="text-gray-600 hover:text-gray-900">Dashboard</Link>
-                <Link href="/process" className="text-blue-600 font-medium">Process</Link>
-                <Link href="/pricing" className="text-gray-600 hover:text-gray-900">Pricing</Link>
+                <Link
+                  href="/dashboard"
+                  className="text-gray-600 hover:text-gray-900"
+                >
+                  Dashboard
+                </Link>
+                <Link href="/process" className="text-blue-600 font-medium">
+                  Process
+                </Link>
+                <Link
+                  href="/pricing"
+                  className="text-gray-600 hover:text-gray-900"
+                >
+                  Pricing
+                </Link>
               </nav>
             </div>
             <div className="flex items-center gap-4">
-              <Link href="/dashboard" className="text-gray-600 hover:text-gray-900">
+              <Link
+                href="/dashboard"
+                className="text-gray-600 hover:text-gray-900"
+              >
                 ← Back to Dashboard
               </Link>
             </div>
@@ -76,7 +93,10 @@ export default function ProcessTestClient() {
         <ImageProcessor />
       </main>
 
-      <script src="https://clippingmagic.com/api/v1/ClippingMagic.js" type="text/javascript" />
+      <script
+        src="https://clippingmagic.com/api/v1/ClippingMagic.js"
+        type="text/javascript"
+      />
     </div>
   );
 }

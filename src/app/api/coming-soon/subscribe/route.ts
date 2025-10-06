@@ -30,13 +30,11 @@ async function handlePost(request: NextRequest) {
     }
 
     // Add to waitlist
-    const { error } = await supabase
-      .from('waitlist')
-      .insert({
-        email,
-        source: 'coming-soon',
-        created_at: new Date().toISOString()
-      });
+    const { error } = await supabase.from('waitlist').insert({
+      email,
+      source: 'coming-soon',
+      created_at: new Date().toISOString(),
+    });
 
     if (error) {
       // If table doesn't exist, create it
@@ -50,17 +48,15 @@ async function handlePost(request: NextRequest) {
               source TEXT,
               created_at TIMESTAMPTZ DEFAULT NOW()
             );
-          `
+          `,
         });
 
         // Try again
-        await supabase
-          .from('waitlist')
-          .insert({
-            email,
-            source: 'coming-soon',
-            created_at: new Date().toISOString()
-          });
+        await supabase.from('waitlist').insert({
+          email,
+          source: 'coming-soon',
+          created_at: new Date().toISOString(),
+        });
       } else {
         throw error;
       }
@@ -68,15 +64,11 @@ async function handlePost(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      message: 'Successfully added to waitlist!'
+      message: 'Successfully added to waitlist!',
     });
-
   } catch (error) {
     console.error('Error adding to waitlist:', error);
-    return NextResponse.json(
-      { error: 'Failed to subscribe' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'Failed to subscribe' }, { status: 500 });
   }
 }
 

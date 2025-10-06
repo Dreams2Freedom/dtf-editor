@@ -68,7 +68,9 @@ export function ImageGenerator() {
   const totalCost = creditCost * options.count;
   const canGenerate =
     isAdmin ||
-    (isPaidUser && hasCredits && (profile?.credits_remaining || 0) >= totalCost);
+    (isPaidUser &&
+      hasCredits &&
+      (profile?.credits_remaining || 0) >= totalCost);
 
   const handleGenerate = async () => {
     if (!prompt.trim()) {

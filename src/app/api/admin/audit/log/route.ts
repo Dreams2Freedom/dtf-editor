@@ -17,13 +17,8 @@ async function handlePost(request: NextRequest) {
 
     const session: AdminSession = JSON.parse(sessionCookie.value);
     const body = await request.json();
-    
-    const {
-      action,
-      resource_type,
-      resource_id,
-      details = {}
-    } = body;
+
+    const { action, resource_type, resource_id, details = {} } = body;
 
     if (!action || !resource_type) {
       return NextResponse.json(
@@ -52,8 +47,10 @@ async function handlePost(request: NextRequest) {
       p_resource_type: resource_type,
       p_resource_id: resource_id,
       p_details: details,
-      p_ip_address: request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip'),
-      p_user_agent: request.headers.get('user-agent')
+      p_ip_address:
+        request.headers.get('x-forwarded-for') ||
+        request.headers.get('x-real-ip'),
+      p_user_agent: request.headers.get('user-agent'),
     });
 
     if (error) {
@@ -66,7 +63,7 @@ async function handlePost(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      data: { log_id: data }
+      data: { log_id: data },
     });
   } catch (error) {
     console.error('Audit logging error:', error);

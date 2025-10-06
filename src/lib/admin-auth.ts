@@ -11,10 +11,13 @@ export function withAdminAuth(
   return async (request: NextRequest) => {
     try {
       const supabase = createServerSupabaseClient();
-      
+
       // Get the current user
-      const { data: { user }, error: authError } = await supabase.auth.getUser();
-      
+      const {
+        data: { user },
+        error: authError,
+      } = await supabase.auth.getUser();
+
       if (authError || !user) {
         return NextResponse.json(
           { error: 'Authentication required' },
@@ -54,7 +57,7 @@ export function withAdminAuth(
 export async function isUserAdmin(userId: string): Promise<boolean> {
   try {
     const supabase = createServerSupabaseClient();
-    
+
     const { data: profile } = await supabase
       .from('profiles')
       .select('is_admin')

@@ -4,7 +4,14 @@ import { useEffect, useState } from 'react';
 import { useAuthStore } from '@/stores/authStore';
 import { createClientSupabaseClient } from '@/lib/supabase/client';
 import { formatDistanceToNow } from 'date-fns';
-import { Coins, TrendingUp, TrendingDown, RotateCcw, CreditCard, Settings } from 'lucide-react';
+import {
+  Coins,
+  TrendingUp,
+  TrendingDown,
+  RotateCcw,
+  CreditCard,
+  Settings,
+} from 'lucide-react';
 
 interface CreditTransaction {
   id: string;
@@ -78,7 +85,13 @@ export function CreditHistory() {
   };
 
   const formatAmount = (amount: number, type: string) => {
-    const isPositive = ['purchase', 'subscription', 'refund', 'reset', 'manual'].includes(type);
+    const isPositive = [
+      'purchase',
+      'subscription',
+      'refund',
+      'reset',
+      'manual',
+    ].includes(type);
     return `${isPositive ? '+' : '-'}${Math.abs(amount)}`;
   };
 
@@ -103,7 +116,7 @@ export function CreditHistory() {
 
   return (
     <div className="space-y-3">
-      {transactions.map((transaction) => (
+      {transactions.map(transaction => (
         <div
           key={transaction.id}
           className="flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
@@ -114,10 +127,14 @@ export function CreditHistory() {
             </div>
             <div>
               <p className="font-medium text-gray-900">
-                {transaction.description || transaction.type.charAt(0).toUpperCase() + transaction.type.slice(1)}
+                {transaction.description ||
+                  transaction.type.charAt(0).toUpperCase() +
+                    transaction.type.slice(1)}
               </p>
               <p className="text-sm text-gray-500">
-                {formatDistanceToNow(new Date(transaction.created_at), { addSuffix: true })}
+                {formatDistanceToNow(new Date(transaction.created_at), {
+                  addSuffix: true,
+                })}
               </p>
             </div>
           </div>

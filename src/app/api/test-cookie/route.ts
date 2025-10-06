@@ -7,7 +7,7 @@ async function handleGet(request: NextRequest) {
   const response = NextResponse.json({
     success: true,
     message: 'Test cookie endpoint',
-    timestamp: new Date().toISOString()
+    timestamp: new Date().toISOString(),
   });
 
   // Set test cookie using response.cookies
@@ -16,7 +16,7 @@ async function handleGet(request: NextRequest) {
     secure: process.env.NODE_ENV === 'production',
     sameSite: 'lax',
     path: '/',
-    maxAge: 60 * 60 // 1 hour
+    maxAge: 60 * 60, // 1 hour
   });
 
   // Also try setting via the cookies() function
@@ -26,7 +26,7 @@ async function handleGet(request: NextRequest) {
     secure: process.env.NODE_ENV === 'production',
     sameSite: 'lax',
     path: '/',
-    maxAge: 60 * 60
+    maxAge: 60 * 60,
   });
 
   return response;
@@ -36,10 +36,10 @@ async function handlePost(request: NextRequest) {
   // Read cookies to verify they were set
   const cookieStore = await cookies();
   const allCookies = cookieStore.getAll();
-  
+
   return NextResponse.json({
     success: true,
-    cookies: allCookies.map(c => ({ name: c.name, value: c.value }))
+    cookies: allCookies.map(c => ({ name: c.name, value: c.value })),
   });
 }
 

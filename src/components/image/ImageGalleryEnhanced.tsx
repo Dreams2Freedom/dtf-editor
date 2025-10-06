@@ -21,7 +21,7 @@ import {
   X,
   ChevronDown,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
 } from 'lucide-react';
 import { toast } from '@/lib/toast';
 import Image from 'next/image';
@@ -59,7 +59,7 @@ interface Collection {
 type DateFilter = 'all' | 'today' | 'week' | 'month' | 'custom';
 
 const ITEMS_PER_PAGE_OPTIONS = [8, 16, 32, 64, 'all'] as const;
-type ItemsPerPageOption = typeof ITEMS_PER_PAGE_OPTIONS[number];
+type ItemsPerPageOption = (typeof ITEMS_PER_PAGE_OPTIONS)[number];
 
 export function ImageGalleryEnhanced() {
   const { user, profile } = useAuthStore();
@@ -70,9 +70,14 @@ export function ImageGalleryEnhanced() {
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [searchTerm, setSearchTerm] = useState('');
   const [filterType, setFilterType] = useState<string>('all');
-  const [sortBy, setSortBy] = useState<'newest' | 'oldest' | 'size' | 'name'>('newest');
+  const [sortBy, setSortBy] = useState<'newest' | 'oldest' | 'size' | 'name'>(
+    'newest'
+  );
   const [dateFilter, setDateFilter] = useState<DateFilter>('all');
-  const [customDateRange, setCustomDateRange] = useState({ start: '', end: '' });
+  const [customDateRange, setCustomDateRange] = useState({
+    start: '',
+    end: '',
+  });
   const [selectedImages, setSelectedImages] = useState<Set<string>>(new Set());
   const [isSelectionMode, setIsSelectionMode] = useState(false);
   const [showFilterMenu, setShowFilterMenu] = useState(false);
@@ -86,7 +91,16 @@ export function ImageGalleryEnhanced() {
       fetchImages();
       fetchCollections();
     }
-  }, [user, sortBy, filterType, dateFilter, customDateRange, selectedCollection, currentPage, itemsPerPage]);
+  }, [
+    user,
+    sortBy,
+    filterType,
+    dateFilter,
+    customDateRange,
+    selectedCollection,
+    currentPage,
+    itemsPerPage,
+  ]);
 
   // Reset to page 1 when filters change
   useEffect(() => {
@@ -101,7 +115,7 @@ export function ImageGalleryEnhanced() {
       const defaultCollection = {
         id: 'default',
         name: 'All Images',
-        is_default: true
+        is_default: true,
       };
       setCollections([defaultCollection]);
     } catch (error) {
@@ -113,11 +127,11 @@ export function ImageGalleryEnhanced() {
     try {
       setLoading(true);
       const supabase = createClientSupabaseClient();
-      
+
       // Use RPC function to fetch images (same as StorageManager)
       // This bypasses RLS issues and ensures consistency
       const { data, error } = await supabase.rpc('get_user_images', {
-        p_user_id: user.id
+        p_user_id: user.id,
       });
 
       if (error) {
@@ -129,7 +143,7 @@ export function ImageGalleryEnhanced() {
       }
 
       let images: ProcessedImage[] = data || [];
-      
+
       // Generate signed URLs for each image
       const supabaseClient = createClientSupabaseClient();
       for (const image of images) {
@@ -141,14 +155,17 @@ export function ImageGalleryEnhanced() {
               const url = new URL(image.storage_url);
               // Extract path from URL if it's a Supabase storage URL
               if (url.pathname.includes('/storage/v1/object/public/images/')) {
-                const path = url.pathname.replace('/storage/v1/object/public/images/', '');
+                const path = url.pathname.replace(
+                  '/storage/v1/object/public/images/',
+                  ''
+                );
                 const cleanPath = path.split('?')[0]; // Remove query params
-                
+
                 // Generate a fresh signed URL
                 const { data: signedUrlData } = await supabaseClient.storage
                   .from('images')
                   .createSignedUrl(cleanPath, 3600); // 1 hour expiry
-                
+
                 if (signedUrlData?.signedUrl) {
                   image.storage_url = signedUrlData.signedUrl;
                   image.thumbnail_url = signedUrlData.signedUrl;
@@ -163,7 +180,7 @@ export function ImageGalleryEnhanced() {
             const { data: signedUrlData } = await supabaseClient.storage
               .from('images')
               .createSignedUrl(image.storage_url, 3600); // 1 hour expiry
-            
+
             if (signedUrlData?.signedUrl) {
               image.storage_url = signedUrlData.signedUrl;
               image.thumbnail_url = signedUrlData.signedUrl;
@@ -171,12 +188,12 @@ export function ImageGalleryEnhanced() {
           }
         }
       }
-      
+
       // Apply date filtering
       if (dateFilter !== 'all') {
         const now = new Date();
         let startDate: Date | undefined;
-        
+
         switch (dateFilter) {
           case 'today':
             startDate = new Date(now.setHours(0, 0, 0, 0));
@@ -198,24 +215,32 @@ export function ImageGalleryEnhanced() {
             }
             break;
         }
-        
+
         if (dateFilter !== 'custom' && startDate) {
-          images = images.filter((img: ProcessedImage) => isAfter(new Date(img.created_at), startDate));
+          images = images.filter((img: ProcessedImage) =>
+            isAfter(new Date(img.created_at), startDate)
+          );
         }
       }
-      
+
       // Apply type filtering
       if (filterType !== 'all') {
         images = images.filter(img => img.operation_type === filterType);
       }
-      
+
       // Apply sorting
       images.sort((a, b) => {
         switch (sortBy) {
           case 'oldest':
-            return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+            return (
+              new Date(a.created_at).getTime() -
+              new Date(b.created_at).getTime()
+            );
           case 'newest':
-            return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+            return (
+              new Date(b.created_at).getTime() -
+              new Date(a.created_at).getTime()
+            );
           case 'size':
             return b.file_size - a.file_size;
           case 'name':
@@ -232,7 +257,11 @@ export function ImageGalleryEnhanced() {
       if (itemsPerPage === 'all') {
         setImages(images);
         setHasMore(false);
-        console.log('[ImageGalleryEnhanced] Total images:', images.length, 'Showing all');
+        console.log(
+          '[ImageGalleryEnhanced] Total images:',
+          images.length,
+          'Showing all'
+        );
       } else {
         const startIndex = (currentPage - 1) * itemsPerPage;
         const endIndex = startIndex + itemsPerPage;
@@ -241,7 +270,16 @@ export function ImageGalleryEnhanced() {
 
         setImages(paginatedImages);
         setHasMore(hasMorePages);
-        console.log('[ImageGalleryEnhanced] Total images:', images.length, 'Page:', currentPage, 'Showing:', paginatedImages.length, 'Has more:', hasMorePages);
+        console.log(
+          '[ImageGalleryEnhanced] Total images:',
+          images.length,
+          'Page:',
+          currentPage,
+          'Showing:',
+          paginatedImages.length,
+          'Has more:',
+          hasMorePages
+        );
       }
     } catch (error) {
       console.error('Error:', error);
@@ -277,20 +315,20 @@ export function ImageGalleryEnhanced() {
 
   const handleBulkDownload = async () => {
     const selectedImagesList = images.filter(img => selectedImages.has(img.id));
-    
+
     if (selectedImagesList.length === 0) {
       toast.error('No images selected');
       return;
     }
 
     toast.info(`Downloading ${selectedImagesList.length} images...`);
-    
+
     for (const image of selectedImagesList) {
       await handleDownload(image);
       // Add a small delay between downloads
       await new Promise(resolve => setTimeout(resolve, 500));
     }
-    
+
     setSelectedImages(new Set());
     setIsSelectionMode(false);
   };
@@ -302,10 +340,13 @@ export function ImageGalleryEnhanced() {
 
     try {
       const supabase = createClientSupabaseClient();
-      const { data: deleted, error } = await supabase.rpc('delete_processed_image', {
-        p_image_id: imageId,
-        p_user_id: user.id
-      });
+      const { data: deleted, error } = await supabase.rpc(
+        'delete_processed_image',
+        {
+          p_image_id: imageId,
+          p_user_id: user.id,
+        }
+      );
 
       if (error) throw error;
 
@@ -323,13 +364,17 @@ export function ImageGalleryEnhanced() {
 
   const handleBulkDelete = async () => {
     const selectedImagesList = images.filter(img => selectedImages.has(img.id));
-    
+
     if (selectedImagesList.length === 0) {
       toast.error('No images selected');
       return;
     }
 
-    if (!confirm(`Are you sure you want to delete ${selectedImagesList.length} images?`)) {
+    if (
+      !confirm(
+        `Are you sure you want to delete ${selectedImagesList.length} images?`
+      )
+    ) {
       return;
     }
 
@@ -338,10 +383,13 @@ export function ImageGalleryEnhanced() {
       let deletedCount = 0;
 
       for (const image of selectedImagesList) {
-        const { data: deleted, error } = await supabase.rpc('delete_processed_image', {
-          p_image_id: image.id,
-          p_user_id: user.id
-        });
+        const { data: deleted, error } = await supabase.rpc(
+          'delete_processed_image',
+          {
+            p_image_id: image.id,
+            p_user_id: user.id,
+          }
+        );
 
         if (!error && deleted) {
           deletedCount++;
@@ -386,19 +434,19 @@ export function ImageGalleryEnhanced() {
       return {
         text: 'Your images are stored permanently',
         icon: <ImageIcon className="w-4 h-4 text-green-600" />,
-        color: 'text-green-600'
+        color: 'text-green-600',
       };
     } else if (isPayAsYouGo) {
       return {
         text: 'Images stored for 90 days after last credit purchase',
         icon: <Clock className="w-4 h-4 text-amber-600" />,
-        color: 'text-amber-600'
+        color: 'text-amber-600',
       };
     } else {
       return {
         text: 'Free plan: Images deleted after 48 hours',
         icon: <AlertCircle className="w-4 h-4 text-red-600" />,
-        color: 'text-red-600'
+        color: 'text-red-600',
       };
     }
   };
@@ -411,20 +459,20 @@ export function ImageGalleryEnhanced() {
 
   const getOperationLabel = (type: string) => {
     const labels: Record<string, string> = {
-      'upscale': 'Upscaled',
+      upscale: 'Upscaled',
       'background-removal': 'Background Removed',
-      'vectorize': 'Vectorized',
-      'generate': 'AI Generated'
+      vectorize: 'Vectorized',
+      generate: 'AI Generated',
     };
     return labels[type] || type;
   };
 
   const getOperationColor = (type: string) => {
     const colors: Record<string, string> = {
-      'upscale': 'bg-blue-100 text-blue-800',
+      upscale: 'bg-blue-100 text-blue-800',
       'background-removal': 'bg-purple-100 text-purple-800',
-      'vectorize': 'bg-orange-100 text-orange-800',
-      'generate': 'bg-green-100 text-green-800'
+      vectorize: 'bg-orange-100 text-orange-800',
+      generate: 'bg-green-100 text-green-800',
     };
     return colors[type] || 'bg-gray-100 text-gray-800';
   };
@@ -441,13 +489,15 @@ export function ImageGalleryEnhanced() {
   });
 
   // Apply collection filter
-  const filteredImages = selectedCollection === 'all' 
-    ? searchFilteredImages
-    : searchFilteredImages.filter((img: any) => 
-        // For now, filter by primary_collection_id
-        // TODO: Update when collection_items junction table is integrated
-        img.primary_collection_id === selectedCollection
-      );
+  const filteredImages =
+    selectedCollection === 'all'
+      ? searchFilteredImages
+      : searchFilteredImages.filter(
+          (img: any) =>
+            // For now, filter by primary_collection_id
+            // TODO: Update when collection_items junction table is integrated
+            img.primary_collection_id === selectedCollection
+        );
 
   const storageInfo = getStorageInfo();
 
@@ -477,7 +527,9 @@ export function ImageGalleryEnhanced() {
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
             <CardTitle>My Images</CardTitle>
-            <div className={`flex items-center gap-2 mt-2 text-sm ${storageInfo.color}`}>
+            <div
+              className={`flex items-center gap-2 mt-2 text-sm ${storageInfo.color}`}
+            >
               {storageInfo.icon}
               <span>{storageInfo.text}</span>
             </div>
@@ -488,18 +540,10 @@ export function ImageGalleryEnhanced() {
                 <span className="text-sm text-gray-600">
                   {selectedImages.size} selected
                 </span>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={selectAll}
-                >
+                <Button variant="outline" size="sm" onClick={selectAll}>
                   Select All
                 </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={deselectAll}
-                >
+                <Button variant="outline" size="sm" onClick={deselectAll}>
                   Clear
                 </Button>
                 <Button
@@ -531,7 +575,11 @@ export function ImageGalleryEnhanced() {
                 setSelectedImages(new Set());
               }}
             >
-              {isSelectionMode ? <X className="w-4 h-4" /> : <CheckSquare className="w-4 h-4" />}
+              {isSelectionMode ? (
+                <X className="w-4 h-4" />
+              ) : (
+                <CheckSquare className="w-4 h-4" />
+              )}
               {isSelectionMode ? 'Cancel' : 'Select'}
             </Button>
             <Button
@@ -539,7 +587,11 @@ export function ImageGalleryEnhanced() {
               size="sm"
               onClick={() => setViewMode(viewMode === 'grid' ? 'list' : 'grid')}
             >
-              {viewMode === 'grid' ? <List className="w-4 h-4" /> : <Grid className="w-4 h-4" />}
+              {viewMode === 'grid' ? (
+                <List className="w-4 h-4" />
+              ) : (
+                <Grid className="w-4 h-4" />
+              )}
             </Button>
           </div>
         </div>
@@ -555,7 +607,7 @@ export function ImageGalleryEnhanced() {
                 type="text"
                 placeholder="Search images..."
                 value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
+                onChange={e => setSearchTerm(e.target.value)}
                 className="pl-10 pr-4 py-2 w-full border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-blue focus:border-transparent"
               />
             </div>
@@ -563,7 +615,7 @@ export function ImageGalleryEnhanced() {
             <div className="grid grid-cols-2 gap-2 sm:hidden">
               <select
                 value={filterType}
-                onChange={(e) => setFilterType(e.target.value)}
+                onChange={e => setFilterType(e.target.value)}
                 className="border border-gray-300 rounded-lg px-2 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-primary-blue focus:border-transparent"
               >
                 <option value="all">All Types</option>
@@ -574,7 +626,7 @@ export function ImageGalleryEnhanced() {
               </select>
               <select
                 value={sortBy}
-                onChange={(e) => setSortBy(e.target.value as any)}
+                onChange={e => setSortBy(e.target.value as any)}
                 className="border border-gray-300 rounded-lg px-2 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-primary-blue focus:border-transparent"
               >
                 <option value="newest">Newest</option>
@@ -589,15 +641,17 @@ export function ImageGalleryEnhanced() {
               >
                 <Filter className="w-4 h-4" />
                 <span>More Filters</span>
-                <ChevronDown className={`w-4 h-4 transition-transform ${showFilterMenu ? 'rotate-180' : ''}`} />
+                <ChevronDown
+                  className={`w-4 h-4 transition-transform ${showFilterMenu ? 'rotate-180' : ''}`}
+                />
               </button>
             </div>
-            
+
             {/* Desktop: Inline flex layout */}
             <div className="hidden sm:flex gap-2">
               <select
                 value={filterType}
-                onChange={(e) => setFilterType(e.target.value)}
+                onChange={e => setFilterType(e.target.value)}
                 className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-blue focus:border-transparent"
               >
                 <option value="all">All Types</option>
@@ -608,7 +662,7 @@ export function ImageGalleryEnhanced() {
               </select>
               <select
                 value={sortBy}
-                onChange={(e) => setSortBy(e.target.value as any)}
+                onChange={e => setSortBy(e.target.value as any)}
                 className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-blue focus:border-transparent"
               >
                 <option value="newest">Newest First</option>
@@ -630,114 +684,149 @@ export function ImageGalleryEnhanced() {
                 {showFilterMenu && (
                   <div className="hidden sm:block absolute right-0 mt-2 w-64 bg-white rounded-lg shadow-lg border p-4 z-10">
                     <div className="space-y-4">
-                        <div>
-                          <label className="text-sm font-medium text-gray-700">Date Range</label>
-                          <select
-                            value={dateFilter}
-                            onChange={(e) => setDateFilter(e.target.value as DateFilter)}
-                            className="mt-1 w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
-                          >
-                            <option value="all">All Time</option>
-                            <option value="today">Today</option>
-                            <option value="week">Last 7 Days</option>
-                            <option value="month">Last 30 Days</option>
-                            <option value="custom">Custom Range</option>
-                          </select>
-                        </div>
-                        {dateFilter === 'custom' && (
-                          <div className="space-y-2">
-                            <input
-                              type="date"
-                              value={customDateRange.start}
-                              onChange={(e) => setCustomDateRange({ ...customDateRange, start: e.target.value })}
-                              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
-                            />
-                            <input
-                              type="date"
-                              value={customDateRange.end}
-                              onChange={(e) => setCustomDateRange({ ...customDateRange, end: e.target.value })}
-                              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
-                            />
-                          </div>
-                        )}
-                        <div>
-                          <label className="text-sm font-medium text-gray-700">Collection</label>
-                          <select
-                            value={selectedCollection}
-                            onChange={(e) => setSelectedCollection(e.target.value)}
-                            className="mt-1 w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
-                          >
-                            <option value="all">All Collections</option>
-                            {collections.map(col => (
-                              <option key={col.id} value={col.id}>
-                                {col.name}
-                              </option>
-                            ))}
-                          </select>
-                        </div>
-                        <div>
-                          <label className="text-sm font-medium text-gray-700">Date Range</label>
-                          <select
-                            value={dateFilter}
-                            onChange={(e) => setDateFilter(e.target.value as DateFilter)}
-                            className="mt-1 w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
-                          >
-                            <option value="all">All Time</option>
-                            <option value="today">Today</option>
-                            <option value="week">Last 7 Days</option>
-                            <option value="month">Last 30 Days</option>
-                            <option value="custom">Custom Range</option>
-                          </select>
-                        </div>
-                        {dateFilter === 'custom' && (
-                          <div className="space-y-2">
-                            <input
-                              type="date"
-                              value={customDateRange.start}
-                              onChange={(e) => setCustomDateRange({ ...customDateRange, start: e.target.value })}
-                              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
-                            />
-                            <input
-                              type="date"
-                              value={customDateRange.end}
-                              onChange={(e) => setCustomDateRange({ ...customDateRange, end: e.target.value })}
-                              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
-                            />
-                          </div>
-                        )}
-                        <div>
-                          <label className="text-sm font-medium text-gray-700">Collection</label>
-                          <select
-                            value={selectedCollection}
-                            onChange={(e) => setSelectedCollection(e.target.value)}
-                            className="mt-1 w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
-                          >
-                            <option value="all">All Collections</option>
-                            {collections.map(col => (
-                              <option key={col.id} value={col.id}>
-                                {col.name}
-                              </option>
-                            ))}
-                          </select>
-                        </div>
-                        <Button
-                          size="sm"
-                          onClick={() => setShowFilterMenu(false)}
-                          className="w-full"
+                      <div>
+                        <label className="text-sm font-medium text-gray-700">
+                          Date Range
+                        </label>
+                        <select
+                          value={dateFilter}
+                          onChange={e =>
+                            setDateFilter(e.target.value as DateFilter)
+                          }
+                          className="mt-1 w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
                         >
-                          Apply Filters
-                        </Button>
+                          <option value="all">All Time</option>
+                          <option value="today">Today</option>
+                          <option value="week">Last 7 Days</option>
+                          <option value="month">Last 30 Days</option>
+                          <option value="custom">Custom Range</option>
+                        </select>
                       </div>
+                      {dateFilter === 'custom' && (
+                        <div className="space-y-2">
+                          <input
+                            type="date"
+                            value={customDateRange.start}
+                            onChange={e =>
+                              setCustomDateRange({
+                                ...customDateRange,
+                                start: e.target.value,
+                              })
+                            }
+                            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
+                          />
+                          <input
+                            type="date"
+                            value={customDateRange.end}
+                            onChange={e =>
+                              setCustomDateRange({
+                                ...customDateRange,
+                                end: e.target.value,
+                              })
+                            }
+                            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
+                          />
+                        </div>
+                      )}
+                      <div>
+                        <label className="text-sm font-medium text-gray-700">
+                          Collection
+                        </label>
+                        <select
+                          value={selectedCollection}
+                          onChange={e => setSelectedCollection(e.target.value)}
+                          className="mt-1 w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
+                        >
+                          <option value="all">All Collections</option>
+                          {collections.map(col => (
+                            <option key={col.id} value={col.id}>
+                              {col.name}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                      <div>
+                        <label className="text-sm font-medium text-gray-700">
+                          Date Range
+                        </label>
+                        <select
+                          value={dateFilter}
+                          onChange={e =>
+                            setDateFilter(e.target.value as DateFilter)
+                          }
+                          className="mt-1 w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
+                        >
+                          <option value="all">All Time</option>
+                          <option value="today">Today</option>
+                          <option value="week">Last 7 Days</option>
+                          <option value="month">Last 30 Days</option>
+                          <option value="custom">Custom Range</option>
+                        </select>
+                      </div>
+                      {dateFilter === 'custom' && (
+                        <div className="space-y-2">
+                          <input
+                            type="date"
+                            value={customDateRange.start}
+                            onChange={e =>
+                              setCustomDateRange({
+                                ...customDateRange,
+                                start: e.target.value,
+                              })
+                            }
+                            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
+                          />
+                          <input
+                            type="date"
+                            value={customDateRange.end}
+                            onChange={e =>
+                              setCustomDateRange({
+                                ...customDateRange,
+                                end: e.target.value,
+                              })
+                            }
+                            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
+                          />
+                        </div>
+                      )}
+                      <div>
+                        <label className="text-sm font-medium text-gray-700">
+                          Collection
+                        </label>
+                        <select
+                          value={selectedCollection}
+                          onChange={e => setSelectedCollection(e.target.value)}
+                          className="mt-1 w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
+                        >
+                          <option value="all">All Collections</option>
+                          {collections.map(col => (
+                            <option key={col.id} value={col.id}>
+                              {col.name}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                      <Button
+                        size="sm"
+                        onClick={() => setShowFilterMenu(false)}
+                        className="w-full"
+                      >
+                        Apply Filters
+                      </Button>
                     </div>
+                  </div>
                 )}
               </div>
             </div>
           </div>
-          
+
           {/* Mobile Filter Modal */}
           {showFilterMenu && (
             <>
-              <div className="fixed inset-0 bg-black bg-opacity-50 z-50 sm:hidden" onClick={() => setShowFilterMenu(false)} />
+              <div
+                className="fixed inset-0 bg-black bg-opacity-50 z-50 sm:hidden"
+                onClick={() => setShowFilterMenu(false)}
+              />
               <div className="fixed bottom-0 left-0 right-0 bg-white rounded-t-2xl shadow-xl border-t p-6 z-50 sm:hidden animate-slide-up-modal">
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="text-lg font-semibold">Filters</h3>
@@ -751,10 +840,14 @@ export function ImageGalleryEnhanced() {
                 </div>
                 <div className="space-y-4 max-h-[60vh] overflow-y-auto">
                   <div>
-                    <label className="text-sm font-medium text-gray-700">Date Range</label>
+                    <label className="text-sm font-medium text-gray-700">
+                      Date Range
+                    </label>
                     <select
                       value={dateFilter}
-                      onChange={(e) => setDateFilter(e.target.value as DateFilter)}
+                      onChange={e =>
+                        setDateFilter(e.target.value as DateFilter)
+                      }
                       className="mt-1 w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
                     >
                       <option value="all">All Time</option>
@@ -769,22 +862,34 @@ export function ImageGalleryEnhanced() {
                       <input
                         type="date"
                         value={customDateRange.start}
-                        onChange={(e) => setCustomDateRange({ ...customDateRange, start: e.target.value })}
+                        onChange={e =>
+                          setCustomDateRange({
+                            ...customDateRange,
+                            start: e.target.value,
+                          })
+                        }
                         className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
                       />
                       <input
                         type="date"
                         value={customDateRange.end}
-                        onChange={(e) => setCustomDateRange({ ...customDateRange, end: e.target.value })}
+                        onChange={e =>
+                          setCustomDateRange({
+                            ...customDateRange,
+                            end: e.target.value,
+                          })
+                        }
                         className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
                       />
                     </div>
                   )}
                   <div>
-                    <label className="text-sm font-medium text-gray-700">Collection</label>
+                    <label className="text-sm font-medium text-gray-700">
+                      Collection
+                    </label>
                     <select
                       value={selectedCollection}
-                      onChange={(e) => setSelectedCollection(e.target.value)}
+                      onChange={e => setSelectedCollection(e.target.value)}
                       className="mt-1 w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
                     >
                       <option value="all">All Collections</option>
@@ -806,9 +911,12 @@ export function ImageGalleryEnhanced() {
               </div>
             </>
           )}
-          
+
           {/* Active filters display */}
-          {(dateFilter !== 'all' || filterType !== 'all' || searchTerm !== '' || selectedCollection !== 'all') && (
+          {(dateFilter !== 'all' ||
+            filterType !== 'all' ||
+            searchTerm !== '' ||
+            selectedCollection !== 'all') && (
             <div className="flex items-center gap-2 text-sm">
               <span className="text-gray-600">Active filters:</span>
               {dateFilter !== 'all' && (
@@ -861,7 +969,8 @@ export function ImageGalleryEnhanced() {
 
         {/* Results count */}
         <div className="text-sm text-gray-600 mb-4">
-          {filteredImages.length} {filteredImages.length === 1 ? 'image' : 'images'} found
+          {filteredImages.length}{' '}
+          {filteredImages.length === 1 ? 'image' : 'images'} found
         </div>
 
         {/* Images */}
@@ -869,16 +978,21 @@ export function ImageGalleryEnhanced() {
           <div className="text-center py-12">
             <ImageIcon className="w-12 h-12 text-gray-400 mx-auto mb-4" />
             <p className="text-gray-600 mb-4">
-              {searchTerm ? 'No images found matching your search' : 'No processed images yet'}
+              {searchTerm
+                ? 'No images found matching your search'
+                : 'No processed images yet'}
             </p>
-            <Button onClick={() => window.location.href = '/process'}>
+            <Button onClick={() => (window.location.href = '/process')}>
               Process Your First Image
             </Button>
           </div>
         ) : viewMode === 'grid' ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-            {filteredImages.map((image) => (
-              <div key={image.id} className="group relative bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow overflow-hidden">
+            {filteredImages.map(image => (
+              <div
+                key={image.id}
+                className="group relative bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow overflow-hidden"
+              >
                 {isSelectionMode && (
                   <div className="absolute top-2 left-2 z-10">
                     <button
@@ -912,7 +1026,9 @@ export function ImageGalleryEnhanced() {
                     {image.original_filename}
                   </p>
                   <div className="flex items-center justify-between mt-2">
-                    <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${getOperationColor(image.operation_type)}`}>
+                    <span
+                      className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${getOperationColor(image.operation_type)}`}
+                    >
                       {getOperationLabel(image.operation_type)}
                     </span>
                     <span className="text-xs text-gray-500">
@@ -929,8 +1045,11 @@ export function ImageGalleryEnhanced() {
                       {(() => {
                         const expiresDate = new Date(image.expires_at);
                         const now = new Date();
-                        const hoursLeft = Math.floor((expiresDate.getTime() - now.getTime()) / (1000 * 60 * 60));
-                        
+                        const hoursLeft = Math.floor(
+                          (expiresDate.getTime() - now.getTime()) /
+                            (1000 * 60 * 60)
+                        );
+
                         if (hoursLeft < 0) {
                           return 'Expired';
                         } else if (hoursLeft < 24) {
@@ -967,13 +1086,14 @@ export function ImageGalleryEnhanced() {
           </div>
         ) : (
           <div className="space-y-2">
-            {filteredImages.map((image) => (
-              <div key={image.id} className="flex items-center justify-between p-4 bg-white rounded-lg border hover:bg-gray-50">
+            {filteredImages.map(image => (
+              <div
+                key={image.id}
+                className="flex items-center justify-between p-4 bg-white rounded-lg border hover:bg-gray-50"
+              >
                 <div className="flex items-center gap-4">
                   {isSelectionMode && (
-                    <button
-                      onClick={() => toggleImageSelection(image.id)}
-                    >
+                    <button onClick={() => toggleImageSelection(image.id)}>
                       {selectedImages.has(image.id) ? (
                         <CheckSquare className="w-5 h-5 text-blue-600" />
                       ) : (
@@ -996,20 +1116,29 @@ export function ImageGalleryEnhanced() {
                     )}
                   </div>
                   <div>
-                    <p className="font-medium text-gray-900">{image.original_filename}</p>
+                    <p className="font-medium text-gray-900">
+                      {image.original_filename}
+                    </p>
                     <div className="flex items-center gap-4 mt-1 text-sm text-gray-500">
-                      <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${getOperationColor(image.operation_type)}`}>
+                      <span
+                        className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${getOperationColor(image.operation_type)}`}
+                      >
                         {getOperationLabel(image.operation_type)}
                       </span>
                       <span>{formatFileSize(image.file_size)}</span>
-                      <span>{format(new Date(image.created_at), 'MMM dd, yyyy')}</span>
+                      <span>
+                        {format(new Date(image.created_at), 'MMM dd, yyyy')}
+                      </span>
                       {image.expires_at && (
                         <span className="text-red-600">
                           {(() => {
                             const expiresDate = new Date(image.expires_at);
                             const now = new Date();
-                            const hoursLeft = Math.floor((expiresDate.getTime() - now.getTime()) / (1000 * 60 * 60));
-                            
+                            const hoursLeft = Math.floor(
+                              (expiresDate.getTime() - now.getTime()) /
+                                (1000 * 60 * 60)
+                            );
+
                             if (hoursLeft < 0) {
                               return 'Expired';
                             } else if (hoursLeft < 24) {
@@ -1047,65 +1176,68 @@ export function ImageGalleryEnhanced() {
         )}
 
         {/* Pagination Controls */}
-        {filteredImages.length > 0 && (currentPage > 1 || hasMore || itemsPerPage !== 'all') && (
-          <div className="flex flex-col sm:flex-row items-center justify-between border-t pt-4 mt-6 gap-4">
-            <div className="text-sm text-gray-600">
-              {itemsPerPage === 'all' ? (
-                `Showing all ${filteredImages.length} images`
-              ) : (
-                `Showing ${(currentPage - 1) * (typeof itemsPerPage === 'number' ? itemsPerPage : 0) + 1} to ${(currentPage - 1) * (typeof itemsPerPage === 'number' ? itemsPerPage : 0) + filteredImages.length} of ${allImages.length} images`
-              )}
-            </div>
-            <div className="flex items-center gap-3">
-              {/* Items per page dropdown */}
-              <div className="flex items-center gap-2">
-                <span className="text-sm text-gray-600">Show:</span>
-                <select
-                  value={itemsPerPage}
-                  onChange={(e) => {
-                    const value = e.target.value;
-                    setItemsPerPage(value === 'all' ? 'all' : parseInt(value));
-                    setCurrentPage(1); // Reset to first page when changing items per page
-                  }}
-                  className="border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                >
-                  {ITEMS_PER_PAGE_OPTIONS.map(option => (
-                    <option key={option} value={option}>
-                      {option === 'all' ? 'All' : option} images
-                    </option>
-                  ))}
-                </select>
+        {filteredImages.length > 0 &&
+          (currentPage > 1 || hasMore || itemsPerPage !== 'all') && (
+            <div className="flex flex-col sm:flex-row items-center justify-between border-t pt-4 mt-6 gap-4">
+              <div className="text-sm text-gray-600">
+                {itemsPerPage === 'all'
+                  ? `Showing all ${filteredImages.length} images`
+                  : `Showing ${(currentPage - 1) * (typeof itemsPerPage === 'number' ? itemsPerPage : 0) + 1} to ${(currentPage - 1) * (typeof itemsPerPage === 'number' ? itemsPerPage : 0) + filteredImages.length} of ${allImages.length} images`}
               </div>
-
-              {/* Page navigation - only show if not viewing all */}
-              {itemsPerPage !== 'all' && (
+              <div className="flex items-center gap-3">
+                {/* Items per page dropdown */}
                 <div className="flex items-center gap-2">
-                  <Button
-                    variant="secondary"
-                    size="sm"
-                    onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
-                    disabled={currentPage === 1}
+                  <span className="text-sm text-gray-600">Show:</span>
+                  <select
+                    value={itemsPerPage}
+                    onChange={e => {
+                      const value = e.target.value;
+                      setItemsPerPage(
+                        value === 'all' ? 'all' : parseInt(value)
+                      );
+                      setCurrentPage(1); // Reset to first page when changing items per page
+                    }}
+                    className="border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                   >
-                    <ChevronLeft className="w-4 h-4 mr-1" />
-                    Previous
-                  </Button>
-                  <span className="text-sm text-gray-600 px-3">
-                    Page {currentPage}
-                  </span>
-                  <Button
-                    variant="secondary"
-                    size="sm"
-                    onClick={() => setCurrentPage(prev => prev + 1)}
-                    disabled={!hasMore}
-                  >
-                    Next
-                    <ChevronRight className="w-4 h-4 ml-1" />
-                  </Button>
+                    {ITEMS_PER_PAGE_OPTIONS.map(option => (
+                      <option key={option} value={option}>
+                        {option === 'all' ? 'All' : option} images
+                      </option>
+                    ))}
+                  </select>
                 </div>
-              )}
+
+                {/* Page navigation - only show if not viewing all */}
+                {itemsPerPage !== 'all' && (
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      onClick={() =>
+                        setCurrentPage(prev => Math.max(1, prev - 1))
+                      }
+                      disabled={currentPage === 1}
+                    >
+                      <ChevronLeft className="w-4 h-4 mr-1" />
+                      Previous
+                    </Button>
+                    <span className="text-sm text-gray-600 px-3">
+                      Page {currentPage}
+                    </span>
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      onClick={() => setCurrentPage(prev => prev + 1)}
+                      disabled={!hasMore}
+                    >
+                      Next
+                      <ChevronRight className="w-4 h-4 ml-1" />
+                    </Button>
+                  </div>
+                )}
+              </div>
             </div>
-          </div>
-        )}
+          )}
       </CardContent>
     </Card>
   );

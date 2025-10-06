@@ -4,9 +4,9 @@ import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
-import { 
-  Search, 
-  Filter, 
+import {
+  Search,
+  Filter,
   Calendar,
   User,
   Activity,
@@ -18,7 +18,7 @@ import {
   Download,
   ChevronLeft,
   ChevronRight,
-  AlertCircle
+  AlertCircle,
 } from 'lucide-react';
 import { toast } from '@/lib/toast';
 
@@ -46,29 +46,32 @@ interface AuditLogFilters {
   limit: number;
 }
 
-const ACTION_ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
-  'user_created': User,
-  'user_updated': User,
-  'user_deleted': User,
-  'user_suspended': Shield,
-  'user_activated': Shield,
-  'credits_adjusted': CreditCard,
-  'bulk_credits_adjusted': CreditCard,
-  'email_sent': Mail,
-  'bulk_email_sent': Mail,
-  'test_email_sent': Mail,
-  'settings_updated': Settings,
-  'export_data': Download,
-  'default': Activity
+const ACTION_ICONS: Record<
+  string,
+  React.ComponentType<{ className?: string }>
+> = {
+  user_created: User,
+  user_updated: User,
+  user_deleted: User,
+  user_suspended: Shield,
+  user_activated: Shield,
+  credits_adjusted: CreditCard,
+  bulk_credits_adjusted: CreditCard,
+  email_sent: Mail,
+  bulk_email_sent: Mail,
+  test_email_sent: Mail,
+  settings_updated: Settings,
+  export_data: Download,
+  default: Activity,
 };
 
 const ACTION_COLORS: Record<string, string> = {
-  'user_deleted': 'text-red-600 bg-red-50',
-  'user_suspended': 'text-orange-600 bg-orange-50',
-  'user_activated': 'text-green-600 bg-green-50',
-  'credits_adjusted': 'text-blue-600 bg-blue-50',
-  'email_sent': 'text-purple-600 bg-purple-50',
-  'default': 'text-gray-600 bg-gray-50'
+  user_deleted: 'text-red-600 bg-red-50',
+  user_suspended: 'text-orange-600 bg-orange-50',
+  user_activated: 'text-green-600 bg-green-50',
+  credits_adjusted: 'text-blue-600 bg-blue-50',
+  email_sent: 'text-purple-600 bg-purple-50',
+  default: 'text-gray-600 bg-gray-50',
 };
 
 export function AuditLogViewer() {
@@ -77,7 +80,7 @@ export function AuditLogViewer() {
   const [totalLogs, setTotalLogs] = useState(0);
   const [filters, setFilters] = useState<AuditLogFilters>({
     page: 1,
-    limit: 20
+    limit: 20,
   });
   const [expandedLog, setExpandedLog] = useState<string | null>(null);
 
@@ -96,7 +99,7 @@ export function AuditLogViewer() {
       });
 
       const response = await fetch(`/api/admin/audit/logs?${queryParams}`, {
-        credentials: 'include'
+        credentials: 'include',
       });
 
       if (!response.ok) {
@@ -132,7 +135,7 @@ export function AuditLogViewer() {
       month: 'short',
       day: 'numeric',
       hour: '2-digit',
-      minute: '2-digit'
+      minute: '2-digit',
     });
   };
 
@@ -146,9 +149,10 @@ export function AuditLogViewer() {
   };
 
   const formatAction = (action: string) => {
-    return action.split('_').map(word => 
-      word.charAt(0).toUpperCase() + word.slice(1)
-    ).join(' ');
+    return action
+      .split('_')
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(' ');
   };
 
   const renderDetails = (details: any) => {
@@ -164,7 +168,9 @@ export function AuditLogViewer() {
               {key.replace(/_/g, ' ')}:
             </span>
             <span className="text-sm text-gray-900">
-              {typeof value === 'object' ? JSON.stringify(value, null, 2) : String(value)}
+              {typeof value === 'object'
+                ? JSON.stringify(value, null, 2)
+                : String(value)}
             </span>
           </div>
         ))}
@@ -183,7 +189,7 @@ export function AuditLogViewer() {
     { value: 'user_activated', label: 'User Activated' },
     { value: 'credits_adjusted', label: 'Credits Adjusted' },
     { value: 'email_sent', label: 'Email Sent' },
-    { value: 'settings_updated', label: 'Settings Updated' }
+    { value: 'settings_updated', label: 'Settings Updated' },
   ];
 
   const resourceTypes = [
@@ -192,7 +198,7 @@ export function AuditLogViewer() {
     { value: 'credit', label: 'Credit' },
     { value: 'email', label: 'Email' },
     { value: 'settings', label: 'Settings' },
-    { value: 'system', label: 'System' }
+    { value: 'system', label: 'System' },
   ];
 
   return (
@@ -211,7 +217,7 @@ export function AuditLogViewer() {
                 type="text"
                 placeholder="Search logs..."
                 value={filters.search || ''}
-                onChange={(e) => handleSearch(e.target.value)}
+                onChange={e => handleSearch(e.target.value)}
                 className="pl-10"
               />
             </div>
@@ -219,7 +225,7 @@ export function AuditLogViewer() {
             {/* Action Filter */}
             <select
               value={filters.action || ''}
-              onChange={(e) => handleFilterChange('action', e.target.value)}
+              onChange={e => handleFilterChange('action', e.target.value)}
               className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-blue"
             >
               {actionTypes.map(type => (
@@ -232,7 +238,9 @@ export function AuditLogViewer() {
             {/* Resource Type Filter */}
             <select
               value={filters.resource_type || ''}
-              onChange={(e) => handleFilterChange('resource_type', e.target.value)}
+              onChange={e =>
+                handleFilterChange('resource_type', e.target.value)
+              }
               className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-blue"
             >
               {resourceTypes.map(type => (
@@ -247,13 +255,13 @@ export function AuditLogViewer() {
               <Input
                 type="date"
                 value={filters.start_date || ''}
-                onChange={(e) => handleFilterChange('start_date', e.target.value)}
+                onChange={e => handleFilterChange('start_date', e.target.value)}
                 className="text-sm"
               />
               <Input
                 type="date"
                 value={filters.end_date || ''}
-                onChange={(e) => handleFilterChange('end_date', e.target.value)}
+                onChange={e => handleFilterChange('end_date', e.target.value)}
                 className="text-sm"
               />
             </div>
@@ -295,18 +303,20 @@ export function AuditLogViewer() {
                           {log.resource_type && (
                             <span className="text-sm text-gray-500">
                               on {log.resource_type}
-                              {log.resource_id && ` (${log.resource_id.slice(0, 8)}...)`}
+                              {log.resource_id &&
+                                ` (${log.resource_id.slice(0, 8)}...)`}
                             </span>
                           )}
                         </div>
                         <div className="text-sm text-gray-600 space-y-1">
                           <p>
-                            By: <span className="font-medium">{log.admin_email || log.admin_id}</span>
+                            By:{' '}
+                            <span className="font-medium">
+                              {log.admin_email || log.admin_id}
+                            </span>
                           </p>
                           <p>{formatDate(log.created_at)}</p>
-                          {log.ip_address && (
-                            <p>IP: {log.ip_address}</p>
-                          )}
+                          {log.ip_address && <p>IP: {log.ip_address}</p>}
                         </div>
                       </div>
                     </div>
@@ -321,12 +331,18 @@ export function AuditLogViewer() {
 
                   {isExpanded && (
                     <div className="mt-4 pt-4 border-t border-gray-200">
-                      <h4 className="text-sm font-medium text-gray-700 mb-2">Additional Details</h4>
+                      <h4 className="text-sm font-medium text-gray-700 mb-2">
+                        Additional Details
+                      </h4>
                       {renderDetails(log.details)}
                       {log.user_agent && (
                         <div className="mt-2">
-                          <span className="text-sm font-medium text-gray-600">User Agent:</span>
-                          <p className="text-sm text-gray-500 mt-1">{log.user_agent}</p>
+                          <span className="text-sm font-medium text-gray-600">
+                            User Agent:
+                          </span>
+                          <p className="text-sm text-gray-500 mt-1">
+                            {log.user_agent}
+                          </p>
                         </div>
                       )}
                     </div>
@@ -342,7 +358,8 @@ export function AuditLogViewer() {
           <div className="mt-6 flex items-center justify-between">
             <div className="text-sm text-gray-700">
               Showing {(filters.page - 1) * filters.limit + 1} to{' '}
-              {Math.min(filters.page * filters.limit, totalLogs)} of {totalLogs} logs
+              {Math.min(filters.page * filters.limit, totalLogs)} of {totalLogs}{' '}
+              logs
             </div>
             <div className="flex items-center gap-2">
               <Button

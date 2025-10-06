@@ -5,7 +5,10 @@
 
 import { createClient } from '@supabase/supabase-js';
 import { cookies } from 'next/headers';
-import { createClientComponentClient, createServerComponentClient } from '@supabase/auth-helpers-nextjs';
+import {
+  createClientComponentClient,
+  createServerComponentClient,
+} from '@supabase/auth-helpers-nextjs';
 import type {
   Affiliate,
   AffiliateApplicationData,
@@ -14,7 +17,7 @@ import type {
   ReferralVisit,
   Commission,
   Payout,
-  AffiliateEvent
+  AffiliateEvent,
 } from '@/types/affiliate';
 
 // Create Supabase client for server-side operations
@@ -25,8 +28,8 @@ export function createServiceClient() {
     {
       auth: {
         autoRefreshToken: false,
-        persistSession: false
-      }
+        persistSession: false,
+      },
     }
   );
 }
@@ -66,16 +69,23 @@ export async function applyToAffiliate(
       .single();
 
     // Generate referral code
-    const username = profile?.full_name || profile?.email?.split('@')[0] || 'USER';
+    const username =
+      profile?.full_name || profile?.email?.split('@')[0] || 'USER';
 
     // Try to use database function, fallback to local generation
     let referralCode: string;
-    const { data: dbReferralCode, error: rpcError } = await supabase
-      .rpc('generate_referral_code', { username });
+    const { data: dbReferralCode, error: rpcError } = await supabase.rpc(
+      'generate_referral_code',
+      { username }
+    );
 
     if (rpcError || !dbReferralCode) {
       // Fallback: Generate locally if database function doesn't exist
-      const baseCode = username.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 6) || 'USER';
+      const baseCode =
+        username
+          .toUpperCase()
+          .replace(/[^A-Z0-9]/g, '')
+          .slice(0, 6) || 'USER';
       const uniqueId = Date.now().toString().slice(-4);
       referralCode = `${baseCode}${uniqueId}`;
     } else {
@@ -115,7 +125,7 @@ export async function applyToAffiliate(
         // Settings
         display_name: profile?.full_name || 'Anonymous',
         email_notifications: true,
-        leaderboard_opt_out: false
+        leaderboard_opt_out: false,
       })
       .select()
       .single();
@@ -127,7 +137,7 @@ export async function applyToAffiliate(
 
     // Log event
     await logAffiliateEvent(affiliate.id, 'application_submitted', {
-      auto_approved: shouldAutoApprove
+      auto_approved: shouldAutoApprove,
     });
 
     // TODO: Send email notification
@@ -158,11 +168,17 @@ async function checkAutoApprovalCriteria(
     return false;
   }
 
-  if (!applicationData.promotional_methods || applicationData.promotional_methods.length === 0) {
+  if (
+    !applicationData.promotional_methods ||
+    applicationData.promotional_methods.length === 0
+  ) {
     return false;
   }
 
-  if (!applicationData.audience_size || applicationData.audience_size === 'none') {
+  if (
+    !applicationData.audience_size ||
+    applicationData.audience_size === 'none'
+  ) {
     return false;
   }
 
@@ -236,10 +252,16 @@ export async function trackReferralVisit(
 
     // Get affiliate by referral code
     const affiliate = await getAffiliateByReferralCode(referralCode);
-    console.log('[TRACK VISIT] Affiliate lookup result:', affiliate ? 'Found' : 'Not found');
+    console.log(
+      '[TRACK VISIT] Affiliate lookup result:',
+      affiliate ? 'Found' : 'Not found'
+    );
 
     if (!affiliate) {
-      console.warn('[TRACK VISIT] Affiliate not found or not approved:', referralCode);
+      console.warn(
+        '[TRACK VISIT] Affiliate not found or not approved:',
+        referralCode
+      );
       return { success: false, error: 'Affiliate not found or not approved' };
     }
 
@@ -262,7 +284,7 @@ export async function trackReferralVisit(
         utm_term: visitData.utm_term,
         ip_address: visitData.ip_address,
         user_agent: visitData.user_agent,
-        referer: visitData.referer
+        referer: visitData.referer,
       })
       .select()
       .single();
@@ -279,7 +301,7 @@ export async function trackReferralVisit(
       .from('affiliates')
       .update({
         total_clicks: affiliate.total_clicks + 1,
-        updated_at: new Date().toISOString()
+        updated_at: new Date().toISOString(),
       })
       .eq('id', affiliate.id);
 
@@ -354,7 +376,7 @@ export async function trackReferralSignup(
         referral_code: referralCode,
         cookie_id: cookieId,
         status: 'signed_up',
-        signed_up_at: new Date().toISOString()
+        signed_up_at: new Date().toISOString(),
       })
       .select()
       .single();
@@ -369,13 +391,13 @@ export async function trackReferralSignup(
       .from('affiliates')
       .update({
         total_signups: (affiliate.total_signups || 0) + 1,
-        updated_at: new Date().toISOString()
+        updated_at: new Date().toISOString(),
       })
       .eq('id', affiliateId);
 
     // Log event
     await logAffiliateEvent(affiliateId, 'referral_signup', {
-      referred_user_id: userId
+      referred_user_id: userId,
     });
 
     return { success: true, referralId: referral.id };
@@ -416,7 +438,7 @@ export async function trackReferralConversion(
         status: 'converted',
         first_payment_at: new Date().toISOString(),
         conversion_value: paymentAmount,
-        subscription_plan: subscriptionPlan
+        subscription_plan: subscriptionPlan,
       })
       .eq('id', referral.id);
 
@@ -439,7 +461,7 @@ export async function trackReferralConversion(
         commission_rate: commissionRate,
         commission_amount: commissionAmount,
         status: 'pending', // Will be approved after hold period
-        commission_month: new Date().toISOString().slice(0, 7) + '-01'
+        commission_month: new Date().toISOString().slice(0, 7) + '-01',
       })
       .select()
       .single();
@@ -454,14 +476,14 @@ export async function trackReferralConversion(
       .from('affiliates')
       .update({
         total_conversions: affiliate.total_conversions + 1,
-        updated_at: new Date().toISOString()
+        updated_at: new Date().toISOString(),
       })
       .eq('id', affiliate.id);
 
     // Log event
     await logAffiliateEvent(affiliate.id, 'referral_conversion', {
       referred_user_id: userId,
-      commission_amount: commissionAmount
+      commission_amount: commissionAmount,
     });
 
     // TODO: Send email notification
@@ -502,25 +524,29 @@ export async function getAffiliateDashboardStats(
       .eq('affiliate_id', affiliateId);
 
     const currentMonth = new Date().toISOString().slice(0, 7);
-    const currentMonthEarnings = commissions
-      ?.filter(c => c.commission_month?.startsWith(currentMonth))
-      .reduce((sum, c) => sum + c.commission_amount, 0) || 0;
+    const currentMonthEarnings =
+      commissions
+        ?.filter(c => c.commission_month?.startsWith(currentMonth))
+        .reduce((sum, c) => sum + c.commission_amount, 0) || 0;
 
-    const lifetimeEarnings = commissions
-      ?.reduce((sum, c) => sum + c.commission_amount, 0) || 0;
+    const lifetimeEarnings =
+      commissions?.reduce((sum, c) => sum + c.commission_amount, 0) || 0;
 
-    const pendingCommissions = commissions
-      ?.filter(c => c.status === 'pending' || c.status === 'approved')
-      .reduce((sum, c) => sum + c.commission_amount, 0) || 0;
+    const pendingCommissions =
+      commissions
+        ?.filter(c => c.status === 'pending' || c.status === 'approved')
+        .reduce((sum, c) => sum + c.commission_amount, 0) || 0;
 
-    const paidCommissions = commissions
-      ?.filter(c => c.status === 'paid')
-      .reduce((sum, c) => sum + c.commission_amount, 0) || 0;
+    const paidCommissions =
+      commissions
+        ?.filter(c => c.status === 'paid')
+        .reduce((sum, c) => sum + c.commission_amount, 0) || 0;
 
     // Calculate conversion rate
-    const conversionRate = affiliate.total_signups > 0
-      ? (affiliate.total_conversions / affiliate.total_signups) * 100
-      : 0;
+    const conversionRate =
+      affiliate.total_signups > 0
+        ? (affiliate.total_conversions / affiliate.total_signups) * 100
+        : 0;
 
     // Calculate next tier progress
     let nextTierProgress = undefined;
@@ -529,14 +555,14 @@ export async function getAffiliateDashboardStats(
         next_tier: 'silver' as const,
         current_mrr: affiliate.mrr_3month_avg,
         required_mrr: 500,
-        percentage: (affiliate.mrr_3month_avg / 500) * 100
+        percentage: (affiliate.mrr_3month_avg / 500) * 100,
       };
     } else if (affiliate.tier === 'silver' && affiliate.mrr_3month_avg < 1500) {
       nextTierProgress = {
         next_tier: 'gold' as const,
         current_mrr: affiliate.mrr_3month_avg,
         required_mrr: 1500,
-        percentage: (affiliate.mrr_3month_avg / 1500) * 100
+        percentage: (affiliate.mrr_3month_avg / 1500) * 100,
       };
     }
 
@@ -552,7 +578,7 @@ export async function getAffiliateDashboardStats(
       current_tier: affiliate.tier,
       mrr_generated: affiliate.mrr_generated,
       mrr_3month_avg: affiliate.mrr_3month_avg,
-      next_tier_progress: nextTierProgress
+      next_tier_progress: nextTierProgress,
     };
   } catch (error) {
     console.error('Error fetching dashboard stats:', error);
@@ -573,13 +599,11 @@ async function logAffiliateEvent(
   try {
     const supabase = createServiceClient();
 
-    await supabase
-      .from('affiliate_events')
-      .insert({
-        affiliate_id: affiliateId,
-        event_type: eventType,
-        event_data: eventData
-      });
+    await supabase.from('affiliate_events').insert({
+      affiliate_id: affiliateId,
+      event_type: eventType,
+      event_data: eventData,
+    });
   } catch (error) {
     console.error('Error logging affiliate event:', error);
   }

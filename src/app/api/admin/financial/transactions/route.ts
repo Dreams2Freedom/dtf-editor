@@ -8,7 +8,9 @@ async function handleGet(request: NextRequest) {
     const supabase = await createServerSupabaseClient();
 
     // Check if user is admin
-    const { data: { user } } = await supabase.auth.getUser();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
@@ -20,7 +22,10 @@ async function handleGet(request: NextRequest) {
       .single();
 
     if (!profile?.is_admin) {
-      return NextResponse.json({ error: 'Admin access required' }, { status: 403 });
+      return NextResponse.json(
+        { error: 'Admin access required' },
+        { status: 403 }
+      );
     }
 
     // Get query parameters
@@ -30,8 +35,8 @@ async function handleGet(request: NextRequest) {
     // Calculate date range
     const now = new Date();
     const startDate = new Date();
-    
-    switch(range) {
+
+    switch (range) {
       case '7d':
         startDate.setDate(now.getDate() - 7);
         break;
@@ -72,29 +77,38 @@ async function handleGet(request: NextRequest) {
 
     // Map user details to transactions
     const userMap = new Map(
-      users?.map(u => [u.id, { 
-        email: u.email, 
-        name: `${u.first_name || ''} ${u.last_name || ''}`.trim() || 'Unknown'
-      }])
+      users?.map(u => [
+        u.id,
+        {
+          email: u.email,
+          name:
+            `${u.first_name || ''} ${u.last_name || ''}`.trim() || 'Unknown',
+        },
+      ])
     );
 
     // Format transactions
-    const formattedTransactions = transactions?.map(t => {
-      const userInfo = userMap.get(t.user_id) || { email: 'unknown', name: 'Unknown' };
-      return {
-        id: t.id,
-        user_id: t.user_id,
-        user_email: userInfo.email,
-        user_name: userInfo.name,
-        type: t.type || 'purchase',
-        amount: t.amount || 0,
-        credits: t.metadata?.credits || null,
-        status: t.status || 'completed',
-        stripe_payment_id: t.stripe_payment_id || null,
-        description: t.description || `${t.type || 'Purchase'} - ${userInfo.email}`,
-        created_at: t.created_at
-      };
-    }) || [];
+    const formattedTransactions =
+      transactions?.map(t => {
+        const userInfo = userMap.get(t.user_id) || {
+          email: 'unknown',
+          name: 'Unknown',
+        };
+        return {
+          id: t.id,
+          user_id: t.user_id,
+          user_email: userInfo.email,
+          user_name: userInfo.name,
+          type: t.type || 'purchase',
+          amount: t.amount || 0,
+          credits: t.metadata?.credits || null,
+          status: t.status || 'completed',
+          stripe_payment_id: t.stripe_payment_id || null,
+          description:
+            t.description || `${t.type || 'Purchase'} - ${userInfo.email}`,
+          created_at: t.created_at,
+        };
+      }) || [];
 
     // Calculate metrics
     const metrics = {
@@ -102,12 +116,16 @@ async function handleGet(request: NextRequest) {
         .filter(t => t.status === 'completed' && t.type !== 'refund')
         .reduce((sum, t) => sum + t.amount, 0),
       total_transactions: formattedTransactions.length,
-      successful_transactions: formattedTransactions.filter(t => t.status === 'completed').length,
-      failed_transactions: formattedTransactions.filter(t => t.status === 'failed').length,
+      successful_transactions: formattedTransactions.filter(
+        t => t.status === 'completed'
+      ).length,
+      failed_transactions: formattedTransactions.filter(
+        t => t.status === 'failed'
+      ).length,
       refunded_amount: formattedTransactions
         .filter(t => t.type === 'refund')
         .reduce((sum, t) => sum + t.amount, 0),
-      average_transaction: 0
+      average_transaction: 0,
     };
 
     if (metrics.successful_transactions > 0) {
@@ -118,9 +136,8 @@ async function handleGet(request: NextRequest) {
 
     return NextResponse.json({
       transactions: formattedTransactions,
-      metrics
+      metrics,
     });
-
   } catch (error) {
     console.error('Error in transactions API:', error);
     return NextResponse.json(

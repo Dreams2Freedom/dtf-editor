@@ -10,9 +10,8 @@ const supabase = createClient(
   console.log('Checking RLS policies on affiliate tables...\n');
 
   // Query the pg_policies view to see what policies exist
-  const { data: policies, error } = await supabase
-    .rpc('exec_sql', {
-      sql: `
+  const { data: policies, error } = await supabase.rpc('exec_sql', {
+    sql: `
         SELECT
           tablename,
           policyname,
@@ -25,8 +24,8 @@ const supabase = createClient(
         WHERE schemaname = 'public'
         AND tablename IN ('affiliates', 'referrals', 'commissions', 'payouts')
         ORDER BY tablename, policyname;
-      `
-    });
+      `,
+  });
 
   if (error) {
     console.error('Error:', error.message);
@@ -44,7 +43,10 @@ const supabase = createClient(
       .eq('id', userId)
       .single();
 
-    console.log('1. profiles.is_admin:', profile?.is_admin ? '✅ true' : '❌ false');
+    console.log(
+      '1. profiles.is_admin:',
+      profile?.is_admin ? '✅ true' : '❌ false'
+    );
 
     // Try to fetch affiliates (this should work if RLS policies are correct)
     const { data: affiliates, error: affError } = await supabase

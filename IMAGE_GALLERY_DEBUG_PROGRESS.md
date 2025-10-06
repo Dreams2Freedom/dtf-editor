@@ -6,20 +6,24 @@
 ## Summary of Progress
 
 ### 1. Initial Problem
+
 - User reported: "All the tools still work, and the image deduction system is working flawlessly. However, the images that are being processed are not being saved in the user dashboard."
 - Console showed import error: `createBrowserSupabaseClient` doesn't exist
 
 ### 2. Fixed Import Error
+
 - **File**: `/src/components/image/ImageGallery.tsx`
 - **Fix**: Changed `createBrowserSupabaseClient` to `createClientSupabaseClient`
 - **Status**: ✅ Fixed
 
 ### 3. Discovered Database Permission Issue
+
 - Created test script: `/scripts/test-image-gallery.js`
 - Found error: "permission denied for table processed_images"
 - This is blocking both inserts and selects on the table
 
 ### 4. Attempted RLS Policy Fixes
+
 Created multiple SQL scripts to fix Row Level Security:
 
 1. **First attempt** (`/scripts/fix-processed-images-rls.sql`):
@@ -36,9 +40,11 @@ Created multiple SQL scripts to fix Row Level Security:
    - This proves the issue is NOT with RLS policies
 
 ### 5. Root Cause Discovery
+
 The issue is at the PostgreSQL role/grant level, not RLS. The service role doesn't have basic table permissions.
 
 ### 6. Current Workaround
+
 Created wrapper functions that use `SECURITY DEFINER`:
 
 1. **`insert_processed_image`** function - For saving images
@@ -63,6 +69,7 @@ These functions work because they run with the permissions of the function owner
 ## Current Status
 
 ### What Works:
+
 - ✅ Image processing tools work correctly
 - ✅ Credit deduction works
 - ✅ Table exists in database
@@ -73,6 +80,7 @@ These functions work because they run with the permissions of the function owner
 - ✅ Image saving during processing now works
 
 ### What Doesn't Work:
+
 - ❌ Direct table access with service role key (but we have a working workaround)
 
 ## Solution Applied
@@ -96,19 +104,23 @@ We implemented **Option 2: Use Wrapper Functions** as a workaround for the datab
    - Added client-side filtering and sorting since RPC returns all user images
 
 ### Result:
+
 ✅ Images are now saved to the gallery when processed
 ✅ Gallery displays all processed images correctly
 ✅ Users can delete their own images
 ✅ Storage policies are enforced (48hr/90day/permanent based on plan)
 
 ## Important Context
+
 - User's test account: shannonherod@gmail.com (ID: fe290877-7586-4674-bd6f-10280b92ab00)
 - User has "starter" plan - should get permanent image storage
 - The `calculate_image_expiration` RPC function works correctly
 - All other database operations in the app work fine
 
 ## Testing Command
+
 Once you've applied a fix, test with:
+
 ```bash
 node scripts/debug-image-saving.js
 ```

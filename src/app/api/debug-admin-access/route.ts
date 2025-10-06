@@ -6,14 +6,20 @@ export async function GET() {
   const supabase = createRouteHandlerClient({ cookies });
 
   // Get current user
-  const { data: { user }, error: userError } = await supabase.auth.getUser();
+  const {
+    data: { user },
+    error: userError,
+  } = await supabase.auth.getUser();
 
   if (!user) {
-    return NextResponse.json({
-      error: 'Not authenticated',
-      userError: userError?.message,
-      hasUser: false
-    }, { status: 401 });
+    return NextResponse.json(
+      {
+        error: 'Not authenticated',
+        userError: userError?.message,
+        hasUser: false,
+      },
+      { status: 401 }
+    );
   }
 
   // Check profiles.is_admin
@@ -31,8 +37,10 @@ export async function GET() {
     .single();
 
   // Test is_admin function
-  const { data: isAdminResult, error: isAdminError } = await supabase
-    .rpc('is_admin', { check_user_id: user.id });
+  const { data: isAdminResult, error: isAdminError } = await supabase.rpc(
+    'is_admin',
+    { check_user_id: user.id }
+  );
 
   // Try to query affiliates
   const { data: affiliates, error: affiliatesError } = await supabase
@@ -47,26 +55,26 @@ export async function GET() {
     },
     profile: {
       data: profile,
-      error: profileError?.message
+      error: profileError?.message,
     },
     adminUser: {
       data: adminUser,
-      error: adminError?.message
+      error: adminError?.message,
     },
     isAdminFunction: {
       result: isAdminResult,
-      error: isAdminError?.message
+      error: isAdminError?.message,
     },
     affiliatesQuery: {
       count: affiliates?.length || 0,
-      error: affiliatesError?.message
+      error: affiliatesError?.message,
     },
     diagnosis: {
       hasSession: !!user,
       profileIsAdmin: profile?.is_admin,
       inAdminUsersTable: !!adminUser,
       isAdminFunctionWorks: isAdminResult === true,
-      canQueryAffiliates: !affiliatesError
-    }
+      canQueryAffiliates: !affiliatesError,
+    },
   });
 }

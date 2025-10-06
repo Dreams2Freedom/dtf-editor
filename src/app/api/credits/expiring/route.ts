@@ -5,7 +5,10 @@ import { withRateLimit } from '@/lib/rate-limit';
 async function handleGet(request: NextRequest) {
   try {
     const supabase = await createServerSupabaseClient();
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
 
     if (authError || !user) {
       return NextResponse.json(
@@ -35,12 +38,14 @@ async function handleGet(request: NextRequest) {
     const transformedCredits = (expiringCredits || []).map(credit => {
       const expiresAt = new Date(credit.expires_at);
       const now = new Date();
-      const daysUntilExpiration = Math.ceil((expiresAt.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+      const daysUntilExpiration = Math.ceil(
+        (expiresAt.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)
+      );
 
       return {
         credits: credit.amount,
         expiresAt: credit.expires_at,
-        daysUntilExpiration: Math.max(0, daysUntilExpiration)
+        daysUntilExpiration: Math.max(0, daysUntilExpiration),
       };
     });
 
@@ -51,15 +56,14 @@ async function handleGet(request: NextRequest) {
       .eq('id', user.id)
       .single();
 
-    const lowCreditWarning = profile?.subscription_plan === 'free' && 
-                           profile?.credits_remaining <= 1;
+    const lowCreditWarning =
+      profile?.subscription_plan === 'free' && profile?.credits_remaining <= 1;
 
     return NextResponse.json({
       expiringCredits: transformedCredits,
       lowCreditWarning,
-      totalExpiring: transformedCredits.reduce((sum, c) => sum + c.credits, 0)
+      totalExpiring: transformedCredits.reduce((sum, c) => sum + c.credits, 0),
     });
-
   } catch (error) {
     console.error('Error checking expiring credits:', error);
     return NextResponse.json(

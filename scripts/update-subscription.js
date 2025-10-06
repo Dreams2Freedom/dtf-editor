@@ -11,13 +11,13 @@ const stripeClient = stripe(process.env.STRIPE_SECRET_KEY);
 
 async function updateSubscription() {
   const userId = 'f689bb22-89dd-4c3c-a941-d77feb84428d';
-  
+
   try {
     // Get all subscriptions for the customer
     const subscriptions = await stripeClient.subscriptions.list({
       customer: 'cus_SljqE25ffokLaJ',
       status: 'active',
-      limit: 10
+      limit: 10,
     });
 
     if (subscriptions.data.length === 0) {
@@ -26,17 +26,18 @@ async function updateSubscription() {
     }
 
     // Get the most recent subscription (highest amount or newest created)
-    const subscription = subscriptions.data.sort((a, b) => 
-      b.items.data[0].price.unit_amount - a.items.data[0].price.unit_amount
+    const subscription = subscriptions.data.sort(
+      (a, b) =>
+        b.items.data[0].price.unit_amount - a.items.data[0].price.unit_amount
     )[0];
     console.log('Subscription status:', subscription.status);
     console.log('Price ID:', subscription.items.data[0].price.id);
 
     // Map price IDs to plan names
     const priceIdToPlan = {
-      'price_1RleoYPHFzf1GpIrfy9RVk9m': 'basic',
-      'price_1RlepVPHFzf1GpIrjRiKHtvb': 'starter',
-      'price_1RleqXPHFzf1GpIrXYXVHNCh': 'professional'
+      price_1RleoYPHFzf1GpIrfy9RVk9m: 'basic',
+      price_1RlepVPHFzf1GpIrjRiKHtvb: 'starter',
+      price_1RleqXPHFzf1GpIrXYXVHNCh: 'professional',
     };
 
     const priceId = subscription.items.data[0].price.id;
@@ -59,7 +60,6 @@ async function updateSubscription() {
     } else {
       console.log('✅ Profile updated successfully to', planName);
     }
-    
   } catch (error) {
     console.error('Error:', error);
   }

@@ -22,11 +22,11 @@ async function checkCreditsColumn() {
     if (profiles && profiles.length > 0) {
       console.log('Profile columns:', Object.keys(profiles[0]));
       console.log('\nCredit-related columns:');
-      
-      const creditColumns = Object.keys(profiles[0]).filter(col => 
+
+      const creditColumns = Object.keys(profiles[0]).filter(col =>
         col.toLowerCase().includes('credit')
       );
-      
+
       creditColumns.forEach(col => {
         console.log(`- ${col}: ${profiles[0][col]}`);
       });

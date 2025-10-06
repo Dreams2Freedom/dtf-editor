@@ -13,9 +13,13 @@ export default function TestAuthPage() {
     // Get client-side auth info
     const checkAuth = async () => {
       const supabase = createClientSupabaseClient();
-      const { data: { session: clientSession } } = await supabase.auth.getSession();
-      const { data: { user: clientUser } } = await supabase.auth.getUser();
-      
+      const {
+        data: { session: clientSession },
+      } = await supabase.auth.getSession();
+      const {
+        data: { user: clientUser },
+      } = await supabase.auth.getUser();
+
       setDebugInfo({
         storeUser: !!user,
         storeSession: !!session,
@@ -48,14 +52,17 @@ export default function TestAuthPage() {
     try {
       const formData = new FormData();
       formData.append('operation', 'upscale');
-      formData.append('image', new File(['test'], 'test.jpg', { type: 'image/jpeg' }));
+      formData.append(
+        'image',
+        new File(['test'], 'test.jpg', { type: 'image/jpeg' })
+      );
 
       const response = await fetch('/api/process', {
         method: 'POST',
         body: formData,
         credentials: 'include',
       });
-      
+
       const data = await response.json();
       alert(`Process API Response: ${JSON.stringify(data, null, 2)}`);
     } catch (error) {
@@ -66,7 +73,7 @@ export default function TestAuthPage() {
   return (
     <div className="p-8 max-w-4xl mx-auto">
       <h1 className="text-2xl font-bold mb-6">Authentication Debug Page</h1>
-      
+
       <div className="space-y-6">
         {/* Client-side info */}
         <div className="bg-gray-100 p-4 rounded">

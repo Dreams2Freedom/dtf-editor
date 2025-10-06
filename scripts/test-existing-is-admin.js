@@ -12,12 +12,13 @@ const supabase = createClient(
   const userId = 'fcc1b251-6307-457c-ac1e-064aa43b2449'; // shannonherod@gmail.com
 
   // Test the existing is_admin function
-  const { data, error } = await supabase
-    .rpc('is_admin', { user_id: userId });
+  const { data, error } = await supabase.rpc('is_admin', { user_id: userId });
 
   if (error) {
     console.error('❌ Error calling is_admin():', error.message);
-    console.log('\nThis means the function signature is different than expected.');
+    console.log(
+      '\nThis means the function signature is different than expected.'
+    );
   } else {
     console.log('✅ is_admin() function returned:', data);
 
@@ -26,7 +27,7 @@ const supabase = createClient(
       console.log('   This means the function checks profiles.is_admin');
       console.log('   And you have profiles.is_admin = true');
       console.log('\n   The affiliate policies SHOULD work...');
-      console.log('   Let me check if there\'s a different issue...');
+      console.log("   Let me check if there's a different issue...");
     } else {
       console.log('\n❌ The function returned false');
       console.log('   Your profiles.is_admin might not be set correctly');

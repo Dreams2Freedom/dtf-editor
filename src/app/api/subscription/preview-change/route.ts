@@ -5,23 +5,29 @@ import { env } from '@/config/env';
 import { withRateLimit } from '@/lib/rate-limit';
 
 // Plan price mapping
-const PLAN_PRICES: Record<string, { priceId: string; monthlyPrice: number; credits: number }> = {
+const PLAN_PRICES: Record<
+  string,
+  { priceId: string; monthlyPrice: number; credits: number }
+> = {
   basic: {
     priceId: env.STRIPE_BASIC_PLAN_PRICE_ID,
     monthlyPrice: 9.99,
-    credits: 20
+    credits: 20,
   },
   starter: {
     priceId: env.STRIPE_STARTER_PLAN_PRICE_ID,
     monthlyPrice: 24.99,
-    credits: 60
-  }
+    credits: 60,
+  },
 };
 
 async function handlePost(request: NextRequest) {
   try {
     const supabase = await createServerSupabaseClient();
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
 
     if (authError || !user) {
       return NextResponse.json(
@@ -33,10 +39,7 @@ async function handlePost(request: NextRequest) {
     const { newPlanId } = await request.json();
 
     if (!newPlanId || !PLAN_PRICES[newPlanId]) {
-      return NextResponse.json(
-        { error: 'Invalid plan ID' },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: 'Invalid plan ID' }, { status: 400 });
     }
 
     // Get user profile
@@ -62,8 +65,10 @@ async function handlePost(request: NextRequest) {
     }
 
     // Get current subscription from Stripe
-    const subscription = await getStripe().subscriptions.retrieve(profile.stripe_subscription_id);
-    
+    const subscription = await getStripe().subscriptions.retrieve(
+      profile.stripe_subscription_id
+    );
+
     if (!subscription || subscription.status !== 'active') {
       return NextResponse.json(
         { error: 'Subscription is not active' },
@@ -74,7 +79,7 @@ async function handlePost(request: NextRequest) {
     // Calculate proration preview
     const currentPlan = PLAN_PRICES[profile.subscription_plan];
     const newPlan = PLAN_PRICES[newPlanId];
-    
+
     if (!currentPlan) {
       return NextResponse.json(
         { error: 'Current plan configuration not found' },
@@ -96,10 +101,10 @@ async function handlePost(request: NextRequest) {
 
     // Credit for unused time on current plan
     const unusedCredit = currentPlanDailyRate * daysRemaining;
-    
+
     // Charge for remaining time on new plan
     const newPlanCharge = newPlanDailyRate * daysRemaining;
-    
+
     // Net amount
     const immediateCharge = Math.max(0, newPlanCharge - unusedCredit);
     const creditBalance = Math.max(0, unusedCredit - newPlanCharge);
@@ -118,7 +123,7 @@ async function handlePost(request: NextRequest) {
       creditBalance: Number(creditBalance.toFixed(2)),
       nextInvoiceTotal: newPlan.monthlyPrice,
       prorationDate: new Date().toISOString(),
-      description: isUpgrade 
+      description: isUpgrade
         ? `Upgrade charge for ${Math.floor(daysRemaining)} days remaining in billing cycle`
         : `Credit of $${creditBalance.toFixed(2)} will be applied to your next invoice`,
       creditAdjustment,
@@ -127,15 +132,14 @@ async function handlePost(request: NextRequest) {
       currentPlan: {
         name: profile.subscription_plan,
         price: currentPlan.monthlyPrice,
-        credits: currentPlan.credits
+        credits: currentPlan.credits,
       },
       newPlan: {
         name: newPlanId,
         price: newPlan.monthlyPrice,
-        credits: newPlan.credits
-      }
+        credits: newPlan.credits,
+      },
     });
-
   } catch (error) {
     console.error('Error previewing plan change:', error);
     return NextResponse.json(

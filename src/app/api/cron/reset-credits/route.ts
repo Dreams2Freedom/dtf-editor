@@ -10,12 +10,9 @@ async function handleGet(request: NextRequest) {
     // Verify cron secret to prevent unauthorized access
     const authHeader = request.headers.get('authorization');
     const cronSecret = env.CRON_SECRET || 'your-cron-secret-here';
-    
+
     if (authHeader !== `Bearer ${cronSecret}`) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     // Use service role client for admin operations
@@ -40,9 +37,8 @@ async function handleGet(request: NextRequest) {
       success: true,
       message: `Successfully reset credits for ${usersReset} users`,
       users: data,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     });
-
   } catch (error) {
     console.error('Cron job error:', error);
     return NextResponse.json(
@@ -57,20 +53,17 @@ async function handlePost(request: NextRequest) {
   try {
     // This endpoint is for manual testing
     const { userId, secret } = await request.json();
-    
+
     // Simple auth check
     if (secret !== env.CRON_SECRET) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     const supabase = createServiceRoleSupabaseClient();
 
     // Reset credits for specific user or all
     const { data, error } = await supabase.rpc('reset_monthly_credits', {
-      p_user_id: userId || null
+      p_user_id: userId || null,
     });
 
     if (error) {
@@ -83,9 +76,8 @@ async function handlePost(request: NextRequest) {
     return NextResponse.json({
       success: true,
       message: 'Credits reset successfully',
-      data
+      data,
     });
-
   } catch (error) {
     console.error('Manual reset error:', error);
     return NextResponse.json(

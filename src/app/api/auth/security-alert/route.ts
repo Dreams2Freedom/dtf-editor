@@ -5,9 +5,11 @@ import { emailService } from '@/services/email';
 export async function POST(request: NextRequest) {
   try {
     const supabase = await createServerSupabaseClient();
-    
+
     // Get current user
-    const { data: { user } } = await supabase.auth.getUser();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
@@ -24,21 +26,22 @@ export async function POST(request: NextRequest) {
 
     // Get device info from request headers if not provided
     const userAgent = request.headers.get('user-agent') || '';
-    const ip = request.headers.get('x-forwarded-for') || 
-               request.headers.get('x-real-ip') || 
-               'Unknown';
+    const ip =
+      request.headers.get('x-forwarded-for') ||
+      request.headers.get('x-real-ip') ||
+      'Unknown';
 
     // Parse user agent for browser and OS
     let browser = 'Unknown Browser';
     let os = 'Unknown OS';
-    
+
     if (userAgent) {
       // Simple browser detection
       if (userAgent.includes('Chrome')) browser = 'Chrome';
       else if (userAgent.includes('Firefox')) browser = 'Firefox';
       else if (userAgent.includes('Safari')) browser = 'Safari';
       else if (userAgent.includes('Edge')) browser = 'Edge';
-      
+
       // Simple OS detection
       if (userAgent.includes('Windows')) os = 'Windows';
       else if (userAgent.includes('Mac')) os = 'macOS';

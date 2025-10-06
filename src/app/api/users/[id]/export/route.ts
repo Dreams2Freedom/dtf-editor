@@ -9,9 +9,11 @@ async function handleGet(
   try {
     const supabase = await createServerSupabaseClient();
     const userId = params.id;
-    
+
     // Check if user is requesting their own data or is admin
-    const { data: { user } } = await supabase.auth.getUser();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
@@ -45,7 +47,7 @@ async function handleGet(
       { data: processedImages },
       { data: collections },
       { data: uploads },
-      { data: costTracking }
+      { data: costTracking },
     ] = await Promise.all([
       // Credit transactions
       supabase
@@ -53,34 +55,34 @@ async function handleGet(
         .select('*')
         .eq('user_id', userId)
         .order('created_at', { ascending: false }),
-      
+
       // Processed images
       supabase
         .from('processed_images')
         .select('*')
         .eq('user_id', userId)
         .order('created_at', { ascending: false }),
-      
+
       // Collections
       supabase
         .from('collections')
         .select('*')
         .eq('user_id', userId)
         .order('created_at', { ascending: false }),
-      
+
       // Uploads
       supabase
         .from('uploads')
         .select('*')
         .eq('user_id', userId)
         .order('created_at', { ascending: false }),
-      
+
       // API cost tracking
       supabase
         .from('api_cost_tracking')
         .select('*')
         .eq('user_id', userId)
-        .order('created_at', { ascending: false })
+        .order('created_at', { ascending: false }),
     ]);
 
     // Compile all user data
@@ -91,7 +93,9 @@ async function handleGet(
         ...userData,
         // Mask sensitive data
         stripe_customer_id: userData.stripe_customer_id ? 'REDACTED' : null,
-        stripe_subscription_id: userData.stripe_subscription_id ? 'REDACTED' : null
+        stripe_subscription_id: userData.stripe_subscription_id
+          ? 'REDACTED'
+          : null,
       },
       credit_transactions: transactions || [],
       processed_images: processedImages || [],
@@ -105,18 +109,17 @@ async function handleGet(
         total_uploads: uploads?.length || 0,
         total_api_calls: costTracking?.length || 0,
         account_created: userData.created_at,
-        last_activity: userData.updated_at
-      }
+        last_activity: userData.updated_at,
+      },
     };
 
     // Return as downloadable JSON file
     return NextResponse.json(exportData, {
       headers: {
         'Content-Type': 'application/json',
-        'Content-Disposition': `attachment; filename="user-data-export-${userId}-${new Date().toISOString().split('T')[0]}.json"`
-      }
+        'Content-Disposition': `attachment; filename="user-data-export-${userId}-${new Date().toISOString().split('T')[0]}.json"`,
+      },
     });
-
   } catch (error) {
     console.error('Error exporting user data:', error);
     return NextResponse.json(

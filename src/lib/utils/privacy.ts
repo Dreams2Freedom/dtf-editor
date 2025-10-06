@@ -57,6 +57,6 @@ export function maskName(name: string | null | undefined): string {
   const parts = name.trim().split(/\s+/);
 
   return parts
-    .map(part => part.length > 0 ? part[0] + '***' : '***')
+    .map(part => (part.length > 0 ? part[0] + '***' : '***'))
     .join(' ');
 }

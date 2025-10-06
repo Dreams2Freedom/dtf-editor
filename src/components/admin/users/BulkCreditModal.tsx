@@ -17,7 +17,7 @@ export function BulkCreditModal({
   onClose,
   selectedCount,
   selectedUserIds,
-  onSuccess
+  onSuccess,
 }: BulkCreditModalProps) {
   const [creditAmount, setCreditAmount] = useState('');
   const [operation, setOperation] = useState<'add' | 'set'>('add');
@@ -27,7 +27,7 @@ export function BulkCreditModal({
 
   const handleSubmit = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
-    
+
     const amount = parseInt(creditAmount);
     if (isNaN(amount) || amount < 0) {
       toast.error('Please enter a valid credit amount');
@@ -55,7 +55,7 @@ export function BulkCreditModal({
         body: JSON.stringify({
           userIds: selectedUserIds,
           amount,
-          operation
+          operation,
         }),
       });
 
@@ -64,8 +64,10 @@ export function BulkCreditModal({
       }
 
       const result = await response.json();
-      toast.success(`Successfully updated credits for ${result.affected} users`);
-      
+      toast.success(
+        `Successfully updated credits for ${result.affected} users`
+      );
+
       onSuccess();
       onClose();
       setCreditAmount('');
@@ -95,7 +97,8 @@ export function BulkCreditModal({
         <form onSubmit={handleSubmit} className="p-6 overflow-y-auto flex-1">
           <div className="mb-6">
             <p className="text-sm text-gray-600 mb-4">
-              Adjusting credits for <span className="font-semibold">{selectedCount} users</span>
+              Adjusting credits for{' '}
+              <span className="font-semibold">{selectedCount} users</span>
             </p>
 
             <div className="space-y-4">
@@ -110,7 +113,9 @@ export function BulkCreditModal({
                       name="operation"
                       value="add"
                       checked={operation === 'add'}
-                      onChange={(e) => setOperation(e.target.value as 'add' | 'set')}
+                      onChange={e =>
+                        setOperation(e.target.value as 'add' | 'set')
+                      }
                       className="mr-2"
                     />
                     <span className="text-sm">Add to existing credits</span>
@@ -121,7 +126,9 @@ export function BulkCreditModal({
                       name="operation"
                       value="set"
                       checked={operation === 'set'}
-                      onChange={(e) => setOperation(e.target.value as 'add' | 'set')}
+                      onChange={e =>
+                        setOperation(e.target.value as 'add' | 'set')
+                      }
                       className="mr-2"
                     />
                     <span className="text-sm">Set to specific amount</span>
@@ -130,7 +137,10 @@ export function BulkCreditModal({
               </div>
 
               <div>
-                <label htmlFor="creditAmount" className="block text-sm font-medium text-gray-700 mb-2">
+                <label
+                  htmlFor="creditAmount"
+                  className="block text-sm font-medium text-gray-700 mb-2"
+                >
                   Credit Amount
                 </label>
                 <div className="relative">
@@ -140,8 +150,12 @@ export function BulkCreditModal({
                     id="creditAmount"
                     name="creditAmount"
                     value={creditAmount}
-                    onChange={(e) => setCreditAmount(e.target.value)}
-                    placeholder={operation === 'add' ? 'Credits to add' : 'New credit balance'}
+                    onChange={e => setCreditAmount(e.target.value)}
+                    placeholder={
+                      operation === 'add'
+                        ? 'Credits to add'
+                        : 'New credit balance'
+                    }
                     min="0"
                     max={operation === 'add' ? '500' : '1000'}
                     required
@@ -149,17 +163,19 @@ export function BulkCreditModal({
                   />
                 </div>
                 <p className="mt-1 text-xs text-gray-500">
-                  {operation === 'add' 
+                  {operation === 'add'
                     ? 'Maximum 500 credits can be added at once'
-                    : 'Maximum balance of 1000 credits'
-                  }
+                    : 'Maximum balance of 1000 credits'}
                 </p>
               </div>
 
               {operation === 'add' && parseInt(creditAmount) > 0 && (
                 <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
                   <p className="text-sm text-blue-800">
-                    Each user will receive <span className="font-semibold">{creditAmount} additional credits</span>
+                    Each user will receive{' '}
+                    <span className="font-semibold">
+                      {creditAmount} additional credits
+                    </span>
                   </p>
                 </div>
               )}
@@ -167,7 +183,8 @@ export function BulkCreditModal({
               {operation === 'set' && parseInt(creditAmount) >= 0 && (
                 <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
                   <p className="text-sm text-yellow-800">
-                    All selected users will have their credits set to <span className="font-semibold">{creditAmount}</span>
+                    All selected users will have their credits set to{' '}
+                    <span className="font-semibold">{creditAmount}</span>
                   </p>
                 </div>
               )}

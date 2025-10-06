@@ -41,20 +41,28 @@ export function Footer() {
           <div className="space-y-8">
             <div className="flex items-center">
               <Crown className="h-8 w-8 text-primary-blue" />
-              <span className="ml-2 text-xl font-bold text-white">DTF Editor</span>
+              <span className="ml-2 text-xl font-bold text-white">
+                DTF Editor
+              </span>
             </div>
             <p className="text-sm leading-6 text-gray-300">
-              AI-powered image processing tools for creating print-ready DTF transfers.
+              AI-powered image processing tools for creating print-ready DTF
+              transfers.
             </p>
           </div>
           <div className="mt-16 grid grid-cols-2 gap-8 xl:col-span-2 xl:mt-0">
             <div className="md:grid md:grid-cols-2 md:gap-8">
               <div>
-                <h3 className="text-sm font-semibold leading-6 text-white">Product</h3>
+                <h3 className="text-sm font-semibold leading-6 text-white">
+                  Product
+                </h3>
                 <ul role="list" className="mt-6 space-y-4">
-                  {navigation.product.map((item) => (
+                  {navigation.product.map(item => (
                     <li key={item.name}>
-                      <Link href={item.href} className="text-sm leading-6 text-gray-300 hover:text-white">
+                      <Link
+                        href={item.href}
+                        className="text-sm leading-6 text-gray-300 hover:text-white"
+                      >
                         {item.name}
                       </Link>
                     </li>
@@ -62,11 +70,16 @@ export function Footer() {
                 </ul>
               </div>
               <div className="mt-10 md:mt-0">
-                <h3 className="text-sm font-semibold leading-6 text-white">Tools</h3>
+                <h3 className="text-sm font-semibold leading-6 text-white">
+                  Tools
+                </h3>
                 <ul role="list" className="mt-6 space-y-4">
-                  {navigation.tools.map((item) => (
+                  {navigation.tools.map(item => (
                     <li key={item.name}>
-                      <Link href={item.href} className="text-sm leading-6 text-gray-300 hover:text-white">
+                      <Link
+                        href={item.href}
+                        className="text-sm leading-6 text-gray-300 hover:text-white"
+                      >
                         {item.name}
                       </Link>
                     </li>
@@ -76,11 +89,16 @@ export function Footer() {
             </div>
             <div className="md:grid md:grid-cols-2 md:gap-8">
               <div>
-                <h3 className="text-sm font-semibold leading-6 text-white">Support</h3>
+                <h3 className="text-sm font-semibold leading-6 text-white">
+                  Support
+                </h3>
                 <ul role="list" className="mt-6 space-y-4">
-                  {navigation.support.map((item) => (
+                  {navigation.support.map(item => (
                     <li key={item.name}>
-                      <Link href={item.href} className="text-sm leading-6 text-gray-300 hover:text-white">
+                      <Link
+                        href={item.href}
+                        className="text-sm leading-6 text-gray-300 hover:text-white"
+                      >
                         {item.name}
                       </Link>
                     </li>
@@ -89,11 +107,16 @@ export function Footer() {
               </div>
               <div className="mt-10 md:mt-0">
                 <div>
-                  <h3 className="text-sm font-semibold leading-6 text-white">Business</h3>
+                  <h3 className="text-sm font-semibold leading-6 text-white">
+                    Business
+                  </h3>
                   <ul role="list" className="mt-6 space-y-4">
-                    {navigation.business.map((item) => (
+                    {navigation.business.map(item => (
                       <li key={item.name}>
-                        <Link href={item.href} className="text-sm leading-6 text-gray-300 hover:text-white">
+                        <Link
+                          href={item.href}
+                          className="text-sm leading-6 text-gray-300 hover:text-white"
+                        >
                           {item.name}
                         </Link>
                       </li>
@@ -101,11 +124,16 @@ export function Footer() {
                   </ul>
                 </div>
                 <div className="mt-10">
-                  <h3 className="text-sm font-semibold leading-6 text-white">Legal</h3>
+                  <h3 className="text-sm font-semibold leading-6 text-white">
+                    Legal
+                  </h3>
                   <ul role="list" className="mt-6 space-y-4">
-                    {navigation.legal.map((item) => (
+                    {navigation.legal.map(item => (
                       <li key={item.name}>
-                        <Link href={item.href} className="text-sm leading-6 text-gray-300 hover:text-white">
+                        <Link
+                          href={item.href}
+                          className="text-sm leading-6 text-gray-300 hover:text-white"
+                        >
                           {item.name}
                         </Link>
                       </li>

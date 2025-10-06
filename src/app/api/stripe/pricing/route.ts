@@ -5,10 +5,10 @@ import { withRateLimit } from '@/lib/rate-limit';
 async function handleGet() {
   try {
     const stripeService = getStripeService();
-    
+
     const plans = stripeService.getSubscriptionPlans();
     const packages = stripeService.getPayAsYouGoPackages();
-    
+
     return NextResponse.json({
       subscriptionPlans: plans,
       payAsYouGoPackages: packages,

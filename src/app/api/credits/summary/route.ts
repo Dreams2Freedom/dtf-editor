@@ -17,15 +17,21 @@ async function handleGet(request: NextRequest) {
         },
       }
     );
-    
+
     // Get authenticated user
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
-    
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
+
     if (authError || !user) {
-      return NextResponse.json({ 
-        success: false, 
-        error: 'Unauthorized' 
-      }, { status: 401 });
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'Unauthorized',
+        },
+        { status: 401 }
+      );
     }
 
     // Get user's credit summary from the view
@@ -56,10 +62,11 @@ async function handleGet(request: NextRequest) {
     }
 
     // Calculate expiring credits count
-    const expiring_soon_count = expiringPurchases?.reduce(
-      (sum, purchase) => sum + purchase.credits_remaining, 
-      0
-    ) || 0;
+    const expiring_soon_count =
+      expiringPurchases?.reduce(
+        (sum, purchase) => sum + purchase.credits_remaining,
+        0
+      ) || 0;
 
     // Get the nearest expiration date
     const next_expiration_date = expiringPurchases?.[0]?.expires_at || null;
@@ -71,16 +78,18 @@ async function handleGet(request: NextRequest) {
         active_credits: summary?.active_credits || 0,
         rollover_credits: summary?.rollover_credits || 0,
         next_expiration_date,
-        expiring_soon_count
-      }
+        expiring_soon_count,
+      },
     });
-
   } catch (error) {
     console.error('Credit summary error:', error);
-    return NextResponse.json({ 
-      success: false, 
-      error: 'Failed to fetch credit summary' 
-    }, { status: 500 });
+    return NextResponse.json(
+      {
+        success: false,
+        error: 'Failed to fetch credit summary',
+      },
+      { status: 500 }
+    );
   }
 }
 

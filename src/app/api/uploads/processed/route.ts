@@ -7,7 +7,10 @@ async function handlePost(request: NextRequest) {
   try {
     // Check authentication
     const supabase = await createServerSupabaseClient();
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
 
     if (authError || !user) {
       return NextResponse.json(
@@ -23,10 +26,7 @@ async function handlePost(request: NextRequest) {
     const type = formData.get('type') as string;
 
     if (!imageFile) {
-      return NextResponse.json(
-        { error: 'No image provided' },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: 'No image provided' }, { status: 400 });
     }
 
     // Initialize storage service
@@ -46,16 +46,14 @@ async function handlePost(request: NextRequest) {
     );
 
     // Save to uploads table as a processed image
-    const { error: dbError } = await supabase
-      .from('uploads')
-      .insert({
-        user_id: user.id,
-        file_name: fileName,
-        file_path: fileName,
-        file_size: imageFile.size,
-        file_type: imageFile.type || 'image/png',
-        public_url: result.url
-      });
+    const { error: dbError } = await supabase.from('uploads').insert({
+      user_id: user.id,
+      file_name: fileName,
+      file_path: fileName,
+      file_size: imageFile.size,
+      file_type: imageFile.type || 'image/png',
+      public_url: result.url,
+    });
 
     if (dbError) {
       console.error('Failed to save to history:', dbError);
@@ -64,9 +62,8 @@ async function handlePost(request: NextRequest) {
     return NextResponse.json({
       success: true,
       publicUrl: result.url,
-      message: 'Processed image saved successfully'
+      message: 'Processed image saved successfully',
     });
-
   } catch (error) {
     console.error('Save processed image error:', error);
     return NextResponse.json(

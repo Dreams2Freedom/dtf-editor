@@ -36,13 +36,15 @@ export function NotificationBell() {
     try {
       setLoading(true);
       const supabase = createClientSupabaseClient();
-      const { data: { session } } = await supabase.auth.getSession();
-      
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+
       if (!session) return;
-      
+
       const response = await fetch('/api/notifications', {
         headers: {
-          'Authorization': `Bearer ${session.access_token}`,
+          Authorization: `Bearer ${session.access_token}`,
         },
       });
 
@@ -61,15 +63,17 @@ export function NotificationBell() {
   const markAsRead = async (notificationId: string) => {
     try {
       const supabase = createClientSupabaseClient();
-      const { data: { session } } = await supabase.auth.getSession();
-      
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+
       if (!session) return;
-      
+
       await fetch('/api/notifications', {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session.access_token}`,
+          Authorization: `Bearer ${session.access_token}`,
         },
         body: JSON.stringify({
           notificationId,
@@ -78,9 +82,11 @@ export function NotificationBell() {
       });
 
       // Update local state
-      setNotifications(notifications.map(n => 
-        n.id === notificationId ? { ...n, is_read: true } : n
-      ));
+      setNotifications(
+        notifications.map(n =>
+          n.id === notificationId ? { ...n, is_read: true } : n
+        )
+      );
       setUnreadCount(Math.max(0, unreadCount - 1));
     } catch (error) {
       console.error('Error marking notification as read:', error);
@@ -90,15 +96,17 @@ export function NotificationBell() {
   const dismissNotification = async (notificationId: string) => {
     try {
       const supabase = createClientSupabaseClient();
-      const { data: { session } } = await supabase.auth.getSession();
-      
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+
       if (!session) return;
-      
+
       await fetch('/api/notifications', {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session.access_token}`,
+          Authorization: `Bearer ${session.access_token}`,
         },
         body: JSON.stringify({
           notificationId,
@@ -159,13 +167,15 @@ export function NotificationBell() {
             className="fixed inset-0 z-10"
             onClick={() => setShowDropdown(false)}
           />
-          
+
           {/* Notification Panel */}
           <div className="absolute right-0 mt-2 w-96 max-h-[500px] bg-white rounded-lg shadow-xl border border-gray-200 z-20 overflow-hidden">
             {/* Header */}
             <div className="px-4 py-3 border-b border-gray-200">
               <div className="flex items-center justify-between">
-                <h3 className="text-lg font-semibold text-gray-900">Notifications</h3>
+                <h3 className="text-lg font-semibold text-gray-900">
+                  Notifications
+                </h3>
                 <button
                   onClick={() => setShowDropdown(false)}
                   className="text-gray-400 hover:text-gray-600"
@@ -187,7 +197,7 @@ export function NotificationBell() {
                 </div>
               ) : (
                 <div className="divide-y divide-gray-100">
-                  {visibleNotifications.map((notification) => (
+                  {visibleNotifications.map(notification => (
                     <div
                       key={notification.id}
                       className={`
@@ -199,10 +209,12 @@ export function NotificationBell() {
                         <div className="flex-1">
                           <div className="flex items-start justify-between gap-2">
                             <div className="flex-1">
-                              <h4 className={`
+                              <h4
+                                className={`
                                 font-medium text-gray-900
                                 ${notification.priority === 'urgent' ? 'flex items-center gap-1' : ''}
-                              `}>
+                              `}
+                              >
                                 {notification.priority === 'urgent' && (
                                   <span className="inline-block w-2 h-2 bg-red-500 rounded-full animate-pulse" />
                                 )}
@@ -211,25 +223,31 @@ export function NotificationBell() {
                               <p className="mt-1 text-sm text-gray-600">
                                 {notification.message}
                               </p>
-                              {notification.action_url && notification.action_text && (
-                                <a
-                                  href={notification.action_url}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="mt-2 inline-flex items-center gap-1 text-sm font-medium text-purple-600 hover:text-purple-700"
-                                >
-                                  {notification.action_text}
-                                  <ExternalLink className="h-3 w-3" />
-                                </a>
-                              )}
+                              {notification.action_url &&
+                                notification.action_text && (
+                                  <a
+                                    href={notification.action_url}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="mt-2 inline-flex items-center gap-1 text-sm font-medium text-purple-600 hover:text-purple-700"
+                                  >
+                                    {notification.action_text}
+                                    <ExternalLink className="h-3 w-3" />
+                                  </a>
+                                )}
                               <div className="mt-2 flex items-center gap-4 text-xs text-gray-500">
                                 <span>
-                                  {formatDistanceToNow(new Date(notification.created_at), { addSuffix: true })}
+                                  {formatDistanceToNow(
+                                    new Date(notification.created_at),
+                                    { addSuffix: true }
+                                  )}
                                 </span>
-                                <span className={`
+                                <span
+                                  className={`
                                   inline-flex px-2 py-0.5 rounded-full text-xs font-medium
                                   ${getNotificationColor(notification.type)}
-                                `}>
+                                `}
+                                >
                                   {notification.type}
                                 </span>
                               </div>
@@ -245,7 +263,9 @@ export function NotificationBell() {
                                 </button>
                               )}
                               <button
-                                onClick={() => dismissNotification(notification.id)}
+                                onClick={() =>
+                                  dismissNotification(notification.id)
+                                }
                                 className="p-1 text-gray-400 hover:text-gray-600"
                                 title="Dismiss"
                               >

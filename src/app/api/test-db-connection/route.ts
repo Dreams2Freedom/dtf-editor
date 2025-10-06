@@ -12,7 +12,7 @@ async function handleGet() {
         success: false,
         error: 'Missing environment variables',
         hasUrl: !!supabaseUrl,
-        hasServiceKey: !!supabaseServiceKey
+        hasServiceKey: !!supabaseServiceKey,
       });
     }
 
@@ -38,13 +38,12 @@ async function handleGet() {
       userError: userError?.message || null,
       tables: tables || [],
       tableError: tableError?.message || null,
-      supabaseUrl: supabaseUrl.replace(/https?:\/\//, '').split('.')[0] // Show project ref
+      supabaseUrl: supabaseUrl.replace(/https?:\/\//, '').split('.')[0], // Show project ref
     });
-
   } catch (error: any) {
     return NextResponse.json({
       success: false,
-      error: error.message || 'Unknown error occurred'
+      error: error.message || 'Unknown error occurred',
     });
   }
 }

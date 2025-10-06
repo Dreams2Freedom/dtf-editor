@@ -11,15 +11,18 @@ export const dynamic = 'force-dynamic';
 async function handlePost(request: NextRequest) {
   try {
     const supabase = await createServerSupabaseClient();
-    
+
     // Check authentication
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
     if (authError || !user) {
       return NextResponse.json(
-        { 
-          success: false, 
+        {
+          success: false,
           error: 'Your session has expired. Please sign in again to continue.',
-          code: 'SESSION_EXPIRED'
+          code: 'SESSION_EXPIRED',
         },
         { status: 401 }
       );
@@ -28,7 +31,7 @@ async function handlePost(request: NextRequest) {
     // Get the file from form data
     const formData = await request.formData();
     const file = (formData.get('file') || formData.get('image')) as File;
-    
+
     if (!file) {
       return NextResponse.json(
         { success: false, error: 'No file provided' },
@@ -64,23 +67,23 @@ async function handlePost(request: NextRequest) {
         { status: 500 }
       );
     }
-    
+
     // Upload to Supabase storage
     const uploadResult = await storage.uploadImage(file, user.id);
-    
+
     console.log('Upload result:', uploadResult);
-    
+
     if (!uploadResult.success || !uploadResult.url || !uploadResult.path) {
       return NextResponse.json(
         { success: false, error: uploadResult.error || 'Upload failed' },
         { status: 500 }
       );
     }
-    
+
     // Use base64 encode the path as the ID to avoid issues
     // This ensures we can always reconstruct the exact path
     const imageId = Buffer.from(uploadResult.path).toString('base64url');
-    
+
     console.log('Upload successful:');
     console.log('Path:', uploadResult.path);
     console.log('Image ID (base64):', imageId);
@@ -90,9 +93,8 @@ async function handlePost(request: NextRequest) {
     return NextResponse.json({
       success: true,
       imageId: imageId,
-      publicUrl: uploadResult.url
+      publicUrl: uploadResult.url,
     });
-
   } catch (error) {
     console.error('Upload error:', error);
     return NextResponse.json(

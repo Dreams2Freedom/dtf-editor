@@ -19,8 +19,8 @@ async function applyUploadsMigration() {
   const supabase = createClient(supabaseUrl, supabaseServiceKey, {
     auth: {
       autoRefreshToken: false,
-      persistSession: false
-    }
+      persistSession: false,
+    },
   });
 
   try {
@@ -41,8 +41,10 @@ async function applyUploadsMigration() {
     }
 
     console.log('📋 Uploads table not found. Creating it now...');
-    console.log('\n⚠️  IMPORTANT: You need to run this SQL in your Supabase dashboard:\n');
-    
+    console.log(
+      '\n⚠️  IMPORTANT: You need to run this SQL in your Supabase dashboard:\n'
+    );
+
     const sql = `-- Create uploads table for storing user upload records
 CREATE TABLE IF NOT EXISTS public.uploads (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
@@ -101,7 +103,6 @@ CREATE TRIGGER update_uploads_updated_at
     console.log('3. Navigate to SQL Editor');
     console.log('4. Paste and run the SQL');
     console.log('5. The upload system will work properly\n');
-
   } catch (error) {
     console.error('❌ Error:', error.message);
   }

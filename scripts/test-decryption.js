@@ -1,12 +1,15 @@
 const crypto = require('crypto');
 
 // IMPORTANT: Set this to your actual ENCRYPTION_KEY from Vercel
-const ENCRYPTION_KEY = process.env.ENCRYPTION_KEY || '6052ce223890b7991ab6d99fe8763ec56cfccdbfde47efd2be4a54e0b606f424';
+const ENCRYPTION_KEY =
+  process.env.ENCRYPTION_KEY ||
+  '6052ce223890b7991ab6d99fe8763ec56cfccdbfde47efd2be4a54e0b606f424';
 const ENCRYPTION_ALGORITHM = 'aes-256-gcm';
 
 // Test data from production database
-const TEST_TAX_ID = "yPVPs/fZPFoN/xmvkNdHPCwHcVhS9GZ3uNzaEtIMmNkxLj8JzFk+D2T8";
-const TEST_FORM_DATA = "SR7cqAx0mTSdjLH2wW8f1PKP+O9jQLMLtDsIgYctPd02md7h28Joaoh4SeyI9lDc9oxNroR8GHkbcaLFQR/CLLxRqPAnzOAWt4DtiKDpHL/IexQH8XQpp/X/OpYkzv3Aw/FMdQaTkKwOzkFFumIM/SoN17vY3Bxe/pfMIqZBeljEJXK8HjQKRRPkrQpSaknsRxmpmNjdDr8Isz/4ixffQBekjOmVthQdwWrmI5PRtWxdI2yYMpUDQHf+EH35PfrrIQfFSR8yxBhbjfqLj1TIzAb9N/yymSpyzdD3Vt48rLnDSFm/dSZMEslxbtwUAVE4AK4XyildB8GQN8BIBZ2/Cg/Ead+6MPrnfqlfazOjAeeJoGGuVtbI82+9Bolp4cm+Avwzkf4COKWsrr00iE1jm3DXUihQcON/DSTRLk0NtDPmZIbgyhLzfbzLJmZEIa+RTGFDpcAxMheVFLuiHlneaSk=";
+const TEST_TAX_ID = 'yPVPs/fZPFoN/xmvkNdHPCwHcVhS9GZ3uNzaEtIMmNkxLj8JzFk+D2T8';
+const TEST_FORM_DATA =
+  'SR7cqAx0mTSdjLH2wW8f1PKP+O9jQLMLtDsIgYctPd02md7h28Joaoh4SeyI9lDc9oxNroR8GHkbcaLFQR/CLLxRqPAnzOAWt4DtiKDpHL/IexQH8XQpp/X/OpYkzv3Aw/FMdQaTkKwOzkFFumIM/SoN17vY3Bxe/pfMIqZBeljEJXK8HjQKRRPkrQpSaknsRxmpmNjdDr8Isz/4ixffQBekjOmVthQdwWrmI5PRtWxdI2yYMpUDQHf+EH35PfrrIQfFSR8yxBhbjfqLj1TIzAb9N/yymSpyzdD3Vt48rLnDSFm/dSZMEslxbtwUAVE4AK4XyildB8GQN8BIBZ2/Cg/Ead+6MPrnfqlfazOjAeeJoGGuVtbI82+9Bolp4cm+Avwzkf4COKWsrr00iE1jm3DXUihQcON/DSTRLk0NtDPmZIbgyhLzfbzLJmZEIa+RTGFDpcAxMheVFLuiHlneaSk=';
 
 function decryptSensitiveData(encryptedText) {
   if (!encryptedText) return null;
@@ -18,7 +21,10 @@ function decryptSensitiveData(encryptedText) {
   console.log('\n=== Decryption Debug Info ===');
   console.log('Encrypted text length:', encryptedText.length);
   console.log('Encryption key length:', ENCRYPTION_KEY.length);
-  console.log('Encryption key (first 10 chars):', ENCRYPTION_KEY.substring(0, 10) + '...');
+  console.log(
+    'Encryption key (first 10 chars):',
+    ENCRYPTION_KEY.substring(0, 10) + '...'
+  );
 
   try {
     // Decode from base64

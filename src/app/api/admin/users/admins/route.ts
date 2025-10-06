@@ -41,8 +41,9 @@ export async function GET() {
     // Fetch user details for each admin
     const adminsWithDetails = await Promise.all(
       (adminUsers || []).map(async admin => {
-        const { data: authUser } =
-          await serviceClient.auth.admin.getUserById(admin.user_id);
+        const { data: authUser } = await serviceClient.auth.admin.getUserById(
+          admin.user_id
+        );
 
         return {
           ...admin,

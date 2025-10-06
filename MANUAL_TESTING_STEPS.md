@@ -25,9 +25,9 @@ Since the migrations haven't been applied yet, you need to do this first:
 4. **Verify Tables Created**
    Run this query to verify:
    ```sql
-   SELECT table_name 
-   FROM information_schema.tables 
-   WHERE table_schema = 'public' 
+   SELECT table_name
+   FROM information_schema.tables
+   WHERE table_schema = 'public'
    AND table_name IN ('credit_transactions', 'credit_purchases');
    ```
 
@@ -139,6 +139,7 @@ After testing, verify in Supabase:
 ## 🎯 Next Steps
 
 Once all tests pass:
+
 1. Continue with Phase 4.1.3 (Credit Display Enhancement)
 2. Then Phase 4.2 (Stripe Subscriptions)
 3. Then Phase 4.3 (Pay-as-You-Go Credits)

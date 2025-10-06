@@ -170,15 +170,27 @@ async function handlePost(request: NextRequest) {
       return NextResponse.json({ error: validation.reason }, { status: 400 });
     }
 
+    // Map UI quality values to gpt-image-1 API values
+    // UI may send: 'standard' or 'hd' (legacy), but gpt-image-1 needs: 'low', 'medium', 'high', 'auto'
+    const qualityMapping: Record<string, 'low' | 'medium' | 'high' | 'auto'> = {
+      standard: 'medium', // Map standard to medium
+      hd: 'high', // Map hd to high
+      low: 'low',
+      medium: 'medium',
+      high: 'high',
+      auto: 'auto',
+    };
+    const apiQuality = qualityMapping[quality] || 'medium';
+
     // Calculate required credits based on quality for gpt-image-1
     // Beta pricing: reduced credit costs
-    const qualityMap = {
+    const creditCosts: Record<string, number> = {
       low: 1,
-      standard: 1,
+      medium: 1,
       high: 2,
-      hd: 2, // Map hd to high for backwards compatibility
+      auto: 1,
     };
-    const creditsPerImage = qualityMap[quality] || 1;
+    const creditsPerImage = creditCosts[apiQuality] || 1;
     const totalCreditsRequired = creditsPerImage * count;
 
     // CRITICAL: Deduct credits BEFORE generation to prevent race conditions
@@ -252,8 +264,7 @@ async function handlePost(request: NextRequest) {
       userId: user.id,
       prompt: finalPrompt.substring(0, 100) + '...',
       size,
-      quality,
-      style,
+      quality: apiQuality, // Using mapped quality value
       count,
       creditsRequired: totalCreditsRequired,
       creditsDeducted,
@@ -267,14 +278,13 @@ async function handlePost(request: NextRequest) {
       result =
         count > 1
           ? await chatGPTService.generateMultipleImages(
-              { prompt: finalPrompt, size, quality, style },
+              { prompt: finalPrompt, size, quality: apiQuality },
               count
             )
           : await chatGPTService.generateImage({
               prompt: finalPrompt,
               size,
-              quality,
-              style,
+              quality: apiQuality,
             });
       console.log('[Generate Image API] ChatGPT service response:', {
         success: result.success,

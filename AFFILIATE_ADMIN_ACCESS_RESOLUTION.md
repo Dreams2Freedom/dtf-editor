@@ -19,6 +19,7 @@ EXISTS (
 ```
 
 **The problem:** The `profiles` table itself has RLS enabled, which blocked the subquery from accessing the `is_admin` column. This created a circular dependency where:
+
 1. RLS policy needs to check if user is admin
 2. To check admin status, it queries the profiles table
 3. But the profiles table has its own RLS that blocks the query
@@ -27,12 +28,14 @@ EXISTS (
 ## Debugging Process
 
 ### Session 1: Initial Investigation (6+ hours)
+
 - ❌ Thought it was authentication issue (it wasn't - user was logged in)
 - ❌ Thought it was missing database functions (functions existed)
 - ❌ Thought it was email case sensitivity (Supabase handles this)
 - ❌ Spent time on wrong admin email (learned: Shannon@S2Transfers.com is super admin)
 
 ### Session 2: Deep Dive (2+ hours)
+
 1. **Verified authentication:** User session exists, email = shannon@s2transfers.com, userId = 1596097b-8333-452a-a2bd-ea27340677ec
 2. **Verified admin status:** profiles.is_admin = true ✓
 3. **Verified RLS policies exist:** Policies were created correctly ✓
@@ -41,10 +44,12 @@ EXISTS (
 ## Solution Implemented
 
 ### Initial Attempts (Failed)
+
 1. ❌ Using `is_admin()` function with SECURITY DEFINER → Still failed in RLS context
 2. ❌ Using subquery to profiles table → Blocked by profiles RLS
 
 ### Final Solution (Success)
+
 Used **direct UUID matching** in RLS policies instead of function calls or subqueries:
 
 ```sql
@@ -58,6 +63,7 @@ CREATE POLICY "Admins can view all affiliate data"
 ```
 
 **Why this works:**
+
 - No function calls (no parameter issues)
 - No subqueries (no RLS circular dependency)
 - Direct UUID comparison is fast and reliable
@@ -66,6 +72,7 @@ CREATE POLICY "Admins can view all affiliate data"
 ## Files Changed
 
 ### SQL Scripts Created
+
 - `scripts/VERIFY_AND_FIX_AFFILIATE_RLS.sql` - Attempted fix using subquery
 - `scripts/FIX_AFFILIATE_RLS_WITH_FUNCTION.sql` - Attempted fix using is_admin() function
 - `scripts/GRANT_DIRECT_ADMIN_ACCESS.sql` - ✅ Final working solution
@@ -74,9 +81,11 @@ CREATE POLICY "Admins can view all affiliate data"
 - `scripts/DIAGNOSE_AFFILIATE_ACCESS.sql` - Comprehensive diagnostic
 
 ### Application Code
+
 - `src/app/admin/affiliates/applications/page.tsx` - Added session debugging logs
 
 ### Documentation
+
 - `DATABASE_FUNCTION_NAMING_STANDARD.md` - Naming conventions for PostgreSQL functions
 - `ADMIN_CREDENTIALS.md` - Admin system reference
 - `CRITICAL_LESSON_LEARNED.md` - Lessons from 6-hour authentication confusion
@@ -84,6 +93,7 @@ CREATE POLICY "Admins can view all affiliate data"
 ## MCP Server Setup
 
 ### Supabase MCP Server Configured
+
 Created `~/.claude/claude_desktop_config.json` with Supabase MCP integration:
 
 ```json
@@ -103,6 +113,7 @@ Created `~/.claude/claude_desktop_config.json` with Supabase MCP integration:
 ```
 
 **Benefits:**
+
 - Run SQL queries directly from Claude Code
 - No need to manually copy/paste scripts to Supabase SQL Editor
 - Faster debugging and iteration
@@ -111,6 +122,7 @@ Created `~/.claude/claude_desktop_config.json` with Supabase MCP integration:
 **Usage:** Restart Claude Desktop to activate the MCP server.
 
 **Future Database Work:**
+
 - ✅ Use Supabase MCP server for all SQL operations
 - ✅ No more manual copy/paste to SQL Editor
 - ✅ Direct query execution from Claude Code
@@ -119,23 +131,29 @@ Created `~/.claude/claude_desktop_config.json` with Supabase MCP integration:
 ## Key Learnings
 
 ### 1. RLS Circular Dependencies
+
 When creating RLS policies that check user permissions:
+
 - ⚠️ **Don't use subqueries to tables with their own RLS**
 - ✅ Use SECURITY DEFINER functions that bypass RLS
 - ✅ Or use direct comparisons when possible
 
 ### 2. Authentication vs Authorization
+
 - Authentication: User logged in? ✓
 - Authorization: User has permission? ← This was the issue
 
 ### 3. Debugging Process
+
 **Always check in this order:**
+
 1. Is user authenticated? (session exists?)
 2. What user ID is making the request?
 3. Does the RLS policy allow this user ID?
 4. Are there any circular dependencies in RLS checks?
 
 ### 4. PostgreSQL Function Parameter Naming
+
 - Always use consistent parameter names (`user_id`, not `check_user_id`)
 - Document in `DATABASE_FUNCTION_NAMING_STANDARD.md`
 - Prevents hours of debugging parameter mismatches
@@ -143,6 +161,7 @@ When creating RLS policies that check user permissions:
 ## Testing Verification
 
 After applying `GRANT_DIRECT_ADMIN_ACCESS.sql`:
+
 - ✅ Shannon@S2Transfers.com can view all affiliates
 - ✅ Shannon@S2Transfers.com can update affiliate data
 - ✅ Shannon@S2Transfers.com can view referrals
@@ -159,6 +178,7 @@ After applying `GRANT_DIRECT_ADMIN_ACCESS.sql`:
 ## Prevention
 
 ### For Future RLS Policy Creation
+
 1. Check if target table has RLS enabled
 2. Avoid subqueries to RLS-protected tables
 3. Use SECURITY DEFINER functions when needed
@@ -166,6 +186,7 @@ After applying `GRANT_DIRECT_ADMIN_ACCESS.sql`:
 5. Use MCP server for faster debugging
 
 ### Documentation Updated
+
 - ✅ `DATABASE_FUNCTION_NAMING_STANDARD.md`
 - ✅ `ADMIN_CREDENTIALS.md`
 - ✅ `CRITICAL_LESSON_LEARNED.md`

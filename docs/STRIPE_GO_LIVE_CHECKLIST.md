@@ -3,6 +3,7 @@
 ## 🚀 Steps to Switch from Test to Live Mode
 
 ### 1. Prerequisites
+
 - [ ] Stripe account verified and approved for live payments
 - [ ] Business details completed in Stripe Dashboard
 - [ ] Bank account connected for payouts
@@ -15,25 +16,24 @@ Navigate to https://dashboard.stripe.com and switch to **Live mode**.
 Create the following products and prices:
 
 #### Subscription Plans
+
 - [ ] **Basic Plan** - $4.99/month
   - 20 credits per month
   - Note the `price_xxx` ID
-  
-- [ ] **Starter Plan** - $14.99/month  
+- [ ] **Starter Plan** - $14.99/month
   - 60 credits per month
   - Note the `price_xxx` ID
 
 #### Pay-As-You-Go Packages
+
 - [ ] **5 Credits Pack** - $2.49
   - One-time purchase
   - Note the `price_xxx` ID
-  
 - [ ] **10 Credits Pack** - $4.49
   - One-time purchase
   - Note the `price_xxx` ID
-  
 - [ ] **20 Credits Pack** - $7.99
-  - One-time purchase  
+  - One-time purchase
   - Note the `price_xxx` ID
 
 ### 3. Update Environment Variables
@@ -85,11 +85,13 @@ node scripts/prepare-vercel-env.js
 ### 6. Test Live Mode
 
 Run the verification script to ensure live keys work:
+
 ```bash
 node scripts/verify-api-keys.js
 ```
 
 Expected output should show:
+
 - ✅ Stripe API: Mode: LIVE
 
 ### 7. Perform Test Transactions
@@ -130,6 +132,7 @@ Expected output should show:
 ### 10. Monitor Initial Live Transactions
 
 For the first 24-48 hours after going live:
+
 - Monitor Stripe Dashboard for any failed payments
 - Check application logs for webhook errors
 - Verify customer credits are being added correctly

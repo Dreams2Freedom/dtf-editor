@@ -10,10 +10,11 @@ let stripe: Stripe | null = null;
 function getStripe() {
   if (!stripe) {
     // Use live keys in production, test keys in development
-    const stripeSecretKey = process.env.NODE_ENV === 'production' 
-      ? process.env.STRIPE_LIVE_SECRET_KEY 
-      : process.env.STRIPE_SECRET_KEY;
-      
+    const stripeSecretKey =
+      process.env.NODE_ENV === 'production'
+        ? process.env.STRIPE_LIVE_SECRET_KEY
+        : process.env.STRIPE_SECRET_KEY;
+
     if (!stripeSecretKey) {
       throw new Error('Stripe secret key is not configured');
     }
@@ -27,7 +28,10 @@ function getStripe() {
 async function handlePost(request: NextRequest) {
   try {
     const supabase = await createServerSupabaseClient();
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
 
     if (authError || !user) {
       return NextResponse.json(
@@ -37,19 +41,25 @@ async function handlePost(request: NextRequest) {
     }
 
     // Check eligibility
-    const { data: eligibility, error: eligibilityError } = await supabase
-      .rpc('check_discount_eligibility', { p_user_id: user.id });
+    const { data: eligibility, error: eligibilityError } = await supabase.rpc(
+      'check_discount_eligibility',
+      { p_user_id: user.id }
+    );
 
     // Handle array response from RPC
-    const eligibilityResult = Array.isArray(eligibility) && eligibility.length > 0 
-      ? eligibility[0] 
-      : eligibility;
+    const eligibilityResult =
+      Array.isArray(eligibility) && eligibility.length > 0
+        ? eligibility[0]
+        : eligibility;
 
     console.log('Apply discount - eligibility check:', eligibilityResult);
 
     if (eligibilityError || !eligibilityResult?.can_use_discount) {
       return NextResponse.json(
-        { error: eligibilityResult?.reason || 'Not eligible for retention discount' },
+        {
+          error:
+            eligibilityResult?.reason || 'Not eligible for retention discount',
+        },
         { status: 403 }
       );
     }
@@ -77,17 +87,19 @@ async function handlePost(request: NextRequest) {
         metadata: {
           type: 'retention_offer',
           user_id: user.id,
-          created_for: profile.email
-        }
+          created_for: profile.email,
+        },
       });
 
       // Apply coupon to subscription
       const subscription = await getStripe().subscriptions.update(
         profile.stripe_subscription_id,
         {
-          discounts: [{
-            coupon: coupon.id
-          }]
+          discounts: [
+            {
+              coupon: coupon.id,
+            },
+          ],
         }
       );
 
@@ -100,7 +112,7 @@ async function handlePost(request: NextRequest) {
         .from('profiles')
         .update({
           discount_used_count: (profile.discount_used_count || 0) + 1,
-          last_discount_date: new Date().toISOString()
+          last_discount_date: new Date().toISOString(),
         })
         .eq('id', user.id);
 
@@ -109,18 +121,16 @@ async function handlePost(request: NextRequest) {
       }
 
       // Log event
-      await supabase
-        .from('subscription_events')
-        .insert({
-          user_id: user.id,
-          event_type: 'discount_used',
-          event_data: {
-            coupon_id: coupon.id,
-            percent_off: 50,
-            applied_to_subscription: profile.stripe_subscription_id,
-            next_billing_amount: subscription.items.data[0].price.unit_amount / 2
-          }
-        });
+      await supabase.from('subscription_events').insert({
+        user_id: user.id,
+        event_type: 'discount_used',
+        event_data: {
+          coupon_id: coupon.id,
+          percent_off: 50,
+          applied_to_subscription: profile.stripe_subscription_id,
+          next_billing_amount: subscription.items.data[0].price.unit_amount / 2,
+        },
+      });
 
       // Calculate the next billing info based on subscription data
       const nextBillingDate = new Date(subscription.current_period_end * 1000);
@@ -137,9 +147,12 @@ async function handlePost(request: NextRequest) {
           originalAmount: originalAmount,
           discountedAmount: finalAmount,
           nextBillingDate: nextBillingDate,
-          planName: profile.subscription_plan || 'Basic'
+          planName: profile.subscription_plan || 'Basic',
         });
-        console.log('Retention discount confirmation email sent to:', profile.email);
+        console.log(
+          'Retention discount confirmation email sent to:',
+          profile.email
+        );
       } catch (emailError) {
         console.error('Failed to send retention discount email:', emailError);
         // Don't fail the request if email fails
@@ -151,17 +164,16 @@ async function handlePost(request: NextRequest) {
         discount: {
           coupon_id: coupon.id,
           percent_off: 50,
-          valid_for: 'next billing cycle only'
+          valid_for: 'next billing cycle only',
         },
         nextBilling: {
           date: nextBillingDate.toISOString(),
           originalAmount: originalAmount,
           discountAmount: discountAmount,
-          finalAmount: finalAmount
+          finalAmount: finalAmount,
         },
-        nextEligibleDate: nextEligibleDate.toISOString()
+        nextEligibleDate: nextEligibleDate.toISOString(),
       });
-
     } catch (stripeError: any) {
       console.error('Stripe error:', stripeError);
       return NextResponse.json(
@@ -169,7 +181,6 @@ async function handlePost(request: NextRequest) {
         { status: 500 }
       );
     }
-
   } catch (error) {
     console.error('Error applying retention discount:', error);
     return NextResponse.json(
