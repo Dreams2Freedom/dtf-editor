@@ -12,13 +12,14 @@ CREATE OR REPLACE FUNCTION deduct_credits_atomic(
 DECLARE
   v_new_balance INTEGER;
 BEGIN
-  -- Atomically update credits only if user has enough
+  -- Atomically update credits_remaining only if user has enough
   -- Use FOR UPDATE to lock the row and prevent race conditions
   UPDATE profiles
-  SET credits = credits - p_amount
+  SET credits_remaining = credits_remaining - p_amount,
+      updated_at = NOW()
   WHERE id = p_user_id
-    AND credits >= p_amount
-  RETURNING credits INTO v_new_balance;
+    AND credits_remaining >= p_amount
+  RETURNING credits_remaining INTO v_new_balance;
 
   -- If no row was updated (insufficient credits), return NULL
   IF NOT FOUND THEN
@@ -41,11 +42,12 @@ CREATE OR REPLACE FUNCTION refund_credits_atomic(
 DECLARE
   v_new_balance INTEGER;
 BEGIN
-  -- Atomically add credits back
+  -- Atomically add credits_remaining back
   UPDATE profiles
-  SET credits = credits + p_amount
+  SET credits_remaining = credits_remaining + p_amount,
+      updated_at = NOW()
   WHERE id = p_user_id
-  RETURNING credits INTO v_new_balance;
+  RETURNING credits_remaining INTO v_new_balance;
 
   RETURN v_new_balance;
 END;
@@ -56,5 +58,5 @@ GRANT EXECUTE ON FUNCTION refund_credits_atomic(UUID, INTEGER) TO authenticated;
 GRANT EXECUTE ON FUNCTION refund_credits_atomic(UUID, INTEGER) TO service_role;
 
 -- Add comment for documentation
-COMMENT ON FUNCTION deduct_credits_atomic IS 'Atomically deduct credits from user profile. Returns new balance on success, NULL if insufficient credits. Prevents race conditions.';
-COMMENT ON FUNCTION refund_credits_atomic IS 'Atomically refund credits to user profile. Used when image generation fails after credit deduction.';
+COMMENT ON FUNCTION deduct_credits_atomic IS 'Atomically deduct credits from user profile (credits_remaining column). Returns new balance on success, NULL if insufficient credits. Prevents race conditions.';
+COMMENT ON FUNCTION refund_credits_atomic IS 'Atomically refund credits to user profile (credits_remaining column). Used when image generation fails after credit deduction.';
