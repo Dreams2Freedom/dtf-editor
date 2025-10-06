@@ -39,7 +39,8 @@ async function handlePost(request: NextRequest) {
       .single();
 
     const isAdmin = Boolean(profile?.is_admin);
-    const isPaidUser = profile?.subscription_tier && profile.subscription_tier !== 'free';
+    const isPaidUser =
+      profile?.subscription_tier && profile.subscription_tier !== 'free';
 
     if (!isPaidUser && !isAdmin) {
       return NextResponse.json(
@@ -108,17 +109,51 @@ async function handlePost(request: NextRequest) {
         },
         {
           role: 'user',
-          content: `User's description: "${sanitizedDescription}"\n\nGenerate ${promptCount} optimized variations of this description. Each variation should focus on a different aspect (e.g., style, color emphasis, composition, detail level). Return ONLY a JSON array with this exact structure:\n\n[\n  {"text": "optimized prompt 1", "focus": "what this variation emphasizes"},\n  {"text": "optimized prompt 2", "focus": "what this variation emphasizes"},\n  ...\n]\n\nIMPORTANT: Return ONLY valid JSON, no markdown formatting or extra text.`,
+          content: `Transform this user description into ${promptCount} professional DALL-E 3 prompts for DTF printing:
+
+"${sanitizedDescription}"
+
+Create ${promptCount} distinct variations using your VARIATION STRATEGY:
+1. Style-Focused (change artistic style: vintage, modern, realistic, cartoon, etc.)
+2. Color-Focused (different color palettes and moods)
+3. Detail-Focused (vary complexity: simple/clean vs intricate/ornate)
+4. Mood-Focused (different emotional tones or themes)
+
+REQUIREMENTS:
+- Each prompt must be 50-100 words of rich, vivid detail
+- Include specific colors, artistic styles, and visual details
+- ALWAYS mention "transparent background" or "isolated on transparent backdrop"
+- NO backgrounds, scenery, or environmental elements
+- Focus only on the subject that will be isolated on fabric
+- Make each variation distinctly different from the others
+
+Return ONLY valid JSON with this exact structure:
+{
+  "prompts": [
+    {"text": "detailed 50-100 word prompt here...", "focus": "Vintage Style"},
+    {"text": "another detailed prompt...", "focus": "Vibrant Colors"},
+    {"text": "another detailed prompt...", "focus": "Minimalist Clean"},
+    {"text": "another detailed prompt...", "focus": "Detailed Ornate"}
+  ]
+}
+
+Remember: Be specific, vivid, and detailed. The better the prompt, the better the image!`,
         },
       ],
-      temperature: 0.9, // Higher temperature for creative variations
-      max_tokens: 1500,
+      temperature: 0.8, // Balanced creativity and consistency
+      max_tokens: 2000, // Allow for more detailed prompts
       response_format: { type: 'json_object' },
     });
 
     const responseContent = completion.choices[0]?.message?.content;
 
+    console.log('[Optimize Prompt API] Raw AI response:', {
+      contentLength: responseContent?.length,
+      preview: responseContent?.substring(0, 200),
+    });
+
     if (!responseContent) {
+      console.error('[Optimize Prompt API] No response content from OpenAI');
       throw new Error('No response from AI');
     }
 
@@ -126,13 +161,22 @@ async function handlePost(request: NextRequest) {
     let parsedResponse;
     try {
       parsedResponse = JSON.parse(responseContent);
+      console.log('[Optimize Prompt API] Parsed response structure:', {
+        keys: Object.keys(parsedResponse),
+        hasPrompts: !!parsedResponse.prompts,
+        isArray: Array.isArray(parsedResponse),
+      });
     } catch (parseError) {
-      console.error('[Optimize Prompt API] Failed to parse AI response:', parseError);
+      console.error('[Optimize Prompt API] Failed to parse AI response:', {
+        error: parseError,
+        rawContent: responseContent,
+      });
       throw new Error('Invalid AI response format');
     }
 
     // Extract prompts array (handle various possible response formats)
-    let prompts = parsedResponse.prompts || parsedResponse.variations || parsedResponse;
+    let prompts =
+      parsedResponse.prompts || parsedResponse.variations || parsedResponse;
 
     if (!Array.isArray(prompts)) {
       // If we got an object with numbered keys, convert to array
@@ -152,20 +196,37 @@ async function handlePost(request: NextRequest) {
       }))
       .slice(0, promptCount); // Ensure we don't exceed requested count
 
+    console.log('[Optimize Prompt API] Validation results:', {
+      totalPrompts: prompts.length,
+      validPrompts: validPrompts.length,
+      invalidCount: prompts.length - validPrompts.length,
+    });
+
     if (validPrompts.length === 0) {
-      // Fallback: return original description
+      // This should rarely happen with the new system prompt
+      console.error('[Optimize Prompt API] No valid prompts extracted!', {
+        rawPrompts: prompts,
+        parsedResponse,
+      });
+
+      // Return original with a note that optimization failed
       return NextResponse.json({
         prompts: [
           {
             text: description,
-            focus: 'Original description',
+            focus: 'Original (optimization failed)',
           },
         ],
+        warning: 'AI optimization unavailable, returning original description',
       });
     }
 
     console.log('[Optimize Prompt API] Successfully generated prompts:', {
       count: validPrompts.length,
+      avgLength: Math.round(
+        validPrompts.reduce((sum, p) => sum + p.text.length, 0) /
+          validPrompts.length
+      ),
     });
 
     return NextResponse.json({
@@ -192,7 +253,8 @@ async function handlePost(request: NextRequest) {
     return NextResponse.json(
       {
         error: 'Failed to optimize prompts',
-        details: process.env.NODE_ENV === 'development' ? error.message : undefined,
+        details:
+          process.env.NODE_ENV === 'development' ? error.message : undefined,
       },
       { status: 500 }
     );
