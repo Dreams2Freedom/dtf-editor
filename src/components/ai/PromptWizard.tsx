@@ -54,6 +54,7 @@ export function PromptWizard() {
 
   // Step 1: User description
   const [userDescription, setUserDescription] = useState('');
+  const [inputMode, setInputMode] = useState<'text' | 'upload'>('text');
 
   // Step 2: Optimized prompts
   const [optimizedPrompts, setOptimizedPrompts] = useState<OptimizedPrompt[]>(
@@ -187,6 +188,12 @@ export function PromptWizard() {
     await generateOptimizedPrompts(editedText);
   };
 
+  // Handle image analysis completion
+  const handleImageAnalysisComplete = (generatedPrompt: string) => {
+    setUserDescription(generatedPrompt);
+    setInputMode('text'); // Auto-switch to text mode
+  };
+
   const handleBack = () => {
     if (currentStep > 1) {
       setCurrentStep((currentStep - 1) as WizardStep);
@@ -313,6 +320,9 @@ export function PromptWizard() {
             onGenerateClick={handleNext}
             isGenerating={isOptimizing}
             canGenerate={canGoNext()}
+            inputMode={inputMode}
+            onInputModeChange={setInputMode}
+            onImageAnalysisComplete={handleImageAnalysisComplete}
           />
         )}
 

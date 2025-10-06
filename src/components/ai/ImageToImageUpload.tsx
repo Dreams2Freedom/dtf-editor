@@ -8,25 +8,18 @@ import Image from 'next/image';
 import { toast } from 'react-hot-toast';
 
 interface ImageToImageUploadProps {
-  onPromptGenerated: (prompt: string) => void;
-  onImagesGenerated: (images: any[]) => void;
-  generationOptions: {
-    size: string;
-    quality: string;
-    style: string;
-    count: number;
-  };
+  onAnalysisComplete: (generatedPrompt: string) => void;
+  isDisabled?: boolean;
 }
 
 export function ImageToImageUpload({
-  onPromptGenerated,
+  onAnalysisComplete,
+  isDisabled = false,
 }: ImageToImageUploadProps) {
   const [uploadedImage, setUploadedImage] = useState<string | null>(null);
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const [analysisResult, setAnalysisResult] = useState<string>('');
-  const [modifiedPrompt, setModifiedPrompt] = useState<string>('');
   const [modificationInstructions, setModificationInstructions] =
     useState<string>('');
 
@@ -93,7 +86,7 @@ export function ImageToImageUpload({
           analysisType: 'describe_for_recreation',
           customInstructions: modificationInstructions
             ? `IMPORTANT MODIFICATIONS REQUIRED: ${modificationInstructions}. Analyze the image and create a prompt that incorporates these specific changes.`
-            : 'Describe this image in detail for accurate recreation.',
+            : undefined,
         }),
       });
 
@@ -103,12 +96,18 @@ export function ImageToImageUpload({
         throw new Error(data.error || 'Failed to analyze image');
       }
 
-      setAnalysisResult(data.analysis);
-
-      // Use the recreation prompt directly - it should already include modifications
+      // Use the recreation prompt or fall back to analysis
       const prompt = data.recreationPrompt || data.analysis;
-      setModifiedPrompt(prompt);
-      toast.success('Image analyzed successfully!');
+
+      // Callback to parent component with generated prompt
+      onAnalysisComplete(prompt);
+
+      toast.success('Image analyzed! Switching to text mode...');
+
+      // Clear upload state after successful analysis
+      setTimeout(() => {
+        clearUpload();
+      }, 500);
     } catch (error) {
       console.error('Analysis error:', error);
       toast.error('Failed to analyze image');
@@ -117,18 +116,9 @@ export function ImageToImageUpload({
     }
   };
 
-  const useGeneratedPrompt = () => {
-    if (modifiedPrompt) {
-      onPromptGenerated(modifiedPrompt);
-      toast.success('Prompt added to generator!');
-    }
-  };
-
   const clearUpload = () => {
     setUploadedImage(null);
     setUploadedFile(null);
-    setAnalysisResult('');
-    setModifiedPrompt('');
     setModificationInstructions('');
   };
 
@@ -219,11 +209,11 @@ export function ImageToImageUpload({
 
           {/* Analyze Button */}
           <Button
-            variant="primary"
+            variant="default"
             size="lg"
             className="w-full"
             onClick={analyzeImage}
-            disabled={isAnalyzing}
+            disabled={isAnalyzing || isDisabled}
           >
             {isAnalyzing ? (
               <>
@@ -237,49 +227,8 @@ export function ImageToImageUpload({
               </>
             )}
           </Button>
-
-          {/* Analysis Result */}
-          {analysisResult && (
-            <Card className="p-4">
-              <h4 className="font-medium mb-3">Generated Prompt</h4>
-              <textarea
-                value={modifiedPrompt}
-                onChange={e => setModifiedPrompt(e.target.value)}
-                className="w-full px-3 py-2 border rounded-lg resize-none text-sm"
-                rows={6}
-              />
-              <div className="mt-3 flex gap-2">
-                <Button
-                  variant="primary"
-                  size="sm"
-                  onClick={useGeneratedPrompt}
-                >
-                  Use This Prompt
-                </Button>
-                <Button variant="secondary" size="sm" onClick={analyzeImage}>
-                  Re-analyze
-                </Button>
-              </div>
-            </Card>
-          )}
         </div>
       )}
-
-      {/* Tips */}
-      <div className="bg-amber-50 border border-amber-200 rounded-lg p-3">
-        <h4 className="text-sm font-medium text-amber-900 mb-1">
-          Image to Image Tips:
-        </h4>
-        <ul className="text-xs text-amber-700 space-y-1">
-          <li>• Upload any design and describe what you want to change</li>
-          <li>
-            • Be specific: "Replace MOM with GRANDMA" or "Remove the palm tree"
-          </li>
-          <li>• You can request multiple changes at once</li>
-          <li>• AI will preserve the style while making your modifications</li>
-          <li>• Edit the generated prompt for fine-tuning</li>
-        </ul>
-      </div>
     </div>
   );
 }
