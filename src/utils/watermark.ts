@@ -19,18 +19,19 @@ export async function addWatermark(imageBuffer: Buffer): Promise<Buffer> {
 
     // Create highly visible watermark SVG with stroke for contrast
     // Uses white text with black stroke - visible on ANY background
+    // Using generic sans-serif that works in all environments
     const watermarkSvg = Buffer.from(`
-      <svg width="${width}" height="${height}">
+      <svg width="${width}" height="${height}" xmlns="http://www.w3.org/2000/svg">
         <style>
           .watermark {
-            fill: rgba(255, 255, 255, 0.9);
-            stroke: rgba(0, 0, 0, 0.8);
-            stroke-width: 3px;
+            fill: rgba(255, 255, 255, 0.6);
+            stroke: rgba(0, 0, 0, 0.7);
+            stroke-width: 2px;
             paint-order: stroke fill;
             font-size: ${fontSize}px;
-            font-family: Arial, sans-serif;
+            font-family: sans-serif;
             font-weight: bold;
-            letter-spacing: 2px;
+            letter-spacing: 3px;
           }
         </style>
         <text
@@ -41,7 +42,7 @@ export async function addWatermark(imageBuffer: Buffer): Promise<Buffer> {
           transform="rotate(-45 ${width / 2} ${height / 2})"
           class="watermark"
         >
-          PREVIEW · DTFEditor.com
+          PREVIEW
         </text>
       </svg>
     `);
