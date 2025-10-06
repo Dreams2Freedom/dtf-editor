@@ -12,8 +12,9 @@ import {
 import { v4 as uuidv4 } from 'uuid';
 import { withRateLimit } from '@/lib/rate-limit';
 
-// Configure body size limit for Vercel
-export const maxDuration = 60;
+// Configure timeout for Vercel - increased for high-quality image generation
+// gpt-image-1 with quality='high' and background='transparent' can take 60-120 seconds
+export const maxDuration = 300; // 5 minutes (Vercel Pro limit)
 export const runtime = 'nodejs';
 
 async function handlePost(request: NextRequest) {
