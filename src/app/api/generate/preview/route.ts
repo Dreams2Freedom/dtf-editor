@@ -214,8 +214,7 @@ async function handlePost(request: NextRequest) {
     return NextResponse.json(
       {
         error: error.message || 'Internal server error',
-        details:
-          process.env.NODE_ENV === 'development' ? error.stack : undefined,
+        // Stack trace logged to console, not exposed to client in production
       },
       { status: 500 }
     );
