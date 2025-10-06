@@ -110,14 +110,15 @@ export class ChatGPTService {
         const cleanedPrompt = prompt.replace('[IMAGE-TO-IMAGE]', ''); // Remove marker if present
 
         // Build the request parameters for Images API
-        // Note: gpt-image-1 does NOT support 'style' parameter (only DALL-E 3 does)
+        // Note: gpt-image-1 only supports: model, prompt, n, size, quality
+        // Does NOT support: style (DALL-E 3 only) or response_format
         const requestParams: any = {
           model: 'gpt-image-1', // Dedicated image generation model
           prompt: cleanedPrompt,
           n: imageCount,
           size: size, // Direct size parameter support
           quality: quality, // Direct quality parameter: "standard" or "hd"
-          response_format: 'b64_json', // Get base64 encoded images
+          // response_format removed - will return URLs by default
         };
 
         console.log(
