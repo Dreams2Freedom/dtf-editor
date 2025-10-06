@@ -28,9 +28,10 @@ export async function addWatermark(imageBuffer: Buffer): Promise<Buffer> {
     // Use Pango markup for styled text with background for contrast
     // White text with semi-transparency, visible on all backgrounds
     // NOTE: Cannot use both dpi and height - Sharp only allows one
+    // NOTE: Pango markup uses named colors and alpha attribute, not rgba()
     const textBuffer = await sharp({
       text: {
-        text: `<span foreground="white" background="rgba(0,0,0,0.5)"> PREVIEW </span>`,
+        text: `<span foreground="white" background="black" alpha="50%"> PREVIEW </span>`,
         font: 'sans-serif',
         fontfile: undefined, // Let Sharp use system fonts
         width: textWidth,
