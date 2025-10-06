@@ -180,11 +180,32 @@ export default function VectorizeClient() {
     if (!processedUrl) return;
 
     try {
-      // Fetch the image and create a blob URL for proper downloading
-      const response = await fetch(processedUrl);
-      const blob = await response.blob();
-      const blobUrl = URL.createObjectURL(blob);
+      let blob: Blob;
 
+      // Check if processedUrl is a data URI (avoids CSP fetch restriction)
+      if (processedUrl.startsWith('data:')) {
+        console.log('Converting data URI to blob for download');
+        // Extract base64 data and convert to blob directly
+        const [header, base64Data] = processedUrl.split(',');
+        const mimeType = header.match(/:(.*?);/)?.[1] || 'application/octet-stream';
+
+        // Convert base64 to binary
+        const binaryString = atob(base64Data);
+        const bytes = new Uint8Array(binaryString.length);
+        for (let i = 0; i < binaryString.length; i++) {
+          bytes[i] = binaryString.charCodeAt(i);
+        }
+
+        blob = new Blob([bytes], { type: mimeType });
+      } else {
+        // Regular URL - fetch as before
+        console.log('Fetching URL for download');
+        const response = await fetch(processedUrl);
+        blob = await response.blob();
+      }
+
+      // Create blob URL and trigger download
+      const blobUrl = URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = blobUrl;
       link.download = `vectorized.${selectedFormat}`;
@@ -196,7 +217,7 @@ export default function VectorizeClient() {
       setTimeout(() => URL.revokeObjectURL(blobUrl), 100);
     } catch (error) {
       console.error('Download failed:', error);
-      // Fallback to opening in new tab if fetch fails
+      // Fallback to opening in new tab if blob conversion fails
       window.open(processedUrl, '_blank');
     }
   };
