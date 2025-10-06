@@ -288,8 +288,7 @@ export function DescriptionStep({
           <Card className="p-6">
             <ImageToImageUpload
               onAnalysisComplete={prompt => {
-                onDescriptionChange(prompt);
-                onInputModeChange('text');
+                // Let the parent handle all state updates in the correct order
                 if (onImageAnalysisComplete) {
                   onImageAnalysisComplete(prompt);
                 }

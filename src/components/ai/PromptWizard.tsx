@@ -55,6 +55,7 @@ export function PromptWizard() {
   // Step 1: User description
   const [userDescription, setUserDescription] = useState('');
   const [inputMode, setInputMode] = useState<'text' | 'upload'>('text');
+  const [isFromImageAnalysis, setIsFromImageAnalysis] = useState(false);
 
   // Step 2: Optimized prompts
   const [optimizedPrompts, setOptimizedPrompts] = useState<OptimizedPrompt[]>(
@@ -175,9 +176,16 @@ export function PromptWizard() {
     if (!canGoNext()) return;
 
     if (currentStep === 1) {
-      // Moving from step 1 to 2: Generate optimized prompts
-      await generateOptimizedPrompts(userDescription);
-      setCurrentStep(2);
+      // Check if prompt is from image analysis
+      if (isFromImageAnalysis) {
+        // Skip Step 2 - prompt is already AI-optimized from GPT-4o Vision
+        setCurrentStep(3); // Go directly to generation config
+        setIsFromImageAnalysis(false); // Reset flag
+      } else {
+        // Normal flow - generate optimized prompts
+        await generateOptimizedPrompts(userDescription);
+        setCurrentStep(2);
+      }
     } else if (currentStep === 2) {
       setCurrentStep(3);
     }
@@ -192,6 +200,7 @@ export function PromptWizard() {
   const handleImageAnalysisComplete = (generatedPrompt: string) => {
     setUserDescription(generatedPrompt);
     setInputMode('text'); // Auto-switch to text mode
+    setIsFromImageAnalysis(true); // Mark as AI-generated from image analysis
   };
 
   const handleBack = () => {
@@ -323,6 +332,7 @@ export function PromptWizard() {
             inputMode={inputMode}
             onInputModeChange={setInputMode}
             onImageAnalysisComplete={handleImageAnalysisComplete}
+            isFromImageAnalysis={isFromImageAnalysis}
           />
         )}
 

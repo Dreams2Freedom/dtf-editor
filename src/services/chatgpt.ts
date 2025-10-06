@@ -84,12 +84,7 @@ export class ChatGPTService {
       });
 
       // Default options
-      const {
-        prompt,
-        size = '1024x1024',
-        quality = 'medium',
-        n = 1,
-      } = options;
+      const { prompt, size = '1024x1024', quality = 'medium', n = 1 } = options;
 
       // Images API supports up to 10 images per request
       const imageCount = Math.min(Math.max(n, 1), 10);
