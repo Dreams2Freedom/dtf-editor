@@ -7,7 +7,7 @@ import { chatGPTService } from '@/services/chatgpt';
 import {
   validatePrompt,
   enhancePromptForDTF,
-  enforceTransparentBackground
+  enforceTransparentBackground,
 } from '@/utils/promptHelpers';
 import { v4 as uuidv4 } from 'uuid';
 import { withRateLimit } from '@/lib/rate-limit';
@@ -94,7 +94,7 @@ async function handlePost(request: NextRequest) {
           .insert({
             id: user.id,
             email: user.email,
-            credits: 0,
+            credits_remaining: 0,
             subscription_tier: 'free',
             is_admin: false,
           })
@@ -130,7 +130,7 @@ async function handlePost(request: NextRequest) {
 
     console.log('[Generate Image API] Profile fetched:', {
       id: profile?.id,
-      credits: profile?.credits,
+      credits: profile?.credits_remaining,
       is_admin: profile?.is_admin,
       subscription_tier: profile?.subscription_tier,
     });
@@ -187,7 +187,7 @@ async function handlePost(request: NextRequest) {
       console.log('[Generate Image API] Atomically deducting credits:', {
         userId: user.id,
         amount: totalCreditsRequired,
-        currentCredits: profile.credits,
+        currentCredits: profile.credits_remaining,
       });
 
       const { data: newBalance, error: deductError } = await serviceClient.rpc(
@@ -200,19 +200,25 @@ async function handlePost(request: NextRequest) {
 
       if (deductError || newBalance === null) {
         // Deduction failed - user doesn't have enough credits
-        console.error('[Generate Image API] Credit deduction failed:', deductError);
+        console.error(
+          '[Generate Image API] Credit deduction failed:',
+          deductError
+        );
         return NextResponse.json(
           {
-            error: `Insufficient credits. You need ${totalCreditsRequired} credits but only have ${profile.credits}`,
+            error: `Insufficient credits. You need ${totalCreditsRequired} credits but only have ${profile.credits_remaining}`,
             creditsRequired: totalCreditsRequired,
-            creditsAvailable: profile.credits,
+            creditsAvailable: profile.credits_remaining,
           },
           { status: 402 } // Payment Required
         );
       }
 
       creditsDeducted = true;
-      console.log('[Generate Image API] Credits deducted successfully. New balance:', newBalance);
+      console.log(
+        '[Generate Image API] Credits deducted successfully. New balance:',
+        newBalance
+      );
 
       // Log credit transaction immediately after deduction
       await serviceClient.from('credit_transactions').insert({
@@ -280,7 +286,9 @@ async function handlePost(request: NextRequest) {
 
       // CRITICAL: Refund credits if generation failed
       if (creditsDeducted) {
-        console.log('[Generate Image API] Refunding credits due to generation failure...');
+        console.log(
+          '[Generate Image API] Refunding credits due to generation failure...'
+        );
         await serviceClient.rpc('refund_credits_atomic', {
           p_user_id: user.id,
           p_amount: totalCreditsRequired,
@@ -316,7 +324,9 @@ async function handlePost(request: NextRequest) {
 
       // CRITICAL: Refund credits if generation failed
       if (creditsDeducted) {
-        console.log('[Generate Image API] Refunding credits due to generation failure...');
+        console.log(
+          '[Generate Image API] Refunding credits due to generation failure...'
+        );
         await serviceClient.rpc('refund_credits_atomic', {
           p_user_id: user.id,
           p_amount: totalCreditsRequired,
@@ -430,7 +440,9 @@ async function handlePost(request: NextRequest) {
 
     // CRITICAL: If NO images were stored successfully, refund credits
     if (storedImages.length === 0 && creditsDeducted) {
-      console.log('[Generate Image API] No images were stored. Refunding credits...');
+      console.log(
+        '[Generate Image API] No images were stored. Refunding credits...'
+      );
       await serviceClient.rpc('refund_credits_atomic', {
         p_user_id: user.id,
         p_amount: totalCreditsRequired,
@@ -449,7 +461,10 @@ async function handlePost(request: NextRequest) {
       });
 
       return NextResponse.json(
-        { error: 'Failed to store generated images. Credits have been refunded.' },
+        {
+          error:
+            'Failed to store generated images. Credits have been refunded.',
+        },
         { status: 500 }
       );
     }
@@ -489,7 +504,7 @@ async function handlePost(request: NextRequest) {
     // Get updated credit balance
     const { data: updatedProfile } = await serviceClient
       .from('profiles')
-      .select('credits')
+      .select('credits_remaining')
       .eq('id', user.id)
       .single();
 
@@ -498,7 +513,7 @@ async function handlePost(request: NextRequest) {
       success: true,
       images: storedImages,
       creditsUsed: actualCreditsUsed,
-      creditsRemaining: updatedProfile?.credits || 0,
+      creditsRemaining: updatedProfile?.credits_remaining || 0,
       enhancedPrompt: enhancedPrompt !== prompt ? enhancedPrompt : undefined,
     });
   } catch (error: any) {

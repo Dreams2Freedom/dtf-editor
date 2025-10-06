@@ -3,8 +3,18 @@
 import React from 'react';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
-import { TransparentBackgroundBadge, TransparentBackgroundInline } from './TransparentBackgroundBadge';
-import { Sparkles, Loader2, Download, Scissors, Image as ImageIcon, Edit3 } from 'lucide-react';
+import {
+  TransparentBackgroundBadge,
+  TransparentBackgroundInline,
+} from './TransparentBackgroundBadge';
+import {
+  Sparkles,
+  Loader2,
+  Download,
+  Scissors,
+  Image as ImageIcon,
+  Edit3,
+} from 'lucide-react';
 import { useAuthStore } from '@/stores/authStore';
 import { toast } from 'react-hot-toast';
 import Image from 'next/image';
@@ -48,11 +58,13 @@ export function GenerationConfigStep({
 
   // Use Boolean() to safely handle any truthy value (true, 1, 'true', etc.)
   const isAdmin = Boolean(profile?.is_admin);
-  const hasEnoughCredits = isAdmin || (profile?.credits || 0) >= totalCost;
+  const hasEnoughCredits = isAdmin || (profile?.credits_remaining || 0) >= totalCost;
 
   const handleGenerate = async () => {
     if (!hasEnoughCredits && !isAdmin) {
-      toast.error(`You need ${totalCost} credits but only have ${profile?.credits || 0}`);
+      toast.error(
+        `You need ${totalCost} credits but only have ${profile?.credits_remaining || 0}`
+      );
       return;
     }
 
@@ -149,9 +161,7 @@ export function GenerationConfigStep({
             </h4>
             <TransparentBackgroundBadge size="sm" />
           </div>
-          <p className="text-sm text-gray-800 leading-relaxed">
-            {finalPrompt}
-          </p>
+          <p className="text-sm text-gray-800 leading-relaxed">{finalPrompt}</p>
         </Card>
 
         {/* Generation Options */}
@@ -160,9 +170,7 @@ export function GenerationConfigStep({
 
           {/* Size Selection */}
           <div className="mb-4">
-            <label className="block text-sm font-medium mb-2">
-              Image Size
-            </label>
+            <label className="block text-sm font-medium mb-2">Image Size</label>
             <div className="grid grid-cols-3 gap-2">
               <button
                 onClick={() =>
@@ -299,7 +307,7 @@ export function GenerationConfigStep({
                 min="1"
                 max="4"
                 value={generationOptions.count}
-                onChange={(e) =>
+                onChange={e =>
                   onOptionsChange({
                     ...generationOptions,
                     count: parseInt(e.target.value),
@@ -317,14 +325,16 @@ export function GenerationConfigStep({
           <div className="bg-gray-50 rounded-lg p-4 space-y-2">
             <div className="flex items-center justify-between text-sm">
               <span className="text-gray-600">Total Cost:</span>
-              <span className="font-semibold text-gray-900">{totalCost} credits</span>
+              <span className="font-semibold text-gray-900">
+                {totalCost} credits
+              </span>
             </div>
             <div className="flex items-center justify-between text-sm">
               <span className="text-gray-600">Credits After:</span>
               <span
-                className={`font-semibold ${(profile?.credits || 0) - totalCost < 0 ? 'text-error-600' : 'text-success-600'}`}
+                className={`font-semibold ${(profile?.credits_remaining || 0) - totalCost < 0 ? 'text-error-600' : 'text-success-600'}`}
               >
-                {(profile?.credits || 0) - totalCost}
+                {(profile?.credits_remaining || 0) - totalCost}
               </span>
             </div>
             <div className="pt-2 border-t border-gray-200">
@@ -355,7 +365,8 @@ export function GenerationConfigStep({
 
           {!hasEnoughCredits && !isAdmin && (
             <p className="text-xs text-error-600 mt-2 text-center">
-              Insufficient credits. You have {profile?.credits || 0} but need {totalCost}.
+              Insufficient credits. You have {profile?.credits_remaining || 0} but need{' '}
+              {totalCost}.
             </p>
           )}
         </Card>
@@ -419,7 +430,9 @@ export function GenerationConfigStep({
                       size="sm"
                       onClick={() => {
                         if (image.id) {
-                          router.push(`/process/background-removal?imageId=${image.id}`);
+                          router.push(
+                            `/process/background-removal?imageId=${image.id}`
+                          );
                         } else {
                           router.push(
                             `/process/background-removal?imageUrl=${encodeURIComponent(image.url)}`
@@ -434,7 +447,9 @@ export function GenerationConfigStep({
                       variant="primary"
                       size="sm"
                       onClick={() => {
-                        router.push(`/process?image=${encodeURIComponent(image.url)}`);
+                        router.push(
+                          `/process?image=${encodeURIComponent(image.url)}`
+                        );
                       }}
                     >
                       <Edit3 className="w-4 h-4 mr-1" />
