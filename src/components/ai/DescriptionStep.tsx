@@ -27,6 +27,7 @@ interface DescriptionStepProps {
   inputMode: 'text' | 'upload';
   onInputModeChange: (mode: 'text' | 'upload') => void;
   onImageAnalysisComplete?: (prompt: string) => void;
+  isFromImageAnalysis: boolean;
 }
 
 const examplePrompts = [
@@ -51,6 +52,7 @@ export function DescriptionStep({
   inputMode,
   onInputModeChange,
   onImageAnalysisComplete,
+  isFromImageAnalysis,
 }: DescriptionStepProps) {
   const [showHowItWorks, setShowHowItWorks] = useState(false);
 
@@ -97,7 +99,9 @@ export function DescriptionStep({
             <div>
               <h3 className="text-lg font-bold text-blue-900">How It Works</h3>
               <p className="text-sm text-blue-700">
-                3 simple steps to create your perfect DTF design
+                {inputMode === 'text'
+                  ? '3 simple steps to create your perfect DTF design'
+                  : '2 simple steps to recreate or modify any design'}
               </p>
             </div>
           </div>
@@ -110,52 +114,89 @@ export function DescriptionStep({
 
         {showHowItWorks && (
           <div className="mt-4 pt-4 border-t border-blue-200 space-y-3">
-            <div className="flex gap-3">
-              <div className="flex-shrink-0 w-8 h-8 rounded-full bg-blue-500 text-white flex items-center justify-center font-bold text-sm">
-                1
-              </div>
-              <div>
-                <h4 className="font-semibold text-blue-900">
-                  Describe Your Image
-                </h4>
-                <p className="text-sm text-blue-700">
-                  Enter a simple description of what you want (e.g., "baseball
-                  themed design with 'Nana' text"). Don't worry about being too
-                  detailed - our AI will enhance it!
-                </p>
-              </div>
-            </div>
+            {inputMode === 'text' ? (
+              <>
+                {/* Text-to-Image Flow (3 steps) */}
+                <div className="flex gap-3">
+                  <div className="flex-shrink-0 w-8 h-8 rounded-full bg-blue-500 text-white flex items-center justify-center font-bold text-sm">
+                    1
+                  </div>
+                  <div>
+                    <h4 className="font-semibold text-blue-900">
+                      Describe Your Image
+                    </h4>
+                    <p className="text-sm text-blue-700">
+                      Enter a simple description of what you want. Don't worry
+                      about being too detailed - our AI will enhance it!
+                    </p>
+                  </div>
+                </div>
 
-            <div className="flex gap-3">
-              <div className="flex-shrink-0 w-8 h-8 rounded-full bg-purple-500 text-white flex items-center justify-center font-bold text-sm">
-                2
-              </div>
-              <div>
-                <h4 className="font-semibold text-purple-900">
-                  Choose AI-Optimized Prompt
-                </h4>
-                <p className="text-sm text-purple-700">
-                  Our AI generates 4 professional variations with rich details,
-                  colors, and styles. Pick your favorite or edit to customize
-                  further!
-                </p>
-              </div>
-            </div>
+                <div className="flex gap-3">
+                  <div className="flex-shrink-0 w-8 h-8 rounded-full bg-purple-500 text-white flex items-center justify-center font-bold text-sm">
+                    2
+                  </div>
+                  <div>
+                    <h4 className="font-semibold text-purple-900">
+                      Choose AI-Optimized Prompt
+                    </h4>
+                    <p className="text-sm text-purple-700">
+                      Our AI generates 4 professional variations with rich
+                      details, colors, and styles. Pick your favorite or edit!
+                    </p>
+                  </div>
+                </div>
 
-            <div className="flex gap-3">
-              <div className="flex-shrink-0 w-8 h-8 rounded-full bg-green-500 text-white flex items-center justify-center font-bold text-sm">
-                3
-              </div>
-              <div>
-                <h4 className="font-semibold text-green-900">
-                  Generate & Download
-                </h4>
-                <p className="text-sm text-green-700">
-                  Configure size and quality, then generate your image with a
-                  transparent background - perfect for DTF printing!
-                </p>
-              </div>
-            </div>
+                <div className="flex gap-3">
+                  <div className="flex-shrink-0 w-8 h-8 rounded-full bg-green-500 text-white flex items-center justify-center font-bold text-sm">
+                    3
+                  </div>
+                  <div>
+                    <h4 className="font-semibold text-green-900">
+                      Generate & Download
+                    </h4>
+                    <p className="text-sm text-green-700">
+                      Configure size and quality, then generate your image with
+                      a transparent background!
+                    </p>
+                  </div>
+                </div>
+              </>
+            ) : (
+              <>
+                {/* Image-to-Text Flow (2 steps) */}
+                <div className="flex gap-3">
+                  <div className="flex-shrink-0 w-8 h-8 rounded-full bg-blue-500 text-white flex items-center justify-center font-bold text-sm">
+                    1
+                  </div>
+                  <div>
+                    <h4 className="font-semibold text-blue-900">
+                      Upload & Analyze
+                    </h4>
+                    <p className="text-sm text-blue-700">
+                      Upload your image and optionally describe what changes you
+                      want (e.g., "Change MOM to GRANDMA"). Our AI will analyze
+                      it and create a detailed prompt.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex gap-3">
+                  <div className="flex-shrink-0 w-8 h-8 rounded-full bg-green-500 text-white flex items-center justify-center font-bold text-sm">
+                    2
+                  </div>
+                  <div>
+                    <h4 className="font-semibold text-green-900">
+                      Configure & Generate
+                    </h4>
+                    <p className="text-sm text-green-700">
+                      Review the AI-generated prompt (you can edit it),
+                      configure size and quality, then generate your new image!
+                    </p>
+                  </div>
+                </div>
+              </>
+            )}
 
             <div className="mt-4 pt-3 border-t border-blue-200">
               <Button
@@ -218,6 +259,11 @@ export function DescriptionStep({
                     <>
                       <Loader2 className="w-5 h-5 mr-2 animate-spin" />
                       Generating Optimized Prompts...
+                    </>
+                  ) : isFromImageAnalysis ? (
+                    <>
+                      Next: Configure Image
+                      <ArrowRight className="w-5 h-5 ml-2" />
                     </>
                   ) : (
                     <>
