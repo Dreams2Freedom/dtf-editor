@@ -62,11 +62,8 @@ export function GenerationConfigStep({
   }, [isGenerating]);
 
   // Calculate credit cost
-  const qualityCredits = {
-    standard: 1,
-    hd: 2,
-  };
-  const creditCost = qualityCredits[generationOptions.quality] || 1;
+  // Always using 'high' quality for best transparent backgrounds = 2 credits per image
+  const creditCost = 2;
   const totalCost = creditCost * generationOptions.count;
 
   // Use Boolean() to safely handle any truthy value (true, 1, 'true', etc.)
@@ -93,8 +90,7 @@ export function GenerationConfigStep({
         body: JSON.stringify({
           prompt: finalPrompt,
           size: generationOptions.size,
-          quality: generationOptions.quality,
-          style: generationOptions.style,
+          quality: 'high', // Always use high quality for best transparent backgrounds
           count: generationOptions.count,
           enhanceForDTF: true, // Always enhance for DTF
         }),
@@ -231,52 +227,7 @@ export function GenerationConfigStep({
             </div>
           </div>
 
-          {/* Quality Selection */}
-          <div className="mb-4">
-            <label className="block text-sm font-medium mb-2">Quality</label>
-            <div className="grid grid-cols-3 gap-2">
-              <button
-                onClick={() =>
-                  onOptionsChange({ ...generationOptions, quality: 'low' })
-                }
-                className={`p-3 rounded-lg border text-sm transition-all ${
-                  generationOptions.quality === 'low'
-                    ? 'border-primary-600 bg-primary-50 text-primary-700 ring-2 ring-primary-200'
-                    : 'border-gray-300 hover:border-gray-400'
-                }`}
-              >
-                <div className="font-medium">Low</div>
-                <div className="text-xs text-gray-600">1 credit</div>
-              </button>
-              <button
-                onClick={() =>
-                  onOptionsChange({ ...generationOptions, quality: 'medium' })
-                }
-                className={`p-3 rounded-lg border text-sm transition-all ${
-                  generationOptions.quality === 'medium'
-                    ? 'border-primary-600 bg-primary-50 text-primary-700 ring-2 ring-primary-200'
-                    : 'border-gray-300 hover:border-gray-400'
-                }`}
-              >
-                <div className="font-medium">Medium</div>
-                <div className="text-xs text-gray-600">1 credit</div>
-              </button>
-              <button
-                onClick={() =>
-                  onOptionsChange({ ...generationOptions, quality: 'high' })
-                }
-                className={`p-3 rounded-lg border text-sm transition-all ${
-                  generationOptions.quality === 'high'
-                    ? 'border-primary-600 bg-primary-50 text-primary-700 ring-2 ring-primary-200'
-                    : 'border-gray-300 hover:border-gray-400'
-                }`}
-              >
-                <div className="font-medium">High</div>
-                <div className="text-xs text-gray-600">2 credits</div>
-              </button>
-            </div>
-          </div>
-
+          {/* Quality Selection - Hidden (always set to "high" for best transparent backgrounds) */}
           {/* Style Selection - Disabled (not supported by gpt-image-1) */}
           {/* <div className="mb-4">
             <label className="block text-sm font-medium mb-2">Style</label>

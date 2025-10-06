@@ -67,7 +67,7 @@ export function PromptWizard() {
   const [generationOptions, setGenerationOptions] = useState<GenerationOptions>(
     {
       size: '1024x1024',
-      quality: 'medium',
+      quality: 'high', // Always use high quality for best transparent backgrounds
       count: 1,
     }
   );
