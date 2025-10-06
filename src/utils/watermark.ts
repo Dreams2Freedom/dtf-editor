@@ -1,8 +1,8 @@
 import sharp from 'sharp';
 
 /**
- * Adds a watermark to an image buffer while preserving transparency
- * Uses Sharp's composite operation with semi-transparent SVG overlay
+ * Adds a repeating watermark to an image buffer while preserving transparency
+ * Uses Sharp's native text rendering with tiled composite operation
  *
  * CRITICAL FOR DTF PRINTING: Preserves PNG alpha channel for transparent backgrounds
  */
@@ -13,47 +13,56 @@ export async function addWatermark(imageBuffer: Buffer): Promise<Buffer> {
     const width = metadata.width || 1024;
     const height = metadata.height || 1024;
 
-    // Calculate watermark size based on image dimensions
-    // Font size scales with image size (3-6% of image width)
-    const fontSize = Math.max(24, Math.min(72, width * 0.04));
+    // Calculate font size based on image dimensions (2-4% of width)
+    const fontSize = Math.max(32, Math.min(80, width * 0.035));
 
-    // Create highly visible watermark SVG with stroke for contrast
-    // Uses white text with black stroke - visible on ANY background
-    // Using generic sans-serif that works in all environments
-    const watermarkSvg = Buffer.from(`
-      <svg width="${width}" height="${height}" xmlns="http://www.w3.org/2000/svg">
-        <style>
-          .watermark {
-            fill: rgba(255, 255, 255, 0.6);
-            stroke: rgba(0, 0, 0, 0.7);
-            stroke-width: 2px;
-            paint-order: stroke fill;
-            font-size: ${fontSize}px;
-            font-family: sans-serif;
-            font-weight: bold;
-            letter-spacing: 3px;
-          }
-        </style>
-        <text
-          x="50%"
-          y="50%"
-          text-anchor="middle"
-          dominant-baseline="middle"
-          transform="rotate(-45 ${width / 2} ${height / 2})"
-          class="watermark"
-        >
-          PREVIEW
-        </text>
-      </svg>
-    `);
+    console.log('[Watermark] Creating text overlay:', {
+      imageSize: `${width}x${height}`,
+      fontSize,
+    });
 
-    // Apply watermark using composite operation
+    // Create text image using Sharp's native text API (vips_text)
+    // Uses Pango markup for styling with stroke for visibility on all backgrounds
+    const textWidth = Math.floor(width * 0.4); // Text tile is 40% of image width
+    const textHeight = Math.floor(fontSize * 2); // Height based on font size
+
+    // Use Pango markup for styled text with background for contrast
+    // White text with semi-transparency, visible on all backgrounds
+    const textBuffer = await sharp({
+      text: {
+        text: `<span foreground="white" background="rgba(0,0,0,0.5)"> PREVIEW </span>`,
+        font: 'sans-serif',
+        fontfile: undefined, // Let Sharp use system fonts
+        width: textWidth,
+        height: textHeight,
+        align: 'center',
+        rgba: true, // Enable RGBA for transparency
+        dpi: Math.floor(fontSize * 2), // DPI affects text size
+      },
+    })
+      .png({ compressionLevel: 6, alpha: true })
+      .toBuffer();
+
+    console.log('[Watermark] Text created, applying rotation...');
+
+    // Rotate text -45 degrees for diagonal watermark
+    // Extend canvas to prevent cropping during rotation
+    const rotatedText = await sharp(textBuffer)
+      .rotate(-45, {
+        background: { r: 0, g: 0, b: 0, alpha: 0 }, // Transparent background
+      })
+      .png({ compressionLevel: 6, alpha: true })
+      .toBuffer();
+
+    console.log('[Watermark] Compositing tiled watermark...');
+
+    // Apply watermark using composite with tile: true to repeat across entire image
     // CRITICAL: Using 'over' blend mode preserves alpha channel
     const watermarked = await sharp(imageBuffer)
       .composite([
         {
-          input: watermarkSvg,
-          gravity: 'centre',
+          input: rotatedText,
+          tile: true, // Repeat watermark across entire image
           blend: 'over', // Preserves transparency
         },
       ])
@@ -66,7 +75,7 @@ export async function addWatermark(imageBuffer: Buffer): Promise<Buffer> {
       .toBuffer();
 
     console.log(
-      '[Watermark] Successfully added watermark, preserving transparency'
+      '[Watermark] Successfully added repeating watermark, preserving transparency'
     );
     return watermarked;
   } catch (error) {
