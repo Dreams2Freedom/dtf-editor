@@ -286,7 +286,7 @@ export function PromptWizard() {
             )}
 
             <Button
-              variant="primary"
+              variant="default"
               size="lg"
               onClick={handleNext}
               disabled={!canGoNext() || isOptimizing}
