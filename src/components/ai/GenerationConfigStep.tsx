@@ -366,6 +366,16 @@ export function GenerationConfigStep({
               but need {totalCost}.
             </p>
           )}
+
+          {/* Loading time notice */}
+          {isGenerating && (
+            <div className="mt-3 p-3 bg-blue-50 rounded-lg border border-blue-200">
+              <p className="text-sm text-blue-700 text-center">
+                ⏱️ High-quality transparent images take 1-2 minutes to generate.
+                Please wait...
+              </p>
+            </div>
+          )}
         </Card>
       </div>
 
