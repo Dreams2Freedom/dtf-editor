@@ -3,7 +3,13 @@
 import React, { useState, useEffect } from 'react';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
-import { ArrowLeft, ArrowRight, CheckCircle, Sparkles, Loader2 } from 'lucide-react';
+import {
+  ArrowLeft,
+  ArrowRight,
+  CheckCircle,
+  Sparkles,
+  Loader2,
+} from 'lucide-react';
 import { useAuthStore } from '@/stores/authStore';
 
 // Wizard step components (to be created)
@@ -188,6 +194,12 @@ export function PromptWizard() {
     }
   };
 
+  // Handler for going back to prompts step to regenerate
+  const handleGoBackToPrompts = () => {
+    setCurrentStep(2);
+    setGeneratedImages([]); // Clear previous images
+  };
+
   // Step indicator
   const steps = [
     { number: 1, title: 'Describe', icon: Sparkles },
@@ -275,10 +287,7 @@ export function PromptWizard() {
       {/* Navigation - Only shown for Step 2 (Step 1 has its own button now) */}
       {currentStep === 2 && (
         <div className="flex items-center justify-between bg-white p-4 rounded-lg border-2 border-primary-200 shadow-sm">
-          <Button
-            variant="secondary"
-            onClick={handleBack}
-          >
+          <Button variant="secondary" onClick={handleBack}>
             <ArrowLeft className="w-4 h-4 mr-2" />
             Back to Description
           </Button>
@@ -330,6 +339,7 @@ export function PromptWizard() {
             onImagesGenerated={setGeneratedImages}
             isGenerating={isGenerating}
             onGeneratingChange={setIsGenerating}
+            onGoBackToPrompts={handleGoBackToPrompts}
           />
         )}
       </div>

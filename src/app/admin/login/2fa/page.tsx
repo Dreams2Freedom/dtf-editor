@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { adminAuthService } from '@/services/adminAuth';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
@@ -20,7 +21,7 @@ export default function Admin2FAPage() {
     if (!session || !session.requires_2fa) {
       router.push('/admin/login');
     }
-    
+
     // Focus first input
     inputRefs.current[0]?.focus();
   }, [router]);
@@ -54,9 +55,12 @@ export default function Admin2FAPage() {
     e.preventDefault();
     const pastedData = e.clipboardData.getData('text').slice(0, 6);
     if (/^\d+$/.test(pastedData)) {
-      const newCode = pastedData.split('').concat(Array(6).fill('')).slice(0, 6);
+      const newCode = pastedData
+        .split('')
+        .concat(Array(6).fill(''))
+        .slice(0, 6);
       setCode(newCode);
-      
+
       // Focus last input or next empty
       const lastFilledIndex = newCode.findIndex(digit => !digit) - 1;
       const focusIndex = lastFilledIndex === -2 ? 5 : lastFilledIndex + 1;
@@ -71,7 +75,7 @@ export default function Admin2FAPage() {
 
   const handleSubmit = async (fullCode?: string) => {
     const codeToSubmit = fullCode || code.join('');
-    
+
     if (codeToSubmit.length !== 6) {
       toast.error('Please enter a complete 6-digit code');
       return;
@@ -88,7 +92,7 @@ export default function Admin2FAPage() {
 
       const result = await adminAuthService.verify2FA({
         code: codeToSubmit,
-        session_token: session.token
+        session_token: session.token,
       });
 
       if (!result.success) {
@@ -116,8 +120,12 @@ export default function Admin2FAPage() {
           <div className="inline-flex items-center justify-center w-16 h-16 bg-primary-blue text-white rounded-lg mb-4">
             <Shield className="w-8 h-8" />
           </div>
-          <h1 className="text-2xl font-bold text-gray-900">Two-Factor Authentication</h1>
-          <p className="text-gray-600 mt-2">Enter the 6-digit code from your authenticator app</p>
+          <h1 className="text-2xl font-bold text-gray-900">
+            Two-Factor Authentication
+          </h1>
+          <p className="text-gray-600 mt-2">
+            Enter the 6-digit code from your authenticator app
+          </p>
         </div>
 
         {/* 2FA Form */}
@@ -139,13 +147,13 @@ export default function Admin2FAPage() {
                 {code.map((digit, index) => (
                   <input
                     key={index}
-                    ref={(el) => (inputRefs.current[index] = el)}
+                    ref={el => (inputRefs.current[index] = el)}
                     type="text"
                     inputMode="numeric"
                     maxLength={1}
                     value={digit}
-                    onChange={(e) => handleCodeChange(index, e.target.value)}
-                    onKeyDown={(e) => handleKeyDown(index, e)}
+                    onChange={e => handleCodeChange(index, e.target.value)}
+                    onKeyDown={e => handleKeyDown(index, e)}
                     onPaste={handlePaste}
                     className="w-12 h-12 text-center text-xl font-semibold border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-blue focus:border-primary-blue"
                     disabled={isLoading}
@@ -184,9 +192,9 @@ export default function Admin2FAPage() {
           <p>Open your authenticator app and enter the current code.</p>
           <p className="mt-2">
             Lost access?{' '}
-            <a href="/support" className="text-primary-blue hover:underline">
+            <Link href="/support" className="text-primary-blue hover:underline">
               Contact support
-            </a>
+            </Link>
           </p>
         </div>
       </div>

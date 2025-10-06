@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useRef, useEffect } from 'react';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import {
@@ -14,6 +14,7 @@ import {
   Scissors,
   Image as ImageIcon,
   Edit3,
+  ArrowLeft,
 } from 'lucide-react';
 import { useAuthStore } from '@/stores/authStore';
 import { toast } from 'react-hot-toast';
@@ -29,6 +30,7 @@ interface GenerationConfigStepProps {
   onImagesGenerated: (images: GeneratedImage[]) => void;
   isGenerating: boolean;
   onGeneratingChange: (generating: boolean) => void;
+  onGoBackToPrompts?: () => void;
 }
 
 /**
@@ -43,9 +45,21 @@ export function GenerationConfigStep({
   onImagesGenerated,
   isGenerating,
   onGeneratingChange,
+  onGoBackToPrompts,
 }: GenerationConfigStepProps) {
   const { profile } = useAuthStore();
   const router = useRouter();
+  const resultsRef = useRef<HTMLDivElement>(null);
+
+  // Scroll to results when generation starts
+  useEffect(() => {
+    if (isGenerating && resultsRef.current) {
+      resultsRef.current.scrollIntoView({
+        behavior: 'smooth',
+        block: 'start',
+      });
+    }
+  }, [isGenerating]);
 
   // Calculate credit cost
   const qualityCredits = {
@@ -226,7 +240,7 @@ export function GenerationConfigStep({
                 onClick={() =>
                   onOptionsChange({ ...generationOptions, quality: 'low' })
                 }
-                className={`p-3 rounded-lg border transition-all ${
+                className={`p-3 rounded-lg border text-sm transition-all ${
                   generationOptions.quality === 'low'
                     ? 'border-primary-600 bg-primary-50 text-primary-700 ring-2 ring-primary-200'
                     : 'border-gray-300 hover:border-gray-400'
@@ -239,7 +253,7 @@ export function GenerationConfigStep({
                 onClick={() =>
                   onOptionsChange({ ...generationOptions, quality: 'standard' })
                 }
-                className={`p-3 rounded-lg border transition-all ${
+                className={`p-3 rounded-lg border text-sm transition-all ${
                   generationOptions.quality === 'standard'
                     ? 'border-primary-600 bg-primary-50 text-primary-700 ring-2 ring-primary-200'
                     : 'border-gray-300 hover:border-gray-400'
@@ -252,7 +266,7 @@ export function GenerationConfigStep({
                 onClick={() =>
                   onOptionsChange({ ...generationOptions, quality: 'high' })
                 }
-                className={`p-3 rounded-lg border transition-all ${
+                className={`p-3 rounded-lg border text-sm transition-all ${
                   generationOptions.quality === 'high'
                     ? 'border-primary-600 bg-primary-50 text-primary-700 ring-2 ring-primary-200'
                     : 'border-gray-300 hover:border-gray-400'
@@ -272,7 +286,7 @@ export function GenerationConfigStep({
                 onClick={() =>
                   onOptionsChange({ ...generationOptions, style: 'vivid' })
                 }
-                className={`p-3 rounded-lg border transition-all ${
+                className={`p-3 rounded-lg border text-sm transition-all ${
                   generationOptions.style === 'vivid'
                     ? 'border-primary-600 bg-primary-50 text-primary-700 ring-2 ring-primary-200'
                     : 'border-gray-300 hover:border-gray-400'
@@ -285,7 +299,7 @@ export function GenerationConfigStep({
                 onClick={() =>
                   onOptionsChange({ ...generationOptions, style: 'natural' })
                 }
-                className={`p-3 rounded-lg border transition-all ${
+                className={`p-3 rounded-lg border text-sm transition-all ${
                   generationOptions.style === 'natural'
                     ? 'border-primary-600 bg-primary-50 text-primary-700 ring-2 ring-primary-200'
                     : 'border-gray-300 hover:border-gray-400'
@@ -302,23 +316,55 @@ export function GenerationConfigStep({
             <label className="block text-sm font-medium mb-2">
               Number of Images
             </label>
-            <div className="flex items-center gap-3">
-              <input
-                type="range"
-                min="1"
-                max="4"
-                value={generationOptions.count}
-                onChange={e =>
-                  onOptionsChange({
-                    ...generationOptions,
-                    count: parseInt(e.target.value),
-                  })
+            <div className="grid grid-cols-4 gap-2">
+              <button
+                onClick={() =>
+                  onOptionsChange({ ...generationOptions, count: 1 })
                 }
-                className="flex-1 accent-primary-500"
-              />
-              <span className="w-8 text-center font-semibold text-primary-600">
-                {generationOptions.count}
-              </span>
+                className={`p-3 rounded-lg border text-sm font-medium transition-all ${
+                  generationOptions.count === 1
+                    ? 'border-primary-600 bg-primary-50 text-primary-700 ring-2 ring-primary-200'
+                    : 'border-gray-300 hover:border-gray-400'
+                }`}
+              >
+                1
+              </button>
+              <button
+                onClick={() =>
+                  onOptionsChange({ ...generationOptions, count: 2 })
+                }
+                className={`p-3 rounded-lg border text-sm font-medium transition-all ${
+                  generationOptions.count === 2
+                    ? 'border-primary-600 bg-primary-50 text-primary-700 ring-2 ring-primary-200'
+                    : 'border-gray-300 hover:border-gray-400'
+                }`}
+              >
+                2
+              </button>
+              <button
+                onClick={() =>
+                  onOptionsChange({ ...generationOptions, count: 3 })
+                }
+                className={`p-3 rounded-lg border text-sm font-medium transition-all ${
+                  generationOptions.count === 3
+                    ? 'border-primary-600 bg-primary-50 text-primary-700 ring-2 ring-primary-200'
+                    : 'border-gray-300 hover:border-gray-400'
+                }`}
+              >
+                3
+              </button>
+              <button
+                onClick={() =>
+                  onOptionsChange({ ...generationOptions, count: 4 })
+                }
+                className={`p-3 rounded-lg border text-sm font-medium transition-all ${
+                  generationOptions.count === 4
+                    ? 'border-primary-600 bg-primary-50 text-primary-700 ring-2 ring-primary-200'
+                    : 'border-gray-300 hover:border-gray-400'
+                }`}
+              >
+                4
+              </button>
             </div>
           </div>
 
@@ -345,7 +391,7 @@ export function GenerationConfigStep({
 
           {/* Generate Button */}
           <Button
-            variant="primary"
+            variant="default"
             size="lg"
             className="w-full mt-4"
             onClick={handleGenerate}
@@ -374,7 +420,7 @@ export function GenerationConfigStep({
       </div>
 
       {/* Right Column - Results */}
-      <div>
+      <div ref={resultsRef}>
         <Card className="p-6 min-h-[500px]">
           <h3 className="font-semibold mb-4">Generated Images</h3>
 
@@ -445,7 +491,7 @@ export function GenerationConfigStep({
                       Remove BG
                     </Button>
                     <Button
-                      variant="primary"
+                      variant="default"
                       size="sm"
                       onClick={() => {
                         router.push(
@@ -462,6 +508,24 @@ export function GenerationConfigStep({
                   </div>
                 </div>
               ))}
+
+              {/* Regenerate Prompts Button */}
+              {onGoBackToPrompts && (
+                <div className="mt-6 pt-4 border-t border-gray-200">
+                  <Button
+                    variant="secondary"
+                    size="lg"
+                    className="w-full"
+                    onClick={onGoBackToPrompts}
+                  >
+                    <ArrowLeft className="w-4 h-4 mr-2" />
+                    Not Happy? Regenerate Prompts
+                  </Button>
+                  <p className="text-xs text-gray-600 mt-2 text-center">
+                    Go back to Step 2 to choose different prompt variations
+                  </p>
+                </div>
+              )}
             </div>
           )}
         </Card>
