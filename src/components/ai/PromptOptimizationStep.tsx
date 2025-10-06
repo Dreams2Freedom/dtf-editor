@@ -15,6 +15,7 @@ interface PromptOptimizationStepProps {
   onEditPrompt: (prompt: string) => void;
   originalDescription: string;
   isOptimizing: boolean;
+  onRegenerateFromEdit?: (editedText: string) => void;
 }
 
 /**
@@ -29,6 +30,7 @@ export function PromptOptimizationStep({
   onEditPrompt,
   originalDescription,
   isOptimizing,
+  onRegenerateFromEdit,
 }: PromptOptimizationStepProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [editBuffer, setEditBuffer] = useState('');
@@ -45,6 +47,13 @@ export function PromptOptimizationStep({
   const handleSaveEdit = () => {
     onEditPrompt(editBuffer);
     setIsEditing(false);
+  };
+
+  const handleRegenerateFromEdit = () => {
+    if (onRegenerateFromEdit && editBuffer.trim()) {
+      onRegenerateFromEdit(editBuffer.trim());
+      setIsEditing(false);
+    }
   };
 
   const handleCancelEdit = () => {
@@ -235,7 +244,7 @@ export function PromptOptimizationStep({
               maxLength={4000}
             />
 
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between gap-2">
               <span className="text-xs text-gray-600">
                 {editBuffer.length}/4000 characters
               </span>
@@ -243,12 +252,29 @@ export function PromptOptimizationStep({
                 <Button variant="ghost" size="sm" onClick={handleCancelEdit}>
                   Cancel
                 </Button>
-                <Button variant="primary" size="sm" onClick={handleSaveEdit}>
+                {onRegenerateFromEdit && (
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onClick={handleRegenerateFromEdit}
+                    disabled={!editBuffer.trim()}
+                  >
+                    <Sparkles className="w-4 h-4 mr-1" />
+                    Re-Generate
+                  </Button>
+                )}
+                <Button variant="default" size="sm" onClick={handleSaveEdit}>
                   <CheckCircle className="w-4 h-4 mr-1" />
-                  Save Changes
+                  Use This
                 </Button>
               </div>
             </div>
+
+            {onRegenerateFromEdit && (
+              <p className="text-xs text-blue-700 mt-2">
+                <strong>Tip:</strong> Click "Re-Generate" to get 4 new AI-optimized variations based on your edits, or "Use This" to use your edited prompt as-is.
+              </p>
+            )}
           </div>
         </Card>
       )}

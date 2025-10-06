@@ -128,47 +128,58 @@ export function PromptWizard() {
     }
   };
 
+  // Generate optimized prompts from a description
+  const generateOptimizedPrompts = async (description: string) => {
+    setIsOptimizing(true);
+    try {
+      const response = await fetch('/api/generate/optimize-prompt', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          description,
+          count: 4,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to optimize prompts');
+      }
+
+      const data = await response.json();
+      setOptimizedPrompts(data.prompts || []);
+      setSelectedPromptIndex(0);
+      setEditedPrompt('');
+      return true;
+    } catch (error) {
+      console.error('Error optimizing prompts:', error);
+      // Fallback: use original description
+      setOptimizedPrompts([
+        {
+          text: description,
+          focus: 'Original description',
+        },
+      ]);
+      return false;
+    } finally {
+      setIsOptimizing(false);
+    }
+  };
+
   const handleNext = async () => {
     if (!canGoNext()) return;
 
     if (currentStep === 1) {
       // Moving from step 1 to 2: Generate optimized prompts
-      setIsOptimizing(true);
-      try {
-        const response = await fetch('/api/generate/optimize-prompt', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            description: userDescription,
-            count: 4,
-          }),
-        });
-
-        if (!response.ok) {
-          throw new Error('Failed to optimize prompts');
-        }
-
-        const data = await response.json();
-        setOptimizedPrompts(data.prompts || []);
-        setSelectedPromptIndex(0);
-        setEditedPrompt('');
-        setCurrentStep(2);
-      } catch (error) {
-        console.error('Error optimizing prompts:', error);
-        // Fallback: use original description
-        setOptimizedPrompts([
-          {
-            text: userDescription,
-            focus: 'Original description',
-          },
-        ]);
-        setCurrentStep(2);
-      } finally {
-        setIsOptimizing(false);
-      }
+      await generateOptimizedPrompts(userDescription);
+      setCurrentStep(2);
     } else if (currentStep === 2) {
       setCurrentStep(3);
     }
+  };
+
+  // Re-generate prompts from edited text
+  const handleRegenerateFromEdit = async (editedText: string) => {
+    await generateOptimizedPrompts(editedText);
   };
 
   const handleBack = () => {
@@ -261,50 +272,27 @@ export function PromptWizard() {
         </div>
       </Card>
 
-      {/* Navigation - Above the fold for better visibility */}
-      {currentStep < 3 && (
+      {/* Navigation - Only shown for Step 2 (Step 1 has its own button now) */}
+      {currentStep === 2 && (
         <div className="flex items-center justify-between bg-white p-4 rounded-lg border-2 border-primary-200 shadow-sm">
           <Button
             variant="secondary"
             onClick={handleBack}
-            disabled={currentStep === 1}
           >
             <ArrowLeft className="w-4 h-4 mr-2" />
-            Back
+            Back to Description
           </Button>
 
-          <div className="flex items-center gap-2">
-            {currentStep === 1 && (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={clearProgress}
-                disabled={!userDescription}
-              >
-                Clear
-              </Button>
-            )}
-
-            <Button
-              variant="default"
-              size="lg"
-              onClick={handleNext}
-              disabled={!canGoNext() || isOptimizing}
-              className="shadow-lg"
-            >
-              {isOptimizing ? (
-                <>
-                  <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                  Optimizing...
-                </>
-              ) : (
-                <>
-                  {currentStep === 1 ? 'Generate Prompts' : 'Next: Generate'}
-                  <ArrowRight className="w-4 h-4 ml-2" />
-                </>
-              )}
-            </Button>
-          </div>
+          <Button
+            variant="default"
+            size="lg"
+            onClick={handleNext}
+            disabled={!canGoNext()}
+            className="shadow-lg"
+          >
+            Next: Generate Images
+            <ArrowRight className="w-4 h-4 ml-2" />
+          </Button>
         </div>
       )}
 
@@ -314,6 +302,9 @@ export function PromptWizard() {
           <DescriptionStep
             description={userDescription}
             onDescriptionChange={setUserDescription}
+            onGenerateClick={handleNext}
+            isGenerating={isOptimizing}
+            canGenerate={canGoNext()}
           />
         )}
 
@@ -326,6 +317,7 @@ export function PromptWizard() {
             onEditPrompt={setEditedPrompt}
             originalDescription={userDescription}
             isOptimizing={isOptimizing}
+            onRegenerateFromEdit={handleRegenerateFromEdit}
           />
         )}
 

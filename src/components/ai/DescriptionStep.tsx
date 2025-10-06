@@ -1,13 +1,17 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Card } from '@/components/ui/Card';
+import { Button } from '@/components/ui/Button';
 import { TransparentBackgroundNotice } from './TransparentBackgroundBadge';
-import { Lightbulb, Sparkles } from 'lucide-react';
+import { Lightbulb, Sparkles, ArrowRight, Loader2, PlayCircle, ChevronDown, ChevronUp } from 'lucide-react';
 
 interface DescriptionStepProps {
   description: string;
   onDescriptionChange: (description: string) => void;
+  onGenerateClick: () => void;
+  isGenerating: boolean;
+  canGenerate: boolean;
 }
 
 const examplePrompts = [
@@ -26,9 +30,92 @@ const examplePrompts = [
 export function DescriptionStep({
   description,
   onDescriptionChange,
+  onGenerateClick,
+  isGenerating,
+  canGenerate,
 }: DescriptionStepProps) {
+  const [showHowItWorks, setShowHowItWorks] = useState(false);
+
   return (
     <div className="space-y-4">
+      {/* How It Works Section */}
+      <Card className="p-6 bg-gradient-to-br from-blue-50 to-purple-50 border-2 border-blue-200">
+        <button
+          onClick={() => setShowHowItWorks(!showHowItWorks)}
+          className="w-full flex items-center justify-between text-left"
+        >
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-full bg-blue-500 text-white flex items-center justify-center">
+              <Sparkles className="w-5 h-5" />
+            </div>
+            <div>
+              <h3 className="text-lg font-bold text-blue-900">
+                How It Works
+              </h3>
+              <p className="text-sm text-blue-700">
+                3 simple steps to create your perfect DTF design
+              </p>
+            </div>
+          </div>
+          {showHowItWorks ? (
+            <ChevronUp className="w-5 h-5 text-blue-600" />
+          ) : (
+            <ChevronDown className="w-5 h-5 text-blue-600" />
+          )}
+        </button>
+
+        {showHowItWorks && (
+          <div className="mt-4 pt-4 border-t border-blue-200 space-y-3">
+            <div className="flex gap-3">
+              <div className="flex-shrink-0 w-8 h-8 rounded-full bg-blue-500 text-white flex items-center justify-center font-bold text-sm">
+                1
+              </div>
+              <div>
+                <h4 className="font-semibold text-blue-900">Describe Your Image</h4>
+                <p className="text-sm text-blue-700">
+                  Enter a simple description of what you want (e.g., "baseball themed design with 'Nana' text"). Don't worry about being too detailed - our AI will enhance it!
+                </p>
+              </div>
+            </div>
+
+            <div className="flex gap-3">
+              <div className="flex-shrink-0 w-8 h-8 rounded-full bg-purple-500 text-white flex items-center justify-center font-bold text-sm">
+                2
+              </div>
+              <div>
+                <h4 className="font-semibold text-purple-900">Choose AI-Optimized Prompt</h4>
+                <p className="text-sm text-purple-700">
+                  Our AI generates 4 professional variations with rich details, colors, and styles. Pick your favorite or edit to customize further!
+                </p>
+              </div>
+            </div>
+
+            <div className="flex gap-3">
+              <div className="flex-shrink-0 w-8 h-8 rounded-full bg-green-500 text-white flex items-center justify-center font-bold text-sm">
+                3
+              </div>
+              <div>
+                <h4 className="font-semibold text-green-900">Generate & Download</h4>
+                <p className="text-sm text-green-700">
+                  Configure size and quality, then generate your image with a transparent background - perfect for DTF printing!
+                </p>
+              </div>
+            </div>
+
+            <div className="mt-4 pt-3 border-t border-blue-200">
+              <Button
+                variant="ghost"
+                size="sm"
+                className="text-blue-700 hover:text-blue-900"
+              >
+                <PlayCircle className="w-4 h-4 mr-2" />
+                Watch Video Tutorial (Coming Soon)
+              </Button>
+            </div>
+          </div>
+        )}
+      </Card>
+
       {/* Main input card */}
       <Card className="p-6">
         <div className="space-y-4">
@@ -58,6 +145,35 @@ export function DescriptionStep({
             <div className="absolute bottom-3 right-3 text-xs text-gray-500 bg-white px-2 rounded">
               {description.length}/4000
             </div>
+          </div>
+
+          {/* Generate Button - Directly Below Textarea */}
+          <div className="pt-2">
+            <Button
+              variant="default"
+              size="lg"
+              onClick={onGenerateClick}
+              disabled={!canGenerate || isGenerating}
+              className="w-full shadow-lg text-base font-semibold"
+            >
+              {isGenerating ? (
+                <>
+                  <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                  Generating Optimized Prompts...
+                </>
+              ) : (
+                <>
+                  <Sparkles className="w-5 h-5 mr-2" />
+                  Generate Prompts
+                  <ArrowRight className="w-5 h-5 ml-2" />
+                </>
+              )}
+            </Button>
+            {!canGenerate && description.length === 0 && (
+              <p className="text-xs text-gray-500 mt-2 text-center">
+                Enter a description above to continue
+              </p>
+            )}
           </div>
         </div>
       </Card>
