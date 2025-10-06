@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
-import { ArrowLeft, ArrowRight, CheckCircle, Sparkles } from 'lucide-react';
+import { ArrowLeft, ArrowRight, CheckCircle, Sparkles, Loader2 } from 'lucide-react';
 import { useAuthStore } from '@/stores/authStore';
 
 // Wizard step components (to be created)
@@ -261,6 +261,53 @@ export function PromptWizard() {
         </div>
       </Card>
 
+      {/* Navigation - Above the fold for better visibility */}
+      {currentStep < 3 && (
+        <div className="flex items-center justify-between bg-white p-4 rounded-lg border-2 border-primary-200 shadow-sm">
+          <Button
+            variant="secondary"
+            onClick={handleBack}
+            disabled={currentStep === 1}
+          >
+            <ArrowLeft className="w-4 h-4 mr-2" />
+            Back
+          </Button>
+
+          <div className="flex items-center gap-2">
+            {currentStep === 1 && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={clearProgress}
+                disabled={!userDescription}
+              >
+                Clear
+              </Button>
+            )}
+
+            <Button
+              variant="primary"
+              size="lg"
+              onClick={handleNext}
+              disabled={!canGoNext() || isOptimizing}
+              className="shadow-lg"
+            >
+              {isOptimizing ? (
+                <>
+                  <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                  Optimizing...
+                </>
+              ) : (
+                <>
+                  {currentStep === 1 ? 'Generate Prompts' : 'Next: Generate'}
+                  <ArrowRight className="w-4 h-4 ml-2" />
+                </>
+              )}
+            </Button>
+          </div>
+        </div>
+      )}
+
       {/* Step Content */}
       <div className="min-h-[400px]">
         {currentStep === 1 && (
@@ -294,48 +341,6 @@ export function PromptWizard() {
           />
         )}
       </div>
-
-      {/* Navigation */}
-      {currentStep < 3 && (
-        <div className="flex items-center justify-between">
-          <Button
-            variant="secondary"
-            onClick={handleBack}
-            disabled={currentStep === 1}
-          >
-            <ArrowLeft className="w-4 h-4 mr-2" />
-            Back
-          </Button>
-
-          <div className="flex items-center gap-2">
-            {currentStep === 1 && (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={clearProgress}
-                disabled={!userDescription}
-              >
-                Clear
-              </Button>
-            )}
-
-            <Button
-              variant="primary"
-              onClick={handleNext}
-              disabled={!canGoNext() || isOptimizing}
-            >
-              {isOptimizing ? (
-                <>Optimizing...</>
-              ) : (
-                <>
-                  {currentStep === 1 ? 'Generate Prompts' : 'Next: Generate'}
-                  <ArrowRight className="w-4 h-4 ml-2" />
-                </>
-              )}
-            </Button>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
