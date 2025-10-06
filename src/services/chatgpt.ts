@@ -110,13 +110,13 @@ export class ChatGPTService {
         const cleanedPrompt = prompt.replace('[IMAGE-TO-IMAGE]', ''); // Remove marker if present
 
         // Build the request parameters for Images API
+        // Note: gpt-image-1 does NOT support 'style' parameter (only DALL-E 3 does)
         const requestParams: any = {
           model: 'gpt-image-1', // Dedicated image generation model
           prompt: cleanedPrompt,
           n: imageCount,
           size: size, // Direct size parameter support
           quality: quality, // Direct quality parameter: "standard" or "hd"
-          style: style, // Direct style parameter: "vivid" or "natural"
           response_format: 'b64_json', // Get base64 encoded images
         };
 
@@ -145,18 +145,18 @@ export class ChatGPTService {
       }
 
       // Extract the generated images from response.data array
-      console.log(
-        '[ChatGPT Service] Extracting images from response.data...'
-      );
+      console.log('[ChatGPT Service] Extracting images from response.data...');
       console.log('[ChatGPT Service] response.data:', response.data);
 
       // Images API returns data as array of image objects with b64_json or url
-      const images: GeneratedImage[] = (response.data || []).map((imageData: any) => ({
-        url: imageData.b64_json
-          ? `data:image/png;base64,${imageData.b64_json}`
-          : imageData.url || '',
-        revised_prompt: imageData.revised_prompt, // gpt-image-1 may provide revised prompts
-      }));
+      const images: GeneratedImage[] = (response.data || []).map(
+        (imageData: any) => ({
+          url: imageData.b64_json
+            ? `data:image/png;base64,${imageData.b64_json}`
+            : imageData.url || '',
+          revised_prompt: imageData.revised_prompt, // gpt-image-1 may provide revised prompts
+        })
+      );
 
       console.log('[ChatGPT Service] Extracted images:', images.length);
 
@@ -184,11 +184,14 @@ export class ChatGPTService {
       console.error('[ChatGPT Service] Error stack:', err.stack);
 
       // Handle specific OpenAI errors
-      const errorWithResponse = error as Error & { response?: { status: number; data?: { error?: { message?: string } } } };
+      const errorWithResponse = error as Error & {
+        response?: { status: number; data?: { error?: { message?: string } } };
+      };
       if (errorWithResponse.response) {
         const statusCode = errorWithResponse.response.status;
         const errorMessage =
-          errorWithResponse.response.data?.error?.message || (error as Error).message;
+          errorWithResponse.response.data?.error?.message ||
+          (error as Error).message;
 
         if (statusCode === 401) {
           return {
@@ -225,7 +228,9 @@ export class ChatGPTService {
       // Generic error
       return {
         success: false,
-        error: (error as Error).message || 'Failed to generate image. Please try again.',
+        error:
+          (error as Error).message ||
+          'Failed to generate image. Please try again.',
       };
     }
   }

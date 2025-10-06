@@ -264,8 +264,8 @@ export function GenerationConfigStep({
             </div>
           </div>
 
-          {/* Style Selection */}
-          <div className="mb-4">
+          {/* Style Selection - Disabled (not supported by gpt-image-1) */}
+          {/* <div className="mb-4">
             <label className="block text-sm font-medium mb-2">Style</label>
             <div className="grid grid-cols-2 gap-2">
               <button
@@ -295,7 +295,7 @@ export function GenerationConfigStep({
                 <div className="text-xs text-gray-600">More realistic</div>
               </button>
             </div>
-          </div>
+          </div> */}
 
           {/* Count Selection */}
           <div className="mb-4">
