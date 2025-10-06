@@ -188,7 +188,7 @@ async function handlePost(request: NextRequest) {
     const creditCosts: Record<string, number> = {
       low: 1,
       medium: 1,
-      high: 2,
+      high: 1,
       auto: 1,
     };
     const creditsPerImage = creditCosts[apiQuality] || 1;

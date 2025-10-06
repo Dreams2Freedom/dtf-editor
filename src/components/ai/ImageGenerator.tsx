@@ -62,9 +62,9 @@ export function ImageGenerator() {
   const qualityCredits = {
     low: 1,
     standard: 1,
-    high: 2,
+    high: 1,
   };
-  const creditCost = qualityCredits[options.quality] || 2;
+  const creditCost = qualityCredits[options.quality] || 1;
   const totalCost = creditCost * options.count;
   const canGenerate =
     isAdmin ||
@@ -333,7 +333,7 @@ export function ImageGenerator() {
                   }`}
                 >
                   <div className="font-medium">Standard</div>
-                  <div className="text-xs text-gray-600">2 credits</div>
+                  <div className="text-xs text-gray-600">1 credit</div>
                 </button>
                 <button
                   onClick={() => setOptions({ ...options, quality: 'high' })}
@@ -344,7 +344,7 @@ export function ImageGenerator() {
                   }`}
                 >
                   <div className="font-medium">High</div>
-                  <div className="text-xs text-gray-600">3 credits</div>
+                  <div className="text-xs text-gray-600">1 credit</div>
                 </button>
               </div>
             </div>

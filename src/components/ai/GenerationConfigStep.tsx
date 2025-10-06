@@ -62,9 +62,9 @@ export function GenerationConfigStep({
   }, [isGenerating]);
 
   // Calculate credit cost
-  // Always using 'high' quality for best transparent backgrounds = 2 credits per image
-  // Note: gpt-image-1 only generates one image per call
-  const creditCost = 2;
+  // Always using 'high' quality = 1 credit per image
+  // Note: gpt-image-1 only generates one image per call (1024x1024)
+  const creditCost = 1;
   const totalCost = creditCost;
 
   // Use Boolean() to safely handle any truthy value (true, 1, 'true', etc.)
@@ -178,56 +178,8 @@ export function GenerationConfigStep({
         <Card className="p-6">
           <h3 className="font-semibold mb-4">Generation Options</h3>
 
-          {/* Size Selection */}
-          <div className="mb-4">
-            <label className="block text-sm font-medium mb-2">Image Size</label>
-            <div className="grid grid-cols-3 gap-2">
-              <button
-                onClick={() =>
-                  onOptionsChange({ ...generationOptions, size: '1024x1024' })
-                }
-                className={`p-2 rounded-lg border text-sm transition-all ${
-                  generationOptions.size === '1024x1024'
-                    ? 'border-primary-600 bg-primary-50 text-primary-700 ring-2 ring-primary-200'
-                    : 'border-gray-300 hover:border-gray-400'
-                }`}
-              >
-                Square
-                <br />
-                1024×1024
-              </button>
-              <button
-                onClick={() =>
-                  onOptionsChange({ ...generationOptions, size: '1024x1792' })
-                }
-                className={`p-2 rounded-lg border text-sm transition-all ${
-                  generationOptions.size === '1024x1792'
-                    ? 'border-primary-600 bg-primary-50 text-primary-700 ring-2 ring-primary-200'
-                    : 'border-gray-300 hover:border-gray-400'
-                }`}
-              >
-                Portrait
-                <br />
-                1024×1792
-              </button>
-              <button
-                onClick={() =>
-                  onOptionsChange({ ...generationOptions, size: '1792x1024' })
-                }
-                className={`p-2 rounded-lg border text-sm transition-all ${
-                  generationOptions.size === '1792x1024'
-                    ? 'border-primary-600 bg-primary-50 text-primary-700 ring-2 ring-primary-200'
-                    : 'border-gray-300 hover:border-gray-400'
-                }`}
-              >
-                Landscape
-                <br />
-                1792×1024
-              </button>
-            </div>
-          </div>
-
-          {/* Quality Selection - Hidden (always set to "high" for best transparent backgrounds) */}
+          {/* Size locked to 1024x1024 - users can upscale later if needed */}
+          {/* Quality locked to "high" for best transparent backgrounds */}
           {/* Style Selection - Disabled (not supported by gpt-image-1) */}
           {/* <div className="mb-4">
             <label className="block text-sm font-medium mb-2">Style</label>
