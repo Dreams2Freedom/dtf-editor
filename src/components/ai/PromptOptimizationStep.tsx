@@ -87,23 +87,70 @@ export function PromptOptimizationStep({
           <Sparkles className="w-5 h-5 text-purple-600 flex-shrink-0 mt-0.5" />
           <div>
             <h3 className="font-semibold text-purple-900 mb-1">
-              Choose Your Optimized Prompt
+              Choose Your Prompt
             </h3>
             <p className="text-sm text-purple-700">
-              Select the variation that best matches your vision, or use your
-              original description. You can also edit any prompt to fine-tune
-              it.
+              Your original description is selected by default and ready to use.
+              Below are AI-optimized variations if you'd like alternatives, or
+              you can edit any prompt to fine-tune it.
             </p>
           </div>
         </div>
       </Card>
 
-      {/* Optimized Prompts */}
+      {/* Original Description - Now First/Default */}
+      <div>
+        <h4 className="text-sm font-semibold text-gray-700 mb-3">
+          Your Original Description
+        </h4>
+        <Card
+          className={`p-4 cursor-pointer transition-all border-2 ${
+            selectedIndex === -1 && !editedPrompt
+              ? 'border-primary-500 bg-primary-50'
+              : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
+          }`}
+          onClick={() => {
+            onSelectPrompt(-1);
+            onEditPrompt('');
+            setIsEditing(false);
+          }}
+        >
+          <div className="flex items-start gap-3">
+            <div className="flex-shrink-0 mt-1">
+              <div
+                className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all ${
+                  selectedIndex === -1 && !editedPrompt
+                    ? 'border-primary-500 bg-primary-500'
+                    : 'border-gray-300'
+                }`}
+              >
+                {selectedIndex === -1 && !editedPrompt && (
+                  <CheckCircle className="w-4 h-4 text-white" />
+                )}
+              </div>
+            </div>
+
+            <div className="flex-1">
+              <div className="flex items-center gap-2 mb-2">
+                <span className="text-xs font-medium text-primary-700 bg-primary-100 px-2 py-0.5 rounded-full">
+                  Selected
+                </span>
+                <TransparentBackgroundBadge size="sm" />
+              </div>
+              <p className="text-sm text-gray-800 leading-relaxed">
+                {originalDescription}
+              </p>
+            </div>
+          </div>
+        </Card>
+      </div>
+
+      {/* AI-Optimized Variations - Now as Alternatives */}
       {optimizedPrompts.length > 0 && (
         <div className="space-y-3">
           <h4 className="text-sm font-semibold text-gray-700 flex items-center gap-2">
             <Sparkles className="w-4 h-4 text-purple-600" />
-            AI-Optimized Variations
+            Or Choose an AI-Optimized Variation
           </h4>
 
           {optimizedPrompts.map((prompt, index) => (
@@ -159,53 +206,6 @@ export function PromptOptimizationStep({
           ))}
         </div>
       )}
-
-      {/* Original Description Option */}
-      <div>
-        <h4 className="text-sm font-semibold text-gray-700 mb-3">
-          Or Use Your Original Description
-        </h4>
-        <Card
-          className={`p-4 cursor-pointer transition-all border-2 ${
-            selectedIndex === -1 && !editedPrompt
-              ? 'border-primary-500 bg-primary-50'
-              : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
-          }`}
-          onClick={() => {
-            onSelectPrompt(-1);
-            onEditPrompt('');
-            setIsEditing(false);
-          }}
-        >
-          <div className="flex items-start gap-3">
-            <div className="flex-shrink-0 mt-1">
-              <div
-                className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all ${
-                  selectedIndex === -1 && !editedPrompt
-                    ? 'border-primary-500 bg-primary-500'
-                    : 'border-gray-300'
-                }`}
-              >
-                {selectedIndex === -1 && !editedPrompt && (
-                  <CheckCircle className="w-4 h-4 text-white" />
-                )}
-              </div>
-            </div>
-
-            <div className="flex-1">
-              <div className="flex items-center gap-2 mb-2">
-                <span className="text-xs font-medium text-gray-700 bg-gray-100 px-2 py-0.5 rounded-full">
-                  Original
-                </span>
-                <TransparentBackgroundBadge size="sm" />
-              </div>
-              <p className="text-sm text-gray-800 leading-relaxed">
-                {originalDescription}
-              </p>
-            </div>
-          </div>
-        </Card>
-      </div>
 
       {/* Edit Section */}
       {!isEditing && (

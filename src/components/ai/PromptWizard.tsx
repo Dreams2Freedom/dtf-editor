@@ -59,7 +59,7 @@ export function PromptWizard() {
   const [optimizedPrompts, setOptimizedPrompts] = useState<OptimizedPrompt[]>(
     []
   );
-  const [selectedPromptIndex, setSelectedPromptIndex] = useState<number>(0);
+  const [selectedPromptIndex, setSelectedPromptIndex] = useState<number>(-1); // -1 = original description (default)
   const [editedPrompt, setEditedPrompt] = useState<string>('');
   const [isOptimizing, setIsOptimizing] = useState(false);
 
@@ -152,7 +152,7 @@ export function PromptWizard() {
 
       const data = await response.json();
       setOptimizedPrompts(data.prompts || []);
-      setSelectedPromptIndex(0);
+      setSelectedPromptIndex(-1); // Default to original description
       setEditedPrompt('');
       return true;
     } catch (error) {
