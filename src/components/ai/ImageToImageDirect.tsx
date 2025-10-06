@@ -24,16 +24,17 @@ interface ImageToImageDirectProps {
   };
 }
 
-export function ImageToImageDirect({ 
+export function ImageToImageDirect({
   onImagesGenerated,
-  generationOptions
+  generationOptions,
 }: ImageToImageDirectProps) {
   const { profile } = useAuthStore();
   const [uploadedImage, setUploadedImage] = useState<string | null>(null);
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
-  const [modificationInstructions, setModificationInstructions] = useState<string>('');
+  const [modificationInstructions, setModificationInstructions] =
+    useState<string>('');
 
   const handleDragOver = useCallback((e: React.DragEvent) => {
     e.preventDefault();
@@ -48,10 +49,10 @@ export function ImageToImageDirect({
   const handleDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault();
     setIsDragging(false);
-    
+
     const files = Array.from(e.dataTransfer.files);
     const imageFile = files.find(file => file.type.startsWith('image/'));
-    
+
     if (imageFile) {
       handleImageFile(imageFile);
     } else {
@@ -67,13 +68,14 @@ export function ImageToImageDirect({
   };
 
   const handleImageFile = (file: File) => {
-    if (file.size > 50 * 1024 * 1024) { // 50MB limit
+    if (file.size > 50 * 1024 * 1024) {
+      // 50MB limit
       toast.error('Image must be less than 50MB');
       return;
     }
 
     const reader = new FileReader();
-    reader.onload = (e) => {
+    reader.onload = e => {
       const dataUrl = e.target?.result as string;
       setUploadedImage(dataUrl);
       setUploadedFile(file);
@@ -91,9 +93,11 @@ export function ImageToImageDirect({
     const creditCost = generationOptions.quality === 'hd' ? 2 : 1;
     const totalCost = creditCost * generationOptions.count;
     const isAdmin = profile?.is_admin === true;
-    
-    if (!isAdmin && (profile?.credits || 0) < totalCost) {
-      toast.error(`You need ${totalCost} credits but only have ${profile?.credits || 0}`);
+
+    if (!isAdmin && (profile?.credits_remaining || 0) < totalCost) {
+      toast.error(
+        `You need ${totalCost} credits but only have ${profile?.credits_remaining || 0}`
+      );
       return;
     }
 
@@ -101,7 +105,7 @@ export function ImageToImageDirect({
     try {
       // Use FormData to send the image file instead of base64 in JSON
       const formData = new FormData();
-      
+
       // Convert base64 to blob if we have a data URL
       if (uploadedImage.startsWith('data:')) {
         const response = await fetch(uploadedImage);
@@ -110,7 +114,7 @@ export function ImageToImageDirect({
       } else if (uploadedFile) {
         formData.append('image', uploadedFile);
       }
-      
+
       // Add other parameters
       formData.append('modifications', modificationInstructions || '');
       formData.append('size', generationOptions.size);
@@ -132,12 +136,13 @@ export function ImageToImageDirect({
 
       // Pass generated images to parent
       onImagesGenerated(data.images || []);
-      
-      toast.success(`Generated ${data.images?.length || 0} image(s) successfully!`);
-      
+
+      toast.success(
+        `Generated ${data.images?.length || 0} image(s) successfully!`
+      );
+
       // Refresh profile to update credits
       await useAuthStore.getState().refreshProfile();
-      
     } catch (error) {
       console.error('Generation error:', error);
       toast.error('Failed to generate image from reference');
@@ -162,9 +167,10 @@ export function ImageToImageDirect({
           onDrop={handleDrop}
           className={`
             border-2 border-dashed rounded-lg p-8 text-center transition-colors
-            ${isDragging 
-              ? 'border-purple-500 bg-purple-50' 
-              : 'border-gray-300 hover:border-gray-400'
+            ${
+              isDragging
+                ? 'border-purple-500 bg-purple-50'
+                : 'border-gray-300 hover:border-gray-400'
             }
           `}
         >
@@ -216,7 +222,7 @@ export function ImageToImageDirect({
             <h4 className="font-medium mb-3">Modifications (Optional)</h4>
             <textarea
               value={modificationInstructions}
-              onChange={(e) => setModificationInstructions(e.target.value)}
+              onChange={e => setModificationInstructions(e.target.value)}
               placeholder="Describe any changes you want:
 • Replace 'MOM' with 'GRANDMA'
 • Remove the palm tree
@@ -254,8 +260,9 @@ Leave empty to recreate as-is"
           {/* Info */}
           <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
             <p className="text-xs text-blue-700">
-              <strong>How it works:</strong> AI analyzes your image and recreates it with your modifications in one step. 
-              The original image helps ensure accurate style and composition matching.
+              <strong>How it works:</strong> AI analyzes your image and
+              recreates it with your modifications in one step. The original
+              image helps ensure accurate style and composition matching.
             </p>
           </div>
         </div>

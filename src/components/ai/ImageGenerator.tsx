@@ -8,7 +8,16 @@ import { ImageToImageDirect } from './ImageToImageDirect';
 import { useAuthStore } from '@/stores/authStore';
 import { toast } from 'react-hot-toast';
 import Image from 'next/image';
-import { Download, Loader2, Sparkles, Image as ImageIcon, Type, Upload, Scissors, Edit3 } from 'lucide-react';
+import {
+  Download,
+  Loader2,
+  Sparkles,
+  Image as ImageIcon,
+  Type,
+  Upload,
+  Scissors,
+  Edit3,
+} from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 
@@ -28,7 +37,9 @@ interface GeneratedImage {
 export function ImageGenerator() {
   const { user, profile } = useAuthStore();
   const router = useRouter();
-  const [mode, setMode] = useState<'text-to-image' | 'image-to-image'>('text-to-image');
+  const [mode, setMode] = useState<'text-to-image' | 'image-to-image'>(
+    'text-to-image'
+  );
   const [prompt, setPrompt] = useState('');
   const [options, setOptions] = useState<GenerationOptions>({
     size: '1024x1024',
@@ -43,18 +54,21 @@ export function ImageGenerator() {
 
   // Check if user has access (admins always have access)
   const isAdmin = profile?.is_admin === true;
-  const isPaidUser = profile?.subscription_tier && profile.subscription_tier !== 'free';
-  const hasCredits = (profile?.credits || 0) > 0;
+  const isPaidUser =
+    profile?.subscription_tier && profile.subscription_tier !== 'free';
+  const hasCredits = (profile?.credits_remaining || 0) > 0;
 
   // Calculate credit cost based on quality for GPT-Image-1 (Beta)
   const qualityCredits = {
-    'low': 1,
-    'standard': 1,
-    'high': 2,
+    low: 1,
+    standard: 1,
+    high: 2,
   };
   const creditCost = qualityCredits[options.quality] || 2;
   const totalCost = creditCost * options.count;
-  const canGenerate = isAdmin || (isPaidUser && hasCredits && (profile?.credits || 0) >= totalCost);
+  const canGenerate =
+    isAdmin ||
+    (isPaidUser && hasCredits && (profile?.credits_remaining || 0) >= totalCost);
 
   const handleGenerate = async () => {
     if (!prompt.trim()) {
@@ -64,9 +78,13 @@ export function ImageGenerator() {
 
     if (!canGenerate) {
       if (!isPaidUser && !isAdmin) {
-        toast.error('AI image generation is only available for paid subscribers');
+        toast.error(
+          'AI image generation is only available for paid subscribers'
+        );
       } else if (!isAdmin) {
-        toast.error(`You need ${totalCost} credits but only have ${profile?.credits || 0}`);
+        toast.error(
+          `You need ${totalCost} credits but only have ${profile?.credits_remaining || 0}`
+        );
       }
       return;
     }
@@ -95,7 +113,9 @@ export function ImageGenerator() {
 
       if (!response.ok) {
         if (data.requiresUpgrade) {
-          toast.error('Please upgrade to a paid plan to use AI image generation');
+          toast.error(
+            'Please upgrade to a paid plan to use AI image generation'
+          );
         } else {
           toast.error(data.error || 'Failed to generate image');
         }
@@ -103,11 +123,12 @@ export function ImageGenerator() {
       }
 
       setGeneratedImages(data.images || []);
-      toast.success(`Generated ${data.images.length} image${data.images.length > 1 ? 's' : ''}! ${totalCost} credits used.`);
+      toast.success(
+        `Generated ${data.images.length} image${data.images.length > 1 ? 's' : ''}! ${totalCost} credits used.`
+      );
 
       // Refresh user profile to update credits
       await useAuthStore.getState().refreshProfile();
-
     } catch (error: any) {
       console.error('Generation error:', error);
       toast.error('Failed to generate image. Please try again.');
@@ -141,10 +162,15 @@ export function ImageGenerator() {
         <div className="mb-4">
           <Sparkles className="w-16 h-16 mx-auto text-purple-600" />
         </div>
-        <h2 className="text-2xl font-bold mb-2">AI Image Generation <span className="text-sm bg-blue-100 text-blue-700 px-2 py-1 rounded-full ml-2">Beta</span></h2>
+        <h2 className="text-2xl font-bold mb-2">
+          AI Image Generation{' '}
+          <span className="text-sm bg-blue-100 text-blue-700 px-2 py-1 rounded-full ml-2">
+            Beta
+          </span>
+        </h2>
         <p className="text-gray-600 mb-6">
-          Create unique images with AI using natural language prompts.
-          This feature is exclusively available for paid subscribers.
+          Create unique images with AI using natural language prompts. This
+          feature is exclusively available for paid subscribers.
         </p>
         <Link href="/pricing">
           <Button variant="primary" size="lg">
@@ -163,7 +189,9 @@ export function ImageGenerator() {
           <h2 className="text-2xl font-bold flex items-center gap-2">
             <Sparkles className="w-6 h-6 text-purple-600" />
             AI Image Generator
-            <span className="text-sm bg-blue-100 text-blue-700 px-2 py-1 rounded-full font-normal">Beta</span>
+            <span className="text-sm bg-blue-100 text-blue-700 px-2 py-1 rounded-full font-normal">
+              Beta
+            </span>
           </h2>
           <p className="text-gray-600 mt-1">
             Create unique images using GPT-Image-1
@@ -172,7 +200,7 @@ export function ImageGenerator() {
         <div className="text-right">
           <div className="text-sm text-gray-600">Credits Available</div>
           <div className="text-2xl font-bold text-purple-600">
-            {profile?.credits || 0}
+            {profile?.credits_remaining || 0}
           </div>
         </div>
       </div>
@@ -218,7 +246,7 @@ export function ImageGenerator() {
               />
             ) : (
               <ImageToImageDirect
-                onImagesGenerated={(images) => {
+                onImagesGenerated={images => {
                   setGeneratedImages(images);
                   // Clear any prompt since we're using direct generation
                   setPrompt('');
@@ -231,10 +259,12 @@ export function ImageGenerator() {
           {/* Generation Options */}
           <Card className="p-6">
             <h3 className="font-semibold mb-4">Generation Options</h3>
-            
+
             {/* Size Selection */}
             <div className="mb-4">
-              <label className="block text-sm font-medium mb-2">Image Size</label>
+              <label className="block text-sm font-medium mb-2">
+                Image Size
+              </label>
               <div className="grid grid-cols-3 gap-2">
                 <button
                   onClick={() => setOptions({ ...options, size: '1024x1024' })}
@@ -244,7 +274,9 @@ export function ImageGenerator() {
                       : 'border-gray-300 hover:border-gray-400'
                   }`}
                 >
-                  Square<br />1024×1024
+                  Square
+                  <br />
+                  1024×1024
                 </button>
                 <button
                   onClick={() => setOptions({ ...options, size: '1024x1536' })}
@@ -254,7 +286,9 @@ export function ImageGenerator() {
                       : 'border-gray-300 hover:border-gray-400'
                   }`}
                 >
-                  Portrait<br />1024×1536
+                  Portrait
+                  <br />
+                  1024×1536
                 </button>
                 <button
                   onClick={() => setOptions({ ...options, size: '1536x1024' })}
@@ -264,7 +298,9 @@ export function ImageGenerator() {
                       : 'border-gray-300 hover:border-gray-400'
                   }`}
                 >
-                  Landscape<br />1536×1024
+                  Landscape
+                  <br />
+                  1536×1024
                 </button>
               </div>
             </div>
@@ -285,7 +321,9 @@ export function ImageGenerator() {
                   <div className="text-xs text-gray-600">1 credit</div>
                 </button>
                 <button
-                  onClick={() => setOptions({ ...options, quality: 'standard' })}
+                  onClick={() =>
+                    setOptions({ ...options, quality: 'standard' })
+                  }
                   className={`p-3 rounded-lg border ${
                     options.quality === 'standard'
                       ? 'border-purple-600 bg-purple-50 text-purple-700'
@@ -349,10 +387,14 @@ export function ImageGenerator() {
                   min="1"
                   max="4"
                   value={options.count}
-                  onChange={(e) => setOptions({ ...options, count: parseInt(e.target.value) })}
+                  onChange={e =>
+                    setOptions({ ...options, count: parseInt(e.target.value) })
+                  }
                   className="flex-1"
                 />
-                <span className="w-8 text-center font-medium">{options.count}</span>
+                <span className="w-8 text-center font-medium">
+                  {options.count}
+                </span>
               </div>
             </div>
 
@@ -377,8 +419,10 @@ export function ImageGenerator() {
               </div>
               <div className="flex justify-between text-sm mt-1">
                 <span>Credits After:</span>
-                <span className={`font-semibold ${(profile?.credits || 0) - totalCost < 0 ? 'text-red-600' : ''}`}>
-                  {(profile?.credits || 0) - totalCost}
+                <span
+                  className={`font-semibold ${(profile?.credits_remaining || 0) - totalCost < 0 ? 'text-red-600' : ''}`}
+                >
+                  {(profile?.credits_remaining || 0) - totalCost}
                 </span>
               </div>
             </div>
@@ -412,7 +456,7 @@ export function ImageGenerator() {
         <div>
           <Card className="p-6 min-h-[400px]">
             <h3 className="font-semibold mb-4">Generated Images</h3>
-            
+
             {generatedImages.length === 0 && !isGenerating && (
               <div className="flex flex-col items-center justify-center py-12 text-gray-400">
                 <ImageIcon className="w-16 h-16 mb-4" />
@@ -425,8 +469,12 @@ export function ImageGenerator() {
             {isGenerating && (
               <div className="flex flex-col items-center justify-center py-12">
                 <Loader2 className="w-12 h-12 animate-spin text-purple-600 mb-4" />
-                <p className="text-gray-600">Creating your image{options.count > 1 ? 's' : ''}...</p>
-                <p className="text-sm text-gray-500 mt-2">This may take up to 30 seconds</p>
+                <p className="text-gray-600">
+                  Creating your image{options.count > 1 ? 's' : ''}...
+                </p>
+                <p className="text-sm text-gray-500 mt-2">
+                  This may take up to 30 seconds
+                </p>
               </div>
             )}
 
@@ -462,20 +510,23 @@ export function ImageGenerator() {
                         onClick={() => {
                           // Prefer using image ID for navigation (much shorter URL)
                           if (image.id) {
-                            router.push(`/process/background-removal?imageId=${image.id}`);
+                            router.push(
+                              `/process/background-removal?imageId=${image.id}`
+                            );
                           } else {
-                            router.push(`/process/background-removal?imageUrl=${encodeURIComponent(image.url)}`);
+                            router.push(
+                              `/process/background-removal?imageUrl=${encodeURIComponent(image.url)}`
+                            );
                           }
                         }}
                       >
                         <Scissors className="w-4 h-4 mr-1" />
                         Remove BG
                       </Button>
-                      <Link href={`/process?image=${encodeURIComponent(image.url)}`}>
-                        <Button
-                          variant="primary"
-                          size="sm"
-                        >
+                      <Link
+                        href={`/process?image=${encodeURIComponent(image.url)}`}
+                      >
+                        <Button variant="primary" size="sm">
                           Process
                         </Button>
                       </Link>
