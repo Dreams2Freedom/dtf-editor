@@ -66,7 +66,7 @@ export function ProfitabilityAnalysis() {
     {
       name: 'AI Image Generation',
       apiCost: apiCosts.imageGeneration,
-      credits: 3,
+      credits: 1,
     },
   ];
 
@@ -232,15 +232,15 @@ export function ProfitabilityAnalysis() {
             </div>
 
             <div className="flex items-start space-x-3">
-              <div className="w-2 h-2 bg-red-500 rounded-full mt-1.5"></div>
+              <div className="w-2 h-2 bg-yellow-500 rounded-full mt-1.5"></div>
               <div>
                 <p className="font-medium text-gray-900">
-                  Lowest Margin Service
+                  AI Image Generation
                 </p>
                 <p className="text-sm text-gray-600">
-                  AI Image Generation has the highest API cost relative to
-                  credits charged, but still maintains positive margins across
-                  all plans.
+                  At $0.17 cost per 1 credit, AI image generation has the
+                  highest cost-to-credit ratio but still maintains strong
+                  margins (78-89%) across all plans.
                 </p>
               </div>
             </div>
