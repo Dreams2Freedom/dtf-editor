@@ -30,7 +30,7 @@ interface DescriptionStepProps {
   onInputModeChange: (mode: 'text' | 'upload' | 'guided') => void;
   onImageAnalysisComplete?: (prompt: string) => void;
   isFromImageAnalysis: boolean;
-  onConversationalComplete?: (prompt: string) => void;
+  onConversationalComplete?: (prompt: string) => Promise<void>;
 }
 
 const examplePrompts = [

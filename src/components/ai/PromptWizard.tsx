@@ -11,6 +11,7 @@ import {
   Loader2,
 } from 'lucide-react';
 import { useAuthStore } from '@/stores/authStore';
+import { toast } from 'react-hot-toast';
 
 // Wizard step components (to be created)
 import { DescriptionStep } from './DescriptionStep';
@@ -123,6 +124,86 @@ export function PromptWizard() {
     return userDescription;
   };
 
+  // Handle image generation (can be called from conversational flow or Step 3)
+  const handleGenerateImage = async (promptOverride?: string) => {
+    const promptToUse = promptOverride || getFinalPrompt();
+
+    if (!promptToUse.trim()) {
+      toast.error('Please provide a description first');
+      return;
+    }
+
+    // Calculate credit cost
+    const creditCost = 1;
+    const totalCost = creditCost;
+
+    // Check credits
+    const isAdmin = Boolean(profile?.is_admin);
+    const hasEnoughCredits =
+      isAdmin || (profile?.credits_remaining || 0) >= totalCost;
+
+    if (!hasEnoughCredits && !isAdmin) {
+      toast.error(
+        `You need ${totalCost} credits but only have ${profile?.credits_remaining || 0}`
+      );
+      return;
+    }
+
+    setIsGenerating(true);
+    setGeneratedImages([]);
+
+    // Navigate to Step 3 to show generation progress
+    setCurrentStep(3);
+
+    try {
+      const response = await fetch('/api/generate/image', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          prompt: promptToUse,
+          size: generationOptions.size,
+          quality: 'high',
+          enhanceForDTF: true,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        toast.error(data.error || 'Failed to generate image');
+        return;
+      }
+
+      setGeneratedImages(data.images || []);
+      toast.success(
+        `Generated ${data.images.length} image${data.images.length > 1 ? 's' : ''}! ${data.creditsUsed} credits used.`
+      );
+
+      // Clear wizard progress from localStorage after successful generation
+      try {
+        localStorage.removeItem('ai_wizard_progress');
+      } catch (storageError) {
+        console.error('Failed to clear wizard progress:', storageError);
+      }
+
+      // Refresh profile to update credits
+      try {
+        await useAuthStore.getState().refreshProfile();
+      } catch (refreshError) {
+        console.error('Failed to refresh profile:', refreshError);
+        toast.warning(
+          'Generation succeeded but credit display may be outdated. Refresh page to see updated balance.'
+        );
+      }
+    } catch (error) {
+      console.error('Generation error:', error);
+      toast.error('Failed to generate image. Please try again.');
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
   // Step navigation
   const canGoNext = (): boolean => {
     switch (currentStep) {
@@ -207,11 +288,11 @@ export function PromptWizard() {
   };
 
   // Handle conversational prompt completion
-  const handleConversationalComplete = (finalPrompt: string) => {
+  const handleConversationalComplete = async (finalPrompt: string) => {
     setUserDescription(finalPrompt);
     setIsFromConversation(true); // Mark as from conversational flow
-    // Automatically advance to Step 3
-    handleNext();
+    // Directly trigger image generation instead of just navigating to Step 3
+    await handleGenerateImage(finalPrompt);
   };
 
   const handleBack = () => {

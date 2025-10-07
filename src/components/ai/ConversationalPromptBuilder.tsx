@@ -68,11 +68,15 @@ export function ConversationalPromptBuilder({
   const [editedFinalPrompt, setEditedFinalPrompt] = useState('');
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const chatContainerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
   // Auto-scroll to bottom when new messages arrive
+  // Use scrollTop instead of scrollIntoView to prevent page scroll
   const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    if (chatContainerRef.current) {
+      chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
+    }
   };
 
   useEffect(() => {
@@ -308,7 +312,10 @@ export function ConversationalPromptBuilder({
       )}
 
       {/* Chat Messages */}
-      <Card className="p-6 min-h-[400px] max-h-[600px] overflow-y-auto bg-white">
+      <Card
+        ref={chatContainerRef}
+        className="p-6 min-h-[400px] max-h-[600px] overflow-y-auto bg-white"
+      >
         {/* Messages List */}
         <div className="space-y-1">
           {state.messages.map(msg => (

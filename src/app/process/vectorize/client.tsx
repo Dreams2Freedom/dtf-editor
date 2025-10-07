@@ -187,7 +187,8 @@ export default function VectorizeClient() {
         console.log('Converting data URI to blob for download');
         // Extract base64 data and convert to blob directly
         const [header, base64Data] = processedUrl.split(',');
-        const mimeType = header.match(/:(.*?);/)?.[1] || 'application/octet-stream';
+        const mimeType =
+          header.match(/:(.*?);/)?.[1] || 'application/octet-stream';
 
         // Convert base64 to binary
         const binaryString = atob(base64Data);
