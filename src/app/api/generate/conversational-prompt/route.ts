@@ -26,53 +26,34 @@ const ConversationResponse = z.object({
 
 type ConversationResponseType = z.infer<typeof ConversationResponse>;
 
-// System prompt for intelligent conversation flow
-const CONVERSATION_SYSTEM_PROMPT = `You are an expert DTF (Direct to Film) design assistant helping users create perfect AI image prompts for DALL-E.
+// System prompt for intelligent conversation flow (optimized for token efficiency)
+const CONVERSATION_SYSTEM_PROMPT = `You are a DTF design assistant helping create AI image prompts.
 
-Your role: Ask strategic follow-up questions to build a detailed, optimized prompt for image generation.
+TASK: Ask 3-5 targeted questions to build a detailed DALL-E prompt.
 
-CONVERSATION STRATEGY:
-1. Analyze the user's initial description carefully
-2. Ask 3-5 targeted questions based on what information is missing
-3. Adapt questions intelligently to the type of design they're requesting
-4. Build toward a complete, vivid 50-100 word DALL-E prompt
-5. After 3-5 questions OR when user indicates they're done, mark isComplete: true
+QUESTION TYPES (ask only relevant):
+- Style: realistic, cartoon, vintage, modern, minimalist, etc.
+- Typography (if text): bold, script, handwritten, athletic, etc.
+- Color: vibrant, pastel, monochrome, specific colors
+- Detail: simple/clean vs intricate/ornate
+- Mood: energetic, playful, fierce, elegant, etc.
 
-QUESTION CATEGORIES (ask only relevant ones):
-- **Style**: Artistic style (realistic, cartoon, vintage, modern, minimalist, abstract, etc.)
-- **Typography**: Font style IF text is involved (bold block letters, script, handwritten, athletic, geometric, etc.)
-- **Color**: Color palette, dominant colors, mood (vibrant, pastel, monochrome, team colors, etc.)
-- **Detail**: Complexity level (simple/clean vs intricate/ornate/detailed)
-- **Mood**: Emotional tone (energetic, playful, fierce, professional, elegant, fun, etc.)
-- **Elements**: Specific objects, decorations, symbols, or embellishments to include
+SMART QUESTIONING:
+- Text mentioned? → Ask typography
+- Characters/objects? → Ask style & detail
+- Vague/abstract? → Ask colors & mood
 
-INTELLIGENT QUESTION LOGIC:
-- IF description contains text/words → Ask typography questions (font style, layout, text treatment)
-- IF description mentions characters/objects → Ask style and detail questions
-- IF description is abstract/vague → Ask about colors, mood, and intended use
-- SKIP irrelevant questions (e.g., don't ask about fonts if there's no text)
+QUICK REPLIES: Provide 4-5 diverse options (2-5 words each)
 
-QUICK REPLIES:
-- Provide 4-5 specific, relevant quick reply options for each question
-- Make options diverse and cover different aesthetics
-- Include an "Other" or "Custom" option when appropriate
-- Keep each option short (2-5 words max)
+COMPLETION: After 3-5 questions OR user says done/skip/enough:
+- Set isComplete: true
+- Write 50-100 word DALL-E prompt in finalPrompt
+- ALWAYS include "transparent background" or "isolated on transparent backdrop"
+- Focus ONLY on subject - NO backgrounds or scenery (for DTF printing)
 
-COMPLETION RULES:
-- Mark isComplete: true after 3-5 exchanges OR when user says "done", "skip", "that's enough", etc.
-- When complete, provide a rich, detailed 50-100 word DALL-E prompt in finalPrompt
-- ALWAYS include "transparent background" or "isolated on transparent backdrop" in final prompt
-- Focus ONLY on the subject/design - NO backgrounds, scenery, or environmental elements
-- The image will be used for DTF fabric printing, so ensure subject is clear and isolated
+TONE: Friendly, concise (1-2 sentences max per question)
 
-TONE:
-- Friendly, encouraging, and concise
-- Keep questions short (1-2 sentences max)
-- Build on previous answers naturally
-- Show enthusiasm about their design
-
-OUTPUT FORMAT:
-Return ONLY valid JSON matching the ConversationResponse schema. Do not include any other text.`;
+OUTPUT: Valid JSON only. No other text.`;
 
 /**
  * POST /api/generate/conversational-prompt
@@ -173,7 +154,7 @@ async function handlePost(request: NextRequest) {
       model: 'gpt-4o-mini', // Fast and cost-effective for conversations
       messages,
       temperature: 0.8, // Creative but focused
-      max_tokens: 1000,
+      max_tokens: 2000, // Increased to ensure structured output isn't truncated
       response_format: zodResponseFormat(
         ConversationResponse,
         'conversation_response'
@@ -184,8 +165,21 @@ async function handlePost(request: NextRequest) {
 
     if (!parsed) {
       console.error(
-        '[Conversational Prompt API] No parsed response from OpenAI'
+        '[Conversational Prompt API] No parsed response from OpenAI',
+        {
+          refusal: completion.choices[0]?.message?.refusal,
+          finishReason: completion.choices[0]?.finish_reason,
+        }
       );
+
+      // Check if response was truncated
+      if (completion.choices[0]?.finish_reason === 'length') {
+        return NextResponse.json(
+          { error: 'Response was too long. Please try a shorter message.' },
+          { status: 400 }
+        );
+      }
+
       throw new Error('Failed to get AI response');
     }
 

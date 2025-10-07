@@ -75,7 +75,8 @@ export function ConversationalPromptBuilder({
   // Use scrollTop instead of scrollIntoView to prevent page scroll
   const scrollToBottom = () => {
     if (chatContainerRef.current) {
-      chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
+      chatContainerRef.current.scrollTop =
+        chatContainerRef.current.scrollHeight;
     }
   };
 
@@ -421,11 +422,7 @@ export function ConversationalPromptBuilder({
               <Edit3 className="w-4 h-4 mr-1" />
               Edit Prompt
             </Button>
-            <Button
-              variant="secondary"
-              size="sm"
-              onClick={handleReset}
-            >
+            <Button variant="secondary" size="sm" onClick={handleReset}>
               <RefreshCw className="w-4 h-4 mr-1" />
               Start Over
             </Button>
@@ -443,33 +440,35 @@ export function ConversationalPromptBuilder({
       )}
 
       {/* Quick Replies */}
-      {!state.isComplete && state.quickReplies.length > 0 && !state.isTyping && (
-        <div className="flex flex-wrap gap-2">
-          {state.quickReplies.map((reply, index) => (
+      {!state.isComplete &&
+        state.quickReplies.length > 0 &&
+        !state.isTyping && (
+          <div className="flex flex-wrap gap-2">
+            {state.quickReplies.map((reply, index) => (
+              <button
+                key={index}
+                onClick={() => handleQuickReply(reply)}
+                className="px-4 py-2 bg-blue-50 hover:bg-blue-100 active:bg-blue-200 text-blue-700 rounded-full text-sm font-medium transition-all hover:shadow-md"
+              >
+                ⚡ {reply}
+              </button>
+            ))}
             <button
-              key={index}
-              onClick={() => handleQuickReply(reply)}
-              className="px-4 py-2 bg-blue-50 hover:bg-blue-100 active:bg-blue-200 text-blue-700 rounded-full text-sm font-medium transition-all hover:shadow-md"
+              onClick={handleSkip}
+              className="px-4 py-2 bg-gray-50 hover:bg-gray-100 text-gray-600 rounded-full text-sm transition-all"
             >
-              ⚡ {reply}
+              Skip
             </button>
-          ))}
-          <button
-            onClick={handleSkip}
-            className="px-4 py-2 bg-gray-50 hover:bg-gray-100 text-gray-600 rounded-full text-sm transition-all"
-          >
-            Skip
-          </button>
-          {state.progress.current >= 3 && (
-            <button
-              onClick={handleDone}
-              className="px-4 py-2 bg-green-50 hover:bg-green-100 text-green-700 rounded-full text-sm font-medium transition-all"
-            >
-              I'm done, let's generate! ✨
-            </button>
-          )}
-        </div>
-      )}
+            {state.progress.current >= 3 && (
+              <button
+                onClick={handleDone}
+                className="px-4 py-2 bg-green-50 hover:bg-green-100 text-green-700 rounded-full text-sm font-medium transition-all"
+              >
+                I'm done, let's generate! ✨
+              </button>
+            )}
+          </div>
+        )}
 
       {/* Input Box (when not complete) */}
       {!state.isComplete && (

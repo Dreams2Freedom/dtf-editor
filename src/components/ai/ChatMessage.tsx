@@ -39,9 +39,7 @@ export function ChatMessage({
       {/* Avatar */}
       <div
         className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center ${
-          isUser
-            ? 'bg-blue-500 text-white'
-            : 'bg-purple-500 text-white'
+          isUser ? 'bg-blue-500 text-white' : 'bg-purple-500 text-white'
         }`}
       >
         {isUser ? (
