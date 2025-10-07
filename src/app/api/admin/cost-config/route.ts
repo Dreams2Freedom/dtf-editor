@@ -68,7 +68,7 @@ async function handleGet(request: NextRequest) {
         {
           provider: 'openai',
           operation: 'image_generation',
-          cost_per_unit: 0.04,
+          cost_per_unit: 0.17,
           unit_description: 'per image (1024x1024)',
         },
         {

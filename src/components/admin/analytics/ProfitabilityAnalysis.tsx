@@ -19,7 +19,7 @@ export function ProfitabilityAnalysis() {
     upscale: 0.08, // Deep-Image.ai
     backgroundRemoval: 0.125, // ClippingMagic
     vectorization: 0.2, // Vectorizer.ai
-    imageGeneration: 0.04, // OpenAI DALL-E 3 (standard quality)
+    imageGeneration: 0.17, // OpenAI GPT-Image-1 (actual cost)
   };
 
   // Credit pricing based on plans

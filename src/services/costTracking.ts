@@ -84,7 +84,7 @@ export class CostTrackingService {
       {
         provider: 'openai',
         operation: 'image_generation',
-        costPerUnit: 0.04, // DALL-E 3 Standard Quality 1024x1024
+        costPerUnit: 0.17, // GPT-Image-1 actual cost
         unitDescription: 'per image (1024x1024 standard)',
       },
       {

@@ -30,7 +30,7 @@ export class ApiCostTracker {
       vectorization: 0.2, // $0.20 per image
     },
     openai: {
-      image_generation: 0.04, // $0.04 per DALL-E 3 image (1024x1024 standard)
+      image_generation: 0.17, // $0.17 per GPT-Image-1 image (actual cost)
     },
     stripe: {
       payment_processing: 0.029, // 2.9% + $0.30 fixed (we'll calculate actual)
