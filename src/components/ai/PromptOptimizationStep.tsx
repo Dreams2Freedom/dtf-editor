@@ -98,72 +98,22 @@ export function PromptOptimizationStep({
         </div>
       </Card>
 
-      {/* Original Description - Now First/Default */}
-      <div>
-        <h4 className="text-sm font-semibold text-gray-700 mb-3">
-          Your Original Description
-        </h4>
-        <Card
-          className={`p-4 cursor-pointer transition-all border-2 ${
-            selectedIndex === -1 && !editedPrompt
-              ? 'border-primary-500 bg-primary-50'
-              : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
-          }`}
-          onClick={() => {
-            onSelectPrompt(-1);
-            onEditPrompt('');
-            setIsEditing(false);
-          }}
-        >
-          <div className="flex items-start gap-3">
-            <div className="flex-shrink-0 mt-1">
-              <div
-                className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all ${
-                  selectedIndex === -1 && !editedPrompt
-                    ? 'border-primary-500 bg-primary-500'
-                    : 'border-gray-300'
-                }`}
-              >
-                {selectedIndex === -1 && !editedPrompt && (
-                  <CheckCircle className="w-4 h-4 text-white" />
-                )}
-              </div>
-            </div>
-
-            <div className="flex-1">
-              <div className="flex items-center gap-2 mb-2">
-                <span className="text-xs font-medium text-primary-700 bg-primary-100 px-2 py-0.5 rounded-full">
-                  Selected
-                </span>
-                <TransparentBackgroundBadge size="sm" />
-              </div>
-              <p className="text-sm text-gray-800 leading-relaxed">
-                {originalDescription}
-              </p>
-            </div>
-          </div>
-        </Card>
-      </div>
-
-      {/* AI-Optimized Variations - Now as Alternatives */}
-      {optimizedPrompts.length > 0 && (
-        <div className="space-y-3">
-          <h4 className="text-sm font-semibold text-gray-700 flex items-center gap-2">
-            <Sparkles className="w-4 h-4 text-purple-600" />
-            Or Choose an AI-Optimized Variation
-          </h4>
-
-          {optimizedPrompts.map((prompt, index) => (
+      {/* Original Description and AI Variations - Hidden when edited prompt exists */}
+      {!editedPrompt && (
+        <>
+          {/* Original Description - Now First/Default */}
+          <div>
+            <h4 className="text-sm font-semibold text-gray-700 mb-3">
+              Your Original Description
+            </h4>
             <Card
-              key={index}
               className={`p-4 cursor-pointer transition-all border-2 ${
-                selectedIndex === index && !editedPrompt
+                selectedIndex === -1
                   ? 'border-primary-500 bg-primary-50'
                   : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
               }`}
               onClick={() => {
-                onSelectPrompt(index);
-                onEditPrompt(''); // Clear any edits when selecting a new prompt
+                onSelectPrompt(-1);
                 setIsEditing(false);
               }}
             >
@@ -171,44 +121,97 @@ export function PromptOptimizationStep({
                 <div className="flex-shrink-0 mt-1">
                   <div
                     className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all ${
-                      selectedIndex === index && !editedPrompt
+                      selectedIndex === -1
                         ? 'border-primary-500 bg-primary-500'
                         : 'border-gray-300'
                     }`}
                   >
-                    {selectedIndex === index && !editedPrompt && (
+                    {selectedIndex === -1 && (
                       <CheckCircle className="w-4 h-4 text-white" />
                     )}
                   </div>
                 </div>
 
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-start justify-between gap-2 mb-2">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <span className="text-xs font-medium text-purple-700 bg-purple-100 px-2 py-0.5 rounded-full">
-                        Variation {index + 1}
-                      </span>
-                      <TransparentBackgroundBadge size="sm" />
-                    </div>
-                    {prompt.focus && (
-                      <span className="text-xs text-gray-600 italic whitespace-nowrap">
-                        Focus: {prompt.focus}
-                      </span>
-                    )}
+                <div className="flex-1">
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="text-xs font-medium text-primary-700 bg-primary-100 px-2 py-0.5 rounded-full">
+                      Selected
+                    </span>
+                    <TransparentBackgroundBadge size="sm" />
                   </div>
-
                   <p className="text-sm text-gray-800 leading-relaxed">
-                    {prompt.text}
+                    {originalDescription}
                   </p>
                 </div>
               </div>
             </Card>
-          ))}
-        </div>
+          </div>
+
+          {/* AI-Optimized Variations - Now as Alternatives */}
+          {optimizedPrompts.length > 0 && (
+            <div className="space-y-3">
+              <h4 className="text-sm font-semibold text-gray-700 flex items-center gap-2">
+                <Sparkles className="w-4 h-4 text-purple-600" />
+                Or Choose an AI-Optimized Variation
+              </h4>
+
+              {optimizedPrompts.map((prompt, index) => (
+                <Card
+                  key={index}
+                  className={`p-4 cursor-pointer transition-all border-2 ${
+                    selectedIndex === index
+                      ? 'border-primary-500 bg-primary-50'
+                      : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
+                  }`}
+                  onClick={() => {
+                    onSelectPrompt(index);
+                    setIsEditing(false);
+                  }}
+                >
+                  <div className="flex items-start gap-3">
+                    <div className="flex-shrink-0 mt-1">
+                      <div
+                        className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all ${
+                          selectedIndex === index
+                            ? 'border-primary-500 bg-primary-500'
+                            : 'border-gray-300'
+                        }`}
+                      >
+                        {selectedIndex === index && (
+                          <CheckCircle className="w-4 h-4 text-white" />
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-start justify-between gap-2 mb-2">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="text-xs font-medium text-purple-700 bg-purple-100 px-2 py-0.5 rounded-full">
+                            Variation {index + 1}
+                          </span>
+                          <TransparentBackgroundBadge size="sm" />
+                        </div>
+                        {prompt.focus && (
+                          <span className="text-xs text-gray-600 italic whitespace-nowrap">
+                            Focus: {prompt.focus}
+                          </span>
+                        )}
+                      </div>
+
+                      <p className="text-sm text-gray-800 leading-relaxed">
+                        {prompt.text}
+                      </p>
+                    </div>
+                  </div>
+                </Card>
+              ))}
+            </div>
+          )}
+        </>
       )}
 
-      {/* Edit Section */}
-      {!isEditing && (
+      {/* Edit Section - Only shown when no edited prompt exists */}
+      {!isEditing && !editedPrompt && (
         <Card className="p-4 bg-gray-50 border-dashed">
           <Button
             variant="secondary"
@@ -293,13 +296,26 @@ export function PromptOptimizationStep({
                 </h4>
                 <TransparentBackgroundBadge size="sm" />
               </div>
-              <p className="text-sm text-gray-800 leading-relaxed mb-2">
+              <p className="text-sm text-gray-800 leading-relaxed mb-3">
                 {editedPrompt}
               </p>
-              <Button variant="ghost" size="sm" onClick={handleStartEdit}>
-                <Edit3 className="w-3 h-3 mr-1" />
-                Edit Again
-              </Button>
+              <div className="flex gap-2">
+                <Button variant="ghost" size="sm" onClick={handleStartEdit}>
+                  <Edit3 className="w-3 h-3 mr-1" />
+                  Edit Again
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    onEditPrompt('');
+                    setIsEditing(false);
+                  }}
+                  className="text-gray-600 hover:text-gray-900"
+                >
+                  Discard & Choose Different Prompt
+                </Button>
+              </div>
             </div>
           </div>
         </Card>

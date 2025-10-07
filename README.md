@@ -7,7 +7,9 @@ A mobile-first, user-friendly web application that helps hobbyists and small hom
 - **Image Upscaling** - Improve poor-quality images with AI
 - **Background Removal** - Create transparent backgrounds automatically
 - **Image Vectorization** - Convert raster images to vector format
-- **AI Image Generation** - Create images from text prompts (paid plans)
+- **AI Image Generation** - Create DTF-ready images with transparent backgrounds (paid plans)
+  - **Guided Mode:** Conversational chat interface for building optimized prompts
+  - **Upload Image Mode:** Analyze and recreate existing designs with modifications
 - **Credit System** - Pay-as-you-go or subscription-based usage
 - **Mobile-First Design** - Optimized for all devices
 - **Real-time Processing** - Live status updates and progress tracking

@@ -83,21 +83,37 @@
 - [x] Preference checking before sending ✅
 - [x] Digest email support (daily/weekly/monthly) ✅
 
-### **Phase 6: AI Image Generation (100% Complete) - August 7, 2025**
+### **Phase 6: AI Image Generation (100% Complete) - October 7, 2025**
 
-- [x] ChatGPT/DALL-E 3 API integration ✅
-- [x] Prompt builder with suggestions and templates ✅
-- [x] Category-based prompt suggestions (6 categories) ✅
-- [x] Auto-enhancement for DTF printing ✅
-- [x] Multiple size options (square, landscape, portrait) ✅
-- [x] Quality selection (standard/HD) ✅
-- [x] Style selection (vivid/natural) ✅
+**Current Implementation:** 3-Step Wizard with 2 Input Modes
+
+- [x] OpenAI GPT-Image-1 API integration ✅
+- [x] **3-Step Wizard Flow:**
+  - Step 1: Describe (Guided Mode or Upload Image)
+  - Step 2: Optimize (AI-generated prompt variations)
+  - Step 3: Generate (Configure & create image)
+- [x] **Guided Mode (Conversational)** ✅
+  - Chat-based interface with AI assistant
+  - 5-question flow for detailed prompts
+  - Quick reply buttons and typing indicator
+  - localStorage persistence (<1 hour recovery)
+- [x] **Upload Image Mode** ✅
+  - Drag-and-drop image analysis
+  - Modification instructions support
+  - Recreation prompt generation
+  - 50MB file size limit
+- [x] **Removed Simple Mode** (October 2025) - ~920 lines of dead code cleaned up
+- [x] AI prompt optimization (4 variations generated) ✅
+- [x] Auto-enhancement for DTF printing (transparent backgrounds) ✅
+- [x] Image size: 1024x1024 (locked for consistency) ✅
+- [x] Quality: High (locked for best results) ✅
 - [x] Paid subscriber access control ✅
-- [x] Credit cost calculation and deduction ✅
+- [x] Credit cost: 1 credit per image ✅
 - [x] Gallery integration with automatic storage ✅
 - [x] Download functionality ✅
 - [x] Direct processing pipeline integration ✅
 - [x] Error handling and content policy compliance ✅
+- [x] "Refine Prompt" button (returns to Step 1 for iteration) ✅
 
 ### **Project Setup**
 

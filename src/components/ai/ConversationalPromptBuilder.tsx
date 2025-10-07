@@ -516,7 +516,7 @@ export function ConversationalPromptBuilder({
             onClick={onCancel}
             className="text-sm text-gray-600 hover:text-gray-900 underline"
           >
-            Switch to Simple Mode
+            Switch to Upload Image
           </button>
         </div>
       )}

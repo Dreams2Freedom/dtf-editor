@@ -102,7 +102,7 @@ export function ImageToImageUpload({
       // Callback to parent component with generated prompt
       onAnalysisComplete(prompt);
 
-      toast.success('Image analyzed! Switching to text mode...');
+      toast.success('Image analyzed! Generating prompt...');
 
       // Clear upload state after successful analysis
       setTimeout(() => {
