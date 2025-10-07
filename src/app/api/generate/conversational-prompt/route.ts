@@ -8,14 +8,16 @@ export const maxDuration = 30;
 export const runtime = 'nodejs';
 
 // Zod schema for structured AI conversation responses
+// NOTE: OpenAI structured output requires optional fields to use .nullable() or .default()
 const ConversationResponse = z.object({
   message: z.string(), // AI's response message
-  quickReplies: z.array(z.string()).optional(), // Suggested quick reply options
+  quickReplies: z.array(z.string()).default([]), // Suggested quick reply options (default to empty array)
   isComplete: z.boolean(), // True when ready to generate image
-  finalPrompt: z.string().optional(), // Only provided when isComplete=true
+  finalPrompt: z.string().nullable().default(null), // Only provided when isComplete=true
   nextQuestionType: z
     .enum(['style', 'typography', 'color', 'detail', 'mood', 'confirmation'])
-    .optional(),
+    .nullable()
+    .default(null),
   progress: z.object({
     current: z.number(),
     total: z.number(),
