@@ -368,7 +368,7 @@ export function GenerationConfigStep({
                 </div>
               ))}
 
-              {/* Regenerate Prompts Button */}
+              {/* Refine Prompt Button */}
               {onGoBackToPrompts && (
                 <div className="mt-6 pt-4 border-t border-gray-200">
                   <Button
@@ -378,10 +378,10 @@ export function GenerationConfigStep({
                     onClick={onGoBackToPrompts}
                   >
                     <ArrowLeft className="w-4 h-4 mr-2" />
-                    Not Happy? Regenerate Prompts
+                    Refine Prompt with AI Chat
                   </Button>
                   <p className="text-xs text-gray-600 mt-2 text-center">
-                    Go back to Step 2 to choose different prompt variations
+                    Chat with AI to improve your prompt and generate a better image
                   </p>
                 </div>
               )}

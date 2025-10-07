@@ -301,10 +301,27 @@ export function PromptWizard() {
     }
   };
 
-  // Handler for going back to prompts step to regenerate
+  // Handler for going back to Step 1 with Guided Mode to refine prompt
   const handleGoBackToPrompts = () => {
-    setCurrentStep(2);
-    setGeneratedImages([]); // Clear previous images
+    // Get the prompt that was used for generation
+    const finalPrompt = getFinalPrompt();
+
+    // Set it as the starting point for conversation
+    setUserDescription(finalPrompt);
+
+    // Switch to Guided Mode (conversational)
+    setInputMode('guided');
+
+    // Go back to Step 1
+    setCurrentStep(1);
+
+    // Clear generated images
+    setGeneratedImages([]);
+
+    // Clear Step 2 state so it's fresh if they come back
+    setOptimizedPrompts([]);
+    setSelectedPromptIndex(-1);
+    setEditedPrompt('');
   };
 
   // Step indicator
