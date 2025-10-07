@@ -43,9 +43,7 @@ async function handleGet(request: NextRequest) {
     let query = supabase
       .from('admin_audit_logs')
       .select('*', { count: 'exact' })
-      .order('created_at', { ascending: false })
-      .limit(limit)
-      .offset(offset);
+      .order('created_at', { ascending: false });
 
     // Apply filters
     if (search) {
@@ -76,6 +74,9 @@ async function handleGet(request: NextRequest) {
       endDateTime.setDate(endDateTime.getDate() + 1);
       query = query.lt('created_at', endDateTime.toISOString());
     }
+
+    // Apply pagination using range (must be called after all filters)
+    query = query.range(offset, offset + limit - 1);
 
     const { data: logs, error, count } = await query;
 

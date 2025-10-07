@@ -55,7 +55,7 @@ export function PromptWizard() {
 
   // Step 1: User description
   const [userDescription, setUserDescription] = useState('');
-  const [inputMode, setInputMode] = useState<'text' | 'upload' | 'guided'>(
+  const [inputMode, setInputMode] = useState<'upload' | 'guided'>(
     'guided' // Default to Guided mode for better UX
   );
   const [isFromImageAnalysis, setIsFromImageAnalysis] = useState(false);
