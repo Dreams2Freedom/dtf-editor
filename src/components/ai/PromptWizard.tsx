@@ -54,8 +54,11 @@ export function PromptWizard() {
 
   // Step 1: User description
   const [userDescription, setUserDescription] = useState('');
-  const [inputMode, setInputMode] = useState<'text' | 'upload'>('text');
+  const [inputMode, setInputMode] = useState<'text' | 'upload' | 'guided'>(
+    'text'
+  );
   const [isFromImageAnalysis, setIsFromImageAnalysis] = useState(false);
+  const [isFromConversation, setIsFromConversation] = useState(false);
 
   // Step 2: Optimized prompts
   const [optimizedPrompts, setOptimizedPrompts] = useState<OptimizedPrompt[]>(
@@ -175,11 +178,12 @@ export function PromptWizard() {
     if (!canGoNext()) return;
 
     if (currentStep === 1) {
-      // Check if prompt is from image analysis
-      if (isFromImageAnalysis) {
-        // Skip Step 2 - prompt is already AI-optimized from GPT-4o Vision
+      // Check if prompt is from image analysis or conversational flow
+      if (isFromImageAnalysis || isFromConversation) {
+        // Skip Step 2 - prompt is already AI-optimized
         setCurrentStep(3); // Go directly to generation config
-        setIsFromImageAnalysis(false); // Reset flag
+        setIsFromImageAnalysis(false); // Reset flags
+        setIsFromConversation(false);
       } else {
         // Normal flow - generate optimized prompts
         await generateOptimizedPrompts(userDescription);
@@ -200,6 +204,14 @@ export function PromptWizard() {
     setUserDescription(generatedPrompt);
     setInputMode('text'); // Auto-switch to text mode
     setIsFromImageAnalysis(true); // Mark as AI-generated from image analysis
+  };
+
+  // Handle conversational prompt completion
+  const handleConversationalComplete = (finalPrompt: string) => {
+    setUserDescription(finalPrompt);
+    setIsFromConversation(true); // Mark as from conversational flow
+    // Automatically advance to Step 3
+    handleNext();
   };
 
   const handleBack = () => {
@@ -332,6 +344,7 @@ export function PromptWizard() {
             onInputModeChange={setInputMode}
             onImageAnalysisComplete={handleImageAnalysisComplete}
             isFromImageAnalysis={isFromImageAnalysis}
+            onConversationalComplete={handleConversationalComplete}
           />
         )}
 

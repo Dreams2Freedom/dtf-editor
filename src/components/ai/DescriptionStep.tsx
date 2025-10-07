@@ -16,6 +16,8 @@ import {
   Upload,
 } from 'lucide-react';
 import { ImageToImageUpload } from './ImageToImageUpload';
+import { ConversationalPromptBuilder } from './ConversationalPromptBuilder';
+import { MessageCircle } from 'lucide-react';
 
 interface DescriptionStepProps {
   description: string;
@@ -24,10 +26,11 @@ interface DescriptionStepProps {
   isGenerating: boolean;
   canGenerate: boolean;
   // NEW: Input mode props
-  inputMode: 'text' | 'upload';
-  onInputModeChange: (mode: 'text' | 'upload') => void;
+  inputMode: 'text' | 'upload' | 'guided';
+  onInputModeChange: (mode: 'text' | 'upload' | 'guided') => void;
   onImageAnalysisComplete?: (prompt: string) => void;
   isFromImageAnalysis: boolean;
+  onConversationalComplete?: (prompt: string) => void;
 }
 
 const examplePrompts = [
@@ -53,6 +56,7 @@ export function DescriptionStep({
   onInputModeChange,
   onImageAnalysisComplete,
   isFromImageAnalysis,
+  onConversationalComplete,
 }: DescriptionStepProps) {
   const [showHowItWorks, setShowHowItWorks] = useState(false);
 
@@ -60,28 +64,45 @@ export function DescriptionStep({
     <div className="space-y-4">
       {/* Mode Selector - Segmented Control */}
       <Card className="p-1 bg-gray-100">
-        <div className="flex gap-1">
+        <div className="grid grid-cols-3 gap-1">
           <button
             onClick={() => onInputModeChange('text')}
-            className={`flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-md font-medium transition-all ${
+            className={`flex items-center justify-center gap-2 px-3 py-2.5 rounded-md font-medium transition-all ${
               inputMode === 'text'
                 ? 'bg-white text-gray-900 shadow-sm'
                 : 'text-gray-600 hover:text-gray-900'
             }`}
           >
             <Pencil className="w-4 h-4" />
-            Text Prompt
+            <span className="hidden sm:inline">Simple Mode</span>
+            <span className="sm:hidden">Simple</span>
+          </button>
+          <button
+            onClick={() => onInputModeChange('guided')}
+            className={`flex items-center justify-center gap-2 px-3 py-2.5 rounded-md font-medium transition-all relative ${
+              inputMode === 'guided'
+                ? 'bg-white text-gray-900 shadow-sm'
+                : 'text-gray-600 hover:text-gray-900'
+            }`}
+          >
+            <MessageCircle className="w-4 h-4" />
+            <span className="hidden sm:inline">Guided Mode</span>
+            <span className="sm:hidden">Guided</span>
+            <span className="absolute -top-1 -right-1 bg-blue-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">
+              NEW
+            </span>
           </button>
           <button
             onClick={() => onInputModeChange('upload')}
-            className={`flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-md font-medium transition-all ${
+            className={`flex items-center justify-center gap-2 px-3 py-2.5 rounded-md font-medium transition-all ${
               inputMode === 'upload'
                 ? 'bg-white text-gray-900 shadow-sm'
                 : 'text-gray-600 hover:text-gray-900'
             }`}
           >
             <Upload className="w-4 h-4" />
-            Upload Image
+            <span className="hidden sm:inline">Upload Image</span>
+            <span className="sm:hidden">Upload</span>
           </button>
         </div>
       </Card>
@@ -212,8 +233,8 @@ export function DescriptionStep({
         )}
       </Card>
 
-      {/* Conditional Content - Text Input or Image Upload */}
-      {inputMode === 'text' ? (
+      {/* Conditional Content - Text Input, Guided Mode, or Image Upload */}
+      {inputMode === 'text' && (
         <>
           {/* Main input card */}
           <Card className="p-6">
@@ -282,7 +303,24 @@ export function DescriptionStep({
             </div>
           </Card>
         </>
-      ) : (
+      )}
+
+      {inputMode === 'guided' && (
+        <>
+          {/* Conversational Prompt Builder */}
+          <ConversationalPromptBuilder
+            onComplete={(prompt: string) => {
+              if (onConversationalComplete) {
+                onConversationalComplete(prompt);
+              }
+            }}
+            onCancel={() => onInputModeChange('text')}
+            initialMessage={description}
+          />
+        </>
+      )}
+
+      {inputMode === 'upload' && (
         <>
           {/* Image Upload Mode */}
           <Card className="p-6">
