@@ -29,7 +29,7 @@ type ConversationResponseType = z.infer<typeof ConversationResponse>;
 // System prompt for intelligent conversation flow (optimized for token efficiency)
 const CONVERSATION_SYSTEM_PROMPT = `You are a DTF design assistant helping create AI image prompts.
 
-TASK: Ask 3-5 targeted questions to build a detailed DALL-E prompt.
+TASK: Ask 3-5 targeted questions to build a detailed GPT-Image-1 image prompt.
 
 QUESTION TYPES (ask only relevant):
 - Style: realistic, cartoon, vintage, modern, minimalist, etc.
@@ -43,11 +43,17 @@ SMART QUESTIONING:
 - Characters/objects? → Ask style & detail
 - Vague/abstract? → Ask colors & mood
 
+MESSAGE RULES:
+- Each message MUST be complete and self-contained
+- NEVER say "Here's a summary" or "I'll ask about" without immediately providing the content
+- Ask ONE clear, specific question per message
+- Be direct - no filler or promises about what you'll do
+
 QUICK REPLIES: Provide 4-5 diverse options (2-5 words each)
 
 COMPLETION: After 3-5 questions OR user says done/skip/enough:
 - Set isComplete: true
-- Write 50-100 word DALL-E prompt in finalPrompt
+- Write 50-100 word GPT-Image-1 prompt in finalPrompt
 - ALWAYS include "transparent background" or "isolated on transparent backdrop"
 - Focus ONLY on subject - NO backgrounds or scenery (for DTF printing)
 
