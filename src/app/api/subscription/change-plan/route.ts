@@ -19,6 +19,11 @@ const PLAN_PRICES: Record<
     monthlyPrice: 24.99,
     credits: 60,
   },
+  professional: {
+    priceId: env.STRIPE_PROFESSIONAL_PLAN_PRICE_ID,
+    monthlyPrice: 49.99,
+    credits: 150,
+  },
 };
 
 async function handlePost(request: NextRequest) {
@@ -108,6 +113,12 @@ async function handlePost(request: NextRequest) {
               price: newPlan.priceId,
             },
           ],
+          metadata: {
+            userId: user.id,
+            userEmail: user.email || '',
+            fromPlan: profile.subscription_plan,
+            toPlan: newPlanId,
+          },
           proration_behavior:
             prorationBehavior as Stripe.SubscriptionUpdateParams.ProrationBehavior,
         }
@@ -151,7 +162,7 @@ async function handlePost(request: NextRequest) {
         .from('profiles')
         .update({
           subscription_plan: newPlanId,
-          subscription_status: updatedSubscription.status,
+          subscription_status: newPlanId, // Use plan ID, not Stripe status (BUG FIX)
           updated_at: new Date().toISOString(),
         })
         .eq('id', user.id);

@@ -1,6 +1,6 @@
 # DTF Editor - Bug Tracker
 
-**Last Updated:** October 4, 2025
+**Last Updated:** November 17, 2025
 **Status:** Active Bug Tracking
 
 ## 🎓 **LESSONS LEARNED - NOT BUGS, USER ERRORS**
@@ -22,6 +22,88 @@
 ---
 
 ## 🐛 **Critical Bugs (P0)**
+
+### **BUG-058: Subscription Upgrade to Professional Fails - Dashboard Shows Old Plan**
+
+- **Status:** 🟢 FIXED
+- **Severity:** Critical
+- **Component:** Subscription System / Database Constraints / Stripe Integration
+- **Description:** Users upgrading from Starter to Professional plan remain stuck on Starter in dashboard
+- **Affected User:** hello@weprintupress.com (and potentially all Professional upgrades)
+- **Reported:** November 17, 2025
+- **Symptoms:**
+  - User completes Professional plan upgrade in Stripe ✅
+  - Stripe shows subscription as Professional ($49.99/month) ✅
+  - Payment processed successfully ✅
+  - Dashboard still shows "Starter" plan ❌
+  - Database `subscription_status` remains 'starter' ❌
+  - Credits allocated correctly (122) ✅
+- **Root Cause (Deep Analysis):**
+  1. **Database Constraint Too Restrictive:**
+     - `profiles.subscription_status` has CHECK constraint
+     - Allowed values: `'free', 'basic', 'starter', 'past_due', 'canceled'`
+     - **Missing: 'professional', 'active', and other Stripe statuses**
+     - Location: `supabase/migrations/20250817_credit_tracking_improvements.sql:15`
+     - When code tries to set `subscription_status = 'professional'`, database rejects it
+  2. **Inconsistent Column Usage:**
+     - `subscription_status` used for BOTH plan names AND Stripe statuses (dual-purpose)
+     - `subscription_plan` exists but not always updated correctly
+     - Dashboard displays `subscription_status` (line 287 in dashboard/page.tsx)
+     - Creates confusion about which column represents what
+  3. **Wrong Field in API Update:**
+     - `/src/app/api/subscription/change-plan/route.ts` line 154
+     - Was: `subscription_status: updatedSubscription.status` (returns "active")
+     - Should be: `subscription_status: newPlanId` (returns "professional")
+  4. **Missing Metadata in Stripe Updates:**
+     - Subscription updates didn't include `userId` in metadata
+     - Webhooks couldn't properly link subscription to user
+     - Made debugging and tracking difficult
+- **Solution Applied:**
+  1. **Database Migration (20251117_fix_subscription_status_constraint.sql):**
+     ```sql
+     ALTER TABLE public.profiles
+     DROP CONSTRAINT IF EXISTS profiles_subscription_status_check;
+
+     ALTER TABLE public.profiles
+     ADD CONSTRAINT profiles_subscription_status_check
+     CHECK (subscription_status IN (
+       'free', 'basic', 'starter', 'professional', 'active',
+       'past_due', 'canceled', 'cancelled', 'trialing',
+       'incomplete', 'incomplete_expired', 'unpaid'
+     ));
+     ```
+  2. **Fixed change-plan API (src/app/api/subscription/change-plan/route.ts):**
+     - Line 165: Changed to `subscription_status: newPlanId`
+     - Line 116-121: Added metadata with userId, userEmail, fromPlan, toPlan
+     - Line 22-27: Added 'professional' plan to PLAN_PRICES mapping
+  3. **One-Time User Fix (scripts/fix-subscription-upgrade-issue.js):**
+     - Connected to Stripe Production
+     - Verified only 1 active subscription (Professional)
+     - Updated database:
+       - `subscription_status`: 'starter' → 'professional'
+       - `subscription_plan`: 'starter' → 'professional'
+       - `stripe_subscription_id`: Updated to current subscription
+- **Time to Resolution:** 2 hours (investigation + fix)
+- **Testing:**
+  - ✅ Database constraint updated to allow 'professional'
+  - ✅ User database record updated manually
+  - ✅ API code fixed for future upgrades
+  - ✅ Metadata added to Stripe subscription updates
+  - ⏳ Awaiting verification from user that dashboard shows correctly
+- **Files Changed:**
+  1. `supabase/migrations/20251117_fix_subscription_status_constraint.sql` (NEW)
+  2. `src/app/api/subscription/change-plan/route.ts` (FIXED)
+  3. `scripts/fix-subscription-upgrade-issue.js` (NEW - one-time fix)
+  4. `FIX_SUBSCRIPTION_UPGRADE_BUG.md` (NEW - comprehensive guide)
+- **Prevention for Future:**
+  - When adding new subscription plans, update database constraint
+  - Always include `userId` in Stripe subscription metadata
+  - Consider separating `subscription_plan` (plan names) from `subscription_status` (Stripe statuses)
+  - Add validation to prevent constraint violations before database update
+- **Related Issues:** None
+- **Reference Documentation:** See `FIX_SUBSCRIPTION_UPGRADE_BUG.md` for complete analysis
+
+---
 
 ### **BUG-057: Affiliate Admin Panel Shows 0 Applications (Parameter Mismatch)**
 
