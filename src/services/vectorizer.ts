@@ -1,15 +1,21 @@
 import { env } from '@/config/env';
 
 export interface VectorizerOptions {
-  format?: 'svg' | 'pdf' | 'png';
-  mode?: 'test' | 'production';
-  processing_options?: {
-    curve_fitting?: 'low' | 'medium' | 'high';
-    corner_threshold?: number; // 0-180
-    length_threshold?: number; // 0-10
-    max_iterations?: number; // 1-1000
-    splice_threshold?: number; // 0-1
-  };
+  format?: 'svg' | 'pdf' | 'png' | 'eps' | 'dxf';
+  mode?: 'test' | 'test_preview' | 'preview' | 'production';
+  // Processing options (as per official API)
+  max_colors?: number; // 0-256
+  min_area_px?: number; // 0.0-100.0
+  // Output styling
+  draw_style?: 'fill_shapes' | 'stroke_shapes' | 'stroke_edges';
+  shape_stacking?: 'cutouts' | 'stacked';
+  group_by?: 'none' | 'color' | 'parent' | 'layer';
+  // Gap filler for print quality
+  gap_filler_enabled?: boolean;
+  gap_filler_stroke_width?: number; // 0.0-5.0
+  // Output sizing
+  output_dpi?: number;
+  scale?: number;
 }
 
 export interface VectorizerResult {
@@ -77,36 +83,50 @@ export class VectorizerService {
         formData.append('output.file_format', requestFormat);
       }
 
-      if (options.mode) {
-        formData.append('mode', options.mode);
+      // Mode (CRITICAL: use 'production' for paid users)
+      formData.append('mode', options.mode || 'production');
+
+      // Processing options (as per official Vectorizer.ai API)
+      if (options.max_colors !== undefined) {
+        formData.append('processing.max_colors', options.max_colors.toString());
+      } else {
+        // Default to 256 for full color range
+        formData.append('processing.max_colors', '256');
       }
 
-      // Add processing options if provided
-      if (options.processing_options) {
-        if (options.processing_options.corner_threshold !== undefined) {
-          formData.append(
-            'processing.corner_threshold',
-            options.processing_options.corner_threshold.toString()
-          );
-        }
-        if (options.processing_options.length_threshold !== undefined) {
-          formData.append(
-            'processing.length_threshold',
-            options.processing_options.length_threshold.toString()
-          );
-        }
-        if (options.processing_options.max_iterations !== undefined) {
-          formData.append(
-            'processing.max_iterations',
-            options.processing_options.max_iterations.toString()
-          );
-        }
-        if (options.processing_options.splice_threshold !== undefined) {
-          formData.append(
-            'processing.splice_threshold',
-            options.processing_options.splice_threshold.toString()
-          );
-        }
+      if (options.min_area_px !== undefined) {
+        formData.append(
+          'processing.shapes.min_area_px',
+          options.min_area_px.toString()
+        );
+      }
+
+      // Output styling (CRITICAL for proper PDF rendering)
+      formData.append(
+        'output.draw_style',
+        options.draw_style || 'fill_shapes'
+      );
+      formData.append(
+        'output.shape_stacking',
+        options.shape_stacking || 'stacked'
+      );
+      formData.append('output.group_by', options.group_by || 'color');
+
+      // Gap filler for print quality (prevents white lines in PDF)
+      if (options.gap_filler_enabled !== false) {
+        formData.append('output.gap_filler.enabled', 'true');
+        formData.append(
+          'output.gap_filler.stroke_width',
+          (options.gap_filler_stroke_width || 0.5).toString()
+        );
+      }
+
+      // Output DPI for high quality
+      if (options.output_dpi) {
+        formData.append('output.size.output_dpi', options.output_dpi.toString());
+      } else if (requestFormat === 'pdf') {
+        // Default to 300 DPI for PDF (print quality)
+        formData.append('output.size.output_dpi', '300');
       }
 
       // Make request to Vectorizer.ai API

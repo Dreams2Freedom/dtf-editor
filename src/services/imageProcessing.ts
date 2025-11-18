@@ -351,12 +351,15 @@ export class ImageProcessingService {
     const result = await this.vectorizerService.vectorizeImage(imageUrl, {
       format: options.vectorFormat || 'svg',
       mode: 'production',
-      processing_options: {
-        curve_fitting: 'medium', // Good balance of quality and speed
-        corner_threshold: 120,
-        length_threshold: 2.0,
-        max_iterations: 100,
-      },
+      // Use correct Vectorizer.ai API parameters
+      max_colors: 256, // Full color range
+      min_area_px: 1.0, // Filter tiny shapes/dust
+      draw_style: 'fill_shapes', // Filled paths (critical for PDF)
+      shape_stacking: 'stacked', // Stack shapes properly
+      group_by: 'color', // Group by color for organization
+      gap_filler_enabled: true, // Prevent white lines in PDF
+      gap_filler_stroke_width: 0.5, // Small gap filler
+      output_dpi: 300, // High quality for print
     });
 
     if (result.status === 'error') {

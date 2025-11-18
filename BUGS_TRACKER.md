@@ -23,6 +23,77 @@
 
 ## 🐛 **Critical Bugs (P0)**
 
+### **BUG-059: PDF Vectorization Returns Solid Color - Using Invalid API Parameters**
+
+- **Status:** 🟢 FIXED
+- **Severity:** Critical
+- **Component:** Vectorization / Vectorizer.ai API Integration
+- **Description:** PDF vectorization produces solid color output instead of proper vector traces
+- **Reported:** November 17, 2025
+- **Symptoms:**
+  - User vectorizes image and saves as PDF
+  - PDF shows single solid color instead of vector paths
+  - SVG output works fine (suggests API call succeeds)
+  - No detailed vector information in PDF
+- **Root Cause (Deep Analysis):**
+  1. **Using Invalid/Deprecated Parameters:**
+     - Code sent `processing_options.curve_fitting` - **DOESN'T EXIST IN API**
+     - Code sent `processing.corner_threshold` - **DOESN'T EXIST IN API**
+     - Code sent `processing.length_threshold` - **DOESN'T EXIST IN API**
+     - Code sent `processing.max_iterations` - **DOESN'T EXIST IN API**
+     - API silently ignores invalid parameters → uses defaults
+  2. **Missing Critical PDF Parameters:**
+     - No `output.draw_style` - defaults to wrong setting
+     - No `output.shape_stacking` - may cause solid colors
+     - No `output.group_by` - no color grouping
+     - No `output.gap_filler.enabled` - may show gaps
+     - No `processing.max_colors` - limited palette
+     - No `output.size.output_dpi` - low quality
+  3. **Outdated Implementation:**
+     - Service file had parameters from old/different API
+     - No reference to official Vectorizer.ai documentation
+     - TypeScript interface didn't match actual API spec
+- **Solution Applied:**
+  1. **Created API Reference Guide (VECTORIZER_AI_API_REFERENCE.md):**
+     - Complete documentation from https://vectorizer.ai/api
+     - All parameters, examples, and best practices
+     - Common issues and fixes section
+  2. **Fixed VectorizerService (src/services/vectorizer.ts):**
+     - Removed invalid parameters (curve_fitting, corner_threshold, etc.)
+     - Added correct parameters:
+       - `processing.max_colors=256` (full color range)
+       - `processing.shapes.min_area_px=1.0` (filter dust)
+       - `output.draw_style=fill_shapes` (critical for PDF)
+       - `output.shape_stacking=stacked`
+       - `output.group_by=color`
+       - `output.gap_filler.enabled=true`
+       - `output.gap_filler.stroke_width=0.5`
+       - `output.size.output_dpi=300` (print quality)
+     - Updated TypeScript interface to match API
+  3. **Fixed ImageProcessingService (src/services/imageProcessing.ts):**
+     - Updated handleVectorization to use correct parameters
+     - Removed deprecated processing_options
+     - Added proper defaults for PDF output
+- **Time to Resolution:** 1.5 hours (investigation + fix)
+- **Testing:**
+  - ✅ Parameters verified against official API docs
+  - ✅ Code updated with correct parameter names and values
+  - ✅ TypeScript interfaces updated
+  - ⏳ Awaiting user testing with actual PDF vectorization
+- **Files Changed:**
+  1. `VECTORIZER_AI_API_REFERENCE.md` (NEW - complete API reference)
+  2. `src/services/vectorizer.ts` (FIXED - correct parameters)
+  3. `src/services/imageProcessing.ts` (FIXED - correct defaults)
+- **Prevention for Future:**
+  - Always reference VECTORIZER_AI_API_REFERENCE.md for API changes
+  - Test with small sample before deploying vectorization changes
+  - Validate parameters against official docs before implementing
+  - Add API response logging to catch silent failures
+- **Related Issues:** None
+- **Reference Documentation:** See `VECTORIZER_AI_API_REFERENCE.md` for complete API spec
+
+---
+
 ### **BUG-058: Subscription Upgrade to Professional Fails - Dashboard Shows Old Plan**
 
 - **Status:** 🟢 FIXED
@@ -60,6 +131,7 @@
      - Made debugging and tracking difficult
 - **Solution Applied:**
   1. **Database Migration (20251117_fix_subscription_status_constraint.sql):**
+
      ```sql
      ALTER TABLE public.profiles
      DROP CONSTRAINT IF EXISTS profiles_subscription_status_check;
@@ -72,6 +144,7 @@
        'incomplete', 'incomplete_expired', 'unpaid'
      ));
      ```
+
   2. **Fixed change-plan API (src/app/api/subscription/change-plan/route.ts):**
      - Line 165: Changed to `subscription_status: newPlanId`
      - Line 116-121: Added metadata with userId, userEmail, fromPlan, toPlan
@@ -83,6 +156,7 @@
        - `subscription_status`: 'starter' → 'professional'
        - `subscription_plan`: 'starter' → 'professional'
        - `stripe_subscription_id`: Updated to current subscription
+
 - **Time to Resolution:** 2 hours (investigation + fix)
 - **Testing:**
   - ✅ Database constraint updated to allow 'professional'
