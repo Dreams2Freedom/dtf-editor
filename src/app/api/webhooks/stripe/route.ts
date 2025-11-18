@@ -85,6 +85,71 @@ async function updateGoHighLevelTags(
   }
 }
 
+// Helper function to log payment transaction
+// Implements idempotency using stripe_checkout_session_id as unique identifier
+async function logPaymentTransaction(params: {
+  userId: string;
+  stripePaymentIntentId?: string;
+  stripeCheckoutSessionId: string;
+  stripeCustomerId: string;
+  stripeSubscriptionId?: string;
+  amount: number; // in cents
+  paymentType: 'subscription' | 'one_time';
+  creditsPurchased?: number;
+  subscriptionTier?: string;
+  metadata?: any;
+}) {
+  try {
+    console.log(
+      '💳 Logging payment transaction:',
+      params.stripeCheckoutSessionId
+    );
+
+    // Check if this payment was already logged (idempotency)
+    const { data: existing } = await getSupabase()
+      .from('payment_transactions')
+      .select('id')
+      .eq('stripe_checkout_session_id', params.stripeCheckoutSessionId)
+      .single();
+
+    if (existing) {
+      console.log('⚠️ Payment already logged, skipping (idempotency)');
+      return;
+    }
+
+    // Insert payment record
+    const { error } = await getSupabase()
+      .from('payment_transactions')
+      .insert({
+        user_id: params.userId,
+        stripe_payment_intent_id: params.stripePaymentIntentId,
+        stripe_checkout_session_id: params.stripeCheckoutSessionId,
+        stripe_customer_id: params.stripeCustomerId,
+        stripe_subscription_id: params.stripeSubscriptionId,
+        amount: params.amount / 100, // Convert cents to dollars
+        payment_type: params.paymentType,
+        credits_purchased: params.creditsPurchased,
+        subscription_tier: params.subscriptionTier,
+        metadata: params.metadata || {},
+      });
+
+    if (error) {
+      console.error('❌ [Payment Logging] Failed:', error);
+    } else {
+      console.log('✅ [Payment Logging] Success:', {
+        checkoutSession: params.stripeCheckoutSessionId,
+        amount: `$${(params.amount / 100).toFixed(2)}`,
+        type: params.paymentType,
+        credits: params.creditsPurchased,
+        tier: params.subscriptionTier,
+      });
+    }
+  } catch (err) {
+    console.error('❌ [Payment Logging] Error:', err);
+    // Don't throw - we don't want to fail the webhook if payment logging fails
+  }
+}
+
 export async function POST(request: NextRequest) {
   console.log('\n🔔 STRIPE WEBHOOK RECEIVED');
   console.log('📍 Webhook URL:', request.url);
@@ -728,6 +793,23 @@ async function handleCheckoutSessionCompleted(session: any) {
           // Don't fail the webhook if cost tracking fails
         }
 
+        // Log payment transaction for audit trail
+        await logPaymentTransaction({
+          userId,
+          stripePaymentIntentId: session.payment_intent as string,
+          stripeCheckoutSessionId: session.id,
+          stripeCustomerId: customerId,
+          stripeSubscriptionId: subscriptionId,
+          amount: session.amount_total || 0,
+          paymentType: 'subscription',
+          creditsPurchased: plan.creditsPerMonth,
+          subscriptionTier: plan.id,
+          metadata: {
+            planName: plan.name,
+            billingInterval: 'monthly',
+          },
+        });
+
         // Send subscription confirmation email
         try {
           console.log('📧 Attempting to send subscription email...');
@@ -880,6 +962,21 @@ async function handleCheckoutSessionCompleted(session: any) {
           console.error('Error tracking Stripe costs:', costError);
           // Don't fail the webhook if cost tracking fails
         }
+
+        // Log payment transaction for audit trail
+        await logPaymentTransaction({
+          userId,
+          stripePaymentIntentId: session.payment_intent as string,
+          stripeCheckoutSessionId: session.id,
+          stripeCustomerId: customerId as string,
+          amount: session.amount_total || 0,
+          paymentType: 'one_time',
+          creditsPurchased: credits,
+          metadata: {
+            creditPackage: `${credits} credits`,
+            expirationDays: 90,
+          },
+        });
 
         // Send purchase confirmation email
         try {

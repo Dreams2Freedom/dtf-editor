@@ -12,17 +12,20 @@
 User `hello@weprintupress.com` upgraded from **Starter** to **Professional** plan, but the dashboard still showed **"Starter"**.
 
 ### In Stripe (Production):
+
 - ✅ Subscription: Professional ($49.99/month)
 - ✅ Status: Active
 - ✅ Payment: Successful
 - ✅ Only ONE subscription (no duplicates)
 
 ### In Database:
+
 - ❌ `subscription_status`: "starter" (should be "professional")
 - ❌ `subscription_plan`: "starter" (should be "professional")
 - ❌ `stripe_subscription_id`: OLD subscription ID
 
 ### On Dashboard:
+
 - ❌ Shows: "Starter" plan
 - ✅ Credits: 122 (correct)
 
@@ -31,6 +34,7 @@ User `hello@weprintupress.com` upgraded from **Starter** to **Professional** pla
 ## 🎯 ROOT CAUSE
 
 ### Primary Issue: Database Constraint Missing 'professional'
+
 ```sql
 -- OLD CONSTRAINT (TOO RESTRICTIVE)
 CHECK (subscription_status IN ('free', 'basic', 'starter', 'past_due', 'canceled'))
@@ -39,11 +43,13 @@ CHECK (subscription_status IN ('free', 'basic', 'starter', 'past_due', 'canceled
 ```
 
 When the code tried to set `subscription_status = 'professional'`, the database rejected it with:
+
 ```
 ERROR: new row for relation "profiles" violates check constraint "profiles_subscription_status_check"
 ```
 
 ### Secondary Issues:
+
 1. **Wrong field in API**: Used `updatedSubscription.status` (returns "active") instead of `newPlanId` (returns "professional")
 2. **Missing metadata**: Stripe subscription updates didn't include `userId`
 3. **Missing plan config**: Professional plan wasn't in `PLAN_PRICES` mapping
@@ -53,24 +59,30 @@ ERROR: new row for relation "profiles" violates check constraint "profiles_subsc
 ## ✅ WHAT WAS FIXED?
 
 ### 1. Database Migration Created ✅
+
 **File:** `supabase/migrations/20251117_fix_subscription_status_constraint.sql`
 
 Added support for all subscription statuses:
+
 - ✅ 'professional' (NEW)
 - ✅ 'active' (NEW)
 - ✅ 'trialing' (NEW)
 - ✅ 'incomplete', 'incomplete_expired', 'unpaid' (NEW)
 
 ### 2. API Code Fixed ✅
+
 **File:** `src/app/api/subscription/change-plan/route.ts`
 
 **Changes:**
+
 - Line 22-27: Added Professional plan to PLAN_PRICES
 - Line 116-121: Added metadata (userId, userEmail, fromPlan, toPlan)
 - Line 165: Changed `subscription_status` to use `newPlanId` instead of Stripe status
 
 ### 3. Diagnostic & Fix Scripts Created ✅
+
 **Files:**
+
 - `scripts/fix-subscription-upgrade-issue.js` - One-time fix for affected users
 - `FIX_SUBSCRIPTION_UPGRADE_BUG.md` - Complete fix guide
 
@@ -84,6 +96,7 @@ Added support for all subscription statuses:
    https://supabase.com/dashboard/project/gvdngdgvqhcqmfkfmqgb/sql/new
 
 2. Copy/paste this SQL:
+
    ```sql
    -- Fix subscription_status constraint to include 'professional' and 'active'
    ALTER TABLE public.profiles
@@ -113,11 +126,13 @@ Added support for all subscription statuses:
 ### STEP 2: Fix Affected User's Database Record
 
 After migration is applied, run:
+
 ```bash
 node scripts/fix-subscription-upgrade-issue.js
 ```
 
 This will:
+
 - ✅ Connect to Stripe Production
 - ✅ Fetch actual subscription (Professional)
 - ✅ Update database with correct values
@@ -125,6 +140,7 @@ This will:
 ### STEP 3: Deploy Code Changes
 
 The API code is already fixed in the repository. Just deploy:
+
 ```bash
 git add .
 git commit -m "Fix subscription upgrade bug - allow professional plan in database constraint"
@@ -144,11 +160,13 @@ Or deploy via Vercel/your deployment method.
 ## 🔐 IMPORTANT: Using Production Stripe Keys
 
 Your code currently uses **TEST** Stripe keys in `.env.local`:
+
 ```
 STRIPE_SECRET_KEY=sk_test_...  ❌
 ```
 
 But you have **LIVE** keys available:
+
 ```
 STRIPE_LIVE_SECRET_KEY=sk_live_...  ✅
 ```
@@ -162,14 +180,17 @@ The fix script uses the LIVE keys (`STRIPE_LIVE_SECRET_KEY`), which is correct f
 ## 📊 WHAT WAS LEARNED
 
 ### Detection
+
 - Database constraint violations can be silent if not logged properly
 - Always check database logs when updates fail mysteriously
 
 ### Design Issues
+
 - Using `subscription_status` for both plan names AND Stripe statuses is confusing
 - Should separate: `subscription_plan` (free/basic/starter/professional) and `subscription_status` (active/canceled/past_due)
 
 ### Prevention
+
 - When adding new plans, update database constraints FIRST
 - Add validation to prevent constraint violations before DB updates
 - Always include `userId` in Stripe metadata for easier debugging
@@ -179,12 +200,14 @@ The fix script uses the LIVE keys (`STRIPE_LIVE_SECRET_KEY`), which is correct f
 ## 📁 FILES CREATED/MODIFIED
 
 ### Created:
+
 1. ✅ `supabase/migrations/20251117_fix_subscription_status_constraint.sql`
 2. ✅ `scripts/fix-subscription-upgrade-issue.js`
 3. ✅ `FIX_SUBSCRIPTION_UPGRADE_BUG.md`
 4. ✅ `SUBSCRIPTION_UPGRADE_FIX_SUMMARY.md` (this file)
 
 ### Modified:
+
 1. ✅ `src/app/api/subscription/change-plan/route.ts`
 2. ✅ `BUGS_TRACKER.md`
 

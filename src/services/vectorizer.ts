@@ -102,10 +102,7 @@ export class VectorizerService {
       }
 
       // Output styling (CRITICAL for proper PDF rendering)
-      formData.append(
-        'output.draw_style',
-        options.draw_style || 'fill_shapes'
-      );
+      formData.append('output.draw_style', options.draw_style || 'fill_shapes');
       formData.append(
         'output.shape_stacking',
         options.shape_stacking || 'stacked'
@@ -123,7 +120,10 @@ export class VectorizerService {
 
       // Output DPI for high quality
       if (options.output_dpi) {
-        formData.append('output.size.output_dpi', options.output_dpi.toString());
+        formData.append(
+          'output.size.output_dpi',
+          options.output_dpi.toString()
+        );
       } else if (requestFormat === 'pdf') {
         // Default to 300 DPI for PDF (print quality)
         formData.append('output.size.output_dpi', '300');

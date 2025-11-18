@@ -52,7 +52,7 @@ async function main() {
     const subscriptions = await stripe.subscriptions.list({
       customer: CUSTOMER_ID,
       limit: 100,
-      expand: ['data.items.data.price']
+      expand: ['data.items.data.price'],
     });
 
     console.log(`Found ${subscriptions.data.length} subscription(s)\n`);
@@ -75,7 +75,12 @@ async function main() {
       console.log('  Amount:', `$${(price?.unit_amount || 0) / 100}/month`);
       console.log('  Created:', new Date(sub.created * 1000).toISOString());
       if (sub.current_period_start && sub.current_period_end) {
-        console.log('  Current Period:', new Date(sub.current_period_start * 1000).toISOString(), 'to', new Date(sub.current_period_end * 1000).toISOString());
+        console.log(
+          '  Current Period:',
+          new Date(sub.current_period_start * 1000).toISOString(),
+          'to',
+          new Date(sub.current_period_end * 1000).toISOString()
+        );
       }
 
       if (sub.cancel_at_period_end) {
@@ -88,8 +93,8 @@ async function main() {
     // Step 2: Identify which subscription to keep
     console.log('📊 Step 2: Analyzing subscriptions...');
 
-    const activeSubscriptions = subscriptions.data.filter(sub =>
-      sub.status === 'active' || sub.status === 'trialing'
+    const activeSubscriptions = subscriptions.data.filter(
+      sub => sub.status === 'active' || sub.status === 'trialing'
     );
 
     if (activeSubscriptions.length === 0) {
@@ -113,7 +118,9 @@ async function main() {
     }
 
     // Multiple active subscriptions - need to choose which to keep
-    console.log(`⚠️  Found ${activeSubscriptions.length} active subscriptions!`);
+    console.log(
+      `⚠️  Found ${activeSubscriptions.length} active subscriptions!`
+    );
 
     // Keep the newest subscription (most recent upgrade)
     activeSubscriptions.sort((a, b) => b.created - a.created);
@@ -125,12 +132,16 @@ async function main() {
 
     if (keepPrice?.id === PRICE_IDS.basic) keepPlanId = 'basic';
     else if (keepPrice?.id === PRICE_IDS.starter) keepPlanId = 'starter';
-    else if (keepPrice?.id === PRICE_IDS.professional) keepPlanId = 'professional';
+    else if (keepPrice?.id === PRICE_IDS.professional)
+      keepPlanId = 'professional';
 
     console.log('\n✅ Subscription to KEEP:');
     console.log('  ID:', subscriptionToKeep.id);
     console.log('  Plan:', keepPlanId);
-    console.log('  Created:', new Date(subscriptionToKeep.created * 1000).toISOString());
+    console.log(
+      '  Created:',
+      new Date(subscriptionToKeep.created * 1000).toISOString()
+    );
 
     // Step 3: Cancel duplicate subscriptions
     console.log('\n🚫 Step 3: Canceling duplicate subscriptions...');
@@ -156,12 +167,14 @@ async function main() {
     console.log('- Plan:', keepPlanId);
     console.log('- Canceled:', subscriptionsToCancel.length, 'duplicate(s)');
     console.log('- Database updated');
-
   } catch (error) {
     console.error('\n❌ ERROR:', error.message);
     if (error.type === 'StripeInvalidRequestError') {
       console.error('\n⚠️  This might be a test/live mode mismatch.');
-      console.error('Current key starts with:', STRIPE_SECRET_KEY.substring(0, 8));
+      console.error(
+        'Current key starts with:',
+        STRIPE_SECRET_KEY.substring(0, 8)
+      );
       console.error('Make sure you are using PRODUCTION keys (sk_live_...)');
     }
     throw error;
@@ -203,7 +216,9 @@ async function updateDatabase(subscription, planId) {
 
     // Only add period_end if it exists
     if (subscription.current_period_end) {
-      updateData.subscription_current_period_end = new Date(subscription.current_period_end * 1000).toISOString();
+      updateData.subscription_current_period_end = new Date(
+        subscription.current_period_end * 1000
+      ).toISOString();
     }
 
     const { error: updateError } = await supabase
@@ -221,7 +236,6 @@ async function updateDatabase(subscription, planId) {
     console.log('  subscription_status:', planId);
     console.log('  subscription_plan:', planId);
     console.log('  stripe_subscription_id:', subscription.id);
-
   } catch (error) {
     console.error('Error in updateDatabase:', error);
     throw error;

@@ -12,11 +12,13 @@
 **Format:** `username:password` = `API_ID:API_SECRET`
 
 **Requirements:**
+
 - HTTPS only (TLS/SSL required)
 - Client must support Server Name Indication (SNI)
 - API ID and Secret from https://vectorizer.ai/account
 
 **Example:**
+
 ```bash
 curl -u xyz123:your_secret_key https://vectorizer.ai/api/v1/vectorize
 ```
@@ -32,16 +34,19 @@ curl -u xyz123:your_secret_key https://vectorizer.ai/api/v1/vectorize
 **Input Methods (choose one):**
 
 1. **File Upload** (Recommended)
+
    ```bash
    -F image=@example.jpeg
    ```
 
 2. **Base64 String** (Max 1MB)
+
    ```bash
    -F image.base64="iVBORw0KGgo..."
    ```
 
 3. **URL Fetch**
+
    ```bash
    -F image.url="https://example.com/image.jpg"
    ```
@@ -52,6 +57,7 @@ curl -u xyz123:your_secret_key https://vectorizer.ai/api/v1/vectorize
    ```
 
 **Supported Input Formats:**
+
 - `.bmp`, `.gif`, `.jpeg`, `.png`, `.tiff`
 - Max 33.5 million pixels
 - Default max: 2,097,252 pixels
@@ -62,12 +68,12 @@ curl -u xyz123:your_secret_key https://vectorizer.ai/api/v1/vectorize
 
 #### **Processing Mode** (CRITICAL!)
 
-| Mode | Cost | Description | Use Case |
-|------|------|-------------|----------|
-| `test` | FREE | Full result with watermark | Development/testing |
-| `test_preview` | FREE | 4x PNG preview with watermark | Quick testing |
-| `preview` | 0.2 credits | 4x PNG preview, no watermark | Before production |
-| `production` | 1.0 credit | Full production output | Final result |
+| Mode           | Cost        | Description                   | Use Case            |
+| -------------- | ----------- | ----------------------------- | ------------------- |
+| `test`         | FREE        | Full result with watermark    | Development/testing |
+| `test_preview` | FREE        | 4x PNG preview with watermark | Quick testing       |
+| `preview`      | 0.2 credits | 4x PNG preview, no watermark  | Before production   |
+| `production`   | 1.0 credit  | Full production output        | Final result        |
 
 ```bash
 -F mode=production
@@ -88,6 +94,7 @@ curl -u xyz123:your_secret_key https://vectorizer.ai/api/v1/vectorize
 ```
 
 **For PDF Output:**
+
 - No special parameters required
 - PDF will contain vector paths (not raster image)
 - Uses same processing as SVG
@@ -109,6 +116,7 @@ curl -u xyz123:your_secret_key https://vectorizer.ai/api/v1/vectorize
 ```
 
 **Color Tolerance:**
+
 - Range: 0-100
 - Higher = more colors grouped together
 - Lower = more precise color matching
@@ -147,6 +155,7 @@ curl -u xyz123:your_secret_key https://vectorizer.ai/api/v1/vectorize
 ```
 
 **🚨 CRITICAL FOR PDF:**
+
 - Use `output.draw_style=fill_shapes` (default)
 - Use `output.shape_stacking=stacked` (default)
 - These ensure proper rendering in PDF viewers
@@ -201,6 +210,7 @@ curl -u xyz123:your_secret_key https://vectorizer.ai/api/v1/vectorize
 ```
 
 **Use when:**
+
 - PDF shows gaps/white lines between shapes
 - Anti-aliasing causes visual artifacts
 - Viewer shows seams between adjacent paths
@@ -220,6 +230,7 @@ curl -u xyz123:your_secret_key https://vectorizer.ai/api/v1/vectorize
 #### **PDF-Specific Options**
 
 **None!** PDF uses same parameters as SVG. Key settings:
+
 - `mode=production` (required for clean output)
 - `output.file_format=pdf`
 - `output.draw_style=fill_shapes` (default, recommended)
@@ -262,6 +273,7 @@ Content-Type: image/svg+xml       # or application/pdf, etc.
 **Purpose:** Download same image in different format without re-processing
 
 **Parameters:**
+
 ```bash
 -F image.token=abc123...          # REQUIRED (from vectorize response)
 -F receipt=xyz789...              # Optional (from prior download)
@@ -270,10 +282,12 @@ Content-Type: image/svg+xml       # or application/pdf, etc.
 ```
 
 **Cost:**
+
 - 0.1 credits per format (90% discount!)
 - Use receipt for multiple formats at same discount
 
 **Example Workflow:**
+
 1. Vectorize as SVG (1.0 credit) → get token
 2. Download as PDF (0.1 credit) using token → get receipt
 3. Download as EPS (0.1 credit) using receipt
@@ -303,6 +317,7 @@ curl https://vectorizer.ai/api/v1/account \
 ```
 
 **Response:**
+
 ```json
 {
   "subscriptionPlan": "Professional",
@@ -315,14 +330,14 @@ curl https://vectorizer.ai/api/v1/account \
 
 ## 💰 PRICING SUMMARY
 
-| Operation | Credits | Notes |
-|-----------|---------|-------|
-| Test Mode | FREE | Has watermark |
-| Preview | 0.2 | 4x PNG preview |
-| Production | 1.0 | Full vector output |
-| Preview → Production | 0.9 | Upgrade with token (1.0 - 0.2 already paid) |
-| Additional Format | 0.1 | With token/receipt |
-| Storage (after day 1) | 0.01/day | Up to 30 days max |
+| Operation             | Credits  | Notes                                       |
+| --------------------- | -------- | ------------------------------------------- |
+| Test Mode             | FREE     | Has watermark                               |
+| Preview               | 0.2      | 4x PNG preview                              |
+| Production            | 1.0      | Full vector output                          |
+| Preview → Production  | 0.9      | Upgrade with token (1.0 - 0.2 already paid) |
+| Additional Format     | 0.1      | With token/receipt                          |
+| Storage (after day 1) | 0.01/day | Up to 30 days max                           |
 
 ---
 
@@ -368,9 +383,9 @@ async function vectorize(imagePath, outputPath) {
   const response = await fetch('https://vectorizer.ai/api/v1/vectorize', {
     method: 'POST',
     headers: {
-      'Authorization': 'Basic ' + Buffer.from('xyz123:secret').toString('base64')
+      Authorization: 'Basic ' + Buffer.from('xyz123:secret').toString('base64'),
     },
-    body: form
+    body: form,
   });
 
   if (!response.ok) {
@@ -382,7 +397,7 @@ async function vectorize(imagePath, outputPath) {
 
   return {
     token: response.headers.get('x-image-token'),
-    credits: response.headers.get('x-credits-charged')
+    credits: response.headers.get('x-credits-charged'),
   };
 }
 ```
@@ -394,12 +409,14 @@ async function vectorize(imagePath, outputPath) {
 ### Issue: PDF Shows Solid Color / Missing Details
 
 **Causes:**
+
 1. ❌ Using `mode=preview` or `mode=test` (adds watermark)
 2. ❌ Wrong `output.draw_style` setting
 3. ❌ Too few colors (`processing.max_colors` too low)
 4. ❌ Input image too small/low resolution
 
 **Solutions:**
+
 1. ✅ Use `mode=production`
 2. ✅ Use `output.draw_style=fill_shapes` (default)
 3. ✅ Remove or increase `processing.max_colors`
@@ -409,6 +426,7 @@ async function vectorize(imagePath, outputPath) {
 ### Issue: PDF Has White Lines/Gaps
 
 **Solution:**
+
 ```bash
 -F output.gap_filler.enabled=true
 -F output.gap_filler.stroke_width=0.5
@@ -417,6 +435,7 @@ async function vectorize(imagePath, outputPath) {
 ### Issue: PDF Colors Don't Match Original
 
 **Solutions:**
+
 1. Remove `processing.palette` (let auto-detect)
 2. Increase `processing.max_colors` (default 256)
 3. Check input image color mode (RGB vs CMYK)
@@ -424,6 +443,7 @@ async function vectorize(imagePath, outputPath) {
 ### Issue: PDF File Size Too Large
 
 **Solutions:**
+
 1. Reduce `processing.max_colors`
 2. Increase `processing.shapes.min_area_px` (remove tiny shapes)
 3. Reduce `output.size.output_dpi` if over 300
@@ -433,16 +453,19 @@ async function vectorize(imagePath, outputPath) {
 ## ⚡ PERFORMANCE & RATE LIMITS
 
 **Recommended Threading:**
+
 - Start: 5 concurrent threads
 - Ramp: Add 1 thread every 5 minutes
 - Max: Contact before using >100 threads
 
 **On 429 (Too Many Requests):**
+
 - Apply linear backoff: 5s, 10s, 15s, 20s...
 - Don't use exponential backoff
 - Retry after backoff period
 
 **Timeouts:**
+
 - Minimum idle timeout: 180 seconds
 - Processing can take 30-60s for complex images
 - Don't set timeout below 3 minutes
@@ -452,6 +475,7 @@ async function vectorize(imagePath, outputPath) {
 ## 🔍 ERROR HANDLING
 
 **Response Format:**
+
 ```json
 {
   "status": 400,
@@ -461,6 +485,7 @@ async function vectorize(imagePath, outputPath) {
 ```
 
 **HTTP Status Codes:**
+
 - `200-299`: Success
 - `400`: Bad request - fix parameters
 - `401`: Authentication failed

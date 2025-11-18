@@ -381,7 +381,8 @@ export function GenerationConfigStep({
                     Refine Prompt with AI Chat
                   </Button>
                   <p className="text-xs text-gray-600 mt-2 text-center">
-                    Chat with AI to improve your prompt and generate a better image
+                    Chat with AI to improve your prompt and generate a better
+                    image
                   </p>
                 </div>
               )}

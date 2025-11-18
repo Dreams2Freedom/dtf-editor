@@ -106,18 +106,21 @@ export default function VectorizeClient() {
       const fileName = `image_${Date.now()}.${imageBlob.type.split('/')[1] || 'png'}`;
       let imageFile = new File([imageBlob], fileName, { type: imageBlob.type });
 
-      // Check if compression is needed for large files
+      // For vectorization, we want to preserve as much detail as possible
+      // Use PNG format and higher quality settings to avoid losing color information
       const { compressImage, needsCompression } = await import(
         '@/utils/imageCompression'
       );
-      if (await needsCompression(imageFile, 10, 4096)) {
+      if (await needsCompression(imageFile, 50, 8000)) {
+        // Much higher limits for vectorization
         console.log(
           '[Vectorizer] Compressing large image before processing...'
         );
         imageFile = await compressImage(imageFile, {
-          maxSizeMB: 10,
-          maxWidthOrHeight: 4096,
-          quality: 0.9,
+          maxSizeMB: 50, // Allow up to 50MB (Vectorizer.ai supports it)
+          maxWidthOrHeight: 8000, // Preserve higher resolution
+          quality: 0.95, // Higher quality to preserve detail
+          format: 'png', // PNG preserves colors better than JPEG
         });
         console.log('[Vectorizer] Compression complete:', {
           originalSize: `${(imageBlob.size / 1024 / 1024).toFixed(2)}MB`,

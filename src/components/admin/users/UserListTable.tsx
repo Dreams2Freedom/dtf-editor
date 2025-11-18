@@ -49,6 +49,7 @@ export function UserListTable() {
     limit: 10,
     search: '',
     status: 'all',
+    userType: 'all',
     sort_by: 'created_at',
     sort_order: 'desc',
   });
@@ -303,6 +304,10 @@ export function UserListTable() {
     setParams({ ...params, status, page: 1 });
   };
 
+  const handleUserTypeFilter = (userType: AdminUserListParams['userType']) => {
+    setParams({ ...params, userType, page: 1 });
+  };
+
   const handleSort = (sortBy: AdminUserListParams['sort_by']) => {
     setParams({
       ...params,
@@ -371,19 +376,41 @@ export function UserListTable() {
     });
   };
 
-  const getPlanBadgeVariant = (
-    plan: string
-  ): 'default' | 'secondary' | 'success' | 'info' => {
-    switch (plan) {
-      case 'starter':
-        return 'info';
-      case 'basic':
-        return 'success';
-      case 'pro':
-        return 'default';
-      default:
-        return 'secondary';
+  // Smart badge system to distinguish user types
+  const getUserTypeBadge = (
+    user: any
+  ): {
+    label: string;
+    variant: 'default' | 'secondary' | 'success' | 'info' | 'warning';
+  } => {
+    const { subscription_tier, stripe_customer_id } = user;
+
+    // Priority 1: Active subscription (subscription_tier is not 'free')
+    if (subscription_tier && subscription_tier !== 'free') {
+      const tierLower = subscription_tier.toLowerCase();
+      // Capitalize first letter for display
+      const tierLabel =
+        subscription_tier.charAt(0).toUpperCase() + subscription_tier.slice(1);
+
+      // Color mapping: Professional (gold), Starter (purple), Basic (green)
+      if (tierLower === 'professional' || tierLower === 'pro') {
+        return { label: 'Professional', variant: 'warning' }; // gold/yellow
+      } else if (tierLower === 'starter') {
+        return { label: 'Starter', variant: 'info' }; // purple/blue
+      } else if (tierLower === 'basic') {
+        return { label: 'Basic', variant: 'success' }; // green
+      }
+      // Fallback for any other subscription
+      return { label: tierLabel, variant: 'success' };
     }
+
+    // Priority 2: Has made purchases but no active subscription (pay-as-you-go)
+    if (stripe_customer_id) {
+      return { label: 'Pay-as-you-go', variant: 'default' }; // blue
+    }
+
+    // Priority 3: Free user (never purchased)
+    return { label: 'Free', variant: 'secondary' }; // gray
   };
 
   const getStatusBadge = (status: string) => {
@@ -475,6 +502,25 @@ export function UserListTable() {
               <option value="all">All Status</option>
               <option value="active">Active</option>
               <option value="suspended">Suspended</option>
+            </Select>
+          </div>
+
+          {/* User Type Filter */}
+          <div className="w-full sm:w-48">
+            <Select
+              value={params.userType || 'all'}
+              onChange={e =>
+                handleUserTypeFilter(
+                  e.target.value as AdminUserListParams['userType']
+                )
+              }
+              leftIcon={<User className="h-5 w-5" />}
+            >
+              <option value="all">All Users</option>
+              <option value="paid">Paid Customers</option>
+              <option value="payasyougo">Pay-as-you-go</option>
+              <option value="subscribers">Subscribers</option>
+              <option value="free">Free Users</option>
             </Select>
           </div>
         </div>
@@ -657,9 +703,12 @@ export function UserListTable() {
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <Badge variant={getPlanBadgeVariant(user.plan)}>
-                      {user.plan}
-                    </Badge>
+                    {(() => {
+                      const badge = getUserTypeBadge(user);
+                      return (
+                        <Badge variant={badge.variant}>{badge.label}</Badge>
+                      );
+                    })()}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                     {user.credits_remaining}

@@ -163,6 +163,7 @@ export interface AdminUserListParams {
   search?: string;
   status?: 'active' | 'suspended' | 'all';
   plan?: string;
+  userType?: 'all' | 'paid' | 'payasyougo' | 'subscribers' | 'free';
   sort_by?: 'created_at' | 'email' | 'credits_remaining';
   sort_order?: 'asc' | 'desc';
 }
@@ -173,6 +174,8 @@ export interface AdminUserListResponse {
     email: string;
     full_name?: string;
     plan: string;
+    subscription_tier: string;
+    stripe_customer_id: string | null;
     credits_remaining: number;
     status: 'active' | 'suspended';
     created_at: string;

@@ -234,9 +234,7 @@ export function ProfitabilityAnalysis() {
             <div className="flex items-start space-x-3">
               <div className="w-2 h-2 bg-yellow-500 rounded-full mt-1.5"></div>
               <div>
-                <p className="font-medium text-gray-900">
-                  AI Image Generation
-                </p>
+                <p className="font-medium text-gray-900">AI Image Generation</p>
                 <p className="text-sm text-gray-600">
                   At $0.17 cost per 1 credit, AI image generation has the
                   highest cost-to-credit ratio but still maintains strong

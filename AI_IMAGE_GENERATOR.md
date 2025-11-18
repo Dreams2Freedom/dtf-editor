@@ -85,23 +85,23 @@ src/app/generate/page.tsx
 
 ### Key Files
 
-| File | Purpose | Lines |
-|------|---------|-------|
-| `PromptWizard.tsx` | Main wizard state management and flow control | ~480 |
-| `DescriptionStep.tsx` | Step 1: Input mode selection and description entry | ~240 |
-| `ConversationalPromptBuilder.tsx` | Guided Mode: Chat-based prompt building | ~525 |
-| `ImageToImageUpload.tsx` | Upload Image mode: Image analysis | ~235 |
-| `PromptOptimizationStep.tsx` | Step 2: AI prompt optimization and selection | ~343 |
-| `GenerationConfigStep.tsx` | Step 3: Generation config and results | ~395 |
+| File                              | Purpose                                            | Lines |
+| --------------------------------- | -------------------------------------------------- | ----- |
+| `PromptWizard.tsx`                | Main wizard state management and flow control      | ~480  |
+| `DescriptionStep.tsx`             | Step 1: Input mode selection and description entry | ~240  |
+| `ConversationalPromptBuilder.tsx` | Guided Mode: Chat-based prompt building            | ~525  |
+| `ImageToImageUpload.tsx`          | Upload Image mode: Image analysis                  | ~235  |
+| `PromptOptimizationStep.tsx`      | Step 2: AI prompt optimization and selection       | ~343  |
+| `GenerationConfigStep.tsx`        | Step 3: Generation config and results              | ~395  |
 
 ### API Routes
 
-| Route | Purpose |
-|-------|---------|
-| `/api/generate/image` | Generate AI image from prompt using OpenAI |
-| `/api/generate/optimize-prompt` | Generate 4 optimized prompt variations |
-| `/api/generate/conversational-prompt` | Handle conversational prompt building (chat) |
-| `/api/analyze/image` | Analyze uploaded image and generate recreation prompt |
+| Route                                 | Purpose                                               |
+| ------------------------------------- | ----------------------------------------------------- |
+| `/api/generate/image`                 | Generate AI image from prompt using OpenAI            |
+| `/api/generate/optimize-prompt`       | Generate 4 optimized prompt variations                |
+| `/api/generate/conversational-prompt` | Handle conversational prompt building (chat)          |
+| `/api/analyze/image`                  | Analyze uploaded image and generate recreation prompt |
 
 ## Mode Details
 
@@ -110,6 +110,7 @@ src/app/generate/page.tsx
 **Component:** `ConversationalPromptBuilder.tsx`
 
 **Flow:**
+
 1. User describes what they want to create
 2. AI asks 5 clarifying questions about:
    - Subject/content
@@ -121,6 +122,7 @@ src/app/generate/page.tsx
 4. User can edit final prompt or generate directly
 
 **Features:**
+
 - Message bubbles (user/AI)
 - Typing indicator
 - Quick reply buttons
@@ -129,6 +131,7 @@ src/app/generate/page.tsx
 - localStorage persistence (recovers conversations < 1 hour old)
 
 **UX Benefits:**
+
 - Guides beginners through prompt creation
 - Ensures all important details are captured
 - Produces high-quality, detailed prompts
@@ -139,6 +142,7 @@ src/app/generate/page.tsx
 **Component:** `ImageToImageUpload.tsx`
 
 **Flow:**
+
 1. User drags/drops or selects an image
 2. User optionally describes modifications:
    - Change text
@@ -150,6 +154,7 @@ src/app/generate/page.tsx
 4. Prompt is automatically passed to Step 3 for generation
 
 **Features:**
+
 - Drag-and-drop upload
 - Image preview
 - Modification instructions textarea with examples
@@ -157,6 +162,7 @@ src/app/generate/page.tsx
 - 50MB file size limit
 
 **UX Benefits:**
+
 - Easy recreation of existing designs
 - Ability to modify designs before recreation
 - Visual feedback with image preview
@@ -167,6 +173,7 @@ src/app/generate/page.tsx
 ### State Management
 
 **PromptWizard.tsx** manages global wizard state:
+
 - Current step (1, 2, or 3)
 - User description
 - Input mode (`'guided' | 'upload'`)
@@ -178,6 +185,7 @@ src/app/generate/page.tsx
 - Loading states
 
 **localStorage Persistence:**
+
 - Wizard progress saved to `ai_wizard_progress`
 - Conversational state saved to `ai_conversation_state`
 - Auto-cleared after successful generation
@@ -195,12 +203,14 @@ src/app/generate/page.tsx
 **Model:** OpenAI GPT-Image-1 (Beta)
 
 **Enhancements:**
+
 - All prompts automatically enhanced for DTF printing
 - Transparent backgrounds forced
 - Vibrant colors emphasized
 - Print-ready formatting
 
 **Parameters:**
+
 - Size: 1024x1024 (locked)
 - Quality: high (locked)
 - Style: Not supported by gpt-image-1
@@ -209,6 +219,7 @@ src/app/generate/page.tsx
 ### Database Schema
 
 Generated images are saved to `processed_images` table with:
+
 - `operation_type: 'generate'`
 - `storage_url`: Path in Supabase Storage
 - `metadata`: Includes original prompt, timestamp
@@ -218,16 +229,19 @@ Generated images are saved to `processed_images` table with:
 ### Common Issues
 
 **Issue: Images not appearing in My Images**
+
 - **Cause:** Database constraint didn't include 'generate' operation type
 - **Fix:** Applied migration `20251007_add_generate_operation_type.sql`
 - **Status:** ✅ Fixed
 
 **Issue: Edited prompts not being used for generation**
+
 - **Cause:** Prompt selection cards remained clickable, clearing edited prompt
 - **Fix:** Hide cards when edited prompt exists, add "Discard" button
 - **Status:** ✅ Fixed
 
 **Issue: "Simple Mode" references still in code**
+
 - **Cause:** Legacy code from previous 3-mode implementation
 - **Fix:** Removed all Simple Mode code and references
 - **Status:** ✅ Fixed
@@ -235,11 +249,13 @@ Generated images are saved to `processed_images` table with:
 ### Debug Checklist
 
 1. **Check user credits:**
+
    ```sql
    SELECT credits_remaining FROM profiles WHERE id = 'user-id';
    ```
 
 2. **Check operation_type constraint:**
+
    ```sql
    SELECT conname, pg_get_constraintdef(oid)
    FROM pg_constraint
@@ -247,6 +263,7 @@ Generated images are saved to `processed_images` table with:
    ```
 
 3. **Check generated images:**
+
    ```sql
    SELECT * FROM processed_images
    WHERE user_id = 'user-id'
@@ -265,12 +282,14 @@ Generated images are saved to `processed_images` table with:
 ### Adding New Features
 
 **To add a new generation option:**
+
 1. Update `GenerationOptions` interface in `PromptWizard.tsx`
 2. Add UI controls in `GenerationConfigStep.tsx`
 3. Pass option to `/api/generate/image` endpoint
 4. Update OpenAI API call with new parameter
 
 **To modify the conversation flow:**
+
 1. Edit prompts in `/api/generate/conversational-prompt/route.ts`
 2. Adjust `progress.total` in `ConversationalPromptBuilder.tsx`
 3. Update quick replies logic
@@ -279,6 +298,7 @@ Generated images are saved to `processed_images` table with:
 ### Testing
 
 **Manual test flow:**
+
 1. Navigate to `/generate`
 2. Try Guided Mode:
    - Start conversation
@@ -296,6 +316,7 @@ Generated images are saved to `processed_images` table with:
 5. Verify images appear in `/dashboard` (My Images)
 
 **Key things to test:**
+
 - ✅ Credit deduction
 - ✅ Image saves to gallery
 - ✅ localStorage persistence
@@ -308,16 +329,19 @@ Generated images are saved to `processed_images` table with:
 ### Optimization Strategies
 
 **Image Generation Time:**
+
 - 15-30 seconds typical
 - Show loading state with progress message
 - Display "may take up to 30 seconds" notice
 
 **Chat Response Time:**
+
 - 2-5 seconds typical
 - Show typing indicator
 - Prevent duplicate sends while loading
 
 **localStorage:**
+
 - Minimal performance impact
 - Cleared after successful generation
 - 1-hour recovery window
@@ -325,6 +349,7 @@ Generated images are saved to `processed_images` table with:
 ### Bundle Size
 
 Components are lazy-loaded where possible:
+
 - Large AI components only loaded when needed
 - Image previews use Next.js Image optimization
 
@@ -367,16 +392,19 @@ Components are lazy-loaded where possible:
 ### What Changed
 
 **Before (3 modes):**
+
 - Simple Mode: Direct textarea input
 - Guided Mode: Conversational interface
 - Upload Image: Image analysis
 
 **After (2 modes):**
+
 - Guided Mode: Conversational interface (KEPT)
 - Upload Image: Image analysis (KEPT)
 - Simple Mode: REMOVED
 
 **Removed Files:**
+
 - `ImageGenerator.tsx` (~546 lines)
 - `PromptBuilder.tsx` (~174 lines)
 - `ImageToImageDirect.tsx` (~200 lines)
@@ -401,6 +429,7 @@ Components are lazy-loaded where possible:
 ## Questions?
 
 For questions or issues, refer to:
+
 - `DTF_EDITOR_PRD.md` - Product requirements
 - `DEVELOPMENT_LOG.md` - Recent changes
 - `BUGS_TRACKER.md` - Known issues

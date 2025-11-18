@@ -4,7 +4,11 @@ import sharp from 'sharp';
 interface SaveImageParams {
   userId: string;
   processedUrl: string;
-  operationType: 'upscale' | 'background-removal' | 'vectorization' | 'generate';
+  operationType:
+    | 'upscale'
+    | 'background-removal'
+    | 'vectorization'
+    | 'generate';
   originalFilename?: string;
   fileSize?: number;
   metadata?: Record<string, any>;

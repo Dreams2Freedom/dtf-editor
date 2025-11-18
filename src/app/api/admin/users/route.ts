@@ -39,6 +39,7 @@ async function handleGet(request: NextRequest) {
     const search = searchParams.get('search') || '';
     const status = searchParams.get('status') || 'all';
     const plan = searchParams.get('plan') || '';
+    const userType = searchParams.get('userType') || 'all';
     const sortBy = searchParams.get('sort_by') || 'created_at';
     const sortOrder = searchParams.get('sort_order') || 'desc';
 
@@ -60,6 +61,25 @@ async function handleGet(request: NextRequest) {
 
     if (plan && plan !== 'all') {
       query = query.eq('subscription_plan', plan);
+    }
+
+    // Apply user type filter
+    if (userType && userType !== 'all') {
+      if (userType === 'paid') {
+        // Any user with stripe_customer_id (has made a purchase)
+        query = query.not('stripe_customer_id', 'is', null);
+      } else if (userType === 'payasyougo') {
+        // Users with stripe_customer_id but subscription_tier = 'free'
+        query = query
+          .not('stripe_customer_id', 'is', null)
+          .eq('subscription_tier', 'free');
+      } else if (userType === 'subscribers') {
+        // Users with subscription_tier != 'free'
+        query = query.not('subscription_tier', 'eq', 'free');
+      } else if (userType === 'free') {
+        // Users without stripe_customer_id (never purchased)
+        query = query.is('stripe_customer_id', null);
+      }
     }
 
     // Apply sorting
@@ -124,6 +144,8 @@ async function handleGet(request: NextRequest) {
                 : null) ||
               'N/A',
             plan: user.subscription_plan || 'free',
+            subscription_tier: user.subscription_tier || 'free',
+            stripe_customer_id: user.stripe_customer_id || null,
             credits_remaining: user.credits_remaining || 0,
             total_credits_used: totalCreditsUsed,
             images_processed: imagesProcessed || 0,
@@ -147,6 +169,8 @@ async function handleGet(request: NextRequest) {
                 : null) ||
               'N/A',
             plan: user.subscription_plan || 'free',
+            subscription_tier: user.subscription_tier || 'free',
+            stripe_customer_id: user.stripe_customer_id || null,
             credits_remaining: user.credits_remaining || 0,
             total_credits_used: 0,
             images_processed: 0,

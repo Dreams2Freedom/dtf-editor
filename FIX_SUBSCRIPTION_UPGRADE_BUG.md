@@ -3,6 +3,7 @@
 ## ROOT CAUSE ANALYSIS
 
 ### The Problem
+
 User `hello@weprintupress.com` upgraded from Starter to Professional, but dashboard still shows "Starter".
 
 ### Why It's Happening
@@ -27,6 +28,7 @@ User `hello@weprintupress.com` upgraded from Starter to Professional, but dashbo
 ### Current User State
 
 **In Stripe Production:**
+
 - Customer ID: `cus_TEEgzJ8TbsQT9U`
 - Subscription ID: `sub_1SNF6YAsm2LYaw1C5NRb9wNN`
 - Plan: **Professional** ($49.99/month)
@@ -34,6 +36,7 @@ User `hello@weprintupress.com` upgraded from Starter to Professional, but dashbo
 - ✅ ONLY ONE subscription (not two as initially reported)
 
 **In Database:**
+
 - `subscription_status`: `'starter'` ❌ (should be 'professional')
 - `subscription_plan`: `'starter'` ❌ (should be 'professional')
 - `stripe_subscription_id`: `sub_1SHmEBAsm2LYaw1CCCSYUuOF` ❌ (OLD subscription ID)
@@ -79,6 +82,7 @@ COMMENT ON COLUMN public.profiles.subscription_status IS
 ```
 
 **How to apply:**
+
 1. Go to https://supabase.com/dashboard/project/gvdngdgvqhcqmfkfmqgb/sql/new
 2. Copy/paste the SQL above
 3. Click "Run"
@@ -93,6 +97,7 @@ node scripts/fix-subscription-upgrade-issue.js
 ```
 
 This will:
+
 - ✅ Connect to Stripe Production
 - ✅ Fetch the actual subscription (Professional)
 - ✅ Update database with correct values:
@@ -105,11 +110,13 @@ This will:
 Update `/src/app/api/subscription/change-plan/route.ts`:
 
 **BEFORE (line 154):**
+
 ```typescript
 subscription_status: updatedSubscription.status,  // ❌ Returns "active", not plan name
 ```
 
 **AFTER:**
+
 ```typescript
 subscription_status: newPlanId,  // ✅ Use plan ID: "professional", "starter", etc.
 ```
@@ -121,6 +128,7 @@ This ensures future upgrades work correctly.
 Update `/src/app/api/subscription/change-plan/route.ts` (line 102-114):
 
 **BEFORE:**
+
 ```typescript
 const updatedSubscription = await getStripe().subscriptions.update(
   subscription.id,
@@ -138,6 +146,7 @@ const updatedSubscription = await getStripe().subscriptions.update(
 ```
 
 **AFTER:**
+
 ```typescript
 const updatedSubscription = await getStripe().subscriptions.update(
   subscription.id,
@@ -148,7 +157,8 @@ const updatedSubscription = await getStripe().subscriptions.update(
         price: newPlan.priceId,
       },
     ],
-    metadata: {  // ← ADD THIS
+    metadata: {
+      // ← ADD THIS
       userId: user.id,
       userEmail: user.email || '',
       fromPlan: profile.subscription_plan,
@@ -172,8 +182,11 @@ This helps webhooks identify which user the subscription belongs to.
 ### Step 6: Verify Dashboard Code
 
 The dashboard (line 287) displays `profile.subscription_status`:
+
 ```typescript
-{profile.subscription_status}
+{
+  profile.subscription_status;
+}
 ```
 
 This is correct! After our fix, `subscription_status` will be 'professional'.
@@ -187,11 +200,13 @@ This is correct! After our fix, `subscription_status` will be 'professional'.
 **Problem:** Adding new subscription plans requires updating the database constraint.
 
 **Solution:** Either:
+
 1. Remove the CHECK constraint entirely (risky)
 2. OR: Create an ENUM type for subscription statuses
 3. OR: Update constraint whenever adding new plans
 
 **Recommendation:** Update the migration file to include all future plans:
+
 - `'enterprise'` (if planning to add)
 - Any other tiers
 
@@ -200,6 +215,7 @@ This is correct! After our fix, `subscription_status` will be 'professional'.
 **Problem:** Two columns (`subscription_status` and `subscription_plan`) are confusing.
 
 **Recommendation for Future:**
+
 - `subscription_plan`: Store plan names (free, basic, starter, professional)
 - `subscription_status`: Store Stripe statuses (active, canceled, past_due)
 - Update dashboard to display `subscription_plan` instead of `subscription_status`
@@ -241,6 +257,7 @@ After completing all steps:
 ### Why There Appeared to Be Two Subscriptions
 
 The screenshot showed two subscription items in Stripe, but upon investigation:
+
 - There's only ONE active subscription: `sub_1SNF6YAsm2LYaw1C5NRb9wNN`
 - It's the Professional plan
 - The old subscription ID in the database was from a previous subscription
@@ -257,6 +274,7 @@ The screenshot showed two subscription items in Stripe, but upon investigation:
 ## NEED HELP?
 
 If you encounter any issues:
+
 1. Check Supabase logs for errors
 2. Check Stripe webhook logs
 3. Run: `node scripts/check-subscription-issue.js` to see current state
