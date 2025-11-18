@@ -32,9 +32,10 @@
 - **Reported:** November 17, 2025
 - **Symptoms:**
   - User vectorizes image and saves as PDF
-  - PDF shows single solid color instead of vector paths
+  - PDF shows single solid color (black) instead of vector paths
   - SVG output works fine (suggests API call succeeds)
   - No detailed vector information in PDF
+  - PDF only 1.1KB (too small, only contains single black rectangle)
 - **Root Cause (Deep Analysis):**
   1. **Using Invalid/Deprecated Parameters:**
      - Code sent `processing_options.curve_fitting` - **DOESN'T EXIST IN API**
@@ -53,6 +54,13 @@
      - Service file had parameters from old/different API
      - No reference to official Vectorizer.ai documentation
      - TypeScript interface didn't match actual API spec
+  4. **Aggressive Image Compression Destroying Color Detail (CRITICAL!):**
+     - Image compressed from 7928x2887 → 4096x1491 (48% size reduction)
+     - Compression format: JPEG (destroys color accuracy)
+     - Quality reduced from 0.9 → 0.72 → 0.58 (multiple attempts)
+     - JPEG compression at low quality caused Vectorizer.ai to detect only BLACK color
+     - API correctly processed the compressed image, but image had no color variation left
+     - PDF content stream analysis showed: `0.000 0.000 0.000 rg` (black fill) and single rectangle path
 - **Solution Applied:**
   1. **Created API Reference Guide (VECTORIZER_AI_API_REFERENCE.md):**
      - Complete documentation from https://vectorizer.ai/api
@@ -74,23 +82,44 @@
      - Updated handleVectorization to use correct parameters
      - Removed deprecated processing_options
      - Added proper defaults for PDF output
-- **Time to Resolution:** 1.5 hours (investigation + fix)
+  4. **Fixed Image Compression Settings (src/app/process/vectorize/client.tsx):**
+     - **Changed format:** JPEG → PNG (preserves colors accurately)
+     - **Increased size limit:** 10MB → 50MB (Vectorizer.ai supports it)
+     - **Increased dimension limit:** 4096px → 8000px (preserve resolution)
+     - **Increased quality:** 0.9 → 0.95 (reduce compression artifacts)
+     - PNG format maintains color fidelity even at high compression
+     - Higher limits prevent aggressive compression that destroys detail
+- **Time to Resolution:** 3 hours total (investigation + fix + compression fix)
 - **Testing:**
   - ✅ Parameters verified against official API docs
   - ✅ Code updated with correct parameter names and values
   - ✅ TypeScript interfaces updated
+  - ✅ PDF content stream analyzed (showed single black rectangle)
+  - ✅ Compression settings updated to preserve color detail
   - ⏳ Awaiting user testing with actual PDF vectorization
 - **Files Changed:**
   1. `VECTORIZER_AI_API_REFERENCE.md` (NEW - complete API reference)
   2. `src/services/vectorizer.ts` (FIXED - correct parameters)
   3. `src/services/imageProcessing.ts` (FIXED - correct defaults)
+  4. `src/app/process/vectorize/client.tsx` (FIXED - compression settings)
+  5. `scripts/test-vectorizer-api.js` (NEW - API testing tool)
+  6. `scripts/decode-pdf-stream.js` (NEW - PDF analysis tool)
 - **Prevention for Future:**
   - Always reference VECTORIZER_AI_API_REFERENCE.md for API changes
   - Test with small sample before deploying vectorization changes
   - Validate parameters against official docs before implementing
   - Add API response logging to catch silent failures
+  - **CRITICAL:** Never use JPEG compression for vectorization - always use PNG
+  - **CRITICAL:** Set high quality/size limits for vectorization to preserve detail
 - **Related Issues:** None
 - **Reference Documentation:** See `VECTORIZER_AI_API_REFERENCE.md` for complete API spec
+- **Technical Deep Dive:** PDF content stream contained only:
+  ```
+  0.000 0.000 0.000 rg  ← RGB(0,0,0) = BLACK
+  [rectangle path commands]
+  f  ← Fill with black
+  ```
+  This proved the issue was in the input image quality, not the API parameters.
 
 ---
 
