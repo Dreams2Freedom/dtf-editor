@@ -1,6 +1,6 @@
 # DTF Editor - Bug Tracker
 
-**Last Updated:** November 17, 2025
+**Last Updated:** November 28, 2025
 **Status:** Active Bug Tracking
 
 ## 🎓 **LESSONS LEARNED - NOT BUGS, USER ERRORS**
@@ -22,6 +22,82 @@
 ---
 
 ## 🐛 **Critical Bugs (P0)**
+
+### **BUG-060: ClippingMagic Script Failing to Load - Timeout and Network Issues**
+
+- **Status:** 🟢 FIXED
+- **Severity:** Critical
+- **Component:** Background Removal / ClippingMagic Integration
+- **Description:** ClippingMagic script timing out when loading from CDN, blocking background removal functionality
+- **Reported:** November 28, 2025
+- **Symptoms:**
+  - Error in console: `clippingmagic.com/api/v1/ClippingMagic.js:1 Failed to load resource: net::ERR_TIMED_OUT`
+  - React error: `Uncaught Error: Minified React error #418` (likely hydration or rendering issue)
+  - 401 Unauthorized errors in contentOverview.js (browser extension interference)
+  - Background removal button remains disabled
+  - No error message shown to user about script loading failure
+- **Root Cause:**
+  - Third-party CDN (ClippingMagic) experiencing intermittent availability issues
+  - No timeout handling on script load - browser waits indefinitely
+  - No retry logic for failed script loads
+  - Poor error messaging - users don't know what went wrong
+  - Ad blockers or network issues can prevent script from loading
+  - Browser extensions (like contentOverview) interfering with page load
+- **Solution Applied:**
+  1. **Added Retry Logic:**
+     - Implemented automatic retry (3 attempts with 2-second delay)
+     - 10-second timeout per attempt to prevent indefinite waiting
+     - Removes failed script before retry to ensure clean state
+  2. **Improved Error Handling:**
+     - Clear, actionable error messages explaining common causes
+     - Suggests troubleshooting steps (refresh, check connection, disable ad blockers)
+     - Better visual error display with icon and formatted text
+  3. **Added Loading Indicator:**
+     - Shows "Loading Background Removal Tool" message while script loads
+     - Users now know the system is working vs. stuck
+  4. **Fixed TypeScript Issues:**
+     - Changed `!profile.is_admin` to `profile.is_admin !== true` to handle null values
+     - Prevents type errors from nullable admin flag
+- **Files Modified:**
+  - `src/app/process/background-removal/client.tsx`:
+    - Lines 217-319: Added retry logic and timeout handling
+    - Lines 739-753: Improved error message display with better formatting
+    - Lines 757-768: Added loading indicator while script loads
+    - Lines 784-805: Fixed TypeScript null handling for is_admin flag
+- **Technical Details:**
+  - Script timeout set to 10 seconds per attempt
+  - Max 3 retry attempts with 2-second delay between retries
+  - Total max wait time: ~36 seconds (3 attempts × 12 seconds)
+  - Cleans up timeout and script element on component unmount
+- **Error Message Provided to Users:**
+  ```
+  Unable to load the background removal tool. This may be due to:
+  • ClippingMagic service is temporarily unavailable
+  • Network connectivity issues
+  • Ad blockers or security software blocking the script
+
+  Please try:
+  1. Refreshing the page
+  2. Checking your internet connection
+  3. Disabling ad blockers for this site
+  4. Trying again in a few minutes
+  ```
+- **Time to Resolution:** 1 hour
+- **Testing:**
+  - ✅ Added retry logic with 3 attempts
+  - ✅ Improved error messaging with actionable steps
+  - ✅ Added loading indicator
+  - ✅ Fixed TypeScript type issues
+  - ⏳ Awaiting user testing to confirm script loads successfully
+- **Prevention for Future:**
+  - Monitor ClippingMagic API availability
+  - Consider implementing service worker for script caching
+  - Add analytics to track script load failures
+  - Consider alternative background removal services as backup
+- **Related Issues:** None
+- **User Impact:** High - Blocks all background removal functionality when script fails to load
+
+---
 
 ### **BUG-059: PDF Vectorization Returns Solid Color - Using Invalid API Parameters**
 

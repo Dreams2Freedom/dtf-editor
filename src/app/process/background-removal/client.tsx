@@ -214,37 +214,105 @@ export default function BackgroundRemovalClient() {
     }
   }, [user, refreshCredits]);
 
-  // Load ClippingMagic script
+  // Load ClippingMagic script with retry logic
   useEffect(() => {
-    const script = document.createElement('script');
-    script.src = 'https://clippingmagic.com/api/v1/ClippingMagic.js';
-    script.async = true;
+    let retryCount = 0;
+    const maxRetries = 3;
+    const retryDelay = 2000; // 2 seconds
+    let timeoutId: NodeJS.Timeout;
 
-    script.onload = () => {
-      console.log('ClippingMagic script loaded');
-      setScriptLoaded(true);
+    const loadScript = () => {
+      // Check if script already exists
+      const existingScript = document.querySelector(
+        'script[src="https://clippingmagic.com/api/v1/ClippingMagic.js"]'
+      );
 
-      if (window.ClippingMagic) {
-        const errors = window.ClippingMagic.initialize({ apiId: 24469 });
-
-        if (errors.length === 0) {
-          console.log('ClippingMagic initialized successfully');
-          setInitialized(true);
-        } else {
-          console.error('ClippingMagic initialization errors:', errors);
-          setError('Failed to initialize ClippingMagic');
-        }
+      if (existingScript) {
+        existingScript.remove();
       }
+
+      const script = document.createElement('script');
+      script.src = 'https://clippingmagic.com/api/v1/ClippingMagic.js';
+      script.async = true;
+
+      // Set a timeout for the script load
+      timeoutId = setTimeout(() => {
+        console.error('ClippingMagic script load timeout');
+        if (retryCount < maxRetries) {
+          retryCount++;
+          console.log(`Retrying ClippingMagic script load (attempt ${retryCount}/${maxRetries})...`);
+          script.remove();
+          setTimeout(loadScript, retryDelay);
+        } else {
+          setError(
+            'Unable to load the background removal tool. This may be due to:\n' +
+            '• ClippingMagic service is temporarily unavailable\n' +
+            '• Network connectivity issues\n' +
+            '• Ad blockers or security software blocking the script\n\n' +
+            'Please try:\n' +
+            '1. Refreshing the page\n' +
+            '2. Checking your internet connection\n' +
+            '3. Disabling ad blockers for this site\n' +
+            '4. Trying again in a few minutes'
+          );
+        }
+      }, 10000); // 10 second timeout
+
+      script.onload = () => {
+        clearTimeout(timeoutId);
+        console.log('ClippingMagic script loaded successfully');
+        setScriptLoaded(true);
+
+        if (window.ClippingMagic) {
+          const errors = window.ClippingMagic.initialize({ apiId: 24469 });
+
+          if (errors.length === 0) {
+            console.log('ClippingMagic initialized successfully');
+            setInitialized(true);
+          } else {
+            console.error('ClippingMagic initialization errors:', errors);
+            setError(
+              'Your browser is missing some required features for the background removal tool. ' +
+              'Please try using a modern browser like Chrome, Firefox, or Safari.'
+            );
+          }
+        }
+      };
+
+      script.onerror = () => {
+        clearTimeout(timeoutId);
+        console.error('ClippingMagic script failed to load');
+
+        if (retryCount < maxRetries) {
+          retryCount++;
+          console.log(`Retrying ClippingMagic script load (attempt ${retryCount}/${maxRetries})...`);
+          setTimeout(loadScript, retryDelay);
+        } else {
+          setError(
+            'Unable to load the background removal tool. This may be due to:\n' +
+            '• ClippingMagic service is temporarily unavailable\n' +
+            '• Network connectivity issues\n' +
+            '• Ad blockers or security software blocking the script\n\n' +
+            'Please try:\n' +
+            '1. Refreshing the page\n' +
+            '2. Checking your internet connection\n' +
+            '3. Disabling ad blockers for this site\n' +
+            '4. Trying again in a few minutes'
+          );
+        }
+      };
+
+      document.body.appendChild(script);
     };
 
-    script.onerror = () => {
-      setError('Failed to load ClippingMagic script');
-    };
-
-    document.body.appendChild(script);
+    loadScript();
 
     return () => {
-      if (script.parentNode) {
+      clearTimeout(timeoutId);
+      const script = document.querySelector(
+        'script[src="https://clippingmagic.com/api/v1/ClippingMagic.js"]'
+      );
+      if (script?.parentNode) {
         script.parentNode.removeChild(script);
       }
     };
@@ -669,13 +737,36 @@ export default function BackgroundRemovalClient() {
               )}
 
               {error && (
-                <div className="bg-red-50 text-red-600 p-4 rounded-lg mb-4">
-                  {error}
+                <div className="bg-red-50 border border-red-200 text-red-800 p-4 rounded-lg mb-4">
+                  <div className="flex items-start gap-3">
+                    <div className="flex-shrink-0 mt-0.5">
+                      <svg className="w-5 h-5 text-red-600" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                      </svg>
+                    </div>
+                    <div className="flex-1">
+                      <h3 className="font-semibold mb-2">Error Loading Background Removal Tool</h3>
+                      <div className="whitespace-pre-line text-sm">{error}</div>
+                    </div>
+                  </div>
                 </div>
               )}
 
               {imageUrl && (
                 <div className="space-y-6">
+                  {/* Loading Script Indicator */}
+                  {!initialized && !error && (
+                    <div className="bg-blue-50 border border-blue-200 text-blue-800 p-4 rounded-lg">
+                      <div className="flex items-center gap-3">
+                        <Loader2 className="w-5 h-5 animate-spin text-blue-600" />
+                        <div>
+                          <h3 className="font-semibold">Loading Background Removal Tool</h3>
+                          <p className="text-sm mt-1">Please wait while we load the editor...</p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
                   {/* Original Image */}
                   <div>
                     <h3 className="font-medium mb-2">Original Image</h3>
@@ -691,7 +782,7 @@ export default function BackgroundRemovalClient() {
                   {!uploadedImage && (
                     <>
                       {profile &&
-                        !profile.is_admin &&
+                        profile.is_admin !== true &&
                         profile.credits_remaining < 1 && (
                           <div className="bg-red-50 border border-red-200 text-red-600 p-3 rounded-lg text-sm">
                             <p className="font-medium">Insufficient Credits</p>
@@ -709,7 +800,7 @@ export default function BackgroundRemovalClient() {
                           isUploading ||
                           !imageFile ||
                           (profile &&
-                            !profile.is_admin &&
+                            profile.is_admin !== true &&
                             profile.credits_remaining < 1)
                         }
                         className="w-full"
