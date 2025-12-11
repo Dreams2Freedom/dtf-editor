@@ -79,7 +79,22 @@ export default function ProcessClient() {
           credentials: 'include',
         });
 
-        const result = await response.json();
+        // Handle 413 error specifically (Vercel returns HTML, not JSON)
+        if (response.status === 413) {
+          throw new Error(
+            'Image still too large after compression. Please try a smaller image.'
+          );
+        }
+
+        // Try to parse JSON response
+        let result;
+        try {
+          result = await response.json();
+        } catch {
+          throw new Error(
+            `Upload failed with status ${response.status}. Please try again.`
+          );
+        }
 
         if (result.success) {
           setUploadedImageId(result.imageId);

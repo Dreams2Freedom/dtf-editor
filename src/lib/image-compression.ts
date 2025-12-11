@@ -52,7 +52,7 @@ export async function compressImage(
       reject(new Error('Failed to read file for compression'));
     };
 
-    reader.onload = (e) => {
+    reader.onload = e => {
       const img = new Image();
 
       img.onerror = () => {
@@ -118,7 +118,7 @@ export async function compressImage(
 
         const tryCompress = () => {
           canvas.toBlob(
-            (blob) => {
+            blob => {
               if (blob) {
                 if (blob.size > maxSizeBytes && quality > 0.5) {
                   quality -= 0.05; // Gentle quality reduction
