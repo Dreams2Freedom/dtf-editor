@@ -12,6 +12,7 @@ import { useAuthStore } from '@/stores/authStore';
 import { formatFileSize } from '@/lib/utils';
 import { Breadcrumb } from '@/components/ui/Breadcrumb';
 import { SignupModal } from '@/components/auth/SignupModal';
+import { compressImage } from '@/lib/image-compression';
 
 export default function ProcessClient() {
   const router = useRouter();
@@ -56,8 +57,21 @@ export default function ProcessClient() {
       setUploadError(null);
 
       try {
+        // Compress image if needed to stay within Vercel's 4.5MB API route limit
+        // Target 3MB to account for FormData encoding overhead (~33%)
+        const fileToUpload = await compressImage(file, {
+          maxSizeMB: 3,
+          maxDimension: 5000,
+        });
+
+        console.log('[Process] Uploading file:', {
+          originalSize: (file.size / 1024 / 1024).toFixed(2) + ' MB',
+          uploadSize: (fileToUpload.size / 1024 / 1024).toFixed(2) + ' MB',
+          wasCompressed: fileToUpload !== file,
+        });
+
         const formData = new FormData();
-        formData.append('image', file);
+        formData.append('image', fileToUpload);
 
         const response = await fetch('/api/upload', {
           method: 'POST',
@@ -325,7 +339,7 @@ export default function ProcessClient() {
                     or click to select a file
                   </p>
                   <p className="text-xs text-gray-400">
-                    Supports JPEG, PNG, WebP • Max 10MB
+                    Supports JPEG, PNG, WebP • Large images auto-compressed
                   </p>
                 </div>
               </CardContent>

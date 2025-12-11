@@ -240,20 +240,22 @@ export default function BackgroundRemovalClient() {
         console.error('ClippingMagic script load timeout');
         if (retryCount < maxRetries) {
           retryCount++;
-          console.log(`Retrying ClippingMagic script load (attempt ${retryCount}/${maxRetries})...`);
+          console.log(
+            `Retrying ClippingMagic script load (attempt ${retryCount}/${maxRetries})...`
+          );
           script.remove();
           setTimeout(loadScript, retryDelay);
         } else {
           setError(
             'Unable to load the background removal tool. This may be due to:\n' +
-            '• ClippingMagic service is temporarily unavailable\n' +
-            '• Network connectivity issues\n' +
-            '• Ad blockers or security software blocking the script\n\n' +
-            'Please try:\n' +
-            '1. Refreshing the page\n' +
-            '2. Checking your internet connection\n' +
-            '3. Disabling ad blockers for this site\n' +
-            '4. Trying again in a few minutes'
+              '• ClippingMagic service is temporarily unavailable\n' +
+              '• Network connectivity issues\n' +
+              '• Ad blockers or security software blocking the script\n\n' +
+              'Please try:\n' +
+              '1. Refreshing the page\n' +
+              '2. Checking your internet connection\n' +
+              '3. Disabling ad blockers for this site\n' +
+              '4. Trying again in a few minutes'
           );
         }
       }, 10000); // 10 second timeout
@@ -273,7 +275,7 @@ export default function BackgroundRemovalClient() {
             console.error('ClippingMagic initialization errors:', errors);
             setError(
               'Your browser is missing some required features for the background removal tool. ' +
-              'Please try using a modern browser like Chrome, Firefox, or Safari.'
+                'Please try using a modern browser like Chrome, Firefox, or Safari.'
             );
           }
         }
@@ -285,19 +287,21 @@ export default function BackgroundRemovalClient() {
 
         if (retryCount < maxRetries) {
           retryCount++;
-          console.log(`Retrying ClippingMagic script load (attempt ${retryCount}/${maxRetries})...`);
+          console.log(
+            `Retrying ClippingMagic script load (attempt ${retryCount}/${maxRetries})...`
+          );
           setTimeout(loadScript, retryDelay);
         } else {
           setError(
             'Unable to load the background removal tool. This may be due to:\n' +
-            '• ClippingMagic service is temporarily unavailable\n' +
-            '• Network connectivity issues\n' +
-            '• Ad blockers or security software blocking the script\n\n' +
-            'Please try:\n' +
-            '1. Refreshing the page\n' +
-            '2. Checking your internet connection\n' +
-            '3. Disabling ad blockers for this site\n' +
-            '4. Trying again in a few minutes'
+              '• ClippingMagic service is temporarily unavailable\n' +
+              '• Network connectivity issues\n' +
+              '• Ad blockers or security software blocking the script\n\n' +
+              'Please try:\n' +
+              '1. Refreshing the page\n' +
+              '2. Checking your internet connection\n' +
+              '3. Disabling ad blockers for this site\n' +
+              '4. Trying again in a few minutes'
           );
         }
       };
@@ -740,12 +744,22 @@ export default function BackgroundRemovalClient() {
                 <div className="bg-red-50 border border-red-200 text-red-800 p-4 rounded-lg mb-4">
                   <div className="flex items-start gap-3">
                     <div className="flex-shrink-0 mt-0.5">
-                      <svg className="w-5 h-5 text-red-600" fill="currentColor" viewBox="0 0 20 20">
-                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                      <svg
+                        className="w-5 h-5 text-red-600"
+                        fill="currentColor"
+                        viewBox="0 0 20 20"
+                      >
+                        <path
+                          fillRule="evenodd"
+                          d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
+                          clipRule="evenodd"
+                        />
                       </svg>
                     </div>
                     <div className="flex-1">
-                      <h3 className="font-semibold mb-2">Error Loading Background Removal Tool</h3>
+                      <h3 className="font-semibold mb-2">
+                        Error Loading Background Removal Tool
+                      </h3>
                       <div className="whitespace-pre-line text-sm">{error}</div>
                     </div>
                   </div>
@@ -760,8 +774,12 @@ export default function BackgroundRemovalClient() {
                       <div className="flex items-center gap-3">
                         <Loader2 className="w-5 h-5 animate-spin text-blue-600" />
                         <div>
-                          <h3 className="font-semibold">Loading Background Removal Tool</h3>
-                          <p className="text-sm mt-1">Please wait while we load the editor...</p>
+                          <h3 className="font-semibold">
+                            Loading Background Removal Tool
+                          </h3>
+                          <p className="text-sm mt-1">
+                            Please wait while we load the editor...
+                          </p>
                         </div>
                       </div>
                     </div>

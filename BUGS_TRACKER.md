@@ -1,6 +1,6 @@
 # DTF Editor - Bug Tracker
 
-**Last Updated:** November 28, 2025
+**Last Updated:** December 11, 2025
 **Status:** Active Bug Tracking
 
 ## 🎓 **LESSONS LEARNED - NOT BUGS, USER ERRORS**
@@ -22,6 +22,59 @@
 ---
 
 ## 🐛 **Critical Bugs (P0)**
+
+### **BUG-061: 413 Upload Error - Large Images Fail to Upload on Process Page**
+
+- **Status:** 🟢 FIXED
+- **Severity:** Critical
+- **Component:** Image Upload / Process Page
+- **Description:** Large images (>4.5MB) fail to upload with 413 "Payload Too Large" error, showing "Please select an image first" when user tries to process
+- **Reported:** December 11, 2025
+- **Symptoms:**
+  - User uploads large image (13.68 MB in reported case)
+  - Console shows multiple `413 (Payload Too Large)` errors for `/api/upload`
+  - Image preview displays correctly (client-side)
+  - When clicking process tool, shows "Please select an image first"
+  - React error #418 (hydration mismatch) also visible
+  - Upload fails silently - no error message shown to user
+- **Root Cause:**
+  - Vercel has a **4.5MB body size limit** on API routes (platform-level limit)
+  - The `/api/upload` route has code validation for 10MB but Vercel rejects before reaching the handler
+  - Process page client (`src/app/process/client.tsx`) was sending raw files without compression
+  - Background removal page had compression but process page did not
+  - The 413 error happens at platform level, returning HTML error page that breaks JSON parsing
+- **Solution Applied:**
+  1. **Created Shared Compression Utility (`src/lib/image-compression.ts`):**
+     - Reusable `compressImage()` function for client-side compression
+     - Targets 3MB to account for ~33% FormData encoding overhead
+     - Preserves dimensions up to 5000px for quality
+     - Uses gentle quality reduction (0.85 → 0.50) if needed
+     - Converts PNG to JPEG only when necessary for size
+  2. **Updated Process Page Client (`src/app/process/client.tsx`):**
+     - Import and use `compressImage()` before upload
+     - Added logging to show original vs compressed size
+     - Updated UI text to say "Large images auto-compressed" instead of "Max 10MB"
+- **Technical Details:**
+  - Vercel Hobby: 4.5MB limit
+  - Vercel Pro: 4.5MB default (can be increased with config)
+  - FormData encoding adds ~33% overhead, so 3MB file becomes ~4MB
+  - Compression preserves image quality while staying under limits
+- **Files Modified:**
+  - `src/lib/image-compression.ts` (NEW - shared compression utility)
+  - `src/app/process/client.tsx` (UPDATED - added compression before upload)
+- **Time to Resolution:** 30 minutes
+- **Testing:**
+  - ✅ Created compression utility
+  - ✅ Integrated into process page
+  - ✅ Build passes successfully
+  - ⏳ Awaiting user testing with large images
+- **Prevention for Future:**
+  - All upload components should use the shared `compressImage()` utility
+  - Consider adding a visual indicator when compression occurs
+  - Consider adding server-side validation that returns proper JSON errors
+- **Related Issues:** BUG-041, BUG-051 (previous 413 issues)
+
+---
 
 ### **BUG-060: ClippingMagic Script Failing to Load - Timeout and Network Issues**
 
@@ -70,6 +123,7 @@
   - Total max wait time: ~36 seconds (3 attempts × 12 seconds)
   - Cleans up timeout and script element on component unmount
 - **Error Message Provided to Users:**
+
   ```
   Unable to load the background removal tool. This may be due to:
   • ClippingMagic service is temporarily unavailable
@@ -82,6 +136,7 @@
   3. Disabling ad blockers for this site
   4. Trying again in a few minutes
   ```
+
 - **Time to Resolution:** 1 hour
 - **Testing:**
   - ✅ Added retry logic with 3 attempts

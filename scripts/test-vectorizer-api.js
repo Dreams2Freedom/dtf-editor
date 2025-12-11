@@ -23,7 +23,9 @@ async function testVectorization(imagePath, outputFormat = 'pdf') {
 
   if (!VECTORIZER_API_KEY || !VECTORIZER_API_SECRET) {
     console.error('\n❌ ERROR: Missing API credentials');
-    console.error('Please set VECTORIZER_API_KEY and VECTORIZER_API_SECRET in .env.local');
+    console.error(
+      'Please set VECTORIZER_API_KEY and VECTORIZER_API_SECRET in .env.local'
+    );
     process.exit(1);
   }
 
@@ -35,7 +37,9 @@ async function testVectorization(imagePath, outputFormat = 'pdf') {
   try {
     // Read the image file
     const imageBuffer = fs.readFileSync(imagePath);
-    console.log(`\nImage size: ${(imageBuffer.length / 1024 / 1024).toFixed(2)}MB`);
+    console.log(
+      `\nImage size: ${(imageBuffer.length / 1024 / 1024).toFixed(2)}MB`
+    );
 
     // Create form data
     const formData = new FormData();
@@ -84,7 +88,9 @@ async function testVectorization(imagePath, outputFormat = 'pdf') {
       headers: {
         Authorization:
           'Basic ' +
-          Buffer.from(`${VECTORIZER_API_KEY}:${VECTORIZER_API_SECRET}`).toString('base64'),
+          Buffer.from(
+            `${VECTORIZER_API_KEY}:${VECTORIZER_API_SECRET}`
+          ).toString('base64'),
         ...formData.getHeaders(),
       },
       body: formData,
@@ -111,7 +117,10 @@ async function testVectorization(imagePath, outputFormat = 'pdf') {
 
     // Save the result
     const resultBuffer = await response.buffer();
-    const outputPath = path.join(__dirname, `../test-vectorized.${outputFormat}`);
+    const outputPath = path.join(
+      __dirname,
+      `../test-vectorized.${outputFormat}`
+    );
     fs.writeFileSync(outputPath, resultBuffer);
 
     console.log('\n✅ SUCCESS!');
@@ -131,7 +140,9 @@ async function testVectorization(imagePath, outputFormat = 'pdf') {
 }
 
 // Get image path from command line or use default
-const imagePath = process.argv[2] || '/Users/shannonherod/Downloads/CleanShot 2025-11-17 at 21.43.32@2x.png';
+const imagePath =
+  process.argv[2] ||
+  '/Users/shannonherod/Downloads/CleanShot 2025-11-17 at 21.43.32@2x.png';
 const format = process.argv[3] || 'pdf';
 
 testVectorization(imagePath, format);
