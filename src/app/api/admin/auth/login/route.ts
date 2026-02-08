@@ -138,7 +138,7 @@ async function handlePost(request: NextRequest) {
 
     // Set admin session cookie first
     const cookieOptions = {
-      httpOnly: false, // Changed to allow JS access for debugging
+      httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax' as const,
       path: '/',
@@ -157,20 +157,6 @@ async function handlePost(request: NextRequest) {
       ...cookieOptions,
       httpOnly: true, // This one can be httpOnly
     });
-
-    // Also set Supabase auth cookies properly
-    const supabaseAuthCookies = await supabase.auth.getSession();
-    if (supabaseAuthCookies.data.session) {
-      // Ensure Supabase cookies are also set
-      cookieStore.set(
-        'sb-auth-token',
-        supabaseAuthCookies.data.session.access_token,
-        {
-          ...cookieOptions,
-          httpOnly: false, // Supabase needs to read this client-side
-        }
-      );
-    }
 
     // Create response
     const response = NextResponse.json({

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { withRateLimit } from '@/lib/rate-limit';
+import { validateImageUrl } from '@/lib/url-validation';
 
 async function handlePost(request: NextRequest) {
   console.log('[Analyze Image API] Request received');
@@ -33,6 +34,12 @@ async function handlePost(request: NextRequest) {
         { error: 'Image URL is required' },
         { status: 400 }
       );
+    }
+
+    // Validate URL to prevent SSRF attacks
+    const urlCheck = validateImageUrl(imageUrl);
+    if (!urlCheck.valid) {
+      return NextResponse.json({ error: urlCheck.error }, { status: 400 });
     }
 
     // Import OpenAI dynamically (server-side only)
