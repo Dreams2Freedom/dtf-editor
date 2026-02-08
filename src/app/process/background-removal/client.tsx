@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { Scissors, Download, Loader2, ArrowLeft, Wand2 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
@@ -39,6 +39,7 @@ export default function BackgroundRemovalClient() {
   const [isDownloading, setIsDownloading] = useState(false);
   const [processedImageId, setProcessedImageId] = useState<string | null>(null);
   const [creditsDeducted, setCreditsDeducted] = useState(false);
+  const creditsDeductedRef = useRef(false); // Synchronous guard to prevent race conditions
   const [resultGenerated, setResultGenerated] = useState(false);
   const [showSignupModal, setShowSignupModal] = useState(false);
 
@@ -651,32 +652,41 @@ export default function BackgroundRemovalClient() {
             setResultGenerated(true);
 
             // Deduct credit NOW when result is actually generated
-            if (!creditsDeducted) {
-              fetch('/api/credits/deduct', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                  credits: 1,
-                  operation: 'background-removal',
-                }),
-                credentials: 'include',
-              })
-                .then(async res => {
-                  if (res.ok) {
-                    setCreditsDeducted(true);
-                    console.log('Credit deducted for background removal');
-                    // Refresh credits in auth store
-                    const { refreshCredits } = useAuthStore.getState();
-                    await refreshCredits();
-                  } else {
-                    const error = await res.json();
-                    console.error('Failed to deduct credit:', error);
-                  }
-                })
-                .catch(err => {
-                  console.error('Failed to deduct credit:', err);
-                });
+            // Use synchronous ref guard to prevent race conditions with async state
+            if (creditsDeductedRef.current) {
+              console.log('Credit already deducted, skipping duplicate deduction');
+              break;
             }
+            creditsDeductedRef.current = true; // Set immediately (synchronous)
+
+            fetch('/api/credits/deduct', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                credits: 1,
+                operation: 'background-removal',
+              }),
+              credentials: 'include',
+            })
+              .then(async res => {
+                if (res.ok) {
+                  setCreditsDeducted(true); // Update UI state
+                  console.log('Credit deducted for background removal');
+                  // Refresh credits in auth store
+                  const { refreshCredits } = useAuthStore.getState();
+                  await refreshCredits();
+                } else {
+                  const error = await res.json();
+                  console.error('Failed to deduct credit:', error);
+                  // Reset ref on failure so user can retry
+                  creditsDeductedRef.current = false;
+                }
+              })
+              .catch(err => {
+                console.error('Failed to deduct credit:', err);
+                // Reset ref on failure so user can retry
+                creditsDeductedRef.current = false;
+              });
 
             // Store the image ID and download it
             setProcessedImageId(opts.image.id.toString());

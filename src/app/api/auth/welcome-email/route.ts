@@ -41,11 +41,24 @@ async function handlePost(request: NextRequest) {
     let userId: string | undefined;
     let userEmail: string | undefined;
 
-    // If userId and email are provided in body (signup flow), use them
+    // If userId and email are provided in body (signup flow), verify API key
     if (body.userId && body.email) {
       console.log(
         '[WELCOME EMAIL API] Step 3: Using provided userId and email from body'
       );
+
+      // Require API key for server-to-server calls
+      const apiKey = request.headers.get('x-api-key');
+      const validApiKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+      if (!apiKey || apiKey !== validApiKey) {
+        console.log('[WELCOME EMAIL API] Step 3: Invalid or missing API key');
+        return NextResponse.json(
+          { success: false, error: 'Unauthorized' },
+          { status: 401 }
+        );
+      }
+
       userId = body.userId;
       userEmail = body.email;
     } else {

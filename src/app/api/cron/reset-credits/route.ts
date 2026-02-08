@@ -9,7 +9,7 @@ async function handleGet(request: NextRequest) {
   try {
     // Verify cron secret to prevent unauthorized access
     const authHeader = request.headers.get('authorization');
-    const cronSecret = env.CRON_SECRET || 'your-cron-secret-here';
+    const cronSecret = env.CRON_SECRET;
 
     if (authHeader !== `Bearer ${cronSecret}`) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });

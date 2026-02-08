@@ -189,4 +189,4 @@ async function handlePost(request: NextRequest) {
 }
 
 // Apply rate limiting
-export const POST = withRateLimit(handlePost, 'admin');
+export const POST = withRateLimit(handlePost, 'auth');

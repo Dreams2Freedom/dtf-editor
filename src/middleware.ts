@@ -84,13 +84,6 @@ export async function middleware(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser();
 
-  // Pass the session status to the request headers for debugging
-  if (user) {
-    response.headers.set('x-has-session', 'true');
-  } else {
-    response.headers.set('x-has-session', 'false');
-  }
-
   // Apply security headers to all responses
   Object.entries(securityHeaders).forEach(([key, value]) => {
     response.headers.set(key, value);
@@ -122,24 +115,7 @@ export const config = {
     '/dashboard/:path*',
     '/settings/:path*',
     '/process/:path*',
-    // API routes that require authentication
-    '/api/admin/:path*',
-    '/api/process/:path*',
-    '/api/stripe/:path*',
-    '/api/users/:path*',
-    '/api/user/:path*',
-    '/api/generate/:path*',
-    '/api/upscale/:path*',
-    '/api/upscale-async/:path*',
-    '/api/jobs/:path*',
-    '/api/credits/:path*',
-    '/api/subscription/:path*',
-    '/api/storage/:path*',
-    '/api/analyze/:path*',
-    '/api/clippingmagic/:path*',
-    '/api/upload/:path*',
-    '/api/uploads/:path*',
-    '/api/support/:path*',
-    '/api/dpi-tool/:path*',
+    // Catch-all for all API routes to ensure security headers
+    '/api/:path*',
   ],
 };

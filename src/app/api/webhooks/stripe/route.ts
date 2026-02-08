@@ -23,6 +23,25 @@ function getSupabase() {
   return supabase;
 }
 
+// SEC-015: Webhook event deduplication to prevent duplicate credit grants
+const processedEvents = new Map<string, number>();
+const EVENT_TTL_MS = 5 * 60 * 1000; // 5 minutes
+
+function isEventProcessed(eventId: string): boolean {
+  const now = Date.now();
+  // Clean up old entries
+  processedEvents.forEach((timestamp, id) => {
+    if (now - timestamp > EVENT_TTL_MS) {
+      processedEvents.delete(id);
+    }
+  });
+  return processedEvents.has(eventId);
+}
+
+function markEventProcessed(eventId: string): void {
+  processedEvents.set(eventId, Date.now());
+}
+
 // Helper function to update GoHighLevel tags based on purchase type
 async function updateGoHighLevelTags(
   email: string,
@@ -171,6 +190,13 @@ export async function POST(request: NextRequest) {
     console.log('📨 Event type:', event.type);
     console.log('📨 Event ID:', event.id);
     console.log('📨 Event data:', JSON.stringify(event.data.object, null, 2));
+
+    // SEC-015: Skip already-processed events (prevents duplicate credits on retry)
+    if (isEventProcessed(event.id)) {
+      console.log('⚠️ Event already processed, skipping to prevent duplicates');
+      return NextResponse.json({ received: true, duplicate: true });
+    }
+    markEventProcessed(event.id);
 
     switch (event.type) {
       case 'checkout.session.completed':
