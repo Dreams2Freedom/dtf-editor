@@ -10,6 +10,7 @@
 ## 🔴 **SECURITY AUDIT FINDINGS (February 8, 2026)**
 
 ### **SEC-001: Debug Endpoint Allows Unauthenticated Credit Injection**
+
 - **Status:** 🔴 ACTIVE
 - **Severity:** CRITICAL
 - **File:** `src/app/api/debug-credits/route.ts`
@@ -17,6 +18,7 @@
 - **Fix:** Delete this file entirely
 
 ### **SEC-002: Debug Webhook Bypasses Stripe Signature Verification**
+
 - **Status:** 🔴 ACTIVE
 - **Severity:** CRITICAL
 - **File:** `src/app/api/webhooks/stripe/debug-route.ts`
@@ -24,6 +26,7 @@
 - **Fix:** Delete this file entirely
 
 ### **SEC-003: Stripe Checkout Missing User Authentication**
+
 - **Status:** 🔴 ACTIVE
 - **Severity:** CRITICAL
 - **File:** `src/app/api/stripe/create-checkout-session/route.ts`
@@ -31,6 +34,7 @@
 - **Fix:** Add getUser() verification
 
 ### **SEC-004: Payment Intent Missing Authentication**
+
 - **Status:** 🔴 ACTIVE
 - **Severity:** CRITICAL
 - **File:** `src/app/api/stripe/create-payment-intent/route.ts`
@@ -38,6 +42,7 @@
 - **Fix:** Add authentication, derive userId from session
 
 ### **SEC-005: Credit Refund Endpoint Open to All Users**
+
 - **Status:** 🔴 ACTIVE
 - **Severity:** CRITICAL
 - **File:** `src/app/api/credits/refund/route.ts`
@@ -45,6 +50,7 @@
 - **Fix:** Restrict to admin-only or delete
 
 ### **SEC-006: Admin Session Cookie httpOnly: false**
+
 - **Status:** 🔴 ACTIVE
 - **Severity:** CRITICAL
 - **File:** `src/app/api/admin/auth/login/route.ts`
@@ -52,6 +58,7 @@
 - **Fix:** Set httpOnly: true
 
 ### **SEC-007: Supabase Auth Token Cookie httpOnly: false**
+
 - **Status:** 🔴 ACTIVE
 - **Severity:** CRITICAL
 - **File:** `src/app/api/admin/auth/login/route.ts`
@@ -59,6 +66,7 @@
 - **Fix:** Remove this cookie, let @supabase/ssr handle it
 
 ### **SEC-008: Credit Reset Auth Bypass via stripe-signature Header**
+
 - **Status:** 🔴 ACTIVE
 - **Severity:** CRITICAL
 - **File:** `src/app/api/credits/reset/route.ts`
@@ -66,6 +74,7 @@
 - **Fix:** Verify signature properly or remove check
 
 ### **SEC-009: Impersonation Cookie Forgery**
+
 - **Status:** 🔴 ACTIVE
 - **Severity:** CRITICAL
 - **File:** `src/middleware/impersonation.ts`, `src/app/api/auth/effective-user/route.ts`
@@ -73,6 +82,7 @@
 - **Fix:** Verify admin auth before honoring impersonation cookies
 
 ### **SEC-010: SSRF via User-Controlled Image URLs**
+
 - **Status:** 🔴 ACTIVE
 - **Severity:** CRITICAL
 - **File:** `src/app/api/upscale/route.ts`, `src/app/api/analyze/image/route.ts`
@@ -80,6 +90,7 @@
 - **Fix:** URL allowlist, block private IP ranges
 
 ### **SEC-011: Open Redirect in Affiliate Tracking**
+
 - **Status:** 🔴 ACTIVE
 - **Severity:** CRITICAL
 - **File:** `src/app/api/affiliate/track/route.ts`
@@ -87,6 +98,7 @@
 - **Fix:** Validate path is relative, not protocol-relative
 
 ### **SEC-012: Hardcoded API Credentials in Production UI**
+
 - **Status:** 🔴 ACTIVE
 - **Severity:** CRITICAL
 - **File:** `src/components/image/ImageProcessor.tsx`
