@@ -2,6 +2,10 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { withRateLimit } from '@/lib/rate-limit';
 
+// SEC-005: Maximum refund amount per call to prevent abuse.
+// Legitimate refunds are always 1 credit (single failed operation).
+const MAX_REFUND_CREDITS = 2;
+
 async function handlePost(request: NextRequest) {
   try {
     const supabase = await createServerSupabaseClient();
@@ -19,7 +23,7 @@ async function handlePost(request: NextRequest) {
 
     const { credits, reason } = await request.json();
 
-    if (!credits || credits < 1) {
+    if (!credits || credits < 1 || credits > MAX_REFUND_CREDITS) {
       return NextResponse.json(
         { error: 'Invalid credit amount' },
         { status: 400 }
@@ -68,7 +72,6 @@ async function handlePost(request: NextRequest) {
       credits_remaining: newCredits,
     });
   } catch (error) {
-    console.error('Credit refund error:', error);
     return NextResponse.json(
       { error: 'Failed to process refund' },
       { status: 500 }
@@ -76,5 +79,5 @@ async function handlePost(request: NextRequest) {
   }
 }
 
-// Apply rate limiting
-export const POST = withRateLimit(handlePost, 'api');
+// SEC-005: Use strict 'auth' rate limiting (5 req/5min) instead of 'api' (300/min)
+export const POST = withRateLimit(handlePost, 'auth');
