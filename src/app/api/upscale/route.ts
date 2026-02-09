@@ -10,6 +10,7 @@ import { env } from '@/config/env';
 // Import save function
 import { saveProcessedImageToGallery } from '@/utils/saveProcessedImage';
 import { withRateLimit } from '@/lib/rate-limit';
+import { validateImageUrl } from '@/lib/url-validation';
 
 async function handlePost(request: NextRequest) {
   console.log('[Upscale] Handler started - v2 with gallery save');
@@ -79,6 +80,12 @@ async function handlePost(request: NextRequest) {
 
       finalImageUrl = uploadResult.url;
     } else if (imageUrl) {
+      // Validate URL to prevent SSRF attacks
+      const urlCheck = validateImageUrl(imageUrl);
+      if (!urlCheck.valid) {
+        return NextResponse.json({ error: urlCheck.error }, { status: 400 });
+      }
+
       // Use the provided image URL directly
       finalImageUrl = imageUrl;
     } else {

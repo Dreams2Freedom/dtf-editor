@@ -14,28 +14,58 @@ export async function getCurrentUser() {
   const authOverrideCookie = cookieStore.get('supabase-auth-override');
 
   if (impersonationCookie && authOverrideCookie) {
-    try {
-      const impersonationData = JSON.parse(impersonationCookie.value);
-      const serviceSupabase = createServiceRoleClient();
+    // SECURITY: Verify the current user is authenticated and is an admin
+    // before honoring the impersonation cookie
+    const supabase = await createServerSupabaseClient();
+    const {
+      data: { user: currentUser },
+      error: currentUserError,
+    } = await supabase.auth.getUser();
 
-      // Get the impersonated user's data
-      const { data: user, error } = await serviceSupabase
+    if (currentUserError || !currentUser) {
+      // No valid authenticated session - ignore impersonation cookie
+      console.warn(
+        'Impersonation cookie present but no valid session - ignoring'
+      );
+    } else {
+      // Verify the authenticated user is an admin
+      const { data: currentProfile } = await supabase
         .from('profiles')
-        .select('*')
-        .eq('id', impersonationData.impersonatedUserId)
+        .select('is_admin')
+        .eq('id', currentUser.id)
         .single();
 
-      if (!error && user) {
-        // Return the impersonated user with additional metadata
-        return {
-          ...user,
-          isImpersonated: true,
-          originalAdminId: impersonationData.originalAdminId,
-          originalAdminEmail: impersonationData.originalAdminEmail,
-        };
+      if (currentProfile?.is_admin) {
+        // Valid admin session - honor the impersonation cookie
+        try {
+          const impersonationData = JSON.parse(impersonationCookie.value);
+          const serviceSupabase = createServiceRoleClient();
+
+          // Get the impersonated user's data
+          const { data: user, error } = await serviceSupabase
+            .from('profiles')
+            .select('*')
+            .eq('id', impersonationData.impersonatedUserId)
+            .single();
+
+          if (!error && user) {
+            // Return the impersonated user with additional metadata
+            return {
+              ...user,
+              isImpersonated: true,
+              originalAdminId: impersonationData.originalAdminId,
+              originalAdminEmail: impersonationData.originalAdminEmail,
+            };
+          }
+        } catch (error) {
+          console.error('Error getting impersonated user:', error);
+        }
+      } else {
+        // User is not an admin - ignore impersonation cookie
+        console.warn(
+          'Impersonation cookie present but user is not admin - ignoring'
+        );
       }
-    } catch (error) {
-      console.error('Error getting impersonated user:', error);
     }
   }
 

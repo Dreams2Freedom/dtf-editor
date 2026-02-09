@@ -165,6 +165,25 @@ export async function PUT(request: NextRequest) {
 // POST: Check if a notification should be sent based on preferences
 export async function POST(request: NextRequest) {
   try {
+    const authHeader = request.headers.get('authorization');
+    if (!authHeader) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const token = authHeader.replace('Bearer ', '');
+    const authSupabase = createClient(env.SUPABASE_URL, env.SUPABASE_ANON_KEY, {
+      global: { headers: { Authorization: `Bearer ${token}` } },
+    });
+
+    // Get current user to verify authentication
+    const {
+      data: { user },
+      error: userError,
+    } = await authSupabase.auth.getUser();
+    if (userError || !user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const { adminEmail, notificationType } = await request.json();
 
     if (!adminEmail || !notificationType) {

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getStripeService } from '@/services/stripe';
 import { createClient } from '@supabase/supabase-js';
+import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { env } from '@/config/env';
 import { withRateLimit } from '@/lib/rate-limit';
 
@@ -8,13 +9,44 @@ const supabase = createClient(env.SUPABASE_URL, env.SUPABASE_SERVICE_ROLE_KEY);
 
 async function handlePost(request: NextRequest) {
   try {
-    const { priceId, userId, credits } = await request.json();
+    // SEC-004: Authenticate the user server-side
+    const authClient = await createServerSupabaseClient();
+    const {
+      data: { user: authenticatedUser },
+      error: authError,
+    } = await authClient.auth.getUser();
 
-    if (!priceId || !userId || !credits) {
+    if (authError || !authenticatedUser) {
       return NextResponse.json(
-        { error: 'Price ID, user ID, and credits are required' },
+        { error: 'Authentication required' },
+        { status: 401 }
+      );
+    }
+
+    const { priceId } = await request.json();
+
+    if (!priceId) {
+      return NextResponse.json(
+        { error: 'Price ID is required' },
         { status: 400 }
       );
+    }
+
+    // Use authenticated user's ID, not client-supplied userId
+    const userId = authenticatedUser.id;
+
+    // Determine credits from price ID server-side (never trust client)
+    let credits = 0;
+    if (priceId === env.STRIPE_PAYG_10_CREDITS_PRICE_ID) {
+      credits = 10;
+    } else if (priceId === env.STRIPE_PAYG_20_CREDITS_PRICE_ID) {
+      credits = 20;
+    } else if (priceId === env.STRIPE_PAYG_50_CREDITS_PRICE_ID) {
+      credits = 50;
+    }
+
+    if (credits === 0) {
+      return NextResponse.json({ error: 'Invalid price ID' }, { status: 400 });
     }
 
     // Get user from database

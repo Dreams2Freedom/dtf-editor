@@ -4,6 +4,7 @@ import { ProcessingMode, DeepImageService } from '@/services/deepImage';
 import { storageService } from '@/services/storage';
 import { saveProcessedImageToGallery } from '@/utils/saveProcessedImage';
 import { ApiCostTracker } from '@/lib/api-cost-tracker';
+import { validateImageUrl } from '@/lib/url-validation';
 
 // Maximum time we'll wait for processing (in ms)
 const MAX_PROCESSING_TIME = 55000; // 55 seconds to stay under Vercel's 60s limit
@@ -81,6 +82,12 @@ export async function POST(request: NextRequest) {
         console.log('[Upscale Direct] Using data URL for small file');
       }
     } else if (imageUrl) {
+      // Validate URL to prevent SSRF attacks
+      const urlCheck = validateImageUrl(imageUrl);
+      if (!urlCheck.valid) {
+        return NextResponse.json({ error: urlCheck.error }, { status: 400 });
+      }
+
       finalImageUrl = imageUrl;
     } else {
       return NextResponse.json({ error: 'No image provided' }, { status: 400 });

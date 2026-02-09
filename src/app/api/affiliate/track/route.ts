@@ -5,13 +5,17 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { trackReferralVisit, setAffiliateCookie } from '@/services/affiliate';
+import { validateRedirectPath } from '@/lib/url-validation';
 
 export async function GET(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams;
     const referralCode = searchParams.get('ref');
-    const redirectTo = searchParams.get('redirect') || '/';
+    const redirectParam = searchParams.get('redirect') || '/';
     const format = searchParams.get('format'); // 'json' for API calls, undefined for redirects
+
+    // Validate redirect path to prevent open redirect attacks
+    const { sanitizedPath: redirectTo } = validateRedirectPath(redirectParam);
 
     if (!referralCode) {
       if (format === 'json') {

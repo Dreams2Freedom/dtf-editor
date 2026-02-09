@@ -485,7 +485,7 @@ export class ImageProcessingService {
       // Function might not exist, continue to fallback
     }
 
-    // Fallback: Direct database update
+    // Fallback: Direct database update with optimistic locking to prevent race conditions
     const { data: profile, error: fetchError } = await this.supabase
       .from('profiles')
       .select('credits_remaining')
@@ -502,19 +502,25 @@ export class ImageProcessingService {
       throw new Error('Insufficient credits');
     }
 
-    // Update credits_remaining
+    // Atomic update with optimistic locking: only succeeds if credits haven't changed
     const updateData = {
       credits_remaining: availableCredits - credits,
       updated_at: new Date().toISOString(),
     };
 
-    const { error: updateError } = await this.supabase
+    const { data: updated, error: updateError } = await this.supabase
       .from('profiles')
       .update(updateData)
-      .eq('id', userId);
+      .eq('id', userId)
+      .eq('credits_remaining', availableCredits) // Optimistic lock: only update if balance unchanged
+      .select('credits_remaining')
+      .single();
 
-    if (updateError) {
-      throw new Error(`Failed to deduct credits: ${updateError.message}`);
+    if (updateError || !updated) {
+      // Another request changed credits between our read and write
+      throw new Error(
+        'Credit deduction conflict - please retry. This can happen if multiple operations are running simultaneously.'
+      );
     }
 
     // Log transaction

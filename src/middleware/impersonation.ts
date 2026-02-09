@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { createServerSupabaseClient } from '@/lib/supabase/server';
 
 export interface ImpersonationData {
   originalAdminId: string;
@@ -16,7 +17,41 @@ export async function handleImpersonation(
   const impersonationCookie = request.cookies.get('impersonation_session');
 
   if (impersonationCookie) {
+    // SECURITY: Verify the request has a valid authenticated session
+    // before applying impersonation headers
     try {
+      const supabase = await createServerSupabaseClient();
+      const {
+        data: { user },
+        error: userError,
+      } = await supabase.auth.getUser();
+
+      if (userError || !user) {
+        // No valid session - skip impersonation logic entirely
+        console.warn(
+          'Impersonation cookie present but no valid session - ignoring'
+        );
+        response.cookies.delete('impersonation_session');
+        return;
+      }
+
+      // Verify the authenticated user is an admin
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('is_admin')
+        .eq('id', user.id)
+        .single();
+
+      if (!profile?.is_admin) {
+        // User is not an admin - skip impersonation logic
+        console.warn(
+          'Impersonation cookie present but user is not admin - ignoring'
+        );
+        response.cookies.delete('impersonation_session');
+        return;
+      }
+
+      // Valid admin session - proceed with impersonation
       const impersonationData: ImpersonationData = JSON.parse(
         impersonationCookie.value
       );

@@ -4,8 +4,9 @@ import { emailService } from '@/services/email';
 import { goHighLevelService } from '@/services/goHighLevel';
 import { trackReferralSignup } from '@/services/affiliate';
 import { env } from '@/config/env';
+import { withRateLimit } from '@/lib/rate-limit';
 
-export async function POST(request: NextRequest) {
+async function handlePost(request: NextRequest) {
   console.log('[SIGNUP API] Step 1: Signup request received');
 
   try {
@@ -230,3 +231,6 @@ export async function POST(request: NextRequest) {
     );
   }
 }
+
+// Apply rate limiting
+export const POST = withRateLimit(handlePost, 'auth');

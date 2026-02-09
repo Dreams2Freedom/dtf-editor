@@ -3,9 +3,7 @@ import { createClient } from '@supabase/supabase-js';
 // Service role client has admin privileges - use carefully!
 export function createServiceRoleSupabaseClient() {
   // Use direct process.env access for server-side code
-  const supabaseUrl =
-    process.env.NEXT_PUBLIC_SUPABASE_URL ||
-    'https://xysuxhdqukjtqgzetwps.supabase.co';
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
   const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
 
   if (!supabaseUrl) {

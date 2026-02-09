@@ -1,7 +1,113 @@
 # DTF Editor - Bug Tracker
 
-**Last Updated:** December 11, 2025
-**Status:** Active Bug Tracking
+**Last Updated:** February 8, 2026
+**Status:** Active Bug Tracking - SECURITY AUDIT IN PROGRESS
+
+> **SECURITY AUDIT (Feb 8, 2026):** A comprehensive security audit found 47 issues (12 Critical, 17 High, 12 Medium, 6 Low). See `SECURITY_AUDIT_2026_02_08.md` for the full report and prioritized action plan.
+
+---
+
+## 🔴 **SECURITY AUDIT FINDINGS (February 8, 2026)**
+
+### **SEC-001: Debug Endpoint Allows Unauthenticated Credit Injection**
+
+- **Status:** 🔴 ACTIVE
+- **Severity:** CRITICAL
+- **File:** `src/app/api/debug-credits/route.ts`
+- **Description:** POST `/api/debug-credits` accepts any userId and adds 5 credits with NO authentication
+- **Fix:** Delete this file entirely
+
+### **SEC-002: Debug Webhook Bypasses Stripe Signature Verification**
+
+- **Status:** 🔴 ACTIVE
+- **Severity:** CRITICAL
+- **File:** `src/app/api/webhooks/stripe/debug-route.ts`
+- **Description:** Parses webhook body without signature verification, adds credits based on attacker-controlled metadata
+- **Fix:** Delete this file entirely
+
+### **SEC-003: Stripe Checkout Missing User Authentication**
+
+- **Status:** 🔴 ACTIVE
+- **Severity:** CRITICAL
+- **File:** `src/app/api/stripe/create-checkout-session/route.ts`
+- **Description:** Accepts userId from client with zero authentication
+- **Fix:** Add getUser() verification
+
+### **SEC-004: Payment Intent Missing Authentication**
+
+- **Status:** 🔴 ACTIVE
+- **Severity:** CRITICAL
+- **File:** `src/app/api/stripe/create-payment-intent/route.ts`
+- **Description:** userId and credits come from untrusted client with no auth
+- **Fix:** Add authentication, derive userId from session
+
+### **SEC-005: Credit Refund Endpoint Open to All Users**
+
+- **Status:** 🔴 ACTIVE
+- **Severity:** CRITICAL
+- **File:** `src/app/api/credits/refund/route.ts`
+- **Description:** Any authenticated user can add unlimited credits via POST with arbitrary credit amount
+- **Fix:** Restrict to admin-only or delete
+
+### **SEC-006: Admin Session Cookie httpOnly: false**
+
+- **Status:** 🔴 ACTIVE
+- **Severity:** CRITICAL
+- **File:** `src/app/api/admin/auth/login/route.ts`
+- **Description:** Admin session cookie readable by JavaScript - XSS = admin takeover
+- **Fix:** Set httpOnly: true
+
+### **SEC-007: Supabase Auth Token Cookie httpOnly: false**
+
+- **Status:** 🔴 ACTIVE
+- **Severity:** CRITICAL
+- **File:** `src/app/api/admin/auth/login/route.ts`
+- **Description:** Custom sb-auth-token cookie exposes access token to JavaScript
+- **Fix:** Remove this cookie, let @supabase/ssr handle it
+
+### **SEC-008: Credit Reset Auth Bypass via stripe-signature Header**
+
+- **Status:** 🔴 ACTIVE
+- **Severity:** CRITICAL
+- **File:** `src/app/api/credits/reset/route.ts`
+- **Description:** Presence of any stripe-signature header bypasses API key check
+- **Fix:** Verify signature properly or remove check
+
+### **SEC-009: Impersonation Cookie Forgery**
+
+- **Status:** 🔴 ACTIVE
+- **Severity:** CRITICAL
+- **File:** `src/middleware/impersonation.ts`, `src/app/api/auth/effective-user/route.ts`
+- **Description:** Impersonation system trusts cookies without verifying admin session
+- **Fix:** Verify admin auth before honoring impersonation cookies
+
+### **SEC-010: SSRF via User-Controlled Image URLs**
+
+- **Status:** 🔴 ACTIVE
+- **Severity:** CRITICAL
+- **File:** `src/app/api/upscale/route.ts`, `src/app/api/analyze/image/route.ts`
+- **Description:** User-supplied imageUrl sent to server-side fetch with no validation
+- **Fix:** URL allowlist, block private IP ranges
+
+### **SEC-011: Open Redirect in Affiliate Tracking**
+
+- **Status:** 🔴 ACTIVE
+- **Severity:** CRITICAL
+- **File:** `src/app/api/affiliate/track/route.ts`
+- **Description:** redirect query param used directly in NextResponse.redirect()
+- **Fix:** Validate path is relative, not protocol-relative
+
+### **SEC-012: Hardcoded API Credentials in Production UI**
+
+- **Status:** 🔴 ACTIVE
+- **Severity:** CRITICAL
+- **File:** `src/components/image/ImageProcessor.tsx`
+- **Description:** ClippingMagic credentials (id + secret) hardcoded in debug section rendered to all users
+- **Fix:** Remove debug section or gate behind NODE_ENV check
+
+### **SEC-013 through SEC-047:** See `SECURITY_AUDIT_2026_02_08.md` for full details on all 47 findings.
+
+---
 
 ## 🎓 **LESSONS LEARNED - NOT BUGS, USER ERRORS**
 

@@ -10,14 +10,12 @@ import { withRateLimit } from '@/lib/rate-limit';
 
 async function handlePost(request: NextRequest) {
   try {
-    // Check for API key in headers for cron job access
+    // SEC-008: Only allow access via a proper API key check.
+    // Previously, the mere presence of a stripe-signature header bypassed auth.
     const apiKey = request.headers.get('x-api-key');
     const isAuthorized = apiKey === env.SUPABASE_SERVICE_ROLE_KEY;
 
-    // If not authorized via API key, check if it's from a webhook
-    const stripeSignature = request.headers.get('stripe-signature');
-
-    if (!isAuthorized && !stripeSignature) {
+    if (!isAuthorized) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 

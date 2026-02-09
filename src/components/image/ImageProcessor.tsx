@@ -492,60 +492,6 @@ export function ImageProcessor() {
 
   return (
     <div className="max-w-4xl mx-auto p-6 space-y-6">
-      {/* Debug section */}
-      <div className="bg-yellow-50 p-4 rounded-lg border border-yellow-200">
-        <h3 className="font-bold mb-2">Debug Controls</h3>
-        <div className="space-x-2">
-          <button
-            onClick={() => {
-              console.log('Testing popup...');
-              const popup = window.open(
-                'https://google.com',
-                '_blank',
-                'width=800,height=600'
-              );
-              console.log('Popup result:', popup);
-              if (!popup) {
-                alert('Popup blocked! Please allow popups for this site.');
-              }
-            }}
-            className="px-3 py-1 bg-blue-500 text-white rounded text-sm"
-          >
-            Test Popup
-          </button>
-          <button
-            onClick={() => {
-              console.log('Testing ClippingMagic.edit directly...');
-              if (window.ClippingMagic && window.ClippingMagic.edit) {
-                window.ClippingMagic.edit(
-                  {
-                    image: {
-                      id: 207794051,
-                      secret:
-                        'g5rssaot702277tqfdpufdmqjtkc2u8j9h9t7fhro879csnbmtv',
-                    },
-                    useStickySettings: true,
-                    hideBottomToolbar: false,
-                    locale: 'en-US',
-                  },
-                  (opts: any) => {
-                    console.log('Direct test callback:', opts);
-                  }
-                );
-              } else {
-                alert('ClippingMagic not loaded');
-              }
-            }}
-            className="px-3 py-1 bg-green-500 text-white rounded text-sm"
-          >
-            Test ClippingMagic Direct
-          </button>
-          <span className="text-sm text-gray-600">
-            ClippingMagic loaded: {clippingMagicReady ? 'Yes' : 'No'}
-          </span>
-        </div>
-      </div>
-
       {/* Header */}
       <div className="text-center">
         <h1 className="text-3xl font-bold text-gray-900 mb-2">

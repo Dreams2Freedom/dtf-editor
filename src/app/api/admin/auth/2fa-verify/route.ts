@@ -4,18 +4,10 @@ import { cookies } from 'next/headers';
 import type { Admin2FAVerifyRequest, AdminSession } from '@/types/admin';
 import { withRateLimit } from '@/lib/rate-limit';
 
-// Simple TOTP implementation for development
-// In production, use a library like speakeasy or otpauth
+// TOTP verification not yet implemented
+// TODO: Implement proper TOTP verification using a library like speakeasy or otpauth
 function verifyTOTP(secret: string, token: string): boolean {
-  // For development, we'll use a simple verification
-  // In production, implement proper TOTP algorithm
-  if (process.env.NODE_ENV === 'development') {
-    // Accept a test code in development
-    return token === '123456' || token === secret.substring(0, 6);
-  }
-
-  // Placeholder for production TOTP verification
-  // TODO: Implement proper TOTP verification
+  // No implementation yet - always returns false
   return false;
 }
 
@@ -76,11 +68,11 @@ async function handlePost(request: NextRequest) {
       );
     }
 
-    // For development, if no secret is set, accept test code
-    const secret = adminUser.two_factor_secret || 'DEVELOPMENT_SECRET';
-
-    // Verify TOTP code
-    const verified = verifyTOTP(secret, code);
+    // 2FA verification not yet properly implemented
+    return NextResponse.json(
+      { error: '2FA verification not yet implemented', verified: false },
+      { status: 501 }
+    );
 
     if (!verified) {
       // Log failed 2FA attempt
