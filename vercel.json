@@ -62,6 +62,12 @@
     },
     "src/app/api/generate/preview/cleanup/route.ts": {
       "maxDuration": 60
+    },
+    "src/app/api/sam2/encode/route.ts": {
+      "maxDuration": 60
+    },
+    "src/app/api/sam2/apply-mask/route.ts": {
+      "maxDuration": 60
     }
   },
   "crons": [
