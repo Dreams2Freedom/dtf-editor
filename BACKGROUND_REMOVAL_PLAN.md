@@ -47,6 +47,7 @@ Based on proven implementations (Labelbox, Geronimo's Vercel demo), the optimal 
 ```
 
 **Why hybrid?**
+
 - The SAM2 **encoder** is heavy (~100MB+ model, needs GPU) → runs on server
 - The SAM2 **decoder** is light (~15MB ONNX) → runs in browser via WebGPU/WASM
 - This gives **real-time interactive feedback** when user clicks/marks (decoder runs instantly in browser)
@@ -58,18 +59,18 @@ Based on proven implementations (Labelbox, Geronimo's Vercel demo), the optimal 
 
 ### Core Features
 
-| Feature | ClippingMagic | Our Implementation |
-|---------|--------------|-------------------|
-| Auto-detect subject | Yes (AI) | SAM2 auto-segmentation |
-| Green mark (keep) | Yes | Positive point prompts → SAM2 |
-| Red mark (remove) | Yes | Negative point prompts → SAM2 |
-| Real-time preview | Yes (in popup) | Yes (inline canvas, no popup needed!) |
-| Transparent background | Yes (PNG) | Yes (PNG with alpha channel) |
-| Trim to content | Yes (fit-to-result) | Yes (auto-crop transparent pixels) |
-| Edge refinement | Yes (feathering, smoothing) | Configurable feather + matting |
-| Hair/fur detection | Yes (auto-detect) | SAM2 handles well, plus alpha matting |
-| 300 DPI output | Yes | Yes (preserve original resolution) |
-| Undo/redo | Limited | Full undo/redo stack |
+| Feature                | ClippingMagic               | Our Implementation                    |
+| ---------------------- | --------------------------- | ------------------------------------- |
+| Auto-detect subject    | Yes (AI)                    | SAM2 auto-segmentation                |
+| Green mark (keep)      | Yes                         | Positive point prompts → SAM2         |
+| Red mark (remove)      | Yes                         | Negative point prompts → SAM2         |
+| Real-time preview      | Yes (in popup)              | Yes (inline canvas, no popup needed!) |
+| Transparent background | Yes (PNG)                   | Yes (PNG with alpha channel)          |
+| Trim to content        | Yes (fit-to-result)         | Yes (auto-crop transparent pixels)    |
+| Edge refinement        | Yes (feathering, smoothing) | Configurable feather + matting        |
+| Hair/fur detection     | Yes (auto-detect)           | SAM2 handles well, plus alpha matting |
+| 300 DPI output         | Yes                         | Yes (preserve original resolution)    |
+| Undo/redo              | Limited                     | Full undo/redo stack                  |
 
 ### UX Improvements Over ClippingMagic
 
@@ -88,17 +89,20 @@ Based on proven implementations (Labelbox, Geronimo's Vercel demo), the optimal 
 **Goal:** Server endpoint that accepts an image and returns SAM2 embeddings
 
 #### Option A: Self-Hosted (Recommended for cost savings)
+
 - Deploy SAM2 encoder as a Python service using:
   - **Modal** (serverless GPU, pay-per-use, ~$0.001/image)
   - **Replicate** (hosted SAM2 endpoint already available)
   - **Railway/Fly.io** with GPU (persistent, ~$50-100/mo)
 
 #### Option B: Replicate API (Fastest to ship)
+
 - Use existing SAM2 endpoint on Replicate
 - ~$0.005/image (still 25x cheaper than ClippingMagic)
 - Can migrate to self-hosted later
 
 #### API Route: `/api/segment/encode`
+
 ```typescript
 // POST /api/segment/encode
 // Input: image file (multipart/form-data)
@@ -114,6 +118,7 @@ export async function POST(request: NextRequest) {
 ```
 
 #### Model Details
+
 - **Model:** `sam2.1-hiera-tiny` (smallest, fastest, good enough for background removal)
 - **Encoder output:** Image embeddings (~256KB compressed)
 - **Latency target:** <2 seconds for encoding
@@ -143,6 +148,7 @@ export async function POST(request: NextRequest) {
 ```
 
 #### Key Interactions
+
 1. **Upload** → Image sent to server encoder → embeddings returned
 2. **Auto-segment** → SAM2 decoder runs in browser with auto-detect
 3. **User clicks green (keep)** → Positive point → decoder re-runs mask instantly
@@ -152,6 +158,7 @@ export async function POST(request: NextRequest) {
 7. **Apply** → Final mask applied server-side at full resolution
 
 #### Technology Stack
+
 - **Canvas rendering:** HTML5 Canvas or PixiJS for performance
 - **ONNX Runtime:** `onnxruntime-web` with WebGPU backend
 - **SAM2 Decoder:** `sam2_hiera_tiny_decoder.onnx` (~15MB, cached in browser)
@@ -162,6 +169,7 @@ export async function POST(request: NextRequest) {
 **Goal:** SAM2 decoder running in browser for real-time mask generation
 
 #### Implementation
+
 ```typescript
 // src/lib/sam2/decoder.ts
 import * as ort from 'onnxruntime-web';
@@ -178,7 +186,7 @@ class SAM2Decoder {
   }
 
   async predict(
-    imageEmbeddings: Float32Array,  // From server encoder
+    imageEmbeddings: Float32Array, // From server encoder
     points: { x: number; y: number; label: 'keep' | 'remove' }[],
     imageSize: { width: number; height: number }
   ): Promise<ImageData> {
@@ -190,6 +198,7 @@ class SAM2Decoder {
 ```
 
 #### Point Prompt System
+
 - **Green click (keep):** `label = 1` (foreground)
 - **Red click (remove):** `label = 0` (background)
 - **Brush stroke:** Converted to multiple points along the stroke path
@@ -200,6 +209,7 @@ class SAM2Decoder {
 **Goal:** Convert mask to final transparent PNG with trim
 
 #### Server endpoint: `/api/segment/apply-mask`
+
 ```typescript
 // POST /api/segment/apply-mask
 // Input: { imageId, mask (binary), options }
@@ -218,6 +228,7 @@ class SAM2Decoder {
 ```
 
 #### Image Processing Tools (Server-Side)
+
 - **Sharp** (already in project) - Resize, crop, format conversion
 - **Alpha matting** - For hair/fur edge refinement (can use simple feathering or a lightweight matting model)
 - **Auto-crop** - Trim all fully-transparent border pixels
@@ -227,6 +238,7 @@ class SAM2Decoder {
 **Goal:** Wire it all together, replace ClippingMagic in the UI
 
 #### Migration Strategy (Non-Breaking)
+
 1. Build new editor at `/process/background-removal-v2` (separate route)
 2. Test thoroughly with real images
 3. Add feature flag: `USE_SAM2_EDITOR=true` in env
@@ -235,6 +247,7 @@ class SAM2Decoder {
 6. Remove ClippingMagic integration entirely
 
 #### Files to Create
+
 ```
 src/lib/sam2/
   decoder.ts          - Browser-side SAM2 decoder wrapper
@@ -258,6 +271,7 @@ public/models/
 ```
 
 #### Files to Modify
+
 ```
 src/app/process/background-removal/client.tsx  - Replace CM with new editor
 src/services/costTracking.ts                   - Update cost ($0 per image)
@@ -265,6 +279,7 @@ src/config/env.ts                              - Add SAM2 config vars
 ```
 
 #### Files to Eventually Remove
+
 ```
 src/services/clippingMagic.ts
 src/components/image/ClippingMagicEditor.tsx
@@ -277,35 +292,35 @@ src/app/api/clippingmagic/download/[id]/route.ts
 
 ## Development Timeline
 
-| Week | Phase | Deliverable |
-|------|-------|-------------|
-| Week 1 | Phase 1 + 2 | SAM2 encoder API + basic canvas editor with dual-pane view |
+| Week   | Phase       | Deliverable                                                     |
+| ------ | ----------- | --------------------------------------------------------------- |
+| Week 1 | Phase 1 + 2 | SAM2 encoder API + basic canvas editor with dual-pane view      |
 | Week 2 | Phase 3 + 4 | Browser decoder with real-time masks + post-processing pipeline |
-| Week 3 | Phase 5 | Full integration, testing, feature flag rollout |
-| Week 4 | Polish | Edge cases, mobile optimization, ClippingMagic removal |
+| Week 3 | Phase 5     | Full integration, testing, feature flag rollout                 |
+| Week 4 | Polish      | Edge cases, mobile optimization, ClippingMagic removal          |
 
 ---
 
 ## Cost Comparison
 
-| | ClippingMagic | SAM2 Self-Hosted | SAM2 via Replicate |
-|-|--------------|-----------------|-------------------|
-| Per image | $0.125 | ~$0.001 (GPU compute) | ~$0.005 |
-| 1,000 images/mo | $125 | ~$1 | ~$5 |
-| 10,000 images/mo | $1,250 | ~$10 | ~$50 |
-| 100,000 images/mo | $12,500 | ~$100 | ~$500 |
+|                   | ClippingMagic | SAM2 Self-Hosted      | SAM2 via Replicate |
+| ----------------- | ------------- | --------------------- | ------------------ |
+| Per image         | $0.125        | ~$0.001 (GPU compute) | ~$0.005            |
+| 1,000 images/mo   | $125          | ~$1                   | ~$5                |
+| 10,000 images/mo  | $1,250        | ~$10                  | ~$50               |
+| 100,000 images/mo | $12,500       | ~$100                 | ~$500              |
 
 ---
 
 ## Risks & Mitigations
 
-| Risk | Impact | Mitigation |
-|------|--------|------------|
-| SAM2 quality not as good as ClippingMagic for certain images | Users get worse results | Alpha matting post-processing for hair/edges; keep ClippingMagic as premium fallback |
-| WebGPU not supported in older browsers | ~15% of users can't use interactive editor | WASM fallback (slower but works everywhere) |
-| Encoder latency on cold start | 5-10s first request | Keep-alive on Modal/Replicate; show progress indicator |
-| ONNX model size (15MB decoder) | Slow first load | Cache in browser OPFS; show download progress; preload on page navigation |
-| Complex hair/fur edges | Less clean than ClippingMagic's specialized algorithm | Add alpha matting post-processing step; iterate on quality |
+| Risk                                                         | Impact                                                | Mitigation                                                                           |
+| ------------------------------------------------------------ | ----------------------------------------------------- | ------------------------------------------------------------------------------------ |
+| SAM2 quality not as good as ClippingMagic for certain images | Users get worse results                               | Alpha matting post-processing for hair/edges; keep ClippingMagic as premium fallback |
+| WebGPU not supported in older browsers                       | ~15% of users can't use interactive editor            | WASM fallback (slower but works everywhere)                                          |
+| Encoder latency on cold start                                | 5-10s first request                                   | Keep-alive on Modal/Replicate; show progress indicator                               |
+| ONNX model size (15MB decoder)                               | Slow first load                                       | Cache in browser OPFS; show download progress; preload on page navigation            |
+| Complex hair/fur edges                                       | Less clean than ClippingMagic's specialized algorithm | Add alpha matting post-processing step; iterate on quality                           |
 
 ---
 
