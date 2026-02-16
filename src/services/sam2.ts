@@ -15,6 +15,7 @@ export class SAM2Service {
   constructor() {
     this.replicate = new Replicate({
       auth: env.REPLICATE_API_TOKEN,
+      useFileOutput: false,
     });
   }
 
@@ -34,8 +35,9 @@ export class SAM2Service {
     const base64Image = `data:image/png;base64,${pngBuffer.toString('base64')}`;
 
     // Use BiRefNet for high-quality background removal (~1 second, 4.5M runs)
+    // Version hash required for community models on Replicate
     const output = await this.replicate.run(
-      'men1scus/birefnet' as `${string}/${string}`,
+      'men1scus/birefnet:f74986db0355b58403ed20963af156525e2891ea3c2d499bfbfb2a28cd87c5d7' as `${string}/${string}:${string}`,
       {
         input: {
           image: base64Image,
