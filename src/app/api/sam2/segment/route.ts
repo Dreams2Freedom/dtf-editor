@@ -24,10 +24,7 @@ export async function POST(request: NextRequest) {
 
     // Parse request body
     const body = await request.json();
-    const { imageUrl, points } = body as {
-      imageUrl: string;
-      points?: { x: number; y: number; label: 0 | 1 }[];
-    };
+    const { imageUrl } = body as { imageUrl: string };
 
     if (!imageUrl) {
       return NextResponse.json(
@@ -36,11 +33,11 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const sam2 = new SAM2Service();
+    const service = new SAM2Service();
 
-    if (!sam2.isAvailable()) {
+    if (!service.isAvailable()) {
       return NextResponse.json(
-        { error: 'SAM2 service is not configured' },
+        { error: 'Background removal service is not configured' },
         { status: 503 }
       );
     }
@@ -61,34 +58,27 @@ export async function POST(request: NextRequest) {
       imageBuffer = (await sharp(imageBuffer).png().toBuffer()) as Buffer;
     }
 
-    // If no points, use center point for auto-segmentation
-    const segmentPoints =
-      points && points.length > 0
-        ? points
-        : [{ x: 0.5, y: 0.5, label: 1 as const }];
-
     const startTime = Date.now();
 
-    // Call SAM2 segment via Replicate
-    const result = await sam2.segment(imageBuffer, segmentPoints);
+    // Call BiRefNet background removal via Replicate
+    const result = await service.removeBackground(imageBuffer);
     const processingTime = Date.now() - startTime;
 
-    if (!result.combinedMaskUrl) {
-      return NextResponse.json(
-        { error: 'No mask returned from SAM2' },
-        { status: 500 }
-      );
-    }
+    // Download the result (transparent PNG) and extract the mask
+    const resultBuffer = await service.downloadImage(result.outputUrl);
 
-    // Download the mask and convert to base64 PNG
-    const maskBuffer = await sam2.downloadMask(result.combinedMaskUrl);
-    const maskPng = await sharp(maskBuffer).png().toBuffer();
+    // Extract the alpha channel as a white/black mask PNG
+    const maskPng = await sharp(resultBuffer)
+      .extractChannel('alpha')
+      .toColourspace('b-w')
+      .png()
+      .toBuffer();
+
     const maskBase64 = `data:image/png;base64,${maskPng.toString('base64')}`;
 
-    console.log('[SAM2 Segment] Success:', {
+    console.log('[BG Removal] Success:', {
       userId: user.id,
       imageSize: result.imageSize,
-      pointCount: segmentPoints.length,
       processingTimeMs: processingTime,
     });
 
@@ -98,10 +88,10 @@ export async function POST(request: NextRequest) {
       imageSize: result.imageSize,
     });
   } catch (error) {
-    console.error('[SAM2 Segment] Error:', error);
+    console.error('[BG Removal] Error:', error);
     const message = error instanceof Error ? error.message : 'Unknown error';
     return NextResponse.json(
-      { error: `Segmentation failed: ${message}` },
+      { error: `Background removal failed: ${message}` },
       { status: 500 }
     );
   }

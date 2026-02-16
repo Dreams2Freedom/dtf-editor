@@ -25,6 +25,9 @@ interface UseSAM2Return {
   clearPoints: () => Promise<void>;
 }
 
+/** Brush radius in pixels for client-side mask editing */
+const BRUSH_RADIUS = 15;
+
 /**
  * Convert a mask PNG (white=foreground, black=background) to ImageData
  * with proper alpha channel (255=foreground, 0=background).
@@ -46,22 +49,18 @@ function maskPngToImageData(
         reject(new Error('Failed to create canvas context'));
         return;
       }
-
-      // Draw mask at display size
       ctx.drawImage(img, 0, 0, width, height);
       const imgData = ctx.getImageData(0, 0, width, height);
       const pixels = imgData.data;
 
-      // Convert: white pixels -> alpha=255 (foreground), black -> alpha=0
       const result = new ImageData(width, height);
       for (let i = 0; i < pixels.length; i += 4) {
         const brightness = (pixels[i] + pixels[i + 1] + pixels[i + 2]) / 3;
-        result.data[i] = 255; // R
-        result.data[i + 1] = 255; // G
-        result.data[i + 2] = 255; // B
-        result.data[i + 3] = brightness > 128 ? 255 : 0; // A
+        result.data[i] = 255;
+        result.data[i + 1] = 255;
+        result.data[i + 2] = 255;
+        result.data[i + 3] = brightness > 128 ? 255 : 0;
       }
-
       resolve(result);
     };
     img.onerror = () => reject(new Error('Failed to load mask image'));
@@ -70,8 +69,47 @@ function maskPngToImageData(
 }
 
 /**
- * Hook for SAM2 background removal using server-side Replicate segmentation.
- * Each point interaction triggers a server API call to Replicate.
+ * Clone an ImageData object.
+ */
+function cloneImageData(src: ImageData): ImageData {
+  const dst = new ImageData(src.width, src.height);
+  dst.data.set(src.data);
+  return dst;
+}
+
+/**
+ * Paint a circle on the mask at the given normalized (0-1) coordinates.
+ * label=1 (keep/green) sets alpha=255, label=0 (remove/red) sets alpha=0.
+ */
+function paintMaskCircle(
+  mask: ImageData,
+  nx: number,
+  ny: number,
+  label: 0 | 1,
+  radius: number
+): ImageData {
+  const result = cloneImageData(mask);
+  const cx = Math.round(nx * mask.width);
+  const cy = Math.round(ny * mask.height);
+  const alphaValue = label === 1 ? 255 : 0;
+
+  for (let dy = -radius; dy <= radius; dy++) {
+    for (let dx = -radius; dx <= radius; dx++) {
+      if (dx * dx + dy * dy > radius * radius) continue;
+      const px = cx + dx;
+      const py = cy + dy;
+      if (px < 0 || px >= mask.width || py < 0 || py >= mask.height) continue;
+      const idx = (py * mask.width + px) * 4;
+      result.data[idx + 3] = alphaValue;
+    }
+  }
+
+  return result;
+}
+
+/**
+ * Hook for background removal using server-side BiRefNet + client-side mask editing.
+ * Initial removal calls the server once. Green/red marks edit the mask locally (instant).
  */
 export function useSAM2(options?: UseSAM2Options): UseSAM2Return {
   const [status, setStatus] = useState<AsyncStatus>('idle');
@@ -80,26 +118,23 @@ export function useSAM2(options?: UseSAM2Options): UseSAM2Return {
   const [isProcessing, setIsProcessing] = useState(false);
 
   const imageUrlRef = useRef<string>('');
-  const displaySizeRef = useRef({ width: 512, height: 512 });
-  const undoStackRef = useRef<PointPrompt[][]>([]);
+  const baseMaskRef = useRef<ImageData | null>(null);
+  const undoStackRef = useRef<ImageData[]>([]);
 
-  // Call the segment API and return mask as ImageData
+  // Call the segment API (server-side BiRefNet) and return mask as ImageData
   const callSegmentApi = useCallback(
-    async (currentPoints: PointPrompt[]): Promise<ImageData | null> => {
+    async (): Promise<ImageData | null> => {
       const response = await fetch('/api/sam2/segment', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          imageUrl: imageUrlRef.current,
-          points: currentPoints.length > 0 ? currentPoints : undefined,
-        }),
+        body: JSON.stringify({ imageUrl: imageUrlRef.current }),
       });
 
       if (!response.ok) {
         const data = await response.json().catch(() => ({}));
         throw new Error(
           (data as { error?: string }).error ||
-            `Segment failed: ${response.status}`
+            `Removal failed: ${response.status}`
         );
       }
 
@@ -108,7 +143,6 @@ export function useSAM2(options?: UseSAM2Options): UseSAM2Return {
         throw new Error(data.error || 'No mask returned');
       }
 
-      // Calculate display dimensions (fit to max 512px)
       const imgSize = data.imageSize || { width: 1024, height: 1024 };
       const maxDim = 512;
       const scale = Math.min(
@@ -118,15 +152,13 @@ export function useSAM2(options?: UseSAM2Options): UseSAM2Return {
       );
       const displayW = Math.round(imgSize.width * scale);
       const displayH = Math.round(imgSize.height * scale);
-      displaySizeRef.current = { width: displayW, height: displayH };
 
-      // Convert mask PNG to ImageData
       return maskPngToImageData(data.maskBase64, displayW, displayH);
     },
     []
   );
 
-  // Start segmentation with auto-detect (center point)
+  // Start background removal (one server call)
   const startSegmentation = useCallback(
     async (imageUrl: string) => {
       imageUrlRef.current = imageUrl;
@@ -134,16 +166,17 @@ export function useSAM2(options?: UseSAM2Options): UseSAM2Return {
       setIsProcessing(true);
 
       try {
-        const mask = await callSegmentApi([]);
+        const mask = await callSegmentApi();
+        baseMaskRef.current = mask;
         setCurrentMask(mask);
         setStatus('ready');
         options?.onReady?.();
         if (mask) options?.onMaskUpdate?.(mask);
       } catch (err) {
-        console.error('[useSAM2] Auto-segment failed:', err);
+        console.error('[useSAM2] Background removal failed:', err);
         setStatus('error');
         options?.onError?.(
-          `Segmentation failed: ${err instanceof Error ? err.message : 'Unknown error'}`
+          `Background removal failed: ${err instanceof Error ? err.message : 'Unknown error'}`
         );
       } finally {
         setIsProcessing(false);
@@ -152,72 +185,55 @@ export function useSAM2(options?: UseSAM2Options): UseSAM2Return {
     [callSegmentApi, options]
   );
 
-  // Add a point and re-segment via server
+  // Add a point and edit mask CLIENT-SIDE (instant, no server call)
   const addPoint = useCallback(
     async (point: PointPrompt) => {
-      undoStackRef.current.push([...points]);
+      if (!currentMask) return;
+
+      // Save current mask for undo
+      undoStackRef.current.push(cloneImageData(currentMask));
 
       const newPoints = [...points, point];
       setPoints(newPoints);
-      setIsProcessing(true);
 
-      try {
-        const mask = await callSegmentApi(newPoints);
-        setCurrentMask(mask);
-        if (mask) options?.onMaskUpdate?.(mask);
-      } catch (err) {
-        console.error('[useSAM2] Segment failed:', err);
-        options?.onError?.(
-          `Segmentation failed: ${err instanceof Error ? err.message : 'Unknown error'}`
-        );
-      } finally {
-        setIsProcessing(false);
-      }
+      // Paint on the mask locally
+      const updated = paintMaskCircle(
+        currentMask,
+        point.x,
+        point.y,
+        point.label,
+        BRUSH_RADIUS
+      );
+      setCurrentMask(updated);
+      options?.onMaskUpdate?.(updated);
     },
-    [points, callSegmentApi, options]
+    [currentMask, points, options]
   );
 
-  // Undo last point and re-segment
+  // Undo last point edit (restore previous mask)
   const undoPoint = useCallback(async () => {
-    const previousState = undoStackRef.current.pop();
-    if (previousState === undefined) return;
+    const previousMask = undoStackRef.current.pop();
+    if (!previousMask) return;
 
-    setPoints(previousState);
-    setIsProcessing(true);
+    const newPoints = [...points];
+    newPoints.pop();
+    setPoints(newPoints);
 
-    try {
-      const mask = await callSegmentApi(previousState);
-      setCurrentMask(mask);
-      if (mask) options?.onMaskUpdate?.(mask);
-    } catch (err) {
-      console.error('[useSAM2] Segment failed:', err);
-      options?.onError?.(
-        `Segmentation failed: ${err instanceof Error ? err.message : 'Unknown error'}`
-      );
-    } finally {
-      setIsProcessing(false);
-    }
-  }, [callSegmentApi, options]);
+    setCurrentMask(previousMask);
+    options?.onMaskUpdate?.(previousMask);
+  }, [points, options]);
 
-  // Clear all points and re-segment (auto-detect)
+  // Clear all edits and restore the original AI-generated mask
   const clearPoints = useCallback(async () => {
     undoStackRef.current = [];
     setPoints([]);
-    setIsProcessing(true);
 
-    try {
-      const mask = await callSegmentApi([]);
-      setCurrentMask(mask);
-      if (mask) options?.onMaskUpdate?.(mask);
-    } catch (err) {
-      console.error('[useSAM2] Segment failed:', err);
-      options?.onError?.(
-        `Segmentation failed: ${err instanceof Error ? err.message : 'Unknown error'}`
-      );
-    } finally {
-      setIsProcessing(false);
+    if (baseMaskRef.current) {
+      const restored = cloneImageData(baseMaskRef.current);
+      setCurrentMask(restored);
+      options?.onMaskUpdate?.(restored);
     }
-  }, [callSegmentApi, options]);
+  }, [options]);
 
   return {
     status,
