@@ -116,14 +116,9 @@ export const env = {
   UPSTASH_REDIS_REST_URL: process.env.UPSTASH_REDIS_REST_URL || '',
   UPSTASH_REDIS_REST_TOKEN: process.env.UPSTASH_REDIS_REST_TOKEN || '',
 
-  // SAM2 Background Removal (Replicate)
-  REPLICATE_API_TOKEN: process.env.REPLICATE_API_TOKEN || '',
-  SAM2_MODEL_VERSION: process.env.SAM2_MODEL_VERSION || 'meta/sam-2',
-
   // Feature Flags
   ENABLE_ANALYTICS: process.env.NEXT_PUBLIC_ENABLE_ANALYTICS === 'true',
   ENABLE_DEBUG: process.env.NODE_ENV === 'development',
-  USE_SAM2: process.env.NEXT_PUBLIC_USE_SAM2 === 'true',
 } as const;
 
 // Type for environment variables
@@ -215,9 +210,6 @@ export function isFeatureAvailable(
     case 'upscaling':
       return !!env.DEEP_IMAGE_API_KEY;
     case 'background-removal':
-      if (env.USE_SAM2) {
-        return !!env.REPLICATE_API_TOKEN;
-      }
       return !!env.CLIPPINGMAGIC_API_KEY && !!env.CLIPPINGMAGIC_API_SECRET;
     case 'vectorization':
       return !!env.VECTORIZER_API_KEY && !!env.VECTORIZER_API_SECRET;

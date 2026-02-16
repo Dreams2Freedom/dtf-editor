@@ -9,20 +9,6 @@ import Link from 'next/link';
 import { useAuthStore } from '@/stores/authStore';
 import { Breadcrumb } from '@/components/ui/Breadcrumb';
 import { SignupModal } from '@/components/auth/SignupModal';
-import dynamic from 'next/dynamic';
-
-// Dynamic import with ssr: false to prevent hydration mismatch (uses canvas/browser APIs)
-const SAM2BackgroundRemovalClient = dynamic(() => import('./sam2-client'), {
-  ssr: false,
-  loading: () => (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-      <div className="text-center">
-        <div className="w-8 h-8 animate-spin border-4 border-gray-300 border-t-blue-500 rounded-full mx-auto mb-4" />
-        <p className="text-gray-600">Loading editor...</p>
-      </div>
-    </div>
-  ),
-});
 
 declare global {
   interface Window {
@@ -31,15 +17,6 @@ declare global {
 }
 
 export default function BackgroundRemovalClient() {
-  // Feature flag: use SAM2-based background removal when enabled
-  if (process.env.NEXT_PUBLIC_USE_SAM2 === 'true') {
-    return <SAM2BackgroundRemovalClient />;
-  }
-
-  return <LegacyClippingMagicClient />;
-}
-
-function LegacyClippingMagicClient() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const { profile, refreshCredits, user } = useAuthStore();
@@ -677,9 +654,7 @@ function LegacyClippingMagicClient() {
             // Deduct credit NOW when result is actually generated
             // Use synchronous ref guard to prevent race conditions with async state
             if (creditsDeductedRef.current) {
-              console.log(
-                'Credit already deducted, skipping duplicate deduction'
-              );
+              console.log('Credit already deducted, skipping duplicate deduction');
               break;
             }
             creditsDeductedRef.current = true; // Set immediately (synchronous)
