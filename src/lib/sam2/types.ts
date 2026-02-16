@@ -2,17 +2,7 @@
  * SAM2 Background Removal - Shared Types
  */
 
-/** Base64-encoded image embeddings from SAM2 encoder */
-export interface SAM2Embeddings {
-  /** Base64-encoded Float32Array of encoder output */
-  data: string;
-  /** Tensor shape, e.g. [1, 256, 64, 64] */
-  shape: number[];
-  /** Original image dimensions before resize to 1024x1024 */
-  imageSize: { width: number; height: number };
-}
-
-/** A single point prompt for the SAM2 decoder */
+/** A single point prompt for SAM2 segmentation */
 export interface PointPrompt {
   /** Normalized x coordinate (0-1) */
   x: number;
@@ -22,13 +12,7 @@ export interface PointPrompt {
   label: 0 | 1;
 }
 
-/** Input for the SAM2 decoder inference */
-export interface SAM2DecoderInput {
-  embeddings: SAM2Embeddings;
-  points: PointPrompt[];
-}
-
-/** Output mask from the SAM2 decoder */
+/** Output mask from SAM2 segmentation */
 export interface SAM2MaskOutput {
   /** Binary mask as ImageData (alpha: 255=foreground, 0=background) */
   mask: ImageData;
@@ -44,11 +28,12 @@ export type ToolMode = 'keep' | 'remove';
 /** Status of async operations */
 export type AsyncStatus = 'idle' | 'loading' | 'ready' | 'error';
 
-/** Encode API response */
-export interface EncodeResponse {
+/** Segment API response */
+export interface SegmentResponse {
   success: boolean;
-  embeddings?: string;
-  shape?: number[];
+  /** Base64-encoded PNG mask (data:image/png;base64,...) */
+  maskBase64?: string;
+  /** Original image dimensions */
   imageSize?: { width: number; height: number };
   error?: string;
 }

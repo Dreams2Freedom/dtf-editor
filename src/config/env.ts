@@ -118,7 +118,7 @@ export const env = {
 
   // SAM2 Background Removal (Replicate)
   REPLICATE_API_TOKEN: process.env.REPLICATE_API_TOKEN || '',
-  SAM2_MODEL_VERSION: process.env.SAM2_MODEL_VERSION || 'meta/sam-2.1-small',
+  SAM2_MODEL_VERSION: process.env.SAM2_MODEL_VERSION || 'meta/sam-2',
 
   // Feature Flags
   ENABLE_ANALYTICS: process.env.NEXT_PUBLIC_ENABLE_ANALYTICS === 'true',

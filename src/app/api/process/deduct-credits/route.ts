@@ -5,9 +5,9 @@ import { withRateLimit } from '@/lib/rate-limit';
 
 // Server-side operation cost mapping
 const OPERATION_COSTS: Record<string, number> = {
-  'upscale': 1,
+  upscale: 1,
   'background-removal': 1,
-  'vectorization': 1,
+  vectorization: 1,
   'ai-generation': 2,
 };
 
@@ -62,7 +62,11 @@ async function handlePost(request: NextRequest) {
     }
 
     // Deduct credits
-    await imageProcessingService.deductCredits(userId, actualCreditCost, operation);
+    await imageProcessingService.deductCredits(
+      userId,
+      actualCreditCost,
+      operation
+    );
 
     // Log the processing record
     await imageProcessingService.logOperation(
