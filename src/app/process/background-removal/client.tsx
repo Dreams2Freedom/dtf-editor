@@ -9,7 +9,20 @@ import Link from 'next/link';
 import { useAuthStore } from '@/stores/authStore';
 import { Breadcrumb } from '@/components/ui/Breadcrumb';
 import { SignupModal } from '@/components/auth/SignupModal';
-import SAM2BackgroundRemovalClient from './sam2-client';
+import dynamic from 'next/dynamic';
+
+// Dynamic import with ssr: false to prevent hydration mismatch (uses canvas/browser APIs)
+const SAM2BackgroundRemovalClient = dynamic(() => import('./sam2-client'), {
+  ssr: false,
+  loading: () => (
+    <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="text-center">
+        <div className="w-8 h-8 animate-spin border-4 border-gray-300 border-t-blue-500 rounded-full mx-auto mb-4" />
+        <p className="text-gray-600">Loading editor...</p>
+      </div>
+    </div>
+  ),
+});
 
 declare global {
   interface Window {

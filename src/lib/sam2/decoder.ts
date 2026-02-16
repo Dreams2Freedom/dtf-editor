@@ -1,6 +1,25 @@
 'use client';
 
-import type { SAM2Embeddings, PointPrompt, SAM2MaskOutput } from './types';
+import type { PointPrompt } from './types';
+
+/**
+ * @deprecated This decoder is no longer used. Server-side segmentation via
+ * Replicate replaces the browser ONNX approach. Kept for potential future use.
+ */
+
+/** Embeddings from the SAM2 encoder (used only by this deprecated decoder) */
+interface SAM2Embeddings {
+  data: string;
+  shape: number[];
+  imageSize: { width: number; height: number };
+}
+
+interface SAM2MaskOutput {
+  mask: ImageData;
+  score: number;
+  width: number;
+  height: number;
+}
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type OrtModule = any;
