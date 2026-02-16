@@ -9,6 +9,7 @@ import Link from 'next/link';
 import { useAuthStore } from '@/stores/authStore';
 import { Breadcrumb } from '@/components/ui/Breadcrumb';
 import { SignupModal } from '@/components/auth/SignupModal';
+import SAM2BackgroundRemovalClient from './sam2-client';
 
 declare global {
   interface Window {
@@ -17,6 +18,15 @@ declare global {
 }
 
 export default function BackgroundRemovalClient() {
+  // Feature flag: use SAM2-based background removal when enabled
+  if (process.env.NEXT_PUBLIC_USE_SAM2 === 'true') {
+    return <SAM2BackgroundRemovalClient />;
+  }
+
+  return <LegacyClippingMagicClient />;
+}
+
+function LegacyClippingMagicClient() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const { profile, refreshCredits, user } = useAuthStore();
@@ -654,7 +664,9 @@ export default function BackgroundRemovalClient() {
             // Deduct credit NOW when result is actually generated
             // Use synchronous ref guard to prevent race conditions with async state
             if (creditsDeductedRef.current) {
-              console.log('Credit already deducted, skipping duplicate deduction');
+              console.log(
+                'Credit already deducted, skipping duplicate deduction'
+              );
               break;
             }
             creditsDeductedRef.current = true; // Set immediately (synchronous)
