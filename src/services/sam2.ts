@@ -2,19 +2,11 @@ import Replicate from 'replicate';
 import sharp from 'sharp';
 import { env } from '@/config/env';
 
-interface SegmentResult {
-  /** URL to the combined mask image */
-  combinedMaskUrl: string;
-  /** URLs to individual mask images */
-  individualMaskUrls: string[];
+interface RemoveBackgroundResult {
+  /** URL to the output image (transparent PNG) */
+  outputUrl: string;
   /** Original image dimensions */
   imageSize: { width: number; height: number };
-}
-
-interface PointPrompt {
-  x: number;
-  y: number;
-  label: 0 | 1;
 }
 
 export class SAM2Service {
@@ -27,13 +19,12 @@ export class SAM2Service {
   }
 
   /**
-   * Run SAM2 segmentation on Replicate with optional point prompts.
-   * Returns mask image URLs.
+   * Remove background using BiRefNet on Replicate.
+   * Returns a transparent PNG URL.
    */
-  async segment(
-    imageBuffer: Buffer,
-    points?: PointPrompt[]
-  ): Promise<SegmentResult> {
+  async removeBackground(
+    imageBuffer: Buffer
+  ): Promise<RemoveBackgroundResult> {
     const metadata = await sharp(imageBuffer).metadata();
     const originalWidth = metadata.width || 1024;
     const originalHeight = metadata.height || 1024;
@@ -42,54 +33,36 @@ export class SAM2Service {
     const pngBuffer = await sharp(imageBuffer).png().toBuffer();
     const base64Image = `data:image/png;base64,${pngBuffer.toString('base64')}`;
 
-    // Build input for Replicate meta/sam-2
-    const input: Record<string, unknown> = {
-      image: base64Image,
-      multimask_output: false,
-    };
+    // Use BiRefNet for high-quality background removal (~1 second, 4.5M runs)
+    const output = await this.replicate.run(
+      'men1scus/birefnet' as `${string}/${string}`,
+      {
+        input: {
+          image: base64Image,
+        },
+      }
+    );
 
-    // Add point prompts if provided
-    if (points && points.length > 0) {
-      // Format: "x1,y1;x2,y2" for point_coords
-      // Convert from normalized (0-1) to pixel coordinates
-      const coordStrings = points.map(
-        p =>
-          `${Math.round(p.x * originalWidth)},${Math.round(p.y * originalHeight)}`
-      );
-      input.point_coords = coordStrings.join(';');
+    // BiRefNet returns a single URL string to the output image
+    const outputUrl = typeof output === 'string' ? output : '';
 
-      // Format: "1;0;1" for point_labels
-      input.point_labels = points.map(p => p.label).join(';');
+    if (!outputUrl) {
+      throw new Error('No output returned from background removal model');
     }
 
-    const output = (await this.replicate.run(
-      'meta/sam-2' as `${string}/${string}`,
-      {
-        input,
-      }
-    )) as {
-      combined_mask?: string;
-      individual_masks?: string[];
-    };
-
-    const combinedMaskUrl = output.combined_mask || '';
-    const individualMaskUrls = output.individual_masks || [];
-
     return {
-      combinedMaskUrl,
-      individualMaskUrls,
+      outputUrl,
       imageSize: { width: originalWidth, height: originalHeight },
     };
   }
 
   /**
-   * Download a mask from URL and return as a sharp-compatible buffer.
-   * The mask is a black/white image where white = foreground.
+   * Download an image from URL and return as buffer.
    */
-  async downloadMask(maskUrl: string): Promise<Buffer> {
-    const response = await fetch(maskUrl);
+  async downloadImage(url: string): Promise<Buffer> {
+    const response = await fetch(url);
     if (!response.ok) {
-      throw new Error(`Failed to download mask: ${response.status}`);
+      throw new Error(`Failed to download image: ${response.status}`);
     }
     return Buffer.from(await response.arrayBuffer());
   }
