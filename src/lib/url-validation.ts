@@ -13,10 +13,7 @@
  * @param url - The URL to validate
  * @returns Object with validation result and optional error message
  */
-export function validateImageUrl(url: string): {
-  valid: boolean;
-  error?: string;
-} {
+export function validateImageUrl(url: string): { valid: boolean; error?: string } {
   try {
     const parsed = new URL(url);
 
@@ -28,12 +25,7 @@ export function validateImageUrl(url: string): {
     const hostname = parsed.hostname.toLowerCase();
 
     // Block localhost and loopback addresses
-    if (
-      hostname === 'localhost' ||
-      hostname === '127.0.0.1' ||
-      hostname === '0.0.0.0' ||
-      hostname === '::1'
-    ) {
+    if (hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '0.0.0.0' || hostname === '::1') {
       return { valid: false, error: 'Internal URLs are not allowed' };
     }
 
@@ -72,12 +64,7 @@ export function validateImageUrl(url: string): {
         return { valid: false, error: 'Internal URLs are not allowed' };
       }
       // Block fe80::/10 (link-local)
-      if (
-        lower.startsWith('fe8') ||
-        lower.startsWith('fe9') ||
-        lower.startsWith('fea') ||
-        lower.startsWith('feb')
-      ) {
+      if (lower.startsWith('fe8') || lower.startsWith('fe9') || lower.startsWith('fea') || lower.startsWith('feb')) {
         return { valid: false, error: 'Internal URLs are not allowed' };
       }
     }
@@ -97,10 +84,7 @@ export function validateImageUrl(url: string): {
  * @param path - The redirect path to validate
  * @returns Object with validation result and sanitized path
  */
-export function validateRedirectPath(path: string): {
-  valid: boolean;
-  sanitizedPath: string;
-} {
+export function validateRedirectPath(path: string): { valid: boolean; sanitizedPath: string } {
   // Default to home page if no path provided
   if (!path || path.trim() === '') {
     return { valid: true, sanitizedPath: '/' };

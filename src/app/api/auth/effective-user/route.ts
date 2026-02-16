@@ -46,11 +46,12 @@ export async function GET(request: NextRequest) {
             const serviceSupabase = createServiceRoleClient();
 
             // Get the impersonated user's profile data
-            const { data: profile, error: profileError } = await serviceSupabase
-              .from('profiles')
-              .select('*')
-              .eq('id', impersonationData.impersonatedUserId)
-              .single();
+            const { data: profile, error: profileError } =
+              await serviceSupabase
+                .from('profiles')
+                .select('*')
+                .eq('id', impersonationData.impersonatedUserId)
+                .single();
 
             if (profileError || !profile) {
               console.error(

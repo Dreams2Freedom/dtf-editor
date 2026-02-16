@@ -5,8 +5,7 @@ export type ApiProvider =
   | 'clipping_magic'
   | 'vectorizer'
   | 'openai'
-  | 'stripe'
-  | 'replicate';
+  | 'stripe';
 export type ApiOperation =
   | 'upscale'
   | 'background_removal'
@@ -35,9 +34,6 @@ export class ApiCostTracker {
     },
     stripe: {
       payment_processing: 0.029, // 2.9% + $0.30 fixed (we'll calculate actual)
-    },
-    replicate: {
-      background_removal: 0.005, // ~$0.005 per SAM2 encode
     },
   };
 
