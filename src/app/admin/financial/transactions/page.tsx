@@ -53,21 +53,11 @@ export default function TransactionsPage() {
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [dateRange, setDateRange] = useState<string>('30d');
 
-  useEffect(() => {
-    const fetchData = async () => {
-      await fetchTransactions();
-    };
-    fetchData();
-  }, [dateRange]);
-
-  useEffect(() => {
-    filterTransactions();
-  }, [transactions, searchQuery, typeFilter, statusFilter, filterTransactions]);
-
-  const fetchTransactions = async () => {
+  const fetchTransactions = useCallback(async () => {
     try {
       const response = await fetch(
-        `/api/admin/financial/transactions?range=${dateRange}`
+        `/api/admin/financial/transactions?range=${dateRange}`,
+        { credentials: 'include' }
       );
       if (!response.ok) {
         throw new Error('Failed to fetch transactions');
@@ -82,7 +72,7 @@ export default function TransactionsPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [dateRange]);
 
   const filterTransactions = useCallback(() => {
     let filtered = transactions;
@@ -110,6 +100,14 @@ export default function TransactionsPage() {
 
     setFilteredTransactions(filtered);
   }, [transactions, searchQuery, typeFilter, statusFilter]);
+
+  useEffect(() => {
+    fetchTransactions();
+  }, [fetchTransactions]);
+
+  useEffect(() => {
+    filterTransactions();
+  }, [filterTransactions]);
 
   const getTypeVariant = (
     type: string
