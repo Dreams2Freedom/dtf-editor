@@ -11,6 +11,7 @@ import {
   getUserAgent,
 } from '@/utils/adminLogger';
 import { withRateLimit } from '@/lib/rate-limit';
+import { signCookieValue } from '@/lib/cookie-signing';
 
 export async function POST(
   request: NextRequest,
@@ -79,11 +80,11 @@ export async function POST(
       startedAt: new Date().toISOString(),
     };
 
-    // Store impersonation data in a secure httpOnly cookie
+    // SEC-009: Store HMAC-signed impersonation data in a secure httpOnly cookie
     const cookieStore = await cookies();
     cookieStore.set(
       'impersonation_session',
-      JSON.stringify(impersonationData),
+      signCookieValue(JSON.stringify(impersonationData)),
       {
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',

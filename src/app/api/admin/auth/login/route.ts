@@ -158,26 +158,21 @@ async function handlePost(request: NextRequest) {
       httpOnly: true, // This one can be httpOnly
     });
 
-    // Create response
+    // Create response — NEW-07: no debug headers or flags
     const response = NextResponse.json({
       success: true,
       data: {
         session: adminSession,
         requires_2fa: false,
-        cookieSet: true, // Debug flag
       },
     });
 
-    // Double-check by also setting on response
+    // Also set on response for consistent cookie behavior
     response.cookies.set(
       'admin_session',
       JSON.stringify(adminSession),
       cookieOptions
     );
-
-    // Add debug headers
-    response.headers.set('X-Admin-Login', 'success');
-    response.headers.set('X-Cookie-Set', 'true');
 
     return response;
   } catch (error) {

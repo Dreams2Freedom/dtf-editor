@@ -470,7 +470,8 @@ export class ImageProcessingService {
     credits: number,
     operation: string
   ): Promise<void> {
-    // Try the new function name first, fall back to direct update if it fails
+    // NEW-12: Use atomic RPC function. If it doesn't exist, fail loudly instead of
+    // silently falling back to a less-safe code path.
     try {
       const { data, error } = await this.supabase.rpc('deduct_credits', {
         user_id: userId,
@@ -479,13 +480,24 @@ export class ImageProcessingService {
       });
 
       if (!error && data?.success) {
-        return; // Success with new function
+        return; // Success with atomic function
+      }
+
+      if (error) {
+        console.error(
+          '[ImageProcessing] deduct_credits RPC failed:',
+          error.message
+        );
       }
     } catch (e) {
-      // Function might not exist, continue to fallback
+      console.error(
+        '[ImageProcessing] deduct_credits RPC exception — ensure migration is applied:',
+        e
+      );
     }
 
-    // Fallback: Direct database update with optimistic locking to prevent race conditions
+    // Fallback: Optimistic locking (safe but not as robust as RPC).
+    // TODO: Remove this fallback once deduct_credits RPC is confirmed deployed.
     const { data: profile, error: fetchError } = await this.supabase
       .from('profiles')
       .select('credits_remaining')

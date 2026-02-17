@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
+import { verifyCookieValue } from '@/lib/cookie-signing';
 
 export interface ImpersonationData {
   originalAdminId: string;
@@ -51,10 +52,18 @@ export async function handleImpersonation(
         return;
       }
 
-      // Valid admin session - proceed with impersonation
-      const impersonationData: ImpersonationData = JSON.parse(
-        impersonationCookie.value
-      );
+      // SEC-009: Verify HMAC signature on impersonation cookie before trusting it
+      const verifiedPayload = verifyCookieValue(impersonationCookie.value);
+      if (!verifiedPayload) {
+        console.warn(
+          'Impersonation cookie has invalid HMAC signature — possible forgery attempt'
+        );
+        response.cookies.delete('impersonation_session');
+        return;
+      }
+
+      // Valid admin session + valid signature - proceed with impersonation
+      const impersonationData: ImpersonationData = JSON.parse(verifiedPayload);
 
       // Add impersonation headers for client components
       response.headers.set('x-impersonation-active', 'true');

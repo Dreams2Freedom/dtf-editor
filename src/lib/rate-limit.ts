@@ -158,6 +158,9 @@ export function getClientIdentifier(request: NextRequest): string {
   return `ip:${ip}`;
 }
 
+// SEC-046: Critical endpoint types that must fail-closed (block on error)
+const FAIL_CLOSED_TYPES: Set<string> = new Set(['auth', 'payment']);
+
 // Rate limit middleware
 export async function rateLimit(
   request: NextRequest,
@@ -223,7 +226,14 @@ export async function rateLimit(
     return null; // Continue to endpoint
   } catch (error) {
     console.error('Rate limiting error:', error);
-    // Don't block requests if rate limiting fails
+    // SEC-046: Fail-closed for critical endpoints (auth, payment) — block on error
+    if (FAIL_CLOSED_TYPES.has(type)) {
+      return NextResponse.json(
+        { error: 'Service temporarily unavailable. Please try again later.' },
+        { status: 503 }
+      );
+    }
+    // For non-critical endpoints, fail-open (allow through)
     return null;
   }
 }
