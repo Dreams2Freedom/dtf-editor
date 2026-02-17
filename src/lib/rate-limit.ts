@@ -244,7 +244,6 @@ export async function rateLimit(
 }
 
 // Helper to create rate-limited API route handler
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function withRateLimit(
   handler: (request: NextRequest, context?: any) => Promise<NextResponse>,
   type: keyof typeof RATE_LIMITS = 'api'
