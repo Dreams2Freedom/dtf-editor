@@ -223,12 +223,26 @@ export default function TransactionsPage() {
       }
 
       const result = await commitRes.json();
-      toast.success(
-        `Imported ${result.summary.inserted} Stripe payments successfully!`
-      );
 
-      // Refresh the transactions list
-      fetchTransactions();
+      if (result.summary.errors > 0 && result.summary.inserted === 0) {
+        // All inserts failed — show the first error
+        const firstError = result.errors?.[0]?.error || 'Unknown database error';
+        toast.error(
+          `Failed to import: ${firstError} (${result.summary.errors} errors total)`
+        );
+        console.error('Backfill errors:', result.errors);
+      } else if (result.summary.errors > 0) {
+        toast.warning(
+          `Imported ${result.summary.inserted} payments, but ${result.summary.errors} failed. Check console for details.`
+        );
+        console.error('Backfill errors:', result.errors);
+        fetchTransactions();
+      } else {
+        toast.success(
+          `Imported ${result.summary.inserted} Stripe payments successfully!`
+        );
+        fetchTransactions();
+      }
     } catch (error) {
       console.error('Sync error:', error);
       toast.error(

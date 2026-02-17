@@ -136,7 +136,7 @@ async function handlePost(request: NextRequest) {
     let skippedDuplicate = 0;
     let skippedNoUser = 0;
     let skippedNoAmount = 0;
-    const errors: Array<{ sessionId: string; error: string }> = [];
+    const errors: Array<{ sessionId: string; error: string; code?: string; details?: string }> = [];
     const preview: Array<Record<string, unknown>> = [];
 
     for (const session of sessions) {
@@ -223,9 +223,18 @@ async function handlePost(request: NextRequest) {
           .insert(record);
 
         if (insertError) {
+          console.error(
+            `Backfill insert failed for ${session.id}:`,
+            insertError.message,
+            insertError.code,
+            insertError.details,
+            JSON.stringify(record)
+          );
           errors.push({
             sessionId: session.id,
             error: insertError.message,
+            code: insertError.code,
+            details: insertError.details,
           });
         } else {
           inserted++;
