@@ -156,7 +156,7 @@ export class VectorizerService {
       if (options.format === 'png') {
         try {
           // Import sharp dynamically to avoid client-side issues
-          const sharp = require('sharp');
+          const sharp = (await import('sharp')).default;
 
           // Convert SVG to PNG with 4x scaling and transparency
           const svgBuffer = Buffer.from(resultBuffer);

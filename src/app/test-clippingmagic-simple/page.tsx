@@ -1,5 +1,7 @@
 'use client';
 
+import Script from 'next/script';
+
 export default function TestClippingMagicSimple() {
   return (
     <div className="p-8 max-w-4xl mx-auto">
@@ -34,11 +36,13 @@ export default function TestClippingMagicSimple() {
         </p>
       </div>
 
-      <script
+      <Script
         src="https://clippingmagic.com/api/v1/ClippingMagic.js"
-        type="text/javascript"
-      ></script>
-      <script
+        strategy="afterInteractive"
+      />
+      <Script
+        id="clippingmagic-init"
+        strategy="afterInteractive"
         dangerouslySetInnerHTML={{
           __html: `
           function myCallback(opts) {
@@ -58,17 +62,17 @@ export default function TestClippingMagicSimple() {
                   break;
             }
           }
-          
+
           // Wait for ClippingMagic to load
           window.addEventListener('load', function() {
             if (typeof window.ClippingMagic !== 'undefined') {
               var errorsArray = window.ClippingMagic.initialize({apiId: 24469});
-              
+
               if (errorsArray.length > 0) {
                 alert("Sorry, your browser is missing some required features: \\n\\n " + errorsArray.join("\\n "));
               } else {
                 console.log('ClippingMagic initialized successfully');
-                
+
                 // Try to open editor immediately with your uploaded image
                 setTimeout(function() {
                   console.log('Attempting to open editor...');

@@ -130,7 +130,7 @@ async function handlePost(request: NextRequest) {
     };
 
     // Sign the user ID to prevent forgery
-    const signedAdminId = signCookieValue(authData.user.id);
+    const signedAdminId = await signCookieValue(authData.user.id);
     cookieStore.set('admin_session', signedAdminId, cookieOptions);
     cookieStore.set('admin_logged_in', 'true', {
       ...cookieOptions,

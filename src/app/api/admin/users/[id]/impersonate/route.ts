@@ -84,7 +84,7 @@ export async function POST(
     const cookieStore = await cookies();
     cookieStore.set(
       'impersonation_session',
-      signCookieValue(JSON.stringify(impersonationData)),
+      await signCookieValue(JSON.stringify(impersonationData)),
       {
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',

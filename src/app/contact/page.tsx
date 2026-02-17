@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { Mail, MessageSquare, Clock, CheckCircle } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
@@ -168,12 +169,12 @@ export default function ContactPage() {
                   </a>
                 </li>
                 <li>
-                  <a
+                  <Link
                     href="/support"
                     className="text-purple-600 hover:text-purple-700 text-sm font-medium"
                   >
                     → Support Center
-                  </a>
+                  </Link>
                 </li>
               </ul>
             </div>

@@ -80,7 +80,8 @@ async function handlePost(request: NextRequest) {
     }
 
     // Get the price from Stripe to get the amount
-    const stripe = require('stripe')(env.STRIPE_SECRET_KEY);
+    const Stripe = (await import('stripe')).default;
+    const stripe = new Stripe(env.STRIPE_SECRET_KEY);
     const price = await stripe.prices.retrieve(priceId);
 
     if (!price) {

@@ -3,6 +3,7 @@
 import { ImageProcessor } from '@/components/image/ImageProcessor';
 import { useAuthStore } from '@/stores/authStore';
 import Link from 'next/link';
+import Script from 'next/script';
 import { useEffect } from 'react';
 
 export default function ProcessTestClient() {
@@ -93,9 +94,9 @@ export default function ProcessTestClient() {
         <ImageProcessor />
       </main>
 
-      <script
+      <Script
         src="https://clippingmagic.com/api/v1/ClippingMagic.js"
-        type="text/javascript"
+        strategy="afterInteractive"
       />
     </div>
   );
