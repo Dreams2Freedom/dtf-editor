@@ -53,7 +53,6 @@ async function handlePost(request: NextRequest) {
       return NextResponse.json(
         {
           error: 'Failed to fetch user data',
-          details: usersError.message,
         },
         { status: 500 }
       );

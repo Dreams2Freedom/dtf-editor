@@ -265,7 +265,6 @@ async function handlePost(request: NextRequest) {
     return NextResponse.json(
       {
         error: 'Failed to generate image from reference',
-        details: error instanceof Error ? error.message : 'Unknown error',
       },
       { status: 500 }
     );

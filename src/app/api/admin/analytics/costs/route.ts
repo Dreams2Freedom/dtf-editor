@@ -64,7 +64,6 @@ async function handleGet(request: NextRequest) {
     return NextResponse.json(
       {
         error: 'Failed to fetch cost analytics',
-        details: error instanceof Error ? error.message : 'Unknown error',
       },
       { status: 500 }
     );

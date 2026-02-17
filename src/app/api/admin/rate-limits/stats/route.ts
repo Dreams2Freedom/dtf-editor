@@ -124,7 +124,6 @@ async function handleGetStats(request: NextRequest) {
     return NextResponse.json(
       {
         error: 'Failed to get rate limit statistics',
-        details: error instanceof Error ? error.message : 'Unknown error',
       },
       { status: 500 }
     );

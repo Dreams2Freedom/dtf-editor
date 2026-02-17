@@ -62,7 +62,6 @@ async function handleGet(request: NextRequest) {
       return NextResponse.json(
         {
           error: 'Database configuration error',
-          details: error instanceof Error ? error.message : 'Unknown error',
         },
         { status: 500 }
       );

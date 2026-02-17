@@ -112,7 +112,6 @@ export async function POST(
       return NextResponse.json(
         {
           error: 'User not found',
-          details: userError?.message || 'No user data returned',
         },
         { status: 404 }
       );

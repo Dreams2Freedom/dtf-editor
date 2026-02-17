@@ -71,7 +71,6 @@ export async function GET(request: NextRequest) {
       return NextResponse.json(
         {
           error: 'Failed to fetch referrals',
-          details: referralsError.message || 'Unknown error',
         },
         { status: 500 }
       );
@@ -260,7 +259,6 @@ export async function GET(request: NextRequest) {
       return NextResponse.json(
         {
           error: 'Failed to process referrals data',
-          details: processingError.message,
         },
         { status: 500 }
       );

@@ -159,7 +159,6 @@ async function handleGetDatabaseStats(request: NextRequest) {
     return NextResponse.json(
       {
         error: 'Failed to get database statistics',
-        details: error instanceof Error ? error.message : 'Unknown error',
       },
       { status: 500 }
     );

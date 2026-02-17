@@ -93,8 +93,9 @@ export async function GET(request: NextRequest) {
       console.error('Failed to store backup metadata:', metaError);
     }
 
-    // In production, you would upload this to a secure backup location
-    // For example: AWS S3, Google Cloud Storage, or another Supabase project
+    // NEW-03: Never return backup data in the response.
+    // In production, upload to a secure backup location (AWS S3, GCS, etc.).
+    // For now, the backup metadata is stored in system_backups table above.
 
     const summary = {
       success: true,
@@ -108,14 +109,12 @@ export async function GET(request: NextRequest) {
 
     console.log('Backup completed:', summary);
 
+    // Only return the summary metadata — never the actual data
     return NextResponse.json(summary);
   } catch (error) {
     console.error('Backup failed:', error);
     return NextResponse.json(
-      {
-        error: 'Backup failed',
-        details: error instanceof Error ? error.message : 'Unknown error',
-      },
+      { error: 'Backup failed' },
       { status: 500 }
     );
   }
