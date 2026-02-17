@@ -15,6 +15,7 @@ import {
   Package,
   Calendar,
   Download,
+  RefreshCw,
 } from 'lucide-react';
 import { toast } from '@/lib/toast';
 
@@ -52,6 +53,7 @@ export default function TransactionsPage() {
   const [typeFilter, setTypeFilter] = useState<string>('all');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [dateRange, setDateRange] = useState<string>('30d');
+  const [syncing, setSyncing] = useState(false);
 
   const fetchTransactions = useCallback(async () => {
     try {
@@ -166,6 +168,79 @@ export default function TransactionsPage() {
     a.click();
   };
 
+  const syncStripePayments = async () => {
+    setSyncing(true);
+    try {
+      // First, dry run to preview
+      const previewRes = await fetch('/api/admin/financial/backfill-stripe', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ dryRun: true }),
+      });
+
+      if (!previewRes.ok) {
+        const err = await previewRes.json();
+        throw new Error(err.error || 'Failed to preview');
+      }
+
+      const preview = await previewRes.json();
+      const count = preview.summary.wouldInsert || 0;
+
+      if (count === 0) {
+        toast.info(
+          `No new Stripe payments to import. ${preview.summary.totalStripeCheckouts} checkout sessions found, ${preview.summary.skippedDuplicate} already recorded.`
+        );
+        setSyncing(false);
+        return;
+      }
+
+      // Confirm with user
+      const confirmed = window.confirm(
+        `Found ${count} Stripe payments to import.\n\n` +
+          `Total checkouts in Stripe: ${preview.summary.totalStripeCheckouts}\n` +
+          `Already recorded: ${preview.summary.skippedDuplicate}\n` +
+          `No matching user: ${preview.summary.skippedNoUser}\n\n` +
+          `Proceed with importing ${count} payment records?`
+      );
+
+      if (!confirmed) {
+        setSyncing(false);
+        return;
+      }
+
+      // Commit
+      const commitRes = await fetch('/api/admin/financial/backfill-stripe', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ dryRun: false }),
+      });
+
+      if (!commitRes.ok) {
+        const err = await commitRes.json();
+        throw new Error(err.error || 'Failed to import');
+      }
+
+      const result = await commitRes.json();
+      toast.success(
+        `Imported ${result.summary.inserted} Stripe payments successfully!`
+      );
+
+      // Refresh the transactions list
+      fetchTransactions();
+    } catch (error) {
+      console.error('Sync error:', error);
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : 'Failed to sync Stripe payments'
+      );
+    } finally {
+      setSyncing(false);
+    }
+  };
+
   if (loading) {
     return (
       <AdminLayout>
@@ -187,10 +262,22 @@ export default function TransactionsPage() {
               View and manage all financial transactions
             </p>
           </div>
-          <Button onClick={exportTransactions} variant="outline">
-            <Download className="w-4 h-4 mr-2" />
-            Export CSV
-          </Button>
+          <div className="flex gap-2">
+            <Button
+              onClick={syncStripePayments}
+              variant="outline"
+              disabled={syncing}
+            >
+              <RefreshCw
+                className={`w-4 h-4 mr-2 ${syncing ? 'animate-spin' : ''}`}
+              />
+              {syncing ? 'Syncing...' : 'Sync Stripe Payments'}
+            </Button>
+            <Button onClick={exportTransactions} variant="outline">
+              <Download className="w-4 h-4 mr-2" />
+              Export CSV
+            </Button>
+          </div>
         </div>
 
         {/* Metrics */}

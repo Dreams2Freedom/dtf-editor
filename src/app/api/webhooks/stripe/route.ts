@@ -27,7 +27,7 @@ function getSupabase() {
 // Persists across restarts and works across multiple server instances.
 async function isEventProcessed(eventId: string): Promise<boolean> {
   try {
-    const supabase = getSupabaseClient();
+    const supabase = getSupabase();
     const { data } = await supabase
       .from('processed_webhook_events')
       .select('event_id')
@@ -45,7 +45,7 @@ async function markEventProcessed(
   eventType?: string
 ): Promise<void> {
   try {
-    const supabase = getSupabaseClient();
+    const supabase = getSupabase();
     await supabase.from('processed_webhook_events').upsert({
       event_id: eventId,
       event_type: eventType || 'unknown',
@@ -501,7 +501,7 @@ async function handleInvoicePaymentSucceeded(invoice: any) {
       // SEC-034/NEW-10: Reset credits directly via Supabase instead of HTTP fetch.
       // Previous code used fetch() with service role key in x-api-key header (SSRF + key leak).
       try {
-        const supabase = getSupabaseClient();
+        const supabase = getSupabase();
         const { data: resetResult, error: resetError } = await supabase.rpc(
           'check_credit_reset_needed',
           { p_user_id: userId }
