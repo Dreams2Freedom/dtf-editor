@@ -379,15 +379,22 @@ export class SupportService {
 
   /**
    * Search tickets
+   * SEC-018: Sanitize query to prevent PostgREST filter injection via .or()
    */
   async searchTickets(userId: string, query: string): Promise<SupportTicket[]> {
     try {
       const supabase = this.getSupabase();
+      // SEC-018: Escape special characters to prevent PostgREST filter injection.
+      const sanitizedQuery = query
+        .replace(/[\\%_]/g, c => `\\${c}`)  // Escape SQL LIKE wildcards
+        .replace(/[,()]/g, '')               // Remove PostgREST filter delimiters
+        .slice(0, 100);                       // Limit length
+
       const { data, error } = await supabase
         .from('support_tickets')
         .select()
         .eq('user_id', userId)
-        .or(`subject.ilike.%${query}%,ticket_number.ilike.%${query}%`)
+        .or(`subject.ilike.%${sanitizedQuery}%,ticket_number.ilike.%${sanitizedQuery}%`)
         .order('created_at', { ascending: false });
 
       if (error) throw error;

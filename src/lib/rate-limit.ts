@@ -150,13 +150,21 @@ export function getClientIdentifier(request: NextRequest): string {
   const userId = request.headers.get('x-user-id');
   if (userId) return `user:${userId}`;
 
-  // Fall back to IP address
+  // NEW-22: Fall back to IP address — validate format
   const forwarded = request.headers.get('x-forwarded-for');
-  const ip = forwarded
-    ? forwarded.split(',')[0]
-    : request.headers.get('x-real-ip') || 'unknown';
+  let ip = 'unknown';
+  if (forwarded) {
+    const candidate = forwarded.split(',')[0].trim();
+    if (/^[\d.:a-fA-F]+$/.test(candidate)) ip = candidate;
+  } else {
+    const realIp = request.headers.get('x-real-ip');
+    if (realIp && /^[\d.:a-fA-F]+$/.test(realIp.trim())) ip = realIp.trim();
+  }
   return `ip:${ip}`;
 }
+
+// SEC-046: Critical endpoint types that must fail-closed (block on error)
+const FAIL_CLOSED_TYPES: Set<string> = new Set(['auth', 'payment']);
 
 // Rate limit middleware
 export async function rateLimit(
@@ -223,7 +231,14 @@ export async function rateLimit(
     return null; // Continue to endpoint
   } catch (error) {
     console.error('Rate limiting error:', error);
-    // Don't block requests if rate limiting fails
+    // SEC-046: Fail-closed for critical endpoints (auth, payment) — block on error
+    if (FAIL_CLOSED_TYPES.has(type)) {
+      return NextResponse.json(
+        { error: 'Service temporarily unavailable. Please try again later.' },
+        { status: 503 }
+      );
+    }
+    // For non-critical endpoints, fail-open (allow through)
     return null;
   }
 }

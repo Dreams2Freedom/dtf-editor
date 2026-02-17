@@ -24,7 +24,7 @@ async function handleGet(request: NextRequest) {
     if (error) {
       console.error('Credit reset error:', error);
       return NextResponse.json(
-        { error: 'Failed to reset credits', details: error.message },
+        { error: 'Failed to reset credits' },
         { status: 500 }
       );
     }
@@ -67,8 +67,9 @@ async function handlePost(request: NextRequest) {
     });
 
     if (error) {
+      console.error('Manual credit reset error:', error);
       return NextResponse.json(
-        { error: 'Failed to reset credits', details: error.message },
+        { error: 'Failed to reset credits' },
         { status: 500 }
       );
     }

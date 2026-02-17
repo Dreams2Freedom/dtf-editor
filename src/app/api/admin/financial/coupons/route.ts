@@ -121,6 +121,36 @@ async function handlePost(request: NextRequest) {
 
     const body = await request.json();
 
+    // NEW-17: Validate coupon input
+    if (
+      !body.code ||
+      typeof body.code !== 'string' ||
+      body.code.trim().length === 0
+    ) {
+      return NextResponse.json(
+        { error: 'Coupon code is required' },
+        { status: 400 }
+      );
+    }
+    if (!body.discount_type || !['percentage', 'fixed'].includes(body.discount_type)) {
+      return NextResponse.json(
+        { error: 'Invalid discount type (must be "percentage" or "fixed")' },
+        { status: 400 }
+      );
+    }
+    const discountValue = Number(body.discount_value);
+    if (
+      isNaN(discountValue) ||
+      discountValue <= 0 ||
+      (body.discount_type === 'percentage' && discountValue > 100) ||
+      (body.discount_type === 'fixed' && discountValue > 10000)
+    ) {
+      return NextResponse.json(
+        { error: 'Invalid discount value' },
+        { status: 400 }
+      );
+    }
+
     // Use service role client for data access
     const serviceClient = createServiceRoleSupabaseClient();
 
@@ -129,7 +159,7 @@ async function handlePost(request: NextRequest) {
       .from('coupons')
       .insert([
         {
-          code: body.code,
+          code: body.code.trim().toUpperCase(),
           description: body.description,
           discount_type: body.discount_type,
           discount_value: body.discount_value,

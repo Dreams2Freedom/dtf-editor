@@ -27,7 +27,7 @@ async function handleGet(request: NextRequest) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
-    console.log('[Admin Users API] Admin user authenticated:', user.email);
+    console.log('[Admin Users API] Admin user authenticated:', user.id);
 
     // Use service role client to bypass RLS for fetching all users
     const serviceClient = createServiceRoleClient();
@@ -35,13 +35,30 @@ async function handleGet(request: NextRequest) {
     // Parse query parameters
     const searchParams = request.nextUrl.searchParams;
     const page = parseInt(searchParams.get('page') || '1');
-    const limit = parseInt(searchParams.get('limit') || '10');
     const search = searchParams.get('search') || '';
     const status = searchParams.get('status') || 'all';
     const plan = searchParams.get('plan') || '';
     const userType = searchParams.get('userType') || 'all';
-    const sortBy = searchParams.get('sort_by') || 'created_at';
-    const sortOrder = searchParams.get('sort_order') || 'desc';
+    // NEW-13: Allowlist for sortBy to prevent arbitrary column access
+    const ALLOWED_SORT_COLUMNS = new Set([
+      'created_at',
+      'email',
+      'full_name',
+      'credits_remaining',
+      'subscription_tier',
+      'last_activity_at',
+      'is_active',
+      'is_admin',
+    ]);
+    const rawSortBy = searchParams.get('sort_by') || 'created_at';
+    const sortBy = ALLOWED_SORT_COLUMNS.has(rawSortBy)
+      ? rawSortBy
+      : 'created_at';
+    const sortOrder = searchParams.get('sort_order') === 'asc' ? 'asc' : 'desc';
+
+    // NEW-20: Enforce max pagination limit
+    const rawLimit = parseInt(searchParams.get('limit') || '10');
+    const safeLimit = Math.min(Math.max(rawLimit, 1), 100);
 
     // Build query using service client
     let query = serviceClient.from('profiles').select('*', { count: 'exact' });
@@ -85,9 +102,9 @@ async function handleGet(request: NextRequest) {
     // Apply sorting
     query = query.order(sortBy, { ascending: sortOrder === 'asc' });
 
-    // Apply pagination
-    const offset = (page - 1) * limit;
-    query = query.range(offset, offset + limit - 1);
+    // Apply pagination (using safeLimit with max cap)
+    const offset = (page - 1) * safeLimit;
+    query = query.range(offset, offset + safeLimit - 1);
 
     const { data: users, error, count } = await query;
 
@@ -183,7 +200,7 @@ async function handleGet(request: NextRequest) {
     );
 
     // Calculate total pages
-    const totalPages = Math.ceil((count || 0) / limit);
+    const totalPages = Math.ceil((count || 0) / safeLimit);
 
     console.log(
       `[Admin Users API] Returning ${enrichedUsers.length} enriched users`
@@ -193,7 +210,7 @@ async function handleGet(request: NextRequest) {
       users: enrichedUsers,
       total: count || 0,
       page,
-      limit,
+      limit: safeLimit,
     });
   } catch (error) {
     console.error('Admin users API error:', error);

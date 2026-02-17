@@ -73,7 +73,7 @@ async function handlePost(request: NextRequest) {
             adminMessage: message,
             ticketSubject: ticket.subject,
           });
-          console.log('Admin reply notification sent to:', userProfile.email);
+          console.log('Admin reply notification sent for ticket:', ticket.ticket_number);
         } catch (emailError) {
           console.error('Failed to send admin reply notification:', emailError);
           // Don't fail the request if email fails

@@ -23,6 +23,20 @@ async function handlePost(request: NextRequest) {
 
     const { credits, reason } = await request.json();
 
+    // SEC-005: Verify the user is an admin before allowing refunds
+    const { data: adminProfile } = await supabase
+      .from('profiles')
+      .select('is_admin')
+      .eq('id', user.id)
+      .single();
+
+    if (!adminProfile?.is_admin) {
+      return NextResponse.json(
+        { error: 'Admin access required for credit refunds' },
+        { status: 403 }
+      );
+    }
+
     if (!credits || credits < 1 || credits > MAX_REFUND_CREDITS) {
       return NextResponse.json(
         { error: 'Invalid credit amount' },

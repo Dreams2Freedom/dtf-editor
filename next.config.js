@@ -3,16 +3,12 @@ const nextConfig = {
   // Disable error overlay in development
   reactStrictMode: false,
 
-  // Temporarily allow build with ESLint warnings for testing
-  // TODO: Set to false once all ESLint errors are fixed
+  // SEC-028: Do NOT ignore build errors — they must be fixed before deploy
   eslint: {
-    ignoreDuringBuilds: true,
+    ignoreDuringBuilds: false,
   },
-
-  // Temporarily allow build with TypeScript errors for testing
-  // TODO: Set to false once all TypeScript errors are fixed
   typescript: {
-    ignoreBuildErrors: true,
+    ignoreBuildErrors: false,
   },
   onDemandEntries: {
     // Disable error overlay
@@ -110,16 +106,7 @@ const nextConfig = {
     bodySizeLimit: '50mb',
   },
 
-  // Experimental features for API routes
-  experimental: {
-    // ... existing experimental config ...
-    optimizePackageImports: [
-      'lucide-react',
-      '@radix-ui/react-dialog',
-      '@radix-ui/react-dropdown-menu',
-      '@radix-ui/react-toast',
-    ],
-  },
+  // SEC-043: Removed duplicate experimental block (merged with first one above)
 };
 
 module.exports = nextConfig;

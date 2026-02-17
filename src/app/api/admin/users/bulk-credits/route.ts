@@ -78,93 +78,112 @@ async function handlePost(request: NextRequest) {
       `[Bulk Credits] Starting ${operation} operation for ${userIds.length} users with amount: ${amount}`
     );
 
+    // NEW-18: Use atomic RPC functions to prevent lost-update race conditions.
+    // Falls back to non-atomic approach if RPC is not yet deployed.
     if (operation === 'add') {
-      // Add credits to existing balance
-      // Since add_credits_bulk RPC doesn't exist, we'll do manual updates
-      for (const userId of userIds) {
-        try {
-          // Get current credits
-          const { data: currentUser, error: fetchError } = await supabase
-            .from('profiles')
-            .select('credits_remaining')
-            .eq('id', userId)
-            .single();
+      const description = `Admin bulk credit addition by ${user.id}`;
+      const { data: rpcResult, error: rpcError } = await supabase.rpc(
+        'add_credits_bulk',
+        {
+          p_user_ids: userIds,
+          p_amount: amount,
+          p_admin_id: user.id,
+          p_description: description,
+        }
+      );
 
-          if (fetchError) {
-            errors.push(
-              `Failed to fetch user ${userId}: ${fetchError.message}`
-            );
-            continue;
+      if (rpcError) {
+        // Fallback: non-atomic approach if RPC not deployed yet
+        console.error('add_credits_bulk RPC failed, using fallback:', rpcError.message);
+        for (const userId of userIds) {
+          try {
+            const { data: currentUser, error: fetchError } = await supabase
+              .from('profiles')
+              .select('credits_remaining')
+              .eq('id', userId)
+              .single();
+
+            if (fetchError) {
+              errors.push(`Failed to fetch user ${userId}`);
+              continue;
+            }
+
+            const currentCredits = currentUser?.credits_remaining ?? 0;
+            const newCredits = Math.min(currentCredits + amount, 1000);
+
+            const { error: updateError } = await supabase
+              .from('profiles')
+              .update({
+                credits_remaining: newCredits,
+                updated_at: new Date().toISOString(),
+              })
+              .eq('id', userId);
+
+            if (updateError) {
+              errors.push(`Failed to update user ${userId}`);
+            } else {
+              affected++;
+              await supabase.from('credit_transactions').insert({
+                user_id: userId,
+                amount,
+                type: 'admin_adjustment',
+                description,
+                created_at: new Date().toISOString(),
+              });
+            }
+          } catch (err: any) {
+            errors.push(`Error processing user ${userId}`);
           }
+        }
+      } else {
+        affected = rpcResult?.length || 0;
+      }
+    } else {
+      const description = `Admin bulk credit set to ${amount} by ${user.id}`;
+      const { data: rpcResult, error: rpcError } = await supabase.rpc(
+        'set_credits_bulk',
+        {
+          p_user_ids: userIds,
+          p_amount: amount,
+          p_admin_id: user.id,
+          p_description: description,
+        }
+      );
 
-          const currentCredits = currentUser?.credits_remaining ?? 0;
-          const newCredits = Math.min(currentCredits + amount, 1000); // Cap at 1000
-
-          // Update credits
-          const updateData = {
-            credits_remaining: newCredits,
+      if (rpcError) {
+        // Fallback: non-atomic approach
+        console.error('set_credits_bulk RPC failed, using fallback:', rpcError.message);
+        const { data: updatedUsers, error: updateError } = await supabase
+          .from('profiles')
+          .update({
+            credits_remaining: amount,
             updated_at: new Date().toISOString(),
-          };
+          })
+          .in('id', userIds)
+          .select();
 
-          const { error: updateError } = await supabase
-            .from('profiles')
-            .update(updateData)
-            .eq('id', userId);
-
-          if (updateError) {
-            errors.push(
-              `Failed to update user ${userId}: ${updateError.message}`
-            );
-          } else {
-            affected++;
-
-            // Log credit transaction
+        if (updateError) {
+          errors.push('Update error');
+        } else {
+          affected = updatedUsers?.length || 0;
+          for (const userId of userIds) {
             await supabase.from('credit_transactions').insert({
               user_id: userId,
               amount,
               type: 'admin_adjustment',
-              description: `Admin bulk credit addition by ${user.email}`,
+              description,
               created_at: new Date().toISOString(),
             });
           }
-        } catch (err: any) {
-          errors.push(`Error processing user ${userId}: ${err.message}`);
         }
-      }
-    } else {
-      // Set credits to specific amount
-      const updateData = {
-        credits_remaining: amount,
-        updated_at: new Date().toISOString(),
-      };
-
-      const { data: updatedUsers, error: updateError } = await supabase
-        .from('profiles')
-        .update(updateData)
-        .in('id', userIds)
-        .select();
-
-      if (updateError) {
-        errors.push(`Update error: ${updateError.message}`);
       } else {
-        affected = updatedUsers?.length || 0;
-
-        // Log credit transactions for each user
-        for (const userId of userIds) {
-          await supabase.from('credit_transactions').insert({
-            user_id: userId,
-            amount,
-            type: 'admin_adjustment',
-            description: `Admin bulk credit set to ${amount} by ${user.email}`,
-            created_at: new Date().toISOString(),
-          });
-        }
+        affected = rpcResult?.length || 0;
       }
     }
 
     // Log the bulk action
     console.log(
-      `[Admin Bulk Credits] ${operation} ${amount} credits for ${affected} users by ${user.email}`
+      `[Admin Bulk Credits] ${operation} ${amount} credits for ${affected} users by admin ${user.id}`
     );
 
     // Create audit log entry

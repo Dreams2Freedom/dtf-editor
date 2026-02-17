@@ -614,7 +614,8 @@ export function setAffiliateCookie(cookieId: string): void {
   const expires = new Date();
   expires.setDate(expires.getDate() + COOKIE_DURATION_DAYS);
 
-  document.cookie = `${AFFILIATE_COOKIE_NAME}=${cookieId}; expires=${expires.toUTCString()}; path=/; SameSite=Lax`;
+  // SEC-045: Add Secure flag to prevent cookie transmission over HTTP
+  document.cookie = `${AFFILIATE_COOKIE_NAME}=${cookieId}; expires=${expires.toUTCString()}; path=/; SameSite=Lax; Secure`;
 }
 
 // Get affiliate cookie

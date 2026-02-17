@@ -256,19 +256,21 @@ export function DPIChecker({
       // Store image data before showing signup form
       if (imageFile && imagePreview) {
         // Pre-store the image data so it's ready after signup
-        localStorage.setItem('dpi_tool_filename', imageFile.name);
-        localStorage.setItem('dpi_tool_printWidth', printWidth || '');
-        localStorage.setItem('dpi_tool_printHeight', printHeight || '');
+        // NEW-24: Use sessionStorage instead of localStorage so image data
+        // is cleared when the browser tab closes, preventing privacy leaks.
+        sessionStorage.setItem('dpi_tool_filename', imageFile.name);
+        sessionStorage.setItem('dpi_tool_printWidth', printWidth || '');
+        sessionStorage.setItem('dpi_tool_printHeight', printHeight || '');
 
         // Convert to base64 if needed
         if (!imagePreview.startsWith('data:')) {
           const reader = new FileReader();
           reader.onloadend = () => {
-            localStorage.setItem('dpi_tool_image', reader.result as string);
+            sessionStorage.setItem('dpi_tool_image', reader.result as string);
           };
           reader.readAsDataURL(imageFile);
         } else {
-          localStorage.setItem('dpi_tool_image', imagePreview);
+          sessionStorage.setItem('dpi_tool_image', imagePreview);
         }
       }
 
@@ -289,9 +291,24 @@ export function DPIChecker({
       return;
     }
 
-    // Validate password strength
+    // SEC-047: Unified password validation — matches validation.ts schema
     if (signupData.password.length < 8) {
       setSignupError('Password must be at least 8 characters');
+      setSignupLoading(false);
+      return;
+    }
+    if (!/[A-Z]/.test(signupData.password)) {
+      setSignupError('Password must contain at least one uppercase letter');
+      setSignupLoading(false);
+      return;
+    }
+    if (!/[a-z]/.test(signupData.password)) {
+      setSignupError('Password must contain at least one lowercase letter');
+      setSignupLoading(false);
+      return;
+    }
+    if (!/[0-9]/.test(signupData.password)) {
+      setSignupError('Password must contain at least one number');
       setSignupLoading(false);
       return;
     }
@@ -314,7 +331,7 @@ export function DPIChecker({
       if (imageFile && imagePreview) {
         try {
           // Store metadata immediately
-          localStorage.setItem('dpi_tool_redirect', 'true');
+          sessionStorage.setItem('dpi_tool_redirect', 'true');
           localStorage.setItem('dpi_tool_filename', imageFile.name);
           localStorage.setItem('dpi_tool_printWidth', printWidth || '');
           localStorage.setItem('dpi_tool_printHeight', printHeight || '');
@@ -332,7 +349,7 @@ export function DPIChecker({
             reader.readAsDataURL(imageFile);
           } else {
             // Already base64
-            localStorage.setItem('dpi_tool_image', imagePreview);
+            sessionStorage.setItem('dpi_tool_image', imagePreview);
 
             // Now redirect - use replace to prevent back button issues
             window.location.replace('/process/upscale?fromDpiTool=true');
@@ -344,7 +361,7 @@ export function DPIChecker({
         }
       } else {
         // No image file, still redirect to upscale page
-        localStorage.setItem('dpi_tool_redirect', 'true');
+        sessionStorage.setItem('dpi_tool_redirect', 'true');
         window.location.replace('/process/upscale');
       }
     } catch (error) {

@@ -254,9 +254,9 @@ export class StorageService {
       return { isValid: false, error: 'No file selected.' };
     }
 
-    if (file.size > 50 * 1024 * 1024) {
-      // 50MB limit (Vercel Pro)
-      return { isValid: false, error: 'File size exceeds 50MB limit.' };
+    // NEW-25: Aligned to 10MB limit (consistent with upload/route.ts)
+    if (file.size > 10 * 1024 * 1024) {
+      return { isValid: false, error: 'File size exceeds 10MB limit.' };
     }
 
     const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];

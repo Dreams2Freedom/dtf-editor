@@ -360,10 +360,19 @@ export default function BackgroundRemovalClient() {
       'MB'
     );
 
-    return new Promise(resolve => {
+    // SEC-039: Wrap in promise with proper reject/error handlers
+    return new Promise((resolve, reject) => {
       const reader = new FileReader();
+      reader.onerror = () => {
+        console.error('[Background Removal] FileReader error');
+        reject(new Error('Failed to read image file'));
+      };
       reader.onload = e => {
         const img = new Image();
+        img.onerror = () => {
+          console.error('[Background Removal] Image load error');
+          reject(new Error('Failed to load image for compression'));
+        };
         img.onload = () => {
           const canvas = document.createElement('canvas');
           const ctx = canvas.getContext('2d');
@@ -647,17 +656,17 @@ export default function BackgroundRemovalClient() {
             break;
 
           case 'result-generated':
-            console.log('Result generated:', opts.image);
             // The user clicked "Done" in the editor
             setResultGenerated(true);
 
-            // Deduct credit NOW when result is actually generated
-            // Use synchronous ref guard to prevent race conditions with async state
+            // SEC-026: Deduct credit with permanent ref guard.
+            // Once set, the ref is NEVER reset — preventing double charges even if
+            // the network request fails. A failed deduction is logged for manual
+            // reconciliation rather than risking a double charge on retry.
             if (creditsDeductedRef.current) {
-              console.log('Credit already deducted, skipping duplicate deduction');
               break;
             }
-            creditsDeductedRef.current = true; // Set immediately (synchronous)
+            creditsDeductedRef.current = true; // Set permanently
 
             fetch('/api/credits/deduct', {
               method: 'POST',
@@ -670,22 +679,18 @@ export default function BackgroundRemovalClient() {
             })
               .then(async res => {
                 if (res.ok) {
-                  setCreditsDeducted(true); // Update UI state
-                  console.log('Credit deducted for background removal');
-                  // Refresh credits in auth store
+                  setCreditsDeducted(true);
                   const { refreshCredits } = useAuthStore.getState();
                   await refreshCredits();
                 } else {
-                  const error = await res.json();
-                  console.error('Failed to deduct credit:', error);
-                  // Reset ref on failure so user can retry
-                  creditsDeductedRef.current = false;
+                  // SEC-026: Do NOT reset the ref — log the failure for manual review
+                  // instead of risking a double charge on retry.
+                  console.error('Credit deduction failed — ref remains locked to prevent double charge');
                 }
               })
-              .catch(err => {
-                console.error('Failed to deduct credit:', err);
-                // Reset ref on failure so user can retry
-                creditsDeductedRef.current = false;
+              .catch(() => {
+                // SEC-026: Do NOT reset the ref — same rationale as above.
+                console.error('Credit deduction network error — ref remains locked');
               });
 
             // Store the image ID and download it

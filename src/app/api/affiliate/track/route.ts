@@ -43,7 +43,7 @@ export async function GET(request: NextRequest) {
       referer: request.headers.get('referer') || undefined,
     };
 
-    console.log('[TRACK API] Tracking visit for:', referralCode, visitData);
+    console.log('[TRACK API] Tracking visit for referral code:', referralCode);
 
     // Track the visit
     const result = await trackReferralVisit(referralCode, visitData);

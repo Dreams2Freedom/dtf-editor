@@ -23,23 +23,13 @@ export default function AdminLoginPage() {
   // Check if already logged in as admin
   useEffect(() => {
     const checkAuth = async () => {
-      console.log('Admin login page - checking auth...');
       await initialize();
 
       const state = useAuthStore.getState();
-      console.log('Auth state:', {
-        user: state.user?.email,
-        isAdmin: state.isAdmin,
-        profile: state.profile,
-      });
 
       if (state.user && state.isAdmin) {
-        // Already logged in as admin, redirect to dashboard
-        console.log('User is admin, redirecting...');
         router.push('/admin');
       } else if (state.user && !state.isAdmin) {
-        // Logged in but not admin
-        console.log('User is not admin, redirecting to dashboard...');
         toast.error('You do not have admin privileges');
         router.push('/dashboard');
       }

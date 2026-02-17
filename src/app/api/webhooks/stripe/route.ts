@@ -23,23 +23,37 @@ function getSupabase() {
   return supabase;
 }
 
-// SEC-015: Webhook event deduplication to prevent duplicate credit grants
-const processedEvents = new Map<string, number>();
-const EVENT_TTL_MS = 5 * 60 * 1000; // 5 minutes
-
-function isEventProcessed(eventId: string): boolean {
-  const now = Date.now();
-  // Clean up old entries
-  processedEvents.forEach((timestamp, id) => {
-    if (now - timestamp > EVENT_TTL_MS) {
-      processedEvents.delete(id);
-    }
-  });
-  return processedEvents.has(eventId);
+// SEC-015: Database-backed webhook event deduplication.
+// Persists across restarts and works across multiple server instances.
+async function isEventProcessed(eventId: string): Promise<boolean> {
+  try {
+    const supabase = getSupabaseClient();
+    const { data } = await supabase
+      .from('processed_webhook_events')
+      .select('event_id')
+      .eq('event_id', eventId)
+      .maybeSingle();
+    return !!data;
+  } catch {
+    // If table doesn't exist yet (migration pending), allow processing
+    return false;
+  }
 }
 
-function markEventProcessed(eventId: string): void {
-  processedEvents.set(eventId, Date.now());
+async function markEventProcessed(
+  eventId: string,
+  eventType?: string
+): Promise<void> {
+  try {
+    const supabase = getSupabaseClient();
+    await supabase.from('processed_webhook_events').upsert({
+      event_id: eventId,
+      event_type: eventType || 'unknown',
+      processed_at: new Date().toISOString(),
+    });
+  } catch (error) {
+    console.error('Failed to record processed webhook event:', error);
+  }
 }
 
 // Helper function to update GoHighLevel tags based on purchase type
@@ -191,12 +205,12 @@ export async function POST(request: NextRequest) {
     console.log('📨 Event ID:', event.id);
     console.log('📨 Event data:', JSON.stringify(event.data.object, null, 2));
 
-    // SEC-015: Skip already-processed events (prevents duplicate credits on retry)
-    if (isEventProcessed(event.id)) {
+    // SEC-015: Skip already-processed events (DB-backed dedup)
+    if (await isEventProcessed(event.id)) {
       console.log('⚠️ Event already processed, skipping to prevent duplicates');
       return NextResponse.json({ received: true, duplicate: true });
     }
-    markEventProcessed(event.id);
+    await markEventProcessed(event.id, event.type);
 
     switch (event.type) {
       case 'checkout.session.completed':
@@ -248,7 +262,6 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(
       {
         error: 'Webhook signature verification failed',
-        details: error.message,
       },
       { status: 400 }
     );
@@ -485,25 +498,22 @@ async function handleInvoicePaymentSucceeded(invoice: any) {
         console.error('Error updating billing period:', updateError);
       }
 
-      // Trigger credit reset for the new billing period
+      // SEC-034/NEW-10: Reset credits directly via Supabase instead of HTTP fetch.
+      // Previous code used fetch() with service role key in x-api-key header (SSRF + key leak).
       try {
-        const response = await fetch(
-          `${env.NEXT_PUBLIC_APP_URL}/api/credits/reset`,
-          {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'x-api-key': env.SUPABASE_SERVICE_ROLE_KEY,
-            },
-            body: JSON.stringify({ userId }),
-          }
+        const supabase = getSupabaseClient();
+        const { data: resetResult, error: resetError } = await supabase.rpc(
+          'check_credit_reset_needed',
+          { p_user_id: userId }
         );
 
-        if (!response.ok) {
-          console.error('Failed to reset credits:', await response.text());
+        if (resetError) {
+          console.error('Credit reset check failed:', resetError.message);
+        } else if (resetResult) {
+          console.log('Credit reset triggered for user:', userId);
         }
       } catch (error) {
-        console.error('Error calling credit reset:', error);
+        console.error('Error triggering credit reset:', error);
       }
     }
   }
@@ -616,7 +626,8 @@ async function handleChargeRefunded(charge: any) {
   try {
     // Calculate how many credits to deduct based on refund amount
     const refundPercentage = charge.amount_refunded / charge.amount;
-    const creditsToDeduct = Math.ceil(credits * refundPercentage);
+    // NEW-27: Use Math.floor — on refund, deduct at most what's owed (not more)
+    const creditsToDeduct = Math.floor(credits * refundPercentage);
 
     console.log(`📝 Deducting ${creditsToDeduct} credits due to refund`);
 

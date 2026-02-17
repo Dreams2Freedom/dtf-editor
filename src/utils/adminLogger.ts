@@ -102,17 +102,24 @@ export async function logAdminAction(options: LogOptions): Promise<void> {
 }
 
 /**
- * Helper to extract IP address from request headers
+ * Helper to extract IP address from request headers.
+ * NEW-22: On platforms like Vercel, x-forwarded-for is
+ * "client, proxy1, proxy2". The FIRST entry is the original client IP
+ * appended by the first trusted reverse proxy. We trim and validate it.
  */
 export function getClientIp(request: Request): string {
   const forwarded = request.headers.get('x-forwarded-for');
   if (forwarded) {
-    return forwarded.split(',')[0].trim();
+    const ip = forwarded.split(',')[0].trim();
+    // Basic validation: must look like an IP (v4 or v6)
+    if (/^[\d.:a-fA-F]+$/.test(ip)) {
+      return ip;
+    }
   }
 
   const realIp = request.headers.get('x-real-ip');
-  if (realIp) {
-    return realIp;
+  if (realIp && /^[\d.:a-fA-F]+$/.test(realIp.trim())) {
+    return realIp.trim();
   }
 
   // Fallback for development

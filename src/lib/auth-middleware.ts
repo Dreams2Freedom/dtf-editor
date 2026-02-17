@@ -2,9 +2,10 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { createClient } from '@supabase/supabase-js';
 
-// Cache admin status for performance (5 minutes)
+// SEC-036: Cache admin status for 60 seconds (reduced from 5 minutes)
+// to limit the window where a revoked admin retains cached access.
 const adminCache = new Map<string, { isAdmin: boolean; expiresAt: number }>();
-const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
+const CACHE_DURATION = 60 * 1000; // 60 seconds
 
 /**
  * Verify user authentication
@@ -43,9 +44,10 @@ export async function verifyAdmin(userId: string): Promise<boolean> {
 
     const supabase = await createServerSupabaseClient();
 
+    // NEW-26: Check both is_admin AND is_active to block disabled admins
     const { data: profile, error } = await supabase
       .from('profiles')
-      .select('is_admin')
+      .select('is_admin, is_active')
       .eq('id', userId)
       .single();
 
@@ -54,13 +56,16 @@ export async function verifyAdmin(userId: string): Promise<boolean> {
       return false;
     }
 
+    const isValidAdmin =
+      profile.is_admin === true && profile.is_active !== false;
+
     // Cache the result
     adminCache.set(userId, {
-      isAdmin: profile.is_admin === true,
+      isAdmin: isValidAdmin,
       expiresAt: Date.now() + CACHE_DURATION,
     });
 
-    return profile.is_admin === true;
+    return isValidAdmin;
   } catch (error) {
     console.error('Admin verification error:', error);
     return false;
@@ -106,14 +111,14 @@ export async function requireAdmin(
     );
   }
 
-  console.log('requireAdmin: Checking admin status for:', user.email);
+  console.log('requireAdmin: Checking admin status for user:', user.id);
   const isAdmin = await verifyAdmin(user.id);
   console.log('requireAdmin: isAdmin result:', isAdmin);
 
   if (!isAdmin) {
     // Log unauthorized admin access attempts
     console.warn(
-      `⚠️ Unauthorized admin access attempt by user: ${user.email} (${user.id})`
+      `Unauthorized admin access attempt by user ID: ${user.id}`
     );
 
     return NextResponse.json(
@@ -169,7 +174,7 @@ export function withAdmin(
 
     if (!isAdmin) {
       console.warn(
-        `⚠️ Unauthorized admin access attempt by user: ${user.email} (${user.id})`
+        `Unauthorized admin access attempt by user ID: ${user.id}`
       );
       return NextResponse.json(
         { error: 'Admin access required' },

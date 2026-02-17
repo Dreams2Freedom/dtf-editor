@@ -140,7 +140,7 @@ async function handlePost(request: NextRequest) {
       }
 
       return NextResponse.json(
-        { error: 'Failed to create notification', details: notifError.message },
+        { error: 'Failed to create notification' },
         { status: 500 }
       );
     }

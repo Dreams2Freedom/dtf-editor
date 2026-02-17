@@ -37,7 +37,6 @@ async function handlePost(request: NextRequest) {
       return NextResponse.json(
         {
           error: 'Failed to initialize authentication',
-          details: clientError.message,
         },
         { status: 500 }
       );
@@ -52,7 +51,7 @@ async function handlePost(request: NextRequest) {
     if (authError || !user) {
       console.error('[Generate Image API] Auth error:', authError);
       return NextResponse.json(
-        { error: 'Unauthorized - please log in', details: authError?.message },
+        { error: 'Unauthorized - please log in' },
         { status: 401 }
       );
     }
@@ -110,7 +109,6 @@ async function handlePost(request: NextRequest) {
           return NextResponse.json(
             {
               error: 'Failed to create user profile',
-              details: insertError.message,
             },
             { status: 500 }
           );
@@ -122,7 +120,6 @@ async function handlePost(request: NextRequest) {
         return NextResponse.json(
           {
             error: 'Failed to fetch user profile',
-            details: profileError.message,
           },
           { status: 500 }
         );
@@ -323,7 +320,6 @@ async function handlePost(request: NextRequest) {
       return NextResponse.json(
         {
           error: 'Image generation service error',
-          details: serviceError.message,
         },
         { status: 500 }
       );
@@ -534,9 +530,7 @@ async function handlePost(request: NextRequest) {
     console.error('[Generate Image API] Error stack:', error.stack);
     return NextResponse.json(
       {
-        error: error.message || 'Internal server error',
-        details:
-          process.env.NODE_ENV === 'development' ? error.stack : undefined,
+        error: 'Internal server error',
       },
       { status: 500 }
     );

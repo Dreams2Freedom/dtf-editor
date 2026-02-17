@@ -14,20 +14,23 @@ const securityHeaders = {
   'Permissions-Policy': 'camera=(), microphone=(), geolocation=()',
 };
 
-// Content Security Policy
+// SEC-031: Content Security Policy — removed unsafe-eval.
+// unsafe-inline is still required for Next.js inline styles and Stripe.js;
+// a full nonce-based CSP requires custom Next.js Document integration.
 const getCSP = () => {
   const policy = [
     "default-src 'self'",
-    "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://js.stripe.com https://checkout.stripe.com https://clippingmagic.com",
+    "script-src 'self' 'unsafe-inline' https://js.stripe.com https://checkout.stripe.com https://clippingmagic.com",
     "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
-    "img-src 'self' data: blob: https: http://localhost:*",
+    "img-src 'self' data: blob: https:",
     "font-src 'self' data: https://fonts.gstatic.com",
-    "connect-src 'self' https://api.stripe.com https://checkout.stripe.com https://*.supabase.co wss://*.supabase.co https://api.openai.com https://deep-image.ai https://clippingmagic.com https://*.clippingmagic.com https://api.vectorizer.ai https://api.mailgun.net http://localhost:*",
+    "connect-src 'self' https://api.stripe.com https://checkout.stripe.com https://*.supabase.co wss://*.supabase.co https://api.openai.com https://deep-image.ai https://clippingmagic.com https://*.clippingmagic.com https://api.vectorizer.ai https://api.mailgun.net",
     "frame-src 'self' https://checkout.stripe.com https://js.stripe.com https://clippingmagic.com https://*.clippingmagic.com",
     "object-src 'none'",
     "base-uri 'self'",
     "form-action 'self' https://checkout.stripe.com https://clippingmagic.com https://*.clippingmagic.com",
     "frame-ancestors 'none'",
+    "upgrade-insecure-requests",
   ];
 
   return policy.join('; ');
@@ -84,6 +87,21 @@ export async function middleware(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser();
 
+  // NEW-16: Block paid-feature access for users with past-due subscriptions.
+  // Processing routes require an active subscription; past_due users are
+  // redirected to their billing page to update payment.
+  if (user && pathname.startsWith('/process/')) {
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('subscription_status')
+      .eq('id', user.id)
+      .single();
+
+    if (profile?.subscription_status === 'past_due') {
+      return NextResponse.redirect(new URL('/settings?tab=billing&reason=past_due', request.url));
+    }
+  }
+
   // Apply security headers to all responses
   Object.entries(securityHeaders).forEach(([key, value]) => {
     response.headers.set(key, value);
@@ -106,16 +124,11 @@ export async function middleware(request: NextRequest) {
   return response;
 }
 
-// Specify which routes this middleware should run on
+// SEC-033: Expanded middleware matcher to cover all application routes
+// for security headers (CSP, HSTS, etc.) and session refresh.
 export const config = {
   matcher: [
-    // Admin routes
-    '/admin/:path*',
-    // Dashboard and app routes (for impersonation)
-    '/dashboard/:path*',
-    '/settings/:path*',
-    '/process/:path*',
-    // Catch-all for all API routes to ensure security headers
-    '/api/:path*',
+    // Match all routes EXCEPT static assets, images, and Next.js internals
+    '/((?!_next/static|_next/image|favicon\\.ico|robots\\.txt|sitemap\\.xml|.*\\.(?:png|jpg|jpeg|gif|svg|ico|webp|woff2?|ttf|eot|css|js|map)).*)',
   ],
 };

@@ -1,8 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { emailService } from '@/services/email';
+import { withRateLimit } from '@/lib/rate-limit';
 
-export async function POST(request: NextRequest) {
+// NEW-21: Add rate limiting to prevent email spam
+async function handlePost(request: NextRequest) {
   try {
     const supabase = await createServerSupabaseClient();
 
@@ -78,3 +80,6 @@ export async function POST(request: NextRequest) {
     );
   }
 }
+
+// NEW-21: Apply auth rate limiting (5 per 5 minutes)
+export const POST = withRateLimit(handlePost, 'auth');

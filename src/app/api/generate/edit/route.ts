@@ -32,10 +32,6 @@ async function handlePost(request: NextRequest) {
       return NextResponse.json(
         {
           error: 'Failed to initialize authentication',
-          details:
-            clientError instanceof Error
-              ? clientError.message
-              : 'Unknown error',
         },
         { status: 500 }
       );
@@ -50,7 +46,7 @@ async function handlePost(request: NextRequest) {
     if (authError || !user) {
       console.error('[Edit Image API] Auth error:', authError);
       return NextResponse.json(
-        { error: 'Unauthorized - please log in', details: authError?.message },
+        { error: 'Unauthorized - please log in' },
         { status: 401 }
       );
     }
@@ -74,7 +70,6 @@ async function handlePost(request: NextRequest) {
       return NextResponse.json(
         {
           error: 'Failed to fetch user profile',
-          details: profileError.message,
         },
         { status: 500 }
       );
@@ -179,10 +174,6 @@ async function handlePost(request: NextRequest) {
       return NextResponse.json(
         {
           error: 'Image editing service error',
-          details:
-            serviceError instanceof Error
-              ? serviceError.message
-              : 'Unknown error',
         },
         { status: 500 }
       );
@@ -317,11 +308,7 @@ async function handlePost(request: NextRequest) {
     );
     return NextResponse.json(
       {
-        error: error instanceof Error ? error.message : 'Internal server error',
-        details:
-          process.env.NODE_ENV === 'development' && error instanceof Error
-            ? error.stack
-            : undefined,
+        error: 'Internal server error',
       },
       { status: 500 }
     );
