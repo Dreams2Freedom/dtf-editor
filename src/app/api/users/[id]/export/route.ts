@@ -4,11 +4,11 @@ import { withRateLimit } from '@/lib/rate-limit';
 
 async function handleGet(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id: userId } = await params;
     const supabase = await createServerSupabaseClient();
-    const userId = params.id;
 
     // Check if user is requesting their own data or is admin
     const {

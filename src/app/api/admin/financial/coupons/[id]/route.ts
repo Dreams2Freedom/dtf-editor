@@ -5,9 +5,10 @@ import { withRateLimit } from '@/lib/rate-limit';
 
 async function handlePatch(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const supabase = await createServerSupabaseClient();
 
     // Check if user is admin
@@ -38,7 +39,7 @@ async function handlePatch(
     const { data: coupon, error } = await serviceClient
       .from('coupons')
       .update({ is_active: body.is_active })
-      .eq('id', params.id)
+      .eq('id', id)
       .select()
       .single();
 
@@ -65,9 +66,10 @@ async function handlePatch(
 
 async function handleDelete(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const supabase = await createServerSupabaseClient();
 
     // Check if user is admin
@@ -97,7 +99,7 @@ async function handleDelete(
     const { error } = await serviceClient
       .from('coupons')
       .delete()
-      .eq('id', params.id);
+      .eq('id', id);
 
     if (error) {
       console.error('Error deleting coupon:', error);
