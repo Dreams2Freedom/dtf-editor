@@ -360,10 +360,19 @@ export default function BackgroundRemovalClient() {
       'MB'
     );
 
-    return new Promise(resolve => {
+    // SEC-039: Wrap in promise with proper reject/error handlers
+    return new Promise((resolve, reject) => {
       const reader = new FileReader();
+      reader.onerror = () => {
+        console.error('[Background Removal] FileReader error');
+        reject(new Error('Failed to read image file'));
+      };
       reader.onload = e => {
         const img = new Image();
+        img.onerror = () => {
+          console.error('[Background Removal] Image load error');
+          reject(new Error('Failed to load image for compression'));
+        };
         img.onload = () => {
           const canvas = document.createElement('canvas');
           const ctx = canvas.getContext('2d');

@@ -2,9 +2,10 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { createClient } from '@supabase/supabase-js';
 
-// Cache admin status for performance (5 minutes)
+// SEC-036: Cache admin status for 60 seconds (reduced from 5 minutes)
+// to limit the window where a revoked admin retains cached access.
 const adminCache = new Map<string, { isAdmin: boolean; expiresAt: number }>();
-const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
+const CACHE_DURATION = 60 * 1000; // 60 seconds
 
 /**
  * Verify user authentication

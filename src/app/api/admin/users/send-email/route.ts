@@ -117,16 +117,28 @@ async function handlePost(request: NextRequest) {
           continue;
         }
 
-        // Personalize the message
+        // NEW-19: Escape user data before inserting into HTML templates
+        const escapeHtml = (str: string) =>
+          str
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;');
+
+        const safeFirstName = escapeHtml(user.first_name || 'User');
+        const safeLastName = escapeHtml(user.last_name || '');
+        const safeEmail = escapeHtml(user.email);
+
+        // Personalize the message with escaped values
         const personalizedBody = body
-          .replace(/{{firstName}}/g, user.first_name || 'User')
-          .replace(/{{lastName}}/g, user.last_name || '')
-          .replace(/{{email}}/g, user.email);
+          .replace(/{{firstName}}/g, safeFirstName)
+          .replace(/{{lastName}}/g, safeLastName)
+          .replace(/{{email}}/g, safeEmail);
 
         const personalizedSubject = subject
-          .replace(/{{firstName}}/g, user.first_name || 'User')
-          .replace(/{{lastName}}/g, user.last_name || '')
-          .replace(/{{email}}/g, user.email);
+          .replace(/{{firstName}}/g, safeFirstName)
+          .replace(/{{lastName}}/g, safeLastName)
+          .replace(/{{email}}/g, safeEmail);
 
         // Format body with HTML and optional unsubscribe
         let htmlBody = personalizedBody.replace(/\n/g, '<br>');

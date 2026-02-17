@@ -36,7 +36,8 @@ async function handleGet(request: NextRequest) {
     const startDate = searchParams.get('start_date') || '';
     const endDate = searchParams.get('end_date') || '';
     const page = parseInt(searchParams.get('page') || '1');
-    const limit = parseInt(searchParams.get('limit') || '20');
+    // NEW-20: Enforce max pagination limit
+    const limit = Math.min(parseInt(searchParams.get('limit') || '20'), 100);
     const offset = (page - 1) * limit;
 
     // Build query - simplified without foreign key join

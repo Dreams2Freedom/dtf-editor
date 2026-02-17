@@ -396,7 +396,8 @@ export default function UpscaleClient() {
     // Handle imageId parameter (from upload flow)
     if (!imageId) {
       // If we came from DPI tool but have no image, just show the upscale page
-      if (fromDpiTool === 'true') {
+      // SEC-040: Fixed boolean vs string comparison (was always false)
+      if (fromDpiTool) {
         setIsLoading(false);
         return;
       }
