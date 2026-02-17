@@ -626,7 +626,8 @@ async function handleChargeRefunded(charge: any) {
   try {
     // Calculate how many credits to deduct based on refund amount
     const refundPercentage = charge.amount_refunded / charge.amount;
-    const creditsToDeduct = Math.ceil(credits * refundPercentage);
+    // NEW-27: Use Math.floor — on refund, deduct at most what's owed (not more)
+    const creditsToDeduct = Math.floor(credits * refundPercentage);
 
     console.log(`📝 Deducting ${creditsToDeduct} credits due to refund`);
 

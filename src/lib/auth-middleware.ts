@@ -44,9 +44,10 @@ export async function verifyAdmin(userId: string): Promise<boolean> {
 
     const supabase = await createServerSupabaseClient();
 
+    // NEW-26: Check both is_admin AND is_active to block disabled admins
     const { data: profile, error } = await supabase
       .from('profiles')
-      .select('is_admin')
+      .select('is_admin, is_active')
       .eq('id', userId)
       .single();
 
@@ -55,13 +56,16 @@ export async function verifyAdmin(userId: string): Promise<boolean> {
       return false;
     }
 
+    const isValidAdmin =
+      profile.is_admin === true && profile.is_active !== false;
+
     // Cache the result
     adminCache.set(userId, {
-      isAdmin: profile.is_admin === true,
+      isAdmin: isValidAdmin,
       expiresAt: Date.now() + CACHE_DURATION,
     });
 
-    return profile.is_admin === true;
+    return isValidAdmin;
   } catch (error) {
     console.error('Admin verification error:', error);
     return false;
