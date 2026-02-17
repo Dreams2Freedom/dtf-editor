@@ -16,11 +16,9 @@ export default function Admin2FAPage() {
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
 
   useEffect(() => {
-    // Check if we have a session that requires 2FA
-    const session = adminAuthService.getSession();
-    if (!session || !session.requires_2fa) {
-      router.push('/admin/login');
-    }
+    // 2FA is not yet implemented — redirect to login
+    // When 2FA is implemented, this page will check session status via the server.
+    router.push('/admin/login');
 
     // Focus first input
     inputRefs.current[0]?.focus();
@@ -92,7 +90,6 @@ export default function Admin2FAPage() {
 
       const result = await adminAuthService.verify2FA({
         code: codeToSubmit,
-        session_token: session.token,
       });
 
       if (!result.success) {

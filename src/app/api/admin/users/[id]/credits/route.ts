@@ -42,7 +42,7 @@ export async function POST(
       );
     }
 
-    console.log('Authenticated user:', user.email);
+    console.log('Authenticated user:', user.id);
 
     // Check if user is admin
     const { data: profile, error: profileError } = await supabase
@@ -54,7 +54,7 @@ export async function POST(
     if (profileError || !profile?.is_admin) {
       console.error(
         'Admin check failed for user:',
-        user.email,
+        user.id,
         'is_admin:',
         profile?.is_admin
       );
@@ -64,7 +64,7 @@ export async function POST(
       );
     }
 
-    console.log('Admin verified:', user.email);
+    console.log('Admin verified:', user.id);
 
     const { id } = await context.params;
 
@@ -85,7 +85,7 @@ export async function POST(
 
     console.log(
       'Credit adjustment by admin:',
-      user.email,
+      user.id,
       'for user:',
       id,
       'amount:',

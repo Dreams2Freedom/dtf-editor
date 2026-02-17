@@ -35,36 +35,40 @@ export function useAsyncJob(options: UseAsyncJobOptions = {}) {
   const pollTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const isPollingRef = useRef(false);
 
-  // Check job status
+  // SEC-027: Iterative retry instead of recursive to prevent stack overflow.
+  // Uses a local counter instead of stale closure over React state.
   const checkJobStatus = useCallback(
     async (id: string): Promise<JobStatus | null> => {
-      try {
-        const response = await fetch(`/api/jobs/${id}`, {
-          credentials: 'include',
-        });
+      let attempt = 0;
+      while (attempt <= maxRetries) {
+        try {
+          const response = await fetch(`/api/jobs/${id}`, {
+            credentials: 'include',
+          });
 
-        if (!response.ok) {
-          throw new Error('Failed to get job status');
-        }
+          if (!response.ok) {
+            throw new Error('Failed to get job status');
+          }
 
-        const data = await response.json();
-        return data.job;
-      } catch (error) {
-        console.error('Failed to check job status:', error);
+          const data = await response.json();
+          if (attempt > 0) setRetryCount(0);
+          return data.job;
+        } catch (error) {
+          console.error('Failed to check job status:', error);
+          attempt++;
+          setRetryCount(attempt);
 
-        // Retry logic with exponential backoff
-        if (retryCount < maxRetries) {
-          const backoffDelay = Math.min(1000 * Math.pow(2, retryCount), 10000);
-          setRetryCount(prev => prev + 1);
+          if (attempt > maxRetries) {
+            return null;
+          }
 
+          const backoffDelay = Math.min(1000 * Math.pow(2, attempt - 1), 10000);
           await new Promise(resolve => setTimeout(resolve, backoffDelay));
-          return checkJobStatus(id);
         }
-
-        return null;
       }
+      return null;
     },
-    [retryCount, maxRetries]
+    [maxRetries]
   );
 
   // Start polling for a job

@@ -150,11 +150,16 @@ export function getClientIdentifier(request: NextRequest): string {
   const userId = request.headers.get('x-user-id');
   if (userId) return `user:${userId}`;
 
-  // Fall back to IP address
+  // NEW-22: Fall back to IP address — validate format
   const forwarded = request.headers.get('x-forwarded-for');
-  const ip = forwarded
-    ? forwarded.split(',')[0]
-    : request.headers.get('x-real-ip') || 'unknown';
+  let ip = 'unknown';
+  if (forwarded) {
+    const candidate = forwarded.split(',')[0].trim();
+    if (/^[\d.:a-fA-F]+$/.test(candidate)) ip = candidate;
+  } else {
+    const realIp = request.headers.get('x-real-ip');
+    if (realIp && /^[\d.:a-fA-F]+$/.test(realIp.trim())) ip = realIp.trim();
+  }
   return `ip:${ip}`;
 }
 

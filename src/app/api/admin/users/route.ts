@@ -27,7 +27,7 @@ async function handleGet(request: NextRequest) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
-    console.log('[Admin Users API] Admin user authenticated:', user.email);
+    console.log('[Admin Users API] Admin user authenticated:', user.id);
 
     // Use service role client to bypass RLS for fetching all users
     const serviceClient = createServiceRoleClient();

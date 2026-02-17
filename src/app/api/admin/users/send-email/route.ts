@@ -113,7 +113,7 @@ async function handlePost(request: NextRequest) {
       try {
         // Skip users who have opted out of marketing emails
         if (user.email_marketing_opted_out && template === 'promotional') {
-          console.log(`Skipping ${user.email} - opted out of marketing emails`);
+          console.log(`Skipping user ${user.id} - opted out of marketing emails`);
           continue;
         }
 
@@ -170,7 +170,7 @@ async function handlePost(request: NextRequest) {
           failed++;
         }
       } catch (error) {
-        console.error(`Failed to send email to ${user.email}:`, error);
+        console.error(`Failed to send email to user ${user.id}:`, error);
         failed++;
       }
     }

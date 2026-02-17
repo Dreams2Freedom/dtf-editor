@@ -57,7 +57,7 @@ export class AuthService {
 
       if (response.ok) {
         const data = await response.json();
-        console.log('Effective user response:', data);
+        console.log('Effective user response received, isImpersonating:', data.isImpersonating);
 
         if (data.user) {
           // If impersonating, use the impersonated user data
@@ -134,7 +134,7 @@ export class AuthService {
 
         if (response.ok) {
           const data = await response.json();
-          console.log('Effective user profile data:', data);
+          console.log('Effective user profile data received');
           if (data.profile) {
             return data.profile;
           }
@@ -203,7 +203,7 @@ export class AuthService {
     password: string
   ): Promise<{ user: User | null; error: AuthError | null }> {
     try {
-      console.log('[AuthService] Attempting sign in for:', email);
+      console.log('[AuthService] Attempting sign in');
 
       const { data, error } = await this.getSupabase().auth.signInWithPassword({
         email,
@@ -219,7 +219,7 @@ export class AuthService {
         throw error;
       }
 
-      console.log('[AuthService] Sign in successful:', data.user?.email);
+      console.log('[AuthService] Sign in successful for user:', data.user?.id);
       return { user: data.user, error: null };
     } catch (error) {
       console.error('[AuthService] Sign in exception:', error);

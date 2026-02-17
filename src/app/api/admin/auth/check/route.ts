@@ -61,6 +61,8 @@ async function handleGet(request: NextRequest) {
       );
     }
 
+    // NEW-09: Return permissions from the server so the client doesn't
+    // need to store or trust any client-side permission data.
     return NextResponse.json({
       success: true,
       data: {
@@ -69,6 +71,14 @@ async function handleGet(request: NextRequest) {
           email: profile.email,
           full_name: profile.full_name,
           is_admin: profile.is_admin,
+        },
+        permissions: {
+          users: { view: true, edit: true, delete: true },
+          financial: { view: true, refund: true, addCredits: true },
+          system: { settings: true },
+          analytics: { view: true },
+          support: { view: true },
+          admin: { manage: true },
         },
       },
     });

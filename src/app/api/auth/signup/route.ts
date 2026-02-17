@@ -16,7 +16,7 @@ async function handlePost(request: NextRequest) {
     const affiliateCookie = request.cookies.get('dtf_ref')?.value;
     const affiliateCode = request.cookies.get('dtf_ref_code')?.value;
 
-    console.log('[SIGNUP API] Step 2: Creating user for:', email);
+    console.log('[SIGNUP API] Step 2: Creating user');
 
     // Create Supabase client with service role for signup
     const supabase = createClient(
@@ -103,12 +103,7 @@ async function handlePost(request: NextRequest) {
     }
 
     // Send welcome email (this happens server-side, so it won't be cancelled)
-    console.log('[SIGNUP API] Step 5: Sending welcome email to:', email);
-    console.log('[SIGNUP API] Email metadata:', {
-      email: email,
-      firstName: metadata?.firstName || '',
-      planName: 'Free',
-    });
+    console.log('[SIGNUP API] Step 5: Sending welcome email for user:', signUpData.user.id);
 
     try {
       console.log('[SIGNUP API] Calling emailService.sendWelcomeEmail...');

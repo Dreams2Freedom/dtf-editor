@@ -230,27 +230,29 @@ export default function UpscaleClient() {
 
   // Load image data
   useEffect(() => {
-    // Check if coming from DPI tool - check both URL param and localStorage flag
+    // NEW-24: Check sessionStorage (not localStorage) for DPI tool data.
+    // sessionStorage is cleared when the tab closes, preventing privacy leaks.
     const fromDpiTool =
       searchParams.get('fromDpiTool') === 'true' ||
-      localStorage.getItem('dpi_tool_redirect') === 'true';
+      sessionStorage.getItem('dpi_tool_redirect') === 'true';
 
     if (fromDpiTool) {
-      // Check localStorage first (more persistent)
+      // NEW-24: Read from sessionStorage; fall back to localStorage for migration
       const storedImage =
-        localStorage.getItem('dpi_tool_image') ||
-        sessionStorage.getItem('dpi_tool_image');
+        sessionStorage.getItem('dpi_tool_image') ||
+        localStorage.getItem('dpi_tool_image');
       const storedFilename =
-        localStorage.getItem('dpi_tool_filename') ||
-        sessionStorage.getItem('dpi_tool_filename');
+        sessionStorage.getItem('dpi_tool_filename') ||
+        localStorage.getItem('dpi_tool_filename');
       const storedPrintWidth =
-        localStorage.getItem('dpi_tool_printWidth') ||
-        sessionStorage.getItem('dpi_tool_printWidth');
+        sessionStorage.getItem('dpi_tool_printWidth') ||
+        localStorage.getItem('dpi_tool_printWidth');
       const storedPrintHeight =
-        localStorage.getItem('dpi_tool_printHeight') ||
-        sessionStorage.getItem('dpi_tool_printHeight');
+        sessionStorage.getItem('dpi_tool_printHeight') ||
+        localStorage.getItem('dpi_tool_printHeight');
 
-      // Clear the redirect flag
+      // Clear the redirect flag from both storages
+      sessionStorage.removeItem('dpi_tool_redirect');
       localStorage.removeItem('dpi_tool_redirect');
 
       if (storedImage) {

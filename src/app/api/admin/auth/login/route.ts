@@ -4,6 +4,7 @@ import { cookies } from 'next/headers';
 import { env } from '@/config/env';
 import { logAdminAction, getClientIp, getUserAgent } from '@/utils/adminLogger';
 import { withRateLimit } from '@/lib/rate-limit';
+import { signCookieValue } from '@/lib/cookie-signing';
 
 async function handlePost(request: NextRequest) {
   try {
@@ -55,7 +56,7 @@ async function handlePost(request: NextRequest) {
         resourceId: email,
         details: {
           action: 'login_failed',
-          reason: authError?.message || 'Invalid credentials',
+          reason: 'Invalid credentials',
         },
         ipAddress: getClientIp(request),
         userAgent: getUserAgent(request),
@@ -72,7 +73,7 @@ async function handlePost(request: NextRequest) {
     // Check if user is an admin in profiles table
     const { data: profile, error: profileError } = await supabase
       .from('profiles')
-      .select('*')
+      .select('id, email, full_name, is_admin, is_active, created_at, updated_at')
       .eq('id', authData.user.id)
       .single();
 
@@ -85,32 +86,16 @@ async function handlePost(request: NextRequest) {
       );
     }
 
-    // Create simplified admin session data
-    const adminSession = {
-      user: {
-        id: authData.user.id,
-        user_id: authData.user.id,
-        role_id: 'admin',
-        role_name: 'admin',
-        role_permissions: {
-          users: { view: true, edit: true, delete: true },
-          financial: { view: true, refund: true, addCredits: true },
-          system: { settings: true },
-          analytics: { view: true },
-          support: { view: true },
-          admin: { manage: true },
-        },
-        user_email: profile.email,
-        user_full_name: profile.full_name,
-        two_factor_enabled: false,
-        ip_whitelist: [],
-        last_login_at: new Date().toISOString(),
-        created_at: profile.created_at,
-        updated_at: profile.updated_at,
-      },
-      token: authData.session.access_token,
-      expires_at: authData.session.expires_at || '',
-      requires_2fa: false, // Always false for now, will be configurable later
+    // NEW-08: Store only a signed user ID in the cookie, not the full session JSON.
+    // The Supabase auth session is already managed via its own httpOnly cookies.
+    // This admin_session cookie simply marks the user as a verified admin.
+    const adminPermissions = {
+      users: { view: true, edit: true, delete: true },
+      financial: { view: true, refund: true, addCredits: true },
+      system: { settings: true },
+      analytics: { view: true },
+      support: { view: true },
+      admin: { manage: true },
     };
 
     // Update last activity
@@ -129,50 +114,47 @@ async function handlePost(request: NextRequest) {
       details: {
         action: 'login_success',
         remember_me: remember,
-        ip: getClientIp(request),
       },
       ipAddress: getClientIp(request),
       userAgent: getUserAgent(request),
       success: true,
     });
 
-    // Set admin session cookie first
+    // NEW-08: Minimal admin cookie — only signed user ID, not full session JSON
     const cookieOptions = {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax' as const,
       path: '/',
-      maxAge: remember ? 30 * 24 * 60 * 60 : 24 * 60 * 60, // 30 days if remember me, 1 day otherwise
+      maxAge: remember ? 30 * 24 * 60 * 60 : 24 * 60 * 60,
     };
 
-    // Set cookie using the cookies() function
-    cookieStore.set(
-      'admin_session',
-      JSON.stringify(adminSession),
-      cookieOptions
-    );
-
-    // Also set a simple flag cookie for middleware
+    // Sign the user ID to prevent forgery
+    const signedAdminId = signCookieValue(authData.user.id);
+    cookieStore.set('admin_session', signedAdminId, cookieOptions);
     cookieStore.set('admin_logged_in', 'true', {
       ...cookieOptions,
-      httpOnly: true, // This one can be httpOnly
+      httpOnly: true,
     });
 
-    // Create response — NEW-07: no debug headers or flags
+    // SEC-023/NEW-09: Return minimal data for UI rendering only.
+    // Token is NOT included — Supabase auth cookies handle authentication.
+    // Permissions returned here are for client UI rendering only;
+    // actual enforcement is server-side via requireAdmin.
     const response = NextResponse.json({
       success: true,
       data: {
-        session: adminSession,
+        user: {
+          id: authData.user.id,
+          email: profile.email,
+          full_name: profile.full_name,
+        },
+        permissions: adminPermissions,
         requires_2fa: false,
       },
     });
 
-    // Also set on response for consistent cookie behavior
-    response.cookies.set(
-      'admin_session',
-      JSON.stringify(adminSession),
-      cookieOptions
-    );
+    response.cookies.set('admin_session', signedAdminId, cookieOptions);
 
     return response;
   } catch (error) {

@@ -111,14 +111,14 @@ export async function requireAdmin(
     );
   }
 
-  console.log('requireAdmin: Checking admin status for:', user.email);
+  console.log('requireAdmin: Checking admin status for user:', user.id);
   const isAdmin = await verifyAdmin(user.id);
   console.log('requireAdmin: isAdmin result:', isAdmin);
 
   if (!isAdmin) {
     // Log unauthorized admin access attempts
     console.warn(
-      `⚠️ Unauthorized admin access attempt by user: ${user.email} (${user.id})`
+      `Unauthorized admin access attempt by user ID: ${user.id}`
     );
 
     return NextResponse.json(
@@ -174,7 +174,7 @@ export function withAdmin(
 
     if (!isAdmin) {
       console.warn(
-        `⚠️ Unauthorized admin access attempt by user: ${user.email} (${user.id})`
+        `Unauthorized admin access attempt by user ID: ${user.id}`
       );
       return NextResponse.json(
         { error: 'Admin access required' },

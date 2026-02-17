@@ -1,16 +1,30 @@
 import { createBrowserClient } from '@supabase/ssr';
 import { env } from '@/config/env';
 import type {
-  AdminSession,
   AdminLoginRequest,
-  AdminLoginResponse,
-  Admin2FAVerifyRequest,
-  AdminUserWithRole,
+  AdminPermissions,
   AdminApiResponse,
 } from '@/types/admin';
 
+// SEC-023/NEW-08/NEW-09: Admin auth refactored to remove localStorage/sessionStorage.
+// Permissions are fetched from the server and cached in volatile memory only.
+// The httpOnly admin_session cookie (signed with HMAC) is the sole session token.
+
+interface AdminClientSession {
+  user: {
+    id: string;
+    email: string;
+    full_name?: string;
+  };
+  permissions: AdminPermissions;
+}
+
 class AdminAuthService {
   private supabase;
+  // In-memory cache — not XSS-stealable, cleared on page refresh
+  private cachedSession: AdminClientSession | null = null;
+  private cacheExpiry = 0;
+  private static CACHE_TTL = 60_000; // 60 seconds
 
   constructor() {
     this.supabase = createBrowserClient(
@@ -26,7 +40,7 @@ class AdminAuthService {
     email,
     password,
     remember = false,
-  }: AdminLoginRequest): Promise<AdminApiResponse<AdminLoginResponse>> {
+  }: AdminLoginRequest): Promise<AdminApiResponse<{ user: AdminClientSession['user']; permissions: AdminPermissions; requires_2fa: boolean }>> {
     try {
       const response = await fetch('/api/admin/auth/login', {
         method: 'POST',
@@ -46,19 +60,22 @@ class AdminAuthService {
         };
       }
 
-      // Store admin session in local storage
-      if (result.data && result.data.session) {
-        if (remember) {
-          localStorage.setItem(
-            'admin_session',
-            JSON.stringify(result.data.session)
-          );
-        } else {
-          sessionStorage.setItem(
-            'admin_session',
-            JSON.stringify(result.data.session)
-          );
-        }
+      // SEC-023: Cache session data in volatile memory only (not localStorage).
+      // This data is for UI rendering; actual auth is via httpOnly cookies.
+      if (result.data) {
+        this.cachedSession = {
+          user: result.data.user,
+          permissions: result.data.permissions,
+        };
+        this.cacheExpiry = Date.now() + AdminAuthService.CACHE_TTL;
+      }
+
+      // Migrate: clear any legacy localStorage/sessionStorage data
+      try {
+        localStorage.removeItem('admin_session');
+        sessionStorage.removeItem('admin_session');
+      } catch {
+        // Ignore storage access errors
       }
 
       return result;
@@ -75,17 +92,18 @@ class AdminAuthService {
    */
   async verify2FA({
     code,
-    session_token,
-  }: Admin2FAVerifyRequest): Promise<AdminApiResponse<AdminSession>> {
+  }: {
+    code: string;
+    session_token?: string;
+  }): Promise<AdminApiResponse<any>> {
     try {
-      // Verify TOTP code against stored secret
       const response = await fetch('/api/admin/auth/2fa-verify', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${session_token}`,
         },
         body: JSON.stringify({ code }),
+        credentials: 'include',
       });
 
       const result = await response.json();
@@ -97,16 +115,9 @@ class AdminAuthService {
         };
       }
 
-      // Update session
-      const session = result.data.session;
-      const storage = localStorage.getItem('admin_session')
-        ? localStorage
-        : sessionStorage;
-      storage.setItem('admin_session', JSON.stringify(session));
-
       return {
         success: true,
-        data: session,
+        data: result.data,
       };
     } catch (error) {
       return {
@@ -117,37 +128,65 @@ class AdminAuthService {
   }
 
   /**
-   * Get current admin session
+   * Get current admin session from server.
+   * NEW-09: Permissions are always fetched from the server, never from client storage.
    */
-  getSession(): AdminSession | null {
-    const stored =
-      localStorage.getItem('admin_session') ||
-      sessionStorage.getItem('admin_session');
-    if (!stored) return null;
+  async getSessionAsync(): Promise<AdminClientSession | null> {
+    // Return memory cache if fresh
+    if (this.cachedSession && Date.now() < this.cacheExpiry) {
+      return this.cachedSession;
+    }
 
     try {
-      const session = JSON.parse(stored) as AdminSession;
+      const response = await fetch('/api/admin/auth/check', {
+        credentials: 'include',
+      });
 
-      // Check if session is expired
-      if (new Date(session.expires_at) < new Date()) {
-        this.clearSession();
+      if (!response.ok) {
+        this.cachedSession = null;
         return null;
       }
 
-      return session;
+      const result = await response.json();
+      if (!result.success || !result.data) {
+        this.cachedSession = null;
+        return null;
+      }
+
+      this.cachedSession = {
+        user: result.data.user,
+        permissions: result.data.permissions,
+      };
+      this.cacheExpiry = Date.now() + AdminAuthService.CACHE_TTL;
+
+      return this.cachedSession;
     } catch {
       return null;
     }
   }
 
   /**
-   * Check if user has specific permission
+   * Synchronous session getter — returns the in-memory cache.
+   * For backwards compatibility with code that calls getSession() synchronously.
+   * Returns null if cache is expired; callers should use getSessionAsync() for fresh data.
+   */
+  getSession(): AdminClientSession | null {
+    if (this.cachedSession && Date.now() < this.cacheExpiry) {
+      return this.cachedSession;
+    }
+    return null;
+  }
+
+  /**
+   * Check if user has specific permission.
+   * NEW-09: Reads from server-fetched memory cache, not localStorage.
+   * This is for UI rendering only; actual enforcement is server-side.
    */
   hasPermission(permissionPath: string[]): boolean {
     const session = this.getSession();
     if (!session) return false;
 
-    let current: any = session.user.role_permissions;
+    let current: any = session.permissions;
 
     for (const segment of permissionPath) {
       if (!current || typeof current !== 'object') return false;
@@ -167,19 +206,23 @@ class AdminAuthService {
         headers: {
           'Content-Type': 'application/json',
         },
+        credentials: 'include',
       });
-    } catch (error) {}
+    } catch (error) {
+      // Silent fail on logout request
+    }
 
-    // Clear admin session
-    this.clearSession();
-  }
+    // Clear in-memory cache
+    this.cachedSession = null;
+    this.cacheExpiry = 0;
 
-  /**
-   * Clear admin session
-   */
-  private clearSession(): void {
-    localStorage.removeItem('admin_session');
-    sessionStorage.removeItem('admin_session');
+    // Clean up any legacy localStorage/sessionStorage data
+    try {
+      localStorage.removeItem('admin_session');
+      sessionStorage.removeItem('admin_session');
+    } catch {
+      // Ignore storage access errors
+    }
   }
 
   /**
@@ -192,14 +235,10 @@ class AdminAuthService {
     details?: Record<string, any>
   ): Promise<void> {
     try {
-      const session = this.getSession();
-      if (!session) return;
-
       await fetch('/api/admin/audit/log', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${session.token}`,
         },
         body: JSON.stringify({
           action,
@@ -207,8 +246,11 @@ class AdminAuthService {
           resource_id: resourceId,
           details,
         }),
+        credentials: 'include',
       });
-    } catch (error) {}
+    } catch (error) {
+      // Silent fail for audit logging
+    }
   }
 
   /**
@@ -218,19 +260,9 @@ class AdminAuthService {
     AdminApiResponse<{ qrCode: string; secret: string }>
   > {
     try {
-      const session = this.getSession();
-      if (!session) {
-        return {
-          success: false,
-          error: 'No active session',
-        };
-      }
-
       const response = await fetch('/api/admin/auth/2fa-setup', {
         method: 'POST',
-        headers: {
-          Authorization: `Bearer ${session.token}`,
-        },
+        credentials: 'include',
       });
 
       const result = await response.json();
@@ -247,16 +279,10 @@ class AdminAuthService {
    * Check if current IP is whitelisted
    */
   async checkIPWhitelist(): Promise<boolean> {
-    const session = this.getSession();
-    if (!session) return false;
-
-    // If no whitelist configured, allow all
-    if (!session.user.ip_whitelist || session.user.ip_whitelist.length === 0) {
-      return true;
-    }
-
     try {
-      const response = await fetch('/api/admin/auth/check-ip');
+      const response = await fetch('/api/admin/auth/check-ip', {
+        credentials: 'include',
+      });
       const result = await response.json();
       return result.allowed;
     } catch {
@@ -265,60 +291,22 @@ class AdminAuthService {
   }
 
   /**
-   * Refresh admin session
+   * Refresh admin session from server
    */
-  async refreshSession(): Promise<AdminApiResponse<AdminSession>> {
-    try {
-      const {
-        data: { session },
-        error,
-      } = await this.supabase.auth.getSession();
+  async refreshSession(): Promise<AdminApiResponse<AdminClientSession>> {
+    const session = await this.getSessionAsync();
 
-      if (error || !session) {
-        this.clearSession();
-        return {
-          success: false,
-          error: 'Session expired',
-        };
-      }
-
-      // Re-fetch admin user data
-      const { data: adminUser, error: adminError } = await this.supabase
-        .from('admin_users_with_roles')
-        .select('*')
-        .eq('user_id', session.user.id)
-        .single();
-
-      if (adminError || !adminUser) {
-        this.clearSession();
-        return {
-          success: false,
-          error: 'Admin privileges revoked',
-        };
-      }
-
-      const newSession: AdminSession = {
-        user: adminUser as AdminUserWithRole,
-        token: session.access_token,
-        expires_at: session.expires_at || '',
-      };
-
-      // Update stored session
-      const storage = localStorage.getItem('admin_session')
-        ? localStorage
-        : sessionStorage;
-      storage.setItem('admin_session', JSON.stringify(newSession));
-
-      return {
-        success: true,
-        data: newSession,
-      };
-    } catch (error) {
+    if (!session) {
       return {
         success: false,
-        error: 'Failed to refresh session',
+        error: 'Session expired',
       };
     }
+
+    return {
+      success: true,
+      data: session,
+    };
   }
 }
 
