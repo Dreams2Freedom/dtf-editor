@@ -118,44 +118,5 @@ async function handleGet(request: NextRequest) {
   }
 }
 
-// Helper function to log admin actions (for use in other API routes)
-export async function logAdminAction({
-  adminId,
-  action,
-  resourceType,
-  resourceId,
-  details,
-  ipAddress,
-  userAgent,
-}: {
-  adminId: string;
-  action: string;
-  resourceType: string;
-  resourceId?: string;
-  details?: any;
-  ipAddress?: string;
-  userAgent?: string;
-}) {
-  try {
-    const supabase = await createServerSupabaseClient();
-
-    const { error } = await supabase.from('admin_audit_logs').insert({
-      admin_id: adminId,
-      action,
-      resource_type: resourceType,
-      resource_id: resourceId,
-      details: details || {},
-      ip_address: ipAddress,
-      user_agent: userAgent,
-    });
-
-    if (error) {
-      console.error('Error logging admin action:', error);
-    }
-  } catch (error) {
-    console.error('Error in logAdminAction:', error);
-  }
-}
-
 // Apply rate limiting
 export const GET = withRateLimit(handleGet, 'admin');

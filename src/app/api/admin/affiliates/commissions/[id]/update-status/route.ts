@@ -4,9 +4,10 @@ import { createServerSupabaseClient } from '@/lib/supabase/server';
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     // Verify the request is from an authenticated admin
     const supabase = await createServerSupabaseClient();
     const {
@@ -48,7 +49,7 @@ export async function POST(
     const { error } = await serviceClient
       .from('commissions')
       .update({ status })
-      .eq('id', params.id);
+      .eq('id', id);
 
     if (error) throw error;
 

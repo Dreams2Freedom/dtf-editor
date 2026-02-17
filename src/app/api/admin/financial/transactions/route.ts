@@ -56,40 +56,83 @@ async function handleGet(request: NextRequest) {
     // Use service role client for data access
     const serviceClient = createServiceRoleSupabaseClient();
 
-    // Fetch transactions
-    const { data: transactions, error: transactionError } = await serviceClient
-      .from('transactions')
+    // Fetch from payment_transactions (Stripe payments)
+    const { data: paymentTxns, error: paymentError } = await serviceClient
+      .from('payment_transactions')
       .select('*')
       .gte('created_at', startDate.toISOString())
       .order('created_at', { ascending: false });
 
-    if (transactionError) {
-      console.error('Error fetching transactions:', transactionError);
-      throw transactionError;
+    if (paymentError) {
+      console.error('Error fetching payment_transactions:', paymentError);
+      // Table may not exist yet — continue with empty array
     }
 
+    // Fetch from credit_transactions (credit movements)
+    const { data: creditTxns, error: creditError } = await serviceClient
+      .from('credit_transactions')
+      .select('*')
+      .gte('created_at', startDate.toISOString())
+      .order('created_at', { ascending: false });
+
+    if (creditError) {
+      console.error('Error fetching credit_transactions:', creditError);
+      // Table may not exist yet — continue with empty array
+    }
+
+    // Gather unique user IDs from both sources
+    const allUserIds = new Set<string>();
+    (paymentTxns || []).forEach(t => allUserIds.add(t.user_id));
+    (creditTxns || []).forEach(t => allUserIds.add(t.user_id));
+
     // Fetch user details
-    const userIds = [...new Set(transactions?.map(t => t.user_id) || [])];
-    const { data: users } = await serviceClient
-      .from('profiles')
-      .select('id, email, first_name, last_name')
-      .in('id', userIds);
+    let userMap = new Map<string, { email: string; name: string }>();
+    if (allUserIds.size > 0) {
+      const { data: users } = await serviceClient
+        .from('profiles')
+        .select('id, email, first_name, last_name')
+        .in('id', [...allUserIds]);
 
-    // Map user details to transactions
-    const userMap = new Map(
-      users?.map(u => [
-        u.id,
-        {
-          email: u.email,
-          name:
-            `${u.first_name || ''} ${u.last_name || ''}`.trim() || 'Unknown',
-        },
-      ])
-    );
+      userMap = new Map(
+        users?.map(u => [
+          u.id,
+          {
+            email: u.email || 'unknown',
+            name:
+              `${u.first_name || ''} ${u.last_name || ''}`.trim() || 'Unknown',
+          },
+        ]) || []
+      );
+    }
 
-    // Format transactions
-    const formattedTransactions =
-      transactions?.map(t => {
+    // Format payment transactions
+    const formattedPayments = (paymentTxns || []).map(t => {
+      const userInfo = userMap.get(t.user_id) || {
+        email: 'unknown',
+        name: 'Unknown',
+      };
+      return {
+        id: t.id,
+        user_id: t.user_id,
+        user_email: userInfo.email,
+        user_name: userInfo.name,
+        type: t.payment_type === 'subscription' ? 'subscription' : 'purchase',
+        amount: Math.round((t.amount || 0) * 100), // Convert dollars to cents for display
+        credits: t.credits_purchased || null,
+        status: t.status || 'completed',
+        stripe_payment_id: t.stripe_payment_intent_id || null,
+        description:
+          t.subscription_tier
+            ? `${t.payment_type === 'subscription' ? 'Subscription' : 'Purchase'} - ${t.subscription_tier}`
+            : `${t.payment_type === 'subscription' ? 'Subscription payment' : 'Credit purchase'} - ${t.credits_purchased || 0} credits`,
+        created_at: t.created_at,
+      };
+    });
+
+    // Format credit transactions (usage, refunds, resets)
+    const formattedCredits = (creditTxns || [])
+      .filter(t => ['usage', 'refund'].includes(t.type))
+      .map(t => {
         const userInfo = userMap.get(t.user_id) || {
           email: 'unknown',
           name: 'Unknown',
@@ -99,43 +142,48 @@ async function handleGet(request: NextRequest) {
           user_id: t.user_id,
           user_email: userInfo.email,
           user_name: userInfo.name,
-          type: t.type || 'purchase',
-          amount: t.amount || 0,
-          credits: t.metadata?.credits || null,
-          status: t.status || 'completed',
-          stripe_payment_id: t.stripe_payment_id || null,
-          description:
-            t.description || `${t.type || 'Purchase'} - ${userInfo.email}`,
+          type: t.type as 'usage' | 'refund',
+          amount: 0, // Credit transactions don't have monetary value
+          credits: Math.abs(t.amount),
+          status: 'completed' as const,
+          stripe_payment_id: null,
+          description: t.description || `${t.type} - ${Math.abs(t.amount)} credits`,
           created_at: t.created_at,
         };
-      }) || [];
+      });
 
-    // Calculate metrics
+    // Merge and sort by date descending
+    const allTransactions = [...formattedPayments, ...formattedCredits].sort(
+      (a, b) =>
+        new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+    );
+
+    // Calculate metrics (based on payment transactions only for revenue)
+    const completedPayments = formattedPayments.filter(
+      t => t.status === 'completed'
+    );
     const metrics = {
-      total_revenue: formattedTransactions
-        .filter(t => t.status === 'completed' && t.type !== 'refund')
-        .reduce((sum, t) => sum + t.amount, 0),
-      total_transactions: formattedTransactions.length,
-      successful_transactions: formattedTransactions.filter(
+      total_revenue: completedPayments.reduce((sum, t) => sum + t.amount, 0),
+      total_transactions: allTransactions.length,
+      successful_transactions: allTransactions.filter(
         t => t.status === 'completed'
       ).length,
-      failed_transactions: formattedTransactions.filter(
-        t => t.status === 'failed'
-      ).length,
-      refunded_amount: formattedTransactions
+      failed_transactions: allTransactions.filter(t => t.status === 'failed')
+        .length,
+      refunded_amount: formattedCredits
         .filter(t => t.type === 'refund')
-        .reduce((sum, t) => sum + t.amount, 0),
+        .reduce((sum, t) => sum + (t.credits || 0), 0),
       average_transaction: 0,
     };
 
-    if (metrics.successful_transactions > 0) {
+    if (completedPayments.length > 0) {
       metrics.average_transaction = Math.round(
-        metrics.total_revenue / metrics.successful_transactions
+        metrics.total_revenue / completedPayments.length
       );
     }
 
     return NextResponse.json({
-      transactions: formattedTransactions,
+      transactions: allTransactions,
       metrics,
     });
   } catch (error) {

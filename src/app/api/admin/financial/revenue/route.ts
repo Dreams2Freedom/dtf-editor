@@ -56,16 +56,16 @@ async function handleGet(request: NextRequest) {
     // Use service role client for data access
     const serviceClient = createServiceRoleSupabaseClient();
 
-    // Fetch all transactions in range
+    // Fetch all payment transactions in range
     const { data: transactions, error: transactionError } = await serviceClient
-      .from('transactions')
+      .from('payment_transactions')
       .select('*')
       .gte('created_at', startDate.toISOString())
       .order('created_at', { ascending: false });
 
     if (transactionError) {
-      console.error('Error fetching transactions:', transactionError);
-      throw transactionError;
+      console.error('Error fetching payment_transactions:', transactionError);
+      // Continue with empty array if table doesn't exist yet
     }
 
     // Fetch all users
@@ -78,26 +78,25 @@ async function handleGet(request: NextRequest) {
       throw usersError;
     }
 
-    // Calculate metrics
-    const completedTransactions =
-      transactions?.filter(t => t.status === 'completed') || [];
-    const refundTransactions =
-      transactions?.filter(t => t.type === 'refund') || [];
+    // Calculate metrics using payment_transactions columns
+    const allTxns = transactions || [];
+    const completedTransactions = allTxns.filter(
+      t => t.status === 'completed'
+    );
     const subscriptionTransactions = completedTransactions.filter(
-      t => t.type === 'subscription'
+      t => t.payment_type === 'subscription'
     );
     const purchaseTransactions = completedTransactions.filter(
-      t => t.type === 'purchase'
+      t => t.payment_type === 'one_time'
     );
 
-    const totalRevenue = completedTransactions
-      .filter(t => t.type !== 'refund')
-      .reduce((sum, t) => sum + (t.amount || 0), 0);
-
-    const totalRefunds = refundTransactions.reduce(
-      (sum, t) => sum + (t.amount || 0),
+    // amount is stored in dollars in payment_transactions, convert to cents for display
+    const totalRevenue = completedTransactions.reduce(
+      (sum, t) => sum + Math.round((t.amount || 0) * 100),
       0
     );
+
+    const totalRefunds = 0; // Refunds tracked separately in credit_transactions
 
     // Calculate MRR from active subscriptions
     const paidPlans = ['basic', 'starter', 'professional', 'pro'];
@@ -130,7 +129,7 @@ async function handleGet(request: NextRequest) {
         : 0;
 
     // Calculate LTV (simplified: avg order value * avg customer lifetime in months)
-    const avgCustomerLifetime = 6; // Assume 6 months for now
+    const avgCustomerLifetime = 6;
     const ltv = avgOrderValue * avgCustomerLifetime;
 
     // Calculate churn rate
@@ -146,21 +145,24 @@ async function handleGet(request: NextRequest) {
       totalCustomers > 0 ? (churnedCustomers / totalCustomers) * 100 : 0;
 
     // Calculate growth rate (compare with previous period)
-    const previousPeriodStart = new Date(startDate);
-    previousPeriodStart.setDate(
-      previousPeriodStart.getDate() - (now.getDate() - startDate.getDate())
+    const daysDiff = Math.ceil(
+      (now.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)
     );
+    const previousPeriodStart = new Date(startDate);
+    previousPeriodStart.setDate(previousPeriodStart.getDate() - daysDiff);
 
     const { data: previousTransactions } = await serviceClient
-      .from('transactions')
+      .from('payment_transactions')
       .select('amount')
       .gte('created_at', previousPeriodStart.toISOString())
       .lt('created_at', startDate.toISOString())
-      .eq('status', 'completed')
-      .neq('type', 'refund');
+      .eq('status', 'completed');
 
     const previousRevenue =
-      previousTransactions?.reduce((sum, t) => sum + (t.amount || 0), 0) || 0;
+      previousTransactions?.reduce(
+        (sum, t) => sum + Math.round((t.amount || 0) * 100),
+        0
+      ) || 0;
     const growthRate =
       previousRevenue > 0
         ? ((totalRevenue - previousRevenue) / previousRevenue) * 100
@@ -173,11 +175,11 @@ async function handleGet(request: NextRequest) {
     // Revenue breakdown
     const breakdown = {
       subscriptions: subscriptionTransactions.reduce(
-        (sum, t) => sum + (t.amount || 0),
+        (sum, t) => sum + Math.round((t.amount || 0) * 100),
         0
       ),
       oneTimePurchases: purchaseTransactions.reduce(
-        (sum, t) => sum + (t.amount || 0),
+        (sum, t) => sum + Math.round((t.amount || 0) * 100),
         0
       ),
       refunds: totalRefunds,
@@ -207,22 +209,20 @@ async function handleGet(request: NextRequest) {
       const monthEnd = new Date(now.getFullYear(), now.getMonth() - i + 1, 0);
 
       if (monthStart >= startDate) {
-        const monthTransactions =
-          transactions?.filter(t => {
-            const date = new Date(t.created_at);
-            return (
-              date >= monthStart &&
-              date <= monthEnd &&
-              t.status === 'completed' &&
-              t.type !== 'refund'
-            );
-          }) || [];
+        const monthTransactions = allTxns.filter(t => {
+          const date = new Date(t.created_at);
+          return (
+            date >= monthStart &&
+            date <= monthEnd &&
+            t.status === 'completed'
+          );
+        });
 
         const monthSubscriptions = monthTransactions.filter(
-          t => t.type === 'subscription'
+          t => t.payment_type === 'subscription'
         );
         const monthPurchases = monthTransactions.filter(
-          t => t.type === 'purchase'
+          t => t.payment_type === 'one_time'
         );
 
         const newCustomers =
@@ -234,15 +234,15 @@ async function handleGet(request: NextRequest) {
         monthlyData.unshift({
           month: monthNames[monthStart.getMonth()],
           revenue: monthTransactions.reduce(
-            (sum, t) => sum + (t.amount || 0),
+            (sum, t) => sum + Math.round((t.amount || 0) * 100),
             0
           ),
           subscriptions: monthSubscriptions.reduce(
-            (sum, t) => sum + (t.amount || 0),
+            (sum, t) => sum + Math.round((t.amount || 0) * 100),
             0
           ),
           purchases: monthPurchases.reduce(
-            (sum, t) => sum + (t.amount || 0),
+            (sum, t) => sum + Math.round((t.amount || 0) * 100),
             0
           ),
           customers: newCustomers,

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import {
   User,
   Search,
@@ -54,6 +54,22 @@ export function UserListTable() {
     sort_order: 'desc',
   });
   const [dropdownUserId, setDropdownUserId] = useState<string | null>(null);
+  const [dropdownPos, setDropdownPos] = useState<{ top: number; left: number } | null>(null);
+
+  const openDropdown = useCallback((userId: string, buttonEl: HTMLButtonElement) => {
+    if (dropdownUserId === userId) {
+      setDropdownUserId(null);
+      setDropdownPos(null);
+      return;
+    }
+    const rect = buttonEl.getBoundingClientRect();
+    const menuHeight = 320; // approximate menu height
+    const spaceBelow = window.innerHeight - rect.bottom;
+    const top = spaceBelow < menuHeight ? rect.top - menuHeight : rect.bottom + 4;
+    const left = rect.right - 192; // 192px = w-48
+    setDropdownPos({ top, left: Math.max(8, left) });
+    setDropdownUserId(userId);
+  }, [dropdownUserId]);
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [creditModalOpen, setCreditModalOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<
@@ -201,6 +217,7 @@ export function UserListTable() {
 
       toast.success('User data exported successfully');
       setDropdownUserId(null);
+      setDropdownPos(null);
     } catch (error) {
       console.error('Export error:', error);
       toast.error('Failed to export user data');
@@ -239,6 +256,7 @@ export function UserListTable() {
       toast.error(error.message || 'Failed to impersonate user');
     } finally {
       setDropdownUserId(null);
+      setDropdownPos(null);
     }
   };
 
@@ -327,12 +345,14 @@ export function UserListTable() {
     setSelectedUser(user);
     setEditModalOpen(true);
     setDropdownUserId(null);
+    setDropdownPos(null);
   };
 
   const handleCreditAdjustment = (user: AdminUserListResponse['users'][0]) => {
     setSelectedUser(user);
     setCreditModalOpen(true);
     setDropdownUserId(null);
+    setDropdownPos(null);
   };
 
   const handleUserUpdate = (updatedUser: any) => {
@@ -722,23 +742,22 @@ export function UserListTable() {
                   <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                     <div className="relative">
                       <button
-                        onClick={() =>
-                          setDropdownUserId(
-                            dropdownUserId === user.id ? null : user.id
-                          )
-                        }
+                        onClick={(e) => openDropdown(user.id, e.currentTarget)}
                         className="text-gray-400 hover:text-gray-500 focus:outline-none"
                       >
                         <MoreVertical className="h-5 w-5" />
                       </button>
 
-                      {dropdownUserId === user.id && (
+                      {dropdownUserId === user.id && dropdownPos && (
                         <>
                           <div
                             className="fixed inset-0 z-10"
-                            onClick={() => setDropdownUserId(null)}
+                            onClick={() => { setDropdownUserId(null); setDropdownPos(null); }}
                           />
-                          <div className="absolute right-0 mt-2 w-48 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 z-20">
+                          <div
+                            className="fixed w-48 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 z-20"
+                            style={{ top: dropdownPos.top, left: dropdownPos.left }}
+                          >
                             <div className="py-1">
                               <a
                                 href={`/admin/users/${user.id}`}
@@ -766,6 +785,7 @@ export function UserListTable() {
                                   setSelectedUserIds(new Set([user.id]));
                                   setEmailModalOpen(true);
                                   setDropdownUserId(null);
+                                  setDropdownPos(null);
                                 }}
                                 className="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
                               >

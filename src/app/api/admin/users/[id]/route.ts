@@ -8,9 +8,10 @@ import { withRateLimit } from '@/lib/rate-limit';
 
 async function handleGet(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     // Check if user is authenticated and is admin
     const supabase = await createServerSupabaseClient();
     const {
@@ -38,7 +39,7 @@ async function handleGet(
     const { data: userDetails, error: userError } = await serviceClient
       .from('profiles')
       .select('*')
-      .eq('id', params.id)
+      .eq('id', id)
       .single();
 
     if (userError || !userDetails) {
@@ -49,7 +50,7 @@ async function handleGet(
     const { data: transactions, error: transError } = await serviceClient
       .from('credit_transactions')
       .select('*')
-      .eq('user_id', params.id)
+      .eq('user_id', id)
       .order('created_at', { ascending: false })
       .limit(10);
 
@@ -59,7 +60,7 @@ async function handleGet(
       const { data: uploadsData } = await serviceClient
         .from('uploads')
         .select('*')
-        .eq('user_id', params.id)
+        .eq('user_id', id)
         .order('created_at', { ascending: false })
         .limit(10);
       uploads = uploadsData || [];
@@ -71,7 +72,7 @@ async function handleGet(
     const { data: usageStats } = await serviceClient
       .from('credit_transactions')
       .select('amount')
-      .eq('user_id', params.id)
+      .eq('user_id', id)
       .like('description', '%usage%')
       .gte(
         'created_at',
@@ -107,7 +108,7 @@ async function handleGet(
       adminEmail: user.email,
       action: 'user.view',
       resourceType: 'user',
-      resourceId: params.id,
+      resourceId: id,
       details: { viewed_user_email: userDetails.email },
       ipAddress: getClientIp(request),
       userAgent: getUserAgent(request),
@@ -148,9 +149,10 @@ async function handleGet(
 
 async function handlePatch(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     // Check if user is authenticated and is admin
     const supabase = await createServerSupabaseClient();
     const {
@@ -201,7 +203,7 @@ async function handlePatch(
     const { data: updatedUser, error } = await serviceClient
       .from('profiles')
       .update(updateData)
-      .eq('id', params.id)
+      .eq('id', id)
       .select()
       .single();
 
@@ -224,7 +226,7 @@ async function handlePatch(
             : 'user.suspend'
           : 'user.update',
       resourceType: 'user',
-      resourceId: params.id,
+      resourceId: id,
       details: {
         updated_fields: Object.keys(body),
         changes: body,

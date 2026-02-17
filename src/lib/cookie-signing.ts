@@ -1,33 +1,47 @@
-import { createHmac } from 'crypto';
-import { env } from '@/config/env';
-
 /**
  * SEC-009: HMAC cookie signing to prevent forgery of impersonation and admin session cookies.
+ * Uses Web Crypto API for Edge Runtime compatibility (middleware runs in Edge).
  * Uses SUPABASE_SERVICE_ROLE_KEY as the signing secret (always available server-side).
  */
 
 function getSigningKey(): string {
   // Use a dedicated secret or fall back to service role key
-  return process.env.COOKIE_SIGNING_SECRET || env.SUPABASE_SERVICE_ROLE_KEY;
+  return process.env.COOKIE_SIGNING_SECRET || process.env.SUPABASE_SERVICE_ROLE_KEY || '';
 }
 
-export function signCookieValue(payload: string): string {
-  const hmac = createHmac('sha256', getSigningKey());
-  hmac.update(payload);
-  const signature = hmac.digest('base64url');
+const encoder = new TextEncoder();
+
+async function hmacSign(payload: string): Promise<string> {
+  const key = await crypto.subtle.importKey(
+    'raw',
+    encoder.encode(getSigningKey()),
+    { name: 'HMAC', hash: 'SHA-256' },
+    false,
+    ['sign']
+  );
+  const signature = await crypto.subtle.sign('HMAC', key, encoder.encode(payload));
+  // Convert to base64url
+  const bytes = new Uint8Array(signature);
+  let binary = '';
+  for (let i = 0; i < bytes.length; i++) {
+    binary += String.fromCharCode(bytes[i]);
+  }
+  return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+}
+
+export async function signCookieValue(payload: string): Promise<string> {
+  const signature = await hmacSign(payload);
   return `${payload}.${signature}`;
 }
 
-export function verifyCookieValue(signedValue: string): string | null {
+export async function verifyCookieValue(signedValue: string): Promise<string | null> {
   const lastDot = signedValue.lastIndexOf('.');
   if (lastDot === -1) return null;
 
   const payload = signedValue.slice(0, lastDot);
   const signature = signedValue.slice(lastDot + 1);
 
-  const hmac = createHmac('sha256', getSigningKey());
-  hmac.update(payload);
-  const expectedSignature = hmac.digest('base64url');
+  const expectedSignature = await hmacSign(payload);
 
   // Constant-time comparison
   if (
