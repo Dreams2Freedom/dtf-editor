@@ -71,7 +71,7 @@ async function handleGet(request: NextRequest) {
     // Fetch all users
     const { data: users, error: usersError } = await serviceClient
       .from('profiles')
-      .select('id, subscription_plan, subscription_status, subscription_tier, stripe_customer_id, created_at');
+      .select('id, subscription_plan, subscription_status, stripe_customer_id, created_at');
 
     if (usersError) {
       console.error('Error fetching users:', usersError);
@@ -141,14 +141,12 @@ async function handleGet(request: NextRequest) {
     // Subscribers = paying customers with an active paid plan
     const subscribers = allPayingCustomers.filter(u =>
       paidPlans.includes(u.subscription_plan) ||
-      paidPlans.includes(u.subscription_tier) ||
       (u.subscription_status && !['free', 'canceled', 'cancelled', 'past_due'].includes(u.subscription_status) && u.subscription_status !== null)
     );
 
     // Pay-per-use = has stripe_customer_id but no active subscription
     const payPerUseCustomers = allPayingCustomers.filter(u =>
-      !paidPlans.includes(u.subscription_plan) &&
-      !paidPlans.includes(u.subscription_tier)
+      !paidPlans.includes(u.subscription_plan)
     );
 
     const payingCustomers = allPayingCustomers.length;
