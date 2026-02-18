@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createServerSupabaseClient } from '@/lib/supabase/server';
+import { createServerSupabaseClient, createServiceRoleClient } from '@/lib/supabase/server';
 import { emailService } from '@/services/email';
 import { withAdminAuth } from '@/lib/admin-auth';
 async function handlePost(request: NextRequest) {
@@ -45,8 +45,9 @@ async function handlePost(request: NextRequest) {
     let userNotified = false;
 
     if (ticket) {
-      // Get user profile
-      const { data: userProfile } = await supabase
+      // Get user profile via service role to bypass RLS
+      const serviceClient = createServiceRoleClient();
+      const { data: userProfile } = await serviceClient
         .from('profiles')
         .select('email, first_name, last_name')
         .eq('id', ticket.user_id)

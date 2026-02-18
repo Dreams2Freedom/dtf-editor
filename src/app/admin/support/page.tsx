@@ -70,21 +70,28 @@ export default function AdminSupportPage() {
 
       if (error) throw error;
 
-      // Fetch all unique user IDs to get their emails
+      // Fetch all unique user IDs to get their emails (via admin API to bypass RLS)
       const ticketData = tickets || [];
       const userIds = [...new Set(ticketData.map((t: { user_id: string }) => t.user_id).filter(Boolean))];
       const userEmailMap: Record<string, string> = {};
       if (userIds.length > 0) {
-        const { data: profiles } = await supabase
-          .from('profiles')
-          .select('id, email, first_name, last_name')
-          .in('id', userIds);
-        profiles?.forEach((p: { id: string; email: string; first_name?: string; last_name?: string }) => {
-          if (p.email) {
-            const name = `${p.first_name || ''} ${p.last_name || ''}`.trim();
-            userEmailMap[p.id] = name ? `${name} (${p.email})` : p.email;
+        try {
+          const res = await fetch('/api/admin/users/profiles', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ userIds }),
+          });
+          if (res.ok) {
+            const { profiles: profileMap } = await res.json();
+            for (const [id, p] of Object.entries(profileMap || {}) as [string, { email: string; name: string }][]) {
+              if (p.email) {
+                userEmailMap[id] = p.name ? `${p.name} (${p.email})` : p.email;
+              }
+            }
           }
-        });
+        } catch (profileError) {
+          console.error('Error fetching user profiles:', profileError);
+        }
       }
 
       // Get message information for each ticket
