@@ -487,15 +487,22 @@ export default function TransactionsPage() {
                         </td>
                         <td className="py-3 px-4 text-sm">
                           {transaction.description}
-                          {transaction.credits && (
+                          {transaction.credits && transaction.type !== 'usage' && transaction.type !== 'refund' && (
                             <span className="ml-2 text-gray-500">
                               ({transaction.credits} credits)
                             </span>
                           )}
                         </td>
                         <td className="py-3 px-4 text-right font-medium">
-                          {transaction.type === 'refund' && '-'}
-                          {formatCurrency(transaction.amount)}
+                          {transaction.type === 'usage' || transaction.type === 'refund' ? (
+                            <span className={transaction.type === 'refund' ? 'text-orange-600' : 'text-gray-600'}>
+                              {transaction.type === 'refund' ? '+' : '-'}{transaction.credits || 0} credits
+                            </span>
+                          ) : (
+                            <>
+                              {formatCurrency(transaction.amount)}
+                            </>
+                          )}
                         </td>
                         <td className="py-3 px-4 text-center">
                           <Badge variant={getStatusVariant(transaction.status)}>
