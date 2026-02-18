@@ -2,8 +2,6 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { emailService } from '@/services/email';
 import { withAdminAuth } from '@/lib/admin-auth';
-import { AdminAuditService } from '@/services/adminAudit';
-
 async function handlePost(request: NextRequest) {
   try {
     const supabase = await createServerSupabaseClient();
@@ -82,35 +80,6 @@ async function handlePost(request: NextRequest) {
           // Don't fail the request if email fails
         }
       }
-    }
-
-    // Create audit log entry
-    try {
-      const auditService = AdminAuditService.getInstance();
-      await auditService.logAction(
-        {
-          user: {
-            id: adminId,
-            email: '',
-          },
-          role: 'admin',
-          createdAt: new Date(),
-        },
-        {
-          action: 'support.reply',
-          resource_type: 'support_ticket',
-          resource_id: ticketId,
-          details: {
-            ticket_number: ticket?.ticket_number,
-            message_length: message.length,
-            user_notified: userNotified,
-          },
-        },
-        request
-      );
-    } catch (auditError) {
-      console.error('Failed to create audit log:', auditError);
-      // Don't fail the request if audit logging fails
     }
 
     return NextResponse.json({

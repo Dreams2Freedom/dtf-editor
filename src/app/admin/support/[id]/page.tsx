@@ -103,7 +103,7 @@ export default function AdminTicketDetailPage() {
 
       // Enrich messages with author info
       const enriched = await Promise.all(
-        (messagesData || []).map(async (msg) => {
+        (messagesData || []).map(async (msg: SupportMessage) => {
           if (msg.is_admin) {
             return { ...msg, author: { name: 'Support Team', email: '' } };
           }
@@ -516,7 +516,7 @@ export default function AdminTicketDetailPage() {
             <p className="text-center text-gray-600">
               This ticket is closed.
               <Button
-                variant="link"
+                variant="ghost"
                 onClick={() => updateStatus('open')}
                 className="ml-1"
               >
