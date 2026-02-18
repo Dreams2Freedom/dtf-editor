@@ -44,6 +44,8 @@ async function handlePost(request: NextRequest) {
       .eq('id', ticketId)
       .single();
 
+    let userNotified = false;
+
     if (ticket) {
       // Get user profile
       const { data: userProfile } = await supabase
@@ -73,6 +75,7 @@ async function handlePost(request: NextRequest) {
             adminMessage: message,
             ticketSubject: ticket.subject,
           });
+          userNotified = true;
           console.log('Admin reply notification sent for ticket:', ticket.ticket_number);
         } catch (emailError) {
           console.error('Failed to send admin reply notification:', emailError);
@@ -82,28 +85,33 @@ async function handlePost(request: NextRequest) {
     }
 
     // Create audit log entry
-    const auditService = AdminAuditService.getInstance();
-    await auditService.logAction(
-      {
-        user: {
-          id: adminId,
-          email: '', // Admin email would need to be fetched
+    try {
+      const auditService = AdminAuditService.getInstance();
+      await auditService.logAction(
+        {
+          user: {
+            id: adminId,
+            email: '',
+          },
+          role: 'admin',
+          createdAt: new Date(),
         },
-        role: 'admin',
-        createdAt: new Date(),
-      },
-      {
-        action: 'support.reply',
-        resource_type: 'support_ticket',
-        resource_id: ticketId,
-        details: {
-          ticket_number: ticket?.ticket_number,
-          message_length: message.length,
-          user_notified: !!userProfile?.email,
+        {
+          action: 'support.reply',
+          resource_type: 'support_ticket',
+          resource_id: ticketId,
+          details: {
+            ticket_number: ticket?.ticket_number,
+            message_length: message.length,
+            user_notified: userNotified,
+          },
         },
-      },
-      request
-    );
+        request
+      );
+    } catch (auditError) {
+      console.error('Failed to create audit log:', auditError);
+      // Don't fail the request if audit logging fails
+    }
 
     return NextResponse.json({
       success: true,
