@@ -1,9 +1,53 @@
 # DTF Editor - Bug Tracker
 
-**Last Updated:** February 8, 2026
-**Status:** Active Bug Tracking - SECURITY AUDIT IN PROGRESS
+**Last Updated:** February 18, 2026
+**Status:** Active Bug Tracking - POST SECURITY AUDIT
 
-> **SECURITY AUDIT (Feb 8, 2026):** A comprehensive security audit found 47 issues (12 Critical, 17 High, 12 Medium, 6 Low). See `SECURITY_AUDIT_2026_02_08.md` for the full report and prioritized action plan.
+> **SECURITY RE-AUDIT (Feb 16, 2026):** A comprehensive re-audit found 28 new issues. 30+ fixes applied across 4 tiers. See `SECURITY_AUDIT_2026_02_16.md` for the full report.
+> **SECURITY AUDIT (Feb 8, 2026):** Original audit found 47 issues (12 Critical, 17 High, 12 Medium, 6 Low). See `SECURITY_AUDIT_2026_02_08.md`.
+
+---
+
+## 🔴 **CRITICAL BUGS (February 17-18, 2026 Session)**
+
+### **BUG-062: Profiles RLS Policy Circular Reference Breaks All Supabase Queries**
+
+- **Status:** 🔴 ACTIVE (Fix identified, awaiting user action)
+- **Severity:** Critical
+- **Component:** Supabase RLS Policies / Profiles Table
+- **Description:** Adding a `profiles_admin_select` RLS policy with a self-referencing subquery on the `profiles` table causes infinite recursion, breaking ALL queries to `profiles`, `support_tickets`, and `support_messages` tables
+- **Reported:** February 18, 2026
+- **Symptoms:**
+  - Users cannot create support tickets (500 error on INSERT)
+  - Users cannot view their tickets (500 error on SELECT)
+  - Users cannot view their own profile (500 error)
+  - Admin support ticket queries fail (500 error)
+  - React error #418 (hydration mismatch) in production
+- **Root Cause:**
+  - The `profiles_admin_select` policy queries the `profiles` table from within a policy ON the `profiles` table itself:
+    ```sql
+    CREATE POLICY "profiles_admin_select" ON profiles
+      FOR SELECT USING (
+        EXISTS (SELECT 1 FROM profiles WHERE profiles.id = auth.uid() AND profiles.is_admin = TRUE)
+      );
+    ```
+  - When PostgreSQL evaluates ANY SELECT on `profiles`, it evaluates ALL SELECT policies
+  - The `profiles_admin_select` policy does a SELECT from `profiles`, triggering the same policy evaluation again
+  - This creates infinite recursion → PostgreSQL returns 500 error
+  - The 500 cascades to `support_tickets` and `support_messages` because their admin policies also reference `profiles`
+- **Fix Required:**
+  ```sql
+  DROP POLICY IF EXISTS "profiles_admin_select" ON profiles;
+  ```
+- **Why This Is Sufficient:**
+  - Regular users can see their own profile via existing `auth.uid() = id` policy
+  - Admin operations that need all profiles use the service role client (bypasses RLS)
+  - The admin policies on `support_tickets` work because admin can see their own profile row (where `is_admin = TRUE`) through the user-level policy
+- **Prevention for Future:**
+  - NEVER create RLS policies on a table that subquery the SAME table
+  - For admin visibility patterns, use `auth.uid() = id` for own-row access and service role for cross-user access
+  - Test RLS policy changes in a staging environment before production
+- **Related Issues:** Created during fix for support tickets showing "From: Unknown" (commit aee36c7)
 
 ---
 
@@ -1741,11 +1785,11 @@
 
 | Priority    | Total  | Open  | In Progress | Fixed  | Fix Rate |
 | ----------- | ------ | ----- | ----------- | ------ | -------- |
-| P0 Critical | 49     | 0     | 0           | 49     | 100%     |
+| P0 Critical | 50     | 1     | 0           | 49     | 98%      |
 | P1 High     | 4      | 1     | 0           | 3      | 75%      |
 | P2 Medium   | 3      | 1     | 0           | 2      | 67%      |
 | P3 Low      | 2      | 2     | 0           | 0      | 0%       |
-| **Total**   | **58** | **4** | **0**       | **54** | **93%**  |
+| **Total**   | **59** | **5** | **0**       | **54** | **92%**  |
 
 ---
 
