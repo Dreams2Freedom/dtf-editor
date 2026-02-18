@@ -466,11 +466,41 @@ async function handleSubscriptionCancellation(subscription: any) {
 }
 
 async function handleInvoicePaymentSucceeded(invoice: any) {
-  const userId = invoice.metadata?.userId;
-  if (!userId) return;
+  console.log('📊 handleInvoicePaymentSucceeded called');
+  console.log('Invoice ID:', invoice.id);
+  console.log('Billing reason:', invoice.billing_reason);
+  console.log('Customer:', invoice.customer);
+  console.log('Amount paid:', invoice.amount_paid);
+
+  // Try to get userId from metadata, then fall back to customer ID lookup
+  let userId = invoice.metadata?.userId;
+
+  if (!userId && invoice.customer) {
+    const customerId = typeof invoice.customer === 'string'
+      ? invoice.customer
+      : invoice.customer.id;
+
+    const { data: profile } = await getSupabase()
+      .from('profiles')
+      .select('id, subscription_plan')
+      .eq('stripe_customer_id', customerId)
+      .single();
+
+    if (profile) {
+      userId = profile.id;
+      console.log('Found userId from customer ID:', userId);
+    }
+  }
+
+  if (!userId) {
+    console.error('❌ Could not find userId for invoice payment');
+    return;
+  }
 
   // Handle subscription renewal
   if (invoice.subscription && invoice.billing_reason === 'subscription_cycle') {
+    console.log('🔄 Processing subscription renewal for user:', userId);
+
     // Update subscription billing period dates
     const subscription = await getStripeService().getSubscription(
       invoice.subscription
@@ -518,7 +548,45 @@ async function handleInvoicePaymentSucceeded(invoice: any) {
       } catch (error) {
         console.error('Error triggering credit reset:', error);
       }
+
+      // Log the renewal payment to payment_transactions
+      const priceId = subscription.items?.data?.[0]?.price?.id;
+      const stripeService = getStripeService();
+      const plans = stripeService.getSubscriptionPlans();
+      const plan = plans.find((p: any) => p.stripePriceId === priceId);
+
+      await logPaymentTransaction({
+        userId,
+        stripePaymentIntentId: typeof invoice.payment_intent === 'string'
+          ? invoice.payment_intent
+          : invoice.payment_intent?.id,
+        stripeCheckoutSessionId: `invoice_${invoice.id}`, // Use invoice ID as unique key
+        stripeCustomerId: typeof invoice.customer === 'string'
+          ? invoice.customer
+          : invoice.customer?.id,
+        stripeSubscriptionId: typeof invoice.subscription === 'string'
+          ? invoice.subscription
+          : invoice.subscription?.id,
+        amount: invoice.amount_paid || 0,
+        paymentType: 'subscription',
+        creditsPurchased: plan?.creditsPerMonth,
+        subscriptionTier: plan?.id,
+        metadata: {
+          billingReason: invoice.billing_reason,
+          invoiceId: invoice.id,
+          planName: plan?.name || 'subscription',
+          isRenewal: true,
+        },
+      });
+
+      console.log('✅ Subscription renewal payment logged for user:', userId);
     }
+  }
+
+  // Handle initial subscription payment (first invoice after checkout)
+  if (invoice.subscription && invoice.billing_reason === 'subscription_create') {
+    console.log('📝 Initial subscription invoice - payment already logged via checkout.session.completed');
+    // No need to log again - handleCheckoutSessionCompleted already records the initial payment
   }
 }
 

@@ -244,14 +244,152 @@ async function handlePost(request: NextRequest) {
       }
     }
 
+    // 5. Also fetch paid invoices (captures subscription renewals not in checkout sessions)
+    const invoices: Stripe.Invoice[] = [];
+    let invoiceHasMore = true;
+    let invoiceStartingAfter: string | undefined = undefined;
+
+    while (invoiceHasMore) {
+      const invoiceParams: Stripe.InvoiceListParams = {
+        limit: 100,
+        status: 'paid',
+      };
+      if (invoiceStartingAfter) invoiceParams.starting_after = invoiceStartingAfter;
+
+      const invoiceBatch = await stripe.invoices.list(invoiceParams);
+      invoices.push(...invoiceBatch.data);
+      invoiceHasMore = invoiceBatch.has_more;
+      if (invoiceBatch.data.length > 0) {
+        invoiceStartingAfter = invoiceBatch.data[invoiceBatch.data.length - 1].id;
+      }
+    }
+
+    let invoicesInserted = 0;
+    let invoicesSkippedDuplicate = 0;
+
+    for (const invoice of invoices) {
+      // Use invoice_<id> as unique key to avoid conflicts with checkout session IDs
+      const uniqueKey = `invoice_${invoice.id}`;
+      if (existingSessionIds.has(uniqueKey)) {
+        invoicesSkippedDuplicate++;
+        continue;
+      }
+
+      const customerId =
+        typeof invoice.customer === 'string'
+          ? invoice.customer
+          : invoice.customer?.id;
+      if (!customerId) continue;
+
+      const userInfo = customerUserMap.get(customerId);
+      if (!userInfo) continue;
+
+      if (!invoice.amount_paid || invoice.amount_paid === 0) continue;
+
+      // Detect tier from amount (in cents)
+      let tier: string | null = null;
+      let credits: number | null = null;
+      const amountCents = invoice.amount_paid;
+
+      if (invoice.subscription) {
+        // Subscription invoice - detect tier from amount
+        if (amountCents <= 999) { tier = 'basic'; credits = 20; }
+        else if (amountCents <= 2999) { tier = 'starter'; credits = 60; }
+        else if (amountCents <= 4999) { tier = 'professional'; credits = 150; }
+        else { tier = 'subscription'; }
+      }
+
+      let paymentIntentId: string | null = null;
+      if (invoice.payment_intent) {
+        paymentIntentId =
+          typeof invoice.payment_intent === 'string'
+            ? invoice.payment_intent
+            : invoice.payment_intent.id;
+      }
+
+      let subscriptionId: string | null = null;
+      if (invoice.subscription) {
+        subscriptionId =
+          typeof invoice.subscription === 'string'
+            ? invoice.subscription
+            : invoice.subscription.id;
+      }
+
+      const invoiceCreated = invoice.created
+        ? new Date(invoice.created * 1000).toISOString()
+        : new Date().toISOString();
+
+      const record = {
+        user_id: userInfo.userId,
+        stripe_payment_intent_id: paymentIntentId,
+        stripe_checkout_session_id: uniqueKey,
+        stripe_customer_id: customerId,
+        stripe_subscription_id: subscriptionId,
+        amount: invoice.amount_paid / 100,
+        currency: invoice.currency || 'usd',
+        payment_type: invoice.subscription ? 'subscription' : 'one_time',
+        status: 'completed',
+        credits_purchased: credits,
+        subscription_tier: tier,
+        metadata: {
+          backfilled: true,
+          backfill_date: new Date().toISOString(),
+          source: 'invoice',
+          invoice_id: invoice.id,
+          billing_reason: invoice.billing_reason || 'unknown',
+          stripe_created: invoiceCreated,
+        },
+        created_at: invoiceCreated,
+      };
+
+      preview.push({
+        date: record.created_at.slice(0, 10),
+        amount: `$${record.amount.toFixed(2)}`,
+        type: record.payment_type,
+        email: userInfo.email,
+        credits,
+        tier,
+        session_id: uniqueKey,
+        source: 'invoice',
+      });
+
+      if (!dryRun) {
+        const { error: insertError } = await serviceClient
+          .from('payment_transactions')
+          .insert(record);
+
+        if (insertError) {
+          console.error(
+            `Backfill invoice insert failed for ${invoice.id}:`,
+            insertError.message
+          );
+          errors.push({
+            sessionId: uniqueKey,
+            error: insertError.message,
+            code: insertError.code,
+            details: insertError.details,
+          });
+        } else {
+          invoicesInserted++;
+        }
+      } else {
+        invoicesInserted++;
+      }
+    }
+
+    const totalInserted = inserted + invoicesInserted;
+
     return NextResponse.json({
       dryRun,
       summary: {
         totalStripeCheckouts: sessions.length,
+        totalStripeInvoices: invoices.length,
         usersWithStripeIds: customerUserMap.size,
-        wouldInsert: dryRun ? inserted : undefined,
-        inserted: dryRun ? undefined : inserted,
-        skippedDuplicate,
+        wouldInsert: dryRun ? totalInserted : undefined,
+        inserted: dryRun ? undefined : totalInserted,
+        fromCheckouts: inserted,
+        fromInvoices: invoicesInserted,
+        skippedDuplicate: skippedDuplicate + invoicesSkippedDuplicate,
         skippedNoUser,
         skippedNoAmount,
         errors: errors.length,

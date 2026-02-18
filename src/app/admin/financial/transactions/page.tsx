@@ -189,7 +189,7 @@ export default function TransactionsPage() {
 
       if (count === 0) {
         toast.info(
-          `No new Stripe payments to import. ${preview.summary.totalStripeCheckouts} checkout sessions found, ${preview.summary.skippedDuplicate} already recorded.`
+          `No new Stripe payments to import. ${preview.summary.totalStripeCheckouts} checkouts and ${preview.summary.totalStripeInvoices || 0} invoices found, ${preview.summary.skippedDuplicate} already recorded.`
         );
         setSyncing(false);
         return;
@@ -198,7 +198,10 @@ export default function TransactionsPage() {
       // Confirm with user
       const confirmed = window.confirm(
         `Found ${count} Stripe payments to import.\n\n` +
-          `Total checkouts in Stripe: ${preview.summary.totalStripeCheckouts}\n` +
+          `Checkouts in Stripe: ${preview.summary.totalStripeCheckouts}\n` +
+          `Invoices in Stripe: ${preview.summary.totalStripeInvoices || 0}\n` +
+          `From checkouts: ${preview.summary.fromCheckouts || 0}\n` +
+          `From invoices (renewals): ${preview.summary.fromInvoices || 0}\n` +
           `Already recorded: ${preview.summary.skippedDuplicate}\n` +
           `No matching user: ${preview.summary.skippedNoUser}\n\n` +
           `Proceed with importing ${count} payment records?`
