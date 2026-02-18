@@ -353,12 +353,14 @@ async function handleSubscriptionEvent(subscription: any) {
   if (plan) {
     updateData.subscription_status = plan.id; // 'basic', 'starter', etc.
     updateData.subscription_plan = plan.id;
+    updateData.subscription_tier = plan.id; // Keep subscription_tier in sync
   }
 
   // Handle cancelled subscriptions
   if (subscription.status === 'canceled' || subscription.cancel_at_period_end) {
     updateData.subscription_status = 'cancelled';
     updateData.subscription_plan = 'free';
+    updateData.subscription_tier = 'free';
   }
 
   const { error } = await getSupabase()
@@ -450,6 +452,7 @@ async function handleSubscriptionCancellation(subscription: any) {
     .update({
       subscription_status: 'canceled',
       subscription_plan: 'free', // Reset to free plan
+      subscription_tier: 'free', // Keep subscription_tier in sync
       subscription_canceled_at: new Date().toISOString(),
     })
     .eq('id', userId);
@@ -754,11 +757,12 @@ async function handleCheckoutSessionCompleted(session: any) {
 
       if (plan) {
         // Update subscription plan and status
-        const { error: planError } = await supabase
+        const { error: planError } = await getSupabase()
           .from('profiles')
           .update({
             subscription_plan: plan.id,
             subscription_status: plan.id, // Set status to plan name (basic, starter, etc)
+            subscription_tier: plan.id, // Keep subscription_tier in sync
           })
           .eq('id', userId);
 
