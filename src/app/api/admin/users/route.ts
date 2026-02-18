@@ -81,18 +81,19 @@ async function handleGet(request: NextRequest) {
     }
 
     // Apply user type filter
+    // Note: subscription_tier may be empty for older users; subscription_plan is more reliable
     if (userType && userType !== 'all') {
       if (userType === 'paid') {
         // Any user with stripe_customer_id (has made a purchase)
         query = query.not('stripe_customer_id', 'is', null);
       } else if (userType === 'payasyougo') {
-        // Users with stripe_customer_id but subscription_tier = 'free'
+        // Users with stripe_customer_id but no active subscription plan
         query = query
           .not('stripe_customer_id', 'is', null)
-          .eq('subscription_tier', 'free');
+          .or('subscription_plan.is.null,subscription_plan.eq.free');
       } else if (userType === 'subscribers') {
-        // Users with subscription_tier != 'free'
-        query = query.not('subscription_tier', 'eq', 'free');
+        // Users with an active subscription (check both subscription_tier and subscription_plan)
+        query = query.or('subscription_tier.neq.free,subscription_plan.neq.free');
       } else if (userType === 'free') {
         // Users without stripe_customer_id (never purchased)
         query = query.is('stripe_customer_id', null);
@@ -151,6 +152,15 @@ async function handleGet(request: NextRequest) {
             imagesProcessed = 0;
           }
 
+          // Derive subscription_tier: prefer subscription_tier, fallback to subscription_plan/subscription_status
+          const effectiveTier = user.subscription_tier && user.subscription_tier !== 'free'
+            ? user.subscription_tier
+            : (user.subscription_plan && user.subscription_plan !== 'free'
+              ? user.subscription_plan
+              : (user.subscription_status && !['free', 'canceled', 'cancelled', 'past_due'].includes(user.subscription_status)
+                ? user.subscription_status
+                : 'free'));
+
           return {
             id: user.id,
             email: user.email,
@@ -161,7 +171,7 @@ async function handleGet(request: NextRequest) {
                 : null) ||
               'N/A',
             plan: user.subscription_plan || 'free',
-            subscription_tier: user.subscription_tier || 'free',
+            subscription_tier: effectiveTier,
             stripe_customer_id: user.stripe_customer_id || null,
             credits_remaining: user.credits_remaining || 0,
             total_credits_used: totalCreditsUsed,
@@ -175,6 +185,15 @@ async function handleGet(request: NextRequest) {
             `[Admin Users API] Error enriching user ${user.id}:`,
             enrichError
           );
+
+          const effectiveTier = user.subscription_tier && user.subscription_tier !== 'free'
+            ? user.subscription_tier
+            : (user.subscription_plan && user.subscription_plan !== 'free'
+              ? user.subscription_plan
+              : (user.subscription_status && !['free', 'canceled', 'cancelled', 'past_due'].includes(user.subscription_status)
+                ? user.subscription_status
+                : 'free'));
+
           // Return basic user data if enrichment fails
           return {
             id: user.id,
@@ -186,7 +205,7 @@ async function handleGet(request: NextRequest) {
                 : null) ||
               'N/A',
             plan: user.subscription_plan || 'free',
-            subscription_tier: user.subscription_tier || 'free',
+            subscription_tier: effectiveTier,
             stripe_customer_id: user.stripe_customer_id || null,
             credits_remaining: user.credits_remaining || 0,
             total_credits_used: 0,
