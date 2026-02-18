@@ -5,6 +5,173 @@
 
 ---
 
+## 📅 February 17-18, 2026 - Major Session: Security Fixes, Admin Overhaul, Dashboard UX
+
+### **Date: 2026-02-17 to 2026-02-18 - Comprehensive Security + Admin + UX Sprint**
+
+#### **Session Summary**
+
+**Duration:** Extended multi-part session (32 commits)
+**Scope:** Security re-audit fixes, admin financial system rebuild, admin support system, Stripe billing fixes, dashboard UX improvements, support ticket admin visibility fix
+
+---
+
+#### **Part 1: Security Re-Audit Fixes (Feb 17)**
+
+**What Was Accomplished:**
+
+Applied all fixes from the February 16 security re-audit across 4 severity tiers:
+
+1. **Tier 1 - CRITICAL (8 fixes):**
+   - Added authentication to create-subscription endpoint
+   - Created RLS migration for 9 unprotected Supabase tables
+   - Removed full DB data from cron backup response
+   - Removed sensitive error.message details from ~18 API responses
+   - Sanitized dangerouslySetInnerHTML in affiliate agreement page
+   - Deleted test page with hardcoded ClippingMagic API secrets
+   - Added admin-only check to credit refund endpoint
+   - Set ignoreBuildErrors/ignoreDuringBuilds to false
+
+2. **Tier 2 - HIGH (9 fixes):**
+   - HMAC-signed impersonation cookies (new `cookie-signing.ts` utility)
+   - Database-backed webhook event deduplication (new migration)
+   - Replaced HTTP fetch + service key leak with direct Supabase RPC
+   - Rate limiter fails closed for auth/payment endpoints
+   - Removed debug headers from admin login response
+   - Added logging to credit deduction fallback
+   - Column allowlist for admin users sortBy parameter
+   - Enforced max pagination limit (100)
+   - Deleted duplicate next.config.ts, merged experimental config
+
+3. **Tier 3 - MEDIUM (7 fixes):**
+   - Validate coupon discount_type and discount_value bounds
+   - Escape user data in email templates (HTML entities)
+   - Rate limiting for security-alert endpoint
+   - Reduced admin cache from 5 min to 60 sec
+   - Error handlers for compressImage promise
+   - Fixed boolean vs string comparison for DPI tool redirect
+
+4. **Tier 4 - LOW (3 fixes):**
+   - Secure flag on affiliate tracking cookie
+   - is_active check in admin authorization
+   - Refund credit deduction (Math.floor instead of Math.ceil)
+
+5. **Post-Security Build Fixes:**
+   - Resolved ESLint errors blocking Vercel build
+   - Updated dynamic route params to Promise type for Next.js 15
+   - Removed invalid route export, reverted premature ignoreBuildErrors
+
+**Commits:** b5c8e95, 8af6cc5, 087e9d2, 5833521, 3773380, 58357bc, 1968418, 0bc0a2b, 4ed6085
+
+---
+
+#### **Part 2: Admin Financial System Rebuild (Feb 17 evening - Feb 18)**
+
+**What Was Accomplished:**
+
+Fixed the entire admin financial/transactions system which was broken due to non-existent database tables and incorrect queries:
+
+1. **Fixed admin user table action menu** clipped by overflow container (CSS fix)
+2. **Fixed admin financial transactions page** - was querying non-existent `transactions` table, rebuilt to use `payment_transactions`
+3. **Fixed revenue API route** - same non-existent table issue
+4. **Fixed Stripe webhook** - was calling undefined `getSupabaseClient()` function
+5. **Added Stripe payment backfill** - new API endpoint + admin UI button to retroactively import payment history from Stripe
+6. **Added GRANT permissions** for `payment_transactions` table
+7. **Fixed transaction row display** - showing credits instead of $0.00 for usage/refund rows
+8. **Fixed subscribers not showing** on admin page - `subscription_tier` was never being set
+9. **Added "All Time" option** to transactions date filter
+10. **Fixed subscription renewals** not appearing in transaction history
+11. **Fixed revenue page customer metrics** - separated users from paying customers
+12. **Fixed 500 error** - removed `subscription_tier` from profiles query (column doesn't exist)
+
+**Commits:** 61be15c, d495cf8, 4b7950b, 96572b4, ef972e8, 48e4e7c, a83ae90, bfda9f2, ca6294f, f15b23f, 8a4d76e, 082f48e, aa19960
+
+---
+
+#### **Part 3: Admin Support Ticket System (Feb 18)**
+
+**What Was Accomplished:**
+
+Built a fully functional admin support ticket system:
+
+1. **Added functional admin support ticket system** - complete rewrite of admin support page with working ticket detail views, admin reply functionality, and real-time status management
+2. **Fixed missing await** on `createServerSupabaseClient()` calls across admin routes
+3. **Fixed ReferenceError** - `userProfile is not defined` in admin reply route
+4. **Defaulted admin support view** to active tickets only (hiding resolved/closed)
+5. **Redesigned admin support list** for responsive layout with better mobile support
+6. **Fixed support tickets showing "From: Unknown"** - created API route (`/api/admin/users/profiles`) using service role client to fetch user profiles bypassing RLS, enriched both ticket list and detail views with actual user names/emails
+
+**Commits:** d756b1d, 32fe70e, b22cc7e, 0de7d5b, 85aefa4, aee36c7
+
+---
+
+#### **Part 4: Stripe Billing Portal Fixes (Feb 18)**
+
+**What Was Accomplished:**
+
+1. **Fixed Stripe billing portal session 500 error** - portal session creation was failing
+2. **Auto-recover from stale Stripe customer ID** - when a customer ID in the database no longer exists in Stripe, now gracefully creates a new one
+3. **Search for existing Stripe customer by email** before creating new ones - prevents duplicate Stripe customers
+
+**Commits:** 73d24a6, ed48e89, a11dac3
+
+---
+
+#### **Part 5: Dashboard UX Improvements (Feb 18)**
+
+**What Was Accomplished:**
+
+1. **Improved dashboard UX** - fixed bugs, reduced redundancy, cleaned up dead code
+2. **Fixed button spacing** in dashboard Manage card
+
+**Commits:** 3b1c05d, 06665a0
+
+---
+
+#### **Part 6: RLS Policy Issue (Feb 18 - Current)**
+
+**What Happened:**
+
+While fixing the "From: Unknown" issue in admin support tickets, a `profiles_admin_select` RLS policy was created on the `profiles` table. This policy contained a circular self-reference (querying `profiles` from within a policy on `profiles`), causing infinite recursion.
+
+**Impact:**
+- ALL Supabase queries to `profiles`, `support_tickets`, and `support_messages` return 500 errors
+- Users cannot create or view support tickets
+- Users cannot view their own profile data
+
+**Root Cause:** Self-referencing subquery in RLS policy causes infinite recursion during PostgreSQL policy evaluation.
+
+**Fix:** `DROP POLICY IF EXISTS "profiles_admin_select" ON profiles;`
+
+**Status:** Fix identified, awaiting user to run SQL in Supabase SQL Editor.
+
+**See:** BUG-062 in BUGS_TRACKER.md
+
+---
+
+#### **Key Learnings from This Session:**
+
+1. **Never create RLS policies that subquery the same table** - causes infinite recursion
+2. **Admin operations that need cross-user data should use service role client**, not RLS policies
+3. **Stripe customer IDs can become stale** - always handle gracefully with fallback creation
+4. **Financial tables need proper GRANT permissions** even with RLS policies
+5. **subscription_tier vs subscription_status** - fields that are never set cause silent failures
+6. **Always test RLS policy changes** before deploying to production
+
+#### **Files Created/Modified (Major):**
+
+- Multiple security fixes across ~50+ files (see security audit commits)
+- `src/app/api/admin/users/profiles/route.ts` (NEW) - Service role profile fetcher
+- `src/app/api/admin/support/message/route.ts` (UPDATED) - Admin reply with audit logging
+- `src/app/admin/support/page.tsx` (REWRITTEN) - Functional admin support dashboard
+- `src/app/admin/support/[id]/page.tsx` (REWRITTEN) - Ticket detail view
+- `src/app/api/stripe/create-portal-session/route.ts` (FIXED) - Stale customer recovery
+- `src/app/api/admin/financial/transactions/route.ts` (FIXED) - Correct table queries
+- `src/app/api/admin/analytics/revenue/route.ts` (FIXED) - Correct table queries
+- `src/app/dashboard/page.tsx` (IMPROVED) - UX cleanup
+
+---
+
 ## 📅 October 2025 - Admin System & Affiliate Program Fixes
 
 ### **Date: 2025-10-04 - Affiliate Referrals API: Supabase Foreign Key Join Issue**

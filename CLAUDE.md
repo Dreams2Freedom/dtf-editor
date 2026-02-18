@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 **ALWAYS read these files at the beginning of each conversation:**
 
-1. **`SESSION_END_2025_07_31.md`** - 🔴 READ THIS FIRST! Summary of last session and next steps
+1. **`SESSION_END_2026_02_18.md`** - 🔴 READ THIS FIRST! Summary of last session and next steps
 2. **`ADMIN_CREDENTIALS.md`** - 🔴 CRITICAL: Admin login info and common mistakes
 3. **`DTF_EDITOR_PRD.md`** - Product Requirements Document (understand the project)
 4. **`DEVELOPMENT_ROADMAP_V3.md`** - Current development plan and phases (use V3, not V2!)
@@ -290,11 +290,11 @@ When implementing Stripe subscriptions, Supabase features, or any API integratio
 
 ## Current Development Status
 
-- **Completed Phases:** 0, 1, 2, 3, 4, 5 ✅
-- **Phase 7 (Admin):** 98% complete (just needs logging updates)
-- **Next Phase:** 8 - Email System (SendGrid Integration)
-- **Priority:** Implement transactional email system
-- **Session Summary:** See SESSION_END_2025_07_31.md for detailed handoff
+- **Completed Phases:** 0, 1, 2, 3, 4, 5, 6, 7, 8.1 ✅
+- **Security Audits:** Feb 8 + Feb 16 re-audit - 30+ issues fixed, 18 remaining
+- **Active Bug:** BUG-062 - Profiles RLS circular reference (needs SQL fix in Supabase)
+- **Priority:** Fix BUG-062, apply security migrations, address remaining security items
+- **Session Summary:** See SESSION_END_2026_02_18.md for detailed handoff
 
 ## 📋 Development Workflow Checklist
 
