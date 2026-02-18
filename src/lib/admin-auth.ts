@@ -10,7 +10,7 @@ export function withAdminAuth(
 ) {
   return async (request: NextRequest) => {
     try {
-      const supabase = createServerSupabaseClient();
+      const supabase = await createServerSupabaseClient();
 
       // Get the current user
       const {
@@ -56,7 +56,7 @@ export function withAdminAuth(
  */
 export async function isUserAdmin(userId: string): Promise<boolean> {
   try {
-    const supabase = createServerSupabaseClient();
+    const supabase = await createServerSupabaseClient();
 
     const { data: profile } = await supabase
       .from('profiles')
