@@ -71,7 +71,7 @@ async function handleGet(request: NextRequest) {
     // Fetch all users
     const { data: users, error: usersError } = await serviceClient
       .from('profiles')
-      .select('id, subscription_plan, subscription_status, created_at');
+      .select('id, subscription_plan, subscription_status, stripe_customer_id, created_at');
 
     if (usersError) {
       console.error('Error fetching users:', usersError);
@@ -133,8 +133,23 @@ async function handleGet(request: NextRequest) {
     const ltv = avgOrderValue * avgCustomerLifetime;
 
     // Calculate churn rate
-    const totalCustomers = users?.length || 0;
-    const payingCustomers = activeSubscribers.length;
+    const totalUsers = users?.length || 0;
+
+    // Paying customers = anyone with a stripe_customer_id (has spent money)
+    const allPayingCustomers = users?.filter(u => u.stripe_customer_id) || [];
+
+    // Subscribers = paying customers with an active paid plan
+    const subscribers = allPayingCustomers.filter(u =>
+      paidPlans.includes(u.subscription_plan) ||
+      (u.subscription_status && !['free', 'canceled', 'cancelled', 'past_due'].includes(u.subscription_status) && u.subscription_status !== null)
+    );
+
+    // Pay-per-use = has stripe_customer_id but no active subscription
+    const payPerUseCustomers = allPayingCustomers.filter(u =>
+      !paidPlans.includes(u.subscription_plan)
+    );
+
+    const payingCustomers = allPayingCustomers.length;
     const churnedCustomers =
       users?.filter(
         u =>
@@ -142,7 +157,7 @@ async function handleGet(request: NextRequest) {
           u.subscription_status === 'past_due'
       ).length || 0;
     const churnRate =
-      totalCustomers > 0 ? (churnedCustomers / totalCustomers) * 100 : 0;
+      payingCustomers > 0 ? (churnedCustomers / payingCustomers) * 100 : 0;
 
     // Calculate growth rate (compare with previous period)
     const daysDiff = Math.ceil(
@@ -168,9 +183,9 @@ async function handleGet(request: NextRequest) {
         ? ((totalRevenue - previousRevenue) / previousRevenue) * 100
         : 0;
 
-    // Calculate conversion rate
+    // Calculate conversion rate (paying customers out of all users)
     const conversionRate =
-      totalCustomers > 0 ? (payingCustomers / totalCustomers) * 100 : 0;
+      totalUsers > 0 ? (payingCustomers / totalUsers) * 100 : 0;
 
     // Revenue breakdown
     const breakdown = {
@@ -287,8 +302,10 @@ async function handleGet(request: NextRequest) {
         ltv,
         churnRate,
         growthRate,
-        totalCustomers,
+        totalUsers,
         payingCustomers,
+        subscribers: subscribers.length,
+        payPerUseCustomers: payPerUseCustomers.length,
         conversionRate,
       },
       breakdown,
