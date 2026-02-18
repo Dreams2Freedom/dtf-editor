@@ -1,60 +1,55 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServiceRoleClient } from '@/lib/supabase/server';
-import { createServerSupabaseClient } from '@/lib/supabase/server';
+import { withAdminAuth } from '@/lib/admin-auth';
 
-export async function POST(request: NextRequest) {
+async function handlePost(request: NextRequest) {
   try {
-    // Verify the request is from an authenticated admin
-    const supabase = await createServerSupabaseClient();
-    const {
-      data: { user },
-      error: authError,
-    } = await supabase.auth.getUser();
-
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    // Check if user is admin
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('is_admin')
-      .eq('id', user.id)
-      .single();
-
-    if (!profile?.is_admin) {
-      return NextResponse.json(
-        { error: 'Forbidden - Admin access required' },
-        { status: 403 }
-      );
-    }
-
-    // Get user IDs from request body
     const { userIds } = await request.json();
 
-    if (!userIds || !Array.isArray(userIds)) {
+    if (!userIds || !Array.isArray(userIds) || userIds.length === 0) {
       return NextResponse.json(
-        { error: 'Invalid request - userIds array required' },
+        { error: 'userIds array is required' },
         { status: 400 }
       );
     }
 
-    // Use service role client to fetch profiles (bypasses RLS)
-    const serviceClient = createServiceRoleClient();
+    // Limit to 100 IDs per request
+    const ids = userIds.slice(0, 100);
 
-    const { data: profiles, error } = await serviceClient
+    // Use service role client to bypass RLS
+    const supabase = createServiceRoleClient();
+
+    const { data: profiles, error } = await supabase
       .from('profiles')
-      .select('id, email, full_name')
-      .in('id', userIds);
+      .select('id, email, first_name, last_name')
+      .in('id', ids);
 
-    if (error) throw error;
+    if (error) {
+      console.error('Error fetching profiles:', error);
+      return NextResponse.json(
+        { error: 'Failed to fetch profiles' },
+        { status: 500 }
+      );
+    }
 
-    return NextResponse.json({ profiles });
+    // Return as a map of userId -> profile info for easy lookup
+    const profileMap: Record<string, { email: string; name: string }> = {};
+    for (const p of profiles || []) {
+      const name = `${p.first_name || ''} ${p.last_name || ''}`.trim();
+      profileMap[p.id] = {
+        email: p.email || '',
+        name,
+      };
+    }
+
+    return NextResponse.json({ profiles: profileMap });
   } catch (error) {
-    console.error('Error fetching user profiles:', error);
+    console.error('Admin profiles lookup error:', error);
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }
     );
   }
 }
+
+export const POST = withAdminAuth(handlePost);

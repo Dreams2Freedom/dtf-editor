@@ -79,20 +79,8 @@ export default function AdminTicketDetailPage() {
 
       setTicket(ticketData);
 
-      // Fetch user email
-      if (ticketData.user_id) {
-        const { data: profileData } = await supabase
-          .from('profiles')
-          .select('email, first_name, last_name')
-          .eq('id', ticketData.user_id)
-          .single();
-        if (profileData) {
-          const name = `${profileData.first_name || ''} ${profileData.last_name || ''}`.trim();
-          setUserEmail(name ? `${name} (${profileData.email})` : profileData.email);
-        }
-      }
-
-      // Fetch messages
+      // Collect all user IDs we need profiles for (ticket owner + message authors)
+      // Fetch messages first so we know all user IDs
       const { data: messagesData, error: messagesError } = await supabase
         .from('support_messages')
         .select('*')
@@ -101,28 +89,51 @@ export default function AdminTicketDetailPage() {
 
       if (messagesError) throw messagesError;
 
-      // Enrich messages with author info
-      const enriched = await Promise.all(
-        (messagesData || []).map(async (msg: SupportMessage) => {
-          if (msg.is_admin) {
-            return { ...msg, author: { name: 'Support Team', email: '' } };
+      // Gather all unique user IDs
+      const userIds = new Set<string>();
+      if (ticketData.user_id) userIds.add(ticketData.user_id);
+      for (const msg of messagesData || []) {
+        if (msg.user_id && !msg.is_admin) userIds.add(msg.user_id);
+      }
+
+      // Fetch all profiles in one API call (bypasses RLS via service role)
+      let profileMap: Record<string, { email: string; name: string }> = {};
+      if (userIds.size > 0) {
+        try {
+          const res = await fetch('/api/admin/users/profiles', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ userIds: Array.from(userIds) }),
+          });
+          if (res.ok) {
+            const data = await res.json();
+            profileMap = data.profiles || {};
           }
-          if (msg.user_id) {
-            const { data: p } = await supabase
-              .from('profiles')
-              .select('first_name, last_name, email')
-              .eq('id', msg.user_id)
-              .single();
-            return {
-              ...msg,
-              author: p
-                ? { name: `${p.first_name || ''} ${p.last_name || ''}`.trim() || p.email, email: p.email }
-                : { name: 'User', email: '' },
-            };
-          }
-          return { ...msg, author: { name: 'User', email: '' } };
-        })
-      );
+        } catch (profileError) {
+          console.error('Error fetching user profiles:', profileError);
+        }
+      }
+
+      // Set ticket owner email
+      if (ticketData.user_id && profileMap[ticketData.user_id]) {
+        const p = profileMap[ticketData.user_id];
+        setUserEmail(p.name ? `${p.name} (${p.email})` : p.email || ticketData.user_id);
+      }
+
+      // Enrich messages with author info from the profile map
+      const enriched = (messagesData || []).map((msg: SupportMessage) => {
+        if (msg.is_admin) {
+          return { ...msg, author: { name: 'Support Team', email: '' } };
+        }
+        if (msg.user_id && profileMap[msg.user_id]) {
+          const p = profileMap[msg.user_id];
+          return {
+            ...msg,
+            author: { name: p.name || p.email || 'User', email: p.email },
+          };
+        }
+        return { ...msg, author: { name: 'User', email: '' } };
+      });
 
       setMessages(enriched);
     } catch (error) {
