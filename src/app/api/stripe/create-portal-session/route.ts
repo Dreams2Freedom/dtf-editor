@@ -3,21 +3,52 @@ import { getStripeService } from '@/services/stripe';
 import { createClient } from '@supabase/supabase-js';
 import { env } from '@/config/env';
 import { withRateLimit } from '@/lib/rate-limit';
+import Stripe from 'stripe';
 
 const supabase = createClient(env.SUPABASE_URL, env.SUPABASE_SERVICE_ROLE_KEY);
 
-async function createOrRecoverCustomer(
-  stripeService: ReturnType<typeof getStripeService>,
+// Lazily create a Stripe instance for customer search (StripeService doesn't expose this)
+let stripeClient: Stripe | null = null;
+function getStripeClient(): Stripe {
+  if (!stripeClient) {
+    stripeClient = new Stripe(env.STRIPE_SECRET_KEY, {
+      apiVersion: '2025-06-30.basil',
+    });
+  }
+  return stripeClient;
+}
+
+async function findOrCreateCustomer(
   userId: string,
   email: string
 ): Promise<string> {
+  const stripe = getStripeClient();
+
+  // Search for an existing Stripe customer with this email first
+  if (email) {
+    const existing = await stripe.customers.list({ email, limit: 1 });
+    if (existing.data.length > 0) {
+      const customerId = existing.data[0].id;
+      console.log('[Portal] Found existing Stripe customer:', customerId, 'for email:', email);
+      // Update the profile with the found customer ID
+      await supabase
+        .from('profiles')
+        .update({ stripe_customer_id: customerId })
+        .eq('id', userId);
+      return customerId;
+    }
+  }
+
+  // No existing customer found - create a new one
+  const stripeService = getStripeService();
   const customer = await stripeService.createCustomer(email, undefined);
-  // Save the new customer ID to the profile
+  console.log('[Portal] Created new Stripe customer:', customer.id, 'for user:', userId);
+
   await supabase
     .from('profiles')
     .update({ stripe_customer_id: customer.id })
     .eq('id', userId);
-  console.log('[Portal] Created new Stripe customer:', customer.id, 'for user:', userId);
+
   return customer.id;
 }
 
@@ -50,10 +81,10 @@ async function handlePost(request: NextRequest) {
     const stripeService = getStripeService();
     let customerId = profile?.stripe_customer_id;
 
-    // If user doesn't have a Stripe customer ID, create one
+    // If user doesn't have a Stripe customer ID, find or create one
     if (!customerId) {
-      console.log('[Portal] No stripe_customer_id found, creating customer for', userId);
-      customerId = await createOrRecoverCustomer(stripeService, userId, profile.email || '');
+      console.log('[Portal] No stripe_customer_id found for user:', userId);
+      customerId = await findOrCreateCustomer(userId, profile.email || '');
     }
 
     // Try to create the portal session, auto-recover if customer is stale
@@ -64,11 +95,11 @@ async function handlePost(request: NextRequest) {
       );
       return NextResponse.json({ url: session.url });
     } catch (portalError: any) {
-      // If the customer doesn't exist in Stripe, create a new one and retry
+      // If the customer doesn't exist in Stripe, find/create and retry
       if (portalError.type === 'StripeInvalidRequestError' &&
           portalError.message?.includes('No such customer')) {
-        console.warn('[Portal] Stale customer ID:', customerId, '- creating new customer');
-        customerId = await createOrRecoverCustomer(stripeService, userId, profile.email || '');
+        console.warn('[Portal] Stale customer ID:', customerId, '- recovering');
+        customerId = await findOrCreateCustomer(userId, profile.email || '');
 
         const session = await stripeService.createPortalSession(
           customerId,
