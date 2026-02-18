@@ -4,7 +4,6 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/stores/authStore';
 import { AdminLayout } from '@/components/admin/layout/AdminLayout';
-import { supportService } from '@/services/support';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { Input } from '@/components/ui/Input';
@@ -20,7 +19,6 @@ import {
   Bug,
   Sparkles,
   User,
-  Calendar,
   ChevronRight,
   RefreshCw,
 } from 'lucide-react';
@@ -30,14 +28,21 @@ import type {
   TicketCategory,
 } from '@/types/support';
 
+interface AdminTicket extends SupportTicket {
+  user_email?: string;
+  has_user_reply?: boolean;
+  last_reply_from_user?: boolean;
+  waiting_for_admin?: boolean;
+}
+
 export default function AdminSupportPage() {
   const router = useRouter();
   const { user, isAdmin } = useAuthStore();
-  const [tickets, setTickets] = useState<SupportTicket[]>([]);
-  const [filteredTickets, setFilteredTickets] = useState<SupportTicket[]>([]);
+  const [tickets, setTickets] = useState<AdminTicket[]>([]);
+  const [filteredTickets, setFilteredTickets] = useState<AdminTicket[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
-  const [statusFilter, setStatusFilter] = useState<TicketStatus | 'all'>('all');
+  const [statusFilter, setStatusFilter] = useState<TicketStatus | 'all' | 'active'>('active');
   const [priorityFilter, setPriorityFilter] = useState<string>('all');
 
   useEffect(() => {
@@ -66,21 +71,25 @@ export default function AdminSupportPage() {
       if (error) throw error;
 
       // Fetch all unique user IDs to get their emails
-      const userIds = [...new Set((tickets || []).map(t => t.user_id))];
+      const ticketData = tickets || [];
+      const userIds = [...new Set(ticketData.map((t: { user_id: string }) => t.user_id).filter(Boolean))];
       const userEmailMap: Record<string, string> = {};
       if (userIds.length > 0) {
         const { data: profiles } = await supabase
           .from('profiles')
-          .select('id, email')
+          .select('id, email, first_name, last_name')
           .in('id', userIds);
-        profiles?.forEach(p => {
-          userEmailMap[p.id] = p.email;
+        profiles?.forEach((p: { id: string; email: string; first_name?: string; last_name?: string }) => {
+          if (p.email) {
+            const name = `${p.first_name || ''} ${p.last_name || ''}`.trim();
+            userEmailMap[p.id] = name ? `${name} (${p.email})` : p.email;
+          }
         });
       }
 
       // Get message information for each ticket
       const ticketsWithInfo = await Promise.all(
-        (tickets || []).map(async ticket => {
+        ticketData.map(async (ticket: SupportTicket) => {
           // Get all messages for this ticket
           const { data: messages } = await supabase
             .from('support_messages')
@@ -90,7 +99,7 @@ export default function AdminSupportPage() {
 
           const messageCount = messages?.length || 0;
           const lastMessage = messages?.[0];
-          const hasUserReply = messages?.some(msg => !msg.is_admin) || false;
+          const hasUserReply = messages?.some((msg: { is_admin: boolean }) => !msg.is_admin) || false;
           const lastReplyIsFromUser = lastMessage && !lastMessage.is_admin;
 
           // Check if waiting for admin response (last message is from user and ticket is open)
@@ -136,7 +145,11 @@ export default function AdminSupportPage() {
     }
 
     // Apply status filter
-    if (statusFilter !== 'all') {
+    if (statusFilter === 'active') {
+      filtered = filtered.filter(
+        ticket => ticket.status === 'open' || ticket.status === 'in_progress' || ticket.status === 'waiting_on_user'
+      );
+    } else if (statusFilter !== 'all') {
       filtered = filtered.filter(ticket => ticket.status === statusFilter);
     }
 
@@ -224,6 +237,21 @@ export default function AdminSupportPage() {
     });
   };
 
+  const formatRelativeDate = (dateString: string) => {
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMs / 3600000);
+    const diffDays = Math.floor(diffMs / 86400000);
+
+    if (diffMins < 1) return 'Just now';
+    if (diffMins < 60) return `${diffMins}m ago`;
+    if (diffHours < 24) return `${diffHours}h ago`;
+    if (diffDays < 7) return `${diffDays}d ago`;
+    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  };
+
   // Stats calculation
   const stats = {
     total: tickets.length,
@@ -250,66 +278,67 @@ export default function AdminSupportPage() {
         </div>
 
         {/* Stats Cards */}
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-6">
-          <Card className="p-4">
-            <div className="text-2xl font-bold text-gray-900">
+        <div className="grid grid-cols-3 md:grid-cols-6 gap-3 mb-6">
+          <Card className="p-3">
+            <div className="text-xl font-bold text-gray-900">
               {stats.total}
             </div>
-            <div className="text-sm text-gray-600">Total Tickets</div>
+            <div className="text-xs text-gray-600">Total</div>
           </Card>
-          <Card className="p-4 bg-warning-50 border-warning-200">
-            <div className="text-2xl font-bold text-warning-700">
+          <Card className="p-3 bg-yellow-50 border-yellow-200">
+            <div className="text-xl font-bold text-yellow-700">
               {stats.waitingForAdmin}
             </div>
-            <div className="text-sm text-gray-600">Awaiting Reply</div>
+            <div className="text-xs text-gray-600">Awaiting Reply</div>
           </Card>
-          <Card className="p-4">
-            <div className="text-2xl font-bold text-error-600">
+          <Card className="p-3">
+            <div className="text-xl font-bold text-red-600">
               {stats.open}
             </div>
-            <div className="text-sm text-gray-600">Open</div>
+            <div className="text-xs text-gray-600">Open</div>
           </Card>
-          <Card className="p-4">
-            <div className="text-2xl font-bold text-warning-600">
+          <Card className="p-3">
+            <div className="text-xl font-bold text-yellow-600">
               {stats.inProgress}
             </div>
-            <div className="text-sm text-gray-600">In Progress</div>
+            <div className="text-xs text-gray-600">In Progress</div>
           </Card>
-          <Card className="p-4">
-            <div className="text-2xl font-bold text-success-600">
+          <Card className="p-3">
+            <div className="text-xl font-bold text-green-600">
               {stats.resolved}
             </div>
-            <div className="text-sm text-gray-600">Resolved</div>
+            <div className="text-xs text-gray-600">Resolved</div>
           </Card>
-          <Card className="p-4">
-            <div className="text-2xl font-bold text-error-600">
+          <Card className="p-3">
+            <div className="text-xl font-bold text-red-600">
               {stats.urgent}
             </div>
-            <div className="text-sm text-gray-600">Urgent</div>
+            <div className="text-xs text-gray-600">Urgent</div>
           </Card>
         </div>
 
         {/* Filters */}
-        <div className="mb-6 flex flex-col sm:flex-row gap-4">
+        <div className="mb-4 flex flex-col sm:flex-row gap-3">
           <div className="flex-1 relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
             <Input
-              placeholder="Search tickets..."
+              placeholder="Search by subject, ticket #, or email..."
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
-              className="pl-10"
+              className="pl-9 text-sm"
             />
           </div>
 
-          <div className="flex gap-2">
+          <div className="flex gap-2 flex-wrap">
             <select
-              className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="px-2 py-1.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
               value={statusFilter}
               onChange={e =>
-                setStatusFilter(e.target.value as TicketStatus | 'all')
+                setStatusFilter(e.target.value as TicketStatus | 'all' | 'active')
               }
             >
-              <option value="all">All Status</option>
+              <option value="active">Active</option>
+              <option value="all">All</option>
               <option value="open">Open</option>
               <option value="in_progress">In Progress</option>
               <option value="waiting_on_user">Waiting on User</option>
@@ -318,7 +347,7 @@ export default function AdminSupportPage() {
             </select>
 
             <select
-              className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="px-2 py-1.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
               value={priorityFilter}
               onChange={e => setPriorityFilter(e.target.value)}
             >
@@ -330,8 +359,7 @@ export default function AdminSupportPage() {
             </select>
 
             <Button onClick={fetchAllTickets} variant="outline" size="sm">
-              <RefreshCw className="w-4 h-4 mr-2" />
-              Refresh
+              <RefreshCw className="w-4 h-4" />
             </Button>
           </div>
         </div>
@@ -349,151 +377,84 @@ export default function AdminSupportPage() {
               No tickets found
             </h3>
             <p className="text-gray-600">
-              {searchQuery || statusFilter !== 'all' || priorityFilter !== 'all'
+              {searchQuery || statusFilter !== 'active' || priorityFilter !== 'all'
                 ? 'Try adjusting your filters'
-                : 'No support tickets have been created yet'}
+                : 'No active support tickets'}
             </p>
           </Card>
         ) : (
-          <Card>
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead className="bg-gray-50 border-b">
-                  <tr>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Ticket
-                    </th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Subject
-                    </th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      User
-                    </th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Category
-                    </th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Status
-                    </th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Priority
-                    </th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Created
-                    </th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Actions
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
-                  {filteredTickets.map(ticket => (
-                    <tr
-                      key={ticket.id}
-                      className={`hover:bg-gray-50 cursor-pointer ${
-                        ticket.waiting_for_admin
-                          ? 'bg-warning-50 border-l-4 border-l-yellow-500'
-                          : ''
-                      }`}
-                      onClick={() => router.push(`/admin/support/${ticket.id}`)}
-                    >
-                      <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900">
-                        <div className="flex items-center gap-2">
-                          {ticket.ticket_number}
-                          {ticket.waiting_for_admin && (
-                            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-warning-100 text-warning-800">
-                              Awaiting Reply
+          <Card className="divide-y divide-gray-200">
+            {filteredTickets.map(ticket => (
+              <div
+                key={ticket.id}
+                className={`px-4 py-3 hover:bg-gray-50 cursor-pointer transition-colors ${
+                  ticket.waiting_for_admin
+                    ? 'bg-yellow-50 border-l-4 border-l-yellow-500'
+                    : ''
+                }`}
+                onClick={() => router.push(`/admin/support/${ticket.id}`)}
+              >
+                <div className="flex items-start justify-between gap-3">
+                  {/* Left: Main content */}
+                  <div className="flex-1 min-w-0">
+                    {/* Row 1: Subject + Badges */}
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="font-medium text-gray-900 truncate">
+                        {ticket.subject}
+                      </span>
+                      <Badge variant={getStatusColor(ticket.status)}>
+                        <span className="flex items-center gap-1 text-xs">
+                          {getStatusIcon(ticket.status)}
+                          {ticket.status.replace(/_/g, ' ')}
+                        </span>
+                      </Badge>
+                      <Badge variant={getPriorityColor(ticket.priority)}>
+                        <span className="text-xs">{ticket.priority}</span>
+                      </Badge>
+                      {ticket.waiting_for_admin && (
+                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                          Awaiting Reply
+                        </span>
+                      )}
+                    </div>
+
+                    {/* Row 2: Metadata */}
+                    <div className="flex items-center gap-3 mt-1 text-xs text-gray-500 flex-wrap">
+                      <span className="font-mono">{ticket.ticket_number}</span>
+                      <span className="flex items-center gap-1">
+                        <User className="w-3 h-3" />
+                        <span className="truncate max-w-[200px]">
+                          {ticket.user_email || ticket.user_id?.substring(0, 8) + '...'}
+                        </span>
+                      </span>
+                      <span className="flex items-center gap-1">
+                        {getCategoryIcon(ticket.category)}
+                        {ticket.category.replace(/_/g, ' ')}
+                      </span>
+                      {(ticket.message_count ?? 0) > 0 && (
+                        <span className="flex items-center gap-1">
+                          <MessageSquare className="w-3 h-3" />
+                          {ticket.message_count}
+                          {ticket.last_reply_from_user && (
+                            <span className="text-orange-600 font-medium ml-1">
+                              User replied
                             </span>
                           )}
-                        </div>
-                      </td>
-                      <td className="px-4 py-3 text-sm text-gray-900">
-                        <div className="max-w-xs">
-                          <div className="truncate">{ticket.subject}</div>
-                          {ticket.message_count > 0 && (
-                            <div className="flex items-center gap-2 mt-1 text-xs text-gray-500">
-                              <MessageSquare className="w-3 h-3" />
-                              {ticket.message_count}{' '}
-                              {ticket.message_count === 1
-                                ? 'message'
-                                : 'messages'}
-                              {ticket.last_reply_from_user && (
-                                <span className="text-orange-600 font-medium">
-                                  • User replied
-                                </span>
-                              )}
-                            </div>
-                          )}
-                        </div>
-                      </td>
-                      <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">
-                        <div className="flex items-center">
-                          <User className="w-4 h-4 mr-1" />
-                          <span className="truncate max-w-[180px]">
-                            {ticket.user_email || ticket.user_id}
-                          </span>
-                        </div>
-                      </td>
-                      <td className="px-4 py-3 whitespace-nowrap">
-                        <div className="flex items-center text-sm text-gray-900">
-                          {getCategoryIcon(ticket.category)}
-                          <span className="ml-1">
-                            {ticket.category.replace('_', ' ')}
-                          </span>
-                        </div>
-                      </td>
-                      <td className="px-4 py-3 whitespace-nowrap">
-                        <Badge variant={getStatusColor(ticket.status)}>
-                          <span className="flex items-center gap-1">
-                            {getStatusIcon(ticket.status)}
-                            {ticket.status.replace('_', ' ')}
-                          </span>
-                        </Badge>
-                      </td>
-                      <td className="px-4 py-3 whitespace-nowrap">
-                        <Badge variant={getPriorityColor(ticket.priority)}>
-                          {ticket.priority}
-                        </Badge>
-                      </td>
-                      <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">
-                        <div>
-                          <div className="flex items-center">
-                            <Calendar className="w-4 h-4 mr-1" />
-                            {formatDate(ticket.created_at)}
-                          </div>
-                          {ticket.last_message_at &&
-                            ticket.last_message_at !== ticket.created_at && (
-                              <div className="text-xs mt-1 text-gray-400">
-                                Last: {formatDate(ticket.last_message_at)}
-                              </div>
-                            )}
-                        </div>
-                      </td>
-                      <td className="px-4 py-3 whitespace-nowrap text-sm">
-                        <Button
-                          variant={
-                            ticket.waiting_for_admin ? 'default' : 'outline'
-                          }
-                          size="sm"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            router.push(`/admin/support/${ticket.id}`);
-                          }}
-                          className={
-                            ticket.waiting_for_admin
-                              ? 'bg-warning-600 hover:bg-warning-700'
-                              : ''
-                          }
-                        >
-                          <ChevronRight className="w-4 h-4" />
-                          View
-                        </Button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Right: Time + Arrow */}
+                  <div className="flex items-center gap-2 flex-shrink-0 text-xs text-gray-500">
+                    <span title={formatDate(ticket.last_message_at || ticket.created_at)}>
+                      {formatRelativeDate(ticket.last_message_at || ticket.created_at)}
+                    </span>
+                    <ChevronRight className="w-4 h-4 text-gray-400" />
+                  </div>
+                </div>
+              </div>
+            ))}
           </Card>
         )}
       </div>
