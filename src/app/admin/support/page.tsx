@@ -37,7 +37,7 @@ export default function AdminSupportPage() {
   const [filteredTickets, setFilteredTickets] = useState<SupportTicket[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
-  const [statusFilter, setStatusFilter] = useState<TicketStatus | 'all'>('all');
+  const [statusFilter, setStatusFilter] = useState<TicketStatus | 'all' | 'active'>('active');
   const [priorityFilter, setPriorityFilter] = useState<string>('all');
 
   useEffect(() => {
@@ -136,7 +136,11 @@ export default function AdminSupportPage() {
     }
 
     // Apply status filter
-    if (statusFilter !== 'all') {
+    if (statusFilter === 'active') {
+      filtered = filtered.filter(
+        ticket => ticket.status === 'open' || ticket.status === 'in_progress' || ticket.status === 'waiting_on_user'
+      );
+    } else if (statusFilter !== 'all') {
       filtered = filtered.filter(ticket => ticket.status === statusFilter);
     }
 
@@ -306,10 +310,11 @@ export default function AdminSupportPage() {
               className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
               value={statusFilter}
               onChange={e =>
-                setStatusFilter(e.target.value as TicketStatus | 'all')
+                setStatusFilter(e.target.value as TicketStatus | 'all' | 'active')
               }
             >
-              <option value="all">All Status</option>
+              <option value="active">Active Tickets</option>
+              <option value="all">All Tickets</option>
               <option value="open">Open</option>
               <option value="in_progress">In Progress</option>
               <option value="waiting_on_user">Waiting on User</option>
