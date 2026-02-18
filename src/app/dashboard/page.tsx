@@ -79,22 +79,24 @@ export default function DashboardPage() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          userId: user.id,
+          userId: user?.id,
           returnUrl: window.location.origin + '/dashboard',
         }),
       });
 
+      const data = await response.json();
+
       if (!response.ok) {
-        throw new Error('Failed to create portal session');
+        console.error('Portal session error:', data);
+        throw new Error(data.error || 'Failed to create portal session');
       }
 
-      const { url } = await response.json();
-
-      if (url) {
-        window.location.href = url;
+      if (data.url) {
+        window.location.href = data.url;
       }
-    } catch (error) {
-      alert('Unable to access subscription management. Please try again.');
+    } catch (error: any) {
+      console.error('Manage subscription error:', error);
+      alert(error.message || 'Unable to access subscription management. Please try again.');
     }
   };
 

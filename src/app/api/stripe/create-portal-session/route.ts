@@ -20,22 +20,48 @@ async function handlePost(request: NextRequest) {
     // Get user profile from database
     const { data: profile, error: profileError } = await supabase
       .from('profiles')
-      .select('stripe_customer_id')
+      .select('stripe_customer_id, email')
       .eq('id', userId)
       .single();
 
-    if (profileError || !profile || !profile.stripe_customer_id) {
+    if (profileError) {
+      console.error('[Portal] Profile lookup error:', profileError);
       return NextResponse.json(
-        { error: 'No Stripe customer found for this user' },
+        { error: 'Could not find user profile' },
         { status: 404 }
       );
     }
 
     const stripeService = getStripeService();
 
+    // If user doesn't have a Stripe customer ID, create one
+    let customerId = profile?.stripe_customer_id;
+    if (!customerId) {
+      console.log('[Portal] No stripe_customer_id found, creating customer for', userId);
+      try {
+        const customer = await stripeService.createCustomer(
+          profile.email || '',
+          undefined
+        );
+        customerId = customer.id;
+
+        // Save the customer ID to the profile
+        await supabase
+          .from('profiles')
+          .update({ stripe_customer_id: customerId })
+          .eq('id', userId);
+      } catch (createErr: any) {
+        console.error('[Portal] Failed to create Stripe customer:', createErr.message);
+        return NextResponse.json(
+          { error: 'Unable to set up billing. Please contact support.' },
+          { status: 500 }
+        );
+      }
+    }
+
     // Create billing portal session
     const session = await stripeService.createPortalSession(
-      profile.stripe_customer_id,
+      customerId,
       returnUrl || `${env.APP_URL}/dashboard`
     );
 
@@ -43,6 +69,27 @@ async function handlePost(request: NextRequest) {
       url: session.url,
     });
   } catch (error: any) {
+    console.error('[Portal] Error creating portal session:', error.message);
+
+    // Handle specific Stripe errors
+    if (error.type === 'StripeInvalidRequestError') {
+      if (error.message?.includes('portal configuration')) {
+        console.error('[Portal] Billing portal not configured in Stripe Dashboard');
+        return NextResponse.json(
+          { error: 'Billing portal is not configured. Please contact support.' },
+          { status: 500 }
+        );
+      }
+      if (error.message?.includes('No such customer')) {
+        // Customer was deleted from Stripe - clear the stale ID
+        console.error('[Portal] Stale stripe_customer_id, customer not found in Stripe');
+        return NextResponse.json(
+          { error: 'Billing account not found. Please contact support.' },
+          { status: 404 }
+        );
+      }
+    }
+
     return NextResponse.json(
       { error: error.message || 'Failed to create portal session' },
       { status: 500 }
