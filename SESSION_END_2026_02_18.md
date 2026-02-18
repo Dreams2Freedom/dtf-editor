@@ -45,11 +45,11 @@ Applied all fixes from the Feb 16, 2026 security re-audit:
 - Bug fixes, redundancy reduction, dead code cleanup
 - Button spacing fix
 
-## CRITICAL: Outstanding Issue
+## RESOLVED: BUG-062
 
 ### BUG-062: Profiles RLS Policy Circular Reference
 
-**Status:** FIX IDENTIFIED - AWAITING USER ACTION
+**Status:** FIXED (Feb 18, 2026)
 
 A `profiles_admin_select` RLS policy was created on the `profiles` table with a self-referencing subquery, causing infinite recursion. This breaks ALL queries to `profiles`, `support_tickets`, and `support_messages`.
 

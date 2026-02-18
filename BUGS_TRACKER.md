@@ -12,7 +12,7 @@
 
 ### **BUG-062: Profiles RLS Policy Circular Reference Breaks All Supabase Queries**
 
-- **Status:** 🔴 ACTIVE (Fix identified, awaiting user action)
+- **Status:** 🟢 FIXED (Feb 18, 2026 - Policy dropped via Supabase SQL Editor)
 - **Severity:** Critical
 - **Component:** Supabase RLS Policies / Profiles Table
 - **Description:** Adding a `profiles_admin_select` RLS policy with a self-referencing subquery on the `profiles` table causes infinite recursion, breaking ALL queries to `profiles`, `support_tickets`, and `support_messages` tables
@@ -1785,11 +1785,11 @@
 
 | Priority    | Total  | Open  | In Progress | Fixed  | Fix Rate |
 | ----------- | ------ | ----- | ----------- | ------ | -------- |
-| P0 Critical | 50     | 1     | 0           | 49     | 98%      |
+| P0 Critical | 50     | 0     | 0           | 50     | 100%     |
 | P1 High     | 4      | 1     | 0           | 3      | 75%      |
 | P2 Medium   | 3      | 1     | 0           | 2      | 67%      |
 | P3 Low      | 2      | 2     | 0           | 0      | 0%       |
-| **Total**   | **59** | **5** | **0**       | **54** | **92%**  |
+| **Total**   | **59** | **4** | **0**       | **55** | **93%**  |
 
 ---
 
