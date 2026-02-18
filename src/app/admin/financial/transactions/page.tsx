@@ -428,6 +428,7 @@ export default function TransactionsPage() {
             <option value="30d">Last 30 Days</option>
             <option value="90d">Last 90 Days</option>
             <option value="1y">Last Year</option>
+            <option value="all">All Time</option>
           </select>
         </div>
 

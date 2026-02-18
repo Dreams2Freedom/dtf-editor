@@ -34,7 +34,7 @@ async function handleGet(request: NextRequest) {
 
     // Calculate date range
     const now = new Date();
-    const startDate = new Date();
+    let startDate: Date | null = new Date();
 
     switch (range) {
       case '7d':
@@ -49,6 +49,9 @@ async function handleGet(request: NextRequest) {
       case '1y':
         startDate.setFullYear(now.getFullYear() - 1);
         break;
+      case 'all':
+        startDate = null; // No date filter
+        break;
       default:
         startDate.setDate(now.getDate() - 30);
     }
@@ -57,11 +60,14 @@ async function handleGet(request: NextRequest) {
     const serviceClient = createServiceRoleSupabaseClient();
 
     // Fetch from payment_transactions (Stripe payments)
-    const { data: paymentTxns, error: paymentError } = await serviceClient
+    let paymentQuery = serviceClient
       .from('payment_transactions')
       .select('*')
-      .gte('created_at', startDate.toISOString())
       .order('created_at', { ascending: false });
+    if (startDate) {
+      paymentQuery = paymentQuery.gte('created_at', startDate.toISOString());
+    }
+    const { data: paymentTxns, error: paymentError } = await paymentQuery;
 
     if (paymentError) {
       console.error('Error fetching payment_transactions:', paymentError);
@@ -69,11 +75,14 @@ async function handleGet(request: NextRequest) {
     }
 
     // Fetch from credit_transactions (credit movements)
-    const { data: creditTxns, error: creditError } = await serviceClient
+    let creditQuery = serviceClient
       .from('credit_transactions')
       .select('*')
-      .gte('created_at', startDate.toISOString())
       .order('created_at', { ascending: false });
+    if (startDate) {
+      creditQuery = creditQuery.gte('created_at', startDate.toISOString());
+    }
+    const { data: creditTxns, error: creditError } = await creditQuery;
 
     if (creditError) {
       console.error('Error fetching credit_transactions:', creditError);
