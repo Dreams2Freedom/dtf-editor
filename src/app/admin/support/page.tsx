@@ -65,6 +65,19 @@ export default function AdminSupportPage() {
 
       if (error) throw error;
 
+      // Fetch all unique user IDs to get their emails
+      const userIds = [...new Set((tickets || []).map(t => t.user_id))];
+      const userEmailMap: Record<string, string> = {};
+      if (userIds.length > 0) {
+        const { data: profiles } = await supabase
+          .from('profiles')
+          .select('id, email')
+          .in('id', userIds);
+        profiles?.forEach(p => {
+          userEmailMap[p.id] = p.email;
+        });
+      }
+
       // Get message information for each ticket
       const ticketsWithInfo = await Promise.all(
         (tickets || []).map(async ticket => {
@@ -87,6 +100,7 @@ export default function AdminSupportPage() {
 
           return {
             ...ticket,
+            user_email: userEmailMap[ticket.user_id] || ticket.user_id,
             message_count: messageCount,
             has_user_reply: hasUserReply,
             last_reply_from_user: lastReplyIsFromUser,
@@ -112,13 +126,12 @@ export default function AdminSupportPage() {
 
     // Apply search filter
     if (searchQuery) {
+      const q = searchQuery.toLowerCase();
       filtered = filtered.filter(
         ticket =>
-          ticket.subject.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          ticket.ticket_number
-            .toLowerCase()
-            .includes(searchQuery.toLowerCase()) ||
-          ticket.user_id.toLowerCase().includes(searchQuery.toLowerCase())
+          ticket.subject.toLowerCase().includes(q) ||
+          ticket.ticket_number.toLowerCase().includes(q) ||
+          (ticket.user_email && ticket.user_email.toLowerCase().includes(q))
       );
     }
 
@@ -377,11 +390,12 @@ export default function AdminSupportPage() {
                   {filteredTickets.map(ticket => (
                     <tr
                       key={ticket.id}
-                      className={`hover:bg-gray-50 ${
+                      className={`hover:bg-gray-50 cursor-pointer ${
                         ticket.waiting_for_admin
                           ? 'bg-warning-50 border-l-4 border-l-yellow-500'
                           : ''
                       }`}
+                      onClick={() => router.push(`/admin/support/${ticket.id}`)}
                     >
                       <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900">
                         <div className="flex items-center gap-2">
@@ -415,8 +429,8 @@ export default function AdminSupportPage() {
                       <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">
                         <div className="flex items-center">
                           <User className="w-4 h-4 mr-1" />
-                          <span className="truncate max-w-[150px]">
-                            {ticket.user_id}
+                          <span className="truncate max-w-[180px]">
+                            {ticket.user_email || ticket.user_id}
                           </span>
                         </div>
                       </td>
@@ -461,7 +475,10 @@ export default function AdminSupportPage() {
                             ticket.waiting_for_admin ? 'default' : 'outline'
                           }
                           size="sm"
-                          onClick={() => router.push(`/support/${ticket.id}`)}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            router.push(`/admin/support/${ticket.id}`);
+                          }}
                           className={
                             ticket.waiting_for_admin
                               ? 'bg-warning-600 hover:bg-warning-700'
