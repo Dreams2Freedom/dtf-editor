@@ -672,7 +672,7 @@ function NotificationSettings() {
 
 // Billing Settings Component
 function BillingSettings() {
-  const { profile } = useAuthStore();
+  const { user, profile } = useAuthStore();
   const router = useRouter();
 
   const handleManageSubscription = async () => {
@@ -680,18 +680,24 @@ function BillingSettings() {
       const response = await fetch('/api/stripe/create-portal-session', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId: user?.id,
+          returnUrl: window.location.origin + '/settings',
+        }),
       });
 
+      const data = await response.json();
+
       if (!response.ok) {
-        throw new Error('Failed to create portal session');
+        throw new Error(data.error || 'Failed to create portal session');
       }
 
-      const { url } = await response.json();
-      if (url) {
-        window.location.href = url;
+      if (data.url) {
+        window.location.href = data.url;
       }
-    } catch (error) {
-      toast.error('Unable to access billing portal');
+    } catch (error: any) {
+      console.error('Billing portal error:', error);
+      toast.error(error.message || 'Unable to access billing portal');
     }
   };
 
