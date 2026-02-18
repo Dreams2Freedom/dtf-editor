@@ -49,6 +49,28 @@
   - Test RLS policy changes in a staging environment before production
 - **Related Issues:** Created during fix for support tickets showing "From: Unknown" (commit aee36c7)
 
+### **BUG-063: Admin Notifications Sent to 0 Users (RLS Blocking)**
+
+- **Status:** 🟢 FIXED (Feb 18, 2026)
+- **Severity:** High
+- **Component:** Admin Notifications API (`/api/admin/notifications/send`)
+- **Description:** Admin panel "Send Notification" feature reports "Notification sent to 0 users" because the API route uses the anon-key Supabase client (subject to RLS) instead of the service role client
+- **Reported:** February 18, 2026
+- **Symptoms:**
+  - Admin sends notification → toast shows "Notification sent to 0 users"
+  - Vercel logs show: `Notifications table check error: { code: '42501' }` (insufficient privilege)
+  - RLS on `notifications` table blocks the anon client from inserting/querying
+  - RLS on `profiles` table blocks reading all user IDs for distribution
+- **Root Cause:**
+  - The notification send route (`src/app/api/admin/notifications/send/route.ts`) used `createServerSupabaseClient()` (anon key) for all database operations
+  - All other admin routes correctly use `createServiceRoleClient()` to bypass RLS
+  - The anon client hits RLS error 42501 at the table check step and returns `usersNotified: 0`
+- **Fix Applied:**
+  - Switched all database operations (profile check, notification insert, user query, user_notifications insert) to use `createServiceRoleClient()`
+  - Kept `createServerSupabaseClient()` only for auth verification (`getUser()`)
+  - Matches the pattern used by all other admin API routes
+- **Related:** BUG-062 (Profiles RLS) may have masked this issue since profiles queries were all broken
+
 ---
 
 ## 🔴 **SECURITY AUDIT FINDINGS (February 8, 2026)**
@@ -1785,11 +1807,11 @@
 
 | Priority    | Total  | Open  | In Progress | Fixed  | Fix Rate |
 | ----------- | ------ | ----- | ----------- | ------ | -------- |
-| P0 Critical | 50     | 0     | 0           | 50     | 100%     |
+| P0 Critical | 51     | 0     | 0           | 51     | 100%     |
 | P1 High     | 4      | 1     | 0           | 3      | 75%      |
 | P2 Medium   | 3      | 1     | 0           | 2      | 67%      |
 | P3 Low      | 2      | 2     | 0           | 0      | 0%       |
-| **Total**   | **59** | **4** | **0**       | **55** | **93%**  |
+| **Total**   | **60** | **4** | **0**       | **56** | **93%**  |
 
 ---
 
