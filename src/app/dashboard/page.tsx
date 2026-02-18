@@ -7,7 +7,6 @@ import { ClientOnly } from '@/components/auth/ClientOnly';
 import { LoadingPage } from '@/components/ui/LoadingPage';
 import { Button } from '@/components/ui/Button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
-import { CreditDisplay } from '@/components/ui/CreditDisplay';
 import { CancellationFlow } from '@/components/subscription/CancellationFlow';
 import { PlanSwitcher } from '@/components/subscription/PlanSwitcher';
 import { CreditExpirationBanner } from '@/components/credits/CreditExpirationBanner';
@@ -15,29 +14,21 @@ import { ImageGalleryEnhanced } from '@/components/image/ImageGalleryEnhanced';
 import { StorageUsageCard } from '@/components/storage/StorageUsageCard';
 import {
   Upload,
-  Wand2,
-  BarChart3,
   Settings,
   CreditCard,
-  LogOut,
   Scissors,
   Zap,
   Crown,
-  PauseCircle,
-  Images,
-  HardDrive,
   Sparkles,
-  Calculator,
 } from 'lucide-react';
 import Link from 'next/link';
 import { CreditHistory } from '@/components/dashboard/CreditHistory';
 
 export default function DashboardPage() {
-  const { user, profile, loading, signOut, initialize, refreshCredits } =
+  const { user, profile, loading, initialize, refreshCredits } =
     useAuthStore();
   const router = useRouter();
   const [showCancellationFlow, setShowCancellationFlow] = useState(false);
-  const [storageKey, setStorageKey] = useState(0); // For refreshing storage stats
 
   // Check if user has active subscription (not free plan)
   const hasActiveSubscription =
@@ -65,11 +56,6 @@ export default function DashboardPage() {
       router.push('/auth/login');
     }
   }, [user, loading, router]);
-
-  const handleSignOut = async () => {
-    await signOut();
-    router.push('/');
-  };
 
   const handleManageSubscription = async () => {
     try {
@@ -151,17 +137,17 @@ export default function DashboardPage() {
             {/* Credit Expiration Warning */}
             <CreditExpirationBanner />
 
-            {/* Quick Actions */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6">
+            {/* Quick Actions - Core image tools */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <Card className="cursor-pointer hover:shadow-md transition-shadow">
                 <Link href="/process?operation=upscale">
-                  <CardContent className="p-6 text-center">
-                    <Upload className="w-12 h-12 text-primary-600 mx-auto mb-4" />
-                    <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                      Upscale Image
+                  <CardContent className="p-5 text-center">
+                    <Upload className="w-10 h-10 text-primary-600 mx-auto mb-3" />
+                    <h3 className="font-semibold text-gray-900 mb-1">
+                      Upscale
                     </h3>
-                    <p className="text-gray-600 text-sm">
-                      AI-powered image enhancement
+                    <p className="text-gray-600 text-xs">
+                      AI-powered enhancement
                     </p>
                   </CardContent>
                 </Link>
@@ -169,12 +155,12 @@ export default function DashboardPage() {
 
               <Card className="cursor-pointer hover:shadow-md transition-shadow">
                 <Link href="/process?operation=background-removal">
-                  <CardContent className="p-6 text-center">
-                    <Scissors className="w-12 h-12 text-accent-600 mx-auto mb-4" />
-                    <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                      Remove Background
+                  <CardContent className="p-5 text-center">
+                    <Scissors className="w-10 h-10 text-accent-600 mx-auto mb-3" />
+                    <h3 className="font-semibold text-gray-900 mb-1">
+                      Remove BG
                     </h3>
-                    <p className="text-gray-600 text-sm">
+                    <p className="text-gray-600 text-xs">
                       Clean background removal
                     </p>
                   </CardContent>
@@ -183,12 +169,12 @@ export default function DashboardPage() {
 
               <Card className="cursor-pointer hover:shadow-md transition-shadow">
                 <Link href="/process?operation=vectorize">
-                  <CardContent className="p-6 text-center">
-                    <Zap className="w-12 h-12 text-accent-600 mx-auto mb-4" />
-                    <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                  <CardContent className="p-5 text-center">
+                    <Zap className="w-10 h-10 text-accent-600 mx-auto mb-3" />
+                    <h3 className="font-semibold text-gray-900 mb-1">
                       Vectorize
                     </h3>
-                    <p className="text-gray-600 text-sm">
+                    <p className="text-gray-600 text-xs">
                       Convert to scalable vectors
                     </p>
                   </CardContent>
@@ -197,163 +183,87 @@ export default function DashboardPage() {
 
               <Card className="cursor-pointer hover:shadow-md transition-shadow">
                 <Link href="/generate">
-                  <CardContent className="p-6 text-center">
-                    <Sparkles className="w-12 h-12 text-accent-600 mx-auto mb-4" />
-                    <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                  <CardContent className="p-5 text-center">
+                    <Sparkles className="w-10 h-10 text-accent-600 mx-auto mb-3" />
+                    <h3 className="font-semibold text-gray-900 mb-1">
                       AI Generate
                     </h3>
-                    <p className="text-gray-600 text-sm">
+                    <p className="text-gray-600 text-xs">
                       Create images with AI
                     </p>
-                  </CardContent>
-                </Link>
-              </Card>
-
-              <Card className="cursor-pointer hover:shadow-md transition-shadow">
-                <Link href="/tools/dpi-checker">
-                  <CardContent className="p-6 text-center">
-                    <Calculator className="w-12 h-12 text-info-600 mx-auto mb-4" />
-                    <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                      DPI Checker
-                    </h3>
-                    <p className="text-gray-600 text-sm">
-                      Check image resolution
-                    </p>
-                  </CardContent>
-                </Link>
-              </Card>
-
-              <Card className="cursor-pointer hover:shadow-md transition-shadow">
-                <Link href="/pricing">
-                  <CardContent className="p-6 text-center">
-                    <CreditCard className="w-12 h-12 text-success-600 mx-auto mb-4" />
-                    <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                      Get More Credits
-                    </h3>
-                    <p className="text-gray-600 text-sm">
-                      View plans & pricing options
-                    </p>
-                  </CardContent>
-                </Link>
-              </Card>
-
-              <Card className="cursor-pointer hover:shadow-md transition-shadow">
-                <Link href="#my-images">
-                  <CardContent className="p-6 text-center">
-                    <Images className="w-12 h-12 text-primary-600 mx-auto mb-4" />
-                    <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                      My Images
-                    </h3>
-                    <p className="text-gray-600 text-sm">
-                      View processed images
-                    </p>
-                  </CardContent>
-                </Link>
-              </Card>
-
-              <Card className="cursor-pointer hover:shadow-md transition-shadow">
-                <Link href="/storage">
-                  <CardContent className="p-6 text-center">
-                    <HardDrive className="w-12 h-12 text-accent-600 mx-auto mb-4" />
-                    <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                      Storage
-                    </h3>
-                    <p className="text-gray-600 text-sm">Manage your storage</p>
                   </CardContent>
                 </Link>
               </Card>
             </div>
 
             {/* Account Overview */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Account & Credits */}
               <Card>
                 <CardHeader>
-                  <CardTitle>Account Details</CardTitle>
+                  <CardTitle>Your Account</CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-3">
-                  <div>
-                    <p className="text-sm text-gray-600">Email</p>
-                    <p className="font-medium">{user.email}</p>
-                  </div>
-                  {profile.first_name && (
+                <CardContent>
+                  <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <p className="text-sm text-gray-600">Name</p>
-                      <p className="font-medium">
-                        {profile.first_name} {profile.last_name}
+                      <p className="text-sm text-gray-600">Credits</p>
+                      <p className="text-2xl font-bold text-primary-600">
+                        {profile.credits_remaining}
                       </p>
                     </div>
-                  )}
-                  <div>
-                    <p className="text-sm text-gray-600">Plan</p>
-                    <p className="font-medium capitalize">
-                      {profile.subscription_status}
-                      {profile.subscription_paused_until && (
-                        <span className="text-sm text-amber-600 ml-2">
-                          (Paused)
-                        </span>
-                      )}
-                    </p>
-                    {profile.subscription_paused_until && (
-                      <p className="text-xs text-gray-500 mt-1">
-                        Resumes{' '}
-                        {new Date(
-                          profile.subscription_paused_until
-                        ).toLocaleDateString()}
+                    <div>
+                      <p className="text-sm text-gray-600">Plan</p>
+                      <p className="text-lg font-medium capitalize">
+                        {profile.subscription_plan || 'Free'}
+                        {profile.subscription_paused_until && (
+                          <span className="text-sm text-amber-600 ml-1">
+                            (Paused)
+                          </span>
+                        )}
                       </p>
-                    )}
+                      {profile.subscription_paused_until && (
+                        <p className="text-xs text-gray-500">
+                          Resumes{' '}
+                          {new Date(
+                            profile.subscription_paused_until
+                          ).toLocaleDateString()}
+                        </p>
+                      )}
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-600">Status</p>
+                      <p className="font-medium capitalize">
+                        {profile.subscription_status || 'Active'}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-600">Member Since</p>
+                      <p className="font-medium">
+                        {new Date(profile.created_at).toLocaleDateString()}
+                      </p>
+                    </div>
                   </div>
-                  <div>
-                    <p className="text-sm text-gray-600">Member Since</p>
-                    <p className="font-medium">
-                      {new Date(profile.created_at).toLocaleDateString()}
-                    </p>
-                  </div>
+
+                  {/* Upgrade prompt for free users */}
+                  {!hasActiveSubscription && (
+                    <div className="mt-4 pt-4 border-t">
+                      <Link href="/pricing">
+                        <Button className="w-full">
+                          <CreditCard className="w-4 h-4 mr-2" />
+                          Upgrade Plan
+                        </Button>
+                      </Link>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
 
+              {/* Actions */}
               <Card>
                 <CardHeader>
-                  <CardTitle>Usage Overview</CardTitle>
+                  <CardTitle>Manage</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-3">
-                  <div>
-                    <p className="text-sm text-gray-600">Credits Remaining</p>
-                    <p className="text-2xl font-bold text-primary-600">
-                      {profile.credits_remaining}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-600">Subscription Plan</p>
-                    <p className="text-lg font-medium capitalize">
-                      {profile.subscription_plan}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-600">Account Status</p>
-                    <p className="text-lg font-medium capitalize">Active</p>
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader>
-                  <CardTitle>Quick Actions</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-3">
-                  <Link href="/process">
-                    <Button className="w-full">
-                      <Wand2 className="w-4 h-4 mr-2" />
-                      Process Image
-                    </Button>
-                  </Link>
-
-                  <Link href="/pricing">
-                    <Button variant="secondary" className="w-full">
-                      <CreditCard className="w-4 h-4 mr-2" />
-                      Get More Credits
-                    </Button>
-                  </Link>
-
                   {hasActiveSubscription && (
                     <>
                       <Button
@@ -374,6 +284,13 @@ export default function DashboardPage() {
                     </>
                   )}
 
+                  <Link href="/pricing">
+                    <Button variant="secondary" className="w-full">
+                      <CreditCard className="w-4 h-4 mr-2" />
+                      Get More Credits
+                    </Button>
+                  </Link>
+
                   <Link href="/settings">
                     <Button variant="secondary" className="w-full">
                       <Settings className="w-4 h-4 mr-2" />
@@ -385,9 +302,7 @@ export default function DashboardPage() {
             </div>
 
             {/* Image Status - Only shows for free users or when images are expiring */}
-            <div className="mt-6" key={storageKey}>
-              <StorageUsageCard />
-            </div>
+            <StorageUsageCard />
 
             {/* My Images Gallery */}
             <div id="my-images" className="mt-8">
@@ -395,7 +310,7 @@ export default function DashboardPage() {
             </div>
 
             {/* Plan Switcher - Only show for users with active subscriptions */}
-            {hasActiveSubscription && profile.subscription_plan !== 'free' && (
+            {hasActiveSubscription && (
               <Card>
                 <CardHeader>
                   <CardTitle>Change Subscription Plan</CardTitle>
@@ -411,15 +326,6 @@ export default function DashboardPage() {
                 </CardContent>
               </Card>
             )}
-
-            {/* Credit Analytics - Disabled due to missing tables */}
-            {/* <div>
-            <h2 className="text-xl font-semibold text-gray-900 mb-4">Credit Usage Analytics</h2>
-            <CreditAnalytics />
-          </div> */}
-
-            {/* Processing History - Disabled due to missing tables */}
-            {/* <ProcessingHistory limit={10} /> */}
 
             {/* Credit History */}
             <div className="mt-8">
