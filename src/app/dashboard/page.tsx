@@ -284,14 +284,14 @@ export default function DashboardPage() {
                     </>
                   )}
 
-                  <Link href="/pricing">
+                  <Link href="/pricing" className="block">
                     <Button variant="secondary" className="w-full">
                       <CreditCard className="w-4 h-4 mr-2" />
                       Get More Credits
                     </Button>
                   </Link>
 
-                  <Link href="/settings">
+                  <Link href="/settings" className="block">
                     <Button variant="secondary" className="w-full">
                       <Settings className="w-4 h-4 mr-2" />
                       Settings
