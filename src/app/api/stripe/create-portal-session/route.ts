@@ -6,6 +6,21 @@ import { withRateLimit } from '@/lib/rate-limit';
 
 const supabase = createClient(env.SUPABASE_URL, env.SUPABASE_SERVICE_ROLE_KEY);
 
+async function createOrRecoverCustomer(
+  stripeService: ReturnType<typeof getStripeService>,
+  userId: string,
+  email: string
+): Promise<string> {
+  const customer = await stripeService.createCustomer(email, undefined);
+  // Save the new customer ID to the profile
+  await supabase
+    .from('profiles')
+    .update({ stripe_customer_id: customer.id })
+    .eq('id', userId);
+  console.log('[Portal] Created new Stripe customer:', customer.id, 'for user:', userId);
+  return customer.id;
+}
+
 async function handlePost(request: NextRequest) {
   try {
     const { userId, returnUrl } = await request.json();
@@ -33,63 +48,50 @@ async function handlePost(request: NextRequest) {
     }
 
     const stripeService = getStripeService();
+    let customerId = profile?.stripe_customer_id;
 
     // If user doesn't have a Stripe customer ID, create one
-    let customerId = profile?.stripe_customer_id;
     if (!customerId) {
       console.log('[Portal] No stripe_customer_id found, creating customer for', userId);
-      try {
-        const customer = await stripeService.createCustomer(
-          profile.email || '',
-          undefined
-        );
-        customerId = customer.id;
+      customerId = await createOrRecoverCustomer(stripeService, userId, profile.email || '');
+    }
 
-        // Save the customer ID to the profile
-        await supabase
-          .from('profiles')
-          .update({ stripe_customer_id: customerId })
-          .eq('id', userId);
-      } catch (createErr: any) {
-        console.error('[Portal] Failed to create Stripe customer:', createErr.message);
+    // Try to create the portal session, auto-recover if customer is stale
+    try {
+      const session = await stripeService.createPortalSession(
+        customerId,
+        returnUrl || `${env.APP_URL}/dashboard`
+      );
+      return NextResponse.json({ url: session.url });
+    } catch (portalError: any) {
+      // If the customer doesn't exist in Stripe, create a new one and retry
+      if (portalError.type === 'StripeInvalidRequestError' &&
+          portalError.message?.includes('No such customer')) {
+        console.warn('[Portal] Stale customer ID:', customerId, '- creating new customer');
+        customerId = await createOrRecoverCustomer(stripeService, userId, profile.email || '');
+
+        const session = await stripeService.createPortalSession(
+          customerId,
+          returnUrl || `${env.APP_URL}/dashboard`
+        );
+        return NextResponse.json({ url: session.url });
+      }
+
+      // If billing portal isn't configured in Stripe Dashboard
+      if (portalError.type === 'StripeInvalidRequestError' &&
+          portalError.message?.includes('portal configuration')) {
+        console.error('[Portal] Billing portal not configured in Stripe Dashboard.');
+        console.error('[Portal] Go to https://dashboard.stripe.com/settings/billing/portal to configure it.');
         return NextResponse.json(
-          { error: 'Unable to set up billing. Please contact support.' },
+          { error: 'Billing portal is not yet configured. The admin needs to set it up in the Stripe Dashboard.' },
           { status: 500 }
         );
       }
+
+      throw portalError;
     }
-
-    // Create billing portal session
-    const session = await stripeService.createPortalSession(
-      customerId,
-      returnUrl || `${env.APP_URL}/dashboard`
-    );
-
-    return NextResponse.json({
-      url: session.url,
-    });
   } catch (error: any) {
     console.error('[Portal] Error creating portal session:', error.message);
-
-    // Handle specific Stripe errors
-    if (error.type === 'StripeInvalidRequestError') {
-      if (error.message?.includes('portal configuration')) {
-        console.error('[Portal] Billing portal not configured in Stripe Dashboard');
-        return NextResponse.json(
-          { error: 'Billing portal is not configured. Please contact support.' },
-          { status: 500 }
-        );
-      }
-      if (error.message?.includes('No such customer')) {
-        // Customer was deleted from Stripe - clear the stale ID
-        console.error('[Portal] Stale stripe_customer_id, customer not found in Stripe');
-        return NextResponse.json(
-          { error: 'Billing account not found. Please contact support.' },
-          { status: 404 }
-        );
-      }
-    }
-
     return NextResponse.json(
       { error: error.message || 'Failed to create portal session' },
       { status: 500 }
