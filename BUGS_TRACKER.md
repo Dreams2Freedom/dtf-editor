@@ -49,6 +49,25 @@
   - Test RLS policy changes in a staging environment before production
 - **Related Issues:** Created during fix for support tickets showing "From: Unknown" (commit aee36c7)
 
+### **BUG-064: API Cost Configuration Shows Blank Table (RLS Blocking)**
+
+- **Status:** 🟢 FIXED (Feb 19, 2026)
+- **Severity:** High
+- **Component:** Admin Settings / API Cost Config (`/api/admin/cost-config`)
+- **Description:** API Cost Configuration section on admin settings page shows an empty table (headers visible but no data rows) because the API route uses the anon-key Supabase client which is blocked by RLS on `api_cost_config`
+- **Reported:** February 19, 2026
+- **Symptoms:**
+  - Table headers render (Provider, Operation, Cost per Unit, etc.) but no rows
+  - No error message shown to user (component silently gets empty/error response)
+  - RLS blocks anon client from reading/writing `api_cost_config` table
+- **Root Cause:**
+  - Same pattern as BUG-063: the cost-config route used `createServerSupabaseClient()` (anon key) instead of `createServiceRoleClient()`
+  - All three handlers (GET, POST, PUT) were affected
+- **Fix Applied:**
+  - Switched all DB operations in GET/POST/PUT handlers to use `createServiceRoleClient()`
+  - Kept `createServerSupabaseClient()` only for auth verification (`getUser()`)
+  - Consistent with all other admin API routes
+
 ### **BUG-063: Admin Notifications Sent to 0 Users (RLS Blocking)**
 
 - **Status:** 🟢 FIXED (Feb 18, 2026)
