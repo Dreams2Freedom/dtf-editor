@@ -1,14 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createServerSupabaseClient } from '@/lib/supabase/server';
+import {
+  createServerSupabaseClient,
+  createServiceRoleClient,
+} from '@/lib/supabase/server';
 import { withRateLimit } from '@/lib/rate-limit';
 import { AdminAuditService } from '@/services/adminAudit';
 
 // GET - Fetch current cost configurations
 async function handleGet(request: NextRequest) {
   try {
+    // Authenticate user with anon client
     const supabase = await createServerSupabaseClient();
-
-    // Check admin authentication
     const {
       data: { user },
     } = await supabase.auth.getUser();
@@ -16,7 +18,10 @@ async function handleGet(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { data: profile } = await supabase
+    // Use service role client for admin operations (bypasses RLS)
+    const serviceClient = createServiceRoleClient();
+
+    const { data: profile } = await serviceClient
       .from('profiles')
       .select('is_admin')
       .eq('id', user.id)
@@ -30,7 +35,7 @@ async function handleGet(request: NextRequest) {
     }
 
     // Fetch all cost configurations
-    const { data: configs, error } = await supabase
+    const { data: configs, error } = await serviceClient
       .from('api_cost_config')
       .select('*')
       .order('provider')
@@ -101,9 +106,8 @@ async function handleGet(request: NextRequest) {
 // POST - Update cost configuration
 async function handlePost(request: NextRequest) {
   try {
+    // Authenticate user with anon client
     const supabase = await createServerSupabaseClient();
-
-    // Check admin authentication
     const {
       data: { user },
     } = await supabase.auth.getUser();
@@ -111,7 +115,10 @@ async function handlePost(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { data: profile } = await supabase
+    // Use service role client for admin operations (bypasses RLS)
+    const serviceClient = createServiceRoleClient();
+
+    const { data: profile } = await serviceClient
       .from('profiles')
       .select('is_admin')
       .eq('id', user.id)
@@ -149,7 +156,7 @@ async function handlePost(request: NextRequest) {
     }
 
     // Check if configuration exists
-    const { data: existingConfig } = await supabase
+    const { data: existingConfig } = await serviceClient
       .from('api_cost_config')
       .select('*')
       .eq('provider', provider)
@@ -161,7 +168,7 @@ async function handlePost(request: NextRequest) {
 
     if (existingConfig) {
       // Update existing configuration
-      const { data, error } = await supabase
+      const { data, error } = await serviceClient
         .from('api_cost_config')
         .update({
           cost_per_unit,
@@ -185,7 +192,7 @@ async function handlePost(request: NextRequest) {
       action = 'updated';
     } else {
       // Insert new configuration
-      const { data, error } = await supabase
+      const { data, error } = await serviceClient
         .from('api_cost_config')
         .insert({
           provider,
@@ -254,9 +261,8 @@ async function handlePost(request: NextRequest) {
 // PUT - Bulk update configurations
 async function handlePut(request: NextRequest) {
   try {
+    // Authenticate user with anon client
     const supabase = await createServerSupabaseClient();
-
-    // Check admin authentication
     const {
       data: { user },
     } = await supabase.auth.getUser();
@@ -264,7 +270,10 @@ async function handlePut(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { data: profile } = await supabase
+    // Use service role client for admin operations (bypasses RLS)
+    const serviceClient = createServiceRoleClient();
+
+    const { data: profile } = await serviceClient
       .from('profiles')
       .select('is_admin')
       .eq('id', user.id)
@@ -300,7 +309,7 @@ async function handlePut(request: NextRequest) {
       }
 
       // Check if exists
-      const { data: existing } = await supabase
+      const { data: existing } = await serviceClient
         .from('api_cost_config')
         .select('*')
         .eq('provider', provider)
@@ -309,7 +318,7 @@ async function handlePut(request: NextRequest) {
 
       if (existing) {
         // Update
-        const { data, error } = await supabase
+        const { data, error } = await serviceClient
           .from('api_cost_config')
           .update({
             cost_per_unit,
@@ -328,7 +337,7 @@ async function handlePut(request: NextRequest) {
         }
       } else {
         // Insert
-        const { data, error } = await supabase
+        const { data, error } = await serviceClient
           .from('api_cost_config')
           .insert({
             provider,
