@@ -144,46 +144,26 @@ export function ImageGalleryEnhanced() {
 
       let images: ProcessedImage[] = data || [];
 
-      // Generate signed URLs for each image
+      // Resolve storage URLs for each image
+      // The 'images' bucket is public, so use getPublicUrl (no API call needed)
       const supabaseClient = createClientSupabaseClient();
       for (const image of images) {
-        // Check if we need to generate a signed URL
         if (image.storage_url) {
-          // If it's already a full URL (including signed URLs), extract the path
           if (image.storage_url.startsWith('http')) {
-            try {
-              const url = new URL(image.storage_url);
-              // Extract path from URL if it's a Supabase storage URL
-              if (url.pathname.includes('/storage/v1/object/public/images/')) {
-                const path = url.pathname.replace(
-                  '/storage/v1/object/public/images/',
-                  ''
-                );
-                const cleanPath = path.split('?')[0]; // Remove query params
-
-                // Generate a fresh signed URL
-                const { data: signedUrlData } = await supabaseClient.storage
-                  .from('images')
-                  .createSignedUrl(cleanPath, 3600); // 1 hour expiry
-
-                if (signedUrlData?.signedUrl) {
-                  image.storage_url = signedUrlData.signedUrl;
-                  image.thumbnail_url = signedUrlData.signedUrl;
-                }
-              }
-              // If it's some other URL, leave it as is
-            } catch (e) {
-              console.error('Error parsing URL:', e);
+            // Already a full URL — ensure thumbnail_url is set
+            if (!image.thumbnail_url || !image.thumbnail_url.startsWith('http')) {
+              image.thumbnail_url = image.storage_url;
             }
           } else {
-            // It's just a storage path, generate a signed URL
-            const { data: signedUrlData } = await supabaseClient.storage
+            // It's a storage path (e.g., "userId/processed/file.png")
+            // Generate the public URL from the path
+            const { data: publicUrlData } = supabaseClient.storage
               .from('images')
-              .createSignedUrl(image.storage_url, 3600); // 1 hour expiry
+              .getPublicUrl(image.storage_url);
 
-            if (signedUrlData?.signedUrl) {
-              image.storage_url = signedUrlData.signedUrl;
-              image.thumbnail_url = signedUrlData.signedUrl;
+            if (publicUrlData?.publicUrl) {
+              image.storage_url = publicUrlData.publicUrl;
+              image.thumbnail_url = publicUrlData.publicUrl;
             }
           }
         }
@@ -1014,12 +994,20 @@ export function ImageGalleryEnhanced() {
                       alt={image.original_filename}
                       fill
                       className="object-cover"
+                      onError={(e) => {
+                        // Hide broken image and show fallback icon
+                        const target = e.currentTarget;
+                        target.style.display = 'none';
+                        const fallback = target.parentElement?.querySelector('.image-fallback');
+                        if (fallback) (fallback as HTMLElement).style.display = 'flex';
+                      }}
                     />
-                  ) : (
-                    <div className="flex items-center justify-center h-full">
-                      <ImageIcon className="w-12 h-12 text-gray-400" />
-                    </div>
-                  )}
+                  ) : null}
+                  <div
+                    className={`image-fallback items-center justify-center h-full ${image.thumbnail_url ? 'hidden' : 'flex'}`}
+                  >
+                    <ImageIcon className="w-12 h-12 text-gray-400" />
+                  </div>
                 </div>
                 <div className="p-3">
                   <p className="text-sm font-medium text-gray-900 truncate">
@@ -1108,12 +1096,19 @@ export function ImageGalleryEnhanced() {
                         alt={image.original_filename}
                         fill
                         className="object-cover rounded"
+                        onError={(e) => {
+                          const target = e.currentTarget;
+                          target.style.display = 'none';
+                          const fallback = target.parentElement?.querySelector('.image-fallback');
+                          if (fallback) (fallback as HTMLElement).style.display = 'flex';
+                        }}
                       />
-                    ) : (
-                      <div className="flex items-center justify-center h-full">
-                        <ImageIcon className="w-8 h-8 text-gray-400" />
-                      </div>
-                    )}
+                    ) : null}
+                    <div
+                      className={`image-fallback items-center justify-center h-full ${image.thumbnail_url ? 'hidden' : 'flex'}`}
+                    >
+                      <ImageIcon className="w-8 h-8 text-gray-400" />
+                    </div>
                   </div>
                   <div>
                     <p className="font-medium text-gray-900">
