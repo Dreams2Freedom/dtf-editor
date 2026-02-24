@@ -49,6 +49,29 @@
   - Test RLS policy changes in a staging environment before production
 - **Related Issues:** Created during fix for support tickets showing "From: Unknown" (commit aee36c7)
 
+### **BUG-065: My Images Section Shows Gray Placeholders Instead of Images**
+
+- **Status:** 🟢 FIXED (Feb 24, 2026)
+- **Severity:** High
+- **Component:** Dashboard / ImageGalleryEnhanced (`/dashboard`)
+- **Description:** The "My Images" grid on the user dashboard shows gray placeholder boxes instead of actual images
+- **Reported:** February 24, 2026
+- **Symptoms:**
+  - Images fetched from DB (271 images) but thumbnails display as gray boxes
+  - Console shows 500 error on `get_user_images` RPC (intermittent)
+  - No image icon fallback shown when images fail to load
+- **Root Cause:**
+  - The `saveProcessedImage` utility stores just the storage path (e.g., `userId/processed/file.png`) in the database
+  - The gallery component tries to convert these paths to signed URLs using `createSignedUrl()` with the anon-key client
+  - The anon client lacks permission to create signed URLs for the storage bucket
+  - When signed URL generation fails, the raw path stays as `thumbnail_url`, and Next.js Image tries to render `src="userId/processed/file.png"` which is not a valid URL
+  - No `onError` handler on the Image component, so failed images show only the gray `bg-gray-100` background
+- **Fix Applied:**
+  - Replaced `createSignedUrl()` with `getPublicUrl()` since the `images` bucket is public
+  - `getPublicUrl()` constructs the URL locally (no API call needed, no permissions required)
+  - Added `onError` handler to Image components (grid and list views) to show fallback icon when image fails to load
+  - Major performance improvement: eliminated N sequential API calls for signed URL generation
+
 ### **BUG-064: API Cost Configuration Shows Blank Table (RLS Blocking)**
 
 - **Status:** 🟢 FIXED (Feb 19, 2026)
