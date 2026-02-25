@@ -221,6 +221,7 @@ async function processJob(
             creditsUsed: 1,
             processingTimeFromApi: response.processingTime,
           },
+          originalImageUrl: imageUrl,
         });
 
         if (savedId) {

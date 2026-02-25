@@ -77,6 +77,31 @@
   - Verify `STRIPE_LIVE_STARTER_PLAN_PRICE_ID` is set correctly in Vercel environment variables
   - Use the sync endpoint to fix the affected customer's profile
 
+### **BUG-067: Upscaler Adds Black Background to Transparent PNG Images**
+
+- **Status:** 🟢 FIXED (Feb 25, 2026)
+- **Severity:** Critical
+- **Component:** Upscale Pipeline (client compression + server save)
+- **Description:** When upscaling a PNG image with a transparent background, the output has a black background instead of preserving transparency
+- **Reported:** February 25, 2026
+- **Symptoms:**
+  - User uploads PNG with transparent background to upscale tool
+  - Upscaled result has solid black background where transparency should be
+  - Affects all upscale routes (direct, async, standard)
+- **Root Cause (multiple layers):**
+  1. **Frontend compression converts PNG to JPEG:** `client.tsx` line 519 hardcoded `format: 'jpeg'`, which strips the alpha channel before upload
+  2. **Image compression utility defaults to JPEG:** `src/utils/imageCompression.ts` defaulted to `'jpeg'` format, destroying PNG transparency
+  3. **Server-side compression converts PNG to JPEG:** `src/lib/image-compression.ts` converted all large files to JPEG regardless of input type
+  4. **Deep-Image.ai may strip alpha channel:** The API doesn't always preserve the alpha channel during upscaling
+  5. **No alpha restoration on save:** `saveProcessedImage.ts` had no logic to detect lost alpha and restore it from the original
+- **Fix Applied:**
+  1. `src/app/process/upscale/client.tsx`: Changed compression format to respect PNG input (`file.type === 'image/png' ? 'png' : 'jpeg'`)
+  2. `src/utils/imageCompression.ts`: Default format now preserves input file type for PNGs
+  3. `src/lib/image-compression.ts`: No longer converts PNG to JPEG; keeps PNG format for transparency preservation
+  4. `src/utils/saveProcessedImage.ts`: Added alpha channel restoration logic — extracts alpha from original image, upscales it with lanczos3 resampling, and joins it to the processed result using Sharp
+  5. All three upscale routes (`upscale/route.ts`, `upscale-direct/route.ts`, `upscale-async/route.ts`): Now pass `originalImageUrl` to `saveProcessedImageToGallery()` so the alpha can be extracted from the original
+- **Prevention:** Always check and preserve input image format through the entire processing pipeline; never blindly convert to JPEG
+
 ### **BUG-065: My Images Section Shows Gray Placeholders Instead of Images**
 
 - **Status:** 🟢 FIXED (Feb 24, 2026)

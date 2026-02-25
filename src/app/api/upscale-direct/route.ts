@@ -173,6 +173,7 @@ export async function POST(request: NextRequest) {
               creditsUsed: 1,
               processingTimeFromApi: response.processingTime,
             },
+            originalImageUrl: finalImageUrl,
           });
 
           if (savedId) {

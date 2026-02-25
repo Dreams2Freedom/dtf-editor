@@ -168,6 +168,7 @@ async function handlePost(request: NextRequest) {
               creditsUsed: result.metadata?.creditsUsed || 1,
               processingTime: result.metadata?.processingTime,
             },
+            originalImageUrl: finalImageUrl,
           });
           console.log('[Upscale] Save result:', {
             savedId,
