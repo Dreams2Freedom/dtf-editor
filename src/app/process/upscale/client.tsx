@@ -28,6 +28,7 @@ import {
   urlToFile,
   needsCompression,
 } from '@/utils/imageCompression';
+import { compressImage as compressImageForUpload } from '@/lib/image-compression';
 
 export default function UpscaleClient() {
   const searchParams = useSearchParams();
@@ -286,9 +287,27 @@ export default function UpscaleClient() {
               blob = await res.blob();
             }
 
-            const file = new File([blob], storedFilename || 'image.jpg', {
-              type: blob.type,
-            });
+            let file: File = new File(
+              [blob],
+              storedFilename || 'image.jpg',
+              {
+                type: blob.type,
+              }
+            );
+
+            // Compress large files before upload to avoid 413 errors
+            if (file.size > 3 * 1024 * 1024) {
+              console.log(
+                '[Upscale DPI Upload] Compressing large file:',
+                (file.size / 1024 / 1024).toFixed(2),
+                'MB'
+              );
+              file = await compressImageForUpload(file, {
+                maxSizeMB: 3,
+                maxDimension: 5000,
+              });
+            }
+
             const formData = new FormData();
             formData.append('file', file);
 
@@ -887,10 +906,26 @@ export default function UpscaleClient() {
                         if (!file) return;
 
                         setIsLoading(true);
-                        const formData = new FormData();
-                        formData.append('file', file);
+                        setError(null);
 
                         try {
+                          // Compress large files before upload to avoid 413 errors
+                          let fileToUpload = file;
+                          if (file.size > 3 * 1024 * 1024) {
+                            console.log(
+                              '[Upscale Upload] Compressing large file:',
+                              (file.size / 1024 / 1024).toFixed(2),
+                              'MB'
+                            );
+                            fileToUpload = await compressImageForUpload(file, {
+                              maxSizeMB: 3,
+                              maxDimension: 5000,
+                            });
+                          }
+
+                          const formData = new FormData();
+                          formData.append('file', fileToUpload);
+
                           const response = await fetch('/api/upload', {
                             method: 'POST',
                             body: formData,
