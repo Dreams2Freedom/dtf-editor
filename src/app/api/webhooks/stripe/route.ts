@@ -6,6 +6,63 @@ import { createClient } from '@supabase/supabase-js';
 import { ApiCostTracker } from '@/lib/api-cost-tracker';
 import { trackReferralConversion } from '@/services/affiliate';
 
+// Fallback plan matching by price amount (cents) when price ID env vars are misconfigured
+const PLAN_PRICE_AMOUNTS: Record<number, string> = {
+  999: 'basic', // $9.99
+  2499: 'starter', // $24.99
+  4999: 'professional', // $49.99
+};
+
+// Resolve a Stripe price ID to a plan, with fallback by amount
+async function resolvePlanFromPriceId(priceId: string | undefined) {
+  if (!priceId) return null;
+
+  const stripeService = getStripeService();
+  const plans = stripeService.getSubscriptionPlans();
+
+  // First: try exact match by configured price ID
+  const exactMatch = plans.find(
+    (p: any) => p.stripePriceId && p.stripePriceId === priceId
+  );
+  if (exactMatch) return exactMatch;
+
+  // Log mismatch for debugging
+  console.warn(
+    '⚠️ [Plan Match] No exact price ID match. Received:',
+    priceId,
+    'Configured:',
+    plans.map((p: any) => ({
+      plan: p.id,
+      priceId: p.stripePriceId || '(not set)',
+    }))
+  );
+
+  // Fallback: look up the price from Stripe and match by amount
+  try {
+    const price = await stripeService.getPrice(priceId);
+    if (price?.unit_amount) {
+      const planId = PLAN_PRICE_AMOUNTS[price.unit_amount];
+      if (planId) {
+        const fallbackPlan = plans.find((p: any) => p.id === planId);
+        if (fallbackPlan) {
+          console.log(
+            `✅ [Plan Match] Fallback matched by amount: $${(price.unit_amount / 100).toFixed(2)} → ${planId}`
+          );
+          return fallbackPlan;
+        }
+      }
+      console.warn(
+        '⚠️ [Plan Match] Fallback by amount also failed. Amount:',
+        price.unit_amount
+      );
+    }
+  } catch (err) {
+    console.error('❌ [Plan Match] Error fetching price from Stripe:', err);
+  }
+
+  return null;
+}
+
 // Lazy initialize Supabase to avoid build-time errors
 let supabase: ReturnType<typeof createClient> | null = null;
 
@@ -332,11 +389,10 @@ async function handleSubscriptionEvent(subscription: any) {
 
   // Get the price ID from the subscription
   const priceId = subscription.items?.data?.[0]?.price?.id;
+  console.log('🔍 [Subscription] Price ID from Stripe:', priceId);
 
-  // Determine the plan based on the price ID
-  const stripeService = getStripeService();
-  const plans = stripeService.getSubscriptionPlans();
-  const plan = plans.find((p: any) => p.stripePriceId === priceId);
+  // Determine the plan based on the price ID (with fallback by amount)
+  const plan = await resolvePlanFromPriceId(priceId);
 
   const updateData: any = {
     stripe_subscription_id: subscription.id,
@@ -351,9 +407,16 @@ async function handleSubscriptionEvent(subscription: any) {
 
   // If we found a matching plan, update both status and plan
   if (plan) {
+    console.log('✅ [Subscription] Matched plan:', plan.id);
     updateData.subscription_status = plan.id; // 'basic', 'starter', etc.
     updateData.subscription_plan = plan.id;
     updateData.subscription_tier = plan.id; // Keep subscription_tier in sync
+  } else {
+    console.error(
+      '❌ [Subscription] Could not match price ID to any plan:',
+      priceId,
+      '— user profile subscription_plan will NOT be updated'
+    );
   }
 
   // Handle cancelled subscriptions
@@ -820,10 +883,11 @@ async function handleCheckoutSessionCompleted(session: any) {
       await getStripeService().getSubscription(subscriptionId);
     if (subscription) {
       const priceId = subscription.items.data[0]?.price.id;
-      const plans = getStripeService().getSubscriptionPlans();
-      const plan = plans.find((p: any) => p.stripePriceId === priceId);
+      console.log('🔍 [Checkout] Price ID from subscription:', priceId);
+      const plan = await resolvePlanFromPriceId(priceId);
 
       if (plan) {
+        console.log('✅ [Checkout] Matched plan:', plan.id);
         // Update subscription plan and status
         const { error: planError } = await getSupabase()
           .from('profiles')
@@ -964,6 +1028,13 @@ async function handleCheckoutSessionCompleted(session: any) {
           console.error('Failed to send subscription email:', emailError);
           // Don't fail the webhook if email fails
         }
+      } else {
+        console.error(
+          '❌ [Checkout] Could not match price ID to any plan:',
+          priceId,
+          '— subscription_plan NOT updated. User:',
+          userId
+        );
       }
     }
   }

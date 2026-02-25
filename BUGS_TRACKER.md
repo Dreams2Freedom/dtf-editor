@@ -49,6 +49,34 @@
   - Test RLS policy changes in a staging environment before production
 - **Related Issues:** Created during fix for support tickets showing "From: Unknown" (commit aee36c7)
 
+### **BUG-066: Stripe Subscription Not Syncing — Customer Shows as Pay-As-You-Go**
+
+- **Status:** 🟢 FIXED (Feb 25, 2026)
+- **Severity:** Critical
+- **Component:** Stripe Webhook Handler (`/api/webhooks/stripe`)
+- **Description:** Customer signs up for Starter plan ($24.99/mo), is charged successfully, but profile shows "pay as you go" instead of "starter" subscription
+- **Reported:** February 25, 2026
+- **Stripe Reference:** Subscription item `si_U0i8AWzSBxUgvA`
+- **Symptoms:**
+  - Customer charged correctly on Stripe side
+  - Profile `subscription_plan` not updated (stays null/free)
+  - Customer shows as "Pay As You Go" in admin panel
+  - Credits not granted for subscription tier
+- **Root Cause:**
+  - Webhook handler matches Stripe price ID to plan using `plans.find(p => p.stripePriceId === priceId)`
+  - `stripePriceId` comes from env var `STRIPE_LIVE_STARTER_PLAN_PRICE_ID`
+  - If the env var is missing, empty, or doesn't match the actual Stripe price ID, the plan match silently fails
+  - Code had `if (plan) { ... }` with **no logging or fallback** when plan is not found
+  - Profile only gets `stripe_customer_id` and `stripe_subscription_id` set, but `subscription_plan` is never updated
+- **Fix Applied:**
+  1. Added `resolvePlanFromPriceId()` helper with **fallback matching by price amount** ($9.99→basic, $24.99→starter, $49.99→professional) when price ID match fails
+  2. Added detailed logging when plan matching fails (logs received price ID vs configured price IDs)
+  3. Both `handleCheckoutSessionCompleted` and `handleSubscriptionEvent` now use the resilient resolver
+  4. Created admin sync endpoint `POST /api/admin/users/[id]/sync-subscription` to manually re-sync a user's subscription from Stripe
+- **Action Required:**
+  - Verify `STRIPE_LIVE_STARTER_PLAN_PRICE_ID` is set correctly in Vercel environment variables
+  - Use the sync endpoint to fix the affected customer's profile
+
 ### **BUG-065: My Images Section Shows Gray Placeholders Instead of Images**
 
 - **Status:** 🟢 FIXED (Feb 24, 2026)
