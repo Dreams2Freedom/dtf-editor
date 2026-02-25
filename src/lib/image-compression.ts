@@ -108,11 +108,16 @@ export async function compressImage(
         let quality = 0.85;
         let outputFormat = file.type;
 
-        // Convert PNG to JPEG for better compression if file is large
-        if (file.type === 'image/png' && file.size > maxSizeBytes) {
+        // Keep PNG format to preserve transparency (critical for DTF designs)
+        // Only convert non-PNG formats to JPEG for compression
+        if (file.type !== 'image/png' && file.size > maxSizeBytes) {
           outputFormat = 'image/jpeg';
           console.log(
-            '[ImageCompression] Converting PNG to JPEG for better compression'
+            '[ImageCompression] Converting to JPEG for better compression'
+          );
+        } else if (file.type === 'image/png') {
+          console.log(
+            '[ImageCompression] Keeping PNG format to preserve transparency'
           );
         }
 
@@ -122,7 +127,10 @@ export async function compressImage(
               if (blob) {
                 if (blob.size > maxSizeBytes && quality > 0.5) {
                   quality -= 0.05; // Gentle quality reduction
-                  outputFormat = 'image/jpeg'; // Force JPEG if still too large
+                  // Only switch to JPEG for non-PNG files (PNG needs alpha channel)
+                  if (file.type !== 'image/png') {
+                    outputFormat = 'image/jpeg';
+                  }
                   console.log(
                     '[ImageCompression] Still too large, reducing quality to:',
                     quality.toFixed(2)

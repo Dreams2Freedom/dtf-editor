@@ -12,6 +12,7 @@ interface SaveImageParams {
   originalFilename?: string;
   fileSize?: number;
   metadata?: Record<string, any>;
+  originalImageUrl?: string; // Original image URL for alpha channel preservation
 }
 
 export async function saveProcessedImageToGallery({
@@ -21,6 +22,7 @@ export async function saveProcessedImageToGallery({
   originalFilename = 'processed_image',
   fileSize = 0,
   metadata = {},
+  originalImageUrl,
 }: SaveImageParams) {
   console.log('[SaveProcessedImage] Starting save:', {
     userId,
@@ -131,62 +133,136 @@ export async function saveProcessedImageToGallery({
       extension = 'jpg';
     }
 
-    // Force PNG for upscaled images to maintain quality
+    // Force PNG for upscaled images to maintain quality and transparency
     let buffer: Buffer;
 
     if (operationType === 'upscale') {
       console.log(
         '[SaveProcessedImage] FORCING PNG CONVERSION for upscaled image'
       );
-      console.log('[SaveProcessedImage] Original content type:', contentType);
-      console.log(
-        '[SaveProcessedImage] Original extension would be:',
-        extension
-      );
 
       try {
-        // Convert the image to PNG format using sharp
         const inputBuffer = Buffer.from(imageBuffer);
-        console.log(
-          '[SaveProcessedImage] Input buffer size:',
-          inputBuffer.length
-        );
 
-        // Use sharp to convert to PNG with maximum quality
-        buffer = await sharp(inputBuffer)
-          .png({
-            quality: 100,
-            compressionLevel: 9, // Max compression (lossless)
-            effort: 10, // Max effort for better compression
-            force: true, // Force PNG output even if input is PNG
-          })
-          .toBuffer();
+        // Check if the upscaled result already has alpha
+        const resultMeta = await sharp(inputBuffer).metadata();
+        console.log('[SaveProcessedImage] Result metadata:', {
+          hasAlpha: resultMeta.hasAlpha,
+          channels: resultMeta.channels,
+          width: resultMeta.width,
+          height: resultMeta.height,
+        });
+
+        // If the original had transparency but the result doesn't, restore it
+        if (!resultMeta.hasAlpha && originalImageUrl) {
+          console.log(
+            '[SaveProcessedImage] Result lost alpha channel — attempting to restore from original'
+          );
+
+          try {
+            // Download the original image to extract its alpha channel
+            let originalBuffer: Buffer;
+            if (originalImageUrl.startsWith('data:')) {
+              const matches = originalImageUrl.match(
+                /^data:[^;]+;base64,(.+)$/
+              );
+              originalBuffer = matches
+                ? Buffer.from(matches[1], 'base64')
+                : Buffer.alloc(0);
+            } else {
+              const origResponse = await fetch(originalImageUrl);
+              originalBuffer = Buffer.from(await origResponse.arrayBuffer());
+            }
+
+            const originalMeta = await sharp(originalBuffer).metadata();
+            console.log('[SaveProcessedImage] Original metadata:', {
+              hasAlpha: originalMeta.hasAlpha,
+              channels: originalMeta.channels,
+              width: originalMeta.width,
+              height: originalMeta.height,
+            });
+
+            if (
+              originalMeta.hasAlpha &&
+              originalMeta.channels === 4 &&
+              resultMeta.width &&
+              resultMeta.height
+            ) {
+              // Extract alpha channel from original and upscale to match result dimensions
+              const alphaChannel = await sharp(originalBuffer)
+                .extractChannel(3)
+                .resize(resultMeta.width, resultMeta.height, {
+                  kernel: 'lanczos3',
+                })
+                .toBuffer();
+
+              // Join the upscaled alpha channel to the result
+              buffer = await sharp(inputBuffer)
+                .joinChannel(alphaChannel)
+                .png({
+                  compressionLevel: 9,
+                  effort: 10,
+                  force: true,
+                })
+                .toBuffer();
+
+              console.log(
+                '[SaveProcessedImage] ✅ ALPHA CHANNEL RESTORED from original'
+              );
+            } else {
+              // Original didn't have alpha, just convert to PNG
+              buffer = await sharp(inputBuffer)
+                .png({
+                  compressionLevel: 9,
+                  effort: 10,
+                  force: true,
+                })
+                .toBuffer();
+            }
+          } catch (alphaError) {
+            console.error(
+              '[SaveProcessedImage] Failed to restore alpha:',
+              alphaError
+            );
+            // Fallback: just convert to PNG without alpha restoration
+            buffer = await sharp(inputBuffer)
+              .png({
+                compressionLevel: 9,
+                effort: 10,
+                force: true,
+              })
+              .toBuffer();
+          }
+        } else {
+          // Result already has alpha or no original URL — just convert to PNG
+          buffer = await sharp(inputBuffer)
+            .png({
+              compressionLevel: 9,
+              effort: 10,
+              force: true,
+            })
+            .toBuffer();
+
+          if (resultMeta.hasAlpha) {
+            console.log(
+              '[SaveProcessedImage] ✅ Result already has alpha — preserved'
+            );
+          }
+        }
 
         // Force extension and content type to PNG
         extension = 'png';
         contentType = 'image/png';
-
         console.log('[SaveProcessedImage] ✅ PNG CONVERSION SUCCESSFUL');
-        console.log('[SaveProcessedImage] New buffer size:', buffer.length);
-        console.log('[SaveProcessedImage] New extension:', extension);
-        console.log('[SaveProcessedImage] New content type:', contentType);
+        console.log('[SaveProcessedImage] Final buffer size:', buffer.length);
       } catch (conversionError) {
         console.error(
           '[SaveProcessedImage] ❌ PNG CONVERSION FAILED:',
           conversionError
         );
-        console.error('[SaveProcessedImage] Error details:', {
-          message: (conversionError as Error).message,
-          stack: (conversionError as Error).stack,
-        });
-        // Fallback to original buffer if conversion fails
         buffer = Buffer.from(imageBuffer);
-        // Still force PNG extension even if conversion fails
         extension = 'png';
         contentType = 'image/png';
-        console.log(
-          '[SaveProcessedImage] Using fallback buffer but forcing PNG extension'
-        );
       }
     } else {
       // For non-upscale operations, use the original buffer

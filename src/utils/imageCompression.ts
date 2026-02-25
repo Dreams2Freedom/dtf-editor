@@ -24,7 +24,7 @@ export async function compressImage(
     maxSizeMB = 10, // Default 10MB max
     maxWidthOrHeight = 4096, // Default max dimension
     quality = 0.9,
-    format = 'jpeg',
+    format = file.type === 'image/png' ? 'png' : 'jpeg',
   } = options;
 
   const maxSizeBytes = maxSizeMB * 1024 * 1024;

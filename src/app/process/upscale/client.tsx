@@ -516,7 +516,7 @@ export default function UpscaleClient() {
             maxSizeMB: 10,
             maxWidthOrHeight: 4096,
             quality: 0.95,
-            format: 'jpeg',
+            format: file.type === 'image/png' ? 'png' : 'jpeg',
           });
 
           shouldUploadFile = true;
