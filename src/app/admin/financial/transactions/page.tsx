@@ -54,6 +54,7 @@ export default function TransactionsPage() {
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [dateRange, setDateRange] = useState<string>('30d');
   const [syncing, setSyncing] = useState(false);
+  const [syncAddCredits, setSyncAddCredits] = useState(true);
 
   const fetchTransactions = useCallback(async () => {
     try {
@@ -196,6 +197,10 @@ export default function TransactionsPage() {
       }
 
       // Confirm with user
+      const creditNote = syncAddCredits
+        ? `\n✅ Credits WILL be added to user accounts.`
+        : `\n⚠️ Credits will NOT be added (transaction records only).`;
+
       const confirmed = window.confirm(
         `Found ${count} Stripe payments to import.\n\n` +
           `Checkouts in Stripe: ${preview.summary.totalStripeCheckouts}\n` +
@@ -203,8 +208,9 @@ export default function TransactionsPage() {
           `From checkouts: ${preview.summary.fromCheckouts || 0}\n` +
           `From invoices (renewals): ${preview.summary.fromInvoices || 0}\n` +
           `Already recorded: ${preview.summary.skippedDuplicate}\n` +
-          `No matching user: ${preview.summary.skippedNoUser}\n\n` +
-          `Proceed with importing ${count} payment records?`
+          `No matching user: ${preview.summary.skippedNoUser}\n` +
+          creditNote +
+          `\n\nProceed with importing ${count} payment records?`
       );
 
       if (!confirmed) {
@@ -217,7 +223,7 @@ export default function TransactionsPage() {
         method: 'POST',
         credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ dryRun: false }),
+        body: JSON.stringify({ dryRun: false, addCredits: syncAddCredits }),
       });
 
       if (!commitRes.ok) {
@@ -279,7 +285,16 @@ export default function TransactionsPage() {
               View and manage all financial transactions
             </p>
           </div>
-          <div className="flex gap-2">
+          <div className="flex gap-2 items-center">
+            <label className="flex items-center gap-1.5 text-sm text-gray-600">
+              <input
+                type="checkbox"
+                checked={syncAddCredits}
+                onChange={e => setSyncAddCredits(e.target.checked)}
+                className="rounded border-gray-300"
+              />
+              Add credits
+            </label>
             <Button
               onClick={syncStripePayments}
               variant="outline"
