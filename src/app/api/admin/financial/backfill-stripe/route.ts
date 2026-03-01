@@ -69,6 +69,7 @@ async function handlePost(request: NextRequest) {
 
     const body = await request.json().catch(() => ({}));
     const dryRun = body.dryRun !== false; // default to dry run
+    const addCredits = body.addCredits === true; // opt-in: also add credits to users
 
     const serviceClient = createServiceRoleSupabaseClient();
     const stripe = getStripe();
@@ -238,6 +239,35 @@ async function handlePost(request: NextRequest) {
           });
         } else {
           inserted++;
+
+          // Add credits to user account if requested and credits were detected
+          if (addCredits && credits && credits > 0) {
+            try {
+              const { error: creditError } = await serviceClient.rpc(
+                'add_user_credits',
+                {
+                  p_user_id: userInfo.userId,
+                  p_amount: credits,
+                  p_transaction_type: paymentType === 'subscription' ? 'subscription' : 'purchase',
+                  p_description: `Backfill: ${credits} credits from Stripe ${paymentType}`,
+                  p_metadata: {
+                    backfilled: true,
+                    stripe_session_id: session.id,
+                    price_paid: session.amount_total || 0,
+                  },
+                }
+              );
+              if (creditError) {
+                console.error(`Credit allocation failed for ${session.id}:`, creditError.message);
+                errors.push({
+                  sessionId: session.id,
+                  error: `Credits not added: ${creditError.message}`,
+                });
+              }
+            } catch (creditErr) {
+              console.error(`Credit allocation error for ${session.id}:`, creditErr);
+            }
+          }
         }
       } else {
         inserted++;
@@ -371,6 +401,36 @@ async function handlePost(request: NextRequest) {
           });
         } else {
           invoicesInserted++;
+
+          // Add credits to user account if requested and credits were detected
+          if (addCredits && credits && credits > 0) {
+            try {
+              const { error: creditError } = await serviceClient.rpc(
+                'add_user_credits',
+                {
+                  p_user_id: userInfo.userId,
+                  p_amount: credits,
+                  p_transaction_type: 'subscription',
+                  p_description: `Backfill: ${credits} credits from invoice renewal`,
+                  p_metadata: {
+                    backfilled: true,
+                    stripe_invoice_id: invoice.id,
+                    billing_reason: invoice.billing_reason || 'unknown',
+                    price_paid: invoice.amount_paid || 0,
+                  },
+                }
+              );
+              if (creditError) {
+                console.error(`Credit allocation failed for invoice ${invoice.id}:`, creditError.message);
+                errors.push({
+                  sessionId: uniqueKey,
+                  error: `Credits not added: ${creditError.message}`,
+                });
+              }
+            } catch (creditErr) {
+              console.error(`Credit allocation error for invoice ${invoice.id}:`, creditErr);
+            }
+          }
         }
       } else {
         invoicesInserted++;

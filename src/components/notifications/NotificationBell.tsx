@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { Bell, X, ExternalLink, Check } from 'lucide-react';
 import { useAuthStore } from '@/stores/authStore';
 import { createClientSupabaseClient } from '@/lib/supabase/client';
@@ -26,15 +26,11 @@ export function NotificationBell() {
   const [showDropdown, setShowDropdown] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  useEffect(() => {
-    if (user) {
-      fetchNotifications();
-    }
-  }, [user]);
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  const fetchNotifications = async () => {
+  const fetchNotifications = useCallback(async (isPolling = false) => {
     try {
-      setLoading(true);
+      if (!isPolling) setLoading(true);
       const supabase = createClientSupabaseClient();
       const {
         data: { session },
@@ -56,9 +52,20 @@ export function NotificationBell() {
     } catch (error) {
       console.error('Error fetching notifications:', error);
     } finally {
-      setLoading(false);
+      if (!isPolling) setLoading(false);
     }
-  };
+  }, []);
+
+  // Initial fetch + poll every 30 seconds for new notifications
+  useEffect(() => {
+    if (user) {
+      fetchNotifications();
+      intervalRef.current = setInterval(() => fetchNotifications(true), 30000);
+    }
+    return () => {
+      if (intervalRef.current) clearInterval(intervalRef.current);
+    };
+  }, [user, fetchNotifications]);
 
   const markAsRead = async (notificationId: string) => {
     try {
@@ -227,12 +234,19 @@ export function NotificationBell() {
                                 notification.action_text && (
                                   <a
                                     href={notification.action_url}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
+                                    {...(notification.action_url.startsWith('/')
+                                      ? {}
+                                      : { target: '_blank', rel: 'noopener noreferrer' })}
+                                    onClick={() => {
+                                      if (!notification.is_read) markAsRead(notification.id);
+                                      setShowDropdown(false);
+                                    }}
                                     className="mt-2 inline-flex items-center gap-1 text-sm font-medium text-purple-600 hover:text-purple-700"
                                   >
                                     {notification.action_text}
-                                    <ExternalLink className="h-3 w-3" />
+                                    {!notification.action_url.startsWith('/') && (
+                                      <ExternalLink className="h-3 w-3" />
+                                    )}
                                   </a>
                                 )}
                               <div className="mt-2 flex items-center gap-4 text-xs text-gray-500">

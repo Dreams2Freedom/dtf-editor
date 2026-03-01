@@ -267,7 +267,11 @@ export async function POST(request: NextRequest) {
       console.log('⚠️ Event already processed, skipping to prevent duplicates');
       return NextResponse.json({ received: true, duplicate: true });
     }
-    await markEventProcessed(event.id, event.type);
+
+    // IMPORTANT: Mark as processed AFTER successful processing, not before.
+    // Previously this was done before the switch, which meant if processing
+    // failed mid-way, Stripe retries would be rejected by the dedup check
+    // and the payment would never be processed.
 
     switch (event.type) {
       case 'checkout.session.completed':
@@ -310,6 +314,9 @@ export async function POST(request: NextRequest) {
       default:
       // Unhandled event type
     }
+
+    // Mark as processed only after successful completion
+    await markEventProcessed(event.id, event.type);
 
     console.log('✅ Webhook processed successfully');
     return NextResponse.json({ received: true });
@@ -594,30 +601,54 @@ async function handleInvoicePaymentSucceeded(invoice: any) {
         console.error('Error updating billing period:', updateError);
       }
 
-      // SEC-034/NEW-10: Reset credits directly via Supabase instead of HTTP fetch.
-      // Previous code used fetch() with service role key in x-api-key header (SSRF + key leak).
-      try {
-        const supabase = getSupabase();
-        const { data: resetResult, error: resetError } = await supabase.rpc(
-          'check_credit_reset_needed',
-          { p_user_id: userId }
-        );
+      // Resolve the plan so we know how many credits to add
+      const priceId = subscription.items?.data?.[0]?.price?.id;
+      const plan = await resolvePlanFromPriceId(priceId);
 
-        if (resetError) {
-          console.error('Credit reset check failed:', resetError.message);
-        } else if (resetResult) {
-          console.log('Credit reset triggered for user:', userId);
+      // Add renewal credits directly via add_user_credits RPC.
+      // Previously this called check_credit_reset_needed which only returned
+      // a boolean and never actually added credits — so users were charged
+      // but never received their monthly credits on renewal.
+      if (plan?.creditsPerMonth) {
+        try {
+          const supabase = getSupabase();
+          const { error: creditError } = await supabase.rpc(
+            'add_user_credits',
+            {
+              p_user_id: userId,
+              p_amount: plan.creditsPerMonth,
+              p_transaction_type: 'subscription',
+              p_description: `${plan.name} subscription renewal`,
+              p_metadata: {
+                stripe_invoice_id: invoice.id,
+                stripe_subscription_id: typeof invoice.subscription === 'string'
+                  ? invoice.subscription
+                  : invoice.subscription?.id,
+                billing_reason: 'subscription_cycle',
+                price_paid: invoice.amount_paid || 0,
+              },
+            }
+          );
+
+          if (creditError) {
+            console.error('❌ Credit addition failed on renewal:', creditError.message);
+          } else {
+            console.log(
+              `✅ Added ${plan.creditsPerMonth} credits for ${plan.name} renewal for user:`,
+              userId
+            );
+          }
+        } catch (error) {
+          console.error('❌ Error adding renewal credits:', error);
         }
-      } catch (error) {
-        console.error('Error triggering credit reset:', error);
+      } else {
+        console.warn(
+          '⚠️ Could not determine plan credits for renewal. Price ID:',
+          priceId
+        );
       }
 
       // Log the renewal payment to payment_transactions
-      const priceId = subscription.items?.data?.[0]?.price?.id;
-      const stripeService = getStripeService();
-      const plans = stripeService.getSubscriptionPlans();
-      const plan = plans.find((p: any) => p.stripePriceId === priceId);
-
       await logPaymentTransaction({
         userId,
         stripePaymentIntentId: typeof invoice.payment_intent === 'string'

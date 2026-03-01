@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServiceRoleClient } from '@/lib/supabase/server';
+import { notifyAdminsOfNewTicket } from '@/lib/notify-admins';
 
 export async function POST(request: NextRequest) {
   try {
@@ -75,17 +76,14 @@ export async function POST(request: NextRequest) {
       // Don't fail completely if message creation fails
     }
 
-    // Send email notification to support team (if email service is configured)
-    try {
-      // This would integrate with your email service
-      console.log('New support ticket from contact form:', {
-        ticketId: ticket.id,
-        from: `${name} <${email}>`,
-        subject,
-      });
-    } catch (emailError) {
-      console.error('Failed to send email notification:', emailError);
-    }
+    // Send in-app notification to admin bell icon
+    await notifyAdminsOfNewTicket({
+      ticketId: ticket.id,
+      subject,
+      senderName: name,
+      senderEmail: email,
+      priority: 'medium',
+    });
 
     return NextResponse.json({
       success: true,

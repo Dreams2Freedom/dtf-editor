@@ -90,6 +90,22 @@ export class SupportService {
         );
       }
 
+      // Notify admins via in-app notification bell
+      try {
+        await fetch('/api/support/notify-admin', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            type: 'new_ticket',
+            ticketId: ticket.id,
+            subject: ticket.subject,
+            priority: ticket.priority,
+          }),
+        });
+      } catch {
+        // Don't fail ticket creation if notification fails
+      }
+
       return ticket;
     } catch (error) {
       console.error('Error creating support ticket:', error);
@@ -287,6 +303,24 @@ export class SupportService {
         } catch (emailError) {
           console.error('Failed to send user reply notification:', emailError);
           // Don't fail the message creation if email fails
+        }
+      }
+
+      // Notify admins via in-app notification bell about user reply
+      if (ticket) {
+        try {
+          await fetch('/api/support/notify-admin', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              type: 'reply',
+              ticketId: data.ticket_id,
+              ticketNumber: ticket.ticket_number,
+              subject: ticket.subject,
+            }),
+          });
+        } catch {
+          // Don't fail if notification fails
         }
       }
 
