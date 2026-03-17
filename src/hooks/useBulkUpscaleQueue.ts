@@ -6,6 +6,7 @@ import {
   BulkImageStatus,
   isRetryableStatus,
 } from '@/types/bulkUpscale';
+import { compressImage } from '@/lib/image-compression';
 
 const DEFAULT_CONCURRENCY = 2;
 const THROTTLED_CONCURRENCY = 1;
@@ -48,12 +49,18 @@ export function useBulkUpscaleQueue() {
 
   const processOneImage = useCallback(
     async (item: BulkImageItem): Promise<void> => {
-      // Send file directly to /api/upscale (server handles storage upload)
-      // This matches the single-image upscale flow and avoids Supabase RLS issues
-      updateItem(item.id, { status: 'uploading', progress: 10 });
+      // Compress image before upload to stay under Vercel's 4.5MB body limit
+      updateItem(item.id, { status: 'uploading', progress: 5 });
+
+      const fileToUpload = await compressImage(item.file, {
+        maxSizeMB: 3,
+        maxDimension: 5000,
+      });
+
+      updateItem(item.id, { progress: 10 });
 
       const formData = new FormData();
-      formData.append('image', item.file);
+      formData.append('image', fileToUpload);
       formData.append('processingMode', item.processingMode);
       formData.append('targetWidth', item.targetWidthPx.toString());
       formData.append('targetHeight', item.targetHeightPx.toString());
