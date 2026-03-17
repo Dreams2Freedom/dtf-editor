@@ -13,6 +13,7 @@ import { formatFileSize } from '@/lib/utils';
 import { Breadcrumb } from '@/components/ui/Breadcrumb';
 import { SignupModal } from '@/components/auth/SignupModal';
 import { compressImage } from '@/lib/image-compression';
+import { BulkUpscaleTool } from '@/components/image/BulkUpscaleTool';
 
 export default function ProcessClient() {
   const router = useRouter();
@@ -29,6 +30,7 @@ export default function ProcessClient() {
   >(null);
   const [showSignupModal, setShowSignupModal] = useState(false);
   const [pendingTool, setPendingTool] = useState<string | null>(null);
+  const [processMode, setProcessMode] = useState<'single' | 'bulk'>('single');
 
   // File validation
   const validateFile = useCallback((file: File): string | null => {
@@ -331,8 +333,58 @@ export default function ProcessClient() {
             )}
           </div>
 
-          {/* Upload Area */}
-          {!selectedFile && (
+          {/* Single / Bulk Mode Toggle */}
+          <div className="flex rounded-lg border border-gray-200 p-1 bg-gray-50">
+            <button
+              onClick={() => setProcessMode('single')}
+              className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors ${
+                processMode === 'single'
+                  ? 'bg-white shadow text-blue-600'
+                  : 'text-gray-600 hover:text-gray-900'
+              }`}
+            >
+              Single Image
+            </button>
+            <button
+              onClick={() => setProcessMode('bulk')}
+              className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors ${
+                processMode === 'bulk'
+                  ? 'bg-white shadow text-blue-600'
+                  : 'text-gray-600 hover:text-gray-900'
+              }`}
+            >
+              Bulk Upload
+            </button>
+          </div>
+
+          {/* Bulk Mode */}
+          {processMode === 'bulk' && (
+            <div className="space-y-4">
+              {/* Info banner about bulk availability */}
+              <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                <p className="text-sm text-blue-800">
+                  <strong>Bulk processing</strong> is currently available for{' '}
+                  <strong>Upscaling</strong> only. Background removal and vectorization
+                  bulk processing are coming soon.
+                </p>
+              </div>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Wand2 className="w-6 h-6 text-blue-600" />
+                    Bulk Upscale Images
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <BulkUpscaleTool />
+                </CardContent>
+              </Card>
+            </div>
+          )}
+
+          {/* Upload Area (Single Mode only) */}
+          {processMode === 'single' && !selectedFile && (
             <Card>
               <CardContent className="p-6">
                 <div
@@ -361,8 +413,8 @@ export default function ProcessClient() {
             </Card>
           )}
 
-          {/* Combined Preview and Tool Selection */}
-          {selectedFile && imagePreview && (
+          {/* Combined Preview and Tool Selection (Single Mode only) */}
+          {processMode === 'single' && selectedFile && imagePreview && (
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
               {/* Left: Image Preview */}
               <Card>
