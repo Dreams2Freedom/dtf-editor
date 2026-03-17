@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useCallback, useRef } from 'react';
-import { createClientSupabaseClient } from '@/lib/supabase/client';
 import {
   BulkImageItem,
   BulkImageStatus,
@@ -47,59 +46,22 @@ export function useBulkUpscaleQueue() {
     []
   );
 
-  const uploadToStorage = useCallback(
-    async (file: File, userId: string): Promise<string> => {
-      const supabase = createClientSupabaseClient();
-      const timestamp = Date.now();
-      const randomSuffix = Math.random().toString(36).substring(2, 8);
-      const sanitizedName = file.name
-        .replace(/[^a-zA-Z0-9._-]/g, '_')
-        .replace(/_+/g, '_');
-      const filePath = `users/${userId}/bulk-uploads/${timestamp}-${randomSuffix}-${sanitizedName}`;
-
-      const { error } = await supabase.storage
-        .from('user-uploads')
-        .upload(filePath, file, { cacheControl: '3600', upsert: false });
-
-      if (error) throw new Error(`Upload failed: ${error.message}`);
-
-      const { data: urlData } = supabase.storage
-        .from('user-uploads')
-        .getPublicUrl(filePath);
-
-      if (!urlData?.publicUrl) throw new Error('Failed to get public URL');
-      return urlData.publicUrl;
-    },
-    []
-  );
-
   const processOneImage = useCallback(
     async (item: BulkImageItem): Promise<void> => {
-      const supabase = createClientSupabaseClient();
-      const { data: { user } } = await supabase.auth.getUser();
-      const userId = user?.id || 'anonymous';
-
-      // Step 1: Upload to Supabase Storage
+      // Send file directly to /api/upscale (server handles storage upload)
+      // This matches the single-image upscale flow and avoids Supabase RLS issues
       updateItem(item.id, { status: 'uploading', progress: 10 });
 
-      let storageUrl: string;
-      try {
-        storageUrl = await uploadToStorage(item.file, userId);
-      } catch (err: any) {
-        throw new Error(`Upload failed: ${err.message}`);
-      }
-
-      updateItem(item.id, { status: 'processing', progress: 30 });
-
-      // Step 2: Call /api/upscale with the storage URL
       const formData = new FormData();
-      formData.append('imageUrl', storageUrl);
+      formData.append('image', item.file);
       formData.append('processingMode', item.processingMode);
       formData.append('targetWidth', item.targetWidthPx.toString());
       formData.append('targetHeight', item.targetHeightPx.toString());
 
+      updateItem(item.id, { status: 'processing', progress: 20 });
+
       // Use local variable for progress to avoid stale closure
-      let currentProgress = 30;
+      let currentProgress = 20;
       const progressInterval = setInterval(() => {
         currentProgress = Math.min(90, currentProgress + Math.random() * 5);
         updateItem(item.id, { progress: currentProgress });
@@ -145,7 +107,7 @@ export function useBulkUpscaleQueue() {
         throw err;
       }
     },
-    [updateItem, uploadToStorage]
+    [updateItem]
   );
 
   const processWithRetry = useCallback(
