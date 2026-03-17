@@ -22,6 +22,7 @@ import Link from 'next/link';
 import { useAuthStore } from '@/stores/authStore';
 import { Breadcrumb } from '@/components/ui/Breadcrumb';
 import { SignupModal } from '@/components/auth/SignupModal';
+import { BulkUpscaleTool } from '@/components/image/BulkUpscaleTool';
 import { getImageDimensions } from '@/utils/dpiCalculator';
 import {
   compressImage,
@@ -72,6 +73,7 @@ export default function UpscaleClient() {
   const [selectedScale, setSelectedScale] = useState('2');
   const [showEnhancements, setShowEnhancements] = useState(false);
   const [showSignupModal, setShowSignupModal] = useState(false);
+  const [uploadMode, setUploadMode] = useState<'single' | 'bulk'>('single');
 
   // DPI Mode states - Smart DPI mode is now default
   const [mode, setMode] = useState<'simple' | 'dpi'>('dpi');
@@ -874,6 +876,44 @@ export default function UpscaleClient() {
               ]}
             />
           </div>
+
+          {/* Single / Bulk Mode Toggle */}
+          <div className="flex rounded-lg border border-gray-200 p-1 bg-gray-50 mb-6">
+            <button
+              onClick={() => setUploadMode('single')}
+              className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors ${
+                uploadMode === 'single'
+                  ? 'bg-white shadow text-blue-600'
+                  : 'text-gray-600 hover:text-gray-900'
+              }`}
+            >
+              Single Image
+            </button>
+            <button
+              onClick={() => setUploadMode('bulk')}
+              className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors ${
+                uploadMode === 'bulk'
+                  ? 'bg-white shadow text-blue-600'
+                  : 'text-gray-600 hover:text-gray-900'
+              }`}
+            >
+              Bulk Upload
+            </button>
+          </div>
+
+          {uploadMode === 'bulk' ? (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Wand2 className="w-6 h-6 text-blue-600" />
+                  Bulk Upscale Images
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <BulkUpscaleTool />
+              </CardContent>
+            </Card>
+          ) : (
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
@@ -1891,6 +1931,7 @@ export default function UpscaleClient() {
               )}
             </CardContent>
           </Card>
+          )}
         </div>
       </main>
 
