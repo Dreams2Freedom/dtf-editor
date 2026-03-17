@@ -35,6 +35,8 @@ export function BulkSettingsTable({
     useState<ProcessingMode>('auto_enhance');
   const [applyAllCustomW, setApplyAllCustomW] = useState(0);
   const [applyAllCustomH, setApplyAllCustomH] = useState(0);
+  // Which dimension the user is driving: 'width' or 'height'
+  const [applyAllDrivenBy, setApplyAllDrivenBy] = useState<'width' | 'height'>('width');
 
   const handlePresetChange = (item: BulkImageItem, presetIndex: number) => {
     const preset = PRINT_SIZE_PRESETS[presetIndex];
@@ -67,21 +69,32 @@ export function BulkSettingsTable({
     field: 'customWidthInches' | 'customHeightInches',
     value: number
   ) => {
-    const clamped = Math.min(
-      MAX_CUSTOM_INCHES,
-      Math.max(0, value)
-    );
-    const updates: Partial<BulkImageItem> = { [field]: clamped };
+    const clamped = Math.min(MAX_CUSTOM_INCHES, Math.max(0, value));
+    const aspectRatio = item.originalWidth / item.originalHeight;
+    const updates: Partial<BulkImageItem> = {};
 
-    const w =
-      field === 'customWidthInches' ? clamped : item.customWidthInches;
-    const h =
-      field === 'customHeightInches' ? clamped : item.customHeightInches;
+    if (field === 'customWidthInches') {
+      // User entered width — auto-calculate height from aspect ratio
+      const autoHeight = clamped > 0 ? parseFloat((clamped / aspectRatio).toFixed(2)) : 0;
+      updates.customWidthInches = clamped;
+      updates.customHeightInches = autoHeight;
 
-    if (w >= MIN_CUSTOM_INCHES && h >= MIN_CUSTOM_INCHES) {
-      const target = computeTargetPixels(w, h);
-      updates.targetWidthPx = target.width;
-      updates.targetHeightPx = target.height;
+      if (clamped >= MIN_CUSTOM_INCHES) {
+        const target = computeTargetPixels(clamped, autoHeight);
+        updates.targetWidthPx = target.width;
+        updates.targetHeightPx = target.height;
+      }
+    } else {
+      // User entered height — auto-calculate width from aspect ratio
+      const autoWidth = clamped > 0 ? parseFloat((clamped * aspectRatio).toFixed(2)) : 0;
+      updates.customHeightInches = clamped;
+      updates.customWidthInches = autoWidth;
+
+      if (clamped >= MIN_CUSTOM_INCHES) {
+        const target = computeTargetPixels(autoWidth, clamped);
+        updates.targetWidthPx = target.width;
+        updates.targetHeightPx = target.height;
+      }
     }
 
     onUpdateItem(item.id, updates);
@@ -89,20 +102,28 @@ export function BulkSettingsTable({
 
   const applyToAll = () => {
     for (const item of items) {
+      const aspectRatio = item.originalWidth / item.originalHeight;
       const updates: Partial<BulkImageItem> = {
         presetIndex: applyAllPresetIndex,
         processingMode: applyAllMode,
       };
 
       if (applyAllPresetIndex === 0) {
-        // Custom
-        updates.customWidthInches = applyAllCustomW;
-        updates.customHeightInches = applyAllCustomH;
-        if (
-          applyAllCustomW >= MIN_CUSTOM_INCHES &&
-          applyAllCustomH >= MIN_CUSTOM_INCHES
-        ) {
-          const target = computeTargetPixels(applyAllCustomW, applyAllCustomH);
+        // Custom — use the driven dimension and auto-calculate the other per image
+        const drivenValue = applyAllDrivenBy === 'width' ? applyAllCustomW : applyAllCustomH;
+
+        if (applyAllDrivenBy === 'width' && drivenValue >= MIN_CUSTOM_INCHES) {
+          const autoH = parseFloat((drivenValue / aspectRatio).toFixed(2));
+          updates.customWidthInches = drivenValue;
+          updates.customHeightInches = autoH;
+          const target = computeTargetPixels(drivenValue, autoH);
+          updates.targetWidthPx = target.width;
+          updates.targetHeightPx = target.height;
+        } else if (applyAllDrivenBy === 'height' && drivenValue >= MIN_CUSTOM_INCHES) {
+          const autoW = parseFloat((drivenValue * aspectRatio).toFixed(2));
+          updates.customWidthInches = autoW;
+          updates.customHeightInches = drivenValue;
+          const target = computeTargetPixels(autoW, drivenValue);
           updates.targetWidthPx = target.width;
           updates.targetHeightPx = target.height;
         }
@@ -156,30 +177,34 @@ export function BulkSettingsTable({
                 ))}
               </select>
               {applyAllPresetIndex === 0 && (
-                <div className="flex gap-1 mt-1">
-                  <input
-                    type="number"
-                    placeholder="W (in)"
-                    min={MIN_CUSTOM_INCHES}
-                    max={MAX_CUSTOM_INCHES}
-                    value={applyAllCustomW || ''}
-                    onChange={e =>
-                      setApplyAllCustomW(Number(e.target.value))
-                    }
-                    className="w-20 border rounded px-1 py-0.5 text-xs"
-                  />
-                  <span className="text-xs text-gray-400 self-center">x</span>
-                  <input
-                    type="number"
-                    placeholder="H (in)"
-                    min={MIN_CUSTOM_INCHES}
-                    max={MAX_CUSTOM_INCHES}
-                    value={applyAllCustomH || ''}
-                    onChange={e =>
-                      setApplyAllCustomH(Number(e.target.value))
-                    }
-                    className="w-20 border rounded px-1 py-0.5 text-xs"
-                  />
+                <div className="mt-1 space-y-1">
+                  <div className="flex gap-1 items-center">
+                    <select
+                      value={applyAllDrivenBy}
+                      onChange={e => setApplyAllDrivenBy(e.target.value as 'width' | 'height')}
+                      className="border rounded px-1 py-0.5 text-xs"
+                    >
+                      <option value="width">Width</option>
+                      <option value="height">Height</option>
+                    </select>
+                    <input
+                      type="number"
+                      placeholder={applyAllDrivenBy === 'width' ? 'W (in)' : 'H (in)'}
+                      min={MIN_CUSTOM_INCHES}
+                      max={MAX_CUSTOM_INCHES}
+                      value={applyAllDrivenBy === 'width' ? (applyAllCustomW || '') : (applyAllCustomH || '')}
+                      onChange={e => {
+                        if (applyAllDrivenBy === 'width') {
+                          setApplyAllCustomW(Number(e.target.value));
+                        } else {
+                          setApplyAllCustomH(Number(e.target.value));
+                        }
+                      }}
+                      className="w-20 border rounded px-1 py-0.5 text-xs"
+                    />
+                    <span className="text-xs text-gray-400">in</span>
+                  </div>
+                  <p className="text-xs text-gray-400">Height auto-calculated per image aspect ratio</p>
                 </div>
               )}
             </td>
@@ -245,38 +270,50 @@ export function BulkSettingsTable({
                   ))}
                 </select>
                 {item.presetIndex === 0 && (
-                  <div className="flex gap-1 mt-1">
-                    <input
-                      type="number"
-                      placeholder="W"
-                      min={MIN_CUSTOM_INCHES}
-                      max={MAX_CUSTOM_INCHES}
-                      value={item.customWidthInches || ''}
-                      onChange={e =>
-                        handleCustomDimension(
-                          item,
-                          'customWidthInches',
-                          Number(e.target.value)
-                        )
-                      }
-                      className="w-16 border rounded px-1 py-0.5 text-xs"
-                    />
-                    <span className="text-xs text-gray-400 self-center">x</span>
-                    <input
-                      type="number"
-                      placeholder="H"
-                      min={MIN_CUSTOM_INCHES}
-                      max={MAX_CUSTOM_INCHES}
-                      value={item.customHeightInches || ''}
-                      onChange={e =>
-                        handleCustomDimension(
-                          item,
-                          'customHeightInches',
-                          Number(e.target.value)
-                        )
-                      }
-                      className="w-16 border rounded px-1 py-0.5 text-xs"
-                    />
+                  <div className="mt-1 space-y-1">
+                    <div className="flex gap-1 items-center">
+                      <span className="text-xs text-gray-500 w-5">W</span>
+                      <input
+                        type="number"
+                        placeholder="Width"
+                        min={MIN_CUSTOM_INCHES}
+                        max={MAX_CUSTOM_INCHES}
+                        step="0.1"
+                        value={item.customWidthInches || ''}
+                        onChange={e =>
+                          handleCustomDimension(
+                            item,
+                            'customWidthInches',
+                            Number(e.target.value)
+                          )
+                        }
+                        className="w-20 border rounded px-1 py-0.5 text-xs"
+                      />
+                      <span className="text-xs text-gray-400">in</span>
+                    </div>
+                    <div className="flex gap-1 items-center">
+                      <span className="text-xs text-gray-500 w-5">H</span>
+                      <input
+                        type="number"
+                        placeholder="Height"
+                        min={MIN_CUSTOM_INCHES}
+                        max={MAX_CUSTOM_INCHES}
+                        step="0.1"
+                        value={item.customHeightInches || ''}
+                        onChange={e =>
+                          handleCustomDimension(
+                            item,
+                            'customHeightInches',
+                            Number(e.target.value)
+                          )
+                        }
+                        className="w-20 border rounded px-1 py-0.5 text-xs"
+                      />
+                      <span className="text-xs text-gray-400">in</span>
+                    </div>
+                    <p className="text-xs text-gray-400">
+                      Enter one — the other auto-scales
+                    </p>
                   </div>
                 )}
               </td>
