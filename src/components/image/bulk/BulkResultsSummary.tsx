@@ -69,14 +69,13 @@ export function BulkResultsSummary({
           return;
         }
 
-        // Deduplicate filenames
+        // Always use .png extension — server converts all upscaled images to PNG
         const baseName = item.filename.replace(/\.[^.]+$/, '');
-        const ext = item.filename.match(/\.[^.]+$/)?.[0] || '.png';
-        let zipName = `${baseName}_upscaled${ext}`;
+        let zipName = `${baseName}_upscaled.png`;
 
         const count = usedNames.get(zipName) || 0;
         if (count > 0) {
-          zipName = `${baseName}_upscaled_${count}${ext}`;
+          zipName = `${baseName}_upscaled_${count}.png`;
         }
         usedNames.set(zipName, count + 1);
 
