@@ -8,6 +8,41 @@ import {
 } from '@/types/bulkBgRemoval';
 import { compressImage } from '@/lib/image-compression';
 
+/** Convert a WebP file to PNG using canvas (ClippingMagic doesn't accept WebP) */
+function convertWebpToPng(file: File): Promise<File> {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      canvas.width = img.width;
+      canvas.height = img.height;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) {
+        resolve(file); // fallback to original
+        return;
+      }
+      ctx.drawImage(img, 0, 0);
+      canvas.toBlob(
+        blob => {
+          if (!blob) {
+            resolve(file);
+            return;
+          }
+          const pngName = file.name.replace(/\.webp$/i, '.png');
+          resolve(new File([blob], pngName, { type: 'image/png' }));
+        },
+        'image/png'
+      );
+      URL.revokeObjectURL(img.src);
+    };
+    img.onerror = () => {
+      URL.revokeObjectURL(img.src);
+      reject(new Error('Failed to convert WebP to PNG'));
+    };
+    img.src = URL.createObjectURL(file);
+  });
+}
+
 const DEFAULT_CONCURRENCY = 3;
 const THROTTLED_CONCURRENCY = 1;
 const THROTTLE_DELAY_MS = 5000;
@@ -51,10 +86,15 @@ export function useBulkBgRemovalQueue() {
     async (item: BulkBgRemovalItem): Promise<void> => {
       updateItem(item.id, { status: 'uploading', progress: 5 });
 
-      const fileToUpload = await compressImage(item.file, {
+      let fileToUpload = await compressImage(item.file, {
         maxSizeMB: 3,
         maxDimension: 5000,
       });
+
+      // ClippingMagic doesn't support WebP — convert to PNG via canvas
+      if (fileToUpload.type === 'image/webp') {
+        fileToUpload = await convertWebpToPng(fileToUpload);
+      }
 
       updateItem(item.id, { progress: 10 });
 
