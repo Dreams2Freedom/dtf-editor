@@ -22,6 +22,9 @@ export function BulkBgRemovalEditModal({
   onItemEdited,
   onClose,
 }: BulkBgRemovalEditModalProps) {
+  // Snapshot the flagged items on mount so the list doesn't shrink
+  // as items are edited (updateItemResult clears flaggedForEdit)
+  const [itemsToEdit] = useState(() => [...flaggedItems]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isUploading, setIsUploading] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
@@ -29,8 +32,8 @@ export function BulkBgRemovalEditModal({
   const [error, setError] = useState<string | null>(null);
   const editorOpenRef = useRef(false);
 
-  const currentItem = flaggedItems[currentIndex];
-  const total = flaggedItems.length;
+  const currentItem = itemsToEdit[currentIndex];
+  const total = itemsToEdit.length;
 
   // Load ClippingMagic script
   useEffect(() => {
