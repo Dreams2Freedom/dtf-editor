@@ -14,6 +14,7 @@ import { Breadcrumb } from '@/components/ui/Breadcrumb';
 import { SignupModal } from '@/components/auth/SignupModal';
 import { compressImage } from '@/lib/image-compression';
 import { BulkUpscaleTool } from '@/components/image/BulkUpscaleTool';
+import { BulkBgRemovalTool } from '@/components/image/BulkBgRemovalTool';
 
 export default function ProcessClient() {
   const router = useRouter();
@@ -363,9 +364,10 @@ export default function ProcessClient() {
               {/* Info banner about bulk availability */}
               <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
                 <p className="text-sm text-blue-800">
-                  <strong>Bulk processing</strong> is currently available for{' '}
-                  <strong>Upscaling</strong> only. Background removal and vectorization
-                  bulk processing are coming soon.
+                  <strong>Bulk processing</strong> is available for{' '}
+                  <strong>Upscaling</strong> and{' '}
+                  <strong>Background Removal</strong>. Vectorization bulk
+                  processing is coming soon.
                 </p>
               </div>
 
@@ -378,6 +380,18 @@ export default function ProcessClient() {
                 </CardHeader>
                 <CardContent>
                   <BulkUpscaleTool />
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Scissors className="w-6 h-6 text-green-600" />
+                    Bulk Remove Backgrounds
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <BulkBgRemovalTool />
                 </CardContent>
               </Card>
             </div>
