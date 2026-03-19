@@ -136,22 +136,28 @@ export function ColorCanvas({
   const handleZoom = useCallback((direction: 'in' | 'out' | 'fit') => {
     if (direction === 'fit') {
       if (!containerRef.current) return;
-      const scaleX = containerRef.current.clientWidth / image.width;
-      const scaleY = (containerRef.current.clientHeight || 500) / image.height;
+      const containerWidth = containerRef.current.clientWidth;
+      const containerHeight = containerRef.current.clientHeight || 500;
+      const scaleX = containerWidth / image.width;
+      const scaleY = containerHeight / image.height;
       setScale(Math.min(scaleX, scaleY, 1));
     } else {
       setScale(prev => Math.max(0.1, Math.min(5, prev + (direction === 'in' ? 0.2 : -0.2))));
     }
   }, [image]);
 
+  // Stage dimensions = scaled image size (allows scrolling when zoomed)
+  const scaledWidth = Math.max(image.width * scale, stageSize.width);
+  const scaledHeight = Math.max(image.height * scale, stageSize.height);
+
   return (
-    <div ref={containerRef} className="relative flex-1 min-h-[300px]" style={{
+    <div ref={containerRef} className="relative flex-1 min-h-[300px] overflow-auto" style={{
       background: 'repeating-conic-gradient(#e5e7eb 0% 25%, transparent 0% 50%) 0 0 / 16px 16px',
     }}>
       <Stage
         ref={stageRef}
-        width={stageSize.width}
-        height={stageSize.height}
+        width={scaledWidth}
+        height={scaledHeight}
         onClick={handleStageClick}
         onTap={handleStageClick}
         onMouseDown={handleMouseDown}

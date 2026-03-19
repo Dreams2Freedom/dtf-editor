@@ -6,7 +6,7 @@ import { Undo2, Redo2, RotateCcw, Loader2 } from 'lucide-react';
 import { ColorPicker } from './color-change/ColorPicker';
 import { ChangesHistory } from './color-change/ChangesHistory';
 import { clickSelect, lassoSelect } from './color-change/SelectionTools';
-import { applyColorShift, restorePixels, getPixelColor, hexToRgb } from '@/lib/color-utils';
+import { applyColorShift, restorePixels, getPixelColor, hexToRgb, pointInPolygon } from '@/lib/color-utils';
 import { useColorChangeHistory } from '@/hooks/useColorChangeHistory';
 import { SelectionMode, SelectionMask, RGBColor } from '@/types/colorChange';
 
@@ -139,9 +139,33 @@ export function ColorChangeEditor({
   }, [tolerance, lassoPolygon, currentMask]);
 
   const handleLassoComplete = useCallback((polygon: Array<{ x: number; y: number }>) => {
-    setLassoPolygon(polygon);
-    setSelectionMode('click');
-  }, []);
+    if (currentMask) {
+      // Lasso trims existing selection: keep only pixels INSIDE the lasso
+      const trimmed = new Uint8Array(currentMask.data.length);
+      const w = canvasRef.current?.width || currentMask.width;
+      let minX = w, minY = currentMask.height, maxX = 0, maxY = 0;
+
+      for (let i = 0; i < currentMask.data.length; i++) {
+        if (currentMask.data[i] === 1) {
+          const px = i % currentMask.width;
+          const py = Math.floor(i / currentMask.width);
+          if (pointInPolygon(px, py, polygon)) {
+            trimmed[i] = 1;
+            minX = Math.min(minX, px);
+            minY = Math.min(minY, py);
+            maxX = Math.max(maxX, px);
+            maxY = Math.max(maxY, py);
+          }
+        }
+      }
+      if (maxX < minX) { minX = 0; minY = 0; maxX = 0; maxY = 0; }
+      setCurrentMask({ data: trimmed, width: currentMask.width, height: currentMask.height, bounds: { minX, minY, maxX, maxY } });
+    } else {
+      // No selection yet — store polygon for next click
+      setLassoPolygon(polygon);
+      setSelectionMode('click');
+    }
+  }, [currentMask]);
 
   const handleApply = useCallback(() => {
     if (!currentMask || !sourceColor || !canvasRef.current) return;
@@ -297,6 +321,7 @@ export function ColorChangeEditor({
             <p><strong>Click</strong> — select a color</p>
             <p><strong>Shift+Click</strong> — add more shades</p>
             <p><strong>Alt+Click</strong> — remove from selection</p>
+            <p><strong>Lasso</strong> — trim selection to area</p>
           </div>
 
           <ChangesHistory
