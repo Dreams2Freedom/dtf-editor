@@ -1,12 +1,11 @@
 'use client';
 
-import React, { useState, useCallback, useEffect, useRef } from 'react';
+import React, { useState, useCallback, useEffect, useRef, useMemo } from 'react';
 import dynamic from 'next/dynamic';
-import { Undo2, Redo2, RotateCcw, Loader2 } from 'lucide-react';
+import { Undo2, Redo2, RotateCcw, Loader2, X } from 'lucide-react';
 import { ColorPicker } from './color-change/ColorPicker';
 import { ChangesHistory } from './color-change/ChangesHistory';
-import { clickSelect, lassoSelect } from './color-change/SelectionTools';
-import { applyColorShift, restorePixels, getPixelColor, hexToRgb, pointInPolygon } from '@/lib/color-utils';
+import { applyColorShift, restorePixels, getPixelColor, hexToRgb, rgbToHex, pointInPolygon } from '@/lib/color-utils';
 import { useColorChangeHistory } from '@/hooks/useColorChangeHistory';
 import { SelectionMode, SelectionMask, RGBColor } from '@/types/colorChange';
 
@@ -14,6 +13,16 @@ const ColorCanvas = dynamic(
   () => import('./color-change/ColorCanvas').then(m => ({ default: m.ColorCanvas })),
   { ssr: false, loading: () => <div className="flex-1 min-h-[300px] flex items-center justify-center bg-gray-100"><Loader2 className="w-8 h-8 animate-spin text-gray-400" /></div> }
 );
+
+interface SampledColor {
+  rgb: RGBColor;
+  hex: string;
+}
+
+interface LassoRegion {
+  polygon: Array<{ x: number; y: number }>;
+  mode: 'include' | 'exclude';
+}
 
 interface ColorChangeEditorProps {
   image: HTMLImageElement;
@@ -34,13 +43,13 @@ export function ColorChangeEditor({
   const [imageData, setImageData] = useState<ImageData | null>(null);
   const [selectionMode, setSelectionMode] = useState<SelectionMode>('click');
   const [tolerance, setTolerance] = useState(20);
-  const [currentMask, setCurrentMask] = useState<SelectionMask | null>(null);
-  const [sourceColor, setSourceColor] = useState<RGBColor | null>(null);
   const [targetColor, setTargetColor] = useState('#2563eb');
   const [isSaving, setIsSaving] = useState(false);
-  const [lassoPolygon, setLassoPolygon] = useState<Array<{ x: number; y: number }> | null>(null);
-  // Incremented to force Konva to re-read the canvas pixels after changes
   const [renderKey, setRenderKey] = useState(0);
+
+  // Color-set model: store sampled colors + lasso regions, derive mask
+  const [sampledColors, setSampledColors] = useState<SampledColor[]>([]);
+  const [lassoRegions, setLassoRegions] = useState<LassoRegion[]>([]);
 
   const history = useColorChangeHistory();
 
@@ -48,7 +57,7 @@ export function ColorChangeEditor({
     const canvas = document.createElement('canvas');
     canvas.width = image.width;
     canvas.height = image.height;
-    const ctx = canvas.getContext('2d');
+    const ctx = canvas.getContext('2d', { willReadFrequently: true });
     if (!ctx) return;
     ctx.drawImage(image, 0, 0);
     canvasRef.current = canvas;
@@ -67,166 +76,145 @@ export function ColorChangeEditor({
     };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Compute mask from sampled colors + tolerance + lasso regions
+  // Re-runs whenever any of these change (including tolerance slider!)
+  const currentMask = useMemo((): SelectionMask | null => {
+    if (sampledColors.length === 0) return null;
+    const canvas = canvasRef.current;
+    if (!canvas) return null;
+    const ctx = canvas.getContext('2d', { willReadFrequently: true });
+    if (!ctx) return null;
+    const fresh = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    const { data, width, height } = fresh;
+
+    const mask = new Uint8Array(width * height);
+    let minX = width, minY = height, maxX = 0, maxY = 0;
+
+    for (let i = 0; i < width * height; i++) {
+      const idx = i * 4;
+      if (data[idx + 3] === 0) continue; // skip transparent
+
+      const r = data[idx], g = data[idx + 1], b = data[idx + 2];
+
+      // Check if this pixel matches ANY sampled color within tolerance
+      let matches = false;
+      for (const sc of sampledColors) {
+        if (
+          Math.abs(r - sc.rgb.r) <= tolerance &&
+          Math.abs(g - sc.rgb.g) <= tolerance &&
+          Math.abs(b - sc.rgb.b) <= tolerance
+        ) {
+          matches = true;
+          break;
+        }
+      }
+
+      if (!matches) continue;
+
+      // Apply lasso regions (if any)
+      if (lassoRegions.length > 0) {
+        const px = i % width;
+        const py = Math.floor(i / width);
+
+        // Check include regions: pixel must be inside at least one include region
+        const includeRegions = lassoRegions.filter(r => r.mode === 'include');
+        const excludeRegions = lassoRegions.filter(r => r.mode === 'exclude');
+
+        if (includeRegions.length > 0) {
+          const inAnyInclude = includeRegions.some(r => pointInPolygon(px, py, r.polygon));
+          if (!inAnyInclude) continue;
+        }
+
+        // Check exclude regions: pixel must NOT be in any exclude region
+        const inAnyExclude = excludeRegions.some(r => pointInPolygon(px, py, r.polygon));
+        if (inAnyExclude) continue;
+      }
+
+      mask[i] = 1;
+      const px = i % width;
+      const py = Math.floor(i / width);
+      minX = Math.min(minX, px); minY = Math.min(minY, py);
+      maxX = Math.max(maxX, px); maxY = Math.max(maxY, py);
+    }
+
+    if (maxX < minX) return null; // empty selection
+    return { data: mask, width, height, bounds: { minX, minY, maxX, maxY } };
+  }, [sampledColors, tolerance, lassoRegions]);
 
   const refreshImageData = useCallback(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
-    const ctx = canvas.getContext('2d');
+    const ctx = canvas.getContext('2d', { willReadFrequently: true });
     if (!ctx) return;
     setImageData(ctx.getImageData(0, 0, canvas.width, canvas.height));
-    // Force Konva to re-read the canvas by bumping the key
     setRenderKey(prev => prev + 1);
   }, []);
 
+  // The "source color" for HSL shift = average of sampled colors (first one is primary)
+  const sourceColor = sampledColors.length > 0 ? sampledColors[0].rgb : null;
+
   const handlePixelClick = useCallback((x: number, y: number, mode: 'replace' | 'add' | 'subtract') => {
-    // Read fresh pixel data from the offscreen canvas for accurate selection
     const canvas = canvasRef.current;
     if (!canvas) return;
-    const ctx = canvas.getContext('2d');
+    const ctx = canvas.getContext('2d', { willReadFrequently: true });
     if (!ctx) return;
-    const freshData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    const fresh = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    const color = getPixelColor(fresh, x, y);
+    const hex = rgbToHex(color);
 
-    let newClickMask: SelectionMask;
-    if (lassoPolygon) {
-      newClickMask = lassoSelect(freshData, x, y, tolerance, lassoPolygon);
-      setLassoPolygon(null);
-    } else {
-      newClickMask = clickSelect(freshData, x, y, tolerance);
-    }
-
-    // Combine with existing mask based on mode
-    if (mode === 'add' && currentMask) {
-      // Union: add new pixels to existing selection
-      const combined = new Uint8Array(currentMask.data.length);
-      let minX = canvas.width, minY = canvas.height, maxX = 0, maxY = 0;
-      for (let i = 0; i < combined.length; i++) {
-        if (currentMask.data[i] === 1 || newClickMask.data[i] === 1) {
-          combined[i] = 1;
-          const px = i % canvas.width;
-          const py = Math.floor(i / canvas.width);
-          minX = Math.min(minX, px);
-          minY = Math.min(minY, py);
-          maxX = Math.max(maxX, px);
-          maxY = Math.max(maxY, py);
+    if (mode === 'replace') {
+      setSampledColors([{ rgb: color, hex }]);
+      setLassoRegions([]);
+    } else if (mode === 'add') {
+      // Don't add duplicate colors
+      setSampledColors(prev => {
+        if (prev.some(c => c.hex === hex)) return prev;
+        return [...prev, { rgb: color, hex }];
+      });
+    } else if (mode === 'subtract') {
+      // Remove the closest matching color from sampled list
+      setSampledColors(prev => {
+        if (prev.length <= 1) return prev;
+        let closestIdx = 0;
+        let closestDist = Infinity;
+        for (let i = 0; i < prev.length; i++) {
+          const dist = Math.abs(prev[i].rgb.r - color.r) + Math.abs(prev[i].rgb.g - color.g) + Math.abs(prev[i].rgb.b - color.b);
+          if (dist < closestDist) { closestDist = dist; closestIdx = i; }
         }
-      }
-      if (maxX < minX) { minX = 0; minY = 0; maxX = 0; maxY = 0; }
-      setCurrentMask({ data: combined, width: canvas.width, height: canvas.height, bounds: { minX, minY, maxX, maxY } });
-    } else if (mode === 'subtract' && currentMask) {
-      // Subtract: remove matching pixels from existing selection
-      const combined = new Uint8Array(currentMask.data.length);
-      let minX = canvas.width, minY = canvas.height, maxX = 0, maxY = 0;
-      for (let i = 0; i < combined.length; i++) {
-        if (currentMask.data[i] === 1 && newClickMask.data[i] !== 1) {
-          combined[i] = 1;
-          const px = i % canvas.width;
-          const py = Math.floor(i / canvas.width);
-          minX = Math.min(minX, px);
-          minY = Math.min(minY, py);
-          maxX = Math.max(maxX, px);
-          maxY = Math.max(maxY, py);
-        }
-      }
-      if (maxX < minX) { minX = 0; minY = 0; maxX = 0; maxY = 0; }
-      setCurrentMask({ data: combined, width: canvas.width, height: canvas.height, bounds: { minX, minY, maxX, maxY } });
-    } else {
-      // Replace: new selection replaces old
-      setCurrentMask(newClickMask);
+        return prev.filter((_, i) => i !== closestIdx);
+      });
     }
-
-    setSourceColor(getPixelColor(freshData, x, y));
-  }, [tolerance, lassoPolygon, currentMask]);
+  }, []);
 
   const handleLassoComplete = useCallback((polygon: Array<{ x: number; y: number }>, mode: 'trim' | 'add' | 'subtract') => {
-    if (!currentMask || !sourceColor) {
-      // No selection yet — store polygon for next click
-      setLassoPolygon(polygon);
-      setSelectionMode('click');
+    if (sampledColors.length === 0) {
+      // No colors selected yet — not useful without colors
       return;
     }
-
-    const w = currentMask.width;
-    const h = currentMask.height;
 
     if (mode === 'add') {
-      // Shift+Lasso: keep existing selection + add color-matching pixels inside lasso
-      // Re-runs global color match inside the lasso area and unions with current mask
-      const canvas = canvasRef.current;
-      if (!canvas) return;
-      const ctx = canvas.getContext('2d');
-      if (!ctx) return;
-      const freshData = ctx.getImageData(0, 0, w, h);
-
-      const result = new Uint8Array(currentMask.data.length);
-      let minX = w, minY = h, maxX = 0, maxY = 0;
-
-      for (let i = 0; i < result.length; i++) {
-        const px = i % w;
-        const py = Math.floor(i / w);
-
-        // Keep all existing selected pixels
-        if (currentMask.data[i] === 1) {
-          result[i] = 1;
-          minX = Math.min(minX, px); minY = Math.min(minY, py);
-          maxX = Math.max(maxX, px); maxY = Math.max(maxY, py);
-          continue;
-        }
-
-        // Add: color-matching pixels inside the new lasso area
-        if (pointInPolygon(px, py, polygon)) {
-          const idx = i * 4;
-          if (freshData.data[idx + 3] === 0) continue;
-          const dr = Math.abs(freshData.data[idx] - sourceColor.r);
-          const dg = Math.abs(freshData.data[idx + 1] - sourceColor.g);
-          const db = Math.abs(freshData.data[idx + 2] - sourceColor.b);
-          if (dr <= tolerance && dg <= tolerance && db <= tolerance) {
-            result[i] = 1;
-            minX = Math.min(minX, px); minY = Math.min(minY, py);
-            maxX = Math.max(maxX, px); maxY = Math.max(maxY, py);
-          }
-        }
-      }
-
-      if (maxX < minX) { minX = 0; minY = 0; maxX = 0; maxY = 0; }
-      setCurrentMask({ data: result, width: w, height: h, bounds: { minX, minY, maxX, maxY } });
-      return;
+      // Shift+Lasso: add an include region
+      setLassoRegions(prev => [...prev, { polygon, mode: 'include' }]);
+    } else if (mode === 'subtract') {
+      // Alt+Lasso: add an exclude region
+      setLassoRegions(prev => [...prev, { polygon, mode: 'exclude' }]);
+    } else {
+      // Plain lasso: replace all regions with just this include region
+      setLassoRegions([{ polygon, mode: 'include' }]);
     }
+  }, [sampledColors]);
 
-    // Trim or Subtract
-    const result = new Uint8Array(currentMask.data.length);
-    let minX = w, minY = h, maxX = 0, maxY = 0;
-
-    for (let i = 0; i < currentMask.data.length; i++) {
-      const px = i % w;
-      const py = Math.floor(i / w);
-      const insideLasso = pointInPolygon(px, py, polygon);
-      const wasSelected = currentMask.data[i] === 1;
-
-      // Trim: keep selected pixels INSIDE lasso only
-      // Subtract: remove selected pixels INSIDE lasso
-      const keep = mode === 'trim'
-        ? (wasSelected && insideLasso)
-        : (wasSelected && !insideLasso);
-
-      if (keep) {
-        result[i] = 1;
-        minX = Math.min(minX, px); minY = Math.min(minY, py);
-        maxX = Math.max(maxX, px); maxY = Math.max(maxY, py);
-      }
-    }
-
-    if (maxX < minX) { minX = 0; minY = 0; maxX = 0; maxY = 0; }
-    setCurrentMask({ data: result, width: w, height: h, bounds: { minX, minY, maxX, maxY } });
-  }, [currentMask, sourceColor, tolerance]);
+  const handleRemoveSampledColor = useCallback((hex: string) => {
+    setSampledColors(prev => prev.filter(c => c.hex !== hex));
+  }, []);
 
   const handleApply = useCallback(() => {
     if (!currentMask || !sourceColor || !canvasRef.current) return;
     const target = hexToRgb(targetColor);
-    if (sourceColor.r === target.r && sourceColor.g === target.g && sourceColor.b === target.b) return;
 
-    // Read fresh pixel data from the offscreen canvas (not stale React state)
-    const ctx = canvasRef.current.getContext('2d');
+    const ctx = canvasRef.current.getContext('2d', { willReadFrequently: true });
     if (!ctx) return;
     const freshImageData = ctx.getImageData(0, 0, canvasRef.current.width, canvasRef.current.height);
 
@@ -242,15 +230,16 @@ export function ColorChangeEditor({
       originalPixels,
     });
 
-    setCurrentMask(null);
-    setSourceColor(null);
+    // Clear selection state for next operation
+    setSampledColors([]);
+    setLassoRegions([]);
     refreshImageData();
-  }, [currentMask, sourceColor, targetColor, imageData, history, refreshImageData]);
+  }, [currentMask, sourceColor, targetColor, history, refreshImageData]);
 
   const handleUndo = useCallback(() => {
     const entry = history.undo();
     if (!entry || !canvasRef.current) return;
-    const ctx = canvasRef.current.getContext('2d');
+    const ctx = canvasRef.current.getContext('2d', { willReadFrequently: true });
     if (!ctx) return;
     const imgData = ctx.getImageData(0, 0, canvasRef.current.width, canvasRef.current.height);
     restorePixels(imgData, entry.mask, entry.originalPixels);
@@ -261,7 +250,7 @@ export function ColorChangeEditor({
   const handleRedo = useCallback(() => {
     const entry = history.redo();
     if (!entry || !canvasRef.current) return;
-    const ctx = canvasRef.current.getContext('2d');
+    const ctx = canvasRef.current.getContext('2d', { willReadFrequently: true });
     if (!ctx) return;
     const imgData = ctx.getImageData(0, 0, canvasRef.current.width, canvasRef.current.height);
     applyColorShift(imgData, entry.mask, entry.sourceColor, entry.targetColor);
@@ -272,18 +261,18 @@ export function ColorChangeEditor({
   const handleResetAll = useCallback(() => {
     const entries = history.resetAll();
     if (!canvasRef.current || entries.length === 0) return;
-    const ctx = canvasRef.current.getContext('2d');
+    const ctx = canvasRef.current.getContext('2d', { willReadFrequently: true });
     if (!ctx) return;
     ctx.drawImage(image, 0, 0);
-    setCurrentMask(null);
-    setSourceColor(null);
+    setSampledColors([]);
+    setLassoRegions([]);
     refreshImageData();
   }, [history, image, refreshImageData]);
 
   const handleRemoveChange = useCallback((id: string) => {
     const removed = history.removeEntry(id);
     if (!removed || !canvasRef.current) return;
-    const ctx = canvasRef.current.getContext('2d');
+    const ctx = canvasRef.current.getContext('2d', { willReadFrequently: true });
     if (!ctx) return;
     ctx.drawImage(image, 0, 0);
     for (const entry of history.changes) {
@@ -310,6 +299,7 @@ export function ColorChangeEditor({
 
   return (
     <div className="flex flex-col h-full">
+      {/* Top toolbar */}
       <div className="flex items-center gap-3 p-3 bg-white border-b border-gray-200 flex-wrap">
         <div className="flex bg-gray-100 rounded-lg p-0.5">
           <button
@@ -342,6 +332,7 @@ export function ColorChangeEditor({
         </button>
       </div>
 
+      {/* Main content */}
       <div className="flex flex-1 flex-col md:flex-row overflow-hidden">
         <ColorCanvas
           key={renderKey}
@@ -354,7 +345,55 @@ export function ColorChangeEditor({
           onLassoComplete={handleLassoComplete}
         />
 
+        {/* Right panel */}
         <div className="w-full md:w-[280px] bg-white border-t md:border-t-0 md:border-l border-gray-200 p-4 overflow-y-auto space-y-4">
+          {/* Sampled colors */}
+          <div>
+            <div className="text-xs uppercase tracking-wider text-gray-400 font-semibold mb-2">
+              Selected Colors ({sampledColors.length})
+            </div>
+            {sampledColors.length === 0 ? (
+              <p className="text-sm text-gray-400 p-3 bg-gray-50 rounded-lg border border-gray-200">
+                Click on the image to select a color
+              </p>
+            ) : (
+              <div className="flex flex-wrap gap-1.5">
+                {sampledColors.map((sc) => (
+                  <div
+                    key={sc.hex}
+                    className="flex items-center gap-1 px-2 py-1 bg-gray-50 border border-gray-200 rounded-md group"
+                  >
+                    <div
+                      className="w-5 h-5 rounded border border-gray-300"
+                      style={{ backgroundColor: sc.hex }}
+                    />
+                    <span className="text-xs text-gray-600 font-mono">{sc.hex.toUpperCase()}</span>
+                    <button
+                      onClick={() => handleRemoveSampledColor(sc.hex)}
+                      className="p-0.5 text-gray-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"
+                      title="Remove this color"
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+            {lassoRegions.length > 0 && (
+              <div className="mt-2 flex items-center gap-2">
+                <span className="text-xs text-gray-400">
+                  {lassoRegions.filter(r => r.mode === 'include').length} include, {lassoRegions.filter(r => r.mode === 'exclude').length} exclude regions
+                </span>
+                <button
+                  onClick={() => setLassoRegions([])}
+                  className="text-xs text-red-400 hover:text-red-600"
+                >
+                  Clear regions
+                </button>
+              </div>
+            )}
+          </div>
+
           <ColorPicker
             sourceColor={sourceColor}
             targetColor={targetColor}
@@ -371,14 +410,16 @@ export function ColorChangeEditor({
 
           {/* Selection hints */}
           <div className="text-xs text-gray-400 space-y-1 p-2 bg-gray-50 rounded-lg">
-            <p className="font-semibold text-gray-500 mb-1">Click Select mode:</p>
+            <p className="font-semibold text-gray-500 mb-1">Click Select:</p>
             <p><strong>Click</strong> — select a color</p>
-            <p><strong>Shift+Click</strong> — add more shades</p>
+            <p><strong>Shift+Click</strong> — add shade</p>
             <p><strong>Alt+Click</strong> — remove shade</p>
-            <p className="font-semibold text-gray-500 mt-2 mb-1">Lasso mode:</p>
-            <p><strong>Draw</strong> — trim to area</p>
+            <p className="font-semibold text-gray-500 mt-2 mb-1">Lasso:</p>
+            <p><strong>Draw</strong> — limit to area</p>
             <p><strong>Shift+Draw</strong> — add area</p>
-            <p><strong>Alt+Draw</strong> — remove area</p>
+            <p><strong>Alt+Draw</strong> — exclude area</p>
+            <p className="font-semibold text-gray-500 mt-2 mb-1">Tolerance:</p>
+            <p>Slider updates selection live</p>
           </div>
 
           <ChangesHistory
@@ -388,6 +429,7 @@ export function ColorChangeEditor({
         </div>
       </div>
 
+      {/* Bottom bar */}
       <div className="flex items-center justify-between p-3 bg-white border-t border-gray-200">
         <span className="text-xs text-gray-500">
           {usageRemaining > 0
