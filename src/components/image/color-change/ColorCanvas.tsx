@@ -8,6 +8,8 @@ import { createSelectionOverlay } from './SelectionTools';
 
 interface ColorCanvasProps {
   image: HTMLImageElement;
+  /** The offscreen canvas with current pixel state (includes applied changes) */
+  editCanvas: HTMLCanvasElement | null;
   imageData: ImageData;
   selectionMode: SelectionMode;
   currentMask: SelectionMask | null;
@@ -17,6 +19,7 @@ interface ColorCanvasProps {
 
 export function ColorCanvas({
   image,
+  editCanvas,
   imageData,
   selectionMode,
   currentMask,
@@ -156,7 +159,8 @@ export function ColorCanvas({
         onTouchEnd={handleMouseUp}
       >
         <Layer>
-          <KonvaImage image={image} scaleX={scale} scaleY={scale} />
+          {/* Render from editCanvas (reflects applied color changes) or fall back to original image */}
+          <KonvaImage image={editCanvas || image} scaleX={scale} scaleY={scale} />
           {overlayImage && (
             <KonvaImage image={overlayImage} scaleX={scale} scaleY={scale} opacity={0.5} />
           )}

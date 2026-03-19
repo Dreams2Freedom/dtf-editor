@@ -81,16 +81,15 @@ export default function ColorChangeClient() {
 
         const { data } = await supabase
           .from('profiles')
-          .select('color_changes_used, subscription_status')
+          .select('subscription_status')
           .eq('id', authUser.id)
           .single();
 
         if (data) {
           const tier = data.subscription_status || 'free';
           const limit = COLOR_CHANGE_LIMITS[tier] ?? COLOR_CHANGE_LIMITS.free;
-          const used = data.color_changes_used || 0;
           setUsageLimit(limit);
-          setUsageRemaining(Math.max(0, limit - used));
+          setUsageRemaining(limit); // Default to full allocation until DB column exists
         }
       } catch {
         // Use defaults

@@ -39,6 +39,8 @@ export function ColorChangeEditor({
   const [targetColor, setTargetColor] = useState('#2563eb');
   const [isSaving, setIsSaving] = useState(false);
   const [lassoPolygon, setLassoPolygon] = useState<Array<{ x: number; y: number }> | null>(null);
+  // Incremented to force Konva to re-read the canvas pixels after changes
+  const [renderKey, setRenderKey] = useState(0);
 
   const history = useColorChangeHistory();
 
@@ -73,6 +75,8 @@ export function ColorChangeEditor({
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
     setImageData(ctx.getImageData(0, 0, canvas.width, canvas.height));
+    // Force Konva to re-read the canvas by bumping the key
+    setRenderKey(prev => prev + 1);
   }, []);
 
   const handlePixelClick = useCallback((x: number, y: number) => {
@@ -215,7 +219,9 @@ export function ColorChangeEditor({
 
       <div className="flex flex-1 flex-col md:flex-row overflow-hidden">
         <ColorCanvas
+          key={renderKey}
           image={image}
+          editCanvas={canvasRef.current}
           imageData={imageData}
           selectionMode={selectionMode}
           currentMask={currentMask}
