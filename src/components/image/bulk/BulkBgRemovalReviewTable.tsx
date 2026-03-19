@@ -32,6 +32,18 @@ interface BulkBgRemovalReviewTableProps {
 
 const MAX_ZIP_SIZE_MB = 500;
 
+/** Convert a data URL to a Blob without fetch (avoids CSP connect-src restrictions) */
+function dataUrlToBlob(dataUrl: string): Blob {
+  const [header, base64] = dataUrl.split(',');
+  const mime = header.match(/:(.*?);/)?.[1] || 'image/png';
+  const binary = atob(base64);
+  const array = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) {
+    array[i] = binary.charCodeAt(i);
+  }
+  return new Blob([array], { type: mime });
+}
+
 const CHECKERBOARD_STYLE: React.CSSProperties = {
   backgroundImage:
     'repeating-conic-gradient(#e5e7eb 0% 25%, transparent 0% 50%)',
@@ -78,10 +90,14 @@ export function BulkBgRemovalReviewTable({
 
         setZipProgress(Math.round(((i + 1) / completedItems.length) * 80));
 
-        const response = await fetch(url);
-        if (!response.ok) continue;
-
-        const blob = await response.blob();
+        let blob: Blob;
+        if (url.startsWith('data:')) {
+          blob = dataUrlToBlob(url);
+        } else {
+          const response = await fetch(url);
+          if (!response.ok) continue;
+          blob = await response.blob();
+        }
         totalSize += blob.size;
 
         if (totalSize > MAX_ZIP_SIZE_MB * 1024 * 1024) {
