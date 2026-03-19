@@ -57,7 +57,7 @@
     "react-dropzone": "^14.3.8",
     "react-hook-form": "^7.54.2",
     "react-hot-toast": "^2.5.2",
-    "react-konva": "^19.2.3",
+    "react-konva": "^19.0.10",
     "recharts": "^3.2.1",
     "server-only": "^0.0.1",
     "sharp": "^0.34.3",
