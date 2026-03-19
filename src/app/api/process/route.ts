@@ -103,7 +103,8 @@ async function handlePost(request: NextRequest) {
     );
 
     // 10. Clean up original upload if processing succeeded
-    if (result.success && uploadResult.path) {
+    // Skip cleanup for color-change: the upload IS the processed result
+    if (result.success && uploadResult.path && operation !== 'color-change') {
       // Don't await cleanup to speed up response
       storageService.deleteImage(uploadResult.path).catch(() => {
         // Silently ignore cleanup errors
