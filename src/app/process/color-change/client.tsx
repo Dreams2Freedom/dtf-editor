@@ -14,11 +14,11 @@ import { createClientSupabaseClient } from '@/lib/supabase/client';
 export default function ColorChangeClient() {
   const searchParams = useSearchParams();
   const router = useRouter();
-  const { profile, user } = useAuthStore();
+  const { profile: _profile, user: _user } = useAuthStore();
   const imageId = searchParams.get('imageId');
   const imageUrlParam = searchParams.get('imageUrl');
 
-  const [imageUrl, setImageUrl] = useState<string | null>(null);
+  const [_imageUrl, setImageUrl] = useState<string | null>(null);
   const [imageElement, setImageElement] = useState<HTMLImageElement | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);

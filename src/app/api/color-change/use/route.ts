@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { COLOR_CHANGE_LIMITS } from '@/types/colorChange';
 
-export async function POST(request: NextRequest) {
+export async function POST(_request: NextRequest) {
   try {
     const supabase = await createServerSupabaseClient();
     const {

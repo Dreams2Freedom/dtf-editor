@@ -63,7 +63,7 @@ export function ColorCanvas({
   }, [currentMask, imageData]);
 
   const handleStageClick = useCallback(
-    (e: Konva.KonvaEventObject<MouseEvent | TouchEvent>) => {
+    (_e: Konva.KonvaEventObject<MouseEvent | TouchEvent>) => {
       if (selectionMode !== 'click') return;
       const stage = stageRef.current;
       if (!stage) return;
@@ -82,7 +82,7 @@ export function ColorCanvas({
   );
 
   const handleMouseDown = useCallback(
-    (e: Konva.KonvaEventObject<MouseEvent | TouchEvent>) => {
+    (_e: Konva.KonvaEventObject<MouseEvent | TouchEvent>) => {
       if (selectionMode !== 'lasso') return;
       const stage = stageRef.current;
       if (!stage) return;
@@ -97,7 +97,7 @@ export function ColorCanvas({
   );
 
   const handleMouseMove = useCallback(
-    (e: Konva.KonvaEventObject<MouseEvent | TouchEvent>) => {
+    (_e: Konva.KonvaEventObject<MouseEvent | TouchEvent>) => {
       if (!isDrawingLasso) return;
       const stage = stageRef.current;
       if (!stage) return;

@@ -1,6 +1,6 @@
 'use client';
 
-// @ts-ignore — vendored JS module (magic-wand-js has no ESM/CJS exports)
+// @ts-expect-error — vendored JS module without TypeScript declarations
 import MagicWand from '@/lib/magic-wand';
 import { SelectionMask } from '@/types/colorChange';
 import { pointInPolygon } from '@/lib/color-utils';
