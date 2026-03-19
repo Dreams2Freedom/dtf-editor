@@ -163,6 +163,11 @@ export class ImageProcessingService {
           processedUrl = await this.handleAIGeneration(options);
           break;
 
+        case 'color-change':
+          // Already processed client-side — just pass the uploaded image URL through
+          processedUrl = imageUrl;
+          break;
+
         default:
           throw new Error(`Unsupported operation: ${options.operation}`);
       }
