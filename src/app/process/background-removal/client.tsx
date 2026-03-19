@@ -9,6 +9,7 @@ import Link from 'next/link';
 import { useAuthStore } from '@/stores/authStore';
 import { Breadcrumb } from '@/components/ui/Breadcrumb';
 import { SignupModal } from '@/components/auth/SignupModal';
+import { BulkBgRemovalTool } from '@/components/image/BulkBgRemovalTool';
 
 declare global {
   interface Window {
@@ -42,6 +43,7 @@ export default function BackgroundRemovalClient() {
   const creditsDeductedRef = useRef(false); // Synchronous guard to prevent race conditions
   const [resultGenerated, setResultGenerated] = useState(false);
   const [showSignupModal, setShowSignupModal] = useState(false);
+  const [uploadMode, setUploadMode] = useState<'single' | 'bulk'>('single');
 
   // Load image data from either imageId, imageUrl, or tempImage
   useEffect(() => {
@@ -740,6 +742,44 @@ export default function BackgroundRemovalClient() {
               ]}
             />
           </div>
+
+          {/* Single / Bulk Mode Toggle */}
+          <div className="flex rounded-lg border border-gray-200 p-1 bg-gray-50 mb-6">
+            <button
+              onClick={() => setUploadMode('single')}
+              className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors ${
+                uploadMode === 'single'
+                  ? 'bg-white shadow text-green-600'
+                  : 'text-gray-600 hover:text-gray-900'
+              }`}
+            >
+              Single Image
+            </button>
+            <button
+              onClick={() => setUploadMode('bulk')}
+              className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors ${
+                uploadMode === 'bulk'
+                  ? 'bg-white shadow text-green-600'
+                  : 'text-gray-600 hover:text-gray-900'
+              }`}
+            >
+              Bulk Upload
+            </button>
+          </div>
+
+          {uploadMode === 'bulk' ? (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Scissors className="w-6 h-6 text-green-600" />
+                  Bulk Remove Backgrounds
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <BulkBgRemovalTool />
+              </CardContent>
+            </Card>
+          ) : (
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
@@ -981,6 +1021,7 @@ export default function BackgroundRemovalClient() {
               )}
             </CardContent>
           </Card>
+          )}
         </div>
       </main>
 
