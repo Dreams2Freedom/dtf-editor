@@ -12,6 +12,8 @@ import {
   Scissors,
   XCircle,
   Ban,
+  X,
+  ZoomIn,
 } from 'lucide-react';
 import JSZip from 'jszip';
 import { BulkBgRemovalItem } from '@/types/bulkBgRemoval';
@@ -50,6 +52,7 @@ export function BulkBgRemovalReviewTable({
   const [isZipping, setIsZipping] = useState(false);
   const [zipProgress, setZipProgress] = useState(0);
   const [zipError, setZipError] = useState<string | null>(null);
+  const [previewItem, setPreviewItem] = useState<BulkBgRemovalItem | null>(null);
 
   const completedItems = items.filter(i => i.status === 'complete');
   const failedItems = items.filter(i => i.status === 'failed');
@@ -157,24 +160,50 @@ export function BulkBgRemovalReviewTable({
               return (
                 <tr key={item.id} className="border-b border-gray-100">
                   <td className="py-2 px-2">
-                    <img
-                      src={item.originalPreviewUrl || item.previewUrl}
-                      alt={`Original ${item.filename}`}
-                      className="w-12 h-12 object-cover rounded"
-                    />
+                    {item.status === 'complete' && displayUrl ? (
+                      <button
+                        onClick={() => setPreviewItem(item)}
+                        className="relative group"
+                        title="Click to preview"
+                      >
+                        <img
+                          src={item.originalPreviewUrl || item.previewUrl}
+                          alt={`Original ${item.filename}`}
+                          className="w-12 h-12 object-cover rounded"
+                        />
+                        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 rounded transition-colors flex items-center justify-center">
+                          <ZoomIn className="w-4 h-4 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
+                        </div>
+                      </button>
+                    ) : (
+                      <img
+                        src={item.originalPreviewUrl || item.previewUrl}
+                        alt={`Original ${item.filename}`}
+                        className="w-12 h-12 object-cover rounded"
+                      />
+                    )}
                   </td>
                   <td className="py-2 px-2">
                     {item.status === 'complete' && displayUrl ? (
-                      <div
-                        className="w-12 h-12 rounded overflow-hidden"
-                        style={CHECKERBOARD_STYLE}
+                      <button
+                        onClick={() => setPreviewItem(item)}
+                        className="relative group"
+                        title="Click to preview"
                       >
-                        <img
-                          src={displayUrl}
-                          alt={`Result ${item.filename}`}
-                          className="w-12 h-12 object-cover"
-                        />
-                      </div>
+                        <div
+                          className="w-12 h-12 rounded overflow-hidden"
+                          style={CHECKERBOARD_STYLE}
+                        >
+                          <img
+                            src={displayUrl}
+                            alt={`Result ${item.filename}`}
+                            className="w-12 h-12 object-cover"
+                          />
+                        </div>
+                        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 rounded transition-colors flex items-center justify-center">
+                          <ZoomIn className="w-4 h-4 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
+                        </div>
+                      </button>
                     ) : item.status === 'failed' ? (
                       <div className="w-12 h-12 rounded bg-red-50 flex items-center justify-center">
                         <XCircle className="w-5 h-5 text-red-400" />
@@ -358,6 +387,89 @@ export function BulkBgRemovalReviewTable({
       {zipError && (
         <div className="p-3 bg-red-50 border border-red-200 rounded-md">
           <p className="text-sm text-red-600">{zipError}</p>
+        </div>
+      )}
+
+      {/* Preview Modal */}
+      {previewItem && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/70"
+          onClick={() => setPreviewItem(null)}
+        >
+          <div
+            className="bg-white rounded-xl shadow-2xl max-w-5xl w-full mx-4 max-h-[90vh] overflow-auto"
+            onClick={e => e.stopPropagation()}
+          >
+            {/* Modal header */}
+            <div className="flex items-center justify-between p-4 border-b">
+              <h3 className="font-semibold text-gray-900 truncate pr-4">
+                {previewItem.filename}
+              </h3>
+              <button
+                onClick={() => setPreviewItem(null)}
+                className="p-1 text-gray-400 hover:text-gray-600 flex-shrink-0"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Side by side comparison */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4">
+              {/* Original */}
+              <div>
+                <p className="text-sm font-medium text-gray-600 mb-2">Original</p>
+                <div className="bg-gray-100 rounded-lg overflow-hidden flex items-center justify-center min-h-[200px]">
+                  <img
+                    src={previewItem.originalPreviewUrl || previewItem.previewUrl}
+                    alt={`Original ${previewItem.filename}`}
+                    className="max-w-full max-h-[60vh] object-contain"
+                  />
+                </div>
+              </div>
+
+              {/* Result */}
+              <div>
+                <p className="text-sm font-medium text-gray-600 mb-2">
+                  Result {previewItem.editedUrl ? '(Re-edited)' : ''}
+                </p>
+                <div
+                  className="rounded-lg overflow-hidden flex items-center justify-center min-h-[200px]"
+                  style={CHECKERBOARD_STYLE}
+                >
+                  <img
+                    src={previewItem.editedUrl || previewItem.resultUrl}
+                    alt={`Result ${previewItem.filename}`}
+                    className="max-w-full max-h-[60vh] object-contain"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Modal footer */}
+            <div className="flex items-center justify-between p-4 border-t bg-gray-50 rounded-b-xl">
+              <button
+                onClick={() => {
+                  const url = previewItem.editedUrl || previewItem.resultUrl;
+                  if (url) {
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = previewItem.filename.replace(/\.[^.]+$/, '') + '_bg-removed.png';
+                    a.click();
+                  }
+                }}
+                className="flex items-center gap-2 text-sm font-medium text-blue-600 hover:text-blue-700"
+              >
+                <Download className="w-4 h-4" />
+                Download This Image
+              </button>
+              <button
+                onClick={() => setPreviewItem(null)}
+                className="text-sm text-gray-500 hover:text-gray-700"
+              >
+                Close
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>
