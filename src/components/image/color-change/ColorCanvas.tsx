@@ -162,7 +162,7 @@ export function ColorCanvas({
           {/* Render from editCanvas (reflects applied color changes) or fall back to original image */}
           <KonvaImage image={editCanvas || image} scaleX={scale} scaleY={scale} />
           {overlayImage && (
-            <KonvaImage image={overlayImage} scaleX={scale} scaleY={scale} opacity={0.5} />
+            <KonvaImage image={overlayImage} scaleX={scale} scaleY={scale} opacity={1} />
           )}
           {lassoPoints.length >= 4 && (
             <Line

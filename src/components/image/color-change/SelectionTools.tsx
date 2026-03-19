@@ -72,11 +72,20 @@ export function createSelectionOverlay(
   for (let i = 0; i < mask.data.length; i++) {
     if (mask.data[i] === 1) {
       const idx = i * 4;
-      overlay.data[idx] = 59;
-      overlay.data[idx + 1] = 130;
-      overlay.data[idx + 2] = 246;
-      overlay.data[idx + 3] = 80;
+      overlay.data[idx] = 59;      // R
+      overlay.data[idx + 1] = 130;  // G
+      overlay.data[idx + 2] = 246;  // B
+      overlay.data[idx + 3] = 150;  // Alpha — strong enough to be clearly visible
     }
   }
   return overlay;
+}
+
+/** Count number of selected pixels in a mask */
+export function countSelectedPixels(mask: SelectionMask): number {
+  let count = 0;
+  for (let i = 0; i < mask.data.length; i++) {
+    if (mask.data[i] === 1) count++;
+  }
+  return count;
 }

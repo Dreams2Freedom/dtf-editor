@@ -33,7 +33,7 @@ export function ColorChangeEditor({
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const [imageData, setImageData] = useState<ImageData | null>(null);
   const [selectionMode, setSelectionMode] = useState<SelectionMode>('click');
-  const [tolerance, setTolerance] = useState(15);
+  const [tolerance, setTolerance] = useState(20);
   const [currentMask, setCurrentMask] = useState<SelectionMask | null>(null);
   const [sourceColor, setSourceColor] = useState<RGBColor | null>(null);
   const [targetColor, setTargetColor] = useState('#2563eb');
@@ -80,19 +80,24 @@ export function ColorChangeEditor({
   }, []);
 
   const handlePixelClick = useCallback((x: number, y: number) => {
-    if (!imageData) return;
+    // Read fresh pixel data from the offscreen canvas for accurate selection
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+    const freshData = ctx.getImageData(0, 0, canvas.width, canvas.height);
 
     let mask: SelectionMask;
     if (lassoPolygon) {
-      mask = lassoSelect(imageData, x, y, tolerance, lassoPolygon);
+      mask = lassoSelect(freshData, x, y, tolerance, lassoPolygon);
       setLassoPolygon(null);
     } else {
-      mask = clickSelect(imageData, x, y, tolerance);
+      mask = clickSelect(freshData, x, y, tolerance);
     }
 
     setCurrentMask(mask);
-    setSourceColor(getPixelColor(imageData, x, y));
-  }, [imageData, tolerance, lassoPolygon]);
+    setSourceColor(getPixelColor(freshData, x, y));
+  }, [tolerance, lassoPolygon]);
 
   const handleLassoComplete = useCallback((polygon: Array<{ x: number; y: number }>) => {
     setLassoPolygon(polygon);
