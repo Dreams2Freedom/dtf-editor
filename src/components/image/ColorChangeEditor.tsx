@@ -138,34 +138,87 @@ export function ColorChangeEditor({
     setSourceColor(getPixelColor(freshData, x, y));
   }, [tolerance, lassoPolygon, currentMask]);
 
-  const handleLassoComplete = useCallback((polygon: Array<{ x: number; y: number }>) => {
-    if (currentMask) {
-      // Lasso trims existing selection: keep only pixels INSIDE the lasso
-      const trimmed = new Uint8Array(currentMask.data.length);
-      const w = canvasRef.current?.width || currentMask.width;
-      let minX = w, minY = currentMask.height, maxX = 0, maxY = 0;
-
-      for (let i = 0; i < currentMask.data.length; i++) {
-        if (currentMask.data[i] === 1) {
-          const px = i % currentMask.width;
-          const py = Math.floor(i / currentMask.width);
-          if (pointInPolygon(px, py, polygon)) {
-            trimmed[i] = 1;
-            minX = Math.min(minX, px);
-            minY = Math.min(minY, py);
-            maxX = Math.max(maxX, px);
-            maxY = Math.max(maxY, py);
-          }
-        }
-      }
-      if (maxX < minX) { minX = 0; minY = 0; maxX = 0; maxY = 0; }
-      setCurrentMask({ data: trimmed, width: currentMask.width, height: currentMask.height, bounds: { minX, minY, maxX, maxY } });
-    } else {
+  const handleLassoComplete = useCallback((polygon: Array<{ x: number; y: number }>, mode: 'trim' | 'add' | 'subtract') => {
+    if (!currentMask || !sourceColor) {
       // No selection yet — store polygon for next click
       setLassoPolygon(polygon);
       setSelectionMode('click');
+      return;
     }
-  }, [currentMask]);
+
+    const w = currentMask.width;
+    const h = currentMask.height;
+
+    if (mode === 'add') {
+      // Shift+Lasso: keep existing selection + add color-matching pixels inside lasso
+      // Re-runs global color match inside the lasso area and unions with current mask
+      const canvas = canvasRef.current;
+      if (!canvas) return;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) return;
+      const freshData = ctx.getImageData(0, 0, w, h);
+
+      const result = new Uint8Array(currentMask.data.length);
+      let minX = w, minY = h, maxX = 0, maxY = 0;
+
+      for (let i = 0; i < result.length; i++) {
+        const px = i % w;
+        const py = Math.floor(i / w);
+
+        // Keep all existing selected pixels
+        if (currentMask.data[i] === 1) {
+          result[i] = 1;
+          minX = Math.min(minX, px); minY = Math.min(minY, py);
+          maxX = Math.max(maxX, px); maxY = Math.max(maxY, py);
+          continue;
+        }
+
+        // Add: color-matching pixels inside the new lasso area
+        if (pointInPolygon(px, py, polygon)) {
+          const idx = i * 4;
+          if (freshData.data[idx + 3] === 0) continue;
+          const dr = Math.abs(freshData.data[idx] - sourceColor.r);
+          const dg = Math.abs(freshData.data[idx + 1] - sourceColor.g);
+          const db = Math.abs(freshData.data[idx + 2] - sourceColor.b);
+          if (dr <= tolerance && dg <= tolerance && db <= tolerance) {
+            result[i] = 1;
+            minX = Math.min(minX, px); minY = Math.min(minY, py);
+            maxX = Math.max(maxX, px); maxY = Math.max(maxY, py);
+          }
+        }
+      }
+
+      if (maxX < minX) { minX = 0; minY = 0; maxX = 0; maxY = 0; }
+      setCurrentMask({ data: result, width: w, height: h, bounds: { minX, minY, maxX, maxY } });
+      return;
+    }
+
+    // Trim or Subtract
+    const result = new Uint8Array(currentMask.data.length);
+    let minX = w, minY = h, maxX = 0, maxY = 0;
+
+    for (let i = 0; i < currentMask.data.length; i++) {
+      const px = i % w;
+      const py = Math.floor(i / w);
+      const insideLasso = pointInPolygon(px, py, polygon);
+      const wasSelected = currentMask.data[i] === 1;
+
+      // Trim: keep selected pixels INSIDE lasso only
+      // Subtract: remove selected pixels INSIDE lasso
+      const keep = mode === 'trim'
+        ? (wasSelected && insideLasso)
+        : (wasSelected && !insideLasso);
+
+      if (keep) {
+        result[i] = 1;
+        minX = Math.min(minX, px); minY = Math.min(minY, py);
+        maxX = Math.max(maxX, px); maxY = Math.max(maxY, py);
+      }
+    }
+
+    if (maxX < minX) { minX = 0; minY = 0; maxX = 0; maxY = 0; }
+    setCurrentMask({ data: result, width: w, height: h, bounds: { minX, minY, maxX, maxY } });
+  }, [currentMask, sourceColor, tolerance]);
 
   const handleApply = useCallback(() => {
     if (!currentMask || !sourceColor || !canvasRef.current) return;
@@ -317,11 +370,15 @@ export function ColorChangeEditor({
           </button>
 
           {/* Selection hints */}
-          <div className="text-xs text-gray-400 space-y-1">
+          <div className="text-xs text-gray-400 space-y-1 p-2 bg-gray-50 rounded-lg">
+            <p className="font-semibold text-gray-500 mb-1">Click Select mode:</p>
             <p><strong>Click</strong> — select a color</p>
             <p><strong>Shift+Click</strong> — add more shades</p>
-            <p><strong>Alt+Click</strong> — remove from selection</p>
-            <p><strong>Lasso</strong> — trim selection to area</p>
+            <p><strong>Alt+Click</strong> — remove shade</p>
+            <p className="font-semibold text-gray-500 mt-2 mb-1">Lasso mode:</p>
+            <p><strong>Draw</strong> — trim to area</p>
+            <p><strong>Shift+Draw</strong> — add area</p>
+            <p><strong>Alt+Draw</strong> — remove area</p>
           </div>
 
           <ChangesHistory

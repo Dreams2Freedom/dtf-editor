@@ -14,7 +14,7 @@ interface ColorCanvasProps {
   selectionMode: SelectionMode;
   currentMask: SelectionMask | null;
   onPixelClick: (x: number, y: number, mode: 'replace' | 'add' | 'subtract') => void;
-  onLassoComplete: (polygon: Array<{ x: number; y: number }>) => void;
+  onLassoComplete: (polygon: Array<{ x: number; y: number }>, mode: 'trim' | 'add' | 'subtract') => void;
 }
 
 export function ColorCanvas({
@@ -30,6 +30,7 @@ export function ColorCanvas({
   const [overlayImage, setOverlayImage] = useState<HTMLCanvasElement | null>(null);
   const [lassoPoints, setLassoPoints] = useState<number[]>([]);
   const [isDrawingLasso, setIsDrawingLasso] = useState(false);
+  const lassoModeRef = useRef<'trim' | 'add' | 'subtract'>('trim');
   const [scale, setScale] = useState(1);
 
   const containerRef = useRef<HTMLDivElement>(null);
@@ -88,13 +89,17 @@ export function ColorCanvas({
   );
 
   const handleMouseDown = useCallback(
-    (_e: Konva.KonvaEventObject<MouseEvent | TouchEvent>) => {
+    (e: Konva.KonvaEventObject<MouseEvent | TouchEvent>) => {
       if (selectionMode !== 'lasso') return;
       const stage = stageRef.current;
       if (!stage) return;
 
       const pointer = stage.getPointerPosition();
       if (!pointer) return;
+
+      // Capture modifier keys at start of lasso draw
+      const nativeEvent = e.evt as MouseEvent;
+      lassoModeRef.current = nativeEvent.shiftKey ? 'add' : nativeEvent.altKey ? 'subtract' : 'trim';
 
       setIsDrawingLasso(true);
       setLassoPoints([pointer.x / scale, pointer.y / scale]);
@@ -130,7 +135,7 @@ export function ColorCanvas({
 
     setIsDrawingLasso(false);
     setLassoPoints([]);
-    onLassoComplete(polygon);
+    onLassoComplete(polygon, lassoModeRef.current);
   }, [isDrawingLasso, lassoPoints, onLassoComplete]);
 
   const handleZoom = useCallback((direction: 'in' | 'out' | 'fit') => {
