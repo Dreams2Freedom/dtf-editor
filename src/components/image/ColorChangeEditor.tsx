@@ -33,7 +33,7 @@ export function ColorChangeEditor({
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const [imageData, setImageData] = useState<ImageData | null>(null);
   const [selectionMode, setSelectionMode] = useState<SelectionMode>('click');
-  const [tolerance, setTolerance] = useState(32);
+  const [tolerance, setTolerance] = useState(15);
   const [currentMask, setCurrentMask] = useState<SelectionMask | null>(null);
   const [sourceColor, setSourceColor] = useState<RGBColor | null>(null);
   const [targetColor, setTargetColor] = useState('#2563eb');
@@ -100,14 +100,18 @@ export function ColorChangeEditor({
   }, []);
 
   const handleApply = useCallback(() => {
-    if (!currentMask || !sourceColor || !imageData || !canvasRef.current) return;
+    if (!currentMask || !sourceColor || !canvasRef.current) return;
     const target = hexToRgb(targetColor);
     if (sourceColor.r === target.r && sourceColor.g === target.g && sourceColor.b === target.b) return;
 
-    const originalPixels = applyColorShift(imageData, currentMask, sourceColor, target);
-
+    // Read fresh pixel data from the offscreen canvas (not stale React state)
     const ctx = canvasRef.current.getContext('2d');
-    if (ctx) ctx.putImageData(imageData, 0, 0);
+    if (!ctx) return;
+    const freshImageData = ctx.getImageData(0, 0, canvasRef.current.width, canvasRef.current.height);
+
+    const originalPixels = applyColorShift(freshImageData, currentMask, sourceColor, target);
+
+    ctx.putImageData(freshImageData, 0, 0);
 
     history.pushChange({
       id: crypto.randomUUID(),
