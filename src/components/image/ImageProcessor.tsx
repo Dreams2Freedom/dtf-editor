@@ -359,7 +359,7 @@ export function ImageProcessor() {
         }
       }
 
-      if (processingOptions.operation === 'background-removal') {
+      if ((processingOptions.operation as string) === 'background-removal') {
         if (processingOptions.backgroundColor) {
           formData.append('backgroundColor', processingOptions.backgroundColor);
         }

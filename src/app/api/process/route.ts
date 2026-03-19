@@ -127,7 +127,7 @@ async function handlePost(request: NextRequest) {
           savedId = await saveProcessedImageToGallery({
             userId: user.id,
             processedUrl: result.processedUrl,
-            operationType: operation as ProcessingOperation,
+            operationType: operation as any,
             originalFilename: imageFile.name,
             fileSize: imageFile.size,
             metadata: {
