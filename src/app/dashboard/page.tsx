@@ -20,6 +20,7 @@ import {
   Zap,
   Crown,
   Sparkles,
+  Palette,
 } from 'lucide-react';
 import Link from 'next/link';
 import { CreditHistory } from '@/components/dashboard/CreditHistory';
@@ -138,16 +139,16 @@ export default function DashboardPage() {
             <CreditExpirationBanner />
 
             {/* Quick Actions - Core image tools */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
               <Card className="cursor-pointer hover:shadow-md transition-shadow">
                 <Link href="/process?operation=upscale">
-                  <CardContent className="p-5 text-center">
-                    <Upload className="w-10 h-10 text-primary-600 mx-auto mb-3" />
-                    <h3 className="font-semibold text-gray-900 mb-1">
+                  <CardContent className="p-4 text-center">
+                    <Upload className="w-8 h-8 text-primary-600 mx-auto mb-2" />
+                    <h3 className="font-semibold text-gray-900 text-sm mb-0.5">
                       Upscale
                     </h3>
                     <p className="text-gray-600 text-xs">
-                      AI-powered enhancement
+                      AI enhancement
                     </p>
                   </CardContent>
                 </Link>
@@ -155,13 +156,27 @@ export default function DashboardPage() {
 
               <Card className="cursor-pointer hover:shadow-md transition-shadow">
                 <Link href="/process?operation=background-removal">
-                  <CardContent className="p-5 text-center">
-                    <Scissors className="w-10 h-10 text-accent-600 mx-auto mb-3" />
-                    <h3 className="font-semibold text-gray-900 mb-1">
+                  <CardContent className="p-4 text-center">
+                    <Scissors className="w-8 h-8 text-green-600 mx-auto mb-2" />
+                    <h3 className="font-semibold text-gray-900 text-sm mb-0.5">
                       Remove BG
                     </h3>
                     <p className="text-gray-600 text-xs">
-                      Clean background removal
+                      Background removal
+                    </p>
+                  </CardContent>
+                </Link>
+              </Card>
+
+              <Card className="cursor-pointer hover:shadow-md transition-shadow">
+                <Link href="/process/color-change">
+                  <CardContent className="p-4 text-center">
+                    <Palette className="w-8 h-8 text-amber-600 mx-auto mb-2" />
+                    <h3 className="font-semibold text-gray-900 text-sm mb-0.5">
+                      Change Colors
+                    </h3>
+                    <p className="text-gray-600 text-xs">
+                      Replace colors
                     </p>
                   </CardContent>
                 </Link>
@@ -169,13 +184,13 @@ export default function DashboardPage() {
 
               <Card className="cursor-pointer hover:shadow-md transition-shadow">
                 <Link href="/process?operation=vectorize">
-                  <CardContent className="p-5 text-center">
-                    <Zap className="w-10 h-10 text-accent-600 mx-auto mb-3" />
-                    <h3 className="font-semibold text-gray-900 mb-1">
+                  <CardContent className="p-4 text-center">
+                    <Zap className="w-8 h-8 text-purple-600 mx-auto mb-2" />
+                    <h3 className="font-semibold text-gray-900 text-sm mb-0.5">
                       Vectorize
                     </h3>
                     <p className="text-gray-600 text-xs">
-                      Convert to scalable vectors
+                      Scalable vectors
                     </p>
                   </CardContent>
                 </Link>
@@ -183,13 +198,13 @@ export default function DashboardPage() {
 
               <Card className="cursor-pointer hover:shadow-md transition-shadow">
                 <Link href="/generate">
-                  <CardContent className="p-5 text-center">
-                    <Sparkles className="w-10 h-10 text-accent-600 mx-auto mb-3" />
-                    <h3 className="font-semibold text-gray-900 mb-1">
+                  <CardContent className="p-4 text-center">
+                    <Sparkles className="w-8 h-8 text-blue-600 mx-auto mb-2" />
+                    <h3 className="font-semibold text-gray-900 text-sm mb-0.5">
                       AI Generate
                     </h3>
                     <p className="text-gray-600 text-xs">
-                      Create images with AI
+                      Create with AI
                     </p>
                   </CardContent>
                 </Link>
