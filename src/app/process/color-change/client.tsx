@@ -99,12 +99,20 @@ export default function ColorChangeClient() {
   }, []);
 
   const handleSave = useCallback(async (canvas: HTMLCanvasElement) => {
-    // Check usage first
-    const useResponse = await fetch('/api/color-change/use', {
-      method: 'POST',
-      credentials: 'include',
-    });
-    const useResult = await useResponse.json();
+    // Check usage (gracefully handle missing API/DB column)
+    let useResult = { allowed: true, remaining: usageRemaining, creditCharged: false };
+    try {
+      const useResponse = await fetch('/api/color-change/use', {
+        method: 'POST',
+        credentials: 'include',
+      });
+      if (useResponse.ok) {
+        useResult = await useResponse.json();
+      }
+      // If 404 or other error, allow the save (usage tracking not set up yet)
+    } catch {
+      // Network error — allow save
+    }
 
     if (!useResult.allowed) {
       throw new Error('You have used all free color changes and have no credits. Purchase credits or upgrade your plan.');
