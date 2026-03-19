@@ -12,7 +12,7 @@ export function clickSelect(
   tolerance: number
 ): SelectionMask {
   const result = MagicWand.floodFill(
-    { data: imageData.data, width: imageData.width, height: imageData.height },
+    { data: imageData.data, width: imageData.width, height: imageData.height, bytes: 4 },
     x,
     y,
     tolerance
