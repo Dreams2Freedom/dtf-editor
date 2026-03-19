@@ -49,6 +49,7 @@ export function ColorChangeEditor({
 
   // Color-set model: store sampled colors + lasso regions, derive mask
   const [sampledColors, setSampledColors] = useState<SampledColor[]>([]);
+  const [excludedColors, setExcludedColors] = useState<SampledColor[]>([]);
   const [lassoRegions, setLassoRegions] = useState<LassoRegion[]>([]);
 
   const history = useColorChangeHistory();
@@ -98,6 +99,25 @@ export function ColorChangeEditor({
 
       const r = data[idx], g = data[idx + 1], b = data[idx + 2];
 
+      // Check if pixel is closer to an excluded color than any target color
+      // This prevents selecting dark greens that are too close to black, etc.
+      if (excludedColors.length > 0) {
+        // Distance to closest target color
+        let minTargetDist = Infinity;
+        for (const sc of sampledColors) {
+          const dist = Math.abs(r - sc.rgb.r) + Math.abs(g - sc.rgb.g) + Math.abs(b - sc.rgb.b);
+          minTargetDist = Math.min(minTargetDist, dist);
+        }
+        // Distance to closest excluded color
+        let minExcludedDist = Infinity;
+        for (const ec of excludedColors) {
+          const dist = Math.abs(r - ec.rgb.r) + Math.abs(g - ec.rgb.g) + Math.abs(b - ec.rgb.b);
+          minExcludedDist = Math.min(minExcludedDist, dist);
+        }
+        // Skip if closer to excluded than target
+        if (minExcludedDist <= minTargetDist) continue;
+      }
+
       // Check if this pixel matches ANY sampled color within tolerance
       let matches = false;
       for (const sc of sampledColors) {
@@ -141,7 +161,7 @@ export function ColorChangeEditor({
 
     if (maxX < minX) return null; // empty selection
     return { data: mask, width, height, bounds: { minX, minY, maxX, maxY } };
-  }, [sampledColors, tolerance, lassoRegions]);
+  }, [sampledColors, excludedColors, tolerance, lassoRegions]);
 
   const refreshImageData = useCallback(() => {
     const canvas = canvasRef.current;
@@ -166,6 +186,7 @@ export function ColorChangeEditor({
 
     if (mode === 'replace') {
       setSampledColors([{ rgb: color, hex }]);
+      setExcludedColors([]);
       setLassoRegions([]);
     } else if (mode === 'add') {
       // Don't add duplicate colors
@@ -173,18 +194,16 @@ export function ColorChangeEditor({
         if (prev.some(c => c.hex === hex)) return prev;
         return [...prev, { rgb: color, hex }];
       });
+      // Remove from excluded if it was there
+      setExcludedColors(prev => prev.filter(c => c.hex !== hex));
     } else if (mode === 'subtract') {
-      // Remove the closest matching color from sampled list
-      setSampledColors(prev => {
-        if (prev.length <= 1) return prev;
-        let closestIdx = 0;
-        let closestDist = Infinity;
-        for (let i = 0; i < prev.length; i++) {
-          const dist = Math.abs(prev[i].rgb.r - color.r) + Math.abs(prev[i].rgb.g - color.g) + Math.abs(prev[i].rgb.b - color.b);
-          if (dist < closestDist) { closestDist = dist; closestIdx = i; }
-        }
-        return prev.filter((_, i) => i !== closestIdx);
+      // Alt+Click: add to excluded colors list (NOT remove from target)
+      setExcludedColors(prev => {
+        if (prev.some(c => c.hex === hex)) return prev;
+        return [...prev, { rgb: color, hex }];
       });
+      // Remove from sampled if it was there
+      setSampledColors(prev => prev.filter(c => c.hex !== hex));
     }
   }, []);
 
@@ -232,6 +251,7 @@ export function ColorChangeEditor({
 
     // Clear selection state for next operation
     setSampledColors([]);
+    setExcludedColors([]);
     setLassoRegions([]);
     refreshImageData();
   }, [currentMask, sourceColor, targetColor, history, refreshImageData]);
@@ -265,6 +285,7 @@ export function ColorChangeEditor({
     if (!ctx) return;
     ctx.drawImage(image, 0, 0);
     setSampledColors([]);
+    setExcludedColors([]);
     setLassoRegions([]);
     refreshImageData();
   }, [history, image, refreshImageData]);
@@ -394,6 +415,40 @@ export function ColorChangeEditor({
             )}
           </div>
 
+          {/* Excluded colors */}
+          {excludedColors.length > 0 && (
+            <div>
+              <div className="text-xs uppercase tracking-wider text-red-400 font-semibold mb-2">
+                Excluded Colors ({excludedColors.length})
+              </div>
+              <div className="flex flex-wrap gap-1.5">
+                {excludedColors.map((ec) => (
+                  <div
+                    key={ec.hex}
+                    className="flex items-center gap-1 px-2 py-1 bg-red-50 border border-red-200 rounded-md group"
+                  >
+                    <div
+                      className="w-5 h-5 rounded border border-red-300 relative"
+                      style={{ backgroundColor: ec.hex }}
+                    >
+                      <div className="absolute inset-0 flex items-center justify-center">
+                        <div className="w-full h-0.5 bg-red-500 rotate-45" />
+                      </div>
+                    </div>
+                    <span className="text-xs text-red-600 font-mono">{ec.hex.toUpperCase()}</span>
+                    <button
+                      onClick={() => setExcludedColors(prev => prev.filter(c => c.hex !== ec.hex))}
+                      className="p-0.5 text-red-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"
+                      title="Remove exclusion"
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
           <ColorPicker
             sourceColor={sourceColor}
             targetColor={targetColor}
@@ -413,7 +468,7 @@ export function ColorChangeEditor({
             <p className="font-semibold text-gray-500 mb-1">Click Select:</p>
             <p><strong>Click</strong> — select a color</p>
             <p><strong>Shift+Click</strong> — add shade</p>
-            <p><strong>Alt+Click</strong> — remove shade</p>
+            <p><strong>Alt+Click</strong> — exclude color</p>
             <p className="font-semibold text-gray-500 mt-2 mb-1">Lasso:</p>
             <p><strong>Draw</strong> — limit to area</p>
             <p><strong>Shift+Draw</strong> — add area</p>
