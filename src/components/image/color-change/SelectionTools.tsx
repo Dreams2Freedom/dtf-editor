@@ -1,6 +1,7 @@
 'use client';
 
-import MagicWand from 'magic-wand-js';
+// @ts-ignore — vendored JS module (magic-wand-js has no ESM/CJS exports)
+import MagicWand from '@/lib/magic-wand';
 import { SelectionMask } from '@/types/colorChange';
 import { pointInPolygon } from '@/lib/color-utils';
 
