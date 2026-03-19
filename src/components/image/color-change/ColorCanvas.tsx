@@ -157,7 +157,7 @@ export function ColorCanvas({
 
   return (
     <div ref={containerRef} className="relative flex-1 min-h-[300px] overflow-auto" style={{
-      background: 'repeating-conic-gradient(#e5e7eb 0% 25%, transparent 0% 50%) 0 0 / 16px 16px',
+      background: 'repeating-conic-gradient(#2a2a2e 0% 25%, #232327 0% 50%) 0 0 / 16px 16px',
     }}>
       <Stage
         ref={stageRef}
