@@ -188,17 +188,16 @@ export default function ColorChangeClient() {
                     usageLimit={usageLimit}
                     onSave={handleSave}
                     onCancel={handleCancel}
+                    savedImageId={savedImageId}
+                    onNavigate={(path) => router.push(path)}
                   />
                 </div>
               )}
 
               {savedImageId && (
-                <div className="mt-4 p-4 bg-green-50 border border-green-200 rounded-lg">
-                  <p className="text-green-800 font-medium">Image saved to gallery!</p>
-                  <div className="flex gap-3 mt-2">
-                    <a href="/dashboard" className="text-sm text-green-700 underline">View in Gallery</a>
-                    <a href={`/process/upscale?imageId=${savedImageId}`} className="text-sm text-blue-700 underline">Upscale Image</a>
-                  </div>
+                <div className="mt-4 p-3 bg-green-50 border border-green-200 rounded-lg flex items-center gap-3">
+                  <span className="text-green-800 text-sm font-medium">Saved to gallery!</span>
+                  <a href="/dashboard#my-images" className="text-sm text-green-700 underline">View in Gallery</a>
                 </div>
               )}
             </CardContent>

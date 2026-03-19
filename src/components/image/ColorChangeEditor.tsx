@@ -2,7 +2,7 @@
 
 import React, { useState, useCallback, useEffect, useRef, useMemo } from 'react';
 import dynamic from 'next/dynamic';
-import { Undo2, Redo2, RotateCcw, Loader2, X } from 'lucide-react';
+import { Undo2, Redo2, RotateCcw, Loader2, X, Download, Wand2, Scissors } from 'lucide-react';
 import { ColorPicker } from './color-change/ColorPicker';
 import { ChangesHistory } from './color-change/ChangesHistory';
 import { applyColorShift, restorePixels, getPixelColor, hexToRgb, rgbToHex, pointInPolygon } from '@/lib/color-utils';
@@ -30,6 +30,8 @@ interface ColorChangeEditorProps {
   usageLimit: number;
   onSave: (canvas: HTMLCanvasElement) => Promise<void>;
   onCancel: () => void;
+  savedImageId: string | null;
+  onNavigate: (path: string) => void;
 }
 
 export function ColorChangeEditor({
@@ -38,6 +40,8 @@ export function ColorChangeEditor({
   usageLimit,
   onSave,
   onCancel,
+  savedImageId,
+  onNavigate,
 }: ColorChangeEditorProps) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const [imageData, setImageData] = useState<ImageData | null>(null);
@@ -314,6 +318,24 @@ export function ColorChangeEditor({
     }
   }, [onSave]);
 
+  const handleDownload = useCallback(async () => {
+    if (!canvasRef.current) return;
+    // Auto-save to gallery first if not already saved
+    if (!savedImageId && history.changeCount > 0) {
+      setIsSaving(true);
+      try {
+        await onSave(canvasRef.current);
+      } finally {
+        setIsSaving(false);
+      }
+    }
+    // Then download
+    const link = document.createElement('a');
+    link.download = 'color-changed.png';
+    link.href = canvasRef.current.toDataURL('image/png');
+    link.click();
+  }, [canvasRef, savedImageId, history.changeCount, onSave]);
+
   if (!imageData) {
     return <div className="flex items-center justify-center h-96"><Loader2 className="w-8 h-8 animate-spin" /></div>;
   }
@@ -485,21 +507,49 @@ export function ColorChangeEditor({
       </div>
 
       {/* Bottom bar */}
-      <div className="flex items-center justify-between p-3 bg-white border-t border-gray-200">
-        <span className="text-xs text-gray-500">
-          {usageRemaining > 0
-            ? `${usageLimit - usageRemaining} of ${usageLimit} free color changes used this month`
-            : 'Free color changes used — saving will cost 1 credit'}
-        </span>
-        <div className="flex gap-2">
-          <button onClick={onCancel} className="px-4 py-2 border border-gray-200 rounded-lg text-sm text-gray-600">Cancel</button>
+      <div className="flex flex-col gap-2 p-3 bg-white border-t border-gray-200">
+        <div className="flex items-center justify-between">
+          <span className="text-xs text-gray-500">
+            {usageRemaining > 0
+              ? `${usageLimit - usageRemaining} of ${usageLimit} free color changes used this month`
+              : 'Free color changes used — saving will cost 1 credit'}
+          </span>
+        </div>
+        <div className="flex gap-2 flex-wrap">
+          <button onClick={onCancel} className="px-3 py-2 border border-gray-200 rounded-lg text-sm text-gray-600">Cancel</button>
           <button
             onClick={handleSave}
             disabled={isSaving || history.changeCount === 0}
-            className="px-4 py-2 bg-green-500 hover:bg-green-600 disabled:bg-gray-300 text-white font-semibold rounded-lg text-sm transition-colors"
+            className="px-3 py-2 bg-green-500 hover:bg-green-600 disabled:bg-gray-300 text-white font-semibold rounded-lg text-sm transition-colors"
           >
             {isSaving ? 'Saving...' : 'Save to Gallery'}
           </button>
+          <button
+            onClick={handleDownload}
+            disabled={isSaving || history.changeCount === 0}
+            className="px-3 py-2 bg-blue-500 hover:bg-blue-600 disabled:bg-gray-300 text-white font-medium rounded-lg text-sm transition-colors flex items-center gap-1.5"
+          >
+            <Download className="w-4 h-4" />
+            Download
+          </button>
+          {savedImageId && (
+            <>
+              <button
+                onClick={() => onNavigate(`/process/upscale?imageId=${savedImageId}`)}
+                className="px-3 py-2 bg-purple-500 hover:bg-purple-600 text-white font-medium rounded-lg text-sm transition-colors flex items-center gap-1.5"
+              >
+                <Wand2 className="w-4 h-4" />
+                Upscale
+              </button>
+              <button
+                onClick={() => onNavigate(`/process/background-removal?imageId=${savedImageId}`)}
+                className="px-3 py-2 bg-emerald-500 hover:bg-emerald-600 text-white font-medium rounded-lg text-sm transition-colors flex items-center gap-1.5"
+              >
+                <Scissors className="w-4 h-4" />
+                Remove BG
+              </button>
+            </>
+          )}
         </div>
       </div>
 
