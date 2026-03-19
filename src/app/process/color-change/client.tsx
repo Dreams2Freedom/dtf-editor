@@ -2,8 +2,7 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
-import { Palette, Loader2 } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
+import { Palette, Loader2, AlertTriangle, ArrowUpRight } from 'lucide-react';
 import { useAuthStore } from '@/stores/authStore';
 import { Breadcrumb } from '@/components/ui/Breadcrumb';
 import { SignupModal } from '@/components/auth/SignupModal';
@@ -29,7 +28,6 @@ export default function ColorChangeClient() {
   const [lowQualityWarning, setLowQualityWarning] = useState(false);
   const [imageDpi, setImageDpi] = useState<number | null>(null);
 
-  // Load image
   useEffect(() => {
     if (!imageId && !imageUrlParam) {
       router.push('/process');
@@ -52,13 +50,11 @@ export default function ColorChangeClient() {
 
         setImageUrl(url);
 
-        // Load into HTMLImageElement
         const img = new Image();
         img.crossOrigin = 'anonymous';
         img.onload = () => {
           setImageElement(img);
           setIsLoading(false);
-          // Check DPI: assume 10" wide print, need 300 DPI = 3000px wide
           const dpiAt10Inches = Math.round(img.width / 10);
           setImageDpi(dpiAt10Inches);
           if (dpiAt10Inches < 300) {
@@ -79,7 +75,6 @@ export default function ColorChangeClient() {
     loadImage();
   }, [imageId, imageUrlParam, router]);
 
-  // Fetch usage info
   useEffect(() => {
     const fetchUsage = async () => {
       try {
@@ -97,7 +92,7 @@ export default function ColorChangeClient() {
           const tier = data.subscription_status || 'free';
           const limit = COLOR_CHANGE_LIMITS[tier] ?? COLOR_CHANGE_LIMITS.free;
           setUsageLimit(limit);
-          setUsageRemaining(limit); // Default to full allocation until DB column exists
+          setUsageRemaining(limit);
         }
       } catch {
         // Use defaults
@@ -107,7 +102,6 @@ export default function ColorChangeClient() {
   }, []);
 
   const handleSave = useCallback(async (canvas: HTMLCanvasElement) => {
-    // Check usage (gracefully handle missing API/DB column)
     let useResult = { allowed: true, remaining: usageRemaining, creditCharged: false };
     try {
       const useResponse = await fetch('/api/color-change/use', {
@@ -117,21 +111,18 @@ export default function ColorChangeClient() {
       if (useResponse.ok) {
         useResult = await useResponse.json();
       }
-      // If 404 or other error, allow the save (usage tracking not set up yet)
     } catch {
-      // Network error — allow save
+      // Allow save
     }
 
     if (!useResult.allowed) {
       throw new Error('You have used all free color changes and have no credits. Purchase credits or upgrade your plan.');
     }
 
-    // Export canvas as blob
     const blob = await new Promise<Blob>((resolve, reject) => {
       canvas.toBlob(b => b ? resolve(b) : reject(new Error('Failed to export')), 'image/png');
     });
 
-    // Save via /api/process
     const formData = new FormData();
     formData.append('image', blob, 'color-changed.png');
     formData.append('operation', 'color-change');
@@ -149,106 +140,106 @@ export default function ColorChangeClient() {
 
     const result = await response.json();
     setSavedImageId(result.metadata?.savedId || null);
-
-    // Update usage display
     setUsageRemaining(useResult.remaining);
-
-    // DPI check
-    const minDpi = Math.min(canvas.width / 4, canvas.height / 4);
-    if (minDpi < 150) {
-      alert('This image may be too low resolution for quality DTF printing. Consider upscaling it.');
-    }
-  }, []);
+  }, [usageRemaining]);
 
   const handleCancel = useCallback(() => {
     router.push('/process');
   }, [router]);
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <main className="py-4">
-        <div className="max-w-6xl mx-auto p-4 space-y-4">
-          <Breadcrumb
-            items={[
-              { label: 'Process Image', href: '/process' },
-              { label: 'Color Change' },
-            ]}
-          />
-
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Palette className="w-6 h-6 text-amber-600" />
-                Change Colors
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              {isLoading && (
-                <div className="text-center py-12">
-                  <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4" />
-                  <p>Loading image...</p>
-                </div>
-              )}
-
-              {error && (
-                <div className="bg-red-50 border border-red-200 text-red-800 p-4 rounded-lg">
-                  {error}
-                </div>
-              )}
-
-              {lowQualityWarning && imageElement && (
-                <div className="p-4 bg-amber-50 border border-amber-200 rounded-lg flex items-start gap-3 mb-4">
-                  <svg className="w-5 h-5 text-amber-600 mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z" />
-                  </svg>
-                  <div>
-                    <p className="text-sm font-medium text-amber-800">
-                      Low resolution image ({imageDpi} DPI at 10&quot; wide)
-                    </p>
-                    <p className="text-sm text-amber-700 mt-1">
-                      For best print quality, this image should be at least 3000px wide (300 DPI at 10&quot;).
-                      Color changes will work, but you&apos;ll get better results if you{' '}
-                      <a
-                        href={imageId ? `/process/upscale?imageId=${imageId}` : '/process/upscale'}
-                        className="font-medium underline hover:text-amber-900"
-                      >
-                        upscale the image first
-                      </a>.
-                    </p>
-                    <button
-                      onClick={() => setLowQualityWarning(false)}
-                      className="text-xs text-amber-600 hover:text-amber-800 mt-2"
-                    >
-                      Dismiss
-                    </button>
-                  </div>
-                </div>
-              )}
-
-              {imageElement && !error && (
-                <div className="h-[calc(100vh-200px)] min-h-[500px]">
-                  <ColorChangeEditor
-                    image={imageElement}
-                    usageRemaining={usageRemaining}
-                    usageLimit={usageLimit}
-                    onSave={handleSave}
-                    onCancel={handleCancel}
-                    savedImageId={savedImageId}
-                    onNavigate={(path) => router.push(path)}
-                  />
-                </div>
-              )}
-
-              {savedImageId && (
-                <div className="mt-4 p-3 bg-green-50 border border-green-200 rounded-lg flex items-center gap-3">
-                  <span className="text-green-800 text-sm font-medium">Saved to gallery!</span>
-                  <a href="/dashboard#my-images" className="text-sm text-green-700 underline">View in Gallery</a>
-                </div>
-              )}
-            </CardContent>
-          </Card>
+    <div className="min-h-screen bg-gray-950 flex flex-col">
+      {/* Compact header */}
+      <div className="bg-gray-900 border-b border-gray-800 px-4 py-2.5">
+        <div className="max-w-[1800px] mx-auto flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <Breadcrumb
+              items={[
+                { label: 'Process', href: '/process' },
+                { label: 'Color Change' },
+              ]}
+            />
+          </div>
+          <div className="flex items-center gap-2">
+            <Palette className="w-4 h-4 text-amber-400" />
+            <span className="text-sm font-medium text-gray-300">Color Changer</span>
+          </div>
         </div>
-      </main>
+      </div>
+
+      {/* DPI Warning */}
+      {lowQualityWarning && imageElement && (
+        <div className="bg-amber-500/10 border-b border-amber-500/20 px-4 py-2.5">
+          <div className="max-w-[1800px] mx-auto flex items-center gap-3">
+            <AlertTriangle className="w-4 h-4 text-amber-400 flex-shrink-0" />
+            <p className="text-sm text-amber-200 flex-1">
+              Low resolution ({imageDpi} DPI at 10&quot; wide). For best print quality,{' '}
+              <a
+                href={imageId ? `/process/upscale?imageId=${imageId}` : '/process/upscale'}
+                className="font-medium underline hover:text-amber-100 inline-flex items-center gap-0.5"
+              >
+                upscale first <ArrowUpRight className="w-3 h-3" />
+              </a>
+            </p>
+            <button
+              onClick={() => setLowQualityWarning(false)}
+              className="text-xs text-amber-400/60 hover:text-amber-300"
+            >
+              Dismiss
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Main content */}
+      <div className="flex-1 flex flex-col">
+        {isLoading && (
+          <div className="flex-1 flex items-center justify-center">
+            <div className="text-center">
+              <Loader2 className="w-10 h-10 animate-spin text-gray-600 mx-auto mb-3" />
+              <p className="text-gray-500 text-sm">Loading image...</p>
+            </div>
+          </div>
+        )}
+
+        {error && (
+          <div className="flex-1 flex items-center justify-center p-4">
+            <div className="max-w-md w-full bg-red-500/10 border border-red-500/20 text-red-300 p-6 rounded-xl text-center">
+              <p className="font-medium mb-2">Failed to load image</p>
+              <p className="text-sm text-red-400">{error}</p>
+              <button
+                onClick={() => router.push('/process')}
+                className="mt-4 px-4 py-2 bg-red-500/20 hover:bg-red-500/30 rounded-lg text-sm transition-colors"
+              >
+                Back to Process
+              </button>
+            </div>
+          </div>
+        )}
+
+        {imageElement && !error && (
+          <ColorChangeEditor
+            image={imageElement}
+            usageRemaining={usageRemaining}
+            usageLimit={usageLimit}
+            onSave={handleSave}
+            onCancel={handleCancel}
+            savedImageId={savedImageId}
+            onNavigate={(path) => router.push(path)}
+          />
+        )}
+      </div>
+
+      {/* Saved toast */}
+      {savedImageId && (
+        <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-50 bg-green-500 text-white px-4 py-2.5 rounded-full shadow-lg shadow-green-500/25 flex items-center gap-2 text-sm font-medium animate-[slideUp_0.3s_ease-out]">
+          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+          </svg>
+          Saved to gallery
+          <a href="/dashboard#my-images" className="underline ml-1 opacity-80 hover:opacity-100">View</a>
+        </div>
+      )}
 
       <SignupModal
         isOpen={showSignupModal}

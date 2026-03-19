@@ -2,8 +2,12 @@
 
 import React, { useState, useCallback, useEffect, useRef, useMemo } from 'react';
 import dynamic from 'next/dynamic';
-import { Undo2, Redo2, RotateCcw, Loader2, X, Download, Wand2, Scissors } from 'lucide-react';
-import { ColorPicker } from './color-change/ColorPicker';
+import {
+  Undo2, Redo2, RotateCcw, Loader2, X, Download, Wand2, Scissors,
+  MousePointer2, Lasso, SlidersHorizontal, ChevronDown, ChevronUp,
+  Pipette, Ban
+} from 'lucide-react';
+import { HexColorPicker, HexColorInput } from 'react-colorful';
 import { ChangesHistory } from './color-change/ChangesHistory';
 import { applyColorShift, restorePixels, getPixelColor, hexToRgb, rgbToHex, pointInPolygon } from '@/lib/color-utils';
 import { useColorChangeHistory } from '@/hooks/useColorChangeHistory';
@@ -11,7 +15,7 @@ import { SelectionMode, SelectionMask, RGBColor } from '@/types/colorChange';
 
 const ColorCanvas = dynamic(
   () => import('./color-change/ColorCanvas').then(m => ({ default: m.ColorCanvas })),
-  { ssr: false, loading: () => <div className="flex-1 min-h-[300px] flex items-center justify-center bg-gray-100"><Loader2 className="w-8 h-8 animate-spin text-gray-400" /></div> }
+  { ssr: false, loading: () => <div className="flex-1 flex items-center justify-center bg-gray-900"><Loader2 className="w-8 h-8 animate-spin text-gray-600" /></div> }
 );
 
 interface SampledColor {
@@ -50,8 +54,8 @@ export function ColorChangeEditor({
   const [targetColor, setTargetColor] = useState('#2563eb');
   const [isSaving, setIsSaving] = useState(false);
   const [renderKey, setRenderKey] = useState(0);
+  const [panelOpen, setPanelOpen] = useState(true);
 
-  // Color-set model: store sampled colors + lasso regions, derive mask
   const [sampledColors, setSampledColors] = useState<SampledColor[]>([]);
   const [excludedColors, setExcludedColors] = useState<SampledColor[]>([]);
   const [lassoRegions, setLassoRegions] = useState<LassoRegion[]>([]);
@@ -83,8 +87,6 @@ export function ColorChangeEditor({
     return () => window.removeEventListener('keydown', handler);
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Compute mask from sampled colors + tolerance + lasso regions
-  // Re-runs whenever any of these change (including tolerance slider!)
   const currentMask = useMemo((): SelectionMask | null => {
     if (sampledColors.length === 0) return null;
     const canvas = canvasRef.current;
@@ -99,30 +101,24 @@ export function ColorChangeEditor({
 
     for (let i = 0; i < width * height; i++) {
       const idx = i * 4;
-      if (data[idx + 3] === 0) continue; // skip transparent
+      if (data[idx + 3] === 0) continue;
 
       const r = data[idx], g = data[idx + 1], b = data[idx + 2];
 
-      // Check if pixel is closer to an excluded color than any target color
-      // This prevents selecting dark greens that are too close to black, etc.
       if (excludedColors.length > 0) {
-        // Distance to closest target color
         let minTargetDist = Infinity;
         for (const sc of sampledColors) {
           const dist = Math.abs(r - sc.rgb.r) + Math.abs(g - sc.rgb.g) + Math.abs(b - sc.rgb.b);
           minTargetDist = Math.min(minTargetDist, dist);
         }
-        // Distance to closest excluded color
         let minExcludedDist = Infinity;
         for (const ec of excludedColors) {
           const dist = Math.abs(r - ec.rgb.r) + Math.abs(g - ec.rgb.g) + Math.abs(b - ec.rgb.b);
           minExcludedDist = Math.min(minExcludedDist, dist);
         }
-        // Skip if closer to excluded than target
         if (minExcludedDist <= minTargetDist) continue;
       }
 
-      // Check if this pixel matches ANY sampled color within tolerance
       let matches = false;
       for (const sc of sampledColors) {
         if (
@@ -137,12 +133,10 @@ export function ColorChangeEditor({
 
       if (!matches) continue;
 
-      // Apply lasso regions (if any)
       if (lassoRegions.length > 0) {
         const px = i % width;
         const py = Math.floor(i / width);
 
-        // Check include regions: pixel must be inside at least one include region
         const includeRegions = lassoRegions.filter(r => r.mode === 'include');
         const excludeRegions = lassoRegions.filter(r => r.mode === 'exclude');
 
@@ -151,7 +145,6 @@ export function ColorChangeEditor({
           if (!inAnyInclude) continue;
         }
 
-        // Check exclude regions: pixel must NOT be in any exclude region
         const inAnyExclude = excludeRegions.some(r => pointInPolygon(px, py, r.polygon));
         if (inAnyExclude) continue;
       }
@@ -163,7 +156,7 @@ export function ColorChangeEditor({
       maxX = Math.max(maxX, px); maxY = Math.max(maxY, py);
     }
 
-    if (maxX < minX) return null; // empty selection
+    if (maxX < minX) return null;
     return { data: mask, width, height, bounds: { minX, minY, maxX, maxY } };
   }, [sampledColors, excludedColors, tolerance, lassoRegions]);
 
@@ -176,7 +169,6 @@ export function ColorChangeEditor({
     setRenderKey(prev => prev + 1);
   }, []);
 
-  // The "source color" for HSL shift = average of sampled colors (first one is primary)
   const sourceColor = sampledColors.length > 0 ? sampledColors[0].rgb : null;
 
   const handlePixelClick = useCallback((x: number, y: number, mode: 'replace' | 'add' | 'subtract') => {
@@ -193,45 +185,31 @@ export function ColorChangeEditor({
       setExcludedColors([]);
       setLassoRegions([]);
     } else if (mode === 'add') {
-      // Don't add duplicate colors
       setSampledColors(prev => {
         if (prev.some(c => c.hex === hex)) return prev;
         return [...prev, { rgb: color, hex }];
       });
-      // Remove from excluded if it was there
       setExcludedColors(prev => prev.filter(c => c.hex !== hex));
     } else if (mode === 'subtract') {
-      // Alt+Click: add to excluded colors list (NOT remove from target)
       setExcludedColors(prev => {
         if (prev.some(c => c.hex === hex)) return prev;
         return [...prev, { rgb: color, hex }];
       });
-      // Remove from sampled if it was there
       setSampledColors(prev => prev.filter(c => c.hex !== hex));
     }
   }, []);
 
   const handleLassoComplete = useCallback((polygon: Array<{ x: number; y: number }>, mode: 'trim' | 'add' | 'subtract') => {
-    if (sampledColors.length === 0) {
-      // No colors selected yet — not useful without colors
-      return;
-    }
+    if (sampledColors.length === 0) return;
 
     if (mode === 'add') {
-      // Shift+Lasso: add an include region
       setLassoRegions(prev => [...prev, { polygon, mode: 'include' }]);
     } else if (mode === 'subtract') {
-      // Alt+Lasso: add an exclude region
       setLassoRegions(prev => [...prev, { polygon, mode: 'exclude' }]);
     } else {
-      // Plain lasso: replace all regions with just this include region
       setLassoRegions([{ polygon, mode: 'include' }]);
     }
   }, [sampledColors]);
-
-  const handleRemoveSampledColor = useCallback((hex: string) => {
-    setSampledColors(prev => prev.filter(c => c.hex !== hex));
-  }, []);
 
   const handleApply = useCallback(() => {
     if (!currentMask || !sourceColor || !canvasRef.current) return;
@@ -242,7 +220,6 @@ export function ColorChangeEditor({
     const freshImageData = ctx.getImageData(0, 0, canvasRef.current.width, canvasRef.current.height);
 
     const originalPixels = applyColorShift(freshImageData, currentMask, sourceColor, target);
-
     ctx.putImageData(freshImageData, 0, 0);
 
     history.pushChange({
@@ -253,7 +230,6 @@ export function ColorChangeEditor({
       originalPixels,
     });
 
-    // Clear selection state for next operation
     setSampledColors([]);
     setExcludedColors([]);
     setLassoRegions([]);
@@ -320,7 +296,6 @@ export function ColorChangeEditor({
 
   const handleDownload = useCallback(async () => {
     if (!canvasRef.current) return;
-    // Auto-save to gallery first if not already saved
     if (!savedImageId && history.changeCount > 0) {
       setIsSaving(true);
       try {
@@ -329,7 +304,6 @@ export function ColorChangeEditor({
         setIsSaving(false);
       }
     }
-    // Then download
     const link = document.createElement('a');
     link.download = 'color-changed.png';
     link.href = canvasRef.current.toDataURL('image/png');
@@ -337,46 +311,92 @@ export function ColorChangeEditor({
   }, [canvasRef, savedImageId, history.changeCount, onSave]);
 
   if (!imageData) {
-    return <div className="flex items-center justify-center h-96"><Loader2 className="w-8 h-8 animate-spin" /></div>;
+    return <div className="flex-1 flex items-center justify-center bg-gray-900"><Loader2 className="w-8 h-8 animate-spin text-gray-600" /></div>;
   }
 
+  const hasSelection = currentMask !== null;
+  const hasChanges = history.changeCount > 0;
+
   return (
-    <div className="flex flex-col h-full">
-      {/* Top toolbar */}
-      <div className="flex items-center gap-3 p-3 bg-white border-b border-gray-200 flex-wrap">
-        <div className="flex bg-gray-100 rounded-lg p-0.5">
+    <div className="flex flex-col flex-1 bg-gray-950">
+      {/* Toolbar */}
+      <div className="bg-gray-900 border-b border-gray-800 px-3 py-2">
+        <div className="flex items-center gap-2 flex-wrap">
+          {/* Mode toggle */}
+          <div className="flex bg-gray-800 rounded-lg p-0.5">
+            <button
+              onClick={() => setSelectionMode('click')}
+              className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md transition-all ${
+                selectionMode === 'click'
+                  ? 'bg-amber-500 text-gray-900 shadow-sm'
+                  : 'text-gray-400 hover:text-gray-200'
+              }`}
+            >
+              <MousePointer2 className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Select</span>
+            </button>
+            <button
+              onClick={() => setSelectionMode('lasso')}
+              className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md transition-all ${
+                selectionMode === 'lasso'
+                  ? 'bg-amber-500 text-gray-900 shadow-sm'
+                  : 'text-gray-400 hover:text-gray-200'
+              }`}
+            >
+              <Lasso className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Lasso</span>
+            </button>
+          </div>
+
+          <div className="h-5 w-px bg-gray-700" />
+
+          {/* Tolerance */}
+          <div className="flex items-center gap-2">
+            <SlidersHorizontal className="w-3.5 h-3.5 text-gray-500" />
+            <input
+              type="range"
+              min={0}
+              max={100}
+              value={tolerance}
+              onChange={e => setTolerance(Number(e.target.value))}
+              className="w-20 sm:w-28 h-1.5 bg-gray-700 rounded-full appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3.5 [&::-webkit-slider-thumb]:h-3.5 [&::-webkit-slider-thumb]:bg-amber-400 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:shadow-md"
+            />
+            <span className="text-xs font-mono text-gray-400 w-5 text-right">{tolerance}</span>
+          </div>
+
+          <div className="h-5 w-px bg-gray-700" />
+
+          {/* Undo/Redo */}
+          <div className="flex gap-0.5">
+            <button onClick={handleUndo} disabled={!history.canUndo} className="p-1.5 rounded-md text-gray-400 hover:text-gray-200 hover:bg-gray-800 disabled:opacity-20 disabled:hover:bg-transparent transition-colors" title="Undo (Ctrl+Z)">
+              <Undo2 className="w-4 h-4" />
+            </button>
+            <button onClick={handleRedo} disabled={!history.canRedo} className="p-1.5 rounded-md text-gray-400 hover:text-gray-200 hover:bg-gray-800 disabled:opacity-20 disabled:hover:bg-transparent transition-colors" title="Redo (Ctrl+Shift+Z)">
+              <Redo2 className="w-4 h-4" />
+            </button>
+          </div>
+
+          <div className="flex-1" />
+
+          {/* Reset */}
+          <button onClick={handleResetAll} disabled={!hasChanges} className="flex items-center gap-1 px-2.5 py-1.5 rounded-md text-xs text-gray-400 hover:text-gray-200 hover:bg-gray-800 disabled:opacity-20 transition-colors">
+            <RotateCcw className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline">Reset</span>
+          </button>
+
+          {/* Mobile panel toggle */}
           <button
-            onClick={() => setSelectionMode('click')}
-            className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${selectionMode === 'click' ? 'bg-blue-500 text-white' : 'text-gray-600'}`}
-          >Click Select</button>
-          <button
-            onClick={() => setSelectionMode('lasso')}
-            className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${selectionMode === 'lasso' ? 'bg-blue-500 text-white' : 'text-gray-600'}`}
-          >Lasso</button>
+            onClick={() => setPanelOpen(!panelOpen)}
+            className="md:hidden p-1.5 rounded-md text-gray-400 hover:text-gray-200 hover:bg-gray-800"
+          >
+            {panelOpen ? <ChevronDown className="w-4 h-4" /> : <ChevronUp className="w-4 h-4" />}
+          </button>
         </div>
-
-        <div className="h-6 w-px bg-gray-200" />
-
-        <div className="flex items-center gap-2">
-          <span className="text-xs text-gray-500">Tolerance:</span>
-          <input type="range" min={0} max={100} value={tolerance} onChange={e => setTolerance(Number(e.target.value))} className="w-28" />
-          <span className="text-xs font-semibold text-gray-700 w-6">{tolerance}</span>
-        </div>
-
-        <div className="h-6 w-px bg-gray-200" />
-
-        <button onClick={handleUndo} disabled={!history.canUndo} className="p-1.5 border border-gray-200 rounded-md text-gray-500 disabled:opacity-30" title="Undo (Ctrl+Z)"><Undo2 className="w-4 h-4" /></button>
-        <button onClick={handleRedo} disabled={!history.canRedo} className="p-1.5 border border-gray-200 rounded-md text-gray-500 disabled:opacity-30" title="Redo (Ctrl+Shift+Z)"><Redo2 className="w-4 h-4" /></button>
-
-        <div className="flex-1" />
-
-        <button onClick={handleResetAll} disabled={history.changeCount === 0} className="px-3 py-1.5 border border-gray-200 rounded-md text-xs text-gray-500 disabled:opacity-30">
-          <RotateCcw className="w-3 h-3 inline mr-1" />Reset All
-        </button>
       </div>
 
-      {/* Main content */}
+      {/* Main area */}
       <div className="flex flex-1 flex-col md:flex-row overflow-hidden">
+        {/* Canvas */}
         <ColorCanvas
           key={renderKey}
           image={image}
@@ -388,173 +408,189 @@ export function ColorChangeEditor({
           onLassoComplete={handleLassoComplete}
         />
 
-        {/* Right panel */}
-        <div className="w-full md:w-[280px] bg-white border-t md:border-t-0 md:border-l border-gray-200 p-4 overflow-y-auto space-y-4">
-          {/* Sampled colors */}
-          <div>
-            <div className="text-xs uppercase tracking-wider text-gray-400 font-semibold mb-2">
-              Selected Colors ({sampledColors.length})
-            </div>
-            {sampledColors.length === 0 ? (
-              <p className="text-sm text-gray-400 p-3 bg-gray-50 rounded-lg border border-gray-200">
-                Click on the image to select a color
-              </p>
-            ) : (
-              <div className="flex flex-wrap gap-1.5">
-                {sampledColors.map((sc) => (
-                  <div
-                    key={sc.hex}
-                    className="flex items-center gap-1 px-2 py-1 bg-gray-50 border border-gray-200 rounded-md group"
-                  >
-                    <div
-                      className="w-5 h-5 rounded border border-gray-300"
-                      style={{ backgroundColor: sc.hex }}
-                    />
-                    <span className="text-xs text-gray-600 font-mono">{sc.hex.toUpperCase()}</span>
-                    <button
-                      onClick={() => handleRemoveSampledColor(sc.hex)}
-                      className="p-0.5 text-gray-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"
-                      title="Remove this color"
-                    >
-                      <X className="w-3 h-3" />
-                    </button>
-                  </div>
-                ))}
-              </div>
-            )}
-            {lassoRegions.length > 0 && (
-              <div className="mt-2 flex items-center gap-2">
-                <span className="text-xs text-gray-400">
-                  {lassoRegions.filter(r => r.mode === 'include').length} include, {lassoRegions.filter(r => r.mode === 'exclude').length} exclude regions
-                </span>
-                <button
-                  onClick={() => setLassoRegions([])}
-                  className="text-xs text-red-400 hover:text-red-600"
-                >
-                  Clear regions
-                </button>
-              </div>
-            )}
-          </div>
-
-          {/* Excluded colors */}
-          {excludedColors.length > 0 && (
+        {/* Side panel */}
+        <div className={`${panelOpen ? 'flex' : 'hidden'} md:flex flex-col w-full md:w-[300px] bg-gray-900 border-t md:border-t-0 md:border-l border-gray-800 overflow-y-auto`}>
+          <div className="p-4 space-y-5 flex-1">
+            {/* Selected colors */}
             <div>
-              <div className="text-xs uppercase tracking-wider text-red-400 font-semibold mb-2">
-                Excluded Colors ({excludedColors.length})
+              <div className="flex items-center gap-1.5 mb-2.5">
+                <Pipette className="w-3.5 h-3.5 text-amber-400" />
+                <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Target Colors</span>
+                {sampledColors.length > 0 && (
+                  <span className="text-xs text-gray-600 ml-auto">{sampledColors.length}</span>
+                )}
               </div>
-              <div className="flex flex-wrap gap-1.5">
-                {excludedColors.map((ec) => (
-                  <div
-                    key={ec.hex}
-                    className="flex items-center gap-1 px-2 py-1 bg-red-50 border border-red-200 rounded-md group"
-                  >
+              {sampledColors.length === 0 ? (
+                <div className="text-xs text-gray-500 p-3 bg-gray-800/50 rounded-lg border border-gray-800 border-dashed">
+                  Click on the image to pick a color
+                </div>
+              ) : (
+                <div className="flex flex-wrap gap-1.5">
+                  {sampledColors.map((sc) => (
                     <div
-                      className="w-5 h-5 rounded border border-red-300 relative"
-                      style={{ backgroundColor: ec.hex }}
+                      key={sc.hex}
+                      className="flex items-center gap-1.5 pl-1 pr-1 py-0.5 bg-gray-800 rounded-md group hover:bg-gray-750 transition-colors"
                     >
-                      <div className="absolute inset-0 flex items-center justify-center">
-                        <div className="w-full h-0.5 bg-red-500 rotate-45" />
-                      </div>
+                      <div
+                        className="w-5 h-5 rounded shadow-inner border border-white/10"
+                        style={{ backgroundColor: sc.hex }}
+                      />
+                      <span className="text-[10px] text-gray-400 font-mono">{sc.hex.toUpperCase()}</span>
+                      <button
+                        onClick={() => setSampledColors(prev => prev.filter(c => c.hex !== sc.hex))}
+                        className="p-0.5 text-gray-600 hover:text-red-400 transition-colors"
+                      >
+                        <X className="w-2.5 h-2.5" />
+                      </button>
                     </div>
-                    <span className="text-xs text-red-600 font-mono">{ec.hex.toUpperCase()}</span>
-                    <button
-                      onClick={() => setExcludedColors(prev => prev.filter(c => c.hex !== ec.hex))}
-                      className="p-0.5 text-red-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"
-                      title="Remove exclusion"
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Excluded colors */}
+            {excludedColors.length > 0 && (
+              <div>
+                <div className="flex items-center gap-1.5 mb-2.5">
+                  <Ban className="w-3.5 h-3.5 text-red-400" />
+                  <span className="text-xs font-semibold text-red-400/80 uppercase tracking-wider">Excluded</span>
+                  <span className="text-xs text-gray-600 ml-auto">{excludedColors.length}</span>
+                </div>
+                <div className="flex flex-wrap gap-1.5">
+                  {excludedColors.map((ec) => (
+                    <div
+                      key={ec.hex}
+                      className="flex items-center gap-1.5 pl-1 pr-1 py-0.5 bg-red-950/30 border border-red-900/30 rounded-md group"
                     >
-                      <X className="w-3 h-3" />
-                    </button>
+                      <div className="w-5 h-5 rounded relative overflow-hidden border border-red-500/30" style={{ backgroundColor: ec.hex }}>
+                        <div className="absolute inset-0 flex items-center justify-center">
+                          <div className="w-[140%] h-0.5 bg-red-500/80 rotate-45" />
+                        </div>
+                      </div>
+                      <span className="text-[10px] text-red-400/70 font-mono">{ec.hex.toUpperCase()}</span>
+                      <button
+                        onClick={() => setExcludedColors(prev => prev.filter(c => c.hex !== ec.hex))}
+                        className="p-0.5 text-red-800 hover:text-red-400 transition-colors"
+                      >
+                        <X className="w-2.5 h-2.5" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Lasso regions indicator */}
+            {lassoRegions.length > 0 && (
+              <div className="flex items-center justify-between text-xs text-gray-500 bg-gray-800/50 px-3 py-2 rounded-lg">
+                <span>{lassoRegions.filter(r => r.mode === 'include').length} include, {lassoRegions.filter(r => r.mode === 'exclude').length} exclude regions</span>
+                <button onClick={() => setLassoRegions([])} className="text-red-400/60 hover:text-red-400">Clear</button>
+              </div>
+            )}
+
+            {/* Replace with color */}
+            <div>
+              <div className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2.5">Replace With</div>
+              <div className="space-y-3">
+                <div className="rounded-lg overflow-hidden">
+                  <HexColorPicker
+                    color={targetColor}
+                    onChange={setTargetColor}
+                    style={{ width: '100%', height: '160px' }}
+                  />
+                </div>
+                <div className="flex items-center gap-2">
+                  <div
+                    className="w-9 h-9 rounded-lg shadow-inner border border-white/10 flex-shrink-0"
+                    style={{ backgroundColor: targetColor }}
+                  />
+                  <div className="flex-1 flex items-center bg-gray-800 border border-gray-700 rounded-lg px-3 py-2">
+                    <span className="text-gray-500 text-sm mr-1">#</span>
+                    <HexColorInput
+                      color={targetColor}
+                      onChange={setTargetColor}
+                      className="w-full text-sm text-gray-200 font-mono bg-transparent outline-none"
+                      prefixed={false}
+                    />
                   </div>
-                ))}
+                </div>
               </div>
             </div>
-          )}
 
-          <ColorPicker
-            sourceColor={sourceColor}
-            targetColor={targetColor}
-            onTargetColorChange={setTargetColor}
-          />
+            {/* Apply */}
+            <button
+              onClick={handleApply}
+              disabled={!hasSelection || !sourceColor}
+              className="w-full py-3 bg-amber-500 hover:bg-amber-400 disabled:bg-gray-800 disabled:text-gray-600 text-gray-900 font-bold rounded-xl text-sm transition-all shadow-lg shadow-amber-500/20 disabled:shadow-none"
+            >
+              Apply Color Change
+            </button>
 
-          <button
-            onClick={handleApply}
-            disabled={!currentMask || !sourceColor}
-            className="w-full py-2.5 bg-blue-500 hover:bg-blue-600 disabled:bg-gray-300 text-white font-semibold rounded-lg transition-colors"
-          >
-            Apply Color Change
-          </button>
+            {/* Keyboard hints */}
+            <div className="grid grid-cols-2 gap-x-3 gap-y-1 text-[10px] text-gray-600 p-2.5 bg-gray-800/30 rounded-lg">
+              <span><kbd className="px-1 py-0.5 bg-gray-800 rounded text-gray-400 font-mono">Click</kbd> Select</span>
+              <span><kbd className="px-1 py-0.5 bg-gray-800 rounded text-gray-400 font-mono">Shift</kbd> Add</span>
+              <span><kbd className="px-1 py-0.5 bg-gray-800 rounded text-gray-400 font-mono">Alt</kbd> Exclude</span>
+              <span><kbd className="px-1 py-0.5 bg-gray-800 rounded text-gray-400 font-mono">Lasso</kbd> Refine</span>
+            </div>
 
-          {/* Selection hints */}
-          <div className="text-xs text-gray-400 space-y-1 p-2 bg-gray-50 rounded-lg">
-            <p className="font-semibold text-gray-500 mb-1">Click Select:</p>
-            <p><strong>Click</strong> — select a color</p>
-            <p><strong>Shift+Click</strong> — add shade</p>
-            <p><strong>Alt+Click</strong> — exclude color</p>
-            <p className="font-semibold text-gray-500 mt-2 mb-1">Lasso:</p>
-            <p><strong>Draw</strong> — limit to area</p>
-            <p><strong>Shift+Draw</strong> — add area</p>
-            <p><strong>Alt+Draw</strong> — exclude area</p>
-            <p className="font-semibold text-gray-500 mt-2 mb-1">Tolerance:</p>
-            <p>Slider updates selection live</p>
+            {/* Changes history */}
+            {hasChanges && (
+              <ChangesHistory
+                changes={history.changes}
+                onRemoveChange={handleRemoveChange}
+              />
+            )}
           </div>
 
-          <ChangesHistory
-            changes={history.changes}
-            onRemoveChange={handleRemoveChange}
-          />
-        </div>
-      </div>
-
-      {/* Bottom bar */}
-      <div className="flex flex-col gap-2 p-3 bg-white border-t border-gray-200">
-        <div className="flex items-center justify-between">
-          <span className="text-xs text-gray-500">
-            {usageRemaining > 0
-              ? `${usageLimit - usageRemaining} of ${usageLimit} free color changes used this month`
-              : 'Free color changes used — saving will cost 1 credit'}
-          </span>
-        </div>
-        <div className="flex gap-2 flex-wrap">
-          <button onClick={onCancel} className="px-3 py-2 border border-gray-200 rounded-lg text-sm text-gray-600">Cancel</button>
-          <button
-            onClick={handleSave}
-            disabled={isSaving || history.changeCount === 0}
-            className="px-3 py-2 bg-green-500 hover:bg-green-600 disabled:bg-gray-300 text-white font-semibold rounded-lg text-sm transition-colors"
-          >
-            {isSaving ? 'Saving...' : 'Save to Gallery'}
-          </button>
-          <button
-            onClick={handleDownload}
-            disabled={isSaving || history.changeCount === 0}
-            className="px-3 py-2 bg-blue-500 hover:bg-blue-600 disabled:bg-gray-300 text-white font-medium rounded-lg text-sm transition-colors flex items-center gap-1.5"
-          >
-            <Download className="w-4 h-4" />
-            Download
-          </button>
-          {savedImageId && (
-            <>
-              <button
-                onClick={() => onNavigate(`/process/upscale?imageId=${savedImageId}`)}
-                className="px-3 py-2 bg-purple-500 hover:bg-purple-600 text-white font-medium rounded-lg text-sm transition-colors flex items-center gap-1.5"
-              >
-                <Wand2 className="w-4 h-4" />
-                Upscale
+          {/* Actions footer */}
+          <div className="p-3 border-t border-gray-800 space-y-2 bg-gray-900/80 backdrop-blur">
+            <div className="text-[10px] text-gray-600 text-center">
+              {usageRemaining > 0
+                ? `${usageLimit - usageRemaining}/${usageLimit} free changes used`
+                : 'Over limit — 1 credit per save'}
+            </div>
+            <div className="grid grid-cols-2 gap-1.5">
+              <button onClick={onCancel} className="px-3 py-2 bg-gray-800 hover:bg-gray-700 rounded-lg text-xs text-gray-400 transition-colors">
+                Cancel
               </button>
               <button
-                onClick={() => onNavigate(`/process/background-removal?imageId=${savedImageId}`)}
-                className="px-3 py-2 bg-emerald-500 hover:bg-emerald-600 text-white font-medium rounded-lg text-sm transition-colors flex items-center gap-1.5"
+                onClick={handleSave}
+                disabled={isSaving || !hasChanges}
+                className="px-3 py-2 bg-green-600 hover:bg-green-500 disabled:bg-gray-800 disabled:text-gray-600 text-white font-medium rounded-lg text-xs transition-colors"
               >
-                <Scissors className="w-4 h-4" />
-                Remove BG
+                {isSaving ? 'Saving...' : 'Save'}
               </button>
-            </>
-          )}
+              <button
+                onClick={handleDownload}
+                disabled={isSaving || !hasChanges}
+                className="px-3 py-2 bg-gray-800 hover:bg-gray-700 disabled:opacity-30 rounded-lg text-xs text-gray-300 transition-colors flex items-center justify-center gap-1"
+              >
+                <Download className="w-3 h-3" /> Download
+              </button>
+              {savedImageId ? (
+                <div className="flex gap-1">
+                  <button
+                    onClick={() => onNavigate(`/process/upscale?imageId=${savedImageId}`)}
+                    className="flex-1 px-2 py-2 bg-purple-600/20 hover:bg-purple-600/30 rounded-lg text-xs text-purple-300 transition-colors flex items-center justify-center gap-1"
+                  >
+                    <Wand2 className="w-3 h-3" />
+                  </button>
+                  <button
+                    onClick={() => onNavigate(`/process/background-removal?imageId=${savedImageId}`)}
+                    className="flex-1 px-2 py-2 bg-emerald-600/20 hover:bg-emerald-600/30 rounded-lg text-xs text-emerald-300 transition-colors flex items-center justify-center gap-1"
+                  >
+                    <Scissors className="w-3 h-3" />
+                  </button>
+                </div>
+              ) : (
+                <div className="px-3 py-2 bg-gray-800/50 rounded-lg text-[10px] text-gray-600 text-center">
+                  Save to unlock more
+                </div>
+              )}
+            </div>
+          </div>
         </div>
-      </div>
-
-      <div className="block sm:hidden p-2 bg-amber-50 border-t border-amber-200 text-center">
-        <p className="text-xs text-amber-700">For the best experience, use a desktop browser.</p>
       </div>
     </div>
   );
