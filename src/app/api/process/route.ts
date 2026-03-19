@@ -205,6 +205,10 @@ function validateProcessingOptions(options: ProcessingOptions): string | null {
       // No specific validation needed yet
       break;
 
+    case 'color-change':
+      // No specific validation needed — all processing is client-side
+      break;
+
     case 'vectorization':
       if (
         options.vectorFormat &&

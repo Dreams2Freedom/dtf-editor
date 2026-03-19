@@ -8,7 +8,8 @@ interface SaveImageParams {
     | 'upscale'
     | 'background-removal'
     | 'vectorization'
-    | 'generate';
+    | 'generate'
+    | 'color-change';
   originalFilename?: string;
   fileSize?: number;
   metadata?: Record<string, any>;

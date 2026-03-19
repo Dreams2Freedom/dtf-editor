@@ -10,7 +10,8 @@ export type ProcessingOperation =
   | 'upscale'
   | 'background-removal'
   | 'vectorization'
-  | 'ai-generation';
+  | 'ai-generation'
+  | 'color-change';
 
 export interface ProcessingOptions {
   operation: ProcessingOperation;
@@ -95,6 +96,8 @@ export class ImageProcessingService {
         return { provider: 'vectorizer', apiOperation: 'vectorization' };
       case 'ai-generation':
         return { provider: 'openai', apiOperation: 'image_generation' };
+      case 'color-change':
+        return { provider: 'none' as any, apiOperation: 'color_change' };
       default:
         throw new Error(`Unknown operation: ${operation}`);
     }
@@ -401,6 +404,8 @@ export class ImageProcessingService {
         return isFeatureAvailable('vectorization');
       case 'ai-generation':
         return isFeatureAvailable('ai-generation');
+      case 'color-change':
+        return true;
       default:
         return false;
     }
@@ -419,6 +424,8 @@ export class ImageProcessingService {
         return 2;
       case 'ai-generation':
         return 3;
+      case 'color-change':
+        return 0;
       default:
         return 1;
     }
