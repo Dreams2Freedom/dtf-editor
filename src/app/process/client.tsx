@@ -2,7 +2,7 @@
 
 import { useState, useCallback, useEffect } from 'react';
 import { useDropzone } from 'react-dropzone';
-import { Upload, Wand2, Scissors, Zap, ArrowRight } from 'lucide-react';
+import { Upload, Wand2, Scissors, Zap, ArrowRight, Palette } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/Button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
@@ -608,6 +608,36 @@ export default function ProcessClient() {
                         </div>
                       </CardContent>
                     </Card>
+
+                    {/* Color Change */}
+                    <Card
+                      className={`cursor-pointer transition-all ${
+                        isProcessing
+                          ? 'opacity-50 cursor-not-allowed'
+                          : preselectedOperation === 'color-change'
+                            ? 'ring-2 ring-amber-500 bg-amber-50'
+                            : 'hover:shadow-md hover:border-amber-500'
+                      }`}
+                      onClick={() =>
+                        !isProcessing && navigateToTool('color-change')
+                      }
+                    >
+                      <CardContent className="p-4 flex items-center gap-4">
+                        <Palette className="w-10 h-10 text-amber-600 flex-shrink-0" />
+                        <div className="flex-1">
+                          <h3 className="font-semibold text-sm">
+                            Change Colors
+                          </h3>
+                          <p className="text-xs text-gray-600">
+                            Replace specific colors in your design
+                          </p>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-xs text-gray-500">Free</p>
+                          <ArrowRight className="w-4 h-4 text-gray-400 ml-auto" />
+                        </div>
+                      </CardContent>
+                    </Card>
                   </div>
 
                   {profile &&
@@ -643,6 +673,8 @@ function getOperationName(operation: string): string {
       return 'Background Removal';
     case 'vectorize':
       return 'Vectorization';
+    case 'color-change':
+      return 'Color Change';
     default:
       return 'Processing';
   }
