@@ -79,7 +79,7 @@ export function ColorChangeEditor({
     setRenderKey(prev => prev + 1);
   }, []);
 
-  const handlePixelClick = useCallback((x: number, y: number) => {
+  const handlePixelClick = useCallback((x: number, y: number, mode: 'replace' | 'add' | 'subtract') => {
     // Read fresh pixel data from the offscreen canvas for accurate selection
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -87,17 +87,56 @@ export function ColorChangeEditor({
     if (!ctx) return;
     const freshData = ctx.getImageData(0, 0, canvas.width, canvas.height);
 
-    let mask: SelectionMask;
+    let newClickMask: SelectionMask;
     if (lassoPolygon) {
-      mask = lassoSelect(freshData, x, y, tolerance, lassoPolygon);
+      newClickMask = lassoSelect(freshData, x, y, tolerance, lassoPolygon);
       setLassoPolygon(null);
     } else {
-      mask = clickSelect(freshData, x, y, tolerance);
+      newClickMask = clickSelect(freshData, x, y, tolerance);
     }
 
-    setCurrentMask(mask);
+    // Combine with existing mask based on mode
+    if (mode === 'add' && currentMask) {
+      // Union: add new pixels to existing selection
+      const combined = new Uint8Array(currentMask.data.length);
+      let minX = canvas.width, minY = canvas.height, maxX = 0, maxY = 0;
+      for (let i = 0; i < combined.length; i++) {
+        if (currentMask.data[i] === 1 || newClickMask.data[i] === 1) {
+          combined[i] = 1;
+          const px = i % canvas.width;
+          const py = Math.floor(i / canvas.width);
+          minX = Math.min(minX, px);
+          minY = Math.min(minY, py);
+          maxX = Math.max(maxX, px);
+          maxY = Math.max(maxY, py);
+        }
+      }
+      if (maxX < minX) { minX = 0; minY = 0; maxX = 0; maxY = 0; }
+      setCurrentMask({ data: combined, width: canvas.width, height: canvas.height, bounds: { minX, minY, maxX, maxY } });
+    } else if (mode === 'subtract' && currentMask) {
+      // Subtract: remove matching pixels from existing selection
+      const combined = new Uint8Array(currentMask.data.length);
+      let minX = canvas.width, minY = canvas.height, maxX = 0, maxY = 0;
+      for (let i = 0; i < combined.length; i++) {
+        if (currentMask.data[i] === 1 && newClickMask.data[i] !== 1) {
+          combined[i] = 1;
+          const px = i % canvas.width;
+          const py = Math.floor(i / canvas.width);
+          minX = Math.min(minX, px);
+          minY = Math.min(minY, py);
+          maxX = Math.max(maxX, px);
+          maxY = Math.max(maxY, py);
+        }
+      }
+      if (maxX < minX) { minX = 0; minY = 0; maxX = 0; maxY = 0; }
+      setCurrentMask({ data: combined, width: canvas.width, height: canvas.height, bounds: { minX, minY, maxX, maxY } });
+    } else {
+      // Replace: new selection replaces old
+      setCurrentMask(newClickMask);
+    }
+
     setSourceColor(getPixelColor(freshData, x, y));
-  }, [tolerance, lassoPolygon]);
+  }, [tolerance, lassoPolygon, currentMask]);
 
   const handleLassoComplete = useCallback((polygon: Array<{ x: number; y: number }>) => {
     setLassoPolygon(polygon);
@@ -252,6 +291,13 @@ export function ColorChangeEditor({
           >
             Apply Color Change
           </button>
+
+          {/* Selection hints */}
+          <div className="text-xs text-gray-400 space-y-1">
+            <p><strong>Click</strong> — select a color</p>
+            <p><strong>Shift+Click</strong> — add more shades</p>
+            <p><strong>Alt+Click</strong> — remove from selection</p>
+          </div>
 
           <ChangesHistory
             changes={history.changes}

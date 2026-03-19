@@ -13,7 +13,7 @@ interface ColorCanvasProps {
   imageData: ImageData;
   selectionMode: SelectionMode;
   currentMask: SelectionMask | null;
-  onPixelClick: (x: number, y: number) => void;
+  onPixelClick: (x: number, y: number, mode: 'replace' | 'add' | 'subtract') => void;
   onLassoComplete: (polygon: Array<{ x: number; y: number }>) => void;
 }
 
@@ -66,7 +66,7 @@ export function ColorCanvas({
   }, [currentMask, imageData]);
 
   const handleStageClick = useCallback(
-    (_e: Konva.KonvaEventObject<MouseEvent | TouchEvent>) => {
+    (e: Konva.KonvaEventObject<MouseEvent | TouchEvent>) => {
       if (selectionMode !== 'click') return;
       const stage = stageRef.current;
       if (!stage) return;
@@ -78,7 +78,10 @@ export function ColorCanvas({
       const y = Math.floor(pointer.y / scale);
 
       if (x >= 0 && x < imageData.width && y >= 0 && y < imageData.height) {
-        onPixelClick(x, y);
+        // Detect modifier keys for add/subtract selection
+        const nativeEvent = e.evt as MouseEvent;
+        const mode = nativeEvent.shiftKey ? 'add' : nativeEvent.altKey ? 'subtract' : 'replace';
+        onPixelClick(x, y, mode);
       }
     },
     [selectionMode, scale, imageData, onPixelClick]
