@@ -6,7 +6,7 @@ import { cn } from '@/lib/utils';
 
 interface AccordionItem {
   question: string;
-  answer: string;
+  answer: React.ReactNode;
 }
 
 interface AccordionProps {
@@ -39,7 +39,7 @@ export function Accordion({ items, className }: AccordionProps) {
               openIndex === i ? 'max-h-96 pb-4' : 'max-h-0'
             )}
           >
-            <p className="text-sm text-gray-500 leading-relaxed">{item.answer}</p>
+            <div className="text-sm text-gray-500 leading-relaxed">{item.answer}</div>
           </div>
         </div>
       ))}
