@@ -89,6 +89,10 @@ export function applyColorShift(
   const hueDelta = tgtHsl.h - srcHsl.h;
   const satDelta = tgtHsl.s - srcHsl.s;
 
+  // Detect if the source color is achromatic (white, gray, black — saturation < 5%)
+  // For achromatic sources, HSL hue shift does nothing, so we use a colorize approach instead
+  const isAchromatic = srcHsl.s < 5;
+
   const boundsWidth = bounds.maxX - bounds.minX + 1;
   const boundsHeight = bounds.maxY - bounds.minY + 1;
   const originalPixels = new Uint8ClampedArray(boundsWidth * boundsHeight * 4);
@@ -107,16 +111,27 @@ export function applyColorShift(
       if (mask.data[maskIdx] !== 1) continue;
       if (data[imgIdx + 3] === 0) continue;
 
-      const pixelHsl = rgbToHsl(data[imgIdx], data[imgIdx + 1], data[imgIdx + 2]);
+      if (isAchromatic) {
+        // Colorize mode: apply target hue and saturation, preserve original lightness
+        // This handles white→red, gray→blue, black→green, etc.
+        const pixelHsl = rgbToHsl(data[imgIdx], data[imgIdx + 1], data[imgIdx + 2]);
+        const newRgb = hslToRgb(tgtHsl.h, tgtHsl.s, pixelHsl.l);
+        data[imgIdx] = newRgb.r;
+        data[imgIdx + 1] = newRgb.g;
+        data[imgIdx + 2] = newRgb.b;
+      } else {
+        // Normal HSL shift: shift hue and saturation, preserve lightness
+        const pixelHsl = rgbToHsl(data[imgIdx], data[imgIdx + 1], data[imgIdx + 2]);
 
-      let newH = (pixelHsl.h + hueDelta) % 360;
-      if (newH < 0) newH += 360;
-      const newS = Math.max(0, Math.min(100, pixelHsl.s + satDelta));
+        let newH = (pixelHsl.h + hueDelta) % 360;
+        if (newH < 0) newH += 360;
+        const newS = Math.max(0, Math.min(100, pixelHsl.s + satDelta));
 
-      const newRgb = hslToRgb(newH, newS, pixelHsl.l);
-      data[imgIdx] = newRgb.r;
-      data[imgIdx + 1] = newRgb.g;
-      data[imgIdx + 2] = newRgb.b;
+        const newRgb = hslToRgb(newH, newS, pixelHsl.l);
+        data[imgIdx] = newRgb.r;
+        data[imgIdx + 1] = newRgb.g;
+        data[imgIdx + 2] = newRgb.b;
+      }
     }
   }
 
