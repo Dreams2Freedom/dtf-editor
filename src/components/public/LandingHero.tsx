@@ -120,7 +120,7 @@ export function LandingHero() {
       </div>
 
       {/* ── Hero Content ── */}
-      <section className="relative bg-gradient-to-b from-gray-950 via-gray-900 to-gray-950 overflow-hidden">
+      <section className="relative bg-gray-950 overflow-hidden">
         {/* Dot grid */}
         <div
           className="absolute inset-0 pointer-events-none"
@@ -177,18 +177,15 @@ export function LandingHero() {
       </section>
 
       {/* ── Tool Strip (transition zone) ── */}
-      <section
-        className="py-8 lg:py-12 px-5 sm:px-6 lg:px-8"
-        style={{ background: 'linear-gradient(to bottom, #0f172a, rgb(249,250,251))' }}
-      >
-        <div className="grid grid-cols-3 lg:grid-cols-6 gap-2 sm:gap-3 max-w-4xl mx-auto">
+      <section className="relative pb-16 lg:pb-20 px-5 sm:px-6 lg:px-8 bg-gradient-to-b from-gray-950 via-gray-900 to-white">
+        <div className="grid grid-cols-3 lg:grid-cols-6 gap-2 sm:gap-3 max-w-4xl mx-auto pt-2">
           {TOOLS.map((tool) => {
             const colors = TOOL_COLOR_MAP[tool.color] ?? TOOL_COLOR_MAP.blue;
             const Icon = tool.icon;
             return (
               <div
                 key={tool.slug}
-                className="bg-white/5 supports-[backdrop-filter]:bg-white/5 backdrop-blur-md border border-white/10 hover:bg-white/10 rounded-xl p-3 sm:p-4 text-center transition-colors cursor-default"
+                className="bg-white/10 border border-white/20 hover:bg-white/15 rounded-xl p-3 sm:p-4 text-center transition-colors cursor-default"
               >
                 <div
                   className={cn(
@@ -198,7 +195,7 @@ export function LandingHero() {
                 >
                   <Icon className={cn('w-4 h-4', colors.text)} />
                 </div>
-                <span className="text-xs font-semibold text-gray-300">{tool.name}</span>
+                <span className="text-xs font-semibold text-gray-200">{tool.name}</span>
               </div>
             );
           })}
