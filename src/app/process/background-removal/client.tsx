@@ -744,23 +744,23 @@ export default function BackgroundRemovalClient() {
           </div>
 
           {/* Single / Bulk Mode Toggle */}
-          <div className="flex rounded-lg border border-gray-200 p-1 bg-gray-50 mb-6">
+          <div className="flex rounded-xl border border-gray-200 p-1 bg-gray-100 mb-6">
             <button
               onClick={() => setUploadMode('single')}
-              className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors ${
+              className={`flex-1 py-2 px-4 rounded-lg text-sm font-medium transition-all ${
                 uploadMode === 'single'
-                  ? 'bg-white shadow text-green-600'
-                  : 'text-gray-600 hover:text-gray-900'
+                  ? 'bg-white shadow-sm text-gray-900'
+                  : 'text-gray-500 hover:text-gray-700'
               }`}
             >
               Single Image
             </button>
             <button
               onClick={() => setUploadMode('bulk')}
-              className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors ${
+              className={`flex-1 py-2 px-4 rounded-lg text-sm font-medium transition-all ${
                 uploadMode === 'bulk'
-                  ? 'bg-white shadow text-green-600'
-                  : 'text-gray-600 hover:text-gray-900'
+                  ? 'bg-white shadow-sm text-gray-900'
+                  : 'text-gray-500 hover:text-gray-700'
               }`}
             >
               Bulk Upload
