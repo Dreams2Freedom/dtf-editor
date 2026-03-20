@@ -84,14 +84,20 @@ export function applyColorShift(
   const { data, width } = imageData;
   const { bounds } = mask;
 
+  // Perceived luminance (Rec. 709)
+  const lum = (r: number, g: number, b: number) =>
+    (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255;
+
+  const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
+
   const srcHsl = rgbToHsl(sourceColor.r, sourceColor.g, sourceColor.b);
   const tgtHsl = rgbToHsl(targetColor.r, targetColor.g, targetColor.b);
-  const hueDelta = tgtHsl.h - srcHsl.h;
-  const satDelta = tgtHsl.s - srcHsl.s;
+  const srcLum = lum(sourceColor.r, sourceColor.g, sourceColor.b);
+  const tgtLum = lum(targetColor.r, targetColor.g, targetColor.b);
 
-  // Detect if the source color is achromatic (white, gray, black — saturation < 5%)
-  // For achromatic sources, HSL hue shift does nothing, so we use a colorize approach instead
-  const isAchromatic = srcHsl.s < 5;
+  // Classify source and target
+  const srcIsAchromatic = srcHsl.s < 10 || srcHsl.l < 5 || srcHsl.l > 95;
+  const tgtIsAchromatic = tgtHsl.s < 10 || tgtHsl.l < 5 || tgtHsl.l > 95;
 
   const boundsWidth = bounds.maxX - bounds.minX + 1;
   const boundsHeight = bounds.maxY - bounds.minY + 1;
@@ -103,6 +109,7 @@ export function applyColorShift(
       const imgIdx = (y * width + x) * 4;
       const origIdx = ((y - bounds.minY) * boundsWidth + (x - bounds.minX)) * 4;
 
+      // Backup original pixel
       originalPixels[origIdx] = data[imgIdx];
       originalPixels[origIdx + 1] = data[imgIdx + 1];
       originalPixels[origIdx + 2] = data[imgIdx + 2];
@@ -111,35 +118,78 @@ export function applyColorShift(
       if (mask.data[maskIdx] !== 1) continue;
       if (data[imgIdx + 3] === 0) continue;
 
-      if (isAchromatic) {
-        // Colorize mode for achromatic sources (white, gray, black).
-        // Direct replacement: set each pixel to the target color, then adjust
-        // brightness based on how far the pixel was from the source color.
-        // This works for white→red, black→white, gray→blue, etc.
-        const srcGray = (sourceColor.r + sourceColor.g + sourceColor.b) / 3;
-        const pixGray = (data[imgIdx] + data[imgIdx + 1] + data[imgIdx + 2]) / 3;
+      const pR = data[imgIdx], pG = data[imgIdx + 1], pB = data[imgIdx + 2];
+      const pixLum = lum(pR, pG, pB);
 
-        // How different is this pixel from the source? (0 = exact match, 1 = far away)
-        // Used to preserve gradients/shading within the selection
-        const diff = Math.abs(pixGray - srcGray) / 255;
-
-        // Blend: exact matches get full target color, variations get blended
-        const blend = 1 - diff * 0.5; // keep some variation for shading
-        data[imgIdx] = Math.round(targetColor.r * blend + data[imgIdx] * (1 - blend));
-        data[imgIdx + 1] = Math.round(targetColor.g * blend + data[imgIdx + 1] * (1 - blend));
-        data[imgIdx + 2] = Math.round(targetColor.b * blend + data[imgIdx + 2] * (1 - blend));
-      } else {
-        // Normal HSL shift: shift hue and saturation, preserve lightness
-        const pixelHsl = rgbToHsl(data[imgIdx], data[imgIdx + 1], data[imgIdx + 2]);
-
-        let newH = (pixelHsl.h + hueDelta) % 360;
+      if (!srcIsAchromatic && !tgtIsAchromatic) {
+        // CASE 1: Chromatic → Chromatic (standard HSL hue shift)
+        const pixHsl = rgbToHsl(pR, pG, pB);
+        let newH = (pixHsl.h + (tgtHsl.h - srcHsl.h)) % 360;
         if (newH < 0) newH += 360;
-        const newS = Math.max(0, Math.min(100, pixelHsl.s + satDelta));
-
-        const newRgb = hslToRgb(newH, newS, pixelHsl.l);
+        const newS = Math.max(0, Math.min(100, pixHsl.s + (tgtHsl.s - srcHsl.s)));
+        const newRgb = hslToRgb(newH, newS, pixHsl.l);
         data[imgIdx] = newRgb.r;
         data[imgIdx + 1] = newRgb.g;
         data[imgIdx + 2] = newRgb.b;
+
+      } else if (srcIsAchromatic && !tgtIsAchromatic) {
+        // CASE 2: Achromatic → Chromatic (black→red, white→blue, gray→green)
+        // Colorize: apply target hue/sat, map luminance structure
+        // Compute intensity: how strongly this pixel matches the source
+        let intensity: number;
+        if (srcLum < 0.5) {
+          // Dark source: darker pixels = stronger match
+          intensity = 1.0 - pixLum;
+        } else {
+          // Light source: brighter pixels = stronger match
+          intensity = pixLum;
+        }
+        // Map to target color with intensity controlling the blend
+        const outL = lerp(pixLum * 100, tgtHsl.l, intensity);
+        const outS = tgtHsl.s * intensity;
+        const newRgb = hslToRgb(tgtHsl.h, outS, Math.max(0, Math.min(100, outL)));
+        data[imgIdx] = newRgb.r;
+        data[imgIdx + 1] = newRgb.g;
+        data[imgIdx + 2] = newRgb.b;
+
+      } else if (!srcIsAchromatic && tgtIsAchromatic) {
+        // CASE 3: Chromatic → Achromatic (red→black, blue→white)
+        // Desaturate toward target luminance
+        const pixHsl = rgbToHsl(pR, pG, pB);
+        // How chromatic is this pixel relative to the source
+        const chromaMatch = Math.min(1, pixHsl.s / Math.max(srcHsl.s, 1));
+        const outL = lerp(pixHsl.l, tgtHsl.l, chromaMatch);
+        const outS = pixHsl.s * (1 - chromaMatch);
+        const newRgb = hslToRgb(pixHsl.h, outS, Math.max(0, Math.min(100, outL)));
+        data[imgIdx] = newRgb.r;
+        data[imgIdx + 1] = newRgb.g;
+        data[imgIdx + 2] = newRgb.b;
+
+      } else {
+        // CASE 4: Achromatic → Achromatic (black→white, white→gray, etc.)
+        // Luminance remapping: map source luminance range to target range
+        // Invert if going dark→light or light→dark
+        let mappedLum: number;
+        if ((srcLum < 0.5 && tgtLum >= 0.5) || (srcLum >= 0.5 && tgtLum < 0.5)) {
+          // Opposite ends: invert luminance then map
+          mappedLum = lerp(tgtLum, 1.0 - (pixLum - srcLum), 0.8);
+        } else {
+          // Same end: shift luminance toward target
+          mappedLum = lerp(pixLum, tgtLum, 0.85);
+        }
+        mappedLum = Math.max(0, Math.min(1, mappedLum));
+        const val = Math.round(mappedLum * 255);
+        // If target has slight color, apply it
+        if (tgtHsl.s > 2) {
+          const newRgb = hslToRgb(tgtHsl.h, tgtHsl.s, mappedLum * 100);
+          data[imgIdx] = newRgb.r;
+          data[imgIdx + 1] = newRgb.g;
+          data[imgIdx + 2] = newRgb.b;
+        } else {
+          data[imgIdx] = val;
+          data[imgIdx + 1] = val;
+          data[imgIdx + 2] = val;
+        }
       }
     }
   }
