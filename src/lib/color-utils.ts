@@ -112,13 +112,15 @@ export function applyColorShift(
       if (data[imgIdx + 3] === 0) continue;
 
       if (isAchromatic) {
-        // Colorize mode: apply target hue and saturation, preserve original lightness
-        // This handles white→red, gray→blue, black→green, etc.
-        const pixelHsl = rgbToHsl(data[imgIdx], data[imgIdx + 1], data[imgIdx + 2]);
-        const newRgb = hslToRgb(tgtHsl.h, tgtHsl.s, pixelHsl.l);
-        data[imgIdx] = newRgb.r;
-        data[imgIdx + 1] = newRgb.g;
-        data[imgIdx + 2] = newRgb.b;
+        // Colorize mode for achromatic sources (white, gray, black).
+        // HSL hue shift doesn't work because saturation is 0.
+        // Instead: blend directly toward the target color based on the pixel's
+        // grayscale intensity. White pixels get the target color at full brightness,
+        // dark pixels get a darker version of the target color.
+        const gray = (data[imgIdx] + data[imgIdx + 1] + data[imgIdx + 2]) / 3 / 255; // 0=black, 1=white
+        data[imgIdx] = Math.round(targetColor.r * gray);
+        data[imgIdx + 1] = Math.round(targetColor.g * gray);
+        data[imgIdx + 2] = Math.round(targetColor.b * gray);
       } else {
         // Normal HSL shift: shift hue and saturation, preserve lightness
         const pixelHsl = rgbToHsl(data[imgIdx], data[imgIdx + 1], data[imgIdx + 2]);
