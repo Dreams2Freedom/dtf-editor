@@ -148,9 +148,9 @@ export default function ColorChangeClient() {
   }, [router]);
 
   return (
-    <div className="min-h-screen bg-gray-950 flex flex-col">
+    <div className="min-h-screen bg-gray-50 flex flex-col">
       {/* Compact header */}
-      <div className="bg-gray-900 border-b border-gray-800 px-4 py-2.5">
+      <div className="bg-white border-b border-gray-200 px-4 py-2.5">
         <div className="max-w-[1800px] mx-auto flex items-center justify-between">
           <div className="flex items-center gap-3">
             <Breadcrumb
@@ -161,29 +161,29 @@ export default function ColorChangeClient() {
             />
           </div>
           <div className="flex items-center gap-2">
-            <Palette className="w-4 h-4 text-amber-400" />
-            <span className="text-sm font-medium text-gray-300">Color Changer</span>
+            <Palette className="w-4 h-4 text-amber-600" />
+            <span className="text-sm font-medium text-gray-700">Color Changer</span>
           </div>
         </div>
       </div>
 
       {/* DPI Warning */}
       {lowQualityWarning && imageElement && (
-        <div className="bg-amber-500/10 border-b border-amber-500/20 px-4 py-2.5">
+        <div className="bg-amber-50 border-b border-amber-200 px-4 py-2.5">
           <div className="max-w-[1800px] mx-auto flex items-center gap-3">
-            <AlertTriangle className="w-4 h-4 text-amber-400 flex-shrink-0" />
-            <p className="text-sm text-amber-200 flex-1">
+            <AlertTriangle className="w-4 h-4 text-amber-600 flex-shrink-0" />
+            <p className="text-sm text-amber-800 flex-1">
               Low resolution ({imageDpi} DPI at 10&quot; wide). For best print quality,{' '}
               <a
                 href={imageId ? `/process/upscale?imageId=${imageId}` : '/process/upscale'}
-                className="font-medium underline hover:text-amber-100 inline-flex items-center gap-0.5"
+                className="font-medium underline hover:text-amber-900 inline-flex items-center gap-0.5"
               >
                 upscale first <ArrowUpRight className="w-3 h-3" />
               </a>
             </p>
             <button
               onClick={() => setLowQualityWarning(false)}
-              className="text-xs text-amber-400/60 hover:text-amber-300"
+              className="text-xs text-amber-600 hover:text-amber-800"
             >
               Dismiss
             </button>
@@ -196,7 +196,7 @@ export default function ColorChangeClient() {
         {isLoading && (
           <div className="flex-1 flex items-center justify-center">
             <div className="text-center">
-              <Loader2 className="w-10 h-10 animate-spin text-gray-600 mx-auto mb-3" />
+              <Loader2 className="w-10 h-10 animate-spin text-gray-400 mx-auto mb-3" />
               <p className="text-gray-500 text-sm">Loading image...</p>
             </div>
           </div>
@@ -204,12 +204,12 @@ export default function ColorChangeClient() {
 
         {error && (
           <div className="flex-1 flex items-center justify-center p-4">
-            <div className="max-w-md w-full bg-red-500/10 border border-red-500/20 text-red-300 p-6 rounded-xl text-center">
+            <div className="max-w-md w-full bg-red-50 border border-red-200 text-red-800 p-6 rounded-xl text-center">
               <p className="font-medium mb-2">Failed to load image</p>
-              <p className="text-sm text-red-400">{error}</p>
+              <p className="text-sm text-red-600">{error}</p>
               <button
                 onClick={() => router.push('/process')}
-                className="mt-4 px-4 py-2 bg-red-500/20 hover:bg-red-500/30 rounded-lg text-sm transition-colors"
+                className="mt-4 px-4 py-2 bg-red-100 hover:bg-red-200 rounded-lg text-sm transition-colors"
               >
                 Back to Process
               </button>

@@ -15,7 +15,7 @@ import { SelectionMode, SelectionMask, RGBColor } from '@/types/colorChange';
 
 const ColorCanvas = dynamic(
   () => import('./color-change/ColorCanvas').then(m => ({ default: m.ColorCanvas })),
-  { ssr: false, loading: () => <div className="flex-1 flex items-center justify-center bg-gray-900"><Loader2 className="w-8 h-8 animate-spin text-gray-600" /></div> }
+  { ssr: false, loading: () => <div className="flex-1 flex items-center justify-center bg-white"><Loader2 className="w-8 h-8 animate-spin text-gray-400" /></div> }
 );
 
 interface SampledColor {
@@ -312,25 +312,25 @@ export function ColorChangeEditor({
   }, [canvasRef, savedImageId, history.changeCount, onSave]);
 
   if (!imageData) {
-    return <div className="flex-1 flex items-center justify-center bg-gray-900"><Loader2 className="w-8 h-8 animate-spin text-gray-600" /></div>;
+    return <div className="flex-1 flex items-center justify-center bg-white"><Loader2 className="w-8 h-8 animate-spin text-gray-400" /></div>;
   }
 
   const hasSelection = currentMask !== null;
   const hasChanges = history.changeCount > 0;
 
   return (
-    <div className="flex flex-col flex-1 bg-gray-950">
+    <div className="flex flex-col flex-1 bg-gray-50">
       {/* Toolbar */}
-      <div className="bg-gray-900 border-b border-gray-800 px-3 py-2">
+      <div className="bg-white border-b border-gray-200 px-3 py-2">
         <div className="flex items-center gap-2 flex-wrap">
           {/* Mode toggle */}
-          <div className="flex bg-gray-800 rounded-lg p-0.5">
+          <div className="flex bg-gray-100 rounded-lg p-0.5">
             <button
               onClick={() => setSelectionMode('click')}
               className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md transition-all ${
                 selectionMode === 'click'
                   ? 'bg-amber-500 text-gray-900 shadow-sm'
-                  : 'text-gray-400 hover:text-gray-200'
+                  : 'text-gray-500 hover:text-gray-900'
               }`}
             >
               <MousePointer2 className="w-3.5 h-3.5" />
@@ -341,7 +341,7 @@ export function ColorChangeEditor({
               className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md transition-all ${
                 selectionMode === 'lasso'
                   ? 'bg-amber-500 text-gray-900 shadow-sm'
-                  : 'text-gray-400 hover:text-gray-200'
+                  : 'text-gray-500 hover:text-gray-900'
               }`}
             >
               <Lasso className="w-3.5 h-3.5" />
@@ -349,7 +349,7 @@ export function ColorChangeEditor({
             </button>
           </div>
 
-          <div className="h-5 w-px bg-gray-700" />
+          <div className="h-5 w-px bg-gray-200" />
 
           {/* Tolerance */}
           <div className="flex items-center gap-2">
@@ -360,19 +360,19 @@ export function ColorChangeEditor({
               max={100}
               value={tolerance}
               onChange={e => setTolerance(Number(e.target.value))}
-              className="w-20 sm:w-28 h-1.5 bg-gray-700 rounded-full appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3.5 [&::-webkit-slider-thumb]:h-3.5 [&::-webkit-slider-thumb]:bg-amber-400 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:shadow-md"
+              className="w-20 sm:w-28 h-1.5 bg-gray-200 rounded-full appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3.5 [&::-webkit-slider-thumb]:h-3.5 [&::-webkit-slider-thumb]:bg-amber-500 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:shadow-md"
             />
-            <span className="text-xs font-mono text-gray-400 w-5 text-right">{tolerance}</span>
+            <span className="text-xs font-mono text-gray-500 w-5 text-right">{tolerance}</span>
           </div>
 
-          <div className="h-5 w-px bg-gray-700" />
+          <div className="h-5 w-px bg-gray-200" />
 
           {/* Undo/Redo */}
           <div className="flex gap-0.5">
-            <button onClick={handleUndo} disabled={!history.canUndo} className="p-1.5 rounded-md text-gray-400 hover:text-gray-200 hover:bg-gray-800 disabled:opacity-20 disabled:hover:bg-transparent transition-colors" title="Undo (Ctrl+Z)">
+            <button onClick={handleUndo} disabled={!history.canUndo} className="p-1.5 rounded-md text-gray-500 hover:text-gray-900 hover:bg-gray-100 disabled:opacity-20 disabled:hover:bg-transparent transition-colors" title="Undo (Ctrl+Z)">
               <Undo2 className="w-4 h-4" />
             </button>
-            <button onClick={handleRedo} disabled={!history.canRedo} className="p-1.5 rounded-md text-gray-400 hover:text-gray-200 hover:bg-gray-800 disabled:opacity-20 disabled:hover:bg-transparent transition-colors" title="Redo (Ctrl+Shift+Z)">
+            <button onClick={handleRedo} disabled={!history.canRedo} className="p-1.5 rounded-md text-gray-500 hover:text-gray-900 hover:bg-gray-100 disabled:opacity-20 disabled:hover:bg-transparent transition-colors" title="Redo (Ctrl+Shift+Z)">
               <Redo2 className="w-4 h-4" />
             </button>
           </div>
@@ -380,7 +380,7 @@ export function ColorChangeEditor({
           <div className="flex-1" />
 
           {/* Reset */}
-          <button onClick={handleResetAll} disabled={!hasChanges} className="flex items-center gap-1 px-2.5 py-1.5 rounded-md text-xs text-gray-400 hover:text-gray-200 hover:bg-gray-800 disabled:opacity-20 transition-colors">
+          <button onClick={handleResetAll} disabled={!hasChanges} className="flex items-center gap-1 px-2.5 py-1.5 rounded-md text-xs text-gray-500 hover:text-gray-900 hover:bg-gray-100 disabled:opacity-20 transition-colors">
             <RotateCcw className="w-3.5 h-3.5" />
             <span className="hidden sm:inline">Reset</span>
           </button>
@@ -388,7 +388,7 @@ export function ColorChangeEditor({
           {/* Help */}
           <button
             onClick={() => setShowHelp(true)}
-            className="p-1.5 rounded-md text-gray-400 hover:text-amber-400 hover:bg-gray-800 transition-colors"
+            className="p-1.5 rounded-md text-gray-500 hover:text-amber-600 hover:bg-gray-100 transition-colors"
             title="How to use"
           >
             <HelpCircle className="w-4 h-4" />
@@ -397,7 +397,7 @@ export function ColorChangeEditor({
           {/* Mobile panel toggle */}
           <button
             onClick={() => setPanelOpen(!panelOpen)}
-            className="md:hidden p-1.5 rounded-md text-gray-400 hover:text-gray-200 hover:bg-gray-800"
+            className="md:hidden p-1.5 rounded-md text-gray-500 hover:text-gray-900 hover:bg-gray-100"
           >
             {panelOpen ? <ChevronDown className="w-4 h-4" /> : <ChevronUp className="w-4 h-4" />}
           </button>
@@ -419,19 +419,19 @@ export function ColorChangeEditor({
         />
 
         {/* Side panel */}
-        <div className={`${panelOpen ? 'flex' : 'hidden'} md:flex flex-col w-full md:w-[300px] bg-gray-900 border-t md:border-t-0 md:border-l border-gray-800 overflow-y-auto`}>
+        <div className={`${panelOpen ? 'flex' : 'hidden'} md:flex flex-col w-full md:w-[300px] bg-white border-t md:border-t-0 md:border-l border-gray-200 overflow-y-auto`}>
           <div className="p-4 space-y-5 flex-1">
             {/* Selected colors */}
             <div>
               <div className="flex items-center gap-1.5 mb-2.5">
-                <Pipette className="w-3.5 h-3.5 text-amber-400" />
-                <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Target Colors</span>
+                <Pipette className="w-3.5 h-3.5 text-amber-600" />
+                <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Target Colors</span>
                 {sampledColors.length > 0 && (
-                  <span className="text-xs text-gray-600 ml-auto">{sampledColors.length}</span>
+                  <span className="text-xs text-gray-400 ml-auto">{sampledColors.length}</span>
                 )}
               </div>
               {sampledColors.length === 0 ? (
-                <div className="text-xs text-gray-500 p-3 bg-gray-800/50 rounded-lg border border-gray-800 border-dashed">
+                <div className="text-xs text-gray-500 p-3 bg-gray-100 rounded-lg border border-gray-200 border-dashed">
                   Click on the image to pick a color
                 </div>
               ) : (
@@ -439,16 +439,16 @@ export function ColorChangeEditor({
                   {sampledColors.map((sc) => (
                     <div
                       key={sc.hex}
-                      className="flex items-center gap-1.5 pl-1 pr-1 py-0.5 bg-gray-800 rounded-md group hover:bg-gray-750 transition-colors"
+                      className="flex items-center gap-1.5 pl-1 pr-1 py-0.5 bg-gray-100 rounded-md group hover:bg-gray-200 transition-colors"
                     >
                       <div
-                        className="w-5 h-5 rounded shadow-inner border border-white/10"
+                        className="w-5 h-5 rounded shadow-inner border border-gray-300"
                         style={{ backgroundColor: sc.hex }}
                       />
-                      <span className="text-[10px] text-gray-400 font-mono">{sc.hex.toUpperCase()}</span>
+                      <span className="text-[10px] text-gray-500 font-mono">{sc.hex.toUpperCase()}</span>
                       <button
                         onClick={() => setSampledColors(prev => prev.filter(c => c.hex !== sc.hex))}
-                        className="p-0.5 text-gray-600 hover:text-red-400 transition-colors"
+                        className="p-0.5 text-gray-400 hover:text-red-500 transition-colors"
                       >
                         <X className="w-2.5 h-2.5" />
                       </button>
@@ -462,25 +462,25 @@ export function ColorChangeEditor({
             {excludedColors.length > 0 && (
               <div>
                 <div className="flex items-center gap-1.5 mb-2.5">
-                  <Ban className="w-3.5 h-3.5 text-red-400" />
-                  <span className="text-xs font-semibold text-red-400/80 uppercase tracking-wider">Excluded</span>
-                  <span className="text-xs text-gray-600 ml-auto">{excludedColors.length}</span>
+                  <Ban className="w-3.5 h-3.5 text-red-500" />
+                  <span className="text-xs font-semibold text-red-500 uppercase tracking-wider">Excluded</span>
+                  <span className="text-xs text-gray-400 ml-auto">{excludedColors.length}</span>
                 </div>
                 <div className="flex flex-wrap gap-1.5">
                   {excludedColors.map((ec) => (
                     <div
                       key={ec.hex}
-                      className="flex items-center gap-1.5 pl-1 pr-1 py-0.5 bg-red-950/30 border border-red-900/30 rounded-md group"
+                      className="flex items-center gap-1.5 pl-1 pr-1 py-0.5 bg-red-50 border border-red-200 rounded-md group"
                     >
-                      <div className="w-5 h-5 rounded relative overflow-hidden border border-red-500/30" style={{ backgroundColor: ec.hex }}>
+                      <div className="w-5 h-5 rounded relative overflow-hidden border border-red-300" style={{ backgroundColor: ec.hex }}>
                         <div className="absolute inset-0 flex items-center justify-center">
-                          <div className="w-[140%] h-0.5 bg-red-500/80 rotate-45" />
+                          <div className="w-[140%] h-0.5 bg-red-500 rotate-45" />
                         </div>
                       </div>
-                      <span className="text-[10px] text-red-400/70 font-mono">{ec.hex.toUpperCase()}</span>
+                      <span className="text-[10px] text-red-500 font-mono">{ec.hex.toUpperCase()}</span>
                       <button
                         onClick={() => setExcludedColors(prev => prev.filter(c => c.hex !== ec.hex))}
-                        className="p-0.5 text-red-800 hover:text-red-400 transition-colors"
+                        className="p-0.5 text-red-500 hover:text-red-500 transition-colors"
                       >
                         <X className="w-2.5 h-2.5" />
                       </button>
@@ -492,15 +492,15 @@ export function ColorChangeEditor({
 
             {/* Lasso regions indicator */}
             {lassoRegions.length > 0 && (
-              <div className="flex items-center justify-between text-xs text-gray-500 bg-gray-800/50 px-3 py-2 rounded-lg">
+              <div className="flex items-center justify-between text-xs text-gray-500 bg-gray-100 px-3 py-2 rounded-lg">
                 <span>{lassoRegions.filter(r => r.mode === 'include').length} include, {lassoRegions.filter(r => r.mode === 'exclude').length} exclude regions</span>
-                <button onClick={() => setLassoRegions([])} className="text-red-400/60 hover:text-red-400">Clear</button>
+                <button onClick={() => setLassoRegions([])} className="text-red-500 hover:text-red-500">Clear</button>
               </div>
             )}
 
             {/* Replace with color */}
             <div>
-              <div className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2.5">Replace With</div>
+              <div className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2.5">Replace With</div>
               <div className="space-y-3">
                 <div className="rounded-lg overflow-hidden">
                   <HexColorPicker
@@ -511,15 +511,15 @@ export function ColorChangeEditor({
                 </div>
                 <div className="flex items-center gap-2">
                   <div
-                    className="w-9 h-9 rounded-lg shadow-inner border border-white/10 flex-shrink-0"
+                    className="w-9 h-9 rounded-lg shadow-inner border border-gray-300 flex-shrink-0"
                     style={{ backgroundColor: targetColor }}
                   />
-                  <div className="flex-1 flex items-center bg-gray-800 border border-gray-700 rounded-lg px-3 py-2">
+                  <div className="flex-1 flex items-center bg-gray-100 border border-gray-200 rounded-lg px-3 py-2">
                     <span className="text-gray-500 text-sm mr-1">#</span>
                     <HexColorInput
                       color={targetColor}
                       onChange={setTargetColor}
-                      className="w-full text-sm text-gray-200 font-mono bg-transparent outline-none"
+                      className="w-full text-sm text-gray-900 font-mono bg-transparent outline-none"
                       prefixed={false}
                     />
                   </div>
@@ -531,17 +531,17 @@ export function ColorChangeEditor({
             <button
               onClick={handleApply}
               disabled={!hasSelection || !sourceColor}
-              className="w-full py-3 bg-amber-500 hover:bg-amber-400 disabled:bg-gray-800 disabled:text-gray-600 text-gray-900 font-bold rounded-xl text-sm transition-all shadow-lg shadow-amber-500/20 disabled:shadow-none"
+              className="w-full py-3 bg-amber-500 hover:bg-amber-400 disabled:bg-gray-200 disabled:text-gray-400 text-gray-900 font-bold rounded-xl text-sm transition-all shadow-lg shadow-amber-500/20 disabled:shadow-none"
             >
               Apply Color Change
             </button>
 
             {/* Keyboard hints */}
-            <div className="grid grid-cols-2 gap-x-3 gap-y-1 text-[10px] text-gray-600 p-2.5 bg-gray-800/30 rounded-lg">
-              <span><kbd className="px-1 py-0.5 bg-gray-800 rounded text-gray-400 font-mono">Click</kbd> Select</span>
-              <span><kbd className="px-1 py-0.5 bg-gray-800 rounded text-gray-400 font-mono">Shift</kbd> Add</span>
-              <span><kbd className="px-1 py-0.5 bg-gray-800 rounded text-gray-400 font-mono">Alt</kbd> Exclude</span>
-              <span><kbd className="px-1 py-0.5 bg-gray-800 rounded text-gray-400 font-mono">Lasso</kbd> Refine</span>
+            <div className="grid grid-cols-2 gap-x-3 gap-y-1 text-[10px] text-gray-400 p-2.5 bg-gray-50 rounded-lg">
+              <span><kbd className="px-1 py-0.5 bg-gray-100 rounded text-gray-500 font-mono">Click</kbd> Select</span>
+              <span><kbd className="px-1 py-0.5 bg-gray-100 rounded text-gray-500 font-mono">Shift</kbd> Add</span>
+              <span><kbd className="px-1 py-0.5 bg-gray-100 rounded text-gray-500 font-mono">Alt</kbd> Exclude</span>
+              <span><kbd className="px-1 py-0.5 bg-gray-100 rounded text-gray-500 font-mono">Lasso</kbd> Refine</span>
             </div>
 
             {/* Changes history */}
@@ -554,27 +554,27 @@ export function ColorChangeEditor({
           </div>
 
           {/* Actions footer */}
-          <div className="p-3 border-t border-gray-800 space-y-2 bg-gray-900/80 backdrop-blur">
-            <div className="text-[10px] text-gray-600 text-center">
+          <div className="p-3 border-t border-gray-200 space-y-2 bg-white/80 backdrop-blur">
+            <div className="text-[10px] text-gray-400 text-center">
               {usageRemaining > 0
                 ? `${usageLimit - usageRemaining}/${usageLimit} free changes used`
                 : 'Over limit — 1 credit per save'}
             </div>
             <div className="grid grid-cols-2 gap-1.5">
-              <button onClick={onCancel} className="px-3 py-2 bg-gray-800 hover:bg-gray-700 rounded-lg text-xs text-gray-400 transition-colors">
+              <button onClick={onCancel} className="px-3 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg text-xs text-gray-500 transition-colors">
                 Cancel
               </button>
               <button
                 onClick={handleSave}
                 disabled={isSaving || !hasChanges}
-                className="px-3 py-2 bg-green-600 hover:bg-green-500 disabled:bg-gray-800 disabled:text-gray-600 text-white font-medium rounded-lg text-xs transition-colors"
+                className="px-3 py-2 bg-green-500 hover:bg-green-600 disabled:bg-gray-200 disabled:text-gray-400 text-white font-medium rounded-lg text-xs transition-colors"
               >
                 {isSaving ? 'Saving...' : 'Save'}
               </button>
               <button
                 onClick={handleDownload}
                 disabled={isSaving || !hasChanges}
-                className="px-3 py-2 bg-gray-800 hover:bg-gray-700 disabled:opacity-30 rounded-lg text-xs text-gray-300 transition-colors flex items-center justify-center gap-1"
+                className="px-3 py-2 bg-gray-100 hover:bg-gray-200 disabled:opacity-30 rounded-lg text-xs text-gray-700 transition-colors flex items-center justify-center gap-1"
               >
                 <Download className="w-3 h-3" /> Download
               </button>
@@ -582,19 +582,19 @@ export function ColorChangeEditor({
                 <div className="flex gap-1">
                   <button
                     onClick={() => onNavigate(`/process/upscale?imageId=${savedImageId}`)}
-                    className="flex-1 px-2 py-2 bg-purple-600/20 hover:bg-purple-600/30 rounded-lg text-xs text-purple-300 transition-colors flex items-center justify-center gap-1"
+                    className="flex-1 px-2 py-2 bg-purple-50 hover:bg-purple-100 rounded-lg text-xs text-purple-600 transition-colors flex items-center justify-center gap-1"
                   >
                     <Wand2 className="w-3 h-3" />
                   </button>
                   <button
                     onClick={() => onNavigate(`/process/background-removal?imageId=${savedImageId}`)}
-                    className="flex-1 px-2 py-2 bg-emerald-600/20 hover:bg-emerald-600/30 rounded-lg text-xs text-emerald-300 transition-colors flex items-center justify-center gap-1"
+                    className="flex-1 px-2 py-2 bg-emerald-50 hover:bg-emerald-100 rounded-lg text-xs text-emerald-600 transition-colors flex items-center justify-center gap-1"
                   >
                     <Scissors className="w-3 h-3" />
                   </button>
                 </div>
               ) : (
-                <div className="px-3 py-2 bg-gray-800/50 rounded-lg text-[10px] text-gray-600 text-center">
+                <div className="px-3 py-2 bg-gray-100 rounded-lg text-[10px] text-gray-400 text-center">
                   Save to unlock more
                 </div>
               )}
@@ -605,33 +605,33 @@ export function ColorChangeEditor({
 
       {/* Help Modal */}
       {showHelp && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4" onClick={() => setShowHelp(false)}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={() => setShowHelp(false)}>
           <div
-            className="bg-gray-900 border border-gray-800 rounded-2xl shadow-2xl max-w-lg w-full max-h-[85vh] overflow-y-auto"
+            className="bg-white border border-gray-200 rounded-2xl shadow-2xl max-w-lg w-full max-h-[85vh] overflow-y-auto"
             onClick={e => e.stopPropagation()}
           >
             {/* Header */}
-            <div className="sticky top-0 bg-gray-900 border-b border-gray-800 px-6 py-4 flex items-center justify-between rounded-t-2xl">
+            <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between rounded-t-2xl">
               <div className="flex items-center gap-2">
-                <HelpCircle className="w-5 h-5 text-amber-400" />
-                <h2 className="text-lg font-bold text-gray-100">How to Use Color Changer</h2>
+                <HelpCircle className="w-5 h-5 text-amber-600" />
+                <h2 className="text-lg font-bold text-gray-900">How to Use Color Changer</h2>
               </div>
-              <button onClick={() => setShowHelp(false)} className="p-1 text-gray-500 hover:text-gray-300">
+              <button onClick={() => setShowHelp(false)} className="p-1 text-gray-500 hover:text-gray-700">
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            <div className="px-6 py-5 space-y-6 text-sm text-gray-300">
+            <div className="px-6 py-5 space-y-6 text-sm text-gray-700">
               {/* Step 1 */}
               <div>
                 <div className="flex items-center gap-2 mb-2">
                   <span className="w-6 h-6 bg-amber-500 text-gray-900 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0">1</span>
-                  <h3 className="font-semibold text-gray-100">Select the colors you want to change</h3>
+                  <h3 className="font-semibold text-gray-900">Select the colors you want to change</h3>
                 </div>
-                <div className="ml-8 space-y-2 text-gray-400">
-                  <p><strong className="text-gray-300">Click</strong> on any color in the image to select it. All matching pixels across the image will highlight in blue.</p>
-                  <p><strong className="text-gray-300">Shift+Click</strong> to add more shades. For example, click a light green, then Shift+Click a darker green to select both shades.</p>
-                  <p><strong className="text-gray-300">Alt+Click</strong> to exclude a color. If the selection catches some black or brown pixels you don&apos;t want, Alt+Click them to add to the exclusion list. Pixels closer to excluded colors will be automatically removed from the selection.</p>
+                <div className="ml-8 space-y-2 text-gray-500">
+                  <p><strong className="text-gray-700">Click</strong> on any color in the image to select it. All matching pixels across the image will highlight in blue.</p>
+                  <p><strong className="text-gray-700">Shift+Click</strong> to add more shades. For example, click a light green, then Shift+Click a darker green to select both shades.</p>
+                  <p><strong className="text-gray-700">Alt+Click</strong> to exclude a color. If the selection catches some black or brown pixels you don&apos;t want, Alt+Click them to add to the exclusion list. Pixels closer to excluded colors will be automatically removed from the selection.</p>
                 </div>
               </div>
 
@@ -639,15 +639,15 @@ export function ColorChangeEditor({
               <div>
                 <div className="flex items-center gap-2 mb-2">
                   <span className="w-6 h-6 bg-amber-500 text-gray-900 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0">2</span>
-                  <h3 className="font-semibold text-gray-100">Refine with Tolerance and Lasso</h3>
+                  <h3 className="font-semibold text-gray-900">Refine with Tolerance and Lasso</h3>
                 </div>
-                <div className="ml-8 space-y-2 text-gray-400">
-                  <p><strong className="text-gray-300">Tolerance slider</strong> controls how much color variation is included. Drag it to see the selection update in real-time. Higher = more variation, lower = exact match only.</p>
-                  <p><strong className="text-gray-300">Lasso tool</strong> lets you define areas. Switch to Lasso mode and draw around a specific region:</p>
+                <div className="ml-8 space-y-2 text-gray-500">
+                  <p><strong className="text-gray-700">Tolerance slider</strong> controls how much color variation is included. Drag it to see the selection update in real-time. Higher = more variation, lower = exact match only.</p>
+                  <p><strong className="text-gray-700">Lasso tool</strong> lets you define areas. Switch to Lasso mode and draw around a specific region:</p>
                   <ul className="list-disc ml-4 space-y-1">
-                    <li><strong className="text-gray-300">Draw</strong> — limit the selection to inside the lasso only</li>
-                    <li><strong className="text-gray-300">Shift+Draw</strong> — add another area (e.g., lasso around a second rose)</li>
-                    <li><strong className="text-gray-300">Alt+Draw</strong> — exclude an area from the selection</li>
+                    <li><strong className="text-gray-700">Draw</strong> — limit the selection to inside the lasso only</li>
+                    <li><strong className="text-gray-700">Shift+Draw</strong> — add another area (e.g., lasso around a second rose)</li>
+                    <li><strong className="text-gray-700">Alt+Draw</strong> — exclude an area from the selection</li>
                   </ul>
                 </div>
               </div>
@@ -656,10 +656,10 @@ export function ColorChangeEditor({
               <div>
                 <div className="flex items-center gap-2 mb-2">
                   <span className="w-6 h-6 bg-amber-500 text-gray-900 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0">3</span>
-                  <h3 className="font-semibold text-gray-100">Pick the replacement color</h3>
+                  <h3 className="font-semibold text-gray-900">Pick the replacement color</h3>
                 </div>
-                <div className="ml-8 space-y-2 text-gray-400">
-                  <p>Use the <strong className="text-gray-300">color wheel</strong> to visually choose a new color, or type an exact <strong className="text-gray-300">hex code</strong> in the input field.</p>
+                <div className="ml-8 space-y-2 text-gray-500">
+                  <p>Use the <strong className="text-gray-700">color wheel</strong> to visually choose a new color, or type an exact <strong className="text-gray-700">hex code</strong> in the input field.</p>
                   <p>The color shift preserves shading and texture — dark areas stay dark, light areas stay light. Only the hue and saturation change.</p>
                 </div>
               </div>
@@ -668,12 +668,12 @@ export function ColorChangeEditor({
               <div>
                 <div className="flex items-center gap-2 mb-2">
                   <span className="w-6 h-6 bg-amber-500 text-gray-900 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0">4</span>
-                  <h3 className="font-semibold text-gray-100">Apply and repeat</h3>
+                  <h3 className="font-semibold text-gray-900">Apply and repeat</h3>
                 </div>
-                <div className="ml-8 space-y-2 text-gray-400">
-                  <p>Click <strong className="text-gray-300">Apply Color Change</strong> to commit the change. The selection clears and you can start selecting a new color to change.</p>
-                  <p>You can make multiple color changes on the same image. Each change appears in the <strong className="text-gray-300">History</strong> panel where you can remove any individual change.</p>
-                  <p><strong className="text-gray-300">Undo/Redo</strong> with the toolbar buttons or <kbd className="px-1.5 py-0.5 bg-gray-800 rounded text-xs text-gray-300 font-mono">Ctrl+Z</kbd> / <kbd className="px-1.5 py-0.5 bg-gray-800 rounded text-xs text-gray-300 font-mono">Ctrl+Shift+Z</kbd>.</p>
+                <div className="ml-8 space-y-2 text-gray-500">
+                  <p>Click <strong className="text-gray-700">Apply Color Change</strong> to commit the change. The selection clears and you can start selecting a new color to change.</p>
+                  <p>You can make multiple color changes on the same image. Each change appears in the <strong className="text-gray-700">History</strong> panel where you can remove any individual change.</p>
+                  <p><strong className="text-gray-700">Undo/Redo</strong> with the toolbar buttons or <kbd className="px-1.5 py-0.5 bg-gray-100 rounded text-xs text-gray-700 font-mono">Ctrl+Z</kbd> / <kbd className="px-1.5 py-0.5 bg-gray-100 rounded text-xs text-gray-700 font-mono">Ctrl+Shift+Z</kbd>.</p>
                 </div>
               </div>
 
@@ -681,19 +681,19 @@ export function ColorChangeEditor({
               <div>
                 <div className="flex items-center gap-2 mb-2">
                   <span className="w-6 h-6 bg-amber-500 text-gray-900 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0">5</span>
-                  <h3 className="font-semibold text-gray-100">Save and export</h3>
+                  <h3 className="font-semibold text-gray-900">Save and export</h3>
                 </div>
-                <div className="ml-8 space-y-2 text-gray-400">
-                  <p><strong className="text-gray-300">Save to Gallery</strong> stores the image in your account.</p>
-                  <p><strong className="text-gray-300">Download</strong> saves to your computer (auto-saves to gallery first).</p>
-                  <p>After saving, you can send the image directly to <strong className="text-gray-300">Upscale</strong> or <strong className="text-gray-300">Background Removal</strong> for further processing.</p>
+                <div className="ml-8 space-y-2 text-gray-500">
+                  <p><strong className="text-gray-700">Save to Gallery</strong> stores the image in your account.</p>
+                  <p><strong className="text-gray-700">Download</strong> saves to your computer (auto-saves to gallery first).</p>
+                  <p>After saving, you can send the image directly to <strong className="text-gray-700">Upscale</strong> or <strong className="text-gray-700">Background Removal</strong> for further processing.</p>
                 </div>
               </div>
 
               {/* Tips */}
-              <div className="bg-amber-500/10 border border-amber-500/20 rounded-xl p-4">
-                <h3 className="font-semibold text-amber-300 mb-2">Pro Tips</h3>
-                <ul className="space-y-1.5 text-amber-200/70 text-xs">
+              <div className="bg-amber-50 border border-amber-200 rounded-xl p-4">
+                <h3 className="font-semibold text-amber-700 mb-2">Pro Tips</h3>
+                <ul className="space-y-1.5 text-amber-700 text-xs">
                   <li>Start with a low tolerance (10-20) and increase gradually to avoid selecting too much.</li>
                   <li>Use excluded colors (Alt+Click) when similar colors bleed into each other — like dark green near black.</li>
                   <li>The lasso Shift+Draw is perfect when the same color appears in multiple separate areas (e.g., two roses).</li>
@@ -704,7 +704,7 @@ export function ColorChangeEditor({
             </div>
 
             {/* Footer */}
-            <div className="sticky bottom-0 bg-gray-900 border-t border-gray-800 px-6 py-3 rounded-b-2xl">
+            <div className="sticky bottom-0 bg-white border-t border-gray-200 px-6 py-3 rounded-b-2xl">
               <button
                 onClick={() => setShowHelp(false)}
                 className="w-full py-2.5 bg-amber-500 hover:bg-amber-400 text-gray-900 font-bold rounded-xl text-sm transition-colors"
