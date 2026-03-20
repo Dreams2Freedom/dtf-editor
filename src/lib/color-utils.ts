@@ -113,14 +113,21 @@ export function applyColorShift(
 
       if (isAchromatic) {
         // Colorize mode for achromatic sources (white, gray, black).
-        // HSL hue shift doesn't work because saturation is 0.
-        // Instead: blend directly toward the target color based on the pixel's
-        // grayscale intensity. White pixels get the target color at full brightness,
-        // dark pixels get a darker version of the target color.
-        const gray = (data[imgIdx] + data[imgIdx + 1] + data[imgIdx + 2]) / 3 / 255; // 0=black, 1=white
-        data[imgIdx] = Math.round(targetColor.r * gray);
-        data[imgIdx + 1] = Math.round(targetColor.g * gray);
-        data[imgIdx + 2] = Math.round(targetColor.b * gray);
+        // Direct replacement: set each pixel to the target color, then adjust
+        // brightness based on how far the pixel was from the source color.
+        // This works for white→red, black→white, gray→blue, etc.
+        const srcGray = (sourceColor.r + sourceColor.g + sourceColor.b) / 3;
+        const pixGray = (data[imgIdx] + data[imgIdx + 1] + data[imgIdx + 2]) / 3;
+
+        // How different is this pixel from the source? (0 = exact match, 1 = far away)
+        // Used to preserve gradients/shading within the selection
+        const diff = Math.abs(pixGray - srcGray) / 255;
+
+        // Blend: exact matches get full target color, variations get blended
+        const blend = 1 - diff * 0.5; // keep some variation for shading
+        data[imgIdx] = Math.round(targetColor.r * blend + data[imgIdx] * (1 - blend));
+        data[imgIdx + 1] = Math.round(targetColor.g * blend + data[imgIdx + 1] * (1 - blend));
+        data[imgIdx + 2] = Math.round(targetColor.b * blend + data[imgIdx + 2] * (1 - blend));
       } else {
         // Normal HSL shift: shift hue and saturation, preserve lightness
         const pixelHsl = rgbToHsl(data[imgIdx], data[imgIdx + 1], data[imgIdx + 2]);
