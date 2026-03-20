@@ -156,9 +156,9 @@ export function ColorCanvas({
   const scaledHeight = Math.max(image.height * scale, stageSize.height);
 
   return (
-    <div className="relative flex-1 min-h-[300px] flex flex-col">
-      {/* Scrollable canvas area */}
-      <div ref={containerRef} className="flex-1 overflow-auto" style={{
+    <div className="relative flex-1 min-h-0 flex flex-col">
+      {/* Scrollable canvas area — min-h-0 allows flex child to shrink and scroll */}
+      <div ref={containerRef} className="flex-1 min-h-0 overflow-auto" style={{
         backgroundColor: '#ffffff',
         backgroundImage: 'repeating-conic-gradient(#e0e0e0 0% 25%, #ffffff 0% 50%)',
         backgroundSize: '20px 20px',

@@ -418,7 +418,7 @@ export function ColorChangeEditor({
       </div>
 
       {/* Main area */}
-      <div className="flex flex-1 flex-col md:flex-row overflow-hidden">
+      <div className="flex flex-1 min-h-0 flex-col md:flex-row overflow-hidden">
         {/* Canvas */}
         <ColorCanvas
           key={renderKey}
