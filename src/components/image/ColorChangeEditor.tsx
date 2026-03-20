@@ -610,8 +610,8 @@ export function ColorChangeEditor({
             )}
           </div>
 
-          {/* Actions footer */}
-          <div className="p-3 border-t border-gray-200 space-y-2 bg-white/80 backdrop-blur">
+          {/* Actions footer — sticky so it's always reachable */}
+          <div className="sticky bottom-0 p-3 border-t border-gray-200 space-y-2 bg-white/95 backdrop-blur-sm">
             <div className="text-[10px] text-gray-400 text-center">
               {usageRemaining > 0
                 ? `${usageLimit - usageRemaining}/${usageLimit} free changes used`
