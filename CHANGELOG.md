@@ -6,6 +6,16 @@ Format based on [Keep a Changelog](https://keepachangelog.com/), versioning foll
 
 ---
 
+## [1.1.1] - 2026-03-19
+
+### Added
+- **Help modals on all 7 pages** — step-by-step instructions that auto-show on first visit (stored in localStorage), reopenable via ? button
+  - Dashboard, Process page, Upscale, Background Removal, Vectorize, AI Generate, Color Changer
+- Shared `HelpModal` component with configurable accent colors, steps, and pro tips
+- Color Changer help modal now auto-shows on first visit (was manual only)
+
+---
+
 ## [1.1.0] - 2026-03-19
 
 ### Added
