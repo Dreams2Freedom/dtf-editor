@@ -148,7 +148,7 @@ export default function ColorChangeClient() {
   }, [router]);
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col">
+    <div className="h-screen bg-gray-50 flex flex-col overflow-hidden">
       {/* Compact header */}
       <div className="bg-white border-b border-gray-200 px-4 py-2.5">
         <div className="max-w-[1800px] mx-auto flex items-center justify-between">

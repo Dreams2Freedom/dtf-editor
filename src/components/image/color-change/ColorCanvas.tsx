@@ -156,24 +156,26 @@ export function ColorCanvas({
   const scaledHeight = Math.max(image.height * scale, stageSize.height);
 
   return (
-    <div ref={containerRef} className="relative flex-1 min-h-[300px] overflow-auto" style={{
-      backgroundColor: '#ffffff',
-      backgroundImage: 'repeating-conic-gradient(#e0e0e0 0% 25%, #ffffff 0% 50%)',
-      backgroundSize: '20px 20px',
-    }}>
-      <Stage
-        ref={stageRef}
-        width={scaledWidth}
-        height={scaledHeight}
-        onClick={handleStageClick}
-        onTap={handleStageClick}
-        onMouseDown={handleMouseDown}
-        onTouchStart={handleMouseDown}
-        onMouseMove={handleMouseMove}
-        onTouchMove={handleMouseMove}
-        onMouseUp={handleMouseUp}
-        onTouchEnd={handleMouseUp}
-      >
+    <div className="relative flex-1 min-h-[300px] flex flex-col">
+      {/* Scrollable canvas area */}
+      <div ref={containerRef} className="flex-1 overflow-auto" style={{
+        backgroundColor: '#ffffff',
+        backgroundImage: 'repeating-conic-gradient(#e0e0e0 0% 25%, #ffffff 0% 50%)',
+        backgroundSize: '20px 20px',
+      }}>
+        <Stage
+          ref={stageRef}
+          width={scaledWidth}
+          height={scaledHeight}
+          onClick={handleStageClick}
+          onTap={handleStageClick}
+          onMouseDown={handleMouseDown}
+          onTouchStart={handleMouseDown}
+          onMouseMove={handleMouseMove}
+          onTouchMove={handleMouseMove}
+          onMouseUp={handleMouseUp}
+          onTouchEnd={handleMouseUp}
+        >
         <Layer>
           {/* Render from editCanvas (reflects applied color changes) or fall back to original image */}
           <KonvaImage image={editCanvas || image} scaleX={scale} scaleY={scale} />
@@ -191,11 +193,29 @@ export function ColorCanvas({
             />
           )}
         </Layer>
-      </Stage>
-      <div className="absolute bottom-3 right-3 flex gap-1">
-        <button onClick={() => handleZoom('in')} className="w-7 h-7 bg-white border border-gray-200 rounded-md flex items-center justify-center text-sm text-gray-600 hover:bg-gray-50">+</button>
-        <button onClick={() => handleZoom('out')} className="w-7 h-7 bg-white border border-gray-200 rounded-md flex items-center justify-center text-sm text-gray-600 hover:bg-gray-50">−</button>
-        <button onClick={() => handleZoom('fit')} className="w-7 h-7 bg-white border border-gray-200 rounded-md flex items-center justify-center text-xs text-gray-600 hover:bg-gray-50">⊡</button>
+        </Stage>
+      </div>
+
+      {/* Zoom controls — fixed position outside scrollable area */}
+      <div className="absolute bottom-4 right-4 flex gap-1.5 z-10">
+        <button
+          onClick={() => handleZoom('in')}
+          className="w-9 h-9 bg-gray-800 hover:bg-gray-700 text-white rounded-lg flex items-center justify-center text-lg font-medium shadow-lg transition-colors"
+          title="Zoom in"
+        >+</button>
+        <button
+          onClick={() => handleZoom('out')}
+          className="w-9 h-9 bg-gray-800 hover:bg-gray-700 text-white rounded-lg flex items-center justify-center text-lg font-medium shadow-lg transition-colors"
+          title="Zoom out"
+        >−</button>
+        <button
+          onClick={() => handleZoom('fit')}
+          className="w-9 h-9 bg-gray-800 hover:bg-gray-700 text-white rounded-lg flex items-center justify-center text-xs font-medium shadow-lg transition-colors"
+          title="Fit to view"
+        >Fit</button>
+        <span className="flex items-center px-2 bg-gray-800/80 text-white text-xs rounded-lg font-mono">
+          {Math.round(scale * 100)}%
+        </span>
       </div>
     </div>
   );
