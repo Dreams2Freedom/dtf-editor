@@ -166,30 +166,14 @@ export function applyColorShift(
         data[imgIdx + 2] = newRgb.b;
 
       } else {
-        // CASE 4: Achromatic → Achromatic (black→white, white→gray, etc.)
-        // Luminance remapping: map source luminance range to target range
-        // Invert if going dark→light or light→dark
-        let mappedLum: number;
-        if ((srcLum < 0.5 && tgtLum >= 0.5) || (srcLum >= 0.5 && tgtLum < 0.5)) {
-          // Opposite ends: invert luminance then map
-          mappedLum = lerp(tgtLum, 1.0 - (pixLum - srcLum), 0.8);
-        } else {
-          // Same end: shift luminance toward target
-          mappedLum = lerp(pixLum, tgtLum, 0.85);
-        }
-        mappedLum = Math.max(0, Math.min(1, mappedLum));
-        const val = Math.round(mappedLum * 255);
-        // If target has slight color, apply it
-        if (tgtHsl.s > 2) {
-          const newRgb = hslToRgb(tgtHsl.h, tgtHsl.s, mappedLum * 100);
-          data[imgIdx] = newRgb.r;
-          data[imgIdx + 1] = newRgb.g;
-          data[imgIdx + 2] = newRgb.b;
-        } else {
-          data[imgIdx] = val;
-          data[imgIdx + 1] = val;
-          data[imgIdx + 2] = val;
-        }
+        // CASE 4: Achromatic → Achromatic (black→white, white→black, white→gray, etc.)
+        // Direct replacement: set pixel to target color.
+        // Anti-aliasing is handled by the selection mask — edge pixels won't be
+        // selected at low tolerance, so we don't need to blend here.
+        data[imgIdx] = targetColor.r;
+        data[imgIdx + 1] = targetColor.g;
+        data[imgIdx + 2] = targetColor.b;
+
       }
     }
   }
