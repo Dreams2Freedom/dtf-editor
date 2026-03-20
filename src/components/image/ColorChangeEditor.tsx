@@ -473,8 +473,8 @@ export function ColorChangeEditor({
           controlsRef={canvasControlsRef}
         />
 
-        {/* Side panel — flex-col with scrollable content + fixed footer */}
-        <div className={`${panelOpen ? 'flex' : 'hidden'} md:flex flex-col w-full md:w-[300px] bg-white border-t md:border-t-0 md:border-l border-gray-200`}>
+        {/* Side panel — fixed width, never shrinks, scrollable content + fixed footer */}
+        <div className={`${panelOpen ? 'flex' : 'hidden'} md:flex flex-col w-full md:w-[300px] md:flex-shrink-0 bg-white border-t md:border-t-0 md:border-l border-gray-200`}>
           <div className="flex-1 min-h-0 overflow-y-auto p-4 space-y-5">
             {/* Selected colors */}
             <div>

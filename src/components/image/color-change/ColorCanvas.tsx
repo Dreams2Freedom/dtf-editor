@@ -354,7 +354,7 @@ export function ColorCanvas({
   }, [scale, image, mW, mH]);
 
   return (
-    <div className="relative flex-1 min-h-0 flex flex-col" style={{ isolation: 'isolate' }}>
+    <div className="relative flex-1 min-w-0 min-h-0 flex flex-col" style={{ isolation: 'isolate' }}>
       {/* Scrollable canvas area */}
       <div
         ref={containerRef}
