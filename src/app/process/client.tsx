@@ -15,6 +15,7 @@ import { SignupModal } from '@/components/auth/SignupModal';
 import { compressImage } from '@/lib/image-compression';
 import { BulkUpscaleTool } from '@/components/image/BulkUpscaleTool';
 import { BulkBgRemovalTool } from '@/components/image/BulkBgRemovalTool';
+import { HelpModal } from '@/components/ui/HelpModal';
 
 export default function ProcessClient() {
   const router = useRouter();
@@ -322,15 +323,34 @@ export default function ProcessClient() {
           <Breadcrumb items={[{ label: 'Process Image' }]} />
 
           {/* Header */}
-          <div>
-            <h1 className="text-xl sm:text-2xl font-bold text-gray-900">
-              Image Processing
-            </h1>
-            {profile && (
-              <p className="text-sm text-gray-500 mt-1">
-                {profile?.credits ?? profile?.credits_remaining ?? 0} credits remaining
-              </p>
-            )}
+          <div className="flex items-center gap-2">
+            <div className="flex-1">
+              <h1 className="text-xl sm:text-2xl font-bold text-gray-900">
+                Image Processing
+              </h1>
+              {profile && (
+                <p className="text-sm text-gray-500 mt-1">
+                  {profile?.credits ?? profile?.credits_remaining ?? 0} credits remaining
+                </p>
+              )}
+            </div>
+            <HelpModal
+              storageKey="help_process"
+              title="How to Process Images"
+              accentColor="text-blue-600"
+              accentBg="bg-blue-500"
+              steps={[
+                { title: 'Upload your image', content: 'Drag and drop an image into the upload area, or click to browse your files. Supports JPEG, PNG, and WebP formats.' },
+                { title: 'Choose a tool', content: 'After uploading, select which processing tool you want to use: Upscale, Remove Background, Vectorize, or Change Colors.' },
+                { title: 'Single vs Bulk mode', content: 'Use Single Image mode to process one image at a time with full control. Switch to Bulk Upload to process multiple images at once.' },
+                { title: 'Credits', content: 'Most tools cost 1 credit per image. Color Change is free (with monthly limits). Your credit balance is shown at the top.' },
+              ]}
+              tips={[
+                'Large images are automatically compressed before upload to ensure fast processing.',
+                'You can also access individual tools directly from the Dashboard or the Create menu in the header.',
+                'After processing, images are automatically saved to your gallery.',
+              ]}
+            />
           </div>
 
           {/* Single / Bulk Mode Toggle */}

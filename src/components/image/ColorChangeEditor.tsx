@@ -57,6 +57,14 @@ export function ColorChangeEditor({
   const [panelOpen, setPanelOpen] = useState(true);
   const [showHelp, setShowHelp] = useState(false);
 
+  // Auto-show help on first visit
+  useEffect(() => {
+    const seen = localStorage.getItem('help_color_changer');
+    if (!seen) {
+      setShowHelp(true);
+    }
+  }, []);
+
   const [sampledColors, setSampledColors] = useState<SampledColor[]>([]);
   const [excludedColors, setExcludedColors] = useState<SampledColor[]>([]);
   const [lassoRegions, setLassoRegions] = useState<LassoRegion[]>([]);
@@ -284,6 +292,11 @@ export function ColorChangeEditor({
     }
     refreshImageData();
   }, [history, image, refreshImageData]);
+
+  const closeHelp = () => {
+    setShowHelp(false);
+    localStorage.setItem('help_color_changer', 'true');
+  };
 
   const handleSave = useCallback(async () => {
     if (!canvasRef.current) return;
@@ -605,7 +618,7 @@ export function ColorChangeEditor({
 
       {/* Help Modal */}
       {showHelp && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={() => setShowHelp(false)}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={closeHelp}>
           <div
             className="bg-white border border-gray-200 rounded-2xl shadow-2xl max-w-lg w-full max-h-[85vh] overflow-y-auto"
             onClick={e => e.stopPropagation()}
@@ -616,7 +629,7 @@ export function ColorChangeEditor({
                 <HelpCircle className="w-5 h-5 text-amber-600" />
                 <h2 className="text-lg font-bold text-gray-900">How to Use Color Changer</h2>
               </div>
-              <button onClick={() => setShowHelp(false)} className="p-1 text-gray-500 hover:text-gray-700">
+              <button onClick={closeHelp} className="p-1 text-gray-500 hover:text-gray-700">
                 <X className="w-5 h-5" />
               </button>
             </div>
@@ -706,7 +719,7 @@ export function ColorChangeEditor({
             {/* Footer */}
             <div className="sticky bottom-0 bg-white border-t border-gray-200 px-6 py-3 rounded-b-2xl">
               <button
-                onClick={() => setShowHelp(false)}
+                onClick={closeHelp}
                 className="w-full py-2.5 bg-amber-500 hover:bg-amber-400 text-gray-900 font-bold rounded-xl text-sm transition-colors"
               >
                 Got it

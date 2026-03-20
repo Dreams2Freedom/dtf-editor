@@ -25,6 +25,7 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import { CreditHistory } from '@/components/dashboard/CreditHistory';
+import { HelpModal } from '@/components/ui/HelpModal';
 
 const tools = [
   {
@@ -151,18 +152,37 @@ export default function DashboardPage() {
       <div className="min-h-screen bg-gray-50">
         <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
           {/* Welcome header */}
-          <div className="mb-6">
-            <h1 className="text-xl sm:text-2xl font-bold text-gray-900">
-              Welcome back, {profile?.first_name || user.email?.split('@')[0] || 'there'}
-            </h1>
-            <p className="text-sm text-gray-500 mt-1">
-              {profile.credits_remaining} credits remaining
-              {profile.subscription_plan && profile.subscription_plan !== 'free' && (
-                <span className="ml-2 px-2 py-0.5 bg-amber-100 text-amber-700 rounded-full text-xs font-medium capitalize">
-                  {profile.subscription_plan} plan
-                </span>
-              )}
-            </p>
+          <div className="flex items-center gap-2 mb-6">
+            <div className="flex-1">
+              <h1 className="text-xl sm:text-2xl font-bold text-gray-900">
+                Welcome back, {profile?.first_name || user.email?.split('@')[0] || 'there'}
+              </h1>
+              <p className="text-sm text-gray-500 mt-1">
+                {profile.credits_remaining} credits remaining
+                {profile.subscription_plan && profile.subscription_plan !== 'free' && (
+                  <span className="ml-2 px-2 py-0.5 bg-amber-100 text-amber-700 rounded-full text-xs font-medium capitalize">
+                    {profile.subscription_plan} plan
+                  </span>
+                )}
+              </p>
+            </div>
+            <HelpModal
+              storageKey="help_dashboard"
+              title="Your Dashboard"
+              accentColor="text-blue-600"
+              accentBg="bg-blue-500"
+              steps={[
+                { title: 'Quick Actions', content: 'Use the tool cards at the top to quickly access any image processing tool. Each card takes you directly to the tool.' },
+                { title: 'Your Account', content: 'View your credit balance, subscription plan, and account status. Upgrade your plan or purchase more credits here.' },
+                { title: 'My Images', content: 'All your processed images are saved in your gallery. You can download, delete, or send them to other tools for further processing.' },
+                { title: 'Credit History', content: 'Track all your credit purchases and usage at the bottom of the page.' },
+              ]}
+              tips={[
+                "Your images are stored permanently — they won't expire.",
+                'Use the search and filter options in My Images to find specific files.',
+                'You can process images further by clicking Download or using the tool links in your gallery.',
+              ]}
+            />
           </div>
 
           <div className="space-y-6">

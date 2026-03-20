@@ -10,6 +10,7 @@ import { useAuthStore } from '@/stores/authStore';
 import { Breadcrumb } from '@/components/ui/Breadcrumb';
 import { SignupModal } from '@/components/auth/SignupModal';
 import { BulkBgRemovalTool } from '@/components/image/BulkBgRemovalTool';
+import { HelpModal } from '@/components/ui/HelpModal';
 
 declare global {
   interface Window {
@@ -742,6 +743,26 @@ export default function BackgroundRemovalClient() {
               ]}
             />
           </div>
+
+          <HelpModal
+            storageKey="help_bg_removal"
+            title="How to Remove Backgrounds"
+            accentColor="text-green-600"
+            accentBg="bg-green-500"
+            steps={[
+              { title: 'Upload your image', content: 'Upload an image from the Process page or come here with an image already loaded.' },
+              { title: 'Open the editor', content: 'Click "Remove Background" to upload your image to the ClippingMagic editor. The editor opens in a popup window.' },
+              { title: 'Refine the result', content: 'The AI automatically removes the background. Use the editor tools to mark areas to keep (green) or remove (red) for precision.' },
+              { title: 'Save your result', content: 'Click Done in the editor. The processed image with transparent background is saved to your gallery.' },
+              { title: 'Bulk mode', content: 'Switch to Bulk Upload to remove backgrounds from multiple images at once. Review results, flag any for re-editing, then download all as a ZIP.' },
+            ]}
+            tips={[
+              'Background removal costs 1 credit per image. Re-edits in the ClippingMagic editor are free — covered by the original credit.',
+              'Results are always saved as PNG to preserve transparency.',
+              'After removing the background, you can upscale or change colors on the result.',
+              'Make sure popups are allowed for this site — the editor opens in a popup window.',
+            ]}
+          />
 
           {/* Single / Bulk Mode Toggle */}
           <div className="flex rounded-xl border border-gray-200 p-1 bg-gray-100 mb-6">

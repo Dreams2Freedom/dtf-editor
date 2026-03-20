@@ -30,6 +30,7 @@ import {
   needsCompression,
 } from '@/utils/imageCompression';
 import { compressImage as compressImageForUpload } from '@/lib/image-compression';
+import { HelpModal } from '@/components/ui/HelpModal';
 
 export default function UpscaleClient() {
   const searchParams = useSearchParams();
@@ -876,6 +877,25 @@ export default function UpscaleClient() {
               ]}
             />
           </div>
+
+          <HelpModal
+            storageKey="help_upscale"
+            title="How to Upscale Images"
+            accentColor="text-blue-600"
+            accentBg="bg-blue-500"
+            steps={[
+              { title: 'Upload or select an image', content: 'Upload a new image or come here from the Process page with an image already loaded.' },
+              { title: 'Choose your print size', content: 'Select a preset print size (like 8"x10" or 22"x24" gang sheet) or enter custom dimensions. The tool calculates the exact pixels needed for 300 DPI print quality.' },
+              { title: 'Select processing mode', content: 'Auto Enhance works best for most images. Generative Upscale adds AI detail for very low-res images. Basic Upscale is fastest for simple graphics.' },
+              { title: 'Process and download', content: 'Click Process to upscale. The result is saved to your gallery automatically. Download or send to other tools for further processing.' },
+              { title: 'Bulk mode', content: 'Switch to Bulk Upload to upscale multiple images at once. Configure print sizes individually or apply the same size to all images.' },
+            ]}
+            tips={[
+              'For DTF printing, 300 DPI is the gold standard. The DPI calculator shows you exactly what scale factor is needed.',
+              'Gang sheet sizes (22"x24", 22"x60") are pre-configured for common DTF film widths.',
+              'Upscaling costs 1 credit per image regardless of the scale factor.',
+            ]}
+          />
 
           {/* Single / Bulk Mode Toggle */}
           <div className="flex rounded-xl border border-gray-200 p-1 bg-gray-100 mb-6">
