@@ -555,6 +555,8 @@ export function ColorChangeEditor({
               <span><kbd className="px-1 py-0.5 bg-gray-100 rounded text-gray-500 font-mono">Shift</kbd> Add</span>
               <span><kbd className="px-1 py-0.5 bg-gray-100 rounded text-gray-500 font-mono">Alt</kbd> Exclude</span>
               <span><kbd className="px-1 py-0.5 bg-gray-100 rounded text-gray-500 font-mono">Lasso</kbd> Refine</span>
+              <span><kbd className="px-1 py-0.5 bg-gray-100 rounded text-gray-500 font-mono">Space</kbd> Pan</span>
+              <span><kbd className="px-1 py-0.5 bg-gray-100 rounded text-gray-500 font-mono">+/−</kbd> Zoom</span>
             </div>
 
             {/* Changes history */}
