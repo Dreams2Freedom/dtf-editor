@@ -103,7 +103,8 @@ async function handlePost(request: NextRequest) {
     );
 
     // 10. Clean up original upload if processing succeeded
-    if (result.success && uploadResult.path) {
+    // Skip cleanup for color-change: the upload IS the processed result
+    if (result.success && uploadResult.path && operation !== 'color-change') {
       // Don't await cleanup to speed up response
       storageService.deleteImage(uploadResult.path).catch(() => {
         // Silently ignore cleanup errors
@@ -127,7 +128,7 @@ async function handlePost(request: NextRequest) {
           savedId = await saveProcessedImageToGallery({
             userId: user.id,
             processedUrl: result.processedUrl,
-            operationType: operation as ProcessingOperation,
+            operationType: operation as any,
             originalFilename: imageFile.name,
             fileSize: imageFile.size,
             metadata: {
@@ -203,6 +204,10 @@ function validateProcessingOptions(options: ProcessingOptions): string | null {
 
     case 'background-removal':
       // No specific validation needed yet
+      break;
+
+    case 'color-change':
+      // No specific validation needed — all processing is client-side
       break;
 
     case 'vectorization':
