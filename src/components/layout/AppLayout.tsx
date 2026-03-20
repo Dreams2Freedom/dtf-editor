@@ -18,9 +18,10 @@ export function AppLayout({ children, showFooter = true }: AppLayoutProps) {
   const isAuthPage = pathname?.startsWith('/auth/');
   const isAdminPage = pathname?.startsWith('/admin');
   const isClippingMagicEditor = pathname?.includes('/clippingmagic-editor');
+  const isHomePage = pathname === '/';
 
   // Hide layout on specific pages
-  if (isAuthPage || isAdminPage || isClippingMagicEditor) {
+  if (isAuthPage || isAdminPage || isClippingMagicEditor || isHomePage) {
     return <>{children}</>;
   }
 
