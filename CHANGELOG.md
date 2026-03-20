@@ -6,6 +6,21 @@ Format based on [Keep a Changelog](https://keepachangelog.com/), versioning foll
 
 ---
 
+## [1.1.2] - 2026-03-19
+
+### Fixed
+- **Color changer: achromatic color replacement** — complete rewrite of the color shift algorithm with 4 distinct cases:
+  - Chromatic→Chromatic: HSL hue shift (unchanged, works great)
+  - Achromatic→Chromatic: luminance-mapped colorize (white→red, black→blue)
+  - Chromatic→Achromatic: desaturation toward target luminance (red→black, blue→white)
+  - Achromatic→Achromatic: direct replacement (black↔white now works perfectly)
+- White→any color now produces the correct color at full brightness
+- Black→any color now produces the correct color
+- Black↔white transitions work with direct pixel replacement
+- Uses perceived luminance (Rec. 709) instead of HSL lightness for accurate color math
+
+---
+
 ## [1.1.1] - 2026-03-19
 
 ### Added
