@@ -30,7 +30,7 @@ export interface ColorChangeEntry {
   originalPixels: Uint8ClampedArray;
 }
 
-export type SelectionMode = 'click' | 'lasso';
+export type SelectionMode = 'click' | 'lasso' | 'pan';
 
 export interface ColorChangeState {
   selectionMode: SelectionMode;

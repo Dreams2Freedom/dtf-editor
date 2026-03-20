@@ -15,6 +15,12 @@ interface ColorCanvasProps {
   currentMask: SelectionMask | null;
   onPixelClick: (x: number, y: number, mode: 'replace' | 'add' | 'subtract') => void;
   onLassoComplete: (polygon: Array<{ x: number; y: number }>, mode: 'trim' | 'add' | 'subtract') => void;
+  /** Ref populated with zoom control functions for the parent toolbar */
+  controlsRef?: React.MutableRefObject<{
+    fitToView: () => void;
+    zoomIn: () => void;
+    zoomOut: () => void;
+  }>;
 }
 
 export function ColorCanvas({
@@ -25,6 +31,7 @@ export function ColorCanvas({
   currentMask,
   onPixelClick,
   onLassoComplete,
+  controlsRef,
 }: ColorCanvasProps) {
   const stageRef = useRef<Konva.Stage>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -42,10 +49,13 @@ export function ColorCanvas({
   const [stageSize, setStageSize] = useState({ width: 800, height: 600 });
   const scrollTargetRef = useRef<{ left: number; top: number } | null>(null);
 
-  // Pan state
-  const [isPanMode, setIsPanMode] = useState(false);
+  // Pan state (space key temporary pan)
+  const [isSpacePan, setIsSpacePan] = useState(false);
   const [isPanDragging, setIsPanDragging] = useState(false);
   const isSpaceDown = useRef(false);
+
+  // Combined pan active: space key OR pan tool selected
+  const isPanActive = isSpacePan || selectionMode === 'pan';
 
   // Minimap state
   const [minimapViewport, setMinimapViewport] = useState({ x: 0, y: 0, w: 0, h: 0 });
@@ -109,6 +119,17 @@ export function ColorCanvas({
     }
   }, [image]);
 
+  // ── Expose zoom controls to parent via ref ──────────────
+  useEffect(() => {
+    if (controlsRef) {
+      controlsRef.current = {
+        fitToView: () => handleZoom('fit'),
+        zoomIn: () => handleZoom('in'),
+        zoomOut: () => handleZoom('out'),
+      };
+    }
+  }, [handleZoom, controlsRef]);
+
   // ── Keyboard shortcuts (Space pan, +/- zoom, 0 fit) ────
   useEffect(() => {
     const down = (e: KeyboardEvent) => {
@@ -118,7 +139,7 @@ export function ColorCanvas({
       if (e.code === 'Space' && !e.repeat) {
         e.preventDefault();
         isSpaceDown.current = true;
-        setIsPanMode(true);
+        setIsSpacePan(true);
       }
       if ((e.key === '=' || e.key === '+') && !e.ctrlKey && !e.metaKey) {
         e.preventDefault();
@@ -141,7 +162,7 @@ export function ColorCanvas({
     const up = (e: KeyboardEvent) => {
       if (e.code === 'Space') {
         isSpaceDown.current = false;
-        setIsPanMode(false);
+        setIsSpacePan(false);
         setIsPanDragging(false);
       }
     };
@@ -275,7 +296,7 @@ export function ColorCanvas({
     onLassoComplete(polygon, lassoModeRef.current);
   }, [isDrawingLasso, lassoPoints, onLassoComplete]);
 
-  // ── Pan overlay: mousedown starts window-level drag ─────
+  // ── Pan: mousedown starts window-level drag ─────────────
   const handlePanDown = useCallback((e: React.MouseEvent) => {
     const container = containerRef.current;
     if (!container) return;
@@ -333,7 +354,7 @@ export function ColorCanvas({
   }, [scale, image, mW, mH]);
 
   return (
-    <div className="relative flex-1 min-h-0 flex flex-col">
+    <div className="relative flex-1 min-h-0 flex flex-col" style={{ isolation: 'isolate' }}>
       {/* Scrollable canvas area */}
       <div
         ref={containerRef}
@@ -376,18 +397,18 @@ export function ColorCanvas({
         </Stage>
       </div>
 
-      {/* Pan overlay — intercepts mouse for space+drag pan */}
-      {isPanMode && (
+      {/* Pan overlay — intercepts mouse for pan (space key OR pan tool) */}
+      {isPanActive && (
         <div
-          className="absolute inset-0 z-20"
-          style={{ cursor: isPanDragging ? 'grabbing' : 'grab' }}
+          className="absolute inset-0"
+          style={{ cursor: isPanDragging ? 'grabbing' : 'grab', zIndex: 20 }}
           onMouseDown={handlePanDown}
         />
       )}
 
-      {/* Pan mode indicator */}
-      {isPanMode && (
-        <div className="absolute top-3 left-1/2 -translate-x-1/2 z-30 bg-gray-900/80 backdrop-blur-sm text-white text-xs px-3 py-1.5 rounded-full shadow-lg pointer-events-none select-none flex items-center gap-1.5">
+      {/* Pan mode indicator (only for space key, not pan tool) */}
+      {isSpacePan && selectionMode !== 'pan' && (
+        <div className="absolute top-3 left-1/2 -translate-x-1/2 bg-gray-900/80 text-white text-xs px-3 py-1.5 rounded-full shadow-lg pointer-events-none select-none flex items-center gap-1.5" style={{ zIndex: 60 }}>
           <Hand className="w-3.5 h-3.5" />
           Drag to pan
         </div>
@@ -395,10 +416,9 @@ export function ColorCanvas({
 
       {/* Minimap — visible when zoomed in */}
       {isZoomed && (
-        <div className="absolute bottom-3 left-3 z-30 bg-white/95 backdrop-blur-sm rounded-lg shadow-lg border border-gray-200/80 p-1.5">
+        <div className="absolute bottom-3 left-3 bg-white/95 rounded-lg shadow-lg border border-gray-300 p-1.5" style={{ zIndex: 50 }}>
           <div className="relative overflow-hidden rounded" style={{ width: mW, height: mH }}>
             <canvas ref={minimapCanvasRef} width={mW} height={mH} className="block" />
-            {/* Viewport indicator */}
             <div
               className="absolute border-2 border-amber-500 bg-amber-500/15 rounded-[1px]"
               style={{
@@ -408,7 +428,6 @@ export function ColorCanvas({
                 height: Math.min(minimapViewport.h, mH - Math.max(0, minimapViewport.y)),
               }}
             />
-            {/* Click/drag to navigate */}
             <div
               className="absolute inset-0 cursor-crosshair"
               onMouseDown={handleMinimapDown}
@@ -417,30 +436,33 @@ export function ColorCanvas({
         </div>
       )}
 
-      {/* Zoom controls */}
-      <div className="absolute bottom-3 right-3 z-30 flex items-center gap-1 bg-gray-900/90 backdrop-blur-sm rounded-xl px-2.5 py-1.5 shadow-xl border border-white/10">
+      {/* Floating zoom controls — always visible, high z-index */}
+      <div
+        className="absolute bottom-3 right-3 flex items-center gap-1 bg-gray-900 rounded-xl px-2.5 py-1.5 shadow-2xl border-2 border-gray-600"
+        style={{ zIndex: 50 }}
+      >
         <button
           onClick={() => handleZoom('out')}
-          className="w-7 h-7 flex items-center justify-center text-white/80 hover:text-white hover:bg-white/10 rounded-lg transition-colors text-sm"
+          className="w-7 h-7 flex items-center justify-center text-white hover:bg-white/20 rounded-lg transition-colors text-sm font-bold"
           title="Zoom out (−)"
         >−</button>
-        <span className="text-white/90 text-[11px] font-mono w-11 text-center select-none">
+        <span className="text-white text-[11px] font-mono w-11 text-center select-none">
           {Math.round(scale * 100)}%
         </span>
         <button
           onClick={() => handleZoom('in')}
-          className="w-7 h-7 flex items-center justify-center text-white/80 hover:text-white hover:bg-white/10 rounded-lg transition-colors text-sm"
+          className="w-7 h-7 flex items-center justify-center text-white hover:bg-white/20 rounded-lg transition-colors text-sm font-bold"
           title="Zoom in (+)"
         >+</button>
-        <div className="h-4 w-px bg-white/20 mx-0.5" />
+        <div className="h-4 w-px bg-gray-500 mx-0.5" />
         <button
           onClick={() => handleZoom('fit')}
-          className="h-7 px-2 flex items-center justify-center text-white/70 hover:text-white hover:bg-white/10 rounded-lg transition-colors text-[10px] font-medium"
+          className="h-7 px-2 flex items-center justify-center text-white hover:bg-white/20 rounded-lg transition-colors text-[10px] font-bold"
           title="Fit to view (0)"
         >Fit</button>
         <button
           onClick={() => setScale(1)}
-          className="h-7 px-1.5 flex items-center justify-center text-white/70 hover:text-white hover:bg-white/10 rounded-lg transition-colors text-[10px] font-mono"
+          className="h-7 px-1.5 flex items-center justify-center text-white hover:bg-white/20 rounded-lg transition-colors text-[10px] font-mono font-bold"
           title="Actual pixels"
         >1:1</button>
       </div>

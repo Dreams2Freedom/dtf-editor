@@ -5,7 +5,7 @@ import dynamic from 'next/dynamic';
 import {
   Undo2, Redo2, RotateCcw, Loader2, X, Download, Wand2, Scissors,
   MousePointer2, Lasso, SlidersHorizontal, ChevronDown, ChevronUp,
-  Pipette, Ban, HelpCircle
+  Pipette, Ban, HelpCircle, Hand, ZoomIn, ZoomOut, Maximize2
 } from 'lucide-react';
 import { HexColorPicker, HexColorInput } from 'react-colorful';
 import { ChangesHistory } from './color-change/ChangesHistory';
@@ -48,6 +48,7 @@ export function ColorChangeEditor({
   onNavigate,
 }: ColorChangeEditorProps) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const canvasControlsRef = useRef({ fitToView: () => {}, zoomIn: () => {}, zoomOut: () => {} });
   const [imageData, setImageData] = useState<ImageData | null>(null);
   const [selectionMode, setSelectionMode] = useState<SelectionMode>('click');
   const [tolerance, setTolerance] = useState(20);
@@ -336,7 +337,7 @@ export function ColorChangeEditor({
       {/* Toolbar */}
       <div className="bg-white border-b border-gray-200 px-3 py-2">
         <div className="flex items-center gap-2 flex-wrap">
-          {/* Mode toggle */}
+          {/* Mode toggle: Select / Lasso / Pan */}
           <div className="flex bg-gray-100 rounded-lg p-0.5">
             <button
               onClick={() => setSelectionMode('click')}
@@ -359,6 +360,18 @@ export function ColorChangeEditor({
             >
               <Lasso className="w-3.5 h-3.5" />
               <span className="hidden sm:inline">Lasso</span>
+            </button>
+            <button
+              onClick={() => setSelectionMode('pan')}
+              className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md transition-all ${
+                selectionMode === 'pan'
+                  ? 'bg-amber-500 text-gray-900 shadow-sm'
+                  : 'text-gray-500 hover:text-gray-900'
+              }`}
+              title="Pan tool — drag to move around the image"
+            >
+              <Hand className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Pan</span>
             </button>
           </div>
 
@@ -391,6 +404,34 @@ export function ColorChangeEditor({
           </div>
 
           <div className="flex-1" />
+
+          {/* Zoom controls in toolbar — always accessible */}
+          <div className="flex items-center gap-0.5">
+            <button
+              onClick={() => canvasControlsRef.current.zoomOut()}
+              className="p-1.5 rounded-md text-gray-500 hover:text-gray-900 hover:bg-gray-100 transition-colors"
+              title="Zoom out (−)"
+            >
+              <ZoomOut className="w-4 h-4" />
+            </button>
+            <button
+              onClick={() => canvasControlsRef.current.zoomIn()}
+              className="p-1.5 rounded-md text-gray-500 hover:text-gray-900 hover:bg-gray-100 transition-colors"
+              title="Zoom in (+)"
+            >
+              <ZoomIn className="w-4 h-4" />
+            </button>
+            <button
+              onClick={() => canvasControlsRef.current.fitToView()}
+              className="flex items-center gap-1 px-2 py-1.5 rounded-md text-xs text-gray-500 hover:text-gray-900 hover:bg-gray-100 transition-colors"
+              title="Fit image to view (0)"
+            >
+              <Maximize2 className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Fit</span>
+            </button>
+          </div>
+
+          <div className="h-5 w-px bg-gray-200" />
 
           {/* Reset */}
           <button onClick={handleResetAll} disabled={!hasChanges} className="flex items-center gap-1 px-2.5 py-1.5 rounded-md text-xs text-gray-500 hover:text-gray-900 hover:bg-gray-100 disabled:opacity-20 transition-colors">
@@ -429,6 +470,7 @@ export function ColorChangeEditor({
           currentMask={currentMask}
           onPixelClick={handlePixelClick}
           onLassoComplete={handleLassoComplete}
+          controlsRef={canvasControlsRef}
         />
 
         {/* Side panel */}
