@@ -5,7 +5,7 @@ import dynamic from 'next/dynamic';
 import {
   Undo2, Redo2, RotateCcw, Loader2, X, Download, Wand2, Scissors,
   MousePointer2, Lasso, SlidersHorizontal, ChevronDown, ChevronUp,
-  Pipette, Ban
+  Pipette, Ban, HelpCircle
 } from 'lucide-react';
 import { HexColorPicker, HexColorInput } from 'react-colorful';
 import { ChangesHistory } from './color-change/ChangesHistory';
@@ -55,6 +55,7 @@ export function ColorChangeEditor({
   const [isSaving, setIsSaving] = useState(false);
   const [renderKey, setRenderKey] = useState(0);
   const [panelOpen, setPanelOpen] = useState(true);
+  const [showHelp, setShowHelp] = useState(false);
 
   const [sampledColors, setSampledColors] = useState<SampledColor[]>([]);
   const [excludedColors, setExcludedColors] = useState<SampledColor[]>([]);
@@ -384,6 +385,15 @@ export function ColorChangeEditor({
             <span className="hidden sm:inline">Reset</span>
           </button>
 
+          {/* Help */}
+          <button
+            onClick={() => setShowHelp(true)}
+            className="p-1.5 rounded-md text-gray-400 hover:text-amber-400 hover:bg-gray-800 transition-colors"
+            title="How to use"
+          >
+            <HelpCircle className="w-4 h-4" />
+          </button>
+
           {/* Mobile panel toggle */}
           <button
             onClick={() => setPanelOpen(!panelOpen)}
@@ -592,6 +602,119 @@ export function ColorChangeEditor({
           </div>
         </div>
       </div>
+
+      {/* Help Modal */}
+      {showHelp && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4" onClick={() => setShowHelp(false)}>
+          <div
+            className="bg-gray-900 border border-gray-800 rounded-2xl shadow-2xl max-w-lg w-full max-h-[85vh] overflow-y-auto"
+            onClick={e => e.stopPropagation()}
+          >
+            {/* Header */}
+            <div className="sticky top-0 bg-gray-900 border-b border-gray-800 px-6 py-4 flex items-center justify-between rounded-t-2xl">
+              <div className="flex items-center gap-2">
+                <HelpCircle className="w-5 h-5 text-amber-400" />
+                <h2 className="text-lg font-bold text-gray-100">How to Use Color Changer</h2>
+              </div>
+              <button onClick={() => setShowHelp(false)} className="p-1 text-gray-500 hover:text-gray-300">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="px-6 py-5 space-y-6 text-sm text-gray-300">
+              {/* Step 1 */}
+              <div>
+                <div className="flex items-center gap-2 mb-2">
+                  <span className="w-6 h-6 bg-amber-500 text-gray-900 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0">1</span>
+                  <h3 className="font-semibold text-gray-100">Select the colors you want to change</h3>
+                </div>
+                <div className="ml-8 space-y-2 text-gray-400">
+                  <p><strong className="text-gray-300">Click</strong> on any color in the image to select it. All matching pixels across the image will highlight in blue.</p>
+                  <p><strong className="text-gray-300">Shift+Click</strong> to add more shades. For example, click a light green, then Shift+Click a darker green to select both shades.</p>
+                  <p><strong className="text-gray-300">Alt+Click</strong> to exclude a color. If the selection catches some black or brown pixels you don&apos;t want, Alt+Click them to add to the exclusion list. Pixels closer to excluded colors will be automatically removed from the selection.</p>
+                </div>
+              </div>
+
+              {/* Step 2 */}
+              <div>
+                <div className="flex items-center gap-2 mb-2">
+                  <span className="w-6 h-6 bg-amber-500 text-gray-900 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0">2</span>
+                  <h3 className="font-semibold text-gray-100">Refine with Tolerance and Lasso</h3>
+                </div>
+                <div className="ml-8 space-y-2 text-gray-400">
+                  <p><strong className="text-gray-300">Tolerance slider</strong> controls how much color variation is included. Drag it to see the selection update in real-time. Higher = more variation, lower = exact match only.</p>
+                  <p><strong className="text-gray-300">Lasso tool</strong> lets you define areas. Switch to Lasso mode and draw around a specific region:</p>
+                  <ul className="list-disc ml-4 space-y-1">
+                    <li><strong className="text-gray-300">Draw</strong> — limit the selection to inside the lasso only</li>
+                    <li><strong className="text-gray-300">Shift+Draw</strong> — add another area (e.g., lasso around a second rose)</li>
+                    <li><strong className="text-gray-300">Alt+Draw</strong> — exclude an area from the selection</li>
+                  </ul>
+                </div>
+              </div>
+
+              {/* Step 3 */}
+              <div>
+                <div className="flex items-center gap-2 mb-2">
+                  <span className="w-6 h-6 bg-amber-500 text-gray-900 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0">3</span>
+                  <h3 className="font-semibold text-gray-100">Pick the replacement color</h3>
+                </div>
+                <div className="ml-8 space-y-2 text-gray-400">
+                  <p>Use the <strong className="text-gray-300">color wheel</strong> to visually choose a new color, or type an exact <strong className="text-gray-300">hex code</strong> in the input field.</p>
+                  <p>The color shift preserves shading and texture — dark areas stay dark, light areas stay light. Only the hue and saturation change.</p>
+                </div>
+              </div>
+
+              {/* Step 4 */}
+              <div>
+                <div className="flex items-center gap-2 mb-2">
+                  <span className="w-6 h-6 bg-amber-500 text-gray-900 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0">4</span>
+                  <h3 className="font-semibold text-gray-100">Apply and repeat</h3>
+                </div>
+                <div className="ml-8 space-y-2 text-gray-400">
+                  <p>Click <strong className="text-gray-300">Apply Color Change</strong> to commit the change. The selection clears and you can start selecting a new color to change.</p>
+                  <p>You can make multiple color changes on the same image. Each change appears in the <strong className="text-gray-300">History</strong> panel where you can remove any individual change.</p>
+                  <p><strong className="text-gray-300">Undo/Redo</strong> with the toolbar buttons or <kbd className="px-1.5 py-0.5 bg-gray-800 rounded text-xs text-gray-300 font-mono">Ctrl+Z</kbd> / <kbd className="px-1.5 py-0.5 bg-gray-800 rounded text-xs text-gray-300 font-mono">Ctrl+Shift+Z</kbd>.</p>
+                </div>
+              </div>
+
+              {/* Step 5 */}
+              <div>
+                <div className="flex items-center gap-2 mb-2">
+                  <span className="w-6 h-6 bg-amber-500 text-gray-900 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0">5</span>
+                  <h3 className="font-semibold text-gray-100">Save and export</h3>
+                </div>
+                <div className="ml-8 space-y-2 text-gray-400">
+                  <p><strong className="text-gray-300">Save to Gallery</strong> stores the image in your account.</p>
+                  <p><strong className="text-gray-300">Download</strong> saves to your computer (auto-saves to gallery first).</p>
+                  <p>After saving, you can send the image directly to <strong className="text-gray-300">Upscale</strong> or <strong className="text-gray-300">Background Removal</strong> for further processing.</p>
+                </div>
+              </div>
+
+              {/* Tips */}
+              <div className="bg-amber-500/10 border border-amber-500/20 rounded-xl p-4">
+                <h3 className="font-semibold text-amber-300 mb-2">Pro Tips</h3>
+                <ul className="space-y-1.5 text-amber-200/70 text-xs">
+                  <li>Start with a low tolerance (10-20) and increase gradually to avoid selecting too much.</li>
+                  <li>Use excluded colors (Alt+Click) when similar colors bleed into each other — like dark green near black.</li>
+                  <li>The lasso Shift+Draw is perfect when the same color appears in multiple separate areas (e.g., two roses).</li>
+                  <li>For best print quality, make sure your image is at least 3000px wide (300 DPI at 10&quot;). Upscale first if needed.</li>
+                  <li>Zoom in with the + button to see detail, then scroll to navigate around the image.</li>
+                </ul>
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div className="sticky bottom-0 bg-gray-900 border-t border-gray-800 px-6 py-3 rounded-b-2xl">
+              <button
+                onClick={() => setShowHelp(false)}
+                className="w-full py-2.5 bg-amber-500 hover:bg-amber-400 text-gray-900 font-bold rounded-xl text-sm transition-colors"
+              >
+                Got it
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
