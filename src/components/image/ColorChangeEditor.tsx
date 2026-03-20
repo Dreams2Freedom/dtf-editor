@@ -473,9 +473,9 @@ export function ColorChangeEditor({
           controlsRef={canvasControlsRef}
         />
 
-        {/* Side panel */}
-        <div className={`${panelOpen ? 'flex' : 'hidden'} md:flex flex-col w-full md:w-[300px] bg-white border-t md:border-t-0 md:border-l border-gray-200 overflow-y-auto`}>
-          <div className="p-4 space-y-5 flex-1">
+        {/* Side panel — flex-col with scrollable content + fixed footer */}
+        <div className={`${panelOpen ? 'flex' : 'hidden'} md:flex flex-col w-full md:w-[300px] bg-white border-t md:border-t-0 md:border-l border-gray-200`}>
+          <div className="flex-1 min-h-0 overflow-y-auto p-4 space-y-5">
             {/* Selected colors */}
             <div>
               <div className="flex items-center gap-1.5 mb-2.5">
@@ -610,8 +610,8 @@ export function ColorChangeEditor({
             )}
           </div>
 
-          {/* Actions footer — sticky so it's always reachable */}
-          <div className="sticky bottom-0 p-3 border-t border-gray-200 space-y-2 bg-white/95 backdrop-blur-sm">
+          {/* Actions footer — always visible, outside the scroll area */}
+          <div className="flex-shrink-0 p-3 border-t border-gray-200 space-y-2 bg-white">
             <div className="text-[10px] text-gray-400 text-center">
               {usageRemaining > 0
                 ? `${usageLimit - usageRemaining}/${usageLimit} free changes used`
