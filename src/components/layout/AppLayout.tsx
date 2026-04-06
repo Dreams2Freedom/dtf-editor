@@ -18,9 +18,10 @@ export function AppLayout({ children, showFooter = true }: AppLayoutProps) {
   const isAuthPage = pathname?.startsWith('/auth/');
   const isAdminPage = pathname?.startsWith('/admin');
   const isClippingMagicEditor = pathname?.includes('/clippingmagic-editor');
+  const isHomePage = pathname === '/';
 
   // Hide layout on specific pages
-  if (isAuthPage || isAdminPage || isClippingMagicEditor) {
+  if (isAuthPage || isAdminPage || isClippingMagicEditor || isHomePage) {
     return <>{children}</>;
   }
 
@@ -30,7 +31,7 @@ export function AppLayout({ children, showFooter = true }: AppLayoutProps) {
       <ImpersonationBanner />
       <div className="min-h-screen flex flex-col">
         <Header />
-        <main className="flex-1">{children}</main>
+        <main className="flex-1 flex flex-col min-h-0">{children}</main>
         {showFooter && <Footer />}
       </div>
     </>

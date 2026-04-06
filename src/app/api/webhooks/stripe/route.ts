@@ -13,6 +13,39 @@ const PLAN_PRICE_AMOUNTS: Record<number, string> = {
   4999: 'professional', // $49.99
 };
 
+// Fallback credit detection by checkout session amount (cents) for pay-as-you-go
+const PAYG_CREDIT_AMOUNTS: Record<number, number> = {
+  499: 10,
+  899: 20,
+  1999: 50,
+};
+
+// Resolve credits for a pay-as-you-go checkout session, with fallback by amount
+function resolveCreditsFromSession(session: any): number {
+  // 1. Try metadata first
+  const metaCredits = parseInt(session.metadata?.credits || '0', 10);
+  if (metaCredits > 0) {
+    console.log(`✅ [Credit Resolve] From metadata: ${metaCredits}`);
+    return metaCredits;
+  }
+
+  // 2. Fallback: detect from amount
+  const amount = session.amount_total || 0;
+  const fallback = PAYG_CREDIT_AMOUNTS[amount];
+  if (fallback) {
+    console.log(`✅ [Credit Resolve] Fallback by amount ($${(amount / 100).toFixed(2)}): ${fallback} credits`);
+    return fallback;
+  }
+
+  console.warn(
+    '⚠️ [Credit Resolve] Could not determine credits. metadata.credits:',
+    session.metadata?.credits,
+    'amount_total:',
+    amount
+  );
+  return 0;
+}
+
 // Resolve a Stripe price ID to a plan, with fallback by amount
 async function resolvePlanFromPriceId(priceId: string | undefined) {
   if (!priceId) return null;
@@ -240,6 +273,77 @@ async function logPaymentTransaction(params: {
   }
 }
 
+// GET handler for webhook health check — verifies endpoint is deployed and configured
+export async function GET() {
+  const stripeService = getStripeService();
+  const plans = stripeService.getSubscriptionPlans();
+
+  const hasWebhookSecret = !!(
+    process.env.STRIPE_LIVE_WEBHOOK_SECRET || process.env.STRIPE_WEBHOOK_SECRET
+  );
+  const hasServiceKey = !!process.env.SUPABASE_SERVICE_ROLE_KEY;
+  const hasStripeKey = !!(
+    process.env.STRIPE_LIVE_SECRET_KEY || process.env.STRIPE_SECRET_KEY
+  );
+
+  // Check if add_user_credits RPC exists
+  let rpcExists = false;
+  try {
+    const supabase = getSupabase();
+    // Call with a non-existent user to test if the function exists
+    // It will fail with "no rows" but NOT with "function does not exist"
+    const { error } = await supabase.rpc('add_user_credits', {
+      p_user_id: '00000000-0000-0000-0000-000000000000',
+      p_amount: 0,
+      p_transaction_type: 'test',
+      p_description: 'health check',
+    });
+    // If error is about the function not existing, rpcExists stays false
+    // Any other error (like user not found) means the function exists
+    rpcExists = !error?.message?.includes('function') || error?.message?.includes('null value');
+    if (error && !error.message.includes('function')) {
+      rpcExists = true;
+    }
+  } catch {
+    rpcExists = false;
+  }
+
+  return NextResponse.json({
+    status: 'ok',
+    endpoint: '/api/webhooks/stripe',
+    environment: process.env.NODE_ENV,
+    config: {
+      webhookSecretConfigured: hasWebhookSecret,
+      stripeKeyConfigured: hasStripeKey,
+      supabaseServiceKeyConfigured: hasServiceKey,
+      addUserCreditsRpcExists: rpcExists,
+    },
+    plans: plans.map((p: any) => ({
+      id: p.id,
+      creditsPerMonth: p.creditsPerMonth,
+      priceIdConfigured: !!p.stripePriceId,
+    })),
+    paygPriceIds: {
+      '10credits': !!process.env.STRIPE_LIVE_PAYG_10_CREDITS_PRICE_ID || !!process.env.STRIPE_PAYG_10_CREDITS_PRICE_ID,
+      '20credits': !!process.env.STRIPE_LIVE_PAYG_20_CREDITS_PRICE_ID || !!process.env.STRIPE_PAYG_20_CREDITS_PRICE_ID,
+      '50credits': !!process.env.STRIPE_LIVE_PAYG_50_CREDITS_PRICE_ID || !!process.env.STRIPE_PAYG_50_CREDITS_PRICE_ID,
+    },
+    listenedEvents: [
+      'checkout.session.completed',
+      'customer.subscription.created',
+      'customer.subscription.updated',
+      'customer.subscription.deleted',
+      'customer.subscription.trial_will_end',
+      'invoice.payment_succeeded',
+      'invoice.payment_failed',
+      'payment_intent.succeeded',
+      'payment_intent.payment_failed',
+      'charge.refunded',
+    ],
+    timestamp: new Date().toISOString(),
+  });
+}
+
 export async function POST(request: NextRequest) {
   console.log('\n🔔 STRIPE WEBHOOK RECEIVED');
   console.log('📍 Webhook URL:', request.url);
@@ -255,12 +359,23 @@ export async function POST(request: NextRequest) {
     );
   }
 
+  // Step 1: Verify webhook signature (separate from handler errors)
+  let event;
   try {
-    const event = getStripeService().constructWebhookEvent(body, signature);
+    event = getStripeService().constructWebhookEvent(body, signature);
     console.log('✅ Webhook signature verified');
+  } catch (signatureError: any) {
+    console.error('❌ Webhook SIGNATURE verification failed:', signatureError.message);
+    return NextResponse.json(
+      { error: 'Webhook signature verification failed' },
+      { status: 400 }
+    );
+  }
+
+  // Step 2: Process the event (errors here are handler bugs, NOT signature issues)
+  try {
     console.log('📨 Event type:', event.type);
     console.log('📨 Event ID:', event.id);
-    console.log('📨 Event data:', JSON.stringify(event.data.object, null, 2));
 
     // SEC-015: Skip already-processed events (DB-backed dedup)
     if (await isEventProcessed(event.id)) {
@@ -312,22 +427,23 @@ export async function POST(request: NextRequest) {
         break;
 
       default:
-      // Unhandled event type
+        console.log('ℹ️ Unhandled event type:', event.type);
     }
 
     // Mark as processed only after successful completion
     await markEventProcessed(event.id, event.type);
 
-    console.log('✅ Webhook processed successfully');
+    console.log('✅ Webhook processed successfully:', event.type);
     return NextResponse.json({ received: true });
-  } catch (error: any) {
-    console.error('❌ Webhook error:', error);
-    console.error('Error details:', error.message);
+  } catch (handlerError: any) {
+    // This is a HANDLER error, not a signature error — log it clearly
+    console.error('❌ Webhook HANDLER error for event:', event.type, event.id);
+    console.error('❌ Handler error message:', handlerError.message);
+    console.error('❌ Handler error stack:', handlerError.stack);
+    // Return 500 so Stripe retries (400 would indicate we rejected the event)
     return NextResponse.json(
-      {
-        error: 'Webhook signature verification failed',
-      },
-      { status: 400 }
+      { error: 'Webhook handler error', eventType: event.type },
+      { status: 500 }
     );
   }
 }
@@ -1074,7 +1190,7 @@ async function handleCheckoutSessionCompleted(session: any) {
   if (session.mode === 'payment') {
     console.log('🎯 Processing pay-as-you-go payment from checkout session');
 
-    const credits = parseInt(session.metadata?.credits || '0');
+    const credits = resolveCreditsFromSession(session);
     const customerId = session.customer;
 
     if (credits > 0) {

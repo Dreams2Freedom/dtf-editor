@@ -2,7 +2,7 @@
 
 import { useState, useCallback, useEffect } from 'react';
 import { useDropzone } from 'react-dropzone';
-import { Upload, Wand2, Scissors, Zap, ArrowRight } from 'lucide-react';
+import { Upload, Wand2, Scissors, Zap, ArrowRight, Palette } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/Button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
@@ -13,6 +13,9 @@ import { formatFileSize } from '@/lib/utils';
 import { Breadcrumb } from '@/components/ui/Breadcrumb';
 import { SignupModal } from '@/components/auth/SignupModal';
 import { compressImage } from '@/lib/image-compression';
+import { BulkUpscaleTool } from '@/components/image/BulkUpscaleTool';
+import { BulkBgRemovalTool } from '@/components/image/BulkBgRemovalTool';
+import { HelpModal } from '@/components/ui/HelpModal';
 
 export default function ProcessClient() {
   const router = useRouter();
@@ -29,6 +32,7 @@ export default function ProcessClient() {
   >(null);
   const [showSignupModal, setShowSignupModal] = useState(false);
   const [pendingTool, setPendingTool] = useState<string | null>(null);
+  const [processMode, setProcessMode] = useState<'single' | 'bulk'>('single');
 
   // File validation
   const validateFile = useCallback((file: File): string | null => {
@@ -318,51 +322,134 @@ export default function ProcessClient() {
           {/* Breadcrumb */}
           <Breadcrumb items={[{ label: 'Process Image' }]} />
 
-          {/* Compact Header */}
-          <div className="text-center">
-            <h1 className="text-2xl font-bold text-gray-900">
-              AI Image Processing
-            </h1>
-            {profile && (
-              <p className="text-sm text-blue-600 mt-1">
-                {profile?.credits ?? profile?.credits_remaining ?? 0} credits
-                remaining
-              </p>
-            )}
+          {/* Header */}
+          <div className="flex items-center gap-2">
+            <div className="flex-1">
+              <h1 className="text-xl sm:text-2xl font-bold text-gray-900">
+                Image Processing
+              </h1>
+              {profile && (
+                <p className="text-sm text-gray-500 mt-1">
+                  {profile?.credits ?? profile?.credits_remaining ?? 0} credits remaining
+                </p>
+              )}
+            </div>
+            <HelpModal
+              storageKey="help_process"
+              title="How to Process Images"
+              accentColor="text-blue-600"
+              accentBg="bg-blue-500"
+              steps={[
+                { title: 'Upload your image', content: 'Drag and drop an image into the upload area, or click to browse your files. Supports JPEG, PNG, and WebP formats.' },
+                { title: 'Choose a tool', content: 'After uploading, select which processing tool you want to use: Upscale, Remove Background, Vectorize, or Change Colors.' },
+                { title: 'Single vs Bulk mode', content: 'Use Single Image mode to process one image at a time with full control. Switch to Bulk Upload to process multiple images at once.' },
+                { title: 'Credits', content: 'Most tools cost 1 credit per image. Color Change is free (with monthly limits). Your credit balance is shown at the top.' },
+              ]}
+              tips={[
+                'Large images are automatically compressed before upload to ensure fast processing.',
+                'You can also access individual tools directly from the Dashboard or the Create menu in the header.',
+                'After processing, images are automatically saved to your gallery.',
+              ]}
+            />
           </div>
 
-          {/* Upload Area */}
-          {!selectedFile && (
+          {/* Single / Bulk Mode Toggle */}
+          <div className="flex rounded-xl border border-gray-200 p-1 bg-gray-100">
+            <button
+              onClick={() => setProcessMode('single')}
+              className={`flex-1 py-2 px-4 rounded-lg text-sm font-medium transition-all ${
+                processMode === 'single'
+                  ? 'bg-white shadow-sm text-gray-900'
+                  : 'text-gray-500 hover:text-gray-700'
+              }`}
+            >
+              Single Image
+            </button>
+            <button
+              onClick={() => setProcessMode('bulk')}
+              className={`flex-1 py-2 px-4 rounded-lg text-sm font-medium transition-all ${
+                processMode === 'bulk'
+                  ? 'bg-white shadow-sm text-gray-900'
+                  : 'text-gray-500 hover:text-gray-700'
+              }`}
+            >
+              Bulk Upload
+            </button>
+          </div>
+
+          {/* Bulk Mode */}
+          {processMode === 'bulk' && (
+            <div className="space-y-4">
+              {/* Info banner about bulk availability */}
+              <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                <p className="text-sm text-blue-800">
+                  <strong>Bulk processing</strong> is available for{' '}
+                  <strong>Upscaling</strong> and{' '}
+                  <strong>Background Removal</strong>. Vectorization bulk
+                  processing is coming soon.
+                </p>
+              </div>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Wand2 className="w-6 h-6 text-blue-600" />
+                    Bulk Upscale Images
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <BulkUpscaleTool />
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Scissors className="w-6 h-6 text-green-600" />
+                    Bulk Remove Backgrounds
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <BulkBgRemovalTool />
+                </CardContent>
+              </Card>
+            </div>
+          )}
+
+          {/* Upload Area (Single Mode only) */}
+          {processMode === 'single' && !selectedFile && (
             <Card>
               <CardContent className="p-6">
                 <div
                   {...getRootProps()}
-                  className={`border-2 border-dashed rounded-lg p-6 text-center cursor-pointer transition-colors ${
+                  className={`border-2 border-dashed rounded-xl p-8 sm:p-12 text-center cursor-pointer transition-all ${
                     isDragActive
-                      ? 'border-blue-500 bg-blue-50'
-                      : 'border-gray-300 hover:border-gray-400'
+                      ? 'border-amber-400 bg-amber-50'
+                      : 'border-gray-300 hover:border-amber-300 hover:bg-amber-50/30'
                   }`}
                 >
                   <input {...getInputProps()} />
-                  <Upload className="w-10 h-10 mx-auto text-gray-400 mb-3" />
-                  <p className="text-base font-medium text-gray-700 mb-1">
+                  <div className="w-14 h-14 mx-auto mb-4 bg-gray-100 rounded-2xl flex items-center justify-center">
+                    <Upload className="w-7 h-7 text-gray-400" />
+                  </div>
+                  <p className="text-base font-semibold text-gray-800 mb-1">
                     {isDragActive
                       ? 'Drop your image here'
-                      : 'Drag & drop an image here'}
+                      : 'Upload an image to get started'}
                   </p>
-                  <p className="text-gray-500 text-sm mb-2">
-                    or click to select a file
+                  <p className="text-gray-500 text-sm mb-3">
+                    Drag & drop or click to select
                   </p>
                   <p className="text-xs text-gray-400">
-                    Supports JPEG, PNG, WebP • Large images auto-compressed
+                    JPEG, PNG, WebP • Large images auto-compressed
                   </p>
                 </div>
               </CardContent>
             </Card>
           )}
 
-          {/* Combined Preview and Tool Selection */}
-          {selectedFile && imagePreview && (
+          {/* Combined Preview and Tool Selection (Single Mode only) */}
+          {processMode === 'single' && selectedFile && imagePreview && (
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
               {/* Left: Image Preview */}
               <Card>
@@ -457,91 +544,48 @@ export default function ProcessClient() {
                 </CardHeader>
                 <CardContent className="pt-0">
                   <div className="space-y-3">
-                    {/* Upscale */}
-                    <Card
-                      className={`cursor-pointer transition-all ${
-                        isProcessing
-                          ? 'opacity-50 cursor-not-allowed'
-                          : preselectedOperation === 'upscale'
-                            ? 'ring-2 ring-blue-500 bg-blue-50'
-                            : 'hover:shadow-md hover:border-blue-500'
-                      }`}
-                      onClick={() => !isProcessing && navigateToTool('upscale')}
-                    >
-                      <CardContent className="p-4 flex items-center gap-4">
-                        <Wand2 className="w-10 h-10 text-blue-600 flex-shrink-0" />
-                        <div className="flex-1">
-                          <h3 className="font-semibold text-sm">
-                            Upscale Image
-                          </h3>
-                          <p className="text-xs text-gray-600">
-                            Enhance resolution up to 4x
-                          </p>
-                        </div>
-                        <div className="text-right">
-                          <p className="text-xs text-gray-500">1 credit</p>
-                          <ArrowRight className="w-4 h-4 text-gray-400 ml-auto" />
-                        </div>
-                      </CardContent>
-                    </Card>
+                    {/* Tool cards */}
+                    {[
+                      { key: 'upscale', icon: Wand2, name: 'Upscale Image', desc: 'Enhance resolution up to 4x', cost: '1 credit', color: 'blue' },
+                      { key: 'background-removal', icon: Scissors, name: 'Remove Background', desc: 'Professional background removal', cost: '1 credit', color: 'green' },
+                      { key: 'vectorize', icon: Zap, name: 'Vectorize', desc: 'Convert to scalable vector', cost: '2 credits', color: 'purple' },
+                      { key: 'color-change', icon: Palette, name: 'Change Colors', desc: 'Replace specific colors in your design', cost: 'Free', color: 'amber' },
+                    ].map(tool => {
+                      const colorMap: Record<string, { ring: string; bg: string; iconBg: string; iconText: string; hoverBorder: string }> = {
+                        blue: { ring: 'ring-blue-500', bg: 'bg-blue-50', iconBg: 'bg-blue-50', iconText: 'text-blue-600', hoverBorder: 'hover:border-blue-200' },
+                        green: { ring: 'ring-green-500', bg: 'bg-green-50', iconBg: 'bg-green-50', iconText: 'text-green-600', hoverBorder: 'hover:border-green-200' },
+                        purple: { ring: 'ring-purple-500', bg: 'bg-purple-50', iconBg: 'bg-purple-50', iconText: 'text-purple-600', hoverBorder: 'hover:border-purple-200' },
+                        amber: { ring: 'ring-amber-500', bg: 'bg-amber-50', iconBg: 'bg-amber-50', iconText: 'text-amber-600', hoverBorder: 'hover:border-amber-200' },
+                      };
+                      const c = colorMap[tool.color];
+                      const isSelected = preselectedOperation === tool.key;
 
-                    {/* Background Removal */}
-                    <Card
-                      className={`cursor-pointer transition-all ${
-                        isProcessing
-                          ? 'opacity-50 cursor-not-allowed'
-                          : preselectedOperation === 'background-removal'
-                            ? 'ring-2 ring-green-500 bg-green-50'
-                            : 'hover:shadow-md hover:border-green-500'
-                      }`}
-                      onClick={() =>
-                        !isProcessing && navigateToTool('background-removal')
-                      }
-                    >
-                      <CardContent className="p-4 flex items-center gap-4">
-                        <Scissors className="w-10 h-10 text-green-600 flex-shrink-0" />
-                        <div className="flex-1">
-                          <h3 className="font-semibold text-sm">
-                            Remove Background
-                          </h3>
-                          <p className="text-xs text-gray-600">
-                            Professional background removal
-                          </p>
+                      return (
+                        <div
+                          key={tool.key}
+                          className={`cursor-pointer rounded-xl border p-4 flex items-center gap-4 transition-all ${
+                            isProcessing
+                              ? 'opacity-50 cursor-not-allowed'
+                              : isSelected
+                                ? `ring-2 ${c.ring} ${c.bg}`
+                                : `border-gray-200 ${c.hoverBorder} hover:shadow-sm`
+                          }`}
+                          onClick={() => !isProcessing && navigateToTool(tool.key)}
+                        >
+                          <div className={`w-11 h-11 ${c.iconBg} rounded-xl flex items-center justify-center flex-shrink-0`}>
+                            <tool.icon className={`w-5 h-5 ${c.iconText}`} />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <h3 className="font-semibold text-sm text-gray-900">{tool.name}</h3>
+                            <p className="text-xs text-gray-500 truncate">{tool.desc}</p>
+                          </div>
+                          <div className="text-right flex-shrink-0">
+                            <p className="text-xs text-gray-400">{tool.cost}</p>
+                            <ArrowRight className="w-4 h-4 text-gray-300 ml-auto mt-0.5" />
+                          </div>
                         </div>
-                        <div className="text-right">
-                          <p className="text-xs text-gray-500">1 credit</p>
-                          <ArrowRight className="w-4 h-4 text-gray-400 ml-auto" />
-                        </div>
-                      </CardContent>
-                    </Card>
-
-                    {/* Vectorization */}
-                    <Card
-                      className={`cursor-pointer transition-all ${
-                        isProcessing
-                          ? 'opacity-50 cursor-not-allowed'
-                          : preselectedOperation === 'vectorize'
-                            ? 'ring-2 ring-purple-500 bg-purple-50'
-                            : 'hover:shadow-md hover:border-purple-500'
-                      }`}
-                      onClick={() =>
-                        !isProcessing && navigateToTool('vectorize')
-                      }
-                    >
-                      <CardContent className="p-4 flex items-center gap-4">
-                        <Zap className="w-10 h-10 text-purple-600 flex-shrink-0" />
-                        <div className="flex-1">
-                          <h3 className="font-semibold text-sm">Vectorize</h3>
-                          <p className="text-xs text-gray-600">
-                            Convert to scalable vector
-                          </p>
-                        </div>
-                        <div className="text-right">
-                          <p className="text-xs text-gray-500">2 credits</p>
-                          <ArrowRight className="w-4 h-4 text-gray-400 ml-auto" />
-                        </div>
-                      </CardContent>
-                    </Card>
+                      );
+                    })}
                   </div>
 
                   {profile &&
@@ -577,6 +621,8 @@ function getOperationName(operation: string): string {
       return 'Background Removal';
     case 'vectorize':
       return 'Vectorization';
+    case 'color-change':
+      return 'Color Change';
     default:
       return 'Processing';
   }

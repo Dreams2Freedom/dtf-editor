@@ -1,9 +1,9 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import { useAuthStore } from '@/stores/authStore';
 import { Button } from '@/components/ui/Button';
 import {
@@ -12,7 +12,6 @@ import {
   Home,
   Images,
   Upload,
-  CreditCard,
   Settings,
   LogOut,
   User,
@@ -20,11 +19,11 @@ import {
   Crown,
   HardDrive,
   Sparkles,
-  Edit3,
   ChevronDown,
   HelpCircle,
   Shield,
   Ruler,
+  Palette,
 } from 'lucide-react';
 import { CreditDisplay } from '@/components/ui/CreditDisplay';
 import { NotificationBell } from '@/components/notifications/NotificationBell';
@@ -37,6 +36,7 @@ interface NavItem {
     name: string;
     href: string;
     icon: React.ComponentType<{ className?: string }>;
+    description?: string;
   }[];
 }
 
@@ -45,13 +45,31 @@ export function Header() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [openDropdown, setOpenDropdown] = useState<string | null>(null);
   const router = useRouter();
+  const pathname = usePathname();
+  const dropdownRef = useRef<HTMLDivElement>(null);
 
   const handleSignOut = async () => {
     await signOut();
     router.push('/');
   };
 
-  // Check if user is admin
+  // Close dropdown on outside click
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+        setOpenDropdown(null);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  // Close mobile menu on route change
+  useEffect(() => {
+    setMobileMenuOpen(false);
+    setOpenDropdown(null);
+  }, [pathname]);
+
   const isAdmin = profile?.is_admin === true;
 
   const navigation: NavItem[] = user
@@ -61,9 +79,10 @@ export function Header() {
           name: 'Create',
           icon: Sparkles,
           submenu: [
-            { name: 'Process Image', href: '/process', icon: Upload },
-            { name: 'Generate Image', href: '/generate', icon: Sparkles },
-            { name: 'DPI Checker', href: '/free-dpi-checker', icon: Ruler },
+            { name: 'Process Image', href: '/process', icon: Upload, description: 'Upscale, remove bg, vectorize' },
+            { name: 'Change Colors', href: '/process/color-change', icon: Palette, description: 'Replace colors in designs' },
+            { name: 'Generate Image', href: '/generate', icon: Sparkles, description: 'Create with AI' },
+            { name: 'DPI Checker', href: '/free-dpi-checker', icon: Ruler, description: 'Check print quality' },
           ],
         },
         { name: 'My Images', href: '/dashboard#my-images', icon: Images },
@@ -90,47 +109,55 @@ export function Header() {
     { name: 'FAQ', href: '/faq', icon: HelpCircle },
   ];
 
+  const isActive = (href: string) => {
+    if (href === '/dashboard') return pathname === '/dashboard';
+    if (href === '/') return pathname === '/';
+    return pathname?.startsWith(href);
+  };
+
   return (
-    <header className="bg-white shadow-sm border-b sticky top-0 z-40">
+    <header className="bg-white/80 backdrop-blur-lg border-b border-gray-200/80 sticky top-0 z-40" ref={dropdownRef}>
       <nav className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        <div className="flex h-16 justify-between">
-          {/* Logo and Desktop Navigation */}
-          <div className="flex">
-            <div className="flex flex-shrink-0 items-center">
-              <Link
-                href={user ? '/dashboard' : '/'}
-                className="flex items-center"
-              >
-                <Image
-                  src="/logo-horizontal.png"
-                  alt="DTF Editor"
-                  width={150}
-                  height={40}
-                  className="h-10 w-auto"
-                  priority
-                />
-              </Link>
-            </div>
-            <div className="hidden sm:ml-6 sm:flex sm:space-x-8">
+        <div className="flex h-14 justify-between items-center">
+          {/* Logo */}
+          <div className="flex items-center gap-8">
+            <Link
+              href={user ? '/dashboard' : '/'}
+              className="flex items-center flex-shrink-0"
+            >
+              <Image
+                src="/logo-horizontal.png"
+                alt="DTF Editor"
+                width={130}
+                height={36}
+                className="h-9 w-auto"
+                priority
+              />
+            </Link>
+
+            {/* Desktop nav */}
+            <div className="hidden md:flex items-center gap-1">
               {navigation.map(item =>
                 item.submenu ? (
                   <div key={item.name} className="relative">
                     <button
-                      className="inline-flex items-center border-b-2 border-transparent px-1 pt-1 text-sm font-medium text-gray-500 hover:border-gray-300 hover:text-gray-700 h-full"
+                      className={`flex items-center gap-1.5 px-3 py-2 text-sm font-medium rounded-lg transition-colors ${
+                        openDropdown === item.name
+                          ? 'text-gray-900 bg-gray-100'
+                          : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+                      }`}
                       onClick={() =>
-                        setOpenDropdown(
-                          openDropdown === item.name ? null : item.name
-                        )
+                        setOpenDropdown(openDropdown === item.name ? null : item.name)
                       }
                       onMouseEnter={() => setOpenDropdown(item.name)}
                     >
-                      <item.icon className="w-4 h-4 mr-1" />
+                      <item.icon className="w-4 h-4" />
                       {item.name}
-                      <ChevronDown className="w-3 h-3 ml-1" />
+                      <ChevronDown className={`w-3 h-3 transition-transform ${openDropdown === item.name ? 'rotate-180' : ''}`} />
                     </button>
                     {openDropdown === item.name && (
                       <div
-                        className="absolute left-0 mt-2 w-48 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 z-50"
+                        className="absolute left-0 top-full mt-1 w-64 rounded-xl shadow-lg shadow-gray-200/50 bg-white border border-gray-200 overflow-hidden"
                         onMouseLeave={() => setOpenDropdown(null)}
                       >
                         <div className="py-1">
@@ -138,11 +165,20 @@ export function Header() {
                             <Link
                               key={subitem.name}
                               href={subitem.href}
-                              className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                              className={`flex items-start gap-3 px-4 py-2.5 transition-colors ${
+                                isActive(subitem.href)
+                                  ? 'bg-amber-50 text-amber-900'
+                                  : 'text-gray-700 hover:bg-gray-50'
+                              }`}
                               onClick={() => setOpenDropdown(null)}
                             >
-                              <subitem.icon className="w-4 h-4 mr-2" />
-                              {subitem.name}
+                              <subitem.icon className={`w-4 h-4 mt-0.5 flex-shrink-0 ${isActive(subitem.href) ? 'text-amber-600' : 'text-gray-400'}`} />
+                              <div>
+                                <div className="text-sm font-medium">{subitem.name}</div>
+                                {subitem.description && (
+                                  <div className="text-xs text-gray-400 mt-0.5">{subitem.description}</div>
+                                )}
+                              </div>
                             </Link>
                           ))}
                         </div>
@@ -153,9 +189,13 @@ export function Header() {
                   <Link
                     key={item.name}
                     href={item.href}
-                    className="inline-flex items-center border-b-2 border-transparent px-1 pt-1 text-sm font-medium text-gray-500 hover:border-gray-300 hover:text-gray-700 h-full"
+                    className={`flex items-center gap-1.5 px-3 py-2 text-sm font-medium rounded-lg transition-colors ${
+                      isActive(item.href)
+                        ? 'text-gray-900 bg-gray-100'
+                        : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+                    }`}
                   >
-                    <item.icon className="w-4 h-4 mr-1" />
+                    <item.icon className="w-4 h-4" />
                     {item.name}
                   </Link>
                 ) : null
@@ -163,86 +203,90 @@ export function Header() {
             </div>
           </div>
 
-          {/* Desktop User Menu */}
-          <div className="hidden sm:ml-6 sm:flex sm:items-center sm:space-x-4">
+          {/* Right side */}
+          <div className="flex items-center gap-2">
             {user ? (
               <>
                 <CreditDisplay />
                 <NotificationBell />
-                <div className="relative ml-3">
+                <div className="relative">
                   <button
-                    className="flex items-center p-2 text-sm rounded-full hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-blue"
+                    className={`flex items-center gap-1 p-1.5 rounded-lg transition-colors ${
+                      openDropdown === 'user' ? 'bg-gray-100' : 'hover:bg-gray-50'
+                    }`}
                     onClick={() =>
                       setOpenDropdown(openDropdown === 'user' ? null : 'user')
                     }
-                    onMouseEnter={() => setOpenDropdown('user')}
                   >
-                    <User className="h-6 w-6 text-gray-500" />
-                    <ChevronDown className="ml-1 h-4 w-4 text-gray-500" />
+                    <div className="w-7 h-7 rounded-full bg-gradient-to-br from-amber-400 to-amber-600 flex items-center justify-center">
+                      <span className="text-white text-xs font-bold">
+                        {(profile?.first_name?.[0] || profile?.email?.[0] || user.email?.[0] || 'U').toUpperCase()}
+                      </span>
+                    </div>
+                    <ChevronDown className={`w-3 h-3 text-gray-400 hidden sm:block transition-transform ${openDropdown === 'user' ? 'rotate-180' : ''}`} />
                   </button>
                   {openDropdown === 'user' && (
-                    <div
-                      className="absolute right-0 mt-2 w-48 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 z-50"
-                      onMouseLeave={() => setOpenDropdown(null)}
-                    >
-                      <div className="py-1">
-                        <div className="px-4 py-2 text-xs text-gray-500 border-b">
+                    <div className="absolute right-0 top-full mt-1 w-56 rounded-xl shadow-lg shadow-gray-200/50 bg-white border border-gray-200 overflow-hidden">
+                      <div className="px-4 py-3 border-b border-gray-100">
+                        <p className="text-sm font-medium text-gray-900 truncate">
+                          {profile?.first_name || 'Account'}
+                        </p>
+                        <p className="text-xs text-gray-500 truncate mt-0.5">
                           {profile?.email || user.email}
-                        </div>
+                        </p>
+                      </div>
+                      <div className="py-1">
                         {userNavigation.map(item => (
                           <Link
                             key={item.name}
                             href={item.href}
-                            className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                            className="flex items-center gap-2.5 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
                             onClick={() => setOpenDropdown(null)}
                           >
-                            <item.icon className="w-4 h-4 mr-2" />
+                            <item.icon className="w-4 h-4 text-gray-400" />
                             {item.name}
                           </Link>
                         ))}
-                        <div className="border-t">
-                          <button
-                            onClick={handleSignOut}
-                            className="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 text-left"
-                          >
-                            <LogOut className="w-4 h-4 mr-2" />
-                            Sign Out
-                          </button>
-                        </div>
+                      </div>
+                      <div className="border-t border-gray-100 py-1">
+                        <button
+                          onClick={handleSignOut}
+                          className="flex items-center gap-2.5 w-full px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors text-left"
+                        >
+                          <LogOut className="w-4 h-4" />
+                          Sign Out
+                        </button>
                       </div>
                     </div>
                   )}
                 </div>
               </>
             ) : (
-              <div className="flex items-center space-x-4">
+              <div className="hidden sm:flex items-center gap-2">
                 <Link href="/auth/login">
                   <Button variant="ghost" size="sm">
                     Sign In
                   </Button>
                 </Link>
                 <Link href="/auth/signup">
-                  <Button size="sm" className="bg-[#366494] hover:bg-[#233E5C]">
+                  <Button size="sm" className="bg-amber-500 hover:bg-amber-600 text-white shadow-sm">
                     Get Started Free
                   </Button>
                 </Link>
               </div>
             )}
-          </div>
 
-          {/* Mobile menu button */}
-          <div className="flex items-center sm:hidden">
-            {user && <CreditDisplay />}
+            {/* Mobile menu button */}
             <button
               type="button"
-              className="ml-2 inline-flex items-center justify-center rounded-md p-2 text-gray-400 hover:bg-gray-100 hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-primary-blue"
+              className="md:hidden p-2 rounded-lg text-gray-500 hover:bg-gray-100 transition-colors"
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
             >
               <span className="sr-only">Open main menu</span>
               {mobileMenuOpen ? (
-                <X className="block h-6 w-6" />
+                <X className="w-5 h-5" />
               ) : (
-                <Menu className="block h-6 w-6" />
+                <Menu className="w-5 h-5" />
               )}
             </button>
           </div>
@@ -250,123 +294,102 @@ export function Header() {
       </nav>
 
       {/* Mobile menu */}
-      <div className={`sm:hidden ${mobileMenuOpen ? 'block' : 'hidden'}`}>
-        <div className="space-y-1 pb-3 pt-2">
-          {navigation.map(item =>
-            item.submenu ? (
-              <div key={item.name}>
-                <div className="block border-l-4 border-transparent py-2 pl-3 pr-4 text-base font-medium text-gray-700 bg-gray-50">
-                  <div className="flex items-center">
-                    <item.icon className="w-5 h-5 mr-3" />
+      {mobileMenuOpen && (
+        <div className="md:hidden border-t border-gray-200 bg-white">
+          <div className="py-2 px-4 space-y-1">
+            {navigation.map(item =>
+              item.submenu ? (
+                <div key={item.name}>
+                  <div className="px-3 py-2 text-xs font-semibold text-gray-400 uppercase tracking-wider">
                     {item.name}
                   </div>
-                </div>
-                {item.submenu.map(subitem => (
-                  <Link
-                    key={subitem.name}
-                    href={subitem.href}
-                    className="block border-l-4 border-transparent py-2 pl-8 pr-4 text-base font-medium text-gray-500 hover:border-gray-300 hover:bg-gray-50 hover:text-gray-700"
-                    onClick={() => setMobileMenuOpen(false)}
-                  >
-                    <div className="flex items-center">
-                      <subitem.icon className="w-4 h-4 mr-3" />
+                  {item.submenu.map(subitem => (
+                    <Link
+                      key={subitem.name}
+                      href={subitem.href}
+                      className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors ${
+                        isActive(subitem.href)
+                          ? 'bg-amber-50 text-amber-900 font-medium'
+                          : 'text-gray-700 hover:bg-gray-50'
+                      }`}
+                    >
+                      <subitem.icon className={`w-4 h-4 ${isActive(subitem.href) ? 'text-amber-600' : 'text-gray-400'}`} />
                       {subitem.name}
-                    </div>
-                  </Link>
-                ))}
-              </div>
-            ) : item.href ? (
-              <Link
-                key={item.name}
-                href={item.href}
-                className="block border-l-4 border-transparent py-2 pl-3 pr-4 text-base font-medium text-gray-500 hover:border-gray-300 hover:bg-gray-50 hover:text-gray-700"
-                onClick={() => setMobileMenuOpen(false)}
-              >
-                <div className="flex items-center">
-                  <item.icon className="w-5 h-5 mr-3" />
+                    </Link>
+                  ))}
+                </div>
+              ) : item.href ? (
+                <Link
+                  key={item.name}
+                  href={item.href}
+                  className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors ${
+                    isActive(item.href)
+                      ? 'bg-amber-50 text-amber-900 font-medium'
+                      : 'text-gray-700 hover:bg-gray-50'
+                  }`}
+                >
+                  <item.icon className={`w-4 h-4 ${isActive(item.href) ? 'text-amber-600' : 'text-gray-400'}`} />
                   {item.name}
+                </Link>
+              ) : null
+            )}
+          </div>
+
+          {user ? (
+            <div className="border-t border-gray-200 py-3 px-4">
+              <div className="flex items-center gap-3 mb-3 px-3">
+                <div className="w-9 h-9 rounded-full bg-gradient-to-br from-amber-400 to-amber-600 flex items-center justify-center flex-shrink-0">
+                  <span className="text-white text-sm font-bold">
+                    {(profile?.first_name?.[0] || user.email?.[0] || 'U').toUpperCase()}
+                  </span>
                 </div>
-              </Link>
-            ) : null
-          )}
-        </div>
-        {user && (
-          <>
-            <div className="border-t border-gray-200 pb-3 pt-4">
-              <div className="flex items-center px-4">
-                <div className="flex-shrink-0">
-                  <User className="h-10 w-10 rounded-full bg-gray-200 p-2" />
-                </div>
-                <div className="ml-3">
-                  <div className="text-base font-medium text-gray-800">
-                    {profile?.email || user.email}
+                <div className="min-w-0">
+                  <div className="text-sm font-medium text-gray-900 truncate">
+                    {profile?.first_name || 'Account'}
                   </div>
-                  <div className="text-sm font-medium text-gray-500">
+                  <div className="text-xs text-gray-500 truncate">
                     {profile?.subscription_plan || 'Free'} Plan
                   </div>
                 </div>
               </div>
-              <div className="mt-3 space-y-1">
+              <div className="space-y-1">
                 {userNavigation.map(item => (
                   <Link
                     key={item.name}
                     href={item.href}
-                    className="block px-4 py-2 text-base font-medium text-gray-500 hover:bg-gray-100 hover:text-gray-800"
-                    onClick={() => setMobileMenuOpen(false)}
+                    className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-gray-700 hover:bg-gray-50 transition-colors"
                   >
-                    <div className="flex items-center">
-                      <item.icon className="w-5 h-5 mr-3" />
-                      {item.name}
-                    </div>
+                    <item.icon className="w-4 h-4 text-gray-400" />
+                    {item.name}
                   </Link>
                 ))}
                 <button
                   onClick={handleSignOut}
-                  className="block w-full px-4 py-2 text-left text-base font-medium text-gray-500 hover:bg-gray-100 hover:text-gray-800"
+                  className="flex items-center gap-3 w-full px-3 py-2 rounded-lg text-sm text-red-600 hover:bg-red-50 transition-colors text-left"
                 >
-                  <div className="flex items-center">
-                    <LogOut className="w-5 h-5 mr-3" />
-                    Sign Out
-                  </div>
+                  <LogOut className="w-4 h-4" />
+                  Sign Out
                 </button>
               </div>
             </div>
-          </>
-        )}
-        {!user && (
-          <div className="border-t border-gray-200 pb-3 pt-4">
-            <div className="flex items-center px-4 space-x-3">
-              <Link href="/auth/login" className="flex-1">
-                <Button
-                  variant="outline"
-                  className="w-full"
-                  onClick={() => setMobileMenuOpen(false)}
-                >
-                  Sign In
-                </Button>
-              </Link>
-              <Link href="/auth/signup" className="flex-1">
-                <Button
-                  className="w-full"
-                  onClick={() => setMobileMenuOpen(false)}
-                >
-                  Get Started
-                </Button>
-              </Link>
+          ) : (
+            <div className="border-t border-gray-200 py-3 px-4">
+              <div className="flex gap-2">
+                <Link href="/auth/login" className="flex-1">
+                  <Button variant="outline" className="w-full">
+                    Sign In
+                  </Button>
+                </Link>
+                <Link href="/auth/signup" className="flex-1">
+                  <Button className="w-full bg-amber-500 hover:bg-amber-600">
+                    Get Started
+                  </Button>
+                </Link>
+              </div>
             </div>
-          </div>
-        )}
-        {/* Privacy Policy Link */}
-        <div className="border-t border-gray-200 py-3">
-          <Link
-            href="/privacy"
-            className="block px-4 py-2 text-sm text-gray-500 hover:text-gray-700"
-            onClick={() => setMobileMenuOpen(false)}
-          >
-            Privacy Policy
-          </Link>
+          )}
         </div>
-      </div>
+      )}
     </header>
   );
 }

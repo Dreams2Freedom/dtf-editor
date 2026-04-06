@@ -5,10 +5,10 @@ import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { SubscriptionPlans } from '@/components/payment/SubscriptionPlans';
 import { PayAsYouGo } from '@/components/payment/PayAsYouGo';
-import { Button } from '@/components/ui/Button';
-import { Card } from '@/components/ui/Card';
-import { CreditCard, Zap, Star, Check } from 'lucide-react';
+import { CreditCard, Zap, Check, Minus } from 'lucide-react';
 import { useReferralTracking } from '@/hooks/useReferralTracking';
+import { COMPARISON_FEATURES, PRICING_FAQS } from '@/lib/publicData';
+import { Accordion } from '@/components/public/Accordion';
 
 export default function PricingClient() {
   useReferralTracking();
@@ -19,7 +19,6 @@ export default function PricingClient() {
   );
 
   useEffect(() => {
-    // Check if tab parameter is set to 'payasyougo'
     const tab = searchParams.get('tab');
     if (tab === 'payasyougo') {
       setActiveTab('payg');
@@ -27,29 +26,27 @@ export default function PricingClient() {
   }, [searchParams]);
 
   return (
-    <div className="min-h-screen bg-gray-50 py-12">
-      <div className="container mx-auto px-4">
-        {/* Header */}
+    <div className="min-h-screen bg-white py-12 lg:py-16">
+      <div className="max-w-7xl mx-auto px-5 sm:px-6 lg:px-8">
+        {/* Page Header */}
         <div className="text-center mb-12">
-          <h1 className="text-4xl font-bold text-gray-900 mb-4">
-            Choose Your Plan
+          <h1 className="text-3xl lg:text-4xl font-extrabold text-gray-900 mb-3">
+            Simple pricing that grows with you
           </h1>
-          <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-            Whether you need ongoing access or just a few credits, we have the
-            perfect option for you. All plans include our advanced AI-powered
-            image processing features.
+          <p className="text-base text-gray-500 max-w-xl mx-auto">
+            Start free. Upgrade when you need more.
           </p>
         </div>
 
         {/* Tab Navigation */}
-        <div className="flex justify-center mb-8">
-          <div className="bg-white rounded-lg p-1 shadow-sm border">
+        <div className="flex justify-center mb-10">
+          <div className="bg-white rounded-xl p-1 shadow-sm border border-gray-200">
             <button
               onClick={() => setActiveTab('subscription')}
-              className={`inline-flex items-center px-6 py-3 rounded-md font-medium transition-all duration-200 ${
+              className={`inline-flex items-center px-6 py-3 rounded-lg font-medium transition-all duration-200 ${
                 activeTab === 'subscription'
-                  ? 'bg-blue-600 text-white shadow-sm'
-                  : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+                  ? 'bg-amber-500 text-white shadow-sm'
+                  : 'text-gray-600 hover:text-gray-900'
               }`}
             >
               <CreditCard className="w-4 h-4 mr-2" />
@@ -57,10 +54,10 @@ export default function PricingClient() {
             </button>
             <button
               onClick={() => setActiveTab('payg')}
-              className={`inline-flex items-center px-6 py-3 rounded-md font-medium transition-all duration-200 ${
+              className={`inline-flex items-center px-6 py-3 rounded-lg font-medium transition-all duration-200 ${
                 activeTab === 'payg'
-                  ? 'bg-blue-600 text-white shadow-sm'
-                  : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+                  ? 'bg-amber-500 text-white shadow-sm'
+                  : 'text-gray-600 hover:text-gray-900'
               }`}
             >
               <Zap className="w-4 h-4 mr-2" />
@@ -78,190 +75,74 @@ export default function PricingClient() {
           )}
         </div>
 
-        {/* Features Comparison */}
-        <div className="mt-16">
-          <div className="text-center mb-8">
-            <h2 className="text-3xl font-bold text-gray-900 mb-4">
-              All Plans Include
+        {/* Feature Comparison Table */}
+        <div className="mt-16 lg:mt-20">
+          <h2 className="text-2xl font-extrabold text-gray-900 text-center mb-8">
+            Compare plans
+          </h2>
+          <div className="max-w-4xl mx-auto overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-gray-200">
+                  <th className="text-left py-3 px-4 font-semibold text-gray-500">Feature</th>
+                  <th className="text-center py-3 px-4 font-semibold text-gray-500">Free</th>
+                  <th className="text-center py-3 px-4 font-semibold text-gray-500">Hobbyist</th>
+                  <th className="text-center py-3 px-4 font-semibold text-amber-600 bg-amber-50/50 rounded-t-lg">Business</th>
+                </tr>
+              </thead>
+              <tbody>
+                {COMPARISON_FEATURES.map((feature, i) => (
+                  <tr key={feature.name} className={i % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
+                    <td className="py-3 px-4 font-medium text-gray-900">{feature.name}</td>
+                    {(['free', 'hobbyist', 'business'] as const).map((plan) => {
+                      const val = feature[plan];
+                      return (
+                        <td key={plan} className={`text-center py-3 px-4 ${plan === 'business' ? 'bg-amber-50/30' : ''}`}>
+                          {val === true ? <Check className="w-4 h-4 text-emerald-500 mx-auto" /> :
+                           val === false ? <Minus className="w-4 h-4 text-gray-300 mx-auto" /> :
+                           <span className="text-gray-700">{val}</span>}
+                        </td>
+                      );
+                    })}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        {/* Affiliate Section */}
+        <div className="mt-16 lg:mt-20">
+          <div className="bg-gray-50 border border-gray-200 rounded-xl p-6 max-w-2xl mx-auto text-center">
+            <h2 className="text-lg font-semibold text-gray-900 mb-2">
+              Earn 20-25% commission
             </h2>
-            <p className="text-lg text-gray-600">
-              Powerful AI-powered image processing features available on every
-              plan
+            <p className="text-sm text-gray-600 mb-4">
+              Refer customers to DTF Editor and earn recurring commissions on every sale.
             </p>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-4xl mx-auto">
-            <Card className="p-6 text-center">
-              <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center mx-auto mb-4">
-                <Zap className="w-6 h-6 text-blue-600" />
-              </div>
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                AI Image Upscaling
-              </h3>
-              <p className="text-gray-600">
-                Upscale images up to 4x with advanced AI algorithms including
-                auto-enhancement and generative upscaling.
-              </p>
-            </Card>
-
-            <Card className="p-6 text-center">
-              <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center mx-auto mb-4">
-                <Star className="w-6 h-6 text-green-600" />
-              </div>
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                Background Removal
-              </h3>
-              <p className="text-gray-600">
-                Remove backgrounds from images with precision using our advanced
-                AI models.
-              </p>
-            </Card>
-
-            <Card className="p-6 text-center">
-              <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center mx-auto mb-4">
-                <Check className="w-6 h-6 text-purple-600" />
-              </div>
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                Secure Processing
-              </h3>
-              <p className="text-gray-600">
-                Your images are processed securely and deleted after processing.
-                We never store your original images.
-              </p>
-            </Card>
-          </div>
-        </div>
-
-        {/* FAQ Section */}
-        <div className="mt-16">
-          <div className="text-center mb-8">
-            <h2 className="text-3xl font-bold text-gray-900 mb-4">
-              Frequently Asked Questions
-            </h2>
-          </div>
-
-          <div className="max-w-3xl mx-auto space-y-6">
-            <Card className="p-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                What's the difference between subscription and pay-as-you-go?
-              </h3>
-              <p className="text-gray-600">
-                Subscriptions provide a set number of credits each month at a
-                discounted rate, perfect for regular users. Pay-as-you-go lets
-                you purchase credits as needed without any recurring charges.
-              </p>
-            </Card>
-
-            <Card className="p-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                Do credits expire?
-              </h3>
-              <p className="text-gray-600">
-                Pay-as-you-go credits never expire. Subscription credits are
-                refreshed monthly and don't carry over to the next billing
-                period.
-              </p>
-            </Card>
-
-            <Card className="p-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                Can I cancel my subscription anytime?
-              </h3>
-              <p className="text-gray-600">
-                Yes, you can cancel your subscription at any time. You'll
-                continue to have access to your plan features until the end of
-                your current billing period.
-              </p>
-            </Card>
-
-            <Card className="p-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                What payment methods do you accept?
-              </h3>
-              <p className="text-gray-600">
-                We accept all major credit cards, debit cards, and digital
-                wallets through our secure Stripe payment processing.
-              </p>
-            </Card>
-          </div>
-        </div>
-
-        {/* Affiliate Program Section */}
-        <div className="mt-16">
-          <Card className="p-8 bg-gradient-to-r from-green-50 to-emerald-50 border-green-200">
-            <div className="text-center">
-              <div className="inline-flex items-center justify-center w-16 h-16 bg-green-100 rounded-full mb-4">
-                <svg
-                  className="w-8 h-8 text-green-600"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                  />
-                </svg>
-              </div>
-              <h2 className="text-2xl font-bold text-gray-900 mb-4">
-                Earn 20% Recurring Commissions
-              </h2>
-              <p className="text-gray-600 mb-6 max-w-2xl mx-auto">
-                Join our affiliate program and earn generous commissions by
-                referring customers to DTF Editor. Get 20% recurring revenue for
-                24 months, then 10% lifetime on all referred customers!
-              </p>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 max-w-3xl mx-auto mb-6">
-                <div className="text-center">
-                  <div className="text-2xl font-bold text-green-600">
-                    20-25%
-                  </div>
-                  <p className="text-sm text-gray-600">Commission Rate</p>
-                </div>
-                <div className="text-center">
-                  <div className="text-2xl font-bold text-green-600">
-                    30 Days
-                  </div>
-                  <p className="text-sm text-gray-600">Cookie Duration</p>
-                </div>
-                <div className="text-center">
-                  <div className="text-2xl font-bold text-green-600">$50</div>
-                  <p className="text-sm text-gray-600">Min. Payout</p>
-                </div>
-              </div>
-              <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                <Link href="/affiliate/apply">
-                  <Button size="lg" className="bg-green-600 hover:bg-green-700">
-                    Apply to Affiliate Program
-                  </Button>
-                </Link>
-                <Link href="/affiliate/terms">
-                  <Button size="lg" variant="secondary">
-                    View Terms & Conditions
-                  </Button>
-                </Link>
-              </div>
+            <div className="flex flex-col sm:flex-row gap-3 justify-center">
+              <Link
+                href="/affiliate/apply"
+                className="text-sm font-medium text-amber-600 hover:text-amber-700 transition-colors"
+              >
+                Apply to Affiliate Program &rarr;
+              </Link>
+              <Link
+                href="/affiliate/terms"
+                className="text-sm font-medium text-gray-500 hover:text-gray-700 transition-colors"
+              >
+                View Terms
+              </Link>
             </div>
-          </Card>
+          </div>
         </div>
 
-        {/* CTA Section */}
-        <div className="mt-16 text-center">
-          <Card className="p-8 bg-gradient-to-r from-blue-600 to-purple-600 text-white">
-            <h2 className="text-3xl font-bold mb-4">Ready to Get Started?</h2>
-            <p className="text-xl mb-6 opacity-90">
-              Join thousands of users who trust our AI-powered image processing
-            </p>
-            <Button
-              onClick={() => setActiveTab('subscription')}
-              size="lg"
-              className="bg-white text-blue-600 hover:bg-gray-100"
-            >
-              Start Your Free Trial
-            </Button>
-          </Card>
+        {/* Pricing FAQ */}
+        <div className="mt-16 lg:mt-20">
+          <h2 className="text-2xl font-extrabold text-gray-900 text-center mb-8">
+            Frequently asked questions
+          </h2>
+          <Accordion items={PRICING_FAQS} className="max-w-2xl mx-auto" />
         </div>
       </div>
     </div>

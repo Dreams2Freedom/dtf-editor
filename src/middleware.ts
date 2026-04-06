@@ -39,6 +39,12 @@ const getCSP = () => {
 export async function middleware(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
 
+  // Skip middleware for webhook routes — they need raw body access
+  // and have their own auth (Stripe signature verification)
+  if (pathname.startsWith('/api/webhooks/')) {
+    return NextResponse.next();
+  }
+
   // Block access to debug/test endpoints in production
   if (process.env.NODE_ENV === 'production') {
     if (
