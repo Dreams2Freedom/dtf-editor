@@ -12,6 +12,40 @@ export type BgRemovalModel =
   | 'isnet-anime'
   | 'sam';
 
+/** What the panel sends to the server. */
+export type RemovalMode =
+  | 'color-fill'
+  | 'click-fill'
+  | 'ml-only'
+  | 'ml+color';
+
+/** Top-of-panel UX mode (separate from server modes — auto picks one). */
+export type PanelMode = 'auto' | 'color-pick' | 'click-remove' | 'ai-only';
+
+export type RGB = [number, number, number];
+
+export interface BgDetectionResult {
+  dominant: RGB;
+  secondary: RGB | null;
+  intra_variance: number;
+  centroid_distance: number;
+  confidence: 'uniform' | 'two-color' | 'gradient' | 'complex' | 'transparent';
+  recommended_mode:
+    | 'color-fill'
+    | 'two-color-fill'
+    | 'ml+color'
+    | 'ml-only'
+    | 'noop';
+}
+
+export interface RemovalOptions {
+  mode: RemovalMode;
+  model?: BgRemovalModel;
+  targetColor?: RGB;
+  tolerance?: number;
+  seedPoints?: Array<[number, number]>;
+}
+
 export interface SamPoint {
   x: number;
   y: number;
@@ -28,6 +62,7 @@ export interface SamSession {
 export type BgRemovalStatus =
   | 'idle'
   | 'authorizing'
+  | 'detecting'
   | 'removing'
   | 'embedding'
   | 'predicting'
@@ -36,9 +71,7 @@ export type BgRemovalStatus =
 
 export interface BgRemovalEntry {
   id: string;
-  /** Original RGBA pixel data before removal — stored for undo */
   originalImageData: ImageData;
-  /** The alpha mask that was applied */
   maskImageData: ImageData;
   timestamp: number;
 }

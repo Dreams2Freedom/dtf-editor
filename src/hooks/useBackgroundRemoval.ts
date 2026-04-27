@@ -2,10 +2,17 @@
 
 import { useCallback, useRef, useState } from 'react';
 
-import { embedImage, predictMask, removeBackground } from '@/services/bgRemoval';
+import {
+  detectBackground,
+  embedImage,
+  predictMask,
+  removeBackground,
+} from '@/services/bgRemoval';
 import type {
-  BgRemovalModel,
+  BgDetectionResult,
   BgRemovalStatus,
+  RGB,
+  RemovalOptions,
   SamPoint,
   SamSession,
 } from '@/types/backgroundRemoval';
@@ -13,12 +20,15 @@ import type {
 export interface UseBackgroundRemovalReturn {
   status: BgRemovalStatus;
   error: string | null;
+  detection: BgDetectionResult | null;
   samSession: SamSession | null;
-  /** Run one-shot auto removal. Returns masked image as an HTMLImageElement. */
-  runAutoRemoval: (
+  /** Run full server removal pipeline with the given options. */
+  runRemoval: (
     canvas: HTMLCanvasElement,
-    model?: BgRemovalModel
+    options: RemovalOptions
   ) => Promise<HTMLImageElement | null>;
+  /** Detect the background color from edges (returns + stores result). */
+  runDetect: (canvas: HTMLCanvasElement) => Promise<BgDetectionResult | null>;
   /** Generate SAM embedding for the current canvas contents. */
   runEmbed: (canvas: HTMLCanvasElement) => Promise<void>;
   /** Run SAM prediction with prompt points. Returns updated masked image. */
@@ -45,9 +55,138 @@ function blobToImage(blob: Blob): Promise<HTMLImageElement> {
   });
 }
 
+/**
+ * Client-side BFS flood-fill removing pixels matching `target` within
+ * `tolerance` (squared-Euclidean RGB distance threshold).
+ *
+ * Used for instant tolerance-slider preview. Server is the source of truth on save.
+ *
+ * If `seedPoint` is null: seeds BFS from every edge pixel that matches.
+ * Otherwise seeds BFS from that single coordinate (click-to-remove).
+ *
+ * Operates IN PLACE on the supplied ImageData and returns the same reference.
+ */
+export function clientFloodFill(
+  src: ImageData,
+  target: RGB,
+  tolerance: number,
+  seedPoint: { x: number; y: number } | null = null
+): ImageData {
+  const { data, width: w, height: h } = src;
+  const total = w * h;
+  const tr = target[0];
+  const tg = target[1];
+  const tb = target[2];
+  const tolSq = tolerance * tolerance;
+
+  // Pre-compute removable bitmap (Uint8Array with 0/1)
+  const removable = new Uint8Array(total);
+  for (let i = 0; i < total; i++) {
+    const j = i * 4;
+    const a = data[j + 3];
+    if (a < 10) {
+      removable[i] = 1;
+      continue;
+    }
+    const dr = data[j] - tr;
+    const dg = data[j + 1] - tg;
+    const db = data[j + 2] - tb;
+    if (dr * dr + dg * dg + db * db <= tolSq) {
+      removable[i] = 1;
+    }
+  }
+
+  const visited = new Uint8Array(total);
+  // Use a Uint32Array ring buffer for the queue to avoid allocations
+  const queue = new Uint32Array(total);
+  let qHead = 0;
+  let qTail = 0;
+
+  if (seedPoint === null) {
+    // Seed from edges
+    for (let x = 0; x < w; x++) {
+      const top = x;
+      const bottom = (h - 1) * w + x;
+      if (removable[top] && !visited[top]) {
+        visited[top] = 1;
+        queue[qTail++] = top;
+      }
+      if (removable[bottom] && !visited[bottom]) {
+        visited[bottom] = 1;
+        queue[qTail++] = bottom;
+      }
+    }
+    for (let y = 1; y < h - 1; y++) {
+      const left = y * w;
+      const right = y * w + (w - 1);
+      if (removable[left] && !visited[left]) {
+        visited[left] = 1;
+        queue[qTail++] = left;
+      }
+      if (removable[right] && !visited[right]) {
+        visited[right] = 1;
+        queue[qTail++] = right;
+      }
+    }
+  } else {
+    const sx = Math.max(0, Math.min(w - 1, Math.round(seedPoint.x)));
+    const sy = Math.max(0, Math.min(h - 1, Math.round(seedPoint.y)));
+    const idx = sy * w + sx;
+    if (removable[idx]) {
+      visited[idx] = 1;
+      queue[qTail++] = idx;
+    }
+  }
+
+  while (qHead < qTail) {
+    const idx = queue[qHead++];
+    const y = (idx / w) | 0;
+    const x = idx - y * w;
+    // 4-neighbours
+    if (y > 0) {
+      const u = idx - w;
+      if (removable[u] && !visited[u]) {
+        visited[u] = 1;
+        queue[qTail++] = u;
+      }
+    }
+    if (y < h - 1) {
+      const d = idx + w;
+      if (removable[d] && !visited[d]) {
+        visited[d] = 1;
+        queue[qTail++] = d;
+      }
+    }
+    if (x > 0) {
+      const l = idx - 1;
+      if (removable[l] && !visited[l]) {
+        visited[l] = 1;
+        queue[qTail++] = l;
+      }
+    }
+    if (x < w - 1) {
+      const r = idx + 1;
+      if (removable[r] && !visited[r]) {
+        visited[r] = 1;
+        queue[qTail++] = r;
+      }
+    }
+  }
+
+  // Zero alpha for visited
+  for (let i = 0; i < total; i++) {
+    if (visited[i]) {
+      data[i * 4 + 3] = 0;
+    }
+  }
+
+  return src;
+}
+
 export function useBackgroundRemoval(): UseBackgroundRemovalReturn {
   const [status, setStatus] = useState<BgRemovalStatus>('idle');
   const [error, setError] = useState<string | null>(null);
+  const [detection, setDetection] = useState<BgDetectionResult | null>(null);
   const [samSession, setSamSession] = useState<SamSession | null>(null);
   const abortRef = useRef<AbortController | null>(null);
 
@@ -55,23 +194,41 @@ export function useBackgroundRemoval(): UseBackgroundRemovalReturn {
     abortRef.current?.abort();
     setStatus('idle');
     setError(null);
+    setDetection(null);
     setSamSession(null);
   }, []);
 
-  const runAutoRemoval = useCallback(
+  const runDetect = useCallback(
+    async (canvas: HTMLCanvasElement): Promise<BgDetectionResult | null> => {
+      try {
+        setError(null);
+        setStatus('detecting');
+        const blob = await canvasToBlob(canvas);
+        const result = await detectBackground(blob);
+        setDetection(result);
+        setStatus('idle');
+        return result;
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : 'Unknown error';
+        setError(msg);
+        setStatus('error');
+        return null;
+      }
+    },
+    []
+  );
+
+  const runRemoval = useCallback(
     async (
       canvas: HTMLCanvasElement,
-      model: BgRemovalModel = 'isnet-general-use'
+      options: RemovalOptions
     ): Promise<HTMLImageElement | null> => {
       try {
         setError(null);
         setStatus('authorizing');
-
         const blob = await canvasToBlob(canvas);
-
         setStatus('removing');
-        const { blob: resultBlob } = await removeBackground(blob, model);
-
+        const { blob: resultBlob } = await removeBackground(blob, options);
         const img = await blobToImage(resultBlob);
         setStatus('done');
         return img;
@@ -89,7 +246,6 @@ export function useBackgroundRemoval(): UseBackgroundRemovalReturn {
     try {
       setError(null);
       setStatus('embedding');
-
       const blob = await canvasToBlob(canvas);
       const session = await embedImage(blob);
       setSamSession(session);
@@ -110,7 +266,6 @@ export function useBackgroundRemoval(): UseBackgroundRemovalReturn {
       try {
         setError(null);
         setStatus('predicting');
-
         const { blob: resultBlob } = await predictMask(samSession, points);
         const img = await blobToImage(resultBlob);
         setStatus('done');
@@ -125,5 +280,15 @@ export function useBackgroundRemoval(): UseBackgroundRemovalReturn {
     [samSession]
   );
 
-  return { status, error, samSession, runAutoRemoval, runEmbed, runPredict, reset };
+  return {
+    status,
+    error,
+    detection,
+    samSession,
+    runRemoval,
+    runDetect,
+    runEmbed,
+    runPredict,
+    reset,
+  };
 }

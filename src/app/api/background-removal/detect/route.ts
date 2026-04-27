@@ -5,7 +5,7 @@ import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { withRateLimit } from '@/lib/rate-limit';
 
 export const runtime = 'nodejs';
-export const maxDuration = 60;
+export const maxDuration = 30;
 
 async function handler(request: NextRequest) {
   const supabase = await createServerSupabaseClient();
@@ -60,24 +60,7 @@ async function handler(request: NextRequest) {
   const upstream = new FormData();
   upstream.append('image', image, 'image.png');
 
-  // Forward every supported field if present
-  const passthrough = [
-    'model',
-    'mode',
-    'target_color',
-    'tolerance',
-    'seed_points',
-    'post_process_white',
-    'white_threshold',
-  ];
-  for (const key of passthrough) {
-    const v = formData.get(key);
-    if (v !== null && typeof v === 'string') {
-      upstream.append(key, v);
-    }
-  }
-
-  const serviceRes = await fetch(`${env.REMBG_SERVICE_URL}/remove`, {
+  const serviceRes = await fetch(`${env.REMBG_SERVICE_URL}/detect-bg`, {
     method: 'POST',
     headers: { 'X-API-Key': env.REMBG_SERVICE_API_KEY },
     body: upstream,
@@ -85,18 +68,15 @@ async function handler(request: NextRequest) {
 
   if (!serviceRes.ok) {
     const text = await serviceRes.text().catch(() => '');
-    console.error('[BG Removal] Service error:', serviceRes.status, text);
+    console.error('[BG Detect] Service error:', serviceRes.status, text);
     return NextResponse.json(
-      { error: 'Background removal failed' },
+      { error: 'Background detection failed' },
       { status: 502 }
     );
   }
 
-  const resultBuffer = await serviceRes.arrayBuffer();
-  return new NextResponse(resultBuffer, {
-    status: 200,
-    headers: { 'Content-Type': 'image/png' },
-  });
+  const json = await serviceRes.json();
+  return NextResponse.json(json);
 }
 
 export const POST = withRateLimit(handler, 'processing');
