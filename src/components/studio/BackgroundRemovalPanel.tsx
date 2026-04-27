@@ -7,20 +7,29 @@ import {
   ExternalLink,
   Loader2,
   Save,
-  Scissors,
   RotateCcw,
   Pipette,
   Cpu,
   Wand2,
-  Crosshair,
+  Plus,
+  Minus,
+  Undo2,
+  Trash2,
+  Scissors,
+  CheckCircle2,
 } from 'lucide-react';
 
-import { clientFloodFill, useBackgroundRemoval } from '@/hooks/useBackgroundRemoval';
+import {
+  clientFloodFill,
+  samplePathPoints,
+  useBackgroundRemoval,
+} from '@/hooks/useBackgroundRemoval';
 import type {
   BgRemovalModel,
   PanelMode,
   RGB,
   RemovalOptions,
+  SamPoint,
 } from '@/types/backgroundRemoval';
 
 interface BackgroundRemovalPanelProps {
@@ -36,8 +45,8 @@ const STATUS_LABELS: Record<string, string> = {
   authorizing: 'Checking plan...',
   detecting: 'Detecting background...',
   removing: 'Removing background...',
-  embedding: 'Preparing image...',
-  predicting: 'Running prediction...',
+  embedding: 'Preparing AI Brush...',
+  predicting: 'Updating mask...',
   done: 'Done!',
   error: '',
 };
@@ -51,28 +60,8 @@ const MODELS: { value: BgRemovalModel; label: string }[] = [
   { value: 'isnet-anime', label: 'Anime / Illustrations' },
 ];
 
-const CONFIDENCE_LABELS: Record<string, string> = {
-  uniform: 'Solid color background',
-  'two-color': 'Two-color background',
-  gradient: 'Gradient background',
-  complex: 'Complex / photo background',
-  transparent: 'Already transparent',
-};
-
-const REC_MODE_LABELS: Record<string, string> = {
-  'color-fill': 'Color Fill (fast)',
-  'two-color-fill': 'Color Fill (fast)',
-  'ml+color': 'AI + Color Fill',
-  'ml-only': 'AI Only',
-  noop: 'No removal needed',
-};
-
 function rgbToHex([r, g, b]: RGB): string {
   return '#' + [r, g, b].map(v => v.toString(16).padStart(2, '0')).join('');
-}
-
-function isDark([r, g, b]: RGB): boolean {
-  return 0.299 * r + 0.587 * g + 0.114 * b < 128;
 }
 
 export function BackgroundRemovalPanel({
@@ -82,23 +71,47 @@ export function BackgroundRemovalPanel({
   savedImageId,
   advancedBgUrl,
 }: BackgroundRemovalPanelProps) {
+  // Canvases & cached image data
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const previewRef = useRef<HTMLCanvasElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
   const originalDataRef = useRef<ImageData | null>(null);
-  const toleranceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const initialMaskRef = useRef<ImageData | null>(null);
 
-  const [panelMode, setPanelMode] = useState<PanelMode>('auto');
-  const [model, setModel] = useState<BgRemovalModel>('birefnet-general-lite');
+  // Color-pick state
+  const toleranceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [tolerance, setTolerance] = useState(30);
   const [targetColor, setTargetColor] = useState<RGB | null>(null);
   const [clickRemoveMode, setClickRemoveMode] = useState(false);
+
+  // AI Brush state
+  const [strokeHistory, setStrokeHistory] = useState<SamPoint[][]>([]);
+  const [brushTool, setBrushTool] = useState<'keep' | 'remove'>('keep');
+  const [brushSize, setBrushSize] = useState(20);
+  const isDrawingRef = useRef(false);
+  const currentStrokeRef = useRef<Array<{ x: number; y: number }>>([]);
+  const [cursorPos, setCursorPos] = useState<{ x: number; y: number } | null>(null);
+  const [canvasRect, setCanvasRect] = useState<{ width: number; height: number } | null>(null);
+
+  // Common state
+  const [panelMode, setPanelMode] = useState<PanelMode>('ai-brush');
+  const [model, setModel] = useState<BgRemovalModel>('birefnet-general-lite');
   const [isSaving, setIsSaving] = useState(false);
   const [hasResult, setHasResult] = useState(false);
   const [upgradeRequired, setUpgradeRequired] = useState(false);
 
-  const { status, error, detection, runDetect, runRemoval, reset } = useBackgroundRemoval();
+  const {
+    status,
+    error,
+    samSession,
+    runDetect,
+    runRemoval,
+    runEmbed,
+    runPredict,
+    reset,
+  } = useBackgroundRemoval();
 
-  // Init offscreen canvas and auto-detect on mount
+  // Init canvas, run detect, kick off eager embed + BiRefNet initial guess
   useEffect(() => {
     const canvas = document.createElement('canvas');
     const w = image.naturalWidth || image.width;
@@ -120,15 +133,36 @@ export function BackgroundRemovalPanel({
     }
 
     runDetect(canvas);
+
+    // Eager: embed for SAM brush, then BiRefNet initial guess
+    runEmbed(canvas).then(() => {
+      const c = canvasRef.current;
+      if (!c) return;
+      runRemoval(c, { mode: 'ml-only', model: 'birefnet-general-lite' }).then(img => {
+        const p = previewRef.current;
+        if (!img || !p) return;
+        const pCtx = p.getContext('2d');
+        if (!pCtx) return;
+        pCtx.clearRect(0, 0, p.width, p.height);
+        pCtx.drawImage(img, 0, 0, p.width, p.height);
+        initialMaskRef.current = pCtx.getImageData(0, 0, p.width, p.height);
+      });
+    });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [image]);
 
-  // When detection arrives, set targetColor from dominant if not yet set
+  // Track preview's display rect for cursor / dot overlay positioning
   useEffect(() => {
-    if (detection?.dominant && !targetColor) {
-      setTargetColor(detection.dominant);
-    }
-  }, [detection, targetColor]);
+    const update = () => {
+      const p = previewRef.current;
+      if (!p) return;
+      const r = p.getBoundingClientRect();
+      setCanvasRect({ width: r.width, height: r.height });
+    };
+    update();
+    window.addEventListener('resize', update);
+    return () => window.removeEventListener('resize', update);
+  }, []);
 
   // Detect upgrade-required errors
   useEffect(() => {
@@ -137,20 +171,18 @@ export function BackgroundRemovalPanel({
     }
   }, [error]);
 
-  // Apply client-side flood fill to the preview canvas (does NOT modify canvasRef)
+  // ---------- Color Pick: client-side flood-fill preview ----------
   const applyClientPreview = useCallback(
     (color: RGB, tol: number, seedPoint?: { x: number; y: number } | null) => {
       const orig = originalDataRef.current;
       const preview = previewRef.current;
       if (!orig || !preview || hasResult) return;
-
       const cloned = new ImageData(
         new Uint8ClampedArray(orig.data),
         orig.width,
         orig.height
       );
       clientFloodFill(cloned, color, tol, seedPoint ?? null);
-
       const pCtx = preview.getContext('2d');
       if (!pCtx) return;
       pCtx.clearRect(0, 0, preview.width, preview.height);
@@ -159,79 +191,179 @@ export function BackgroundRemovalPanel({
     [hasResult]
   );
 
-  // Debounced tolerance slider
   const handleToleranceChange = useCallback(
     (val: number) => {
       setTolerance(val);
-      if (panelMode === 'ai-only' || hasResult) return;
-      const color = targetColor;
-      if (!color) return;
+      if (panelMode !== 'color-pick' || hasResult || !targetColor) return;
       if (toleranceTimerRef.current) clearTimeout(toleranceTimerRef.current);
       toleranceTimerRef.current = setTimeout(() => {
-        applyClientPreview(color, val);
+        applyClientPreview(targetColor, val);
       }, 200);
     },
     [panelMode, hasResult, targetColor, applyClientPreview]
   );
 
-  // Canvas click: eyedropper or seed-fill
+  // ---------- Coordinate mapping ----------
+  const eventToCanvasCoords = useCallback(
+    (e: { clientX: number; clientY: number }) => {
+      const preview = previewRef.current;
+      if (!preview) return null;
+      const rect = preview.getBoundingClientRect();
+      const sx = preview.width / rect.width;
+      const sy = preview.height / rect.height;
+      const x = (e.clientX - rect.left) * sx;
+      const y = (e.clientY - rect.top) * sy;
+      return { x, y, displayX: e.clientX - rect.left, displayY: e.clientY - rect.top };
+    },
+    []
+  );
+
+  // ---------- AI Brush: predict + render ----------
+  const allSamPoints: SamPoint[] = strokeHistory.flat();
+
+  const renderInitialPreview = useCallback(() => {
+    const p = previewRef.current;
+    if (!p) return;
+    const pCtx = p.getContext('2d');
+    if (!pCtx) return;
+    pCtx.clearRect(0, 0, p.width, p.height);
+    if (initialMaskRef.current) {
+      pCtx.putImageData(initialMaskRef.current, 0, 0);
+    } else if (originalDataRef.current) {
+      pCtx.putImageData(originalDataRef.current, 0, 0);
+    }
+  }, []);
+
+  const runBrushPredict = useCallback(
+    async (points: SamPoint[]) => {
+      if (points.length === 0) {
+        renderInitialPreview();
+        return;
+      }
+      const resultImg = await runPredict(points);
+      const p = previewRef.current;
+      if (!resultImg || !p) return;
+      const pCtx = p.getContext('2d');
+      if (!pCtx) return;
+      pCtx.clearRect(0, 0, p.width, p.height);
+      pCtx.drawImage(resultImg, 0, 0, p.width, p.height);
+    },
+    [runPredict, renderInitialPreview]
+  );
+
+  const commitStroke = useCallback(
+    (path: Array<{ x: number; y: number }>) => {
+      if (path.length === 0) return;
+      const sampled = samplePathPoints(path, brushSize);
+      const label: 0 | 1 = brushTool === 'keep' ? 1 : 0;
+      const newPoints: SamPoint[] = sampled.map(p => ({
+        x: Math.round(p.x),
+        y: Math.round(p.y),
+        label,
+      }));
+      const next = [...strokeHistory, newPoints];
+      setStrokeHistory(next);
+      runBrushPredict(next.flat());
+    },
+    [brushSize, brushTool, strokeHistory, runBrushPredict]
+  );
+
+  // ---------- Canvas mouse handlers ----------
+  const handleMouseDown = useCallback(
+    (e: React.MouseEvent<HTMLCanvasElement>) => {
+      if (hasResult) return;
+      if (panelMode === 'color-pick') return; // handled by onClick
+      if (panelMode !== 'ai-brush') return;
+      if (!samSession) return;
+      const c = eventToCanvasCoords(e);
+      if (!c) return;
+      isDrawingRef.current = true;
+      currentStrokeRef.current = [{ x: c.x, y: c.y }];
+    },
+    [panelMode, hasResult, samSession, eventToCanvasCoords]
+  );
+
+  const handleMouseMove = useCallback(
+    (e: React.MouseEvent<HTMLCanvasElement>) => {
+      const c = eventToCanvasCoords(e);
+      if (!c) return;
+      if (panelMode === 'ai-brush') setCursorPos({ x: c.displayX, y: c.displayY });
+      if (!isDrawingRef.current) return;
+      currentStrokeRef.current.push({ x: c.x, y: c.y });
+    },
+    [panelMode, eventToCanvasCoords]
+  );
+
+  const endStroke = useCallback(() => {
+    if (!isDrawingRef.current) return;
+    const path = currentStrokeRef.current;
+    isDrawingRef.current = false;
+    currentStrokeRef.current = [];
+    commitStroke(path);
+  }, [commitStroke]);
+
+  const handleMouseUp = useCallback(() => endStroke(), [endStroke]);
+  const handleMouseLeave = useCallback(() => {
+    setCursorPos(null);
+    endStroke();
+  }, [endStroke]);
+
+  // Color-pick click (eyedropper or seed-fill)
   const handlePreviewClick = useCallback(
     (e: React.MouseEvent<HTMLCanvasElement>) => {
-      const preview = previewRef.current;
+      if (panelMode !== 'color-pick' || hasResult) return;
       const orig = originalDataRef.current;
-      if (!preview || !orig || hasResult || panelMode !== 'color-pick') return;
-
-      const rect = preview.getBoundingClientRect();
-      const scaleX = preview.width / rect.width;
-      const scaleY = preview.height / rect.height;
-      const x = Math.floor((e.clientX - rect.left) * scaleX);
-      const y = Math.floor((e.clientY - rect.top) * scaleY);
-
+      const c = eventToCanvasCoords(e);
+      if (!orig || !c) return;
+      const x = Math.floor(c.x);
+      const y = Math.floor(c.y);
       if (clickRemoveMode) {
         if (!targetColor) return;
         applyClientPreview(targetColor, tolerance, { x, y });
         setClickRemoveMode(false);
       } else {
-        // Eyedropper: sample from original data
         const idx = (y * orig.width + x) * 4;
         const color: RGB = [orig.data[idx], orig.data[idx + 1], orig.data[idx + 2]];
         setTargetColor(color);
         applyClientPreview(color, tolerance);
       }
     },
-    [panelMode, clickRemoveMode, targetColor, tolerance, hasResult, applyClientPreview]
+    [panelMode, clickRemoveMode, targetColor, tolerance, hasResult, eventToCanvasCoords, applyClientPreview]
   );
 
-  // When target color changes in color-pick mode, update preview
-  const handleTargetColorChange = useCallback(
-    (color: RGB) => {
-      setTargetColor(color);
-      if (panelMode === 'color-pick' && !hasResult) {
-        applyClientPreview(color, tolerance);
-      }
-    },
-    [panelMode, hasResult, tolerance, applyClientPreview]
-  );
-
-  // Switch modes: reset preview to original when switching away from result
+  // ---------- Mode switch / brush controls ----------
   const handleModeSwitch = useCallback(
     (mode: PanelMode) => {
       setPanelMode(mode);
       setClickRemoveMode(false);
-      // If we have a prior client preview (no server result), reset to original
-      if (!hasResult && originalDataRef.current && previewRef.current) {
-        const preview = previewRef.current;
-        const pCtx = preview.getContext('2d');
+      if (hasResult) return;
+      // Reset preview based on the mode we're entering
+      if (mode === 'ai-brush') {
+        renderInitialPreview();
+      } else if (originalDataRef.current && previewRef.current) {
+        const pCtx = previewRef.current.getContext('2d');
         if (pCtx) {
-          pCtx.clearRect(0, 0, preview.width, preview.height);
+          pCtx.clearRect(0, 0, previewRef.current.width, previewRef.current.height);
           pCtx.putImageData(originalDataRef.current, 0, 0);
         }
       }
     },
-    [hasResult]
+    [hasResult, renderInitialPreview]
   );
 
-  // Build server RemovalOptions based on current mode + settings
+  const handleUndoStroke = useCallback(() => {
+    if (strokeHistory.length === 0) return;
+    const next = strokeHistory.slice(0, -1);
+    setStrokeHistory(next);
+    runBrushPredict(next.flat());
+  }, [strokeHistory, runBrushPredict]);
+
+  const handleClearStrokes = useCallback(() => {
+    setStrokeHistory([]);
+    renderInitialPreview();
+  }, [renderInitialPreview]);
+
+  // ---------- Server-removal for Color Pick / AI Only ----------
   const buildOptions = useCallback((): RemovalOptions => {
     if (panelMode === 'color-pick') {
       return {
@@ -240,46 +372,20 @@ export function BackgroundRemovalPanel({
         tolerance,
       };
     }
-    if (panelMode === 'ai-only') {
-      return { mode: 'ml-only', model };
-    }
-    // Auto: use detection recommendation
-    const rec = detection?.recommended_mode;
-    if (!rec || rec === 'noop') {
-      return { mode: 'ml-only', model };
-    }
-    if (rec === 'color-fill' || rec === 'two-color-fill') {
-      return {
-        mode: 'color-fill',
-        targetColor: detection!.dominant,
-        tolerance,
-      };
-    }
-    if (rec === 'ml+color') {
-      return {
-        mode: 'ml+color',
-        model,
-        targetColor: detection!.dominant,
-        tolerance,
-      };
-    }
     return { mode: 'ml-only', model };
-  }, [panelMode, targetColor, tolerance, model, detection]);
+  }, [panelMode, targetColor, tolerance, model]);
 
   const handleRemove = useCallback(async () => {
     const canvas = canvasRef.current;
     if (!canvas) return;
     setUpgradeRequired(false);
-
     const options = buildOptions();
     const resultImg = await runRemoval(canvas, options);
     if (!resultImg) return;
-
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     ctx.drawImage(resultImg, 0, 0, canvas.width, canvas.height);
-
     const preview = previewRef.current;
     if (preview) {
       preview.width = canvas.width;
@@ -293,6 +399,19 @@ export function BackgroundRemovalPanel({
     setHasResult(true);
   }, [buildOptions, runRemoval]);
 
+  // ---------- AI Brush: Apply (commit preview to canvasRef) ----------
+  const handleApplyBrush = useCallback(() => {
+    const canvas = canvasRef.current;
+    const preview = previewRef.current;
+    if (!canvas || !preview) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.drawImage(preview, 0, 0);
+    setHasResult(true);
+  }, []);
+
+  // ---------- Reset / Save / Download ----------
   const handleReset = useCallback(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -300,10 +419,7 @@ export function BackgroundRemovalPanel({
     if (!ctx) return;
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     ctx.drawImage(image, 0, 0);
-
-    // Restore originalDataRef
     originalDataRef.current = ctx.getImageData(0, 0, canvas.width, canvas.height);
-
     const preview = previewRef.current;
     if (preview) {
       preview.width = canvas.width;
@@ -311,9 +427,10 @@ export function BackgroundRemovalPanel({
       const pCtx = preview.getContext('2d');
       if (pCtx) pCtx.drawImage(image, 0, 0);
     }
-
     setHasResult(false);
     setUpgradeRequired(false);
+    setStrokeHistory([]);
+    initialMaskRef.current = null;
     reset();
   }, [image, reset]);
 
@@ -338,19 +455,24 @@ export function BackgroundRemovalPanel({
   }, [hasResult]);
 
   const isProcessing = ['authorizing', 'detecting', 'removing', 'embedding', 'predicting'].includes(status);
-  const showColorControls = panelMode === 'auto' || panelMode === 'color-pick';
-  const showModelSelector = panelMode === 'ai-only' || (panelMode === 'auto' && detection?.recommended_mode && ['ml-only', 'ml+color'].includes(detection.recommended_mode));
-
-  const cursorStyle =
+  const samReady = samSession !== null;
+  const cursorClass =
     !hasResult && panelMode === 'color-pick'
       ? clickRemoveMode
         ? 'cursor-crosshair'
         : 'cursor-cell'
-      : '';
+      : !hasResult && panelMode === 'ai-brush' && samReady
+        ? 'cursor-none'
+        : '';
+
+  // Compute overlay scale for cursor + dot positioning
+  const overlayScale =
+    canvasRect && previewRef.current && previewRef.current.width
+      ? canvasRect.width / previewRef.current.width
+      : 1;
 
   return (
     <div className="flex-1 flex flex-col min-h-0">
-      {/* Upgrade required banner */}
       {upgradeRequired && (
         <div className="bg-amber-50 border-b border-amber-200 px-4 py-3">
           <div className="max-w-[1800px] mx-auto flex items-center gap-3">
@@ -373,7 +495,6 @@ export function BackgroundRemovalPanel({
         </div>
       )}
 
-      {/* Non-upgrade errors */}
       {error && !upgradeRequired && (
         <div className="bg-red-50 border-b border-red-200 px-4 py-3">
           <div className="max-w-[1800px] mx-auto flex items-center gap-3">
@@ -387,21 +508,65 @@ export function BackgroundRemovalPanel({
       )}
 
       <div className="flex-1 flex flex-col lg:flex-row min-h-0">
-        {/* Preview canvas */}
+        {/* Preview canvas + overlays */}
         <div
-          className={`flex-1 flex items-center justify-center min-h-[300px] overflow-hidden p-4 ${cursorStyle}`}
+          ref={containerRef}
+          className={`flex-1 flex items-center justify-center min-h-[300px] overflow-hidden p-4 ${cursorClass}`}
           style={{
             backgroundColor: '#ffffff',
             backgroundImage: 'repeating-conic-gradient(#e0e0e0 0% 25%, #ffffff 0% 50%)',
             backgroundSize: '20px 20px',
           }}
         >
-          <canvas
-            ref={previewRef}
-            className="max-w-full max-h-full shadow-lg rounded"
-            style={{ maxHeight: 'calc(100vh - 280px)', background: 'transparent' }}
-            onClick={handlePreviewClick}
-          />
+          <div className="relative">
+            <canvas
+              ref={previewRef}
+              className="max-w-full max-h-full shadow-lg rounded block"
+              style={{ maxHeight: 'calc(100vh - 280px)', background: 'transparent' }}
+              onClick={handlePreviewClick}
+              onMouseDown={handleMouseDown}
+              onMouseMove={handleMouseMove}
+              onMouseUp={handleMouseUp}
+              onMouseLeave={handleMouseLeave}
+            />
+            {/* Brush cursor overlay */}
+            {panelMode === 'ai-brush' && cursorPos && samReady && !hasResult && (
+              <div
+                className="absolute pointer-events-none rounded-full border-2"
+                style={{
+                  left: cursorPos.x - (brushSize * overlayScale) / 2,
+                  top: cursorPos.y - (brushSize * overlayScale) / 2,
+                  width: brushSize * overlayScale,
+                  height: brushSize * overlayScale,
+                  borderColor: brushTool === 'keep' ? '#10b981' : '#ef4444',
+                  background:
+                    brushTool === 'keep'
+                      ? 'rgba(16,185,129,0.18)'
+                      : 'rgba(239,68,68,0.18)',
+                }}
+              />
+            )}
+            {/* Placed-point dots overlay */}
+            {panelMode === 'ai-brush' && !hasResult && allSamPoints.length > 0 && canvasRect && (
+              <svg
+                className="absolute inset-0 pointer-events-none"
+                width={canvasRect.width}
+                height={canvasRect.height}
+              >
+                {allSamPoints.map((pt, i) => (
+                  <circle
+                    key={i}
+                    cx={pt.x * overlayScale}
+                    cy={pt.y * overlayScale}
+                    r={3}
+                    fill={pt.label === 1 ? '#10b981' : '#ef4444'}
+                    stroke="white"
+                    strokeWidth={1.5}
+                  />
+                ))}
+              </svg>
+            )}
+          </div>
         </div>
 
         {/* Side panel */}
@@ -415,7 +580,7 @@ export function BackgroundRemovalPanel({
               <div className="flex rounded-lg border border-gray-200 overflow-hidden">
                 {(
                   [
-                    { mode: 'auto' as PanelMode, label: 'Auto', Icon: Wand2 },
+                    { mode: 'ai-brush' as PanelMode, label: 'AI Brush', Icon: Wand2 },
                     { mode: 'color-pick' as PanelMode, label: 'Color', Icon: Pipette },
                     { mode: 'ai-only' as PanelMode, label: 'AI Only', Icon: Cpu },
                   ] as const
@@ -437,152 +602,245 @@ export function BackgroundRemovalPanel({
               </div>
             </div>
 
-            {/* Auto mode: detection banner */}
-            {panelMode === 'auto' && (
-              <div className="rounded-lg border border-gray-200 bg-gray-50 p-3 text-xs">
-                {status === 'detecting' ? (
-                  <div className="flex items-center gap-2 text-gray-500">
-                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                    Analyzing background...
-                  </div>
-                ) : detection ? (
-                  <>
-                    <div className="flex items-center gap-2 mb-1.5">
-                      {detection.dominant && (
-                        <span
-                          className="w-4 h-4 rounded-sm border border-gray-300 flex-shrink-0"
-                          style={{ background: rgbToHex(detection.dominant) }}
-                        />
-                      )}
-                      <span className="font-medium text-gray-700">
-                        {CONFIDENCE_LABELS[detection.confidence] ?? detection.confidence}
-                      </span>
+            {/* AI Brush mode */}
+            {panelMode === 'ai-brush' && !hasResult && (
+              <>
+                {/* Readiness banner */}
+                <div className="rounded-lg border border-gray-200 bg-gray-50 p-3 text-xs">
+                  {!samReady ? (
+                    <div className="flex items-center gap-2 text-gray-600">
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      Preparing AI Brush... (~5s)
                     </div>
-                    <p className="text-gray-500">
-                      Will use:{' '}
-                      <span className="font-medium text-gray-700">
-                        {REC_MODE_LABELS[detection.recommended_mode] ?? detection.recommended_mode}
-                      </span>
-                    </p>
-                    <button
-                      onClick={() => handleModeSwitch('color-pick')}
-                      className="mt-1.5 text-blue-600 hover:text-blue-800 underline"
-                    >
-                      Override with Color Pick
-                    </button>
-                  </>
-                ) : (
-                  <p className="text-gray-500">No detection yet — will use AI.</p>
-                )}
-              </div>
-            )}
-
-            {/* Color Pick mode: eyedropper + color swatch */}
-            {panelMode === 'color-pick' && (
-              <div className="flex flex-col gap-2">
-                <label className="block text-xs font-medium text-gray-600">
-                  Target Color
-                </label>
-                <div className="flex items-center gap-2">
-                  {targetColor ? (
-                    <span
-                      className="w-8 h-8 rounded border border-gray-300 flex-shrink-0 shadow-sm"
-                      style={{ background: rgbToHex(targetColor) }}
-                      title={rgbToHex(targetColor)}
-                    />
                   ) : (
-                    <span className="w-8 h-8 rounded border border-dashed border-gray-300 flex-shrink-0" />
+                    <div className="flex items-start gap-2 text-gray-700">
+                      <CheckCircle2 className="w-3.5 h-3.5 mt-0.5 text-green-600 flex-shrink-0" />
+                      <p>
+                        AI Brush ready. We auto-detected the subject. Use{' '}
+                        <span className="text-green-700 font-medium">Keep</span> to add
+                        regions, <span className="text-red-700 font-medium">Remove</span>{' '}
+                        to erase.
+                      </p>
+                    </div>
                   )}
-                  <p className="text-xs text-gray-500">
-                    {targetColor
-                      ? `${rgbToHex(targetColor).toUpperCase()} — click image to repick`
-                      : 'Click image to pick background color'}
+                </div>
+
+                {/* Tool toggle */}
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1.5">
+                    Brush Tool
+                  </label>
+                  <div className="flex rounded-lg border border-gray-200 overflow-hidden">
+                    <button
+                      onClick={() => setBrushTool('keep')}
+                      disabled={!samReady}
+                      className={`flex-1 flex items-center justify-center gap-1 py-2 text-xs font-medium transition-colors disabled:opacity-50 ${
+                        brushTool === 'keep'
+                          ? 'bg-green-600 text-white'
+                          : 'text-gray-600 hover:bg-gray-50'
+                      }`}
+                    >
+                      <Plus className="w-3.5 h-3.5" />
+                      Keep
+                    </button>
+                    <button
+                      onClick={() => setBrushTool('remove')}
+                      disabled={!samReady}
+                      className={`flex-1 flex items-center justify-center gap-1 py-2 text-xs font-medium transition-colors disabled:opacity-50 ${
+                        brushTool === 'remove'
+                          ? 'bg-red-600 text-white'
+                          : 'text-gray-600 hover:bg-gray-50'
+                      }`}
+                    >
+                      <Minus className="w-3.5 h-3.5" />
+                      Remove
+                    </button>
+                  </div>
+                </div>
+
+                {/* Brush size */}
+                <div>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="text-xs font-medium text-gray-600">Brush Size</label>
+                    <span className="text-xs text-gray-500 tabular-nums">{brushSize}px</span>
+                  </div>
+                  <input
+                    type="range"
+                    min={5}
+                    max={80}
+                    step={1}
+                    value={brushSize}
+                    onChange={e => setBrushSize(Number(e.target.value))}
+                    className="w-full accent-blue-600"
+                  />
+                  <p className="text-xs text-gray-400 mt-1">
+                    Size of click points along brush strokes. Visual cursor only — SAM
+                    figures out the actual region.
                   </p>
                 </div>
 
-                {/* Click-to-remove toggle */}
+                {/* Undo / Clear */}
+                <div className="flex gap-2">
+                  <button
+                    onClick={handleUndoStroke}
+                    disabled={strokeHistory.length === 0 || isProcessing}
+                    className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 text-xs text-gray-600 hover:text-gray-900 border border-gray-200 hover:border-gray-300 rounded-lg disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                  >
+                    <Undo2 className="w-3.5 h-3.5" />
+                    Undo
+                  </button>
+                  <button
+                    onClick={handleClearStrokes}
+                    disabled={strokeHistory.length === 0 || isProcessing}
+                    className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 text-xs text-gray-600 hover:text-gray-900 border border-gray-200 hover:border-gray-300 rounded-lg disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                    Clear
+                  </button>
+                </div>
+
+                <div className="text-xs text-gray-400">
+                  {strokeHistory.length === 0
+                    ? 'No strokes yet — showing initial AI guess.'
+                    : `${allSamPoints.length} point${allSamPoints.length === 1 ? '' : 's'} placed across ${strokeHistory.length} stroke${strokeHistory.length === 1 ? '' : 's'}.`}
+                </div>
+
+                {/* Apply button */}
                 <button
-                  onClick={() => setClickRemoveMode(v => !v)}
-                  disabled={!targetColor || hasResult}
-                  className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors disabled:opacity-40 ${
-                    clickRemoveMode
-                      ? 'bg-orange-50 border-orange-300 text-orange-700'
-                      : 'border-gray-200 text-gray-600 hover:border-gray-300'
-                  }`}
+                  onClick={handleApplyBrush}
+                  disabled={isProcessing || !samReady}
+                  className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white text-sm font-medium rounded-lg transition-colors"
                 >
-                  <Crosshair className="w-3.5 h-3.5" />
-                  {clickRemoveMode ? 'Click a spot to remove it…' : 'Click to remove a spot'}
+                  {isProcessing ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      {STATUS_LABELS[status] || 'Processing...'}
+                    </>
+                  ) : (
+                    <>
+                      <CheckCircle2 className="w-4 h-4" />
+                      Apply Mask
+                    </>
+                  )}
                 </button>
-                {clickRemoveMode && (
-                  <p className="text-xs text-gray-400">
-                    Removes the connected color region from your click point only.
-                  </p>
-                )}
-              </div>
+              </>
             )}
 
-            {/* Tolerance slider (color-based modes) */}
-            {showColorControls && !hasResult && (
-              <div>
-                <div className="flex items-center justify-between mb-1">
-                  <label className="text-xs font-medium text-gray-600">Tolerance</label>
-                  <span className="text-xs text-gray-500 tabular-nums">{tolerance}</span>
+            {/* Color Pick mode */}
+            {panelMode === 'color-pick' && !hasResult && (
+              <>
+                <div className="flex flex-col gap-2">
+                  <label className="block text-xs font-medium text-gray-600">
+                    Target Color
+                  </label>
+                  <div className="flex items-center gap-2">
+                    {targetColor ? (
+                      <span
+                        className="w-8 h-8 rounded border border-gray-300 flex-shrink-0 shadow-sm"
+                        style={{ background: rgbToHex(targetColor) }}
+                        title={rgbToHex(targetColor)}
+                      />
+                    ) : (
+                      <span className="w-8 h-8 rounded border border-dashed border-gray-300 flex-shrink-0" />
+                    )}
+                    <p className="text-xs text-gray-500">
+                      {targetColor
+                        ? `${rgbToHex(targetColor).toUpperCase()} — click image to repick`
+                        : 'Click image to pick background color'}
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => setClickRemoveMode(v => !v)}
+                    disabled={!targetColor}
+                    className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors disabled:opacity-40 ${
+                      clickRemoveMode
+                        ? 'bg-orange-50 border-orange-300 text-orange-700'
+                        : 'border-gray-200 text-gray-600 hover:border-gray-300'
+                    }`}
+                  >
+                    {clickRemoveMode ? 'Click a spot to remove it…' : 'Click to remove a spot'}
+                  </button>
                 </div>
-                <input
-                  type="range"
-                  min={5}
-                  max={150}
-                  step={5}
-                  value={tolerance}
-                  onChange={e => handleToleranceChange(Number(e.target.value))}
-                  disabled={isProcessing}
-                  className="w-full accent-blue-600 disabled:opacity-50"
-                />
-                <p className="text-xs text-gray-400 mt-1">
-                  Higher = removes more (use for soft or gradient edges).
-                </p>
-              </div>
-            )}
 
-            {/* Model selector */}
-            {showModelSelector && (
-              <div>
-                <label className="block text-xs font-medium text-gray-600 mb-1.5">
-                  AI Model
-                </label>
-                <select
-                  value={model}
-                  onChange={e => setModel(e.target.value as BgRemovalModel)}
+                <div>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="text-xs font-medium text-gray-600">Tolerance</label>
+                    <span className="text-xs text-gray-500 tabular-nums">{tolerance}</span>
+                  </div>
+                  <input
+                    type="range"
+                    min={5}
+                    max={150}
+                    step={5}
+                    value={tolerance}
+                    onChange={e => handleToleranceChange(Number(e.target.value))}
+                    disabled={isProcessing}
+                    className="w-full accent-blue-600 disabled:opacity-50"
+                  />
+                  <p className="text-xs text-gray-400 mt-1">
+                    Higher = removes more (use for soft or gradient edges).
+                  </p>
+                </div>
+
+                <button
+                  onClick={handleRemove}
                   disabled={isProcessing}
-                  className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 bg-white text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
+                  className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white text-sm font-medium rounded-lg transition-colors"
                 >
-                  {MODELS.map(m => (
-                    <option key={m.value} value={m.value}>
-                      {m.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
+                  {isProcessing ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      {STATUS_LABELS[status] || 'Processing...'}
+                    </>
+                  ) : (
+                    <>
+                      <Scissors className="w-4 h-4" />
+                      Remove Background
+                    </>
+                  )}
+                </button>
+              </>
             )}
 
-            {/* Remove button */}
-            <button
-              onClick={handleRemove}
-              disabled={isProcessing || hasResult}
-              className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-60 disabled:cursor-not-allowed text-white text-sm font-medium rounded-lg transition-colors"
-            >
-              {isProcessing ? (
-                <>
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                  {STATUS_LABELS[status] || 'Processing...'}
-                </>
-              ) : (
-                <>
-                  <Scissors className="w-4 h-4" />
-                  Remove Background
-                </>
-              )}
-            </button>
+            {/* AI Only mode */}
+            {panelMode === 'ai-only' && !hasResult && (
+              <>
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1.5">
+                    AI Model
+                  </label>
+                  <select
+                    value={model}
+                    onChange={e => setModel(e.target.value as BgRemovalModel)}
+                    disabled={isProcessing}
+                    className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 bg-white text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
+                  >
+                    {MODELS.map(m => (
+                      <option key={m.value} value={m.value}>
+                        {m.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <button
+                  onClick={handleRemove}
+                  disabled={isProcessing}
+                  className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white text-sm font-medium rounded-lg transition-colors"
+                >
+                  {isProcessing ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      {STATUS_LABELS[status] || 'Processing...'}
+                    </>
+                  ) : (
+                    <>
+                      <Scissors className="w-4 h-4" />
+                      Remove Background
+                    </>
+                  )}
+                </button>
+              </>
+            )}
 
             {hasResult && (
               <button
@@ -594,7 +852,6 @@ export function BackgroundRemovalPanel({
               </button>
             )}
 
-            {/* Save / Download */}
             {hasResult && (
               <div className="flex flex-col gap-2 pt-2 border-t border-gray-100">
                 <button
@@ -619,7 +876,6 @@ export function BackgroundRemovalPanel({
               </div>
             )}
 
-            {/* Advanced BG removal link */}
             <div className="mt-auto pt-4 border-t border-gray-100">
               <p className="text-xs text-gray-500 mb-2">
                 Need cleaner edges for hair, fur, or fine detail?
@@ -639,7 +895,6 @@ export function BackgroundRemovalPanel({
         </div>
       </div>
 
-      {/* Footer */}
       <div className="bg-white border-t border-gray-200 px-4 py-3">
         <div className="max-w-[1800px] mx-auto flex items-center justify-between gap-3">
           <button
@@ -650,19 +905,7 @@ export function BackgroundRemovalPanel({
           </button>
           {savedImageId && (
             <div className="flex items-center gap-2 text-sm text-green-700 font-medium">
-              <svg
-                className="w-4 h-4"
-                fill="none"
-                viewBox="0 0 24 24"
-                strokeWidth={2.5}
-                stroke="currentColor"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M4.5 12.75l6 6 9-13.5"
-                />
-              </svg>
+              <CheckCircle2 className="w-4 h-4" />
               Saved!{' '}
               <a href="/dashboard#my-images" className="underline opacity-80 hover:opacity-100">
                 View gallery
