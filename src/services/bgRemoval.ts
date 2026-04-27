@@ -98,7 +98,12 @@ export async function embedImage(imageBlob: Blob): Promise<SamSession> {
     throw new Error(body.error || `Embedding failed (${res.status})`);
   }
 
-  return res.json() as Promise<SamSession>;
+  const data = await res.json();
+  return {
+    embeddingId: data.embedding_id ?? data.embeddingId,
+    width: data.width,
+    height: data.height,
+  };
 }
 
 export async function predictMask(

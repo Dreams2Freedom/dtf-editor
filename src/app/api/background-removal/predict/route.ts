@@ -63,11 +63,17 @@ async function handler(request: NextRequest) {
   upstream.append('embedding_id', embeddingId);
   upstream.append('points', points);
 
-  const serviceRes = await fetch(`${env.REMBG_SERVICE_URL}/predict`, {
-    method: 'POST',
-    headers: { 'X-API-Key': env.REMBG_SERVICE_API_KEY },
-    body: upstream,
-  });
+  let serviceRes: Response;
+  try {
+    serviceRes = await fetch(`${env.REMBG_SERVICE_URL}/predict`, {
+      method: 'POST',
+      headers: { 'X-API-Key': env.REMBG_SERVICE_API_KEY },
+      body: upstream,
+    });
+  } catch (err) {
+    console.error('[bg-removal/predict] fetch failed:', err);
+    return NextResponse.json({ error: 'Service unreachable' }, { status: 503 });
+  }
 
   if (!serviceRes.ok) {
     let detail = 'Prediction failed';

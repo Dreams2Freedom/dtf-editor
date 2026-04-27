@@ -57,11 +57,17 @@ async function handler(request: NextRequest) {
   const upstream = new FormData();
   upstream.append('image', image, 'image.png');
 
-  const serviceRes = await fetch(`${env.REMBG_SERVICE_URL}/embed`, {
-    method: 'POST',
-    headers: { 'X-API-Key': env.REMBG_SERVICE_API_KEY },
-    body: upstream,
-  });
+  let serviceRes: Response;
+  try {
+    serviceRes = await fetch(`${env.REMBG_SERVICE_URL}/embed`, {
+      method: 'POST',
+      headers: { 'X-API-Key': env.REMBG_SERVICE_API_KEY },
+      body: upstream,
+    });
+  } catch (err) {
+    console.error('[bg-removal/embed] fetch failed:', err);
+    return NextResponse.json({ error: 'Service unreachable' }, { status: 503 });
+  }
 
   if (!serviceRes.ok) {
     let detail = 'Embedding failed';
