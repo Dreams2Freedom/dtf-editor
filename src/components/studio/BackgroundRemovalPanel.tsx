@@ -194,11 +194,18 @@ export function BackgroundRemovalPanel({
 
       <div className="flex-1 flex flex-col lg:flex-row min-h-0">
         {/* Canvas preview */}
-        <div className="flex-1 flex items-center justify-center bg-[repeating-conic-gradient(#f0f0f0_0%_25%,white_0%_50%)_0_0/20px_20px] min-h-[300px] overflow-hidden p-4">
+        <div
+          className="flex-1 flex items-center justify-center min-h-[300px] overflow-hidden p-4"
+          style={{
+            backgroundColor: '#ffffff',
+            backgroundImage: 'repeating-conic-gradient(#e0e0e0 0% 25%, #ffffff 0% 50%)',
+            backgroundSize: '20px 20px',
+          }}
+        >
           <canvas
             ref={previewRef}
-            className="max-w-full max-h-full object-contain shadow-lg rounded"
-            style={{ maxHeight: 'calc(100vh - 280px)' }}
+            className="max-w-full max-h-full shadow-lg rounded"
+            style={{ maxHeight: 'calc(100vh - 280px)', background: 'transparent' }}
           />
         </div>
 
