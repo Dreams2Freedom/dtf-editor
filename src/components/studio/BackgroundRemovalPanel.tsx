@@ -33,7 +33,9 @@ const STATUS_LABELS: Record<string, string> = {
 };
 
 const MODELS: { value: BgRemovalModel; label: string }[] = [
-  { value: 'isnet-general-use', label: 'Standard (ISNet)' },
+  { value: 'birefnet-general-lite', label: 'Standard (BiRefNet)' },
+  { value: 'birefnet-dis', label: 'High Detail (Graphics + Text)' },
+  { value: 'birefnet-general', label: 'Maximum Quality (slow)' },
   { value: 'u2net', label: 'Fast (U2Net)' },
   { value: 'u2net_human_seg', label: 'People & Portraits' },
   { value: 'isnet-anime', label: 'Anime / Illustrations' },
@@ -48,7 +50,7 @@ export function BackgroundRemovalPanel({
 }: BackgroundRemovalPanelProps) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const previewRef = useRef<HTMLCanvasElement>(null);
-  const [model, setModel] = useState<BgRemovalModel>('isnet-general-use');
+  const [model, setModel] = useState<BgRemovalModel>('birefnet-general-lite');
   const [isSaving, setIsSaving] = useState(false);
   const [hasResult, setHasResult] = useState(false);
   const [upgradeRequired, setUpgradeRequired] = useState(false);

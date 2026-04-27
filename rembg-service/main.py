@@ -52,13 +52,23 @@ def health():
 @app.post("/remove")
 async def remove_background(
     image: UploadFile = File(...),
-    model: str = Form(default="isnet-general-use"),
+    model: str = Form(default="birefnet-general-lite"),
     x_api_key: Optional[str] = Header(default=None),
 ):
     """One-shot background removal. Returns masked PNG."""
     _require_auth(x_api_key)
 
-    allowed_models = {"u2net", "u2netp", "u2net_human_seg", "isnet-general-use", "isnet-anime", "sam"}
+    allowed_models = {
+        "birefnet-general-lite",
+        "birefnet-dis",
+        "birefnet-general",
+        "u2net",
+        "u2netp",
+        "u2net_human_seg",
+        "isnet-general-use",
+        "isnet-anime",
+        "sam",
+    }
     if model not in allowed_models:
         raise HTTPException(status_code=400, detail=f"Unknown model. Choose from: {allowed_models}")
 

@@ -1,6 +1,9 @@
 export type BgRemovalProvider = 'in-house' | 'clippingmagic';
 
 export type BgRemovalModel =
+  | 'birefnet-general-lite'
+  | 'birefnet-dis'
+  | 'birefnet-general'
   | 'isnet-general-use'
   | 'u2net'
   | 'u2netp'
