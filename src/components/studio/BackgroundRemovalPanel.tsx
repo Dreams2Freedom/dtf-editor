@@ -521,6 +521,7 @@ export function BackgroundRemovalPanel({
           <div className="relative">
             <canvas
               ref={previewRef}
+              suppressHydrationWarning
               className="max-w-full max-h-full shadow-lg rounded block"
               style={{ maxHeight: 'calc(100vh - 280px)', background: 'transparent' }}
               onClick={handlePreviewClick}

@@ -1,69 +1,104 @@
 """
 SAM ONNX predictor for interactive masking.
 
-Wraps the SAM ViT-B ONNX models (downloaded by rembg into U2NET_HOME) with a
-clean encode-once / predict-many API for brush-based interactive segmentation.
+Wraps rembg's sam_vit_b model (sam_vit_b_01ec64.encoder.onnx /
+sam_vit_b_01ec64.decoder.onnx) with a clean encode-once / predict-many API
+for brush-based interactive segmentation.
 
-Latency budget (CPU, ViT-B quantized):
+The rembg SAM model uses a non-standard interface:
+  - Encoder input: (H, W, 3) float32 raw pixels (no ImageNet norm), scaled to
+    fit within INPUT_SIZE=(684, 1024) via cv2.warpAffine with a scale matrix.
+  - Decoder orig_im_size: INPUT_SIZE (not original image size).
+  - Output masks: in INPUT_SIZE space; must be inverse-transformed back.
+
+Latency budget (CPU, ViT-B):
   encode_image: ~3-6s on first call (model load + inference), ~2-3s thereafter
-  predict:      ~50-150ms per call
+  predict:      ~50-200ms per call
 
 Memory: ~500MB peak during encode, ~50MB during predict.
 """
 import logging
 import os
+from copy import deepcopy
 from threading import Lock
 from typing import Optional
 
+import cv2
 import numpy as np
 import onnxruntime as ort
 from PIL import Image
 
 logger = logging.getLogger(__name__)
 
-# SAM preprocessing constants (ImageNet normalization)
-PIXEL_MEAN = np.array([123.675, 116.28, 103.53], dtype=np.float32)
-PIXEL_STD = np.array([58.395, 57.12, 57.375], dtype=np.float32)
-TARGET_LENGTH = 1024
+# rembg's SAM encoder accepts images scaled to fit within this box (h, w).
+INPUT_SIZE = (684, 1024)
+TARGET_SIZE = 1024  # longest side for apply_coords normalization
+
+# Default model ID used by rembg when new_session('sam') is called.
+_SAM_MODEL_NAME = "sam_vit_b_01ec64"
 
 
-def _preprocess(img: Image.Image) -> tuple[np.ndarray, tuple[int, int], tuple[int, int]]:
+def _preprocess(img: Image.Image):
     """
+    Resize image to fit INPUT_SIZE using rembg's warpAffine approach.
+
     Returns:
-      preprocessed: (1, 3, 1024, 1024) float32 NCHW, padded
-      orig_size: (h, w)
-      resized_size: (new_h, new_w) before padding
+      cv_resized: (H, W, 3) float32 in [0, 255] range (no normalization)
+      original_size: (orig_h, orig_w)
+      transform_matrix: 3x3 scale matrix (maps original → encoder space)
     """
     img_rgb = img.convert("RGB")
-    orig_w, orig_h = img_rgb.size
+    cv_image = np.array(img_rgb)
+    original_size = cv_image.shape[:2]  # (h, w)
 
-    scale = TARGET_LENGTH / max(orig_h, orig_w)
-    new_h = int(round(orig_h * scale))
-    new_w = int(round(orig_w * scale))
+    scale_x = INPUT_SIZE[1] / cv_image.shape[1]
+    scale_y = INPUT_SIZE[0] / cv_image.shape[0]
+    scale = min(scale_x, scale_y)
 
-    resized = img_rgb.resize((new_w, new_h), Image.BILINEAR)
-    arr = np.array(resized, dtype=np.float32)
+    transform_matrix = np.array(
+        [[scale, 0, 0], [0, scale, 0], [0, 0, 1]], dtype=np.float64
+    )
 
-    arr = (arr - PIXEL_MEAN) / PIXEL_STD
+    cv_resized = cv2.warpAffine(
+        cv_image,
+        transform_matrix[:2],
+        (INPUT_SIZE[1], INPUT_SIZE[0]),
+        flags=cv2.INTER_LINEAR,
+    )
+    return cv_resized.astype(np.float32), original_size, transform_matrix
 
-    padded = np.zeros((TARGET_LENGTH, TARGET_LENGTH, 3), dtype=np.float32)
-    padded[:new_h, :new_w] = arr
 
-    nchw = padded.transpose(2, 0, 1)[None]  # (1, 3, 1024, 1024)
-    return nchw, (orig_h, orig_w), (new_h, new_w)
+def _apply_coords(coords: np.ndarray, original_size, target_length: int) -> np.ndarray:
+    """
+    Map coords from original_size space toward target_length longest-side space.
+    In practice, with original_size=INPUT_SIZE and target_length=TARGET_SIZE=1024
+    this is identity (scale=1.0), so the real transform is done by matmul below.
+    Kept for parity with rembg's reference implementation.
+    """
+    old_h, old_w = original_size
+    scale = target_length * 1.0 / max(old_h, old_w)
+    new_h = int(old_h * scale + 0.5)
+    new_w = int(old_w * scale + 0.5)
+    coords = deepcopy(coords).astype(float)
+    coords[..., 0] = coords[..., 0] * (new_w / old_w)
+    coords[..., 1] = coords[..., 1] * (new_h / old_h)
+    return coords
 
 
-def _scale_points(
-    points: list[tuple[float, float]],
-    orig_size: tuple[int, int],
-    resized_size: tuple[int, int],
-) -> np.ndarray:
-    """Map points from original image space to resized (pre-padding) space."""
-    orig_h, orig_w = orig_size
-    new_h, new_w = resized_size
-    sx = new_w / orig_w
-    sy = new_h / orig_h
-    return np.array([[p[0] * sx, p[1] * sy] for p in points], dtype=np.float32)
+def _transform_masks(masks, original_size, inv_transform):
+    """Warp decoder output masks (INPUT_SIZE space) back to original_size."""
+    orig_h, orig_w = original_size
+    output_masks = []
+    for mask_id in range(masks.shape[1]):
+        m = masks[0, mask_id]
+        m_back = cv2.warpAffine(
+            m,
+            inv_transform[:2],
+            (orig_w, orig_h),
+            flags=cv2.INTER_LINEAR,
+        )
+        output_masks.append(m_back)
+    return output_masks
 
 
 class SamPredictor:
@@ -76,95 +111,117 @@ class SamPredictor:
         self.decoder = ort.InferenceSession(
             decoder_path, sess_options=opts, providers=["CPUExecutionProvider"]
         )
-        logger.info("SAM predictor ready (encoder=%s, decoder=%s)", encoder_path, decoder_path)
+        # Query encoder input name dynamically (rembg's model may differ from std)
+        self._encoder_input_name = self.encoder.get_inputs()[0].name
+        logger.info(
+            "SAM predictor ready. Encoder input=%s", self._encoder_input_name
+        )
 
     def encode_image(self, img: Image.Image) -> dict:
         """Run encoder. Returns a cacheable state dict for use with predict()."""
-        preprocessed, orig_size, resized_size = _preprocess(img)
-        embeddings = self.encoder.run(None, {"images": preprocessed})[0]
+        cv_resized, original_size, transform_matrix = _preprocess(img)
+        image_embedding = self.encoder.run(
+            None, {self._encoder_input_name: cv_resized}
+        )[0]
         return {
-            "embeddings": embeddings,
-            "orig_size": orig_size,
-            "resized_size": resized_size,
+            "embeddings": image_embedding,
+            "original_size": original_size,
+            "transform_matrix": transform_matrix,
         }
 
     def predict(
         self,
         state: dict,
-        points: list[tuple[float, float]],
-        labels: list[int],
+        points: list,
+        labels: list,
         prev_low_res: Optional[np.ndarray] = None,
-    ) -> tuple[np.ndarray, np.ndarray, float]:
+    ) -> tuple:
         """
-        Run decoder with point prompts.
+        Run decoder with point prompts (in original image coordinate space).
 
-        labels: 1 = positive (keep), 0 = negative (remove)
-        prev_low_res: (1, 1, 256, 256) low-res mask from a previous predict() call
-                      for chained refinement (each click feeds prev mask back in)
+        points: list of (x, y) in original image pixels
+        labels: list of int — 1=keep (positive), 0=remove (negative)
+        prev_low_res: (1, 1, 256, 256) float32 from a previous predict() call
+                      for chained iterative refinement.
 
-        Returns: (mask_uint8 (H, W) where H,W match orig image,
-                  low_res_logits (1, 1, 256, 256) for next call,
-                  iou_score float)
+        Returns:
+          mask_uint8: (orig_h, orig_w) uint8 — 255=foreground, 0=background
+          low_res_logits: (1, 1, 256, 256) float32 — feed back as prev_low_res
+          iou_score: float
         """
         if not points:
             raise ValueError("predict() requires at least one point")
-        if len(points) != len(labels):
-            raise ValueError("points and labels must have the same length")
 
-        embeddings = state["embeddings"]
-        orig_size = state["orig_size"]
-        resized_size = state["resized_size"]
+        image_embedding = state["embeddings"]
+        original_size = state["original_size"]
+        transform_matrix = state["transform_matrix"]
 
-        coords = _scale_points(points, orig_size, resized_size)
-        labels_arr = np.array(labels, dtype=np.float32)
+        # Build coords in original space, add SAM's required padding point
+        input_points = np.array(points, dtype=np.float64)  # (N, 2)
+        input_labels = np.array(labels, dtype=np.float64)  # (N,)
 
-        # SAM ONNX export expects a trailing padding point with label -1
-        coords = np.concatenate([coords, np.array([[0.0, 0.0]], dtype=np.float32)], axis=0)
-        labels_arr = np.concatenate([labels_arr, np.array([-1.0], dtype=np.float32)], axis=0)
+        onnx_coord = np.concatenate(
+            [input_points, np.array([[0.0, 0.0]])], axis=0
+        )[None, :, :]  # (1, N+1, 2)
+        onnx_label = np.concatenate(
+            [input_labels, np.array([-1])], axis=0
+        )[None, :].astype(np.float32)  # (1, N+1)
 
-        coords = coords[None]  # (1, N+1, 2)
-        labels_arr = labels_arr[None]  # (1, N+1)
+        # apply_coords: maps INPUT_SIZE → TARGET_SIZE (identity when max=1024)
+        onnx_coord = _apply_coords(onnx_coord, INPUT_SIZE, TARGET_SIZE).astype(
+            np.float32
+        )
+
+        # Apply the same scale transform as the image: original → encoder space
+        onnx_coord_3d = np.concatenate(
+            [onnx_coord, np.ones((1, onnx_coord.shape[1], 1), dtype=np.float32)],
+            axis=2,
+        )
+        onnx_coord_3d = np.matmul(
+            onnx_coord_3d, transform_matrix.T.astype(np.float32)
+        )
+        onnx_coord = onnx_coord_3d[:, :, :2].astype(np.float32)
 
         if prev_low_res is not None:
             mask_input = prev_low_res.astype(np.float32)
-            has_mask = np.array([1.0], dtype=np.float32)
+            has_mask = np.ones(1, dtype=np.float32)
         else:
             mask_input = np.zeros((1, 1, 256, 256), dtype=np.float32)
-            has_mask = np.array([0.0], dtype=np.float32)
+            has_mask = np.zeros(1, dtype=np.float32)
 
-        orig_im_size = np.array(
-            [float(orig_size[0]), float(orig_size[1])], dtype=np.float32
-        )
+        # Decoder uses INPUT_SIZE as orig_im_size (not the actual original size)
+        decoder_inputs = {
+            "image_embeddings": image_embedding,
+            "point_coords": onnx_coord,
+            "point_labels": onnx_label,
+            "mask_input": mask_input,
+            "has_mask_input": has_mask,
+            "orig_im_size": np.array(INPUT_SIZE, dtype=np.float32),
+        }
 
-        masks, iou_preds, low_res_masks = self.decoder.run(
-            None,
-            {
-                "image_embeddings": embeddings,
-                "point_coords": coords,
-                "point_labels": labels_arr,
-                "mask_input": mask_input,
-                "has_mask_input": has_mask,
-                "orig_im_size": orig_im_size,
-            },
-        )
+        masks, iou_preds, low_res_masks = self.decoder.run(None, decoder_inputs)
 
-        # Pick the highest-IoU mask among the multi-mask output
+        # Warp masks from INPUT_SIZE space back to original image space
+        inv_transform = np.linalg.inv(transform_matrix)
+        output_masks = _transform_masks(masks, original_size, inv_transform)
+
+        # Pick highest-IoU mask
         best = int(np.argmax(iou_preds[0]))
-        binary_mask = (masks[0, best] > 0).astype(np.uint8) * 255
+        binary_mask = (output_masks[best] > 0.0).astype(np.uint8) * 255
         best_low_res = low_res_masks[:, best : best + 1]
         score = float(iou_preds[0, best])
+
         return binary_mask, best_low_res, score
 
 
 def apply_mask(img: Image.Image, mask: np.ndarray) -> Image.Image:
     """
     Apply a (H, W) uint8 mask as alpha to an RGBA image.
-    The mask should be 0 (transparent) or 255 (opaque).
+    mask values: 255=opaque (keep), 0=transparent (remove).
     """
     rgba = np.array(img.convert("RGBA"), dtype=np.uint8)
     h, w = rgba.shape[:2]
     if mask.shape != (h, w):
-        # Resize mask to match (e.g., orig_im_size rounding mismatch)
         mask_pil = Image.fromarray(mask).resize((w, h), Image.NEAREST)
         mask = np.array(mask_pil, dtype=np.uint8)
     rgba[:, :, 3] = mask
@@ -184,22 +241,29 @@ def get_predictor() -> SamPredictor:
         if _predictor is not None:
             return _predictor
 
-        # Trigger rembg's model download mechanism (no-op if already cached)
+        # Trigger rembg model download (no-op if already cached in Docker image)
         from rembg import new_session
+
         try:
             new_session("sam")
         except Exception as e:
-            logger.warning("rembg new_session('sam') hit a non-fatal issue: %s", e)
+            logger.warning("rembg new_session('sam') non-fatal: %s", e)
 
         u2net_home = os.environ.get("U2NET_HOME", os.path.expanduser("~/.u2net"))
-        encoder_path = os.path.join(u2net_home, "vit_b-encoder-quant.onnx")
-        decoder_path = os.path.join(u2net_home, "vit_b-decoder-quant.onnx")
+        encoder_path = os.path.join(u2net_home, f"{_SAM_MODEL_NAME}.encoder.onnx")
+        decoder_path = os.path.join(u2net_home, f"{_SAM_MODEL_NAME}.decoder.onnx")
 
-        if not os.path.exists(encoder_path) or not os.path.exists(decoder_path):
+        if not os.path.exists(encoder_path):
             raise RuntimeError(
-                f"SAM ONNX files missing in {u2net_home}. "
-                "Ensure the Docker build pre-downloaded them via "
-                "`new_session('sam')`."
+                f"SAM encoder not found at {encoder_path}. "
+                "Files in U2NET_HOME: "
+                + str(os.listdir(u2net_home) if os.path.isdir(u2net_home) else "dir missing")
+            )
+        if not os.path.exists(decoder_path):
+            raise RuntimeError(
+                f"SAM decoder not found at {decoder_path}. "
+                "Files in U2NET_HOME: "
+                + str(os.listdir(u2net_home) if os.path.isdir(u2net_home) else "dir missing")
             )
 
         _predictor = SamPredictor(encoder_path, decoder_path)

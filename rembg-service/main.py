@@ -238,6 +238,23 @@ def health():
     return {"status": "ok"}
 
 
+@app.get("/debug-sam")
+def debug_sam():
+    """Report SAM model file presence — no model load, safe to call any time."""
+    u2net_home = os.environ.get("U2NET_HOME", os.path.expanduser("~/.u2net"))
+    files = []
+    if os.path.isdir(u2net_home):
+        files = os.listdir(u2net_home)
+    encoder = "sam_vit_b_01ec64.encoder.onnx"
+    decoder = "sam_vit_b_01ec64.decoder.onnx"
+    return {
+        "u2net_home": u2net_home,
+        "encoder_present": encoder in files,
+        "decoder_present": decoder in files,
+        "all_files": sorted(files),
+    }
+
+
 @app.post("/detect-bg")
 async def detect_bg(
     image: UploadFile = File(...),
@@ -386,7 +403,10 @@ async def embed_image(
     input_img = _read_image(data)
     img_array = np.array(input_img)
 
-    state = predictor.encode_image(input_img)
+    try:
+        state = predictor.encode_image(input_img)
+    except Exception as e:
+        raise HTTPException(status_code=503, detail=f"SAM encode failed: {e}")
 
     embedding_id = str(uuid.uuid4())
     _embeddings[embedding_id] = {
@@ -436,9 +456,12 @@ async def predict_mask(
     input_points = [(float(p["x"]), float(p["y"])) for p in pts]
     input_labels = [int(p["label"]) for p in pts]
 
-    mask, low_res, _score = predictor.predict(
-        state, input_points, input_labels, prev_low_res=prev_low_res
-    )
+    try:
+        mask, low_res, _score = predictor.predict(
+            state, input_points, input_labels, prev_low_res=prev_low_res
+        )
+    except Exception as e:
+        raise HTTPException(status_code=503, detail=f"SAM predict failed: {e}")
 
     cached["low_res_mask"] = low_res
 
