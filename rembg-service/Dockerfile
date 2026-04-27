@@ -11,14 +11,18 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Pre-download the default model so cold starts are faster
-# Models are cached in ~/.u2net by default; we move them to /app/models
+# Pre-download models so cold starts are faster.
+# Models are cached in ~/.u2net by default; we move them to /app/models.
 ENV U2NET_HOME=/app/models
-# Default is birefnet-general-lite (~178MB) — better quality on illustrations + text
-# than ISNet. birefnet-dis lazy-loads on first use to keep image size manageable.
+
+# Default ML mask model: birefnet-general-lite (~178MB).
 RUN python -c "from rembg import new_session; new_session('birefnet-general-lite')" || true
 
-COPY main.py .
+# SAM ViT-B (quantized) for interactive brush masking: ~100MB encoder + ~16MB decoder.
+# The /embed and /predict endpoints load these directly via onnxruntime.
+RUN python -c "from rembg import new_session; new_session('sam')" || true
+
+COPY main.py sam_predictor.py ./
 
 EXPOSE 8000
 

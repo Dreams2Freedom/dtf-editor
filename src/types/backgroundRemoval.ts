@@ -19,8 +19,8 @@ export type RemovalMode =
   | 'ml-only'
   | 'ml+color';
 
-/** Top-of-panel UX mode (separate from server modes — auto picks one). */
-export type PanelMode = 'auto' | 'color-pick' | 'click-remove' | 'ai-only';
+/** Top-of-panel UX mode (separate from server modes). */
+export type PanelMode = 'ai-brush' | 'color-pick' | 'ai-only';
 
 export type RGB = [number, number, number];
 

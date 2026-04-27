@@ -370,7 +370,7 @@ async def embed_image(
     image: UploadFile = File(...),
     x_api_key: Optional[str] = Header(default=None),
 ):
-    """SAM embedding endpoint (kept for forward compat; not yet UI-wired)."""
+    """Run SAM encoder on the image and cache the embedding for follow-up /predict calls."""
     _require_auth(x_api_key)
 
     data = await image.read()
@@ -378,24 +378,28 @@ async def embed_image(
         raise HTTPException(status_code=413, detail="Image too large (max 50MB)")
 
     try:
-        from rembg.sessions.sam import SamSession  # noqa: F401
-    except ImportError:
-        raise HTTPException(status_code=501, detail="SAM model not available in this build")
+        from sam_predictor import get_predictor
+        predictor = get_predictor()
+    except Exception as e:
+        raise HTTPException(status_code=503, detail=f"SAM unavailable: {e}")
 
-    session = _get_session("sam")
     input_img = _read_image(data)
-
     img_array = np.array(input_img)
+
+    state = predictor.encode_image(input_img)
 
     embedding_id = str(uuid.uuid4())
     _embeddings[embedding_id] = {
+        "state": state,
         "img_array": img_array,
-        "session": session,
+        "low_res_mask": None,
+    }
+
+    return {
+        "embedding_id": embedding_id,
         "width": input_img.width,
         "height": input_img.height,
     }
-
-    return {"embedding_id": embedding_id, "width": input_img.width, "height": input_img.height}
 
 
 @app.post("/predict")
@@ -404,6 +408,7 @@ async def predict_mask(
     points: str = Form(...),
     x_api_key: Optional[str] = Header(default=None),
 ):
+    """Run SAM decoder with point prompts. Returns the masked PNG (background transparent)."""
     _require_auth(x_api_key)
 
     if embedding_id not in _embeddings:
@@ -417,18 +422,27 @@ async def predict_mask(
     except Exception:
         raise HTTPException(status_code=400, detail="points must be [{x, y, label}, ...]")
 
+    try:
+        from sam_predictor import get_predictor, apply_mask
+        predictor = get_predictor()
+    except Exception as e:
+        raise HTTPException(status_code=503, detail=f"SAM unavailable: {e}")
+
     cached = _embeddings[embedding_id]
-    session = cached["session"]
+    state = cached["state"]
     img_array = cached["img_array"]
+    prev_low_res = cached.get("low_res_mask")
+
+    input_points = [(float(p["x"]), float(p["y"])) for p in pts]
+    input_labels = [int(p["label"]) for p in pts]
+
+    mask, low_res, _score = predictor.predict(
+        state, input_points, input_labels, prev_low_res=prev_low_res
+    )
+
+    cached["low_res_mask"] = low_res
 
     input_img = Image.fromarray(img_array)
-
-    input_points = np.array([[p["x"], p["y"]] for p in pts], dtype=np.float32)
-    input_labels = np.array([p["label"] for p in pts], dtype=np.int32)
-
-    try:
-        output_img = session.predict_masks(input_img, input_points, input_labels)
-    except AttributeError:
-        output_img = remove(input_img, session=session)
+    output_img = apply_mask(input_img, mask)
 
     return _png_response(output_img)

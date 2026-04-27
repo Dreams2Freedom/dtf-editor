@@ -183,6 +183,36 @@ export function clientFloodFill(
   return src;
 }
 
+/**
+ * Sample points along a freehand path at `spacing`-pixel intervals.
+ * First and last points always kept; intermediate points dropped if closer
+ * than `spacing` to the last accepted point. Used to convert brush strokes
+ * into SAM prompt points.
+ */
+export function samplePathPoints(
+  path: Array<{ x: number; y: number }>,
+  spacing: number
+): Array<{ x: number; y: number }> {
+  if (path.length === 0) return [];
+  if (path.length === 1) return [path[0]];
+  const minSq = Math.max(1, spacing) ** 2;
+  const out: Array<{ x: number; y: number }> = [path[0]];
+  for (let i = 1; i < path.length - 1; i++) {
+    const last = out[out.length - 1];
+    const dx = path[i].x - last.x;
+    const dy = path[i].y - last.y;
+    if (dx * dx + dy * dy >= minSq) {
+      out.push(path[i]);
+    }
+  }
+  const last = path[path.length - 1];
+  const tail = out[out.length - 1];
+  const dx = last.x - tail.x;
+  const dy = last.y - tail.y;
+  if (dx * dx + dy * dy > 0) out.push(last);
+  return out;
+}
+
 export function useBackgroundRemoval(): UseBackgroundRemovalReturn {
   const [status, setStatus] = useState<BgRemovalStatus>('idle');
   const [error, setError] = useState<string | null>(null);
