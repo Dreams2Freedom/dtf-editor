@@ -70,9 +70,21 @@ async function handler(request: NextRequest) {
   });
 
   if (!serviceRes.ok) {
-    const text = await serviceRes.text().catch(() => '');
-    console.error('[SAM Predict] Service error:', serviceRes.status, text);
-    return NextResponse.json({ error: 'Prediction failed' }, { status: 502 });
+    let detail = 'Prediction failed';
+    try {
+      const body = await serviceRes.clone().json();
+      if (body?.detail) detail = String(body.detail);
+    } catch {
+      try {
+        const text = await serviceRes.text();
+        if (text) detail = text.slice(0, 500);
+      } catch {}
+    }
+    console.error('[bg-removal/predict] upstream error', serviceRes.status, detail);
+    return NextResponse.json(
+      { error: detail, upstreamStatus: serviceRes.status },
+      { status: serviceRes.status === 503 ? 503 : 502 }
+    );
   }
 
   const resultBuffer = await serviceRes.arrayBuffer();

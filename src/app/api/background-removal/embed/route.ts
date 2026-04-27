@@ -64,7 +64,21 @@ async function handler(request: NextRequest) {
   });
 
   if (!serviceRes.ok) {
-    return NextResponse.json({ error: 'Embedding failed' }, { status: 502 });
+    let detail = 'Embedding failed';
+    try {
+      const body = await serviceRes.json();
+      if (body?.detail) detail = String(body.detail);
+    } catch {
+      try {
+        const text = await serviceRes.text();
+        if (text) detail = text.slice(0, 500);
+      } catch {}
+    }
+    console.error('[bg-removal/embed] upstream error', serviceRes.status, detail);
+    return NextResponse.json(
+      { error: detail, upstreamStatus: serviceRes.status },
+      { status: serviceRes.status === 503 ? 503 : 502 }
+    );
   }
 
   const data = await serviceRes.json();
