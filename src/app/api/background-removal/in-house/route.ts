@@ -59,11 +59,15 @@ async function handler(request: NextRequest) {
     return NextResponse.json({ error: 'No image provided' }, { status: 400 });
   }
 
-  const model = (formData.get('model') as string) || 'isnet-general-use';
+  const model = (formData.get('model') as string) || 'birefnet-general-lite';
+  const postProcessWhite = (formData.get('post_process_white') as string) ?? 'true';
+  const whiteThreshold = (formData.get('white_threshold') as string) || '240';
 
   const upstream = new FormData();
   upstream.append('image', image, 'image.png');
   upstream.append('model', model);
+  upstream.append('post_process_white', postProcessWhite);
+  upstream.append('white_threshold', whiteThreshold);
 
   const serviceRes = await fetch(`${env.REMBG_SERVICE_URL}/remove`, {
     method: 'POST',

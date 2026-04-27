@@ -33,6 +33,7 @@ const STATUS_LABELS: Record<string, string> = {
 };
 
 const MODELS: { value: BgRemovalModel; label: string }[] = [
+  { value: 'white-fill', label: 'DTF / White Background (fastest)' },
   { value: 'birefnet-general-lite', label: 'Standard (BiRefNet)' },
   { value: 'birefnet-dis', label: 'High Detail (Graphics + Text)' },
   { value: 'birefnet-general', label: 'Maximum Quality (slow)' },
@@ -50,7 +51,7 @@ export function BackgroundRemovalPanel({
 }: BackgroundRemovalPanelProps) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const previewRef = useRef<HTMLCanvasElement>(null);
-  const [model, setModel] = useState<BgRemovalModel>('birefnet-general-lite');
+  const [model, setModel] = useState<BgRemovalModel>('white-fill');
   const [isSaving, setIsSaving] = useState(false);
   const [hasResult, setHasResult] = useState(false);
   const [upgradeRequired, setUpgradeRequired] = useState(false);

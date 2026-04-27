@@ -1,6 +1,7 @@
 export type BgRemovalProvider = 'in-house' | 'clippingmagic';
 
 export type BgRemovalModel =
+  | 'white-fill'
   | 'birefnet-general-lite'
   | 'birefnet-dis'
   | 'birefnet-general'
