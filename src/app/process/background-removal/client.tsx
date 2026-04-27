@@ -739,9 +739,29 @@ export default function BackgroundRemovalClient() {
             <Breadcrumb
               items={[
                 { label: 'Process Image', href: '/process' },
-                { label: 'Background Removal' },
+                { label: 'Advanced BG Removal' },
               ]}
             />
+          </div>
+
+          {/* In-house BG remover banner */}
+          <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-xl flex items-start gap-3">
+            <Wand2 className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium text-blue-900">
+                Try the free in-house Background Remover (paid plans)
+              </p>
+              <p className="text-xs text-blue-700 mt-0.5">
+                Unlimited removals at no credit cost — available in the Studio editor.
+                This page uses ClippingMagic AI for best-quality results on complex subjects like hair and fur (1 credit).
+              </p>
+            </div>
+            <Link
+              href={imageId ? `/studio?imageId=${imageId}&tool=bg` : imageUrlParam ? `/studio?imageUrl=${encodeURIComponent(imageUrlParam)}&tool=bg` : '/studio?tool=bg'}
+              className="flex-shrink-0 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium rounded-lg transition-colors"
+            >
+              Open Studio
+            </Link>
           </div>
 
           <HelpModal
@@ -805,7 +825,7 @@ export default function BackgroundRemovalClient() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Scissors className="w-6 h-6 text-green-600" />
-                Remove Background
+                Advanced Background Removal
               </CardTitle>
             </CardHeader>
             <CardContent>

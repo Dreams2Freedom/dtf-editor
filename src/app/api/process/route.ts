@@ -29,6 +29,7 @@ async function handlePost(request: NextRequest) {
     const formData = await request.formData();
     const imageFile = formData.get('image') as File;
     const operation = formData.get('operation') as string;
+    const provider = (formData.get('provider') as string) || undefined;
 
     // 3. Validate required fields
     if (!imageFile || !operation) {
@@ -131,6 +132,7 @@ async function handlePost(request: NextRequest) {
             operationType: operation as any,
             originalFilename: imageFile.name,
             fileSize: imageFile.size,
+            provider,
             metadata: {
               ...result.metadata,
               format: processingOptions.vectorFormat || 'png',
