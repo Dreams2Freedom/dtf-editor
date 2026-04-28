@@ -19,6 +19,7 @@ import {
   CheckCircle2,
 } from 'lucide-react';
 
+import MagicWand from '@/lib/magic-wand';
 import {
   clientFloodFill,
   samplePathPoints,
@@ -73,6 +74,51 @@ function pathToSvgD(path: Array<{ x: number; y: number }>, scale: number): strin
     d += ` L ${(path[i].x * scale).toFixed(1)} ${(path[i].y * scale).toFixed(1)}`;
   }
   return d;
+}
+
+/**
+ * Trace the boundary of a binary mask and return a single SVG path `d`
+ * string covering all contours (concatenated, each closed with Z).
+ * Coordinates are in canvas-pixel (mask) space — render the SVG with
+ * viewBox="0 0 width height" so the browser handles display scaling.
+ * Returns '' for empty masks.
+ */
+function maskToContoursPath(
+  mask: Uint8Array,
+  width: number,
+  height: number
+): string {
+  if (mask.length !== width * height) return '';
+  const wandMask = {
+    data: mask,
+    width,
+    height,
+    bounds: { minX: 0, minY: 0, maxX: width - 1, maxY: height - 1 },
+  };
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const wand = MagicWand as any;
+  const contours = wand.traceContours(wandMask) as Array<{
+    points: Array<{ x: number; y: number }>;
+    inner: boolean;
+    label: number;
+  }>;
+  if (contours.length === 0) return '';
+  // Simplify (Douglas-Peucker) to keep SVG DOM small.
+  const simplified = wand.simplifyContours
+    ? (wand.simplifyContours(contours, 0.75, 6) as typeof contours)
+    : contours;
+  const parts: string[] = [];
+  for (const c of simplified) {
+    const pts = c.points;
+    if (!pts || pts.length === 0) continue;
+    let d = `M ${pts[0].x} ${pts[0].y}`;
+    for (let i = 1; i < pts.length; i++) {
+      d += ` L ${pts[i].x} ${pts[i].y}`;
+    }
+    d += ' Z';
+    parts.push(d);
+  }
+  return parts.join(' ');
 }
 
 /**
@@ -183,6 +229,9 @@ export function BackgroundRemovalPanel({
   const [brushTool, setBrushTool] = useState<BrushTool>('keep');
   const [brushSize, setBrushSize] = useState(20);
   const [cleanupTolerance, setCleanupTolerance] = useState(60);
+  const [viewMode, setViewMode] = useState<'cutout' | 'original'>('cutout');
+  const viewModeRef = useRef<'cutout' | 'original'>('cutout');
+  const [contoursD, setContoursD] = useState<string>('');
   const isDrawingRef = useRef(false);
   const currentStrokeRef = useRef<Array<{ x: number; y: number }>>([]);
   const livePathRef = useRef<SVGPathElement | null>(null);
@@ -228,13 +277,33 @@ export function BackgroundRemovalPanel({
       if (pCtx) pCtx.drawImage(canvas, 0, 0);
     }
 
-    runDetect(canvas);
-
-    // Eager: kick off SAM embed and BiRefNet initial guess IN PARALLEL.
-    // Brush becomes interactive as soon as embed resolves; BiRefNet seeds
-    // the cumulative mask whenever it finishes (assuming user hasn't brushed yet).
+    // Eager: kick off SAM embed in parallel with detect+initial-mask pipeline.
+    // SAM encoder is independent of the initial mask so brush can become
+    // interactive even before the cutout finishes.
     runEmbed(canvas);
-    runRemoval(canvas, { mode: 'ml-only', model: 'bria-rmbg' }).then(img => {
+
+    // Smart initial mask: detect dominant background first (fast, ~100ms),
+    // then dispatch BRIA in `ml+color` mode when there's a flood-fillable
+    // background color. This punches holes through texture leakage (e.g.
+    // black speckles inside white text) automatically.
+    runDetect(canvas).then(detection => {
+      const opts: RemovalOptions = (() => {
+        if (
+          !detection ||
+          detection.recommended_mode === 'ml-only' ||
+          detection.recommended_mode === 'noop'
+        ) {
+          return { mode: 'ml-only', model: 'bria-rmbg' };
+        }
+        return {
+          mode: 'ml+color',
+          model: 'bria-rmbg',
+          targetColor: detection.dominant,
+          tolerance: 30,
+        };
+      })();
+      return runRemoval(canvas, opts);
+    }).then(img => {
       const orig = originalDataRef.current;
       if (!img || !orig) return;
       const off = document.createElement('canvas');
@@ -253,10 +322,10 @@ export function BackgroundRemovalPanel({
         }
         samMaskRef.current = m;
         // No strokes yet → palettes are empty → cleanup is no-op → cumulative === SAM.
-        // We still call recomputeCumulative to populate cumulativeMaskRef and render.
         const next = new Uint8Array(m);
         cumulativeMaskRef.current = next;
         renderPreviewFromMask(next);
+        setContoursD(maskToContoursPath(next, orig.width, orig.height));
       }
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -331,7 +400,11 @@ export function BackgroundRemovalPanel({
 
   // ---------- AI Brush: cumulative mask + dual-layer rendering ----------
 
-  /** Render preview = original at full opacity for kept pixels, faded to 30% for removed. */
+  /**
+   * Render preview based on viewMode (read from ref so this callback stays stable):
+   * - 'cutout': original at full alpha for kept pixels, faded to ~30% for removed
+   * - 'original': original at full alpha, mask not applied (marching ants overlay still shows)
+   */
   const renderPreviewFromMask = useCallback((mask: Uint8Array) => {
     const orig = originalDataRef.current;
     const p = previewRef.current;
@@ -340,18 +413,28 @@ export function BackgroundRemovalPanel({
     if (!pCtx) return;
     const w = orig.width;
     const h = orig.height;
+    pCtx.clearRect(0, 0, w, h);
+    if (viewModeRef.current === 'original') {
+      pCtx.putImageData(orig, 0, 0);
+      return;
+    }
     if (mask.length !== w * h) return;
     const out = new ImageData(new Uint8ClampedArray(orig.data), w, h);
     const od = out.data;
     const src = orig.data;
     for (let i = 0; i < mask.length; i++) {
       const a = src[i * 4 + 3];
-      // Kept: preserve original alpha. Removed: cap at ~30% (76/255).
       od[i * 4 + 3] = mask[i] ? a : Math.min(a, 76);
     }
-    pCtx.clearRect(0, 0, w, h);
     pCtx.putImageData(out, 0, 0);
   }, []);
+
+  // Sync viewMode state → ref AND re-render preview on change.
+  useEffect(() => {
+    viewModeRef.current = viewMode;
+    const mask = cumulativeMaskRef.current;
+    if (mask) renderPreviewFromMask(mask);
+  }, [viewMode, renderPreviewFromMask]);
 
   /** Derive post-cleanup mask from samMaskRef + current palettes + current tolerance, then render. */
   const recomputeCumulative = useCallback(() => {
@@ -364,6 +447,8 @@ export function BackgroundRemovalPanel({
     applyColorCleanup(next, orig, keepColors, removeColors, cleanupTolerance);
     cumulativeMaskRef.current = next;
     renderPreviewFromMask(next);
+    // Trace mask boundary for the marching-ants overlay (canvas-pixel coords).
+    setContoursD(maskToContoursPath(next, orig.width, orig.height));
   }, [cleanupTolerance, renderPreviewFromMask]);
 
   /** Reset SAM mask to BiRefNet initial (or all-zeros if not loaded), then derive cumulative. */
@@ -659,6 +744,7 @@ export function BackgroundRemovalPanel({
     samMaskRef.current = null;
     cumulativeMaskRef.current = null;
     initialMaskRef.current = null;
+    setContoursD('');
     reset();
   }, [image, reset]);
 
@@ -805,6 +891,65 @@ export function BackgroundRemovalPanel({
                   opacity={0.65}
                 />
               </svg>
+            )}
+            {/* Marching-ants outline: traces the cumulative mask boundary.
+                Uses viewBox so coords are mask-pixel space (resize-stable). */}
+            {panelMode === 'ai-brush' &&
+              !hasResult &&
+              canvasRect &&
+              contoursD &&
+              previewRef.current && (
+                <svg
+                  className="absolute inset-0 pointer-events-none"
+                  width={canvasRect.width}
+                  height={canvasRect.height}
+                  viewBox={`0 0 ${previewRef.current.width} ${previewRef.current.height}`}
+                  preserveAspectRatio="none"
+                >
+                  <path
+                    d={contoursD}
+                    fill="none"
+                    stroke="black"
+                    strokeWidth={1.5}
+                    vectorEffect="non-scaling-stroke"
+                  />
+                  <path
+                    d={contoursD}
+                    fill="none"
+                    stroke="white"
+                    strokeWidth={1.5}
+                    strokeDasharray="4 4"
+                    vectorEffect="non-scaling-stroke"
+                    className="marching-ants"
+                  />
+                </svg>
+              )}
+            {/* View-mode pill (Cutout / Original) — top-left of canvas */}
+            {panelMode === 'ai-brush' && !hasResult && (
+              <div className="absolute top-2 left-2 z-10 flex rounded-full bg-white/90 backdrop-blur-sm shadow border border-gray-200 overflow-hidden text-xs font-medium">
+                <button
+                  type="button"
+                  onClick={() => setViewMode('cutout')}
+                  className={`px-3 py-1 transition-colors ${
+                    viewMode === 'cutout'
+                      ? 'bg-blue-600 text-white'
+                      : 'text-gray-700 hover:bg-gray-50'
+                  }`}
+                >
+                  Cutout
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setViewMode('original')}
+                  className={`px-3 py-1 transition-colors ${
+                    viewMode === 'original'
+                      ? 'bg-blue-600 text-white'
+                      : 'text-gray-700 hover:bg-gray-50'
+                  }`}
+                >
+                  Original
+                </button>
+              </div>
             )}
           </div>
         </div>

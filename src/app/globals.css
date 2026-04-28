@@ -85,3 +85,14 @@ select {
 .animate-slide-in {
   animation: slide-in 0.3s ease-out;
 }
+
+/* Marching ants outline for the AI Brush mask boundary */
+@keyframes marching-ants {
+  to {
+    stroke-dashoffset: -8;
+  }
+}
+
+.marching-ants {
+  animation: marching-ants 0.6s linear infinite;
+}
