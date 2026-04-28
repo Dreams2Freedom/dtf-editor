@@ -95,6 +95,10 @@ export function ColorCanvas({
   const scaledHeight = Math.max(image.height * scale, stageSize.height);
 
   // ── Fit image on mount ──────────────────────────────────
+  // Phase 2.2 follow-up: Stage width matches the scaled image width
+  // (was `cw`, the full container width) so the image is centered by
+  // the parent's flex layout — matches BG Removal / Upscale chrome
+  // instead of left-aligning with empty checkered space on the right.
   useEffect(() => {
     if (!containerRef.current || !image) return;
     const cw = containerRef.current.clientWidth;
@@ -102,7 +106,10 @@ export function ColorCanvas({
     const fit = Math.min(cw / image.width, ch / image.height, 1);
     setScale(fit);
     setFitScale(fit);
-    setStageSize({ width: cw, height: Math.max(image.height * fit, 300) });
+    setStageSize({
+      width: image.width * fit,
+      height: Math.max(image.height * fit, 300),
+    });
   }, [image]);
 
   // ── Selection overlay ───────────────────────────────────
@@ -423,7 +430,7 @@ export function ColorCanvas({
       {/* Scrollable canvas area */}
       <div
         ref={containerRef}
-        className="flex-1 min-h-0 overflow-auto"
+        className="flex-1 min-h-0 overflow-auto flex items-center justify-center p-4"
         style={{
           backgroundColor: '#ffffff',
           backgroundImage:
@@ -531,44 +538,10 @@ export function ColorCanvas({
         </div>
       )}
 
-      {/* Floating zoom controls — always visible, high z-index */}
-      <div
-        className="absolute bottom-3 right-3 flex items-center gap-1 bg-gray-900 rounded-xl px-2.5 py-1.5 shadow-2xl border-2 border-gray-600"
-        style={{ zIndex: 50 }}
-      >
-        <button
-          onClick={() => handleZoom('out')}
-          className="w-7 h-7 flex items-center justify-center text-white hover:bg-white/20 rounded-lg transition-colors text-sm font-bold"
-          title="Zoom out (−)"
-        >
-          −
-        </button>
-        <span className="text-white text-[11px] font-mono w-11 text-center select-none">
-          {Math.round(scale * 100)}%
-        </span>
-        <button
-          onClick={() => handleZoom('in')}
-          className="w-7 h-7 flex items-center justify-center text-white hover:bg-white/20 rounded-lg transition-colors text-sm font-bold"
-          title="Zoom in (+)"
-        >
-          +
-        </button>
-        <div className="h-4 w-px bg-gray-500 mx-0.5" />
-        <button
-          onClick={() => handleZoom('fit')}
-          className="h-7 px-2 flex items-center justify-center text-white hover:bg-white/20 rounded-lg transition-colors text-[10px] font-bold"
-          title="Fit to view (0)"
-        >
-          Fit
-        </button>
-        <button
-          onClick={() => setScale(1)}
-          className="h-7 px-1.5 flex items-center justify-center text-white hover:bg-white/20 rounded-lg transition-colors text-[10px] font-mono font-bold"
-          title="Actual pixels"
-        >
-          1:1
-        </button>
-      </div>
+      {/* Phase 2.2 follow-up: internal zoom pill removed.
+          The Studio chrome's top-right zoom pill (rendered by the parent
+          Color Change Panel) now drives zoom via canvasControlsRef, so
+          this duplicate floating control is no longer needed. */}
     </div>
   );
 }
