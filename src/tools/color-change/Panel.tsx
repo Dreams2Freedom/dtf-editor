@@ -473,8 +473,11 @@ export function ColorChangeEditor({
 
       {/* Main area */}
       <div className="flex flex-1 min-h-0 flex-col md:flex-row overflow-hidden">
-        {/* Canvas with floating Studio chrome */}
-        <div className="relative flex flex-1 min-h-0">
+        {/* Canvas with floating Studio chrome.
+            min-w-0 + overflow-hidden are critical so a large working
+            image (e.g. after upscaling) can't push the right sidebar
+            offscreen — the flex child shrinks to share row width. */}
+        <div className="relative flex flex-1 min-h-0 min-w-0 overflow-hidden">
           <ColorCanvas
             key={renderKey}
             image={image}
