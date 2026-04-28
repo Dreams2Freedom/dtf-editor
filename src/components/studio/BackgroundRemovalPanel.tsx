@@ -22,6 +22,7 @@ import {
 import MagicWand from '@/lib/magic-wand';
 import {
   clientFloodFill,
+  clientMultiFloodFill,
   samplePathPoints,
   useBackgroundRemoval,
 } from '@/hooks/useBackgroundRemoval';
@@ -171,24 +172,72 @@ function applyColorCleanup(
   }
 }
 
-function collectStrokeColors(
-  history: Array<{ tool: 'keep' | 'remove'; points: { x: number; y: number; label: 0 | 1 }[] }>,
+/**
+ * Sample colors densely from a stroke's raw mouse path.
+ * For each point along the path (every 2 pixels) we grab a 3×3 neighborhood
+ * (9 pixels per sample), then dedupe via 4-bit-per-channel quantization
+ * so the palette stays small (typically 20–80 unique colors per stroke).
+ *
+ * This catches anti-aliased fringe colors that a sparse one-pixel-per-SAM-point
+ * sample would miss — the main complaint that AI Brush "only sees black"
+ * when the stroke visibly sweeps across both black and gray fringe.
+ */
+function collectStrokePaletteColors(
+  history: Array<{
+    tool: 'keep' | 'remove';
+    rawPath?: Array<{ x: number; y: number }>;
+    points: { x: number; y: number; label: 0 | 1 }[];
+  }>,
   tool: 'keep' | 'remove',
   orig: ImageData
 ): Array<[number, number, number]> {
-  const colors: Array<[number, number, number]> = [];
   const w = orig.width;
   const h = orig.height;
+  const data = orig.data;
+  const seen = new Set<number>();
+  const out: Array<[number, number, number]> = [];
+
+  const addPixel = (x: number, y: number) => {
+    if (x < 0 || y < 0 || x >= w || y >= h) return;
+    const j = (y * w + x) * 4;
+    const r = data[j];
+    const g = data[j + 1];
+    const b = data[j + 2];
+    // 4 bits/channel quantization → 16³ = 4096 buckets
+    const key = ((r >> 4) << 8) | ((g >> 4) << 4) | (b >> 4);
+    if (seen.has(key)) return;
+    seen.add(key);
+    out.push([r, g, b]);
+  };
+
   for (const s of history) {
     if (s.tool !== tool) continue;
-    for (const p of s.points) {
-      const x = Math.max(0, Math.min(w - 1, Math.round(p.x)));
-      const y = Math.max(0, Math.min(h - 1, Math.round(p.y)));
-      const j = (y * w + x) * 4;
-      colors.push([orig.data[j], orig.data[j + 1], orig.data[j + 2]]);
+    // Prefer rawPath (dense). Fall back to SAM points if rawPath missing.
+    const path =
+      s.rawPath && s.rawPath.length > 0
+        ? s.rawPath
+        : s.points.map(p => ({ x: p.x, y: p.y }));
+
+    let lastX = -999;
+    let lastY = -999;
+    for (let i = 0; i < path.length; i++) {
+      const px = Math.round(path[i].x);
+      const py = Math.round(path[i].y);
+      // Stride: skip points within 2 pixels of the last sampled point
+      const dx = px - lastX;
+      const dy = py - lastY;
+      if (dx * dx + dy * dy < 4) continue;
+      lastX = px;
+      lastY = py;
+      // 3×3 neighborhood
+      for (let oy = -1; oy <= 1; oy++) {
+        for (let ox = -1; ox <= 1; ox++) {
+          addPixel(px + ox, py + oy);
+        }
+      }
     }
   }
-  return colors;
+  return out;
 }
 
 export function BackgroundRemovalPanel({
@@ -210,6 +259,10 @@ export function BackgroundRemovalPanel({
   const [tolerance, setTolerance] = useState(30);
   const [targetColor, setTargetColor] = useState<RGB | null>(null);
   const [clickRemoveMode, setClickRemoveMode] = useState(false);
+  // Multi-color (Phase 1.14): user-built remove + keep palettes for Color Pick mode
+  const [removeColors, setRemoveColors] = useState<RGB[]>([]);
+  const [keepColors, setKeepColors] = useState<RGB[]>([]);
+  const [pickTool, setPickTool] = useState<'remove' | 'keep'>('remove');
 
   // AI Brush state
   type BrushTool = 'keep' | 'remove';
@@ -315,8 +368,19 @@ export function BackgroundRemovalPanel({
   }, [error]);
 
   // ---------- Color Pick: client-side flood-fill preview ----------
-  const applyClientPreview = useCallback(
-    (color: RGB, tol: number, seedPoint?: { x: number; y: number } | null) => {
+  /**
+   * Recompute the Color Pick preview based on current palettes + tolerance
+   * (and optional seed point). Uses multi-color flood-fill when at least one
+   * palette is non-empty; falls back to single-color flood-fill otherwise.
+   */
+  const refreshColorPickPreview = useCallback(
+    (
+      removePalette: RGB[],
+      keepPalette: RGB[],
+      tol: number,
+      seedPoint?: { x: number; y: number } | null,
+      legacyColor?: RGB
+    ) => {
       const orig = originalDataRef.current;
       const preview = previewRef.current;
       if (!orig || !preview || hasResult) return;
@@ -325,7 +389,25 @@ export function BackgroundRemovalPanel({
         orig.width,
         orig.height
       );
-      clientFloodFill(cloned, color, tol, seedPoint ?? null);
+      if (removePalette.length > 0) {
+        clientMultiFloodFill(
+          cloned,
+          removePalette,
+          keepPalette,
+          tol,
+          seedPoint ?? null
+        );
+      } else if (legacyColor) {
+        clientFloodFill(cloned, legacyColor, tol, seedPoint ?? null);
+      } else {
+        // Nothing to do — render the original
+        const pCtx0 = preview.getContext('2d');
+        if (pCtx0) {
+          pCtx0.clearRect(0, 0, preview.width, preview.height);
+          pCtx0.putImageData(orig, 0, 0);
+        }
+        return;
+      }
       const pCtx = preview.getContext('2d');
       if (!pCtx) return;
       pCtx.clearRect(0, 0, preview.width, preview.height);
@@ -333,17 +415,32 @@ export function BackgroundRemovalPanel({
     },
     [hasResult]
   );
+  // Legacy alias kept for callers expecting the old signature
+  const applyClientPreview = useCallback(
+    (color: RGB, tol: number, seedPoint?: { x: number; y: number } | null) => {
+      refreshColorPickPreview([], [], tol, seedPoint, color);
+    },
+    [refreshColorPickPreview]
+  );
 
   const handleToleranceChange = useCallback(
     (val: number) => {
       setTolerance(val);
-      if (panelMode !== 'color-pick' || hasResult || !targetColor) return;
+      if (panelMode !== 'color-pick' || hasResult) return;
+      const havePalette = removeColors.length > 0;
+      if (!havePalette && !targetColor) return;
       if (toleranceTimerRef.current) clearTimeout(toleranceTimerRef.current);
       toleranceTimerRef.current = setTimeout(() => {
-        applyClientPreview(targetColor, val);
+        refreshColorPickPreview(
+          removeColors,
+          keepColors,
+          val,
+          null,
+          targetColor ?? undefined
+        );
       }, 200);
     },
-    [panelMode, hasResult, targetColor, applyClientPreview]
+    [panelMode, hasResult, targetColor, removeColors, keepColors, refreshColorPickPreview]
   );
 
   // ---------- Coordinate mapping ----------
@@ -496,8 +593,8 @@ export function BackgroundRemovalPanel({
     const orig = originalDataRef.current;
     if (!sam || !orig) return;
     const next = new Uint8Array(sam);
-    const keepColors = collectStrokeColors(strokeHistoryRef.current, 'keep', orig);
-    const removeColors = collectStrokeColors(strokeHistoryRef.current, 'remove', orig);
+    const keepColors = collectStrokePaletteColors(strokeHistoryRef.current, 'keep', orig);
+    const removeColors = collectStrokePaletteColors(strokeHistoryRef.current, 'remove', orig);
     applyColorCleanup(next, orig, keepColors, removeColors, cleanupTolerance);
     cumulativeMaskRef.current = next;
     renderPreviewFromMask(next);
@@ -865,7 +962,10 @@ export function BackgroundRemovalPanel({
     setPan({ x: 0, y: 0 });
   }, []);
 
-  // Color-pick click (eyedropper or seed-fill)
+  // Color-pick click (eyedropper or seed-fill). Dispatches based on pickTool:
+  //   'remove' → append color to removeColors palette
+  //   'keep'   → append color to keepColors palette
+  // If clickRemoveMode is active, BFS seeds from this point instead of the edges.
   const handlePreviewClick = useCallback(
     (e: React.MouseEvent<HTMLCanvasElement>) => {
       if (panelMode !== 'color-pick' || hasResult) return;
@@ -874,18 +974,55 @@ export function BackgroundRemovalPanel({
       if (!orig || !c) return;
       const x = Math.floor(c.x);
       const y = Math.floor(c.y);
+      const idx = (y * orig.width + x) * 4;
+      const color: RGB = [orig.data[idx], orig.data[idx + 1], orig.data[idx + 2]];
+
       if (clickRemoveMode) {
-        if (!targetColor) return;
-        applyClientPreview(targetColor, tolerance, { x, y });
+        // Seed-fill from this spot using current palettes
+        const seed = { x, y };
+        if (removeColors.length === 0 && !targetColor) {
+          // No palette yet — treat seed click as "remove this color from this spot"
+          const next = [color];
+          setRemoveColors(next);
+          refreshColorPickPreview(next, keepColors, tolerance, seed);
+        } else {
+          refreshColorPickPreview(
+            removeColors,
+            keepColors,
+            tolerance,
+            seed,
+            targetColor ?? undefined
+          );
+        }
         setClickRemoveMode(false);
-      } else {
-        const idx = (y * orig.width + x) * 4;
-        const color: RGB = [orig.data[idx], orig.data[idx + 1], orig.data[idx + 2]];
+        return;
+      }
+
+      if (pickTool === 'remove') {
+        const next = [...removeColors, color];
+        setRemoveColors(next);
+        // Keep legacy targetColor synced to the most-recent remove color so
+        // tolerance-only changes still preview when palette is single-element.
         setTargetColor(color);
-        applyClientPreview(color, tolerance);
+        refreshColorPickPreview(next, keepColors, tolerance);
+      } else {
+        const next = [...keepColors, color];
+        setKeepColors(next);
+        refreshColorPickPreview(removeColors, next, tolerance);
       }
     },
-    [panelMode, clickRemoveMode, targetColor, tolerance, hasResult, eventToCanvasCoords, applyClientPreview]
+    [
+      panelMode,
+      clickRemoveMode,
+      targetColor,
+      tolerance,
+      hasResult,
+      eventToCanvasCoords,
+      pickTool,
+      removeColors,
+      keepColors,
+      refreshColorPickPreview,
+    ]
   );
 
   // ---------- Mode switch / brush controls ----------
@@ -931,6 +1068,15 @@ export function BackgroundRemovalPanel({
   // ---------- Server-removal for Color Pick / AI Only ----------
   const buildOptions = useCallback((): RemovalOptions => {
     if (panelMode === 'color-pick') {
+      // Multi-color (Phase 1.14): prefer palettes; fall back to legacy single targetColor.
+      if (removeColors.length > 0) {
+        return {
+          mode: 'color-fill',
+          removeColors,
+          keepColors: keepColors.length > 0 ? keepColors : undefined,
+          tolerance,
+        };
+      }
       return {
         mode: 'color-fill',
         targetColor: targetColor ?? [255, 255, 255],
@@ -938,7 +1084,7 @@ export function BackgroundRemovalPanel({
       };
     }
     return { mode: 'ml-only', model };
-  }, [panelMode, targetColor, tolerance, model]);
+  }, [panelMode, targetColor, removeColors, keepColors, tolerance, model]);
 
   const handleRemove = useCallback(async () => {
     const canvas = canvasRef.current;
@@ -1015,6 +1161,10 @@ export function BackgroundRemovalPanel({
     cumulativeMaskRef.current = null;
     initialMaskRef.current = null;
     setContoursD('');
+    setRemoveColors([]);
+    setKeepColors([]);
+    setTargetColor(null);
+    setClickRemoveMode(false);
     reset();
     // Re-run AI pipeline so the brush + initial mask come back.
     runInitialAnalysis(canvas);
@@ -1392,7 +1542,7 @@ export function BackgroundRemovalPanel({
                   <input
                     type="range"
                     min={0}
-                    max={100}
+                    max={150}
                     step={1}
                     value={cleanupTolerance}
                     onChange={e => setCleanupTolerance(Number(e.target.value))}
@@ -1454,38 +1604,151 @@ export function BackgroundRemovalPanel({
             {/* Color Pick mode */}
             {panelMode === 'color-pick' && !hasResult && (
               <>
-                <div className="flex flex-col gap-2">
-                  <label className="block text-xs font-medium text-gray-600">
-                    Target Color
+                {/* Pick-tool toggle: which palette does the next click add to? */}
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1.5">
+                    Click Image To...
                   </label>
-                  <div className="flex items-center gap-2">
-                    {targetColor ? (
-                      <span
-                        className="w-8 h-8 rounded border border-gray-300 flex-shrink-0 shadow-sm"
-                        style={{ background: rgbToHex(targetColor) }}
-                        title={rgbToHex(targetColor)}
-                      />
-                    ) : (
-                      <span className="w-8 h-8 rounded border border-dashed border-gray-300 flex-shrink-0" />
-                    )}
-                    <p className="text-xs text-gray-500">
-                      {targetColor
-                        ? `${rgbToHex(targetColor).toUpperCase()} — click image to repick`
-                        : 'Click image to pick background color'}
-                    </p>
+                  <div className="flex rounded-lg border border-gray-200 overflow-hidden">
+                    <button
+                      onClick={() => setPickTool('remove')}
+                      className={`flex-1 flex items-center justify-center gap-1 py-2 text-xs font-medium transition-colors ${
+                        pickTool === 'remove'
+                          ? 'bg-red-600 text-white'
+                          : 'text-gray-600 hover:bg-gray-50'
+                      }`}
+                    >
+                      <Minus className="w-3.5 h-3.5" />
+                      Pick to Remove
+                    </button>
+                    <button
+                      onClick={() => setPickTool('keep')}
+                      className={`flex-1 flex items-center justify-center gap-1 py-2 text-xs font-medium transition-colors ${
+                        pickTool === 'keep'
+                          ? 'bg-green-600 text-white'
+                          : 'text-gray-600 hover:bg-gray-50'
+                      }`}
+                    >
+                      <Plus className="w-3.5 h-3.5" />
+                      Pick to Keep
+                    </button>
                   </div>
-                  <button
-                    onClick={() => setClickRemoveMode(v => !v)}
-                    disabled={!targetColor}
-                    className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors disabled:opacity-40 ${
-                      clickRemoveMode
-                        ? 'bg-orange-50 border-orange-300 text-orange-700'
-                        : 'border-gray-200 text-gray-600 hover:border-gray-300'
-                    }`}
-                  >
-                    {clickRemoveMode ? 'Click a spot to remove it…' : 'Click to remove a spot'}
-                  </button>
                 </div>
+
+                {/* Remove palette chips */}
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1.5">
+                    Removing ({removeColors.length})
+                  </label>
+                  <div className="flex flex-wrap gap-1.5 min-h-[2rem]">
+                    {removeColors.length === 0 && (
+                      <p className="text-xs text-gray-400 italic">
+                        Click image with &quot;Pick to Remove&quot; to add a color.
+                      </p>
+                    )}
+                    {removeColors.map((c, i) => (
+                      <button
+                        key={`r-${i}`}
+                        type="button"
+                        onClick={() => {
+                          const next = removeColors.filter((_, j) => j !== i);
+                          setRemoveColors(next);
+                          refreshColorPickPreview(
+                            next,
+                            keepColors,
+                            tolerance,
+                            null,
+                            targetColor ?? undefined
+                          );
+                        }}
+                        className="relative w-8 h-8 rounded border border-gray-300 shadow-sm group"
+                        style={{ background: rgbToHex(c) }}
+                        title={`${rgbToHex(c).toUpperCase()} — click to remove from palette`}
+                      >
+                        <span className="absolute inset-0 hidden group-hover:flex items-center justify-center bg-black/40 rounded text-white text-xs">
+                          ×
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Keep palette chips */}
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1.5">
+                    Keeping ({keepColors.length})
+                  </label>
+                  <div className="flex flex-wrap gap-1.5 min-h-[2rem]">
+                    {keepColors.length === 0 && (
+                      <p className="text-xs text-gray-400 italic">
+                        Click image with &quot;Pick to Keep&quot; to protect a color.
+                      </p>
+                    )}
+                    {keepColors.map((c, i) => (
+                      <button
+                        key={`k-${i}`}
+                        type="button"
+                        onClick={() => {
+                          const next = keepColors.filter((_, j) => j !== i);
+                          setKeepColors(next);
+                          refreshColorPickPreview(
+                            removeColors,
+                            next,
+                            tolerance,
+                            null,
+                            targetColor ?? undefined
+                          );
+                        }}
+                        className="relative w-8 h-8 rounded border border-gray-300 shadow-sm group"
+                        style={{ background: rgbToHex(c) }}
+                        title={`${rgbToHex(c).toUpperCase()} — click to remove from palette`}
+                      >
+                        <span className="absolute inset-0 hidden group-hover:flex items-center justify-center bg-black/40 rounded text-white text-xs">
+                          ×
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Click-to-seed button */}
+                <button
+                  onClick={() => setClickRemoveMode(v => !v)}
+                  disabled={removeColors.length === 0 && !targetColor}
+                  className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors disabled:opacity-40 ${
+                    clickRemoveMode
+                      ? 'bg-orange-50 border-orange-300 text-orange-700'
+                      : 'border-gray-200 text-gray-600 hover:border-gray-300'
+                  }`}
+                >
+                  {clickRemoveMode
+                    ? 'Click a spot to clean it…'
+                    : 'Click to clean a spot (interior speckle)'}
+                </button>
+
+                {/* Reset palettes */}
+                {(removeColors.length > 0 || keepColors.length > 0) && (
+                  <button
+                    onClick={() => {
+                      setRemoveColors([]);
+                      setKeepColors([]);
+                      setTargetColor(null);
+                      // Repaint with the original
+                      const orig = originalDataRef.current;
+                      const preview = previewRef.current;
+                      if (orig && preview) {
+                        const pCtx = preview.getContext('2d');
+                        if (pCtx) {
+                          pCtx.clearRect(0, 0, preview.width, preview.height);
+                          pCtx.putImageData(orig, 0, 0);
+                        }
+                      }
+                    }}
+                    className="text-xs text-gray-500 hover:text-gray-700 underline self-start"
+                  >
+                    Reset palettes
+                  </button>
+                )}
 
                 <div>
                   <div className="flex items-center justify-between mb-1">
@@ -1509,7 +1772,7 @@ export function BackgroundRemovalPanel({
 
                 <button
                   onClick={handleRemove}
-                  disabled={isProcessing}
+                  disabled={isProcessing || (removeColors.length === 0 && !targetColor)}
                   className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white text-sm font-medium rounded-lg transition-colors"
                 >
                   {isProcessing ? (

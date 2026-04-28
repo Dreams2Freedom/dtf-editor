@@ -188,6 +188,152 @@ export function clientFloodFill(
 }
 
 /**
+ * Multi-color BFS flood-fill (Phase 1.14).
+ *
+ * A pixel is "removable" if it's closer to any color in `removePalette`
+ * than to any color in `keepPalette`, within `tolerance` (squared-Euclidean).
+ * Already-transparent pixels (alpha < 10) are also removable so connectivity
+ * works through gaps. Pixels close to a keep color act as barriers — BFS
+ * cannot walk through them, which preserves same-color content trapped
+ * inside a kept region.
+ *
+ * Operates IN PLACE on the supplied ImageData and returns the same reference.
+ */
+export function clientMultiFloodFill(
+  src: ImageData,
+  removePalette: RGB[],
+  keepPalette: RGB[],
+  tolerance: number,
+  seedPoint: { x: number; y: number } | null = null
+): ImageData {
+  if (removePalette.length === 0) return src; // nothing to do
+  const { data, width: w, height: h } = src;
+  const total = w * h;
+  const tolSq = tolerance * tolerance;
+
+  // Pre-classify: 1 = removable, 0 = wall (preserved or barrier).
+  const removable = new Uint8Array(total);
+  for (let i = 0; i < total; i++) {
+    const j = i * 4;
+    const a = data[j + 3];
+    if (a < 10) {
+      removable[i] = 1;
+      continue;
+    }
+    const r = data[j];
+    const g = data[j + 1];
+    const b = data[j + 2];
+
+    let dR = Infinity;
+    for (let k = 0; k < removePalette.length; k++) {
+      const c = removePalette[k];
+      const dr = r - c[0];
+      const dg = g - c[1];
+      const db = b - c[2];
+      const d = dr * dr + dg * dg + db * db;
+      if (d < dR) dR = d;
+    }
+
+    let dK = Infinity;
+    for (let k = 0; k < keepPalette.length; k++) {
+      const c = keepPalette[k];
+      const dr = r - c[0];
+      const dg = g - c[1];
+      const db = b - c[2];
+      const d = dr * dr + dg * dg + db * db;
+      if (d < dK) dK = d;
+    }
+
+    if (dR <= tolSq && dR < dK) {
+      removable[i] = 1;
+    }
+  }
+
+  const visited = new Uint8Array(total);
+  const queue = new Uint32Array(total);
+  let qHead = 0;
+  let qTail = 0;
+
+  if (seedPoint === null) {
+    // Seed from edges
+    for (let x = 0; x < w; x++) {
+      const top = x;
+      const bottom = (h - 1) * w + x;
+      if (removable[top] && !visited[top]) {
+        visited[top] = 1;
+        queue[qTail++] = top;
+      }
+      if (removable[bottom] && !visited[bottom]) {
+        visited[bottom] = 1;
+        queue[qTail++] = bottom;
+      }
+    }
+    for (let y = 1; y < h - 1; y++) {
+      const left = y * w;
+      const right = y * w + (w - 1);
+      if (removable[left] && !visited[left]) {
+        visited[left] = 1;
+        queue[qTail++] = left;
+      }
+      if (removable[right] && !visited[right]) {
+        visited[right] = 1;
+        queue[qTail++] = right;
+      }
+    }
+  } else {
+    const sx = Math.max(0, Math.min(w - 1, Math.round(seedPoint.x)));
+    const sy = Math.max(0, Math.min(h - 1, Math.round(seedPoint.y)));
+    const idx = sy * w + sx;
+    if (removable[idx]) {
+      visited[idx] = 1;
+      queue[qTail++] = idx;
+    }
+  }
+
+  while (qHead < qTail) {
+    const idx = queue[qHead++];
+    const y = (idx / w) | 0;
+    const x = idx - y * w;
+    if (y > 0) {
+      const u = idx - w;
+      if (removable[u] && !visited[u]) {
+        visited[u] = 1;
+        queue[qTail++] = u;
+      }
+    }
+    if (y < h - 1) {
+      const d = idx + w;
+      if (removable[d] && !visited[d]) {
+        visited[d] = 1;
+        queue[qTail++] = d;
+      }
+    }
+    if (x > 0) {
+      const l = idx - 1;
+      if (removable[l] && !visited[l]) {
+        visited[l] = 1;
+        queue[qTail++] = l;
+      }
+    }
+    if (x < w - 1) {
+      const r = idx + 1;
+      if (removable[r] && !visited[r]) {
+        visited[r] = 1;
+        queue[qTail++] = r;
+      }
+    }
+  }
+
+  for (let i = 0; i < total; i++) {
+    if (visited[i]) {
+      data[i * 4 + 3] = 0;
+    }
+  }
+
+  return src;
+}
+
+/**
  * Sample points along a freehand path at `spacing`-pixel intervals.
  * First and last points always kept; intermediate points dropped if closer
  * than `spacing` to the last accepted point. Used to convert brush strokes

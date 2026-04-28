@@ -124,6 +124,95 @@ def _flood_fill_color_removal(
     return Image.fromarray(result, "RGBA")
 
 
+def _flood_fill_multi_color_removal(
+    img: Image.Image,
+    target_rgbs: list[tuple[int, int, int]],
+    keep_rgbs: list[tuple[int, int, int]],
+    tolerance: int = 30,
+    seed_points: Optional[list[tuple[int, int]]] = None,
+) -> Image.Image:
+    """
+    BFS flood-fill removing pixels close to ANY target color, with pixels
+    close to ANY keep color acting as barriers.
+
+    Pre-classify every pixel into one of three states:
+      2 = barrier (close to a keep color OR alpha < 10 originally bg-like)
+          Note: already-transparent pixels are barriers here (we don't
+          remove them, they just block walks too).
+          Actually we keep them removable for connectivity — see below.
+      1 = removable candidate (closer to a remove color than any keep, within tol)
+      0 = neither (preserved, also acts as wall)
+
+    Walk only state==1 cells from edges or seed points. Set alpha=0 on visited.
+
+    If both target_rgbs and keep_rgbs are empty, returns img unchanged.
+    """
+    if not target_rgbs:
+        return img
+
+    rgba = np.array(img, dtype=np.uint8)
+    h, w = rgba.shape[:2]
+
+    r = rgba[:, :, 0].astype(np.int32)
+    g = rgba[:, :, 1].astype(np.int32)
+    b = rgba[:, :, 2].astype(np.int32)
+    a = rgba[:, :, 3]
+
+    tol_sq = tolerance * tolerance
+
+    # Min squared distance to any target color
+    min_target = np.full((h, w), 10**9, dtype=np.int32)
+    for tr, tg, tb in target_rgbs:
+        d = (r - tr) ** 2 + (g - tg) ** 2 + (b - tb) ** 2
+        np.minimum(min_target, d, out=min_target)
+
+    if keep_rgbs:
+        min_keep = np.full((h, w), 10**9, dtype=np.int32)
+        for kr, kg, kb in keep_rgbs:
+            d = (r - kr) ** 2 + (g - kg) ** 2 + (b - kb) ** 2
+            np.minimum(min_keep, d, out=min_keep)
+    else:
+        min_keep = np.full((h, w), 10**9, dtype=np.int32)
+
+    # Removable: closer to a remove color than any keep, within tolerance
+    # OR already-transparent (so connectivity works through transparent gaps).
+    removable = (
+        ((min_target <= tol_sq) & (min_target < min_keep)) | (a < 10)
+    )
+
+    visited = np.zeros((h, w), dtype=bool)
+    queue: deque = deque()
+
+    if seed_points is None:
+        for x in range(w):
+            for row in (0, h - 1):
+                if removable[row, x] and not visited[row, x]:
+                    visited[row, x] = True
+                    queue.append((row, x))
+        for y in range(1, h - 1):
+            for col in (0, w - 1):
+                if removable[y, col] and not visited[y, col]:
+                    visited[y, col] = True
+                    queue.append((y, col))
+    else:
+        for sx, sy in seed_points:
+            if 0 <= sx < w and 0 <= sy < h and removable[sy, sx] and not visited[sy, sx]:
+                visited[sy, sx] = True
+                queue.append((sy, sx))
+
+    while queue:
+        cy, cx = queue.popleft()
+        for dy, dx in ((-1, 0), (1, 0), (0, -1), (0, 1)):
+            ny, nx = cy + dy, cx + dx
+            if 0 <= ny < h and 0 <= nx < w and not visited[ny, nx] and removable[ny, nx]:
+                visited[ny, nx] = True
+                queue.append((ny, nx))
+
+    result = rgba.copy()
+    result[visited, 3] = 0
+    return Image.fromarray(result, "RGBA")
+
+
 def _flood_fill_white_removal(img: Image.Image, threshold: int = 240) -> Image.Image:
     """Backwards-compatible shim. threshold is the lower-bound RGB for 'near white'."""
     tolerance = max(0, 255 - threshold)
@@ -279,6 +368,10 @@ async def remove_background(
     target_color: Optional[str] = Form(default=None),
     tolerance: int = Form(default=30),
     seed_points: Optional[str] = Form(default=None),
+    # Multi-color (Phase 1.14): JSON arrays of [[r,g,b], ...] for both palettes.
+    # Falls back to single target_color if these are empty.
+    target_colors_json: Optional[str] = Form(default=None),
+    keep_colors_json: Optional[str] = Form(default=None),
     # Legacy compatibility:
     post_process_white: bool = Form(default=True),
     white_threshold: int = Form(default=240),
@@ -333,6 +426,24 @@ async def remove_background(
     else:
         target_rgb = (255, 255, 255)
 
+    # Parse multi-color palettes (Phase 1.14). Each is a JSON array of [r,g,b].
+    def _parse_palette(blob: Optional[str], name: str) -> list[tuple[int, int, int]]:
+        if not blob:
+            return []
+        try:
+            raw = json.loads(blob)
+            out: list[tuple[int, int, int]] = []
+            for c in raw:
+                out.append((int(c[0]), int(c[1]), int(c[2])))
+            return out
+        except Exception:
+            raise HTTPException(
+                status_code=400, detail=f"{name} must be JSON array of [r, g, b]"
+            )
+
+    target_rgbs = _parse_palette(target_colors_json, "target_colors_json")
+    keep_rgbs = _parse_palette(keep_colors_json, "keep_colors_json")
+
     # Parse seed points
     seeds = None
     if seed_points:
@@ -348,21 +459,29 @@ async def remove_background(
         output_img = _flood_fill_white_removal(input_img, threshold=white_threshold)
         return _png_response(output_img)
 
+    # Helper: prefer multi-color flood-fill when arrays are present
+    def _do_color_fill(src_img, seeds_in=None):
+        if target_rgbs:
+            return _flood_fill_multi_color_removal(
+                src_img, target_rgbs, keep_rgbs, tolerance, seeds_in
+            )
+        return _flood_fill_color_removal(src_img, target_rgb, tolerance, seeds_in)
+
     # New mode-driven dispatch
     if mode == "color-fill":
-        output_img = _flood_fill_color_removal(input_img, target_rgb, tolerance)
+        output_img = _do_color_fill(input_img)
 
     elif mode == "click-fill":
         if not seeds:
             raise HTTPException(status_code=400, detail="click-fill requires seed_points")
         # For click-fill, sample target color from the first seed pixel if not given
-        if not target_color:
+        if not target_color and not target_rgbs:
             sx, sy = seeds[0]
             arr = np.array(input_img)
             if 0 <= sx < arr.shape[1] and 0 <= sy < arr.shape[0]:
                 px = arr[sy, sx]
                 target_rgb = (int(px[0]), int(px[1]), int(px[2]))
-        output_img = _flood_fill_color_removal(input_img, target_rgb, tolerance, seed_points=seeds)
+        output_img = _do_color_fill(input_img, seeds)
 
     elif mode == "ml-only":
         session = _get_session(model)
@@ -371,9 +490,13 @@ async def remove_background(
     elif mode == "ml+color":
         session = _get_session(model)
         output_img = remove(input_img, session=session)
-        # If no explicit target_color was provided, fall back to the legacy
-        # white-fill behavior to preserve backwards-compatibility.
-        if target_color:
+        # Prefer multi-color cleanup when a palette was sent;
+        # otherwise legacy: single-color or white-fill fallback.
+        if target_rgbs:
+            output_img = _flood_fill_multi_color_removal(
+                output_img, target_rgbs, keep_rgbs, tolerance
+            )
+        elif target_color:
             output_img = _flood_fill_color_removal(output_img, target_rgb, tolerance)
         elif post_process_white:
             output_img = _flood_fill_white_removal(output_img, threshold=white_threshold)

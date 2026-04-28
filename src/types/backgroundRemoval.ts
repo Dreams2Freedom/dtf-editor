@@ -44,6 +44,10 @@ export interface RemovalOptions {
   mode: RemovalMode;
   model?: BgRemovalModel;
   targetColor?: RGB;
+  /** Multi-color remove palette (Phase 1.14). Server falls back to targetColor if empty. */
+  removeColors?: RGB[];
+  /** Multi-color keep palette (Phase 1.14). Acts as a barrier in BFS flood-fill. */
+  keepColors?: RGB[];
   tolerance?: number;
   seedPoints?: Array<[number, number]>;
 }

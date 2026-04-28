@@ -65,6 +65,8 @@ async function handler(request: NextRequest) {
     'model',
     'mode',
     'target_color',
+    'target_colors_json',
+    'keep_colors_json',
     'tolerance',
     'seed_points',
     'post_process_white',

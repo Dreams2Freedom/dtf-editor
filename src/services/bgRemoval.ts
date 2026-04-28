@@ -53,6 +53,13 @@ export async function removeBackground(
   if (options.seedPoints && options.seedPoints.length > 0) {
     form.append('seed_points', JSON.stringify(options.seedPoints));
   }
+  // Multi-color palettes (Phase 1.14): JSON arrays of [r, g, b].
+  if (options.removeColors && options.removeColors.length > 0) {
+    form.append('target_colors_json', JSON.stringify(options.removeColors));
+  }
+  if (options.keepColors && options.keepColors.length > 0) {
+    form.append('keep_colors_json', JSON.stringify(options.keepColors));
+  }
 
   const res = await fetch('/api/background-removal/in-house', {
     method: 'POST',
