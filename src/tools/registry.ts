@@ -24,11 +24,13 @@ import type { StudioTool, StudioToolId } from './types';
 import { bgRemovalTool } from './bg-removal';
 import { colorChangeTool } from './color-change';
 import { upscaleTool } from './upscale';
+import { vectorizeTool } from './vectorize';
 
 export const STUDIO_TOOLS: StudioTool[] = [
   bgRemovalTool,
   upscaleTool,
   colorChangeTool,
+  vectorizeTool,
 ];
 
 export function getStudioTool(id: StudioToolId): StudioTool | undefined {

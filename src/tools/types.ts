@@ -17,7 +17,11 @@ import type { ComponentType } from 'react';
 import type { LucideIcon } from 'lucide-react';
 
 /** Stable identifier for a tool. Add new ids to this union when registering a new tool. */
-export type StudioToolId = 'bg-removal' | 'upscale' | 'color-change';
+export type StudioToolId =
+  | 'bg-removal'
+  | 'upscale'
+  | 'color-change'
+  | 'vectorize';
 
 export interface StudioTool {
   id: StudioToolId;

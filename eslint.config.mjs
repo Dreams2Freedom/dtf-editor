@@ -51,6 +51,11 @@ const eslintConfig = [
               message:
                 'Cross-tool import not allowed. Tool folders are firewalled — share via src/components, src/hooks, or src/services.',
             },
+            {
+              group: ['@/tools/vectorize*', '@/tools/vectorize/*'],
+              message:
+                'Cross-tool import not allowed. Tool folders are firewalled — share via src/components, src/hooks, or src/services.',
+            },
           ],
         },
       ],
@@ -73,6 +78,10 @@ const eslintConfig = [
               group: ['@/tools/color-change*', '@/tools/color-change/*'],
               message: 'Cross-tool import not allowed.',
             },
+            {
+              group: ['@/tools/vectorize*', '@/tools/vectorize/*'],
+              message: 'Cross-tool import not allowed.',
+            },
           ],
         },
       ],
@@ -93,6 +102,10 @@ const eslintConfig = [
               group: ['@/tools/color-change*', '@/tools/color-change/*'],
               message: 'Cross-tool import not allowed.',
             },
+            {
+              group: ['@/tools/vectorize*', '@/tools/vectorize/*'],
+              message: 'Cross-tool import not allowed.',
+            },
           ],
         },
       ],
@@ -111,6 +124,34 @@ const eslintConfig = [
             },
             {
               group: ['@/tools/upscale*', '@/tools/upscale/*'],
+              message: 'Cross-tool import not allowed.',
+            },
+            {
+              group: ['@/tools/vectorize*', '@/tools/vectorize/*'],
+              message: 'Cross-tool import not allowed.',
+            },
+          ],
+        },
+      ],
+    },
+  },
+  {
+    files: ['src/tools/vectorize/**/*.{ts,tsx,js,jsx}'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            {
+              group: ['@/tools/bg-removal*', '@/tools/bg-removal/*'],
+              message: 'Cross-tool import not allowed.',
+            },
+            {
+              group: ['@/tools/upscale*', '@/tools/upscale/*'],
+              message: 'Cross-tool import not allowed.',
+            },
+            {
+              group: ['@/tools/color-change*', '@/tools/color-change/*'],
               message: 'Cross-tool import not allowed.',
             },
           ],

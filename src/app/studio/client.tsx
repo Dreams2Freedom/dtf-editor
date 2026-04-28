@@ -37,8 +37,17 @@ import { Breadcrumb } from '@/components/ui/Breadcrumb';
 import { STUDIO_TOOLS, getStudioTool } from '@/tools/registry';
 import type { ApplyMetadata, StudioToolId } from '@/tools/types';
 
+import { StudioUploadZone } from './StudioUploadZone';
+
+const DEFAULT_TOOL: StudioToolId = 'bg-removal';
+
 function isToolId(v: string | null): v is StudioToolId {
-  return v === 'bg-removal' || v === 'upscale' || v === 'color-change';
+  return (
+    v === 'bg-removal' ||
+    v === 'upscale' ||
+    v === 'color-change' ||
+    v === 'vectorize'
+  );
 }
 
 function loadImageFromUrl(url: string): Promise<HTMLImageElement> {
@@ -75,15 +84,26 @@ export default function StudioClient() {
   const imageUrlParam = searchParams.get('imageUrl');
   const initialToolParam = searchParams.get('tool');
 
-  const [originalImage, setOriginalImage] = useState<HTMLImageElement | null>(null);
-  const [workingImage, setWorkingImage] = useState<HTMLImageElement | null>(null);
-  const [activeToolId, setActiveToolId] = useState<StudioToolId | null>(
-    isToolId(initialToolParam) ? initialToolParam : null
+  const [originalImage, setOriginalImage] = useState<HTMLImageElement | null>(
+    null
   );
-  const [lastApplyMeta, setLastApplyMeta] = useState<ApplyMetadata | null>(null);
+  const [workingImage, setWorkingImage] = useState<HTMLImageElement | null>(
+    null
+  );
+  // Phase 2.1: default to BG Removal so the right-hand options panel shows
+  // immediately on /studio (matches the unified-shell mockup). User can
+  // still switch tools before uploading.
+  const [activeToolId, setActiveToolId] = useState<StudioToolId | null>(
+    isToolId(initialToolParam) ? initialToolParam : DEFAULT_TOOL
+  );
+  const [lastApplyMeta, setLastApplyMeta] = useState<ApplyMetadata | null>(
+    null
+  );
   const [hasChanges, setHasChanges] = useState(false);
 
-  const [isLoading, setIsLoading] = useState(true);
+  // Phase 2.1: only show the spinner when we have an imageId to fetch.
+  // The empty-state (no params) renders the upload zone immediately.
+  const [isLoading, setIsLoading] = useState(Boolean(imageId || imageUrlParam));
   const [error, setError] = useState<string | null>(null);
   const [lowQualityWarning, setLowQualityWarning] = useState(false);
   const [imageDpi, setImageDpi] = useState<number | null>(null);
@@ -91,10 +111,12 @@ export default function StudioClient() {
   const [savedImageId, setSavedImageId] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
 
-  // Load the original upload once on mount.
+  // Load the original upload (if any) once on mount. Phase 2.1: when
+  // neither imageId nor imageUrl is provided, render the upload zone
+  // instead of redirecting. Studio is the single editing entry point.
   useEffect(() => {
     if (!imageId && !imageUrlParam) {
-      router.push('/process');
+      setIsLoading(false);
       return;
     }
 
@@ -108,7 +130,8 @@ export default function StudioClient() {
             credentials: 'include',
           });
           const data = await res.json();
-          if (!data.success) throw new Error(data.error || 'Failed to load image');
+          if (!data.success)
+            throw new Error(data.error || 'Failed to load image');
           url = data.publicUrl;
         }
         const img = await loadImageFromUrl(url);
@@ -125,7 +148,6 @@ export default function StudioClient() {
     };
 
     load();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [imageId, imageUrlParam]);
 
   const switchTool = useCallback(
@@ -138,6 +160,22 @@ export default function StudioClient() {
       router.replace(`/studio?${params.toString()}`);
     },
     [router, searchParams]
+  );
+
+  /**
+   * Called by StudioUploadZone after a successful /api/upload. Updates
+   * the URL with the new imageId so the load effect picks it up and
+   * hydrates originalImage / workingImage — same path as a deep link.
+   */
+  const handleUploaded = useCallback(
+    ({ imageId: newId }: { imageId: string; publicUrl: string }) => {
+      const params = new URLSearchParams(searchParams.toString());
+      params.set('imageId', newId);
+      params.delete('imageUrl');
+      if (activeToolId) params.set('tool', activeToolId);
+      router.replace(`/studio?${params.toString()}`);
+    },
+    [router, searchParams, activeToolId]
   );
 
   /**
@@ -186,7 +224,8 @@ export default function StudioClient() {
       const form = new FormData();
       form.append('image', blob, 'studio-output.png');
       form.append('operation', lastApplyMeta?.operation ?? 'studio_composite');
-      if (lastApplyMeta?.provider) form.append('provider', lastApplyMeta.provider);
+      if (lastApplyMeta?.provider)
+        form.append('provider', lastApplyMeta.provider);
       const res = await fetch('/api/process', {
         method: 'POST',
         body: form,
@@ -227,7 +266,10 @@ export default function StudioClient() {
       <div className="bg-white border-b border-gray-200 px-4 py-2.5">
         <div className="max-w-[1800px] mx-auto flex items-center justify-between gap-4">
           <Breadcrumb
-            items={[{ label: 'Process', href: '/process' }, { label: 'Studio' }]}
+            items={[
+              { label: 'Dashboard', href: '/dashboard' },
+              { label: 'Studio' },
+            ]}
           />
 
           {/* Tool switcher — driven by the plugin registry */}
@@ -321,13 +363,23 @@ export default function StudioClient() {
               <p className="font-medium mb-2">Failed to load image</p>
               <p className="text-sm text-red-600">{error}</p>
               <button
-                onClick={() => router.push('/process')}
+                onClick={() => {
+                  setError(null);
+                  router.replace('/studio');
+                }}
                 className="mt-4 px-4 py-2 bg-red-100 hover:bg-red-200 rounded-lg text-sm transition-colors"
               >
-                Back to Process
+                Try a different image
               </button>
             </div>
           </div>
+        )}
+
+        {/* Phase 2.1: no image yet → render the Upload zone in the canvas
+            area. Tool tabs at the top stay interactive so users can pick
+            a tool before uploading. */}
+        {!isLoading && !workingImage && !error && (
+          <StudioUploadZone onUploaded={handleUploaded} />
         )}
 
         {workingImage && !error && !activeTool && (
@@ -337,8 +389,8 @@ export default function StudioClient() {
                 Pick a tool above to get started
               </p>
               <p className="text-sm text-gray-500">
-                Your image lives here — apply tools in any order, chain
-                results together, then Save to Gallery when you&apos;re happy.
+                Your image lives here — apply tools in any order, chain results
+                together, then Save to Gallery when you&apos;re happy.
               </p>
             </div>
           </div>
