@@ -97,23 +97,36 @@ export function HelpModal({
               {steps.map((step, i) => (
                 <div key={i}>
                   <div className="flex items-start gap-3 mb-2">
-                    <span className={`w-6 h-6 ${accentBg} text-white rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 mt-0.5`}>
+                    <span
+                      className={`w-6 h-6 ${accentBg} text-white rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 mt-0.5`}
+                    >
                       {i + 1}
                     </span>
-                    <h3 className="font-semibold text-gray-900">{step.title}</h3>
+                    <h3 className="font-semibold text-gray-900">
+                      {step.title}
+                    </h3>
                   </div>
                   <div className="ml-9 text-sm text-gray-600 leading-relaxed">
-                    {typeof step.content === 'string' ? <p>{step.content}</p> : step.content}
+                    {typeof step.content === 'string' ? (
+                      <p>{step.content}</p>
+                    ) : (
+                      step.content
+                    )}
                   </div>
                 </div>
               ))}
 
               {/* Tips */}
               {tips && tips.length > 0 && (
-                <div className={`${accentBg}/10 border ${accentBg === 'bg-amber-500' ? 'border-amber-200' : 'border-gray-200'} rounded-xl p-4`}
-                  style={{ backgroundColor: `var(--tip-bg, rgba(245,158,11,0.08))` }}
+                <div
+                  className={`${accentBg}/10 border ${accentBg === 'bg-amber-500' ? 'border-amber-200' : 'border-gray-200'} rounded-xl p-4`}
+                  style={{
+                    backgroundColor: `var(--tip-bg, rgba(245,158,11,0.08))`,
+                  }}
                 >
-                  <h3 className={`font-semibold ${accentColor} text-sm mb-2`}>Pro Tips</h3>
+                  <h3 className={`font-semibold ${accentColor} text-sm mb-2`}>
+                    Pro Tips
+                  </h3>
                   <ul className="space-y-1.5 text-gray-600 text-xs">
                     {tips.map((tip, i) => (
                       <li key={i}>• {tip}</li>

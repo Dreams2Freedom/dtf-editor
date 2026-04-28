@@ -13,7 +13,7 @@ export function PricingTeaser() {
           Start free. Upgrade when you need more.
         </p>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 lg:gap-6 max-w-5xl mx-auto">
-          {PLANS.map((plan) => (
+          {PLANS.map(plan => (
             <div
               key={plan.slug}
               className={`bg-white border rounded-xl p-6 ${
@@ -29,11 +29,13 @@ export function PricingTeaser() {
               )}
               <p className="text-lg font-semibold text-gray-900">{plan.name}</p>
               <div className="mt-1">
-                <span className="text-3xl font-extrabold text-gray-900">{plan.price}</span>
+                <span className="text-3xl font-extrabold text-gray-900">
+                  {plan.price}
+                </span>
                 <span className="text-sm text-gray-400">{plan.period}</span>
               </div>
               <ul className="space-y-2 mt-4 mb-6">
-                {plan.features.map((feature) => (
+                {plan.features.map(feature => (
                   <li key={feature} className="flex items-center gap-2">
                     <Check className="w-4 h-4 text-emerald-500 flex-shrink-0" />
                     <span className="text-sm text-gray-600">{feature}</span>

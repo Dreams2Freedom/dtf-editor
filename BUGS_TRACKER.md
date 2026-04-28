@@ -104,7 +104,7 @@ These three bugs all surfaced as Vercel build failures after Phase 2.0 Step 9 (`
   2. Rerouted the API route to import from `@/tools/color-change/types` (the plain types module) directly.
 - **Lesson:** Server routes must not transit through client modules to reach plain constants. Plain types/constants belong in `<tool>/types.ts` (server-safe); the index.tsx is client-only adapters.
 
-### **BUG-075: Vercel build fails on lint — ESLint exemption list missing `src/app/api/**`**
+### **BUG-075: Vercel build fails on lint — ESLint exemption list missing `src/app/api/**`\*\*
 
 - **Status:** 🟢 FIXED (Apr 28, commit `ec9ee54` — Phase 2.0 hotfix 3)
 - **Severity:** High (deploy-blocking; lint stage)

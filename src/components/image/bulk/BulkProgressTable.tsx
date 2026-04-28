@@ -12,7 +12,11 @@ import {
   Ban,
   X,
 } from 'lucide-react';
-import { BulkImageItem, BulkImageStatus, PRINT_SIZE_PRESETS } from '@/types/bulkUpscale';
+import {
+  BulkImageItem,
+  BulkImageStatus,
+  PRINT_SIZE_PRESETS,
+} from '@/types/bulkUpscale';
 
 interface BulkProgressTableProps {
   items: BulkImageItem[];
@@ -25,14 +29,46 @@ const STATUS_CONFIG: Record<
   BulkImageStatus,
   { icon: React.ReactNode; label: string; color: string }
 > = {
-  pending: { icon: <Clock className="w-4 h-4" />, label: 'Pending', color: 'text-gray-400' },
-  queued: { icon: <Clock className="w-4 h-4" />, label: 'Queued', color: 'text-gray-500' },
-  uploading: { icon: <Upload className="w-4 h-4 animate-pulse" />, label: 'Uploading', color: 'text-blue-500' },
-  processing: { icon: <Loader2 className="w-4 h-4 animate-spin" />, label: 'Processing', color: 'text-blue-600' },
-  complete: { icon: <CheckCircle className="w-4 h-4" />, label: 'Complete', color: 'text-green-600' },
-  failed: { icon: <XCircle className="w-4 h-4" />, label: 'Failed', color: 'text-red-600' },
-  retrying: { icon: <RefreshCw className="w-4 h-4 animate-spin" />, label: 'Retrying', color: 'text-orange-500' },
-  cancelled: { icon: <Ban className="w-4 h-4" />, label: 'Cancelled', color: 'text-gray-400' },
+  pending: {
+    icon: <Clock className="w-4 h-4" />,
+    label: 'Pending',
+    color: 'text-gray-400',
+  },
+  queued: {
+    icon: <Clock className="w-4 h-4" />,
+    label: 'Queued',
+    color: 'text-gray-500',
+  },
+  uploading: {
+    icon: <Upload className="w-4 h-4 animate-pulse" />,
+    label: 'Uploading',
+    color: 'text-blue-500',
+  },
+  processing: {
+    icon: <Loader2 className="w-4 h-4 animate-spin" />,
+    label: 'Processing',
+    color: 'text-blue-600',
+  },
+  complete: {
+    icon: <CheckCircle className="w-4 h-4" />,
+    label: 'Complete',
+    color: 'text-green-600',
+  },
+  failed: {
+    icon: <XCircle className="w-4 h-4" />,
+    label: 'Failed',
+    color: 'text-red-600',
+  },
+  retrying: {
+    icon: <RefreshCw className="w-4 h-4 animate-spin" />,
+    label: 'Retrying',
+    color: 'text-orange-500',
+  },
+  cancelled: {
+    icon: <Ban className="w-4 h-4" />,
+    label: 'Cancelled',
+    color: 'text-gray-400',
+  },
 };
 
 export function BulkProgressTable({
@@ -114,9 +150,13 @@ export function BulkProgressTable({
                     {item.processingMode.replace('_', ' ')}
                   </td>
                   <td className="py-2 px-2">
-                    <div className={`flex items-center gap-1.5 ${statusCfg.color}`}>
+                    <div
+                      className={`flex items-center gap-1.5 ${statusCfg.color}`}
+                    >
                       {statusCfg.icon}
-                      <span className="text-xs font-medium">{statusCfg.label}</span>
+                      <span className="text-xs font-medium">
+                        {statusCfg.label}
+                      </span>
                     </div>
                     {item.error && (
                       <p className="text-xs text-red-500 mt-1">{item.error}</p>

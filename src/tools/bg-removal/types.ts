@@ -15,11 +15,7 @@ export type BgRemovalModel =
   | 'sam';
 
 /** What the panel sends to the server. */
-export type RemovalMode =
-  | 'color-fill'
-  | 'click-fill'
-  | 'ml-only'
-  | 'ml+color';
+export type RemovalMode = 'color-fill' | 'click-fill' | 'ml-only' | 'ml+color';
 
 /** Top-of-panel UX mode (separate from server modes). */
 export type PanelMode = 'ai-brush' | 'color-pick' | 'ai-only';

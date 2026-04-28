@@ -18,7 +18,9 @@ export default function ColorChangeClient() {
   const imageUrlParam = searchParams.get('imageUrl');
 
   const [_imageUrl, setImageUrl] = useState<string | null>(null);
-  const [imageElement, setImageElement] = useState<HTMLImageElement | null>(null);
+  const [imageElement, setImageElement] = useState<HTMLImageElement | null>(
+    null
+  );
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showSignupModal, setShowSignupModal] = useState(false);
@@ -40,9 +42,12 @@ export default function ColorChangeClient() {
         if (imageUrlParam) {
           url = imageUrlParam;
         } else if (imageId) {
-          const response = await fetch(`/api/uploads/${imageId}`, { credentials: 'include' });
+          const response = await fetch(`/api/uploads/${imageId}`, {
+            credentials: 'include',
+          });
           const data = await response.json();
-          if (!data.success) throw new Error(data.error || 'Failed to load image');
+          if (!data.success)
+            throw new Error(data.error || 'Failed to load image');
           url = data.publicUrl;
         } else {
           throw new Error('No image specified');
@@ -79,7 +84,9 @@ export default function ColorChangeClient() {
     const fetchUsage = async () => {
       try {
         const supabase = createClientSupabaseClient();
-        const { data: { user: authUser } } = await supabase.auth.getUser();
+        const {
+          data: { user: authUser },
+        } = await supabase.auth.getUser();
         if (!authUser) return;
 
         const { data } = await supabase
@@ -101,47 +108,59 @@ export default function ColorChangeClient() {
     fetchUsage();
   }, []);
 
-  const handleSave = useCallback(async (canvas: HTMLCanvasElement) => {
-    let useResult = { allowed: true, remaining: usageRemaining, creditCharged: false };
-    try {
-      const useResponse = await fetch('/api/color-change/use', {
+  const handleSave = useCallback(
+    async (canvas: HTMLCanvasElement) => {
+      let useResult = {
+        allowed: true,
+        remaining: usageRemaining,
+        creditCharged: false,
+      };
+      try {
+        const useResponse = await fetch('/api/color-change/use', {
+          method: 'POST',
+          credentials: 'include',
+        });
+        if (useResponse.ok) {
+          useResult = await useResponse.json();
+        }
+      } catch {
+        // Allow save
+      }
+
+      if (!useResult.allowed) {
+        throw new Error(
+          'You have used all free color changes and have no credits. Purchase credits or upgrade your plan.'
+        );
+      }
+
+      const blob = await new Promise<Blob>((resolve, reject) => {
+        canvas.toBlob(
+          b => (b ? resolve(b) : reject(new Error('Failed to export'))),
+          'image/png'
+        );
+      });
+
+      const formData = new FormData();
+      formData.append('image', blob, 'color-changed.png');
+      formData.append('operation', 'color-change');
+
+      const response = await fetch('/api/process', {
         method: 'POST',
+        body: formData,
         credentials: 'include',
       });
-      if (useResponse.ok) {
-        useResult = await useResponse.json();
+
+      if (!response.ok) {
+        const data = await response.json().catch(() => ({}));
+        throw new Error(data.error || 'Failed to save');
       }
-    } catch {
-      // Allow save
-    }
 
-    if (!useResult.allowed) {
-      throw new Error('You have used all free color changes and have no credits. Purchase credits or upgrade your plan.');
-    }
-
-    const blob = await new Promise<Blob>((resolve, reject) => {
-      canvas.toBlob(b => b ? resolve(b) : reject(new Error('Failed to export')), 'image/png');
-    });
-
-    const formData = new FormData();
-    formData.append('image', blob, 'color-changed.png');
-    formData.append('operation', 'color-change');
-
-    const response = await fetch('/api/process', {
-      method: 'POST',
-      body: formData,
-      credentials: 'include',
-    });
-
-    if (!response.ok) {
-      const data = await response.json().catch(() => ({}));
-      throw new Error(data.error || 'Failed to save');
-    }
-
-    const result = await response.json();
-    setSavedImageId(result.metadata?.savedId || null);
-    setUsageRemaining(useResult.remaining);
-  }, [usageRemaining]);
+      const result = await response.json();
+      setSavedImageId(result.metadata?.savedId || null);
+      setUsageRemaining(useResult.remaining);
+    },
+    [usageRemaining]
+  );
 
   const handleCancel = useCallback(() => {
     router.push('/process');
@@ -162,7 +181,9 @@ export default function ColorChangeClient() {
           </div>
           <div className="flex items-center gap-2">
             <Palette className="w-4 h-4 text-amber-600" />
-            <span className="text-sm font-medium text-gray-700">Color Changer</span>
+            <span className="text-sm font-medium text-gray-700">
+              Color Changer
+            </span>
           </div>
         </div>
       </div>
@@ -173,9 +194,14 @@ export default function ColorChangeClient() {
           <div className="max-w-[1800px] mx-auto flex items-center gap-3">
             <AlertTriangle className="w-4 h-4 text-amber-600 flex-shrink-0" />
             <p className="text-sm text-amber-800 flex-1">
-              Low resolution ({imageDpi} DPI at 10&quot; wide). For best print quality,{' '}
+              Low resolution ({imageDpi} DPI at 10&quot; wide). For best print
+              quality,{' '}
               <a
-                href={imageId ? `/process/upscale?imageId=${imageId}` : '/process/upscale'}
+                href={
+                  imageId
+                    ? `/process/upscale?imageId=${imageId}`
+                    : '/process/upscale'
+                }
                 className="font-medium underline hover:text-amber-900 inline-flex items-center gap-0.5"
               >
                 upscale first <ArrowUpRight className="w-3 h-3" />
@@ -225,7 +251,7 @@ export default function ColorChangeClient() {
             onSave={handleSave}
             onCancel={handleCancel}
             savedImageId={savedImageId}
-            onNavigate={(path) => router.push(path)}
+            onNavigate={path => router.push(path)}
           />
         )}
       </div>
@@ -233,11 +259,26 @@ export default function ColorChangeClient() {
       {/* Saved toast */}
       {savedImageId && (
         <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-50 bg-green-500 text-white px-4 py-2.5 rounded-full shadow-lg shadow-green-500/25 flex items-center gap-2 text-sm font-medium animate-[slideUp_0.3s_ease-out]">
-          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+          <svg
+            className="w-4 h-4"
+            fill="none"
+            viewBox="0 0 24 24"
+            strokeWidth={2.5}
+            stroke="currentColor"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              d="M4.5 12.75l6 6 9-13.5"
+            />
           </svg>
           Saved to gallery
-          <a href="/dashboard#my-images" className="underline ml-1 opacity-80 hover:opacity-100">View</a>
+          <a
+            href="/dashboard#my-images"
+            className="underline ml-1 opacity-80 hover:opacity-100"
+          >
+            View
+          </a>
         </div>
       )}
 

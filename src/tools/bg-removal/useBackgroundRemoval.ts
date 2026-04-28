@@ -34,9 +34,12 @@ export interface UseBackgroundRemovalReturn {
   /** Run SAM prediction with prompt points. Returns updated masked image. */
   runPredict: (points: SamPoint[]) => Promise<HTMLImageElement | null>;
   /** Run SAM prediction and additionally return the binary alpha mask (1 byte/pixel, 0 or 1). */
-  runPredictRaw: (
-    points: SamPoint[]
-  ) => Promise<{ img: HTMLImageElement; mask: Uint8Array; width: number; height: number } | null>;
+  runPredictRaw: (points: SamPoint[]) => Promise<{
+    img: HTMLImageElement;
+    mask: Uint8Array;
+    width: number;
+    height: number;
+  } | null>;
   reset: () => void;
 }
 
@@ -422,20 +425,23 @@ export function useBackgroundRemoval(): UseBackgroundRemovalReturn {
     []
   );
 
-  const runEmbed = useCallback(async (canvas: HTMLCanvasElement): Promise<void> => {
-    try {
-      setError(null);
-      setStatus('embedding');
-      const blob = await canvasToBlob(canvas);
-      const session = await embedImage(blob);
-      setSamSession(session);
-      setStatus('idle');
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : 'Unknown error';
-      setError(msg);
-      setStatus('error');
-    }
-  }, []);
+  const runEmbed = useCallback(
+    async (canvas: HTMLCanvasElement): Promise<void> => {
+      try {
+        setError(null);
+        setStatus('embedding');
+        const blob = await canvasToBlob(canvas);
+        const session = await embedImage(blob);
+        setSamSession(session);
+        setStatus('idle');
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : 'Unknown error';
+        setError(msg);
+        setStatus('error');
+      }
+    },
+    []
+  );
 
   const runPredict = useCallback(
     async (points: SamPoint[]): Promise<HTMLImageElement | null> => {
@@ -463,9 +469,12 @@ export function useBackgroundRemoval(): UseBackgroundRemovalReturn {
   const runPredictRaw = useCallback(
     async (
       points: SamPoint[]
-    ): Promise<
-      { img: HTMLImageElement; mask: Uint8Array; width: number; height: number } | null
-    > => {
+    ): Promise<{
+      img: HTMLImageElement;
+      mask: Uint8Array;
+      width: number;
+      height: number;
+    } | null> => {
       if (!samSession) {
         setError('No SAM session — run embed first');
         return null;

@@ -290,13 +290,9 @@ export default function UpscaleClient() {
               blob = await res.blob();
             }
 
-            let file: File = new File(
-              [blob],
-              storedFilename || 'image.jpg',
-              {
-                type: blob.type,
-              }
-            );
+            let file: File = new File([blob], storedFilename || 'image.jpg', {
+              type: blob.type,
+            });
 
             // Compress large files before upload to avoid 413 errors
             if (file.size > 3 * 1024 * 1024) {
@@ -884,11 +880,31 @@ export default function UpscaleClient() {
             accentColor="text-blue-600"
             accentBg="bg-blue-500"
             steps={[
-              { title: 'Upload or select an image', content: 'Upload a new image or come here from the Process page with an image already loaded.' },
-              { title: 'Choose your print size', content: 'Select a preset print size (like 8"x10" or 22"x24" gang sheet) or enter custom dimensions. The tool calculates the exact pixels needed for 300 DPI print quality.' },
-              { title: 'Select processing mode', content: 'Auto Enhance works best for most images. Generative Upscale adds AI detail for very low-res images. Basic Upscale is fastest for simple graphics.' },
-              { title: 'Process and download', content: 'Click Process to upscale. The result is saved to your gallery automatically. Download or send to other tools for further processing.' },
-              { title: 'Bulk mode', content: 'Switch to Bulk Upload to upscale multiple images at once. Configure print sizes individually or apply the same size to all images.' },
+              {
+                title: 'Upload or select an image',
+                content:
+                  'Upload a new image or come here from the Process page with an image already loaded.',
+              },
+              {
+                title: 'Choose your print size',
+                content:
+                  'Select a preset print size (like 8"x10" or 22"x24" gang sheet) or enter custom dimensions. The tool calculates the exact pixels needed for 300 DPI print quality.',
+              },
+              {
+                title: 'Select processing mode',
+                content:
+                  'Auto Enhance works best for most images. Generative Upscale adds AI detail for very low-res images. Basic Upscale is fastest for simple graphics.',
+              },
+              {
+                title: 'Process and download',
+                content:
+                  'Click Process to upscale. The result is saved to your gallery automatically. Download or send to other tools for further processing.',
+              },
+              {
+                title: 'Bulk mode',
+                content:
+                  'Switch to Bulk Upload to upscale multiple images at once. Configure print sizes individually or apply the same size to all images.',
+              },
             ]}
             tips={[
               'For DTF printing, 300 DPI is the gold standard. The DPI calculator shows you exactly what scale factor is needed.',
@@ -934,215 +950,479 @@ export default function UpscaleClient() {
               </CardContent>
             </Card>
           ) : (
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Wand2 className="w-6 h-6 text-blue-600" />
-                Upscale Image
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              {isLoading && !imageUrl && (
-                <div className="text-center py-12">
-                  <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4" />
-                  <p>Loading image...</p>
-                </div>
-              )}
-
-              {/* Upload form when no image */}
-              {!isLoading && !imageUrl && (
-                <div className="space-y-4">
-                  <div className="text-center">
-                    <p className="text-gray-600 mb-4">
-                      Upload an image to begin upscaling
-                    </p>
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Wand2 className="w-6 h-6 text-blue-600" />
+                  Upscale Image
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {isLoading && !imageUrl && (
+                  <div className="text-center py-12">
+                    <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4" />
+                    <p>Loading image...</p>
                   </div>
-                  <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center hover:border-blue-500 transition-colors">
-                    <input
-                      type="file"
-                      accept="image/*"
-                      onChange={async e => {
-                        const file = e.target.files?.[0];
-                        if (!file) return;
+                )}
 
-                        setIsLoading(true);
-                        setError(null);
-
-                        try {
-                          // Compress large files before upload to avoid 413 errors
-                          let fileToUpload = file;
-                          if (file.size > 3 * 1024 * 1024) {
-                            console.log(
-                              '[Upscale Upload] Compressing large file:',
-                              (file.size / 1024 / 1024).toFixed(2),
-                              'MB'
-                            );
-                            fileToUpload = await compressImageForUpload(file, {
-                              maxSizeMB: 3,
-                              maxDimension: 5000,
-                            });
-                          }
-
-                          const formData = new FormData();
-                          formData.append('file', fileToUpload);
-
-                          const response = await fetch('/api/upload', {
-                            method: 'POST',
-                            body: formData,
-                            credentials: 'include',
-                          });
-
-                          const data = await response.json();
-
-                          if (data.success && data.publicUrl) {
-                            setImageUrl(data.publicUrl);
-                            await detectImageDimensions(data.publicUrl);
-                          } else {
-                            setError(data.error || 'Failed to upload image');
-                          }
-                        } catch (err) {
-                          setError('Failed to upload image');
-                        } finally {
-                          setIsLoading(false);
-                        }
-                      }}
-                      className="hidden"
-                      id="upscale-upload"
-                    />
-                    <label htmlFor="upscale-upload" className="cursor-pointer">
-                      <Upload className="w-12 h-12 mx-auto mb-4 text-gray-400" />
-                      <p className="text-lg font-medium">
-                        Click to upload image
-                      </p>
-                      <p className="text-sm text-gray-500 mt-2">
-                        or drag and drop
-                      </p>
-                      <p className="text-xs text-gray-400 mt-2">
-                        PNG, JPG, GIF up to 10MB
-                      </p>
-                    </label>
-                  </div>
-                </div>
-              )}
-
-              {error && (
-                <div className="bg-red-50 text-red-600 p-4 rounded-lg mb-4">
-                  {error}
-                </div>
-              )}
-
-              {imageUrl && !processedUrl && (
-                <div className="grid lg:grid-cols-2 gap-8">
-                  {/* Left Column - Image and Info Boxes */}
+                {/* Upload form when no image */}
+                {!isLoading && !imageUrl && (
                   <div className="space-y-4">
-                    {/* Image Section */}
-                    <div>
-                      <h3 className="font-medium mb-2">Original Image</h3>
-                      <img
-                        src={imageUrl}
-                        alt="Original"
-                        className="w-full h-auto rounded-lg border"
-                        style={{ maxHeight: '600px', objectFit: 'contain' }}
-                      />
+                    <div className="text-center">
+                      <p className="text-gray-600 mb-4">
+                        Upload an image to begin upscaling
+                      </p>
                     </div>
-                    {/* On Mobile: Show controls directly after image */}
-                    <div className="lg:hidden">
-                      {/* Simple Mode Mobile Controls */}
-                      {mode === 'simple' && (
-                        <>
-                          {/* Upscale Factor for Mobile */}
-                          <div className="mb-4">
-                            <label className="block text-sm font-medium mb-2">
-                              Upscale Factor
-                            </label>
-                            <div className="grid grid-cols-3 gap-2">
-                              {['2', '3', '4'].map(scale => (
-                                <button
-                                  key={scale}
-                                  onClick={() => setSelectedScale(scale)}
-                                  className={`p-2 border rounded-lg transition-colors ${
-                                    selectedScale === scale
-                                      ? 'border-blue-500 bg-blue-50 text-blue-700'
-                                      : 'border-gray-300 hover:border-gray-400'
-                                  }`}
-                                >
-                                  {scale}x
-                                </button>
-                              ))}
-                            </div>
-                          </div>
+                    <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center hover:border-blue-500 transition-colors">
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={async e => {
+                          const file = e.target.files?.[0];
+                          if (!file) return;
 
-                          {/* Credits Warning */}
-                          {profile &&
-                            !profile.is_admin &&
-                            profile.credits_remaining < 1 && (
-                              <div className="bg-red-50 border border-red-200 text-red-600 p-3 rounded-lg text-sm mb-4">
-                                <p className="font-medium">
-                                  Insufficient Credits
-                                </p>
-                                <p className="text-xs mt-1">
-                                  You need at least 1 credit to upscale an
-                                  image. Please purchase more credits or upgrade
-                                  your plan.
-                                </p>
+                          setIsLoading(true);
+                          setError(null);
+
+                          try {
+                            // Compress large files before upload to avoid 413 errors
+                            let fileToUpload = file;
+                            if (file.size > 3 * 1024 * 1024) {
+                              console.log(
+                                '[Upscale Upload] Compressing large file:',
+                                (file.size / 1024 / 1024).toFixed(2),
+                                'MB'
+                              );
+                              fileToUpload = await compressImageForUpload(
+                                file,
+                                {
+                                  maxSizeMB: 3,
+                                  maxDimension: 5000,
+                                }
+                              );
+                            }
+
+                            const formData = new FormData();
+                            formData.append('file', fileToUpload);
+
+                            const response = await fetch('/api/upload', {
+                              method: 'POST',
+                              body: formData,
+                              credentials: 'include',
+                            });
+
+                            const data = await response.json();
+
+                            if (data.success && data.publicUrl) {
+                              setImageUrl(data.publicUrl);
+                              await detectImageDimensions(data.publicUrl);
+                            } else {
+                              setError(data.error || 'Failed to upload image');
+                            }
+                          } catch (err) {
+                            setError('Failed to upload image');
+                          } finally {
+                            setIsLoading(false);
+                          }
+                        }}
+                        className="hidden"
+                        id="upscale-upload"
+                      />
+                      <label
+                        htmlFor="upscale-upload"
+                        className="cursor-pointer"
+                      >
+                        <Upload className="w-12 h-12 mx-auto mb-4 text-gray-400" />
+                        <p className="text-lg font-medium">
+                          Click to upload image
+                        </p>
+                        <p className="text-sm text-gray-500 mt-2">
+                          or drag and drop
+                        </p>
+                        <p className="text-xs text-gray-400 mt-2">
+                          PNG, JPG, GIF up to 10MB
+                        </p>
+                      </label>
+                    </div>
+                  </div>
+                )}
+
+                {error && (
+                  <div className="bg-red-50 text-red-600 p-4 rounded-lg mb-4">
+                    {error}
+                  </div>
+                )}
+
+                {imageUrl && !processedUrl && (
+                  <div className="grid lg:grid-cols-2 gap-8">
+                    {/* Left Column - Image and Info Boxes */}
+                    <div className="space-y-4">
+                      {/* Image Section */}
+                      <div>
+                        <h3 className="font-medium mb-2">Original Image</h3>
+                        <img
+                          src={imageUrl}
+                          alt="Original"
+                          className="w-full h-auto rounded-lg border"
+                          style={{ maxHeight: '600px', objectFit: 'contain' }}
+                        />
+                      </div>
+                      {/* On Mobile: Show controls directly after image */}
+                      <div className="lg:hidden">
+                        {/* Simple Mode Mobile Controls */}
+                        {mode === 'simple' && (
+                          <>
+                            {/* Upscale Factor for Mobile */}
+                            <div className="mb-4">
+                              <label className="block text-sm font-medium mb-2">
+                                Upscale Factor
+                              </label>
+                              <div className="grid grid-cols-3 gap-2">
+                                {['2', '3', '4'].map(scale => (
+                                  <button
+                                    key={scale}
+                                    onClick={() => setSelectedScale(scale)}
+                                    className={`p-2 border rounded-lg transition-colors ${
+                                      selectedScale === scale
+                                        ? 'border-blue-500 bg-blue-50 text-blue-700'
+                                        : 'border-gray-300 hover:border-gray-400'
+                                    }`}
+                                  >
+                                    {scale}x
+                                  </button>
+                                ))}
+                              </div>
+                            </div>
+
+                            {/* Credits Warning */}
+                            {profile &&
+                              !profile.is_admin &&
+                              profile.credits_remaining < 1 && (
+                                <div className="bg-red-50 border border-red-200 text-red-600 p-3 rounded-lg text-sm mb-4">
+                                  <p className="font-medium">
+                                    Insufficient Credits
+                                  </p>
+                                  <p className="text-xs mt-1">
+                                    You need at least 1 credit to upscale an
+                                    image. Please purchase more credits or
+                                    upgrade your plan.
+                                  </p>
+                                </div>
+                              )}
+
+                            {/* UPSCALE BUTTON for Mobile Simple Mode */}
+                            <Button
+                              onClick={processImage}
+                              disabled={
+                                isProcessing ||
+                                !profile ||
+                                (!profile.is_admin &&
+                                  profile.credits_remaining < 1)
+                              }
+                              className="w-full"
+                              size="lg"
+                            >
+                              {isProcessing ? (
+                                <>
+                                  <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                                  {isAsyncProcessing
+                                    ? jobStatus === 'processing'
+                                      ? `Processing Large Image... ${processingProgress}%`
+                                      : `Initializing... ${processingProgress}%`
+                                    : 'Processing...'}
+                                </>
+                              ) : (
+                                <>
+                                  <Wand2 className="w-5 h-5 mr-2" />
+                                  Upscale Image ({selectedScale}x)
+                                </>
+                              )}
+                            </Button>
+
+                            {/* AI Enhancements - Below button on mobile for Simple Mode */}
+                            <div className="mt-4">
+                              <label className="flex items-center space-x-2">
+                                <input
+                                  type="checkbox"
+                                  checked={showEnhancements}
+                                  onChange={e =>
+                                    setShowEnhancements(e.target.checked)
+                                  }
+                                  className="rounded border-gray-300"
+                                />
+                                <span className="text-sm">
+                                  Apply AI enhancements (denoise, deblur, color
+                                  correction)
+                                </span>
+                              </label>
+                            </div>
+                          </>
+                        )}
+
+                        {/* DPI Mode Mobile Controls */}
+                        {mode === 'dpi' && (
+                          <>
+                            {/* Print Quality Analysis - Mobile (shown first) */}
+                            {imageDimensions && printWidth && printHeight && (
+                              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+                                <div className="flex items-center justify-between">
+                                  <div>
+                                    <p className="text-sm text-blue-700 font-medium">
+                                      Print Quality Analysis
+                                    </p>
+                                    <p className="text-xs text-blue-600 mt-1">
+                                      Target: {printWidth}" × {printHeight}" at
+                                      300 DPI
+                                    </p>
+                                  </div>
+                                  <div className="text-right">
+                                    {(() => {
+                                      const info = calculateUpscaleFactor();
+                                      if (!info) return null;
+                                      const quality =
+                                        info.currentDPI >= 300
+                                          ? 'excellent'
+                                          : info.currentDPI >= 200
+                                            ? 'good'
+                                            : info.currentDPI >= 150
+                                              ? 'fair'
+                                              : 'poor';
+                                      const colors = {
+                                        excellent: 'text-green-700',
+                                        good: 'text-blue-700',
+                                        fair: 'text-yellow-700',
+                                        poor: 'text-red-700',
+                                      };
+
+                                      return (
+                                        <>
+                                          <p
+                                            className={`text-2xl font-bold ${colors[quality]}`}
+                                          >
+                                            {info.currentDPI} DPI
+                                          </p>
+                                          <p className="text-xs text-gray-600">
+                                            Needs {info.scale.toFixed(1)}x
+                                            upscale
+                                          </p>
+                                        </>
+                                      );
+                                    })()}
+                                  </div>
+                                </div>
                               </div>
                             )}
 
-                          {/* UPSCALE BUTTON for Mobile Simple Mode */}
-                          <Button
-                            onClick={processImage}
-                            disabled={
-                              isProcessing ||
-                              !profile ||
-                              (!profile.is_admin &&
-                                profile.credits_remaining < 1)
-                            }
-                            className="w-full"
-                            size="lg"
-                          >
-                            {isProcessing ? (
-                              <>
-                                <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                                {isAsyncProcessing
-                                  ? jobStatus === 'processing'
-                                    ? `Processing Large Image... ${processingProgress}%`
-                                    : `Initializing... ${processingProgress}%`
-                                  : 'Processing...'}
-                              </>
-                            ) : (
-                              <>
-                                <Wand2 className="w-5 h-5 mr-2" />
-                                Upscale Image ({selectedScale}x)
-                              </>
-                            )}
-                          </Button>
+                            {/* Print Size Controls for Mobile */}
+                            <div className="border-t border-gray-200 pt-4">
+                              <p className="text-xs text-gray-500 mb-3">
+                                Adjust print dimensions:
+                              </p>
+                            </div>
 
-                          {/* AI Enhancements - Below button on mobile for Simple Mode */}
-                          <div className="mt-4">
-                            <label className="flex items-center space-x-2">
-                              <input
-                                type="checkbox"
-                                checked={showEnhancements}
-                                onChange={e =>
-                                  setShowEnhancements(e.target.checked)
+                            {printWidth &&
+                              parseFloat(printWidth) >= 10 &&
+                              imageDimensions && (
+                                <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 mb-3">
+                                  <p className="text-xs text-amber-700">
+                                    <Info className="w-3 h-3 inline mr-1" />
+                                    Showing quality for {printWidth}" width
+                                    (minimum 10" for realistic print
+                                    assessment). Most DTF prints are 10-13
+                                    inches wide.
+                                  </p>
+                                </div>
+                              )}
+                            <div className="grid grid-cols-2 gap-4">
+                              <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">
+                                  Print Width (inches)
+                                </label>
+                                <Input
+                                  type="number"
+                                  step="0.01"
+                                  min="0.1"
+                                  value={printWidth}
+                                  onChange={e =>
+                                    handleWidthChange(e.target.value)
+                                  }
+                                  placeholder="e.g., 11"
+                                />
+                              </div>
+                              <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">
+                                  Print Height (inches)
+                                </label>
+                                <Input
+                                  type="number"
+                                  step="0.01"
+                                  min="0.1"
+                                  value={printHeight}
+                                  onChange={e =>
+                                    handleHeightChange(e.target.value)
+                                  }
+                                  placeholder="e.g., 14"
+                                />
+                              </div>
+                            </div>
+
+                            {/* Common DTF Widths */}
+                            <div className="mb-4">
+                              <p className="text-xs text-gray-600 mb-2">
+                                Common DTF widths:
+                              </p>
+                              <div className="flex flex-wrap gap-1">
+                                {[
+                                  { label: '4"', width: 4 },
+                                  { label: '8"', width: 8 },
+                                  { label: '10"', width: 10 },
+                                  { label: '11"', width: 11 },
+                                  { label: '12"', width: 12 },
+                                ].map(size => (
+                                  <button
+                                    key={size.label}
+                                    onClick={() => {
+                                      setPrintWidth(size.width.toString());
+                                      if (aspectRatio) {
+                                        setPrintHeight(
+                                          (size.width / aspectRatio).toFixed(2)
+                                        );
+                                      }
+                                    }}
+                                    className="px-3 py-1 text-xs border rounded hover:bg-gray-50"
+                                  >
+                                    {size.label} wide
+                                  </button>
+                                ))}
+                              </div>
+                            </div>
+
+                            {/* Credits Warning */}
+                            {profile &&
+                              !profile.is_admin &&
+                              profile.credits_remaining < 1 && (
+                                <div className="bg-red-50 border border-red-200 text-red-600 p-3 rounded-lg text-sm mb-4">
+                                  <p className="font-medium">
+                                    Insufficient Credits
+                                  </p>
+                                  <p className="text-xs mt-1">
+                                    You need at least 1 credit to upscale an
+                                    image. Please purchase more credits or
+                                    upgrade your plan.
+                                  </p>
+                                </div>
+                              )}
+
+                            {/* UPSCALE BUTTON for Mobile */}
+                            <Button
+                              onClick={processImage}
+                              disabled={
+                                isProcessing ||
+                                !profile ||
+                                (!profile.is_admin &&
+                                  profile.credits_remaining < 1)
+                              }
+                              className="w-full"
+                              size="lg"
+                            >
+                              {isProcessing ? (
+                                <>
+                                  <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                                  {isAsyncProcessing
+                                    ? jobStatus === 'processing'
+                                      ? `Processing Large Image... ${processingProgress}%`
+                                      : `Initializing... ${processingProgress}%`
+                                    : 'Processing...'}
+                                </>
+                              ) : (
+                                <>
+                                  <Calculator className="w-5 h-5 mr-2" />
+                                  Upscale to 300 DPI
+                                </>
+                              )}
+                            </Button>
+
+                            {/* AI Enhancements - Below button on mobile */}
+                            <div className="mt-4">
+                              <label className="flex items-center space-x-2">
+                                <input
+                                  type="checkbox"
+                                  checked={showEnhancements}
+                                  onChange={e =>
+                                    setShowEnhancements(e.target.checked)
+                                  }
+                                  className="rounded border-gray-300"
+                                />
+                                <span className="text-sm">
+                                  Apply AI enhancements (denoise, deblur, color
+                                  correction)
+                                </span>
+                              </label>
+                            </div>
+
+                            {/* Aspect Ratio Lock - At bottom on mobile */}
+                            <div className="flex items-center justify-between mt-4">
+                              <label className="text-sm font-medium text-gray-700 flex items-center gap-2">
+                                {maintainAspectRatio ? (
+                                  <Lock className="w-4 h-4" />
+                                ) : (
+                                  <Unlock className="w-4 h-4" />
+                                )}
+                                Maintain Aspect Ratio
+                              </label>
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  setMaintainAspectRatio(!maintainAspectRatio)
                                 }
-                                className="rounded border-gray-300"
-                              />
-                              <span className="text-sm">
-                                Apply AI enhancements (denoise, deblur, color
-                                correction)
-                              </span>
-                            </label>
-                          </div>
-                        </>
-                      )}
+                                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                                  maintainAspectRatio
+                                    ? 'bg-[#366494]'
+                                    : 'bg-gray-200'
+                                }`}
+                              >
+                                <span
+                                  className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                                    maintainAspectRatio
+                                      ? 'translate-x-6'
+                                      : 'translate-x-1'
+                                  }`}
+                                />
+                              </button>
+                            </div>
+                          </>
+                        )}
+                      </div>
 
-                      {/* DPI Mode Mobile Controls */}
+                      {/* Info Boxes - Desktop: left side, Mobile: after print controls */}
                       {mode === 'dpi' && (
                         <>
-                          {/* Print Quality Analysis - Mobile (shown first) */}
+                          {/* Image Information Box */}
+                          {imageDimensions && (
+                            <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+                              <h3 className="font-medium text-sm text-gray-700 mb-2">
+                                Image Information
+                              </h3>
+                              <div className="grid grid-cols-2 gap-4 text-sm">
+                                <div>
+                                  <span className="text-gray-500">Width:</span>
+                                  <span className="ml-2 font-medium">
+                                    {imageDimensions.width} px
+                                  </span>
+                                </div>
+                                <div>
+                                  <span className="text-gray-500">Height:</span>
+                                  <span className="ml-2 font-medium">
+                                    {imageDimensions.height} px
+                                  </span>
+                                </div>
+                              </div>
+                            </div>
+                          )}
+
+                          {/* DPI Info Display - Desktop only (hidden on mobile) */}
                           {imageDimensions && printWidth && printHeight && (
-                            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+                            <div className="hidden lg:block bg-blue-50 border border-blue-200 rounded-lg p-4">
                               <div className="flex items-center justify-between">
                                 <div>
                                   <p className="text-sm text-blue-700 font-medium">
@@ -1190,767 +1470,517 @@ export default function UpscaleClient() {
                             </div>
                           )}
 
-                          {/* Print Size Controls for Mobile */}
-                          <div className="border-t border-gray-200 pt-4">
-                            <p className="text-xs text-gray-500 mb-3">
-                              Adjust print dimensions:
-                            </p>
-                          </div>
-
-                          {printWidth &&
-                            parseFloat(printWidth) >= 10 &&
-                            imageDimensions && (
-                              <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 mb-3">
-                                <p className="text-xs text-amber-700">
-                                  <Info className="w-3 h-3 inline mr-1" />
-                                  Showing quality for {printWidth}" width
-                                  (minimum 10" for realistic print assessment).
-                                  Most DTF prints are 10-13 inches wide.
-                                </p>
-                              </div>
-                            )}
-                          <div className="grid grid-cols-2 gap-4">
-                            <div>
-                              <label className="block text-sm font-medium text-gray-700 mb-1">
-                                Print Width (inches)
-                              </label>
-                              <Input
-                                type="number"
-                                step="0.01"
-                                min="0.1"
-                                value={printWidth}
-                                onChange={e =>
-                                  handleWidthChange(e.target.value)
-                                }
-                                placeholder="e.g., 11"
-                              />
-                            </div>
-                            <div>
-                              <label className="block text-sm font-medium text-gray-700 mb-1">
-                                Print Height (inches)
-                              </label>
-                              <Input
-                                type="number"
-                                step="0.01"
-                                min="0.1"
-                                value={printHeight}
-                                onChange={e =>
-                                  handleHeightChange(e.target.value)
-                                }
-                                placeholder="e.g., 14"
-                              />
-                            </div>
-                          </div>
-
-                          {/* Common DTF Widths */}
-                          <div className="mb-4">
-                            <p className="text-xs text-gray-600 mb-2">
-                              Common DTF widths:
-                            </p>
-                            <div className="flex flex-wrap gap-1">
-                              {[
-                                { label: '4"', width: 4 },
-                                { label: '8"', width: 8 },
-                                { label: '10"', width: 10 },
-                                { label: '11"', width: 11 },
-                                { label: '12"', width: 12 },
-                              ].map(size => (
-                                <button
-                                  key={size.label}
-                                  onClick={() => {
-                                    setPrintWidth(size.width.toString());
-                                    if (aspectRatio) {
-                                      setPrintHeight(
-                                        (size.width / aspectRatio).toFixed(2)
-                                      );
-                                    }
-                                  }}
-                                  className="px-3 py-1 text-xs border rounded hover:bg-gray-50"
-                                >
-                                  {size.label} wide
-                                </button>
-                              ))}
-                            </div>
-                          </div>
-
-                          {/* Credits Warning */}
-                          {profile &&
-                            !profile.is_admin &&
-                            profile.credits_remaining < 1 && (
-                              <div className="bg-red-50 border border-red-200 text-red-600 p-3 rounded-lg text-sm mb-4">
-                                <p className="font-medium">
-                                  Insufficient Credits
-                                </p>
-                                <p className="text-xs mt-1">
-                                  You need at least 1 credit to upscale an
-                                  image. Please purchase more credits or upgrade
-                                  your plan.
-                                </p>
-                              </div>
-                            )}
-
-                          {/* UPSCALE BUTTON for Mobile */}
-                          <Button
-                            onClick={processImage}
-                            disabled={
-                              isProcessing ||
-                              !profile ||
-                              (!profile.is_admin &&
-                                profile.credits_remaining < 1)
-                            }
-                            className="w-full"
-                            size="lg"
-                          >
-                            {isProcessing ? (
-                              <>
-                                <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                                {isAsyncProcessing
-                                  ? jobStatus === 'processing'
-                                    ? `Processing Large Image... ${processingProgress}%`
-                                    : `Initializing... ${processingProgress}%`
-                                  : 'Processing...'}
-                              </>
-                            ) : (
-                              <>
-                                <Calculator className="w-5 h-5 mr-2" />
-                                Upscale to 300 DPI
-                              </>
-                            )}
-                          </Button>
-
-                          {/* AI Enhancements - Below button on mobile */}
-                          <div className="mt-4">
-                            <label className="flex items-center space-x-2">
-                              <input
-                                type="checkbox"
-                                checked={showEnhancements}
-                                onChange={e =>
-                                  setShowEnhancements(e.target.checked)
-                                }
-                                className="rounded border-gray-300"
-                              />
-                              <span className="text-sm">
-                                Apply AI enhancements (denoise, deblur, color
-                                correction)
-                              </span>
-                            </label>
-                          </div>
-
-                          {/* Aspect Ratio Lock - At bottom on mobile */}
-                          <div className="flex items-center justify-between mt-4">
-                            <label className="text-sm font-medium text-gray-700 flex items-center gap-2">
-                              {maintainAspectRatio ? (
-                                <Lock className="w-4 h-4" />
-                              ) : (
-                                <Unlock className="w-4 h-4" />
-                              )}
-                              Maintain Aspect Ratio
-                            </label>
-                            <button
-                              type="button"
-                              onClick={() =>
-                                setMaintainAspectRatio(!maintainAspectRatio)
-                              }
-                              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                                maintainAspectRatio
-                                  ? 'bg-[#366494]'
-                                  : 'bg-gray-200'
-                              }`}
-                            >
-                              <span
-                                className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                                  maintainAspectRatio
-                                    ? 'translate-x-6'
-                                    : 'translate-x-1'
-                                }`}
-                              />
-                            </button>
-                          </div>
-                        </>
-                      )}
-                    </div>
-
-                    {/* Info Boxes - Desktop: left side, Mobile: after print controls */}
-                    {mode === 'dpi' && (
-                      <>
-                        {/* Image Information Box */}
-                        {imageDimensions && (
-                          <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
-                            <h3 className="font-medium text-sm text-gray-700 mb-2">
-                              Image Information
-                            </h3>
-                            <div className="grid grid-cols-2 gap-4 text-sm">
-                              <div>
-                                <span className="text-gray-500">Width:</span>
-                                <span className="ml-2 font-medium">
-                                  {imageDimensions.width} px
-                                </span>
-                              </div>
-                              <div>
-                                <span className="text-gray-500">Height:</span>
-                                <span className="ml-2 font-medium">
-                                  {imageDimensions.height} px
-                                </span>
-                              </div>
-                            </div>
-                          </div>
-                        )}
-
-                        {/* DPI Info Display - Desktop only (hidden on mobile) */}
-                        {imageDimensions && printWidth && printHeight && (
-                          <div className="hidden lg:block bg-blue-50 border border-blue-200 rounded-lg p-4">
-                            <div className="flex items-center justify-between">
-                              <div>
-                                <p className="text-sm text-blue-700 font-medium">
-                                  Print Quality Analysis
-                                </p>
-                                <p className="text-xs text-blue-600 mt-1">
-                                  Target: {printWidth}" × {printHeight}" at 300
-                                  DPI
-                                </p>
-                              </div>
-                              <div className="text-right">
-                                {(() => {
-                                  const info = calculateUpscaleFactor();
-                                  if (!info) return null;
-                                  const quality =
-                                    info.currentDPI >= 300
-                                      ? 'excellent'
-                                      : info.currentDPI >= 200
-                                        ? 'good'
-                                        : info.currentDPI >= 150
-                                          ? 'fair'
-                                          : 'poor';
-                                  const colors = {
-                                    excellent: 'text-green-700',
-                                    good: 'text-blue-700',
-                                    fair: 'text-yellow-700',
-                                    poor: 'text-red-700',
-                                  };
-
-                                  return (
-                                    <>
-                                      <p
-                                        className={`text-2xl font-bold ${colors[quality]}`}
-                                      >
-                                        {info.currentDPI} DPI
-                                      </p>
-                                      <p className="text-xs text-gray-600">
-                                        Needs {info.scale.toFixed(1)}x upscale
-                                      </p>
-                                    </>
-                                  );
-                                })()}
-                              </div>
-                            </div>
-                          </div>
-                        )}
-
-                        {/* Upscale Info */}
-                        {(() => {
-                          const info = calculateUpscaleFactor();
-                          if (!info) return null;
-
-                          if (info.currentDPI >= 300) {
-                            return (
-                              <div className="bg-green-50 border border-green-200 rounded-lg p-3">
-                                <p className="text-sm text-green-700">
-                                  <Info className="w-4 h-4 inline mr-1" />
-                                  Your image already meets 300 DPI for this
-                                  print size. Upscaling is optional.
-                                </p>
-                              </div>
-                            );
-                          }
-
-                          return (
-                            <div className="space-y-2">
-                              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
-                                <p className="text-sm text-yellow-700">
-                                  <Info className="w-4 h-4 inline mr-1" />
-                                  Will upscale to {info.requiredWidth} ×{' '}
-                                  {info.requiredHeight} pixels (
-                                  {info.scale.toFixed(1)}x) for 300 DPI quality
-                                </p>
-                              </div>
-                              {(() => {
-                                const megapixels =
-                                  (info.requiredWidth * info.requiredHeight) /
-                                  1000000;
-                                const willUseAsync =
-                                  megapixels > 20 ||
-                                  (mode === 'dpi' && megapixels > 15);
-                                if (willUseAsync) {
-                                  return (
-                                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
-                                      <p className="text-sm text-blue-700 font-medium">
-                                        <Info className="w-4 h-4 inline mr-1" />
-                                        Large Image Processing Mode
-                                      </p>
-                                      <p className="text-xs text-blue-600 mt-1">
-                                        This {megapixels.toFixed(1)} megapixel
-                                        image will use enhanced processing for
-                                        optimal quality. Processing may take
-                                        30-60 seconds.
-                                      </p>
-                                    </div>
-                                  );
-                                }
-                                return null;
-                              })()}
-                            </div>
-                          );
-                        })()}
-                      </>
-                    )}
-                  </div>
-
-                  {/* Right Column - Processing Options */}
-                  <div className="space-y-4">
-                    {/* Mode Toggle */}
-                    <div className="bg-gray-50 p-4 rounded-lg">
-                      <div className="flex justify-center gap-2 mb-4">
-                        <button
-                          onClick={() => setMode('simple')}
-                          className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-                            mode === 'simple'
-                              ? 'bg-[#366494] text-white'
-                              : 'bg-white text-gray-700 border border-gray-300'
-                          }`}
-                        >
-                          Simple Mode
-                        </button>
-                        <button
-                          onClick={() => setMode('dpi')}
-                          className={`px-4 py-2 rounded-lg font-medium transition-colors flex items-center gap-2 ${
-                            mode === 'dpi'
-                              ? 'bg-[#366494] text-white'
-                              : 'bg-white text-gray-700 border border-gray-300'
-                          }`}
-                        >
-                          <Calculator className="w-4 h-4" />
-                          Smart DPI Mode
-                        </button>
-                      </div>
-
-                      {mode === 'simple' ? (
-                        <div>
-                          <label className="block text-sm font-medium mb-2">
-                            Upscale Factor
-                          </label>
-                          <div className="grid grid-cols-3 gap-2">
-                            {['2', '3', '4'].map(scale => (
-                              <button
-                                key={scale}
-                                onClick={() => setSelectedScale(scale)}
-                                className={`p-2 border rounded-lg transition-colors ${
-                                  selectedScale === scale
-                                    ? 'border-blue-500 bg-blue-50 text-blue-700'
-                                    : 'border-gray-300 hover:border-gray-400'
-                                }`}
-                              >
-                                {scale}x
-                              </button>
-                            ))}
-                          </div>
-                          {/* Large Image Processing Indicator for Simple Mode */}
+                          {/* Upscale Info */}
                           {(() => {
-                            if (!imageDimensions) return null;
-                            const scale = parseInt(selectedScale);
-                            const outputWidth = imageDimensions.width * scale;
-                            const outputHeight = imageDimensions.height * scale;
-                            const megapixels =
-                              (outputWidth * outputHeight) / 1000000;
-                            const willUseAsync = megapixels > 20;
+                            const info = calculateUpscaleFactor();
+                            if (!info) return null;
 
-                            if (willUseAsync) {
+                            if (info.currentDPI >= 300) {
                               return (
-                                <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mt-2">
-                                  <p className="text-sm text-blue-700 font-medium">
+                                <div className="bg-green-50 border border-green-200 rounded-lg p-3">
+                                  <p className="text-sm text-green-700">
                                     <Info className="w-4 h-4 inline mr-1" />
-                                    Large Image Processing Mode
-                                  </p>
-                                  <p className="text-xs text-blue-600 mt-1">
-                                    Output will be {megapixels.toFixed(1)}{' '}
-                                    megapixels ({outputWidth} × {outputHeight}).
-                                    Enhanced processing will be used for optimal
-                                    quality (30-60 seconds).
+                                    Your image already meets 300 DPI for this
+                                    print size. Upscaling is optional.
                                   </p>
                                 </div>
                               );
                             }
-                            return null;
+
+                            return (
+                              <div className="space-y-2">
+                                <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
+                                  <p className="text-sm text-yellow-700">
+                                    <Info className="w-4 h-4 inline mr-1" />
+                                    Will upscale to {info.requiredWidth} ×{' '}
+                                    {info.requiredHeight} pixels (
+                                    {info.scale.toFixed(1)}x) for 300 DPI
+                                    quality
+                                  </p>
+                                </div>
+                                {(() => {
+                                  const megapixels =
+                                    (info.requiredWidth * info.requiredHeight) /
+                                    1000000;
+                                  const willUseAsync =
+                                    megapixels > 20 ||
+                                    (mode === 'dpi' && megapixels > 15);
+                                  if (willUseAsync) {
+                                    return (
+                                      <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                                        <p className="text-sm text-blue-700 font-medium">
+                                          <Info className="w-4 h-4 inline mr-1" />
+                                          Large Image Processing Mode
+                                        </p>
+                                        <p className="text-xs text-blue-600 mt-1">
+                                          This {megapixels.toFixed(1)} megapixel
+                                          image will use enhanced processing for
+                                          optimal quality. Processing may take
+                                          30-60 seconds.
+                                        </p>
+                                      </div>
+                                    );
+                                  }
+                                  return null;
+                                })()}
+                              </div>
+                            );
                           })()}
-                        </div>
-                      ) : (
-                        <div className="space-y-4">
-                          {/* Empty for DPI mode - controls moved outside */}
-                        </div>
+                        </>
                       )}
                     </div>
 
-                    {/* Print Size Controls - Desktop only (hidden on mobile with lg:block) */}
-                    <div
-                      className={`${mode === 'dpi' ? 'hidden lg:block space-y-4' : 'hidden'}`}
-                    >
-                      {/* Divider */}
-                      <div className="border-t border-gray-200 pt-4">
-                        <p className="text-xs text-gray-500 mb-3">
-                          Adjust print dimensions:
-                        </p>
+                    {/* Right Column - Processing Options */}
+                    <div className="space-y-4">
+                      {/* Mode Toggle */}
+                      <div className="bg-gray-50 p-4 rounded-lg">
+                        <div className="flex justify-center gap-2 mb-4">
+                          <button
+                            onClick={() => setMode('simple')}
+                            className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                              mode === 'simple'
+                                ? 'bg-[#366494] text-white'
+                                : 'bg-white text-gray-700 border border-gray-300'
+                            }`}
+                          >
+                            Simple Mode
+                          </button>
+                          <button
+                            onClick={() => setMode('dpi')}
+                            className={`px-4 py-2 rounded-lg font-medium transition-colors flex items-center gap-2 ${
+                              mode === 'dpi'
+                                ? 'bg-[#366494] text-white'
+                                : 'bg-white text-gray-700 border border-gray-300'
+                            }`}
+                          >
+                            <Calculator className="w-4 h-4" />
+                            Smart DPI Mode
+                          </button>
+                        </div>
+
+                        {mode === 'simple' ? (
+                          <div>
+                            <label className="block text-sm font-medium mb-2">
+                              Upscale Factor
+                            </label>
+                            <div className="grid grid-cols-3 gap-2">
+                              {['2', '3', '4'].map(scale => (
+                                <button
+                                  key={scale}
+                                  onClick={() => setSelectedScale(scale)}
+                                  className={`p-2 border rounded-lg transition-colors ${
+                                    selectedScale === scale
+                                      ? 'border-blue-500 bg-blue-50 text-blue-700'
+                                      : 'border-gray-300 hover:border-gray-400'
+                                  }`}
+                                >
+                                  {scale}x
+                                </button>
+                              ))}
+                            </div>
+                            {/* Large Image Processing Indicator for Simple Mode */}
+                            {(() => {
+                              if (!imageDimensions) return null;
+                              const scale = parseInt(selectedScale);
+                              const outputWidth = imageDimensions.width * scale;
+                              const outputHeight =
+                                imageDimensions.height * scale;
+                              const megapixels =
+                                (outputWidth * outputHeight) / 1000000;
+                              const willUseAsync = megapixels > 20;
+
+                              if (willUseAsync) {
+                                return (
+                                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mt-2">
+                                    <p className="text-sm text-blue-700 font-medium">
+                                      <Info className="w-4 h-4 inline mr-1" />
+                                      Large Image Processing Mode
+                                    </p>
+                                    <p className="text-xs text-blue-600 mt-1">
+                                      Output will be {megapixels.toFixed(1)}{' '}
+                                      megapixels ({outputWidth} × {outputHeight}
+                                      ). Enhanced processing will be used for
+                                      optimal quality (30-60 seconds).
+                                    </p>
+                                  </div>
+                                );
+                              }
+                              return null;
+                            })()}
+                          </div>
+                        ) : (
+                          <div className="space-y-4">
+                            {/* Empty for DPI mode - controls moved outside */}
+                          </div>
+                        )}
                       </div>
 
-                      {/* Print Size Inputs */}
-                      {printWidth &&
-                        parseFloat(printWidth) >= 10 &&
-                        imageDimensions && (
-                          <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 mb-3">
-                            <p className="text-xs text-amber-700">
-                              <Info className="w-3 h-3 inline mr-1" />
-                              Showing quality for {printWidth}" width (minimum
-                              10" for realistic print assessment). Most DTF
-                              prints are 10-13 inches wide.
+                      {/* Print Size Controls - Desktop only (hidden on mobile with lg:block) */}
+                      <div
+                        className={`${mode === 'dpi' ? 'hidden lg:block space-y-4' : 'hidden'}`}
+                      >
+                        {/* Divider */}
+                        <div className="border-t border-gray-200 pt-4">
+                          <p className="text-xs text-gray-500 mb-3">
+                            Adjust print dimensions:
+                          </p>
+                        </div>
+
+                        {/* Print Size Inputs */}
+                        {printWidth &&
+                          parseFloat(printWidth) >= 10 &&
+                          imageDimensions && (
+                            <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 mb-3">
+                              <p className="text-xs text-amber-700">
+                                <Info className="w-3 h-3 inline mr-1" />
+                                Showing quality for {printWidth}" width (minimum
+                                10" for realistic print assessment). Most DTF
+                                prints are 10-13 inches wide.
+                              </p>
+                            </div>
+                          )}
+                        <div className="grid grid-cols-2 gap-4">
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                              Print Width (inches)
+                            </label>
+                            <Input
+                              type="number"
+                              step="0.01"
+                              min="0.1"
+                              value={printWidth}
+                              onChange={e => handleWidthChange(e.target.value)}
+                              placeholder="e.g., 11"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                              Print Height (inches)
+                            </label>
+                            <Input
+                              type="number"
+                              step="0.01"
+                              min="0.1"
+                              value={printHeight}
+                              onChange={e => handleHeightChange(e.target.value)}
+                              placeholder="e.g., 14"
+                            />
+                          </div>
+                        </div>
+
+                        {/* Common DTF Widths */}
+                        <div>
+                          <p className="text-xs text-gray-600 mb-2">
+                            Common DTF widths:
+                          </p>
+                          <div className="flex flex-wrap gap-1">
+                            {[
+                              { label: '4"', width: 4 },
+                              { label: '8"', width: 8 },
+                              { label: '10"', width: 10 },
+                              { label: '11"', width: 11 },
+                              { label: '12"', width: 12 },
+                            ].map(size => (
+                              <button
+                                key={size.label}
+                                onClick={() => {
+                                  setPrintWidth(size.width.toString());
+                                  // Always maintain aspect ratio when setting width
+                                  if (aspectRatio) {
+                                    setPrintHeight(
+                                      (size.width / aspectRatio).toFixed(2)
+                                    );
+                                  }
+                                }}
+                                className="px-3 py-1 text-xs border rounded hover:bg-gray-50"
+                              >
+                                {size.label} wide
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Credits Warning - Desktop only */}
+                      {profile &&
+                        !profile.is_admin &&
+                        profile.credits_remaining < 1 && (
+                          <div className="hidden lg:block bg-red-50 border border-red-200 text-red-600 p-3 rounded-lg text-sm">
+                            <p className="font-medium">Insufficient Credits</p>
+                            <p className="text-xs mt-1">
+                              You need at least 1 credit to upscale an image.
+                              Please purchase more credits or upgrade your plan.
                             </p>
                           </div>
                         )}
-                      <div className="grid grid-cols-2 gap-4">
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-1">
-                            Print Width (inches)
-                          </label>
-                          <Input
-                            type="number"
-                            step="0.01"
-                            min="0.1"
-                            value={printWidth}
-                            onChange={e => handleWidthChange(e.target.value)}
-                            placeholder="e.g., 11"
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-1">
-                            Print Height (inches)
-                          </label>
-                          <Input
-                            type="number"
-                            step="0.01"
-                            min="0.1"
-                            value={printHeight}
-                            onChange={e => handleHeightChange(e.target.value)}
-                            placeholder="e.g., 14"
-                          />
-                        </div>
+
+                      {/* UPSCALE BUTTON - Desktop only (mobile has its own) */}
+                      <div className="hidden lg:block">
+                        <Button
+                          onClick={processImage}
+                          disabled={
+                            isProcessing ||
+                            !profile ||
+                            (!profile.is_admin && profile.credits_remaining < 1)
+                          }
+                          className="w-full"
+                          size="lg"
+                        >
+                          {isProcessing ? (
+                            <>
+                              <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                              {isAsyncProcessing
+                                ? jobStatus === 'processing'
+                                  ? `Processing Large Image... ${processingProgress}%`
+                                  : `Initializing... ${processingProgress}%`
+                                : 'Processing...'}
+                            </>
+                          ) : mode === 'dpi' ? (
+                            <>
+                              <Calculator className="w-5 h-5 mr-2" />
+                              Upscale to 300 DPI
+                            </>
+                          ) : (
+                            <>
+                              <Wand2 className="w-5 h-5 mr-2" />
+                              Upscale Image ({selectedScale}x)
+                            </>
+                          )}
+                        </Button>
                       </div>
 
-                      {/* Common DTF Widths */}
-                      <div>
-                        <p className="text-xs text-gray-600 mb-2">
-                          Common DTF widths:
-                        </p>
-                        <div className="flex flex-wrap gap-1">
-                          {[
-                            { label: '4"', width: 4 },
-                            { label: '8"', width: 8 },
-                            { label: '10"', width: 10 },
-                            { label: '11"', width: 11 },
-                            { label: '12"', width: 12 },
-                          ].map(size => (
-                            <button
-                              key={size.label}
-                              onClick={() => {
-                                setPrintWidth(size.width.toString());
-                                // Always maintain aspect ratio when setting width
-                                if (aspectRatio) {
-                                  setPrintHeight(
-                                    (size.width / aspectRatio).toFixed(2)
-                                  );
-                                }
-                              }}
-                              className="px-3 py-1 text-xs border rounded hover:bg-gray-50"
-                            >
-                              {size.label} wide
-                            </button>
-                          ))}
-                        </div>
+                      {/* AI Enhancements - Below button - Desktop only */}
+                      <div className="hidden lg:block">
+                        <label className="flex items-center space-x-2">
+                          <input
+                            type="checkbox"
+                            checked={showEnhancements}
+                            onChange={e =>
+                              setShowEnhancements(e.target.checked)
+                            }
+                            className="rounded border-gray-300"
+                          />
+                          <span className="text-sm">
+                            Apply AI enhancements (denoise, deblur, color
+                            correction)
+                          </span>
+                        </label>
                       </div>
-                    </div>
 
-                    {/* Credits Warning - Desktop only */}
-                    {profile &&
-                      !profile.is_admin &&
-                      profile.credits_remaining < 1 && (
-                        <div className="hidden lg:block bg-red-50 border border-red-200 text-red-600 p-3 rounded-lg text-sm">
-                          <p className="font-medium">Insufficient Credits</p>
-                          <p className="text-xs mt-1">
-                            You need at least 1 credit to upscale an image.
-                            Please purchase more credits or upgrade your plan.
-                          </p>
+                      {/* Aspect Ratio Lock - At bottom - Desktop only */}
+                      {mode === 'dpi' && (
+                        <div className="hidden lg:flex items-center justify-between">
+                          <label className="text-sm font-medium text-gray-700 flex items-center gap-2">
+                            {maintainAspectRatio ? (
+                              <Lock className="w-4 h-4" />
+                            ) : (
+                              <Unlock className="w-4 h-4" />
+                            )}
+                            Maintain Aspect Ratio
+                          </label>
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setMaintainAspectRatio(!maintainAspectRatio)
+                            }
+                            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                              maintainAspectRatio
+                                ? 'bg-[#366494]'
+                                : 'bg-gray-200'
+                            }`}
+                          >
+                            <span
+                              className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                                maintainAspectRatio
+                                  ? 'translate-x-6'
+                                  : 'translate-x-1'
+                              }`}
+                            />
+                          </button>
                         </div>
                       )}
+                    </div>
+                  </div>
+                )}
 
-                    {/* UPSCALE BUTTON - Desktop only (mobile has its own) */}
-                    <div className="hidden lg:block">
+                {/* Processed Result for Uploaded Image*/}
+                {imageUrl && processedUrl && (
+                  <div className="space-y-4">
+                    <h3 className="font-medium mb-2">Upscaled Result</h3>
+                    <img
+                      src={processedUrl}
+                      alt="Upscaled"
+                      className="max-w-full h-auto rounded-lg border"
+                      style={{ maxHeight: '600px' }}
+                    />
+                    <div className="flex gap-2">
                       <Button
-                        onClick={processImage}
-                        disabled={
-                          isProcessing ||
-                          !profile ||
-                          (!profile.is_admin && profile.credits_remaining < 1)
-                        }
-                        className="w-full"
-                        size="lg"
+                        onClick={downloadImage}
+                        className="flex items-center gap-2"
                       >
-                        {isProcessing ? (
-                          <>
-                            <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                            {isAsyncProcessing
-                              ? jobStatus === 'processing'
-                                ? `Processing Large Image... ${processingProgress}%`
-                                : `Initializing... ${processingProgress}%`
-                              : 'Processing...'}
-                          </>
-                        ) : mode === 'dpi' ? (
-                          <>
-                            <Calculator className="w-5 h-5 mr-2" />
-                            Upscale to 300 DPI
-                          </>
-                        ) : (
-                          <>
-                            <Wand2 className="w-5 h-5 mr-2" />
-                            Upscale Image ({selectedScale}x)
-                          </>
-                        )}
+                        <Download className="w-4 h-4" />
+                        Download Result
+                      </Button>
+                      <Button
+                        onClick={async () => {
+                          console.log('Remove Background clicked');
+                          console.log('processedImageId:', processedImageId);
+                          console.log('processedUrl:', processedUrl);
+
+                          // Prefer using image ID for navigation (much shorter URL)
+                          if (processedImageId) {
+                            console.log(
+                              'Using image ID for navigation:',
+                              processedImageId
+                            );
+                            const targetUrl = `/process/background-removal?imageId=${processedImageId}`;
+                            console.log('Target URL:', targetUrl);
+                            router.push(targetUrl);
+                            return;
+                          }
+
+                          // Fallback to URL-based navigation if no ID available
+                          if (!processedUrl) {
+                            alert(
+                              'No processed image available. Please wait for the image to finish processing.'
+                            );
+                            return;
+                          }
+
+                          console.log(
+                            'No image ID available, falling back to URL'
+                          );
+                          console.log(
+                            'processedUrl length:',
+                            processedUrl?.length
+                          );
+                          console.log(
+                            'Is data URL?',
+                            processedUrl?.startsWith('data:')
+                          );
+
+                          // If it's a data URL and too large, handle differently
+                          if (
+                            processedUrl.startsWith('data:') &&
+                            processedUrl.length > 2000
+                          ) {
+                            console.log(
+                              'Data URL is too large for URL parameter'
+                            );
+
+                            // Store in sessionStorage and navigate with a key
+                            const storageKey = `temp_image_${Date.now()}`;
+                            try {
+                              sessionStorage.setItem(storageKey, processedUrl);
+                              console.log(
+                                'Stored image in sessionStorage with key:',
+                                storageKey
+                              );
+
+                              // Navigate with the storage key instead
+                              const targetUrl = `/process/background-removal?tempImage=${storageKey}`;
+                              router.push(targetUrl);
+                            } catch (storageError) {
+                              console.error(
+                                'Failed to store in sessionStorage:',
+                                storageError
+                              );
+                              alert(
+                                'The image is too large to process directly. Please download it first and then upload it to the background removal tool.'
+                              );
+                            }
+                            return;
+                          }
+
+                          // For regular URLs or small data URLs
+                          const targetUrl = `/process/background-removal?imageUrl=${encodeURIComponent(processedUrl)}`;
+                          console.log('Target URL:', targetUrl);
+                          console.log('Target URL length:', targetUrl.length);
+
+                          try {
+                            console.log('Attempting navigation...');
+                            router.push(targetUrl);
+                          } catch (error) {
+                            console.error('Navigation failed:', error);
+                            alert(
+                              'Unable to navigate. Please check the browser console for details.'
+                            );
+                          }
+                        }}
+                        variant="secondary"
+                        className="flex items-center gap-2"
+                      >
+                        <Scissors className="w-4 h-4" />
+                        Remove Background
+                      </Button>
+                      <Button
+                        onClick={() => {
+                          setProcessedUrl(null);
+                          setProcessedImageId(null);
+                          setSelectedScale('2');
+                          setShowEnhancements(false);
+                        }}
+                        variant="secondary"
+                      >
+                        Upscale Again
                       </Button>
                     </div>
-
-                    {/* AI Enhancements - Below button - Desktop only */}
-                    <div className="hidden lg:block">
-                      <label className="flex items-center space-x-2">
-                        <input
-                          type="checkbox"
-                          checked={showEnhancements}
-                          onChange={e => setShowEnhancements(e.target.checked)}
-                          className="rounded border-gray-300"
-                        />
-                        <span className="text-sm">
-                          Apply AI enhancements (denoise, deblur, color
-                          correction)
-                        </span>
-                      </label>
+                    <div className="space-y-1">
+                      <p className="text-sm text-green-600">
+                        ✓ Image upscaled and saved to your account
+                      </p>
+                      {isAsyncProcessing && (
+                        <p className="text-xs text-blue-600">
+                          ✓ Enhanced processing used for optimal quality
+                        </p>
+                      )}
                     </div>
 
-                    {/* Aspect Ratio Lock - At bottom - Desktop only */}
-                    {mode === 'dpi' && (
-                      <div className="hidden lg:flex items-center justify-between">
-                        <label className="text-sm font-medium text-gray-700 flex items-center gap-2">
-                          {maintainAspectRatio ? (
-                            <Lock className="w-4 h-4" />
-                          ) : (
-                            <Unlock className="w-4 h-4" />
-                          )}
-                          Maintain Aspect Ratio
-                        </label>
-                        <button
-                          type="button"
-                          onClick={() =>
-                            setMaintainAspectRatio(!maintainAspectRatio)
-                          }
-                          className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                            maintainAspectRatio ? 'bg-[#366494]' : 'bg-gray-200'
-                          }`}
-                        >
-                          <span
-                            className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                              maintainAspectRatio
-                                ? 'translate-x-6'
-                                : 'translate-x-1'
-                            }`}
-                          />
-                        </button>
-                      </div>
-                    )}
+                    {/* Instructions */}
+                    <div className="bg-blue-50 p-4 rounded-lg">
+                      {mode === 'dpi' ? (
+                        <>
+                          <h4 className="font-medium mb-2">
+                            Smart DPI Upscaling Features:
+                          </h4>
+                          <ul className="list-disc list-inside space-y-1 text-sm">
+                            <li>
+                              Automatically calculates exact upscaling needed
+                              for 300 DPI
+                            </li>
+                            <li>
+                              Ensures professional print quality at your
+                              selected size
+                            </li>
+                            <li>
+                              AI-powered detail enhancement during upscaling
+                            </li>
+                            <li>Optional noise reduction and sharpening</li>
+                            <li>
+                              Preserves image quality while achieving target
+                              resolution
+                            </li>
+                          </ul>
+                        </>
+                      ) : (
+                        <>
+                          <h4 className="font-medium mb-2">
+                            AI Upscaling Features:
+                          </h4>
+                          <ul className="list-disc list-inside space-y-1 text-sm">
+                            <li>Increase resolution by 2x, 3x, or 4x</li>
+                            <li>AI-powered detail enhancement</li>
+                            <li>Optional noise reduction and sharpening</li>
+                            <li>Automatic color and lighting correction</li>
+                            <li>Preserves image quality while enlarging</li>
+                          </ul>
+                        </>
+                      )}
+                    </div>
                   </div>
-                </div>
-              )}
-
-              {/* Processed Result for Uploaded Image*/}
-              {imageUrl && processedUrl && (
-                <div className="space-y-4">
-                  <h3 className="font-medium mb-2">Upscaled Result</h3>
-                  <img
-                    src={processedUrl}
-                    alt="Upscaled"
-                    className="max-w-full h-auto rounded-lg border"
-                    style={{ maxHeight: '600px' }}
-                  />
-                  <div className="flex gap-2">
-                    <Button
-                      onClick={downloadImage}
-                      className="flex items-center gap-2"
-                    >
-                      <Download className="w-4 h-4" />
-                      Download Result
-                    </Button>
-                    <Button
-                      onClick={async () => {
-                        console.log('Remove Background clicked');
-                        console.log('processedImageId:', processedImageId);
-                        console.log('processedUrl:', processedUrl);
-
-                        // Prefer using image ID for navigation (much shorter URL)
-                        if (processedImageId) {
-                          console.log(
-                            'Using image ID for navigation:',
-                            processedImageId
-                          );
-                          const targetUrl = `/process/background-removal?imageId=${processedImageId}`;
-                          console.log('Target URL:', targetUrl);
-                          router.push(targetUrl);
-                          return;
-                        }
-
-                        // Fallback to URL-based navigation if no ID available
-                        if (!processedUrl) {
-                          alert(
-                            'No processed image available. Please wait for the image to finish processing.'
-                          );
-                          return;
-                        }
-
-                        console.log(
-                          'No image ID available, falling back to URL'
-                        );
-                        console.log(
-                          'processedUrl length:',
-                          processedUrl?.length
-                        );
-                        console.log(
-                          'Is data URL?',
-                          processedUrl?.startsWith('data:')
-                        );
-
-                        // If it's a data URL and too large, handle differently
-                        if (
-                          processedUrl.startsWith('data:') &&
-                          processedUrl.length > 2000
-                        ) {
-                          console.log(
-                            'Data URL is too large for URL parameter'
-                          );
-
-                          // Store in sessionStorage and navigate with a key
-                          const storageKey = `temp_image_${Date.now()}`;
-                          try {
-                            sessionStorage.setItem(storageKey, processedUrl);
-                            console.log(
-                              'Stored image in sessionStorage with key:',
-                              storageKey
-                            );
-
-                            // Navigate with the storage key instead
-                            const targetUrl = `/process/background-removal?tempImage=${storageKey}`;
-                            router.push(targetUrl);
-                          } catch (storageError) {
-                            console.error(
-                              'Failed to store in sessionStorage:',
-                              storageError
-                            );
-                            alert(
-                              'The image is too large to process directly. Please download it first and then upload it to the background removal tool.'
-                            );
-                          }
-                          return;
-                        }
-
-                        // For regular URLs or small data URLs
-                        const targetUrl = `/process/background-removal?imageUrl=${encodeURIComponent(processedUrl)}`;
-                        console.log('Target URL:', targetUrl);
-                        console.log('Target URL length:', targetUrl.length);
-
-                        try {
-                          console.log('Attempting navigation...');
-                          router.push(targetUrl);
-                        } catch (error) {
-                          console.error('Navigation failed:', error);
-                          alert(
-                            'Unable to navigate. Please check the browser console for details.'
-                          );
-                        }
-                      }}
-                      variant="secondary"
-                      className="flex items-center gap-2"
-                    >
-                      <Scissors className="w-4 h-4" />
-                      Remove Background
-                    </Button>
-                    <Button
-                      onClick={() => {
-                        setProcessedUrl(null);
-                        setProcessedImageId(null);
-                        setSelectedScale('2');
-                        setShowEnhancements(false);
-                      }}
-                      variant="secondary"
-                    >
-                      Upscale Again
-                    </Button>
-                  </div>
-                  <div className="space-y-1">
-                    <p className="text-sm text-green-600">
-                      ✓ Image upscaled and saved to your account
-                    </p>
-                    {isAsyncProcessing && (
-                      <p className="text-xs text-blue-600">
-                        ✓ Enhanced processing used for optimal quality
-                      </p>
-                    )}
-                  </div>
-
-                  {/* Instructions */}
-                  <div className="bg-blue-50 p-4 rounded-lg">
-                    {mode === 'dpi' ? (
-                      <>
-                        <h4 className="font-medium mb-2">
-                          Smart DPI Upscaling Features:
-                        </h4>
-                        <ul className="list-disc list-inside space-y-1 text-sm">
-                          <li>
-                            Automatically calculates exact upscaling needed for
-                            300 DPI
-                          </li>
-                          <li>
-                            Ensures professional print quality at your selected
-                            size
-                          </li>
-                          <li>
-                            AI-powered detail enhancement during upscaling
-                          </li>
-                          <li>Optional noise reduction and sharpening</li>
-                          <li>
-                            Preserves image quality while achieving target
-                            resolution
-                          </li>
-                        </ul>
-                      </>
-                    ) : (
-                      <>
-                        <h4 className="font-medium mb-2">
-                          AI Upscaling Features:
-                        </h4>
-                        <ul className="list-disc list-inside space-y-1 text-sm">
-                          <li>Increase resolution by 2x, 3x, or 4x</li>
-                          <li>AI-powered detail enhancement</li>
-                          <li>Optional noise reduction and sharpening</li>
-                          <li>Automatic color and lighting correction</li>
-                          <li>Preserves image quality while enlarging</li>
-                        </ul>
-                      </>
-                    )}
-                  </div>
-                </div>
-              )}
-            </CardContent>
-          </Card>
+                )}
+              </CardContent>
+            </Card>
           )}
         </div>
       </main>

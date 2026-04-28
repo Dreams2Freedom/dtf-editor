@@ -32,7 +32,7 @@ export function HowItWorks() {
           Three steps from upload to print-ready
         </p>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8 lg:gap-12">
-          {steps.map((step) => {
+          {steps.map(step => {
             const Icon = step.icon;
             return (
               <div key={step.number}>

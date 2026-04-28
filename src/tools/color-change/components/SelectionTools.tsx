@@ -24,7 +24,10 @@ export function clickSelect(
   const sampleB = data[idx + 2];
 
   const mask = new Uint8Array(width * height);
-  let minX = width, minY = height, maxX = 0, maxY = 0;
+  let minX = width,
+    minY = height,
+    maxX = 0,
+    maxY = 0;
 
   for (let py = 0; py < height; py++) {
     for (let px = 0; px < width; px++) {
@@ -47,7 +50,10 @@ export function clickSelect(
   }
 
   if (maxX < minX) {
-    minX = 0; minY = 0; maxX = 0; maxY = 0;
+    minX = 0;
+    minY = 0;
+    maxX = 0;
+    maxY = 0;
   }
 
   return { data: mask, width, height, bounds: { minX, minY, maxX, maxY } };
@@ -64,7 +70,12 @@ export function floodFillSelect(
   tolerance: number
 ): SelectionMask {
   const result = MagicWand.floodFill(
-    { data: imageData.data, width: imageData.width, height: imageData.height, bytes: 4 },
+    {
+      data: imageData.data,
+      width: imageData.width,
+      height: imageData.height,
+      bytes: 4,
+    },
     x,
     y,
     tolerance
@@ -95,7 +106,10 @@ export function lassoSelect(
 
   // Then restrict to inside the lasso polygon
   const constrainedData = new Uint8Array(fullMask.data.length);
-  let minX = fullMask.width, minY = fullMask.height, maxX = 0, maxY = 0;
+  let minX = fullMask.width,
+    minY = fullMask.height,
+    maxX = 0,
+    maxY = 0;
 
   for (let py = fullMask.bounds.minY; py <= fullMask.bounds.maxY; py++) {
     for (let px = fullMask.bounds.minX; px <= fullMask.bounds.maxX; px++) {
@@ -111,7 +125,10 @@ export function lassoSelect(
   }
 
   if (maxX < minX) {
-    minX = 0; minY = 0; maxX = 0; maxY = 0;
+    minX = 0;
+    minY = 0;
+    maxX = 0;
+    maxY = 0;
   }
 
   return {
@@ -131,10 +148,10 @@ export function createSelectionOverlay(
   for (let i = 0; i < mask.data.length; i++) {
     if (mask.data[i] === 1) {
       const idx = i * 4;
-      overlay.data[idx] = 59;      // R
-      overlay.data[idx + 1] = 130;  // G
-      overlay.data[idx + 2] = 246;  // B
-      overlay.data[idx + 3] = 150;  // Alpha — strong enough to be clearly visible
+      overlay.data[idx] = 59; // R
+      overlay.data[idx + 1] = 130; // G
+      overlay.data[idx + 2] = 246; // B
+      overlay.data[idx + 3] = 150; // Alpha — strong enough to be clearly visible
     }
   }
   return overlay;

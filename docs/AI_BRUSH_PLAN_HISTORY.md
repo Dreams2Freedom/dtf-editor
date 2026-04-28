@@ -5,6 +5,7 @@
 **Purpose:** Linear record of every plan written during the in-house background removal sprint AND the follow-on Studio plugin architecture refactor. Each plan was approved by the user before implementation; each "SHIPPED" header marks a phase that landed in production.
 
 This file shows **how we got here, decision by decision** — what the user reported, what we considered, what we picked, and what we deferred. Use this when:
+
 - Re-entering this codebase after a break and trying to remember why a particular abstraction exists
 - Considering a change that conflicts with a deliberately-chosen earlier design
 - Reviewing the full evolution from "simple flood-fill" → "BFS with multi-color barriers + SAM-driven brush" → "Studio is the image hub; tools are plugins"
@@ -22,9 +23,10 @@ For user-visible release summaries, see `[1.2.0]` (AI Brush) and `[1.3.0]` (Stud
 
 ### Context
 
-User requested a hub-and-spoke refactor: *"As we add tools, those tools stand alone on their own and plug into the studio for us to use… when we make changes, let's say, to the background editor and we're messing with the code that affects the color selection, I don't want it to also affect the code for the color changing plugin."*
+User requested a hub-and-spoke refactor: _"As we add tools, those tools stand alone on their own and plug into the studio for us to use… when we make changes, let's say, to the background editor and we're messing with the code that affects the color selection, I don't want it to also affect the code for the color changing plugin."_
 
 Two prior-architecture problems:
+
 1. Studio mounted ad-hoc tool panels via `tool` query param. No shared image-state contract.
 2. Tool code was intertwined across `src/components/`, `src/hooks/`, `src/services/`. Changing one risked silently breaking another.
 
@@ -107,8 +109,11 @@ export interface UpscaleProvider {
 
 // src/tools/upscale/providers/deepImage.ts
 export const deepImageProvider: UpscaleProvider = {
-  id: 'deepimage', label: 'Deep-Image.ai',
-  async run(blob, opts) { /* POST to /api/upscale */ }
+  id: 'deepimage',
+  label: 'Deep-Image.ai',
+  async run(blob, opts) {
+    /* POST to /api/upscale */
+  },
 };
 ```
 
@@ -118,20 +123,20 @@ export const deepImageProvider: UpscaleProvider = {
 
 ### Step Map
 
-| Step | Commit | What |
-|---|---|---|
-| 1 | `dbde45b` | Plugin contract + skeleton |
-| 2 | `33eb6ba` | BG Removal moved into `src/tools/bg-removal/` |
-| 3 | `96cc91e` | Color Change moved into `src/tools/color-change/` |
-| 4 | `45005b0` | Upscale plugin built (first contract-native tool) |
-| 5 | `70d5b6b` | Studio shell rewrite (workingImage hub + plugin-driven picker + onApply chain) |
-| 6 | (collapsed) | Standalone routes already use `@/tools/...` imports from Steps 2/3 |
-| 7 | (deferred) | BG Removal provider polish — when 2nd provider arrives |
-| 8 | (deferred) | Internal nav redirects — needs upload UX redesign |
-| 9 | `410718a` | ESLint isolation zones |
-| H1 | `8b23b8b` | Hotfix: `index.ts` → `index.tsx` (JSX requires `.tsx`) |
-| H2 | `22f21e8` | Hotfix: `'use client'` on adapter indexes; reroute `COLOR_CHANGE_LIMITS` import directly to `types.ts` |
-| H3 | `ec9ee54` | Hotfix: extend ESLint exemption to `src/app/api/**` |
+| Step | Commit      | What                                                                                                   |
+| ---- | ----------- | ------------------------------------------------------------------------------------------------------ |
+| 1    | `dbde45b`   | Plugin contract + skeleton                                                                             |
+| 2    | `33eb6ba`   | BG Removal moved into `src/tools/bg-removal/`                                                          |
+| 3    | `96cc91e`   | Color Change moved into `src/tools/color-change/`                                                      |
+| 4    | `45005b0`   | Upscale plugin built (first contract-native tool)                                                      |
+| 5    | `70d5b6b`   | Studio shell rewrite (workingImage hub + plugin-driven picker + onApply chain)                         |
+| 6    | (collapsed) | Standalone routes already use `@/tools/...` imports from Steps 2/3                                     |
+| 7    | (deferred)  | BG Removal provider polish — when 2nd provider arrives                                                 |
+| 8    | (deferred)  | Internal nav redirects — needs upload UX redesign                                                      |
+| 9    | `410718a`   | ESLint isolation zones                                                                                 |
+| H1   | `8b23b8b`   | Hotfix: `index.ts` → `index.tsx` (JSX requires `.tsx`)                                                 |
+| H2   | `22f21e8`   | Hotfix: `'use client'` on adapter indexes; reroute `COLOR_CHANGE_LIMITS` import directly to `types.ts` |
+| H3   | `ec9ee54`   | Hotfix: extend ESLint exemption to `src/app/api/**`                                                    |
 
 ### What Stays Unchanged
 
@@ -160,11 +165,12 @@ Continue on **`claude/in-house-background-processing-Ci5rc`**.
 
 Phase 1.13 testing on TOP DAD: the initial cutout is great, but ongoing manual refinement leaves speckles. User diagnosed two issues:
 
-1. **AI Brush palette is too sparse.** A Remove stroke that visibly sweeps across both pure-black and gray-fringe pixels currently samples *one* RGB value per SAM-prompt point — and those prompt points only land every `brushSize` pixels along the path (`samplePathPoints` rejects denser samples). With brushSize=5, a 100px stroke yields ~20 samples; with brushSize=20, ~5 samples. The fringe grays are typically *between* sample points, so they never enter the palette → cleanup misses them.
+1. **AI Brush palette is too sparse.** A Remove stroke that visibly sweeps across both pure-black and gray-fringe pixels currently samples _one_ RGB value per SAM-prompt point — and those prompt points only land every `brushSize` pixels along the path (`samplePathPoints` rejects denser samples). With brushSize=5, a 100px stroke yields ~20 samples; with brushSize=20, ~5 samples. The fringe grays are typically _between_ sample points, so they never enter the palette → cleanup misses them.
 
 2. **Color Pick mode is single-color.** It supports one `targetColor` + tolerance + flood-fill from edges. The user wants **multi-color remove + multi-color keep** so they can work spatial nuance: "remove this black where it's near the background, but the same black inside the logo should stay." Pure pixel-classification can't do this — but BFS-from-edges with keep colors as barriers can.
 
 User-confirmed UX choices:
+
 - **Color Pick algorithm**: BFS-from-edges with multi-color remove palette + keep palette as **barriers** (so same-color content trapped inside the subject is preserved). Optional click-to-seed for interior speckles.
 - **Edge Cleanup slider max → 150** (catches mid-grays without changing default behavior at 60).
 - Mobile-friendly throughout.
@@ -178,6 +184,7 @@ Replace the sparse SAM-prompt sampling with **path-based + neighborhood sampling
 **Current** (`collectStrokeColors`, panel:174–192): iterates `s.points` (SAM-prompt points, ~5–30 per stroke) and grabs **one RGB per point**.
 
 **New** `collectStrokePaletteColors(history, tool, orig)`:
+
 - For each stroke of the matching tool, walk the **rawPath** in 2-pixel steps (so a 100px stroke gives ~50 samples).
 - For each path point, sample a **3×3 neighborhood** centered on the point (9 pixels). Add all 9 RGBs to the palette.
 - Dedupe via 4-bit-per-channel quantization (16³ = 4096 buckets): two RGBs that map to the same `(r>>4, g>>4, b>>4)` triple are collapsed. Output is typically 20–80 unique colors per stroke after dedup, fast in `applyColorCleanup`.
@@ -187,11 +194,13 @@ This reliably captures fringe/anti-aliasing colors that the current point-only s
 ### Part B: Color Pick mode → multi-color (remove + keep)
 
 **State** (panel-local):
+
 - `removeColors: RGB[]` (replaces `targetColor: RGB | null`)
 - `keepColors: RGB[]` (new)
 - `pickTool: 'remove' | 'keep'` (which list a click adds to)
 
 **UI** (in the Color Pick side panel, replaces the existing single-swatch block):
+
 - Two-button toggle: "Pick to Remove" (red) / "Pick to Keep" (green) — touch-friendly buttons (≥ 32 px tall)
 - Below each: a chip row showing selected colors (28×28 swatches with × to delete)
 - Existing Tolerance slider (max stays 150)
@@ -199,6 +208,7 @@ This reliably captures fringe/anti-aliasing colors that the current point-only s
 - "Reset palettes" button to clear both lists
 
 **Click handling** (`handlePreviewClick` in panel):
+
 - If `pickTool === 'remove'`: append the picked RGB to `removeColors`, recompute preview
 - If `pickTool === 'keep'`: append to `keepColors`, recompute preview
 - If `clickRemoveMode` is active: same logic but seed BFS from the click point
@@ -226,11 +236,13 @@ clientMultiFloodFill(
 This gives the user the "context-aware removal" they described: black at the edges gets walked through and removed; black inside the subject is unreachable (because it's surrounded by red/white/green which are in the keep palette OR are simply "neither" cells that don't match remove).
 
 **Server-side** (`rembg-service/main.py`):
+
 - Extend `/remove` form params: accept JSON arrays for `target_colors_json` and `keep_colors_json`. Backwards-compat: legacy `target_color` keeps working as a single-element shortcut.
 - New helper `_flood_fill_multi_color_removal(img, target_rgbs, keep_rgbs, tolerance, seed_points)` mirroring the client algorithm. Reuses the existing BFS skeleton from `_flood_fill_color_removal`.
 - For mode `color-fill`: dispatch to the multi-color helper if either array is non-empty.
 
 **Client service / types**:
+
 - `RemovalOptions` adds `removeColors?: RGB[]` and `keepColors?: RGB[]` fields. `targetColor` stays for backwards compat.
 - `removeBackground` in `src/services/bgRemoval.ts` serializes the arrays as JSON form fields.
 
@@ -246,13 +258,13 @@ One-line change: `<input type="range" min={0} max={150} ... />`. Default stays 6
 
 ## Files to Modify
 
-| File | Change |
-|---|---|
+| File                                               | Change                                                                                                                                                                                                                                                                                                                                                                                                                                                |
+| -------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `src/components/studio/BackgroundRemovalPanel.tsx` | Replace `collectStrokeColors` with denser `collectStrokePaletteColors` (rawPath stride + 3×3 neighborhood + 4-bit-dedup). Replace `targetColor` state with `removeColors`/`keepColors` arrays + `pickTool` state. Rewrite Color Pick side panel JSX. Update `handlePreviewClick` for two-list logic. Update `applyClientPreview` to call the new multi-color helper. Update `buildOptions` to send arrays. Bump `cleanupTolerance` slider max to 150. |
-| `src/hooks/useBackgroundRemoval.ts` | Add `clientMultiFloodFill(src, remove, keep, tol, seed)` — pre-classify pass + BFS skeleton borrowed from existing `clientFloodFill`. Keep `clientFloodFill` as-is for callers that still want single-color. |
-| `src/types/backgroundRemoval.ts` | Add `removeColors?: RGB[]`, `keepColors?: RGB[]` to `RemovalOptions`. |
-| `src/services/bgRemoval.ts` | In `removeBackground`, serialize the new fields as JSON form params (`target_colors_json`, `keep_colors_json`). |
-| `rembg-service/main.py` | Accept the new form fields. Add `_flood_fill_multi_color_removal()`. In `mode='color-fill'` dispatch: prefer multi-color helper when arrays present, fall back to existing single-color path otherwise. |
+| `src/hooks/useBackgroundRemoval.ts`                | Add `clientMultiFloodFill(src, remove, keep, tol, seed)` — pre-classify pass + BFS skeleton borrowed from existing `clientFloodFill`. Keep `clientFloodFill` as-is for callers that still want single-color.                                                                                                                                                                                                                                          |
+| `src/types/backgroundRemoval.ts`                   | Add `removeColors?: RGB[]`, `keepColors?: RGB[]` to `RemovalOptions`.                                                                                                                                                                                                                                                                                                                                                                                 |
+| `src/services/bgRemoval.ts`                        | In `removeBackground`, serialize the new fields as JSON form params (`target_colors_json`, `keep_colors_json`).                                                                                                                                                                                                                                                                                                                                       |
+| `rembg-service/main.py`                            | Accept the new form fields. Add `_flood_fill_multi_color_removal()`. In `mode='color-fill'` dispatch: prefer multi-color helper when arrays present, fall back to existing single-color path otherwise.                                                                                                                                                                                                                                               |
 
 ## Critical Files (read before implementing)
 
@@ -275,24 +287,16 @@ One-line change: `<input type="range" min={0} max={150} ... />`. Default stays 6
 ## Verification
 
 **Brush sampling (Part A):**
+
 1. **TOP DAD speckle reduction**: place ~3 Remove strokes over speckled regions. Compared to Phase 1.13, fringe grays should disappear noticeably faster (need fewer strokes / lower tolerance for same coverage).
 2. **Sample count**: log palette size after a stroke commit — expect 20–80 unique colors after dedup for a 100px stroke (vs ~5–10 before).
 3. **No regression on simple inputs**: solid-color background images still get cleaned correctly (palette is small but valid).
 
-**Color Pick multi-color (Part B):**
-4. Click "Pick to Remove" → click black on TOP DAD bg → black bg gets removed (BFS from edges). Click again → "Pick to Remove" → click a darker gray speckle → BFS now also walks gray fringe; remove palette has 2 chips.
-5. Click "Pick to Keep" → click white inside the letters → white now barrier-protected; bumping tolerance won't accidentally erode letters.
-6. **The user's exact case**: image with same color inside subject and at the edge. Add the color to remove. The edge-connected instance is removed; the trapped-inside-subject instance stays (because keep-color barriers prevent BFS from reaching it).
-7. **Click to seed**: enable "Click to remove a spot" → click an interior speckle → BFS removes only the connected speck, not the whole bg.
-8. **Chip × delete**: removing a chip recomputes the preview live.
-9. **Server save**: applying produces the same alpha output as the client preview (server-side multi-color helper agrees with client).
+**Color Pick multi-color (Part B):** 4. Click "Pick to Remove" → click black on TOP DAD bg → black bg gets removed (BFS from edges). Click again → "Pick to Remove" → click a darker gray speckle → BFS now also walks gray fringe; remove palette has 2 chips. 5. Click "Pick to Keep" → click white inside the letters → white now barrier-protected; bumping tolerance won't accidentally erode letters. 6. **The user's exact case**: image with same color inside subject and at the edge. Add the color to remove. The edge-connected instance is removed; the trapped-inside-subject instance stays (because keep-color barriers prevent BFS from reaching it). 7. **Click to seed**: enable "Click to remove a spot" → click an interior speckle → BFS removes only the connected speck, not the whole bg. 8. **Chip × delete**: removing a chip recomputes the preview live. 9. **Server save**: applying produces the same alpha output as the client preview (server-side multi-color helper agrees with client).
 
-**Tolerance range (Part C):**
-10. Edge Cleanup slider goes to 150. At 150 with both palettes set, mid-gray fringe (~RGB 80,80,80) is removed when palette includes black; pure red is preserved (it's far from black in distance).
+**Tolerance range (Part C):** 10. Edge Cleanup slider goes to 150. At 150 with both palettes set, mid-gray fringe (~RGB 80,80,80) is removed when palette includes black; pure red is preserved (it's far from black in distance).
 
-**Mobile (Part D):**
-11. Pick-tool toggle and chips are tappable on iPhone-size devices (DevTools touch emulation): no missed taps.
-12. Existing touch pinch/pan still works in Color Pick mode.
+**Mobile (Part D):** 11. Pick-tool toggle and chips are tappable on iPhone-size devices (DevTools touch emulation): no missed taps. 12. Existing touch pinch/pan still works in Color Pick mode.
 
 ## Implementation Order
 
@@ -327,14 +331,14 @@ Phase 1.12 shipped marching ants + view toggle, but user testing surfaced four i
 
 1. **Marching ants outline appears in the wrong location** — it's tiny and stuck in the upper-left corner of the canvas wrapper, not tracing the actual TOP DAD logo at full scale. Root cause: `canvasRect` is captured once on mount via `getBoundingClientRect`, **before** the init effect sizes the canvas to the image's natural dimensions. The window-resize listener doesn't fire because the canvas itself grew (its content changed); only window resizes trigger `update()`. So the marching-ants SVG is sized at the canvas's initial empty/300×150 default, while its `viewBox` is set to the image's actual natural size (e.g., 999×318) — content gets squashed into the small upper-left rect.
 2. **Animated dashes are distracting.** The user wants a static dashed outline.
-3. **No "Preview" view mode.** Currently we have Cutout (faded) and Original (full). They want a third option that shows the *final* cutout (kept regions only, removed regions fully transparent against checkerboard) **without** the marching-ants overlay — so they can see exactly what Apply Mask will produce.
+3. **No "Preview" view mode.** Currently we have Cutout (faded) and Original (full). They want a third option that shows the _final_ cutout (kept regions only, removed regions fully transparent against checkerboard) **without** the marching-ants overlay — so they can see exactly what Apply Mask will produce.
 4. **No zoom/pan.** They want to zoom in/out on the canvas (and pan when zoomed) without the panel chrome (header, side panel, footer) moving. Reference image showed only the canvas + overlays in the "zoomable" region.
 
 ## Recommended Approach
 
 ### Part 1: Fix `canvasRect` with a ResizeObserver
 
-Replace the one-shot useEffect (`BackgroundRemovalPanel.tsx:259-270`) with a `ResizeObserver` attached to `previewRef.current`. Whenever the canvas's *display* rect changes — initial layout, content set, parent resize, anything — the observer fires and `setCanvasRect` to the new rect. The window-resize listener becomes redundant and is dropped.
+Replace the one-shot useEffect (`BackgroundRemovalPanel.tsx:259-270`) with a `ResizeObserver` attached to `previewRef.current`. Whenever the canvas's _display_ rect changes — initial layout, content set, parent resize, anything — the observer fires and `setCanvasRect` to the new rect. The window-resize listener becomes redundant and is dropped.
 
 ```ts
 useEffect(() => {
@@ -369,6 +373,7 @@ Drop the animation. Keep the black solid + white dashed double-path so the outli
 Extend `viewMode` union to `'cutout' | 'original' | 'preview'` and add a third pill button labeled "Preview" in the top-left toggle (between Cutout and Original).
 
 `renderPreviewFromMask` gets a third branch:
+
 - `'cutout'` (default): kept = full alpha, removed = faded (≤76)
 - `'original'`: full original, mask not applied
 - `'preview'`: kept = full alpha, removed = alpha 0 (fully transparent against checkerboard) — same pixel output as Apply Mask, but the mask is not committed yet
@@ -380,6 +385,7 @@ Hide the marching-ants SVG when `viewMode === 'preview'` (so the user sees a "cl
 Wrap the canvas + SVG overlays in a transformable inner container while the cursor circle, view toggle, and new zoom controls stay **outside** the transform (so they don't scale or pan).
 
 **State:**
+
 - `zoom: number` (default 1, clamped to [0.25, 8])
 - `pan: { x: number; y: number }` (default {0, 0})
 - `isPanning: boolean` (true while spacebar held — gives cursor feedback)
@@ -403,18 +409,22 @@ Wrap the canvas + SVG overlays in a transformable inner container while the curs
 Because `eventToCanvasCoords` uses `previewRef.current.getBoundingClientRect()`, and `getBoundingClientRect` reflects CSS transforms, **brush stroke coordinates remain correct under any zoom/pan** with no math changes.
 
 The cursor-circle dimensions need a tweak to account for zoom:
+
 ```ts
-const visualScale = overlayScale * zoom;  // canvas-pixels → screen-pixels
+const visualScale = overlayScale * zoom; // canvas-pixels → screen-pixels
 // cursor circle: width/height = brushSize * visualScale
 ```
+
 That keeps the visual brush size matched to the canvas-pixel area SAM will receive.
 
 **Interactions:**
+
 - **Wheel** anywhere on the canvas wrapper → zoom in/out toward the cursor. Adjust `pan` so the canvas-pixel under the cursor stays under the cursor (standard "zoom toward cursor" formula).
 - **Spacebar held** → cursor switches to `cursor: grab`; mouse-down begins pan-drag (cursor: grabbing); drag updates `pan`. Releasing space exits pan mode. Left-click brush stroke is suppressed while spacebar is held.
 - Without spacebar: existing brush-stroke behavior, identical to today.
 
 **Zoom controls** (top-right of canvas wrapper, mirroring view toggle's top-left placement):
+
 - `−` button (zoom out by 1.25×)
 - Zoom level readout (e.g., "100%")
 - `+` button (zoom in by 1.25×)
@@ -427,17 +437,20 @@ Use small floating pill style consistent with the view toggle.
 Switch the canvas's input handlers from `MouseEvent` (`onMouseDown/Move/Up/Leave`) to **Pointer Events** (`onPointerDown/Move/Up/Leave/Cancel`). Pointer events unify mouse, touch, and pen input under one API and provide a `pointerType` field (`'mouse' | 'touch' | 'pen'`) we can branch on.
 
 **Brush stroke handlers**:
+
 - Single active pointer (any type) with `pointerType !== 'touch'` OR with `pointerType === 'touch'` and not in a multi-pointer gesture → existing brush behavior, just with `e.pointerType`-aware logic.
 - Use `setPointerCapture(e.pointerId)` on pointer-down so the stroke continues even if the pointer leaves the canvas mid-stroke.
 - Pre-existing left-click cursor-circle hides when `pointerType === 'touch'` (no hover concept on touch).
 
 **Multi-pointer gestures** — track active pointers in a `Map<number, {x, y}>`:
+
 - **Two pointers down** → start gesture; record initial centroid + distance.
 - **Pointermove with two active pointers** → compute new centroid + distance. `zoomDelta = newDistance / oldDistance`; `panDelta = newCentroid - oldCentroid`. Apply both, with the same "zoom toward midpoint" logic as the desktop wheel-toward-cursor.
 - During a multi-pointer gesture, suppress brush handlers (cancel any in-progress stroke, similar to spacebar pan).
 - **Pointerup / pointercancel** → remove from active map. Falling back to one pointer drops out of gesture mode.
 
 **Other touch UX:**
+
 - Suppress the cursor circle entirely on touch (`pointerType === 'touch'` → never show the hover ring; touch users get visual feedback from the live SVG stroke instead).
 - Apply `touch-action: none` CSS on the canvas wrapper to prevent the browser from interpreting drags as scrolls / pinches as page-zooms — gives our handlers full control.
 - Zoom-control pill remains tap-friendly (already adequate hit targets).
@@ -446,10 +459,10 @@ This lets the same brush + zoom + pan UX work seamlessly on phones and tablets w
 
 ## Files to Modify
 
-| File | Change |
-|---|---|
+| File                                               | Change                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
+| -------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `src/components/studio/BackgroundRemovalPanel.tsx` | Replace canvasRect useEffect with ResizeObserver. Remove `marching-ants` className from the dashed path. Extend `viewMode` to include `'preview'`; add third branch in `renderPreviewFromMask`; add Preview pill button. Wrap canvas + SVG overlays in zoom-transform container with `touch-action: none`. Add `zoom`, `pan`, `isSpaceHeld` state + handlers (wheel, keydown/up for spacebar). Switch brush/canvas handlers from MouseEvent to PointerEvent; add active-pointer Map; multi-pointer pinch/pan gesture detector. Add zoom-controls pill UI. Adjust cursor-circle sizing for zoom and hide on touch. |
-| `src/app/globals.css` | Remove `@keyframes marching-ants` and `.marching-ants` class (now unused). |
+| `src/app/globals.css`                              | Remove `@keyframes marching-ants` and `.marching-ants` class (now unused).                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
 
 No server changes.
 
@@ -474,6 +487,7 @@ No server changes.
 ## Verification
 
 **Desktop:**
+
 1. **Marching ants in correct position**: load TOP DAD. Marching ants overlay traces the actual letter/star/wing shapes at full canvas display size, not in the upper-left corner. Resize the browser window — outline stays correctly aligned.
 2. **Static outline**: no animation; dashed line is stationary.
 3. **Preview view**: click "Preview" pill → canvas shows only the kept regions at full opacity, removed regions transparent (checkerboard visible behind), no marching ants. Switch back to Cutout or Original — outline reappears, fade comes back as expected.
@@ -487,12 +501,7 @@ No server changes.
 11. **Panel chrome stays still under zoom/pan**: side panel, header, footer never move.
 12. **View toggle still works**: switching Cutout/Preview/Original under any zoom level updates content; zoom/pan state is preserved.
 
-**Touch (test on a phone or browser DevTools touch emulation):**
-13. **Single-finger brush stroke**: tap-and-drag on the canvas places a Keep/Remove stroke (depending on tool toggle). SAM commits on lift. No cursor circle (touch mode).
-14. **Pinch zoom**: two-finger pinch out → canvas zooms in toward the midpoint; pinch in → zooms out. Page does not zoom (touch-action prevents browser hijack).
-15. **Two-finger pan**: with two fingers down, drag both → canvas pans. Releasing one finger returns to single-touch (no stroke restart mid-gesture).
-16. **No accidental stroke during pinch**: a stroke that started with one finger gets cancelled when a second finger lands (entering gesture mode).
-17. **Mobile chrome**: side panel, sliders, buttons, view-mode pill all reachable and tap-friendly.
+**Touch (test on a phone or browser DevTools touch emulation):** 13. **Single-finger brush stroke**: tap-and-drag on the canvas places a Keep/Remove stroke (depending on tool toggle). SAM commits on lift. No cursor circle (touch mode). 14. **Pinch zoom**: two-finger pinch out → canvas zooms in toward the midpoint; pinch in → zooms out. Page does not zoom (touch-action prevents browser hijack). 15. **Two-finger pan**: with two fingers down, drag both → canvas pans. Releasing one finger returns to single-touch (no stroke restart mid-gesture). 16. **No accidental stroke during pinch**: a stroke that started with one finger gets cancelled when a second finger lands (entering gesture mode). 17. **Mobile chrome**: side panel, sliders, buttons, view-mode pill all reachable and tap-friendly.
 
 ## Implementation Order
 
@@ -513,6 +522,7 @@ No server changes.
 - Pan clamping (current plan: free pan; canvas can scroll fully off-screen — Fit button recovers).
 
 ---
+
 # Plan: AI Brush — Smart Initial Mask + Marching Ants + View Toggle (Phase 1.12) — SHIPPED
 
 ## Branch
@@ -538,15 +548,19 @@ The user wants us to close that quality gap with **dynamic, generic logic** that
 **Change the init flow** in `BackgroundRemovalPanel.tsx` (init `useEffect`, line ~227-255):
 
 Currently:
+
 ```ts
 runEmbed(canvas);
-runRemoval(canvas, { mode: 'ml-only', model: 'bria-rmbg' }).then(seedMaskFromAlpha);
+runRemoval(canvas, { mode: 'ml-only', model: 'bria-rmbg' }).then(
+  seedMaskFromAlpha
+);
 ```
 
 New:
+
 ```ts
-runEmbed(canvas);  // SAM encoder loads in parallel — independent
-const detection = await runDetect(canvas);  // ~50-200ms, k-means on edges
+runEmbed(canvas); // SAM encoder loads in parallel — independent
+const detection = await runDetect(canvas); // ~50-200ms, k-means on edges
 const opts: RemovalOptions = pickInitialOptions(detection);
 runRemoval(canvas, opts).then(seedMaskFromAlpha);
 ```
@@ -583,7 +597,11 @@ Use `traceContours(mask)` from `src/lib/magic-wand.js` to extract the cumulative
 **New client helpers in `BackgroundRemovalPanel.tsx`:**
 
 ```ts
-function maskToContours(mask: Uint8Array, w: number, h: number): {points: Array<{x:number;y:number}>; inner: boolean}[] {
+function maskToContours(
+  mask: Uint8Array,
+  w: number,
+  h: number
+): { points: Array<{ x: number; y: number }>; inner: boolean }[] {
   // Adapt mask + dims to magic-wand's expected format, call lib.traceContours.
   // (magic-wand expects a {data, width, height} object; mask is a flat Uint8Array of 0/1 bytes.)
 }
@@ -595,6 +613,7 @@ function contoursToSvgPaths(contours, scale: number): string {
 ```
 
 **State + computation:**
+
 - `const [contoursD, setContoursD] = useState<string>('');`
 - After every `recomputeCumulative()`, also recompute contours from `cumulativeMaskRef.current` and `setContoursD(...)`. Contour tracing is O(boundary pixels), ~20-80ms on 800×800 — runs in the same debounce window as the slider re-cleanup.
 - Skip during the slider's debounce — only compute on stroke commit, undo, clear, BiRefNet seed, and slider settle (after 80ms).
@@ -602,34 +621,38 @@ function contoursToSvgPaths(contours, scale: number): string {
 **SVG overlay** (added to the existing preview-wrapper SVG block at line ~754):
 
 ```tsx
-{contoursD && panelMode === 'ai-brush' && !hasResult && (
-  <>
-    <path
-      d={contoursD}
-      fill="none"
-      stroke="black"
-      strokeWidth={1.5}
-      vectorEffect="non-scaling-stroke"
-    />
-    <path
-      d={contoursD}
-      fill="none"
-      stroke="white"
-      strokeWidth={1.5}
-      strokeDasharray="4 4"
-      strokeDashoffset="0"
-      vectorEffect="non-scaling-stroke"
-      className="marching-ants"
-    />
-  </>
-)}
+{
+  contoursD && panelMode === 'ai-brush' && !hasResult && (
+    <>
+      <path
+        d={contoursD}
+        fill="none"
+        stroke="black"
+        strokeWidth={1.5}
+        vectorEffect="non-scaling-stroke"
+      />
+      <path
+        d={contoursD}
+        fill="none"
+        stroke="white"
+        strokeWidth={1.5}
+        strokeDasharray="4 4"
+        strokeDashoffset="0"
+        vectorEffect="non-scaling-stroke"
+        className="marching-ants"
+      />
+    </>
+  );
+}
 ```
 
 **CSS** (Tailwind arbitrary-value or a small global keyframes rule in `globals.css`):
 
 ```css
 @keyframes marching-ants {
-  to { stroke-dashoffset: -8; }
+  to {
+    stroke-dashoffset: -8;
+  }
 }
 .marching-ants {
   animation: marching-ants 0.6s linear infinite;
@@ -648,6 +671,7 @@ A pill toggle in the top-left of the preview area (`absolute top-2 left-2 z-10`)
 Marching ants render in **both** modes (always overlaid).
 
 **Implementation:**
+
 - New state `viewMode: 'cutout' | 'original'`.
 - Modify `renderPreviewFromMask(mask)` to branch on `viewMode`: in `'original'` mode, just `pCtx.putImageData(orig, 0, 0)` — no per-pixel alpha tweak (mask still drives the marching ants overlay, just not the fade).
 - View-mode change → call `renderPreviewFromMask(cumulativeMaskRef.current)` to repaint.
@@ -655,12 +679,12 @@ Marching ants render in **both** modes (always overlaid).
 
 ## Files to Modify
 
-| File | Change |
-|---|---|
-| `src/components/studio/BackgroundRemovalPanel.tsx` | Init `useEffect`: wait for detect, dispatch `pickInitialOptions`. Add `maskToContours` + `contoursToSvgPaths` helpers (could live module-level or inline). Add `contoursD` state, recompute after `recomputeCumulative`. Add SVG marching-ants paths to the overlay. Add `viewMode` state + pill toggle. Modify `renderPreviewFromMask` to branch on `viewMode`. |
-| `src/lib/magic-wand.js` | None — already exports `traceContours` and `prepareMask`. Just import and use. |
-| `src/styles/globals.css` (or wherever Tailwind layers live — verify path) | Add `@keyframes marching-ants` + `.marching-ants` class. |
-| `rembg-service/main.py`, `Dockerfile` | None — `ml+color` already exists and BRIA is already pre-loaded. |
+| File                                                                      | Change                                                                                                                                                                                                                                                                                                                                                           |
+| ------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `src/components/studio/BackgroundRemovalPanel.tsx`                        | Init `useEffect`: wait for detect, dispatch `pickInitialOptions`. Add `maskToContours` + `contoursToSvgPaths` helpers (could live module-level or inline). Add `contoursD` state, recompute after `recomputeCumulative`. Add SVG marching-ants paths to the overlay. Add `viewMode` state + pill toggle. Modify `renderPreviewFromMask` to branch on `viewMode`. |
+| `src/lib/magic-wand.js`                                                   | None — already exports `traceContours` and `prepareMask`. Just import and use.                                                                                                                                                                                                                                                                                   |
+| `src/styles/globals.css` (or wherever Tailwind layers live — verify path) | Add `@keyframes marching-ants` + `.marching-ants` class.                                                                                                                                                                                                                                                                                                         |
+| `rembg-service/main.py`, `Dockerfile`                                     | None — `ml+color` already exists and BRIA is already pre-loaded.                                                                                                                                                                                                                                                                                                 |
 
 ## Critical Files (read before implementing)
 
@@ -748,9 +772,17 @@ User picked: **tolerance slider** as the primary control. They explicitly opted 
     const sam = samMaskRef.current;
     const orig = originalDataRef.current;
     if (!sam || !orig) return;
-    const next = new Uint8Array(sam);  // clone
-    const keepColors = collectStrokeColors(strokeHistoryRef.current, 'keep', orig);
-    const removeColors = collectStrokeColors(strokeHistoryRef.current, 'remove', orig);
+    const next = new Uint8Array(sam); // clone
+    const keepColors = collectStrokeColors(
+      strokeHistoryRef.current,
+      'keep',
+      orig
+    );
+    const removeColors = collectStrokeColors(
+      strokeHistoryRef.current,
+      'remove',
+      orig
+    );
     applyColorCleanup(next, orig, keepColors, removeColors, cleanupTolerance);
     cumulativeMaskRef.current = next;
     renderPreviewFromMask(next);
@@ -771,7 +803,9 @@ In the AI Brush side panel, insert a new control block between the Brush Size sl
 <div>
   <div className="flex items-center justify-between mb-1">
     <label className="text-xs font-medium text-gray-600">Edge Cleanup</label>
-    <span className="text-xs text-gray-500 tabular-nums">{cleanupTolerance}</span>
+    <span className="text-xs text-gray-500 tabular-nums">
+      {cleanupTolerance}
+    </span>
   </div>
   <input
     type="range"
@@ -783,7 +817,8 @@ In the AI Brush side panel, insert a new control block between the Brush Size sl
     className="w-full accent-blue-600"
   />
   <p className="text-xs text-gray-400 mt-1">
-    Higher = removes more anti-aliased fringe and specks. Too high may erase darker valid content.
+    Higher = removes more anti-aliased fringe and specks. Too high may erase
+    darker valid content.
   </p>
 </div>
 ```
@@ -799,8 +834,8 @@ The slider is shown only when `panelMode === 'ai-brush' && !hasResult` (matches 
 
 ## Files to Modify
 
-| File | Change |
-|---|---|
+| File                                               | Change                                                                                                                                                                                                                                                                                                                                                                                             |
+| -------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `src/components/studio/BackgroundRemovalPanel.tsx` | Add `samMaskRef`, `cleanupTolerance` state + slider UI, `recomputeCumulative` helper. Modify `applyColorCleanup` to accept tolerance param. Update `commitStroke`, `handleUndoStroke`, `handleClearStrokes`, `resetCumulativeToInitial`, init `useEffect`'s BiRefNet seeding to maintain `samMaskRef` and call `recomputeCumulative`. Add `useEffect` on tolerance for live updates with debounce. |
 
 No other files require changes.
@@ -876,28 +911,30 @@ User-tested Phase 1.9 (additive cumulative masking) on a "TOP DAD" graphic. Thre
 ```ts
 interface StrokeRecord {
   tool: BrushTool;
-  points: SamPoint[];          // existing (SAM prompts, sampled)
-  rawPath: Array<{x:number;y:number}>;  // NEW — full mouse path in canvas-pixel space
-  brushSize: number;           // NEW — captured at commit time so undoing/redrawing is consistent
-  maskBefore: Uint8Array;      // existing (undo snapshot)
+  points: SamPoint[]; // existing (SAM prompts, sampled)
+  rawPath: Array<{ x: number; y: number }>; // NEW — full mouse path in canvas-pixel space
+  brushSize: number; // NEW — captured at commit time so undoing/redrawing is consistent
+  maskBefore: Uint8Array; // existing (undo snapshot)
 }
 ```
 
 **Committed strokes** are rendered in the existing SVG overlay (currently shows dots) as one `<path>` per stroke:
 
 ```tsx
-{strokeHistory.map((s, i) => (
-  <path
-    key={i}
-    d={pathToSvgD(s.rawPath, overlayScale)}
-    stroke={s.tool === 'keep' ? '#10b981' : '#ef4444'}
-    strokeWidth={s.brushSize * overlayScale}
-    strokeLinecap="round"
-    strokeLinejoin="round"
-    fill="none"
-    opacity={0.65}
-  />
-))}
+{
+  strokeHistory.map((s, i) => (
+    <path
+      key={i}
+      d={pathToSvgD(s.rawPath, overlayScale)}
+      stroke={s.tool === 'keep' ? '#10b981' : '#ef4444'}
+      strokeWidth={s.brushSize * overlayScale}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      fill="none"
+      opacity={0.65}
+    />
+  ));
+}
 ```
 
 The dots overlay (current `allSamPoints.map(...)` `<circle>`s) is **removed** per user's preference.
@@ -913,8 +950,12 @@ Helper: `function pathToSvgD(path, scale)` returns `M x0 y0 L x1 y1 L ...`. Scal
 **Color sampling:** when committing a stroke, sample RGB from `originalDataRef.current` at each `SamPoint` (the already-discretized prompt positions) — these become the stroke's color contribution. Maintain two cumulative palettes derived from `strokeHistory`:
 
 ```ts
-const keepColors: RGB[]   = collectColors(strokeHistory.filter(s => s.tool === 'keep'));
-const removeColors: RGB[] = collectColors(strokeHistory.filter(s => s.tool === 'remove'));
+const keepColors: RGB[] = collectColors(
+  strokeHistory.filter(s => s.tool === 'keep')
+);
+const removeColors: RGB[] = collectColors(
+  strokeHistory.filter(s => s.tool === 'remove')
+);
 ```
 
 Recompute on each stroke commit (cheap — O(strokes × points-per-stroke) ≈ low hundreds).
@@ -933,7 +974,9 @@ function applyColorCleanup(
   const data = orig.data;
   for (let i = 0; i < mask.length; i++) {
     if (mask[i] === 0) continue;
-    const r = data[i*4], g = data[i*4+1], b = data[i*4+2];
+    const r = data[i * 4],
+      g = data[i * 4 + 1],
+      b = data[i * 4 + 2];
     const dK = minDistSq(r, g, b, keepColors);
     const dR = minDistSq(r, g, b, removeColors);
     if (dR < dK && dR < TOL_SQ) mask[i] = 0;
@@ -946,6 +989,7 @@ function applyColorCleanup(
 **Why this is the right integration point:** the existing `clientFloodFill` (`src/hooks/useBackgroundRemoval.ts:69`) operates on a single target color with BFS-spatial-connectivity, which doesn't fit here — we want a non-spatial color classifier across the SAM region. This new helper is purpose-built but small.
 
 **Edge cases handled:**
+
 - Only Keep strokes: `removeColors` empty → cleanup is a no-op. SAM-only behavior preserved.
 - Only Remove strokes: `keepColors` empty → no-op. Cumulative mask state must already include something to remove from (typically the BiRefNet seed); SAM-only behavior preserved.
 - No strokes (just BiRefNet seed): no-op. Initial mask unchanged.
@@ -953,6 +997,7 @@ function applyColorCleanup(
 ### 3. Parallelize embed + BiRefNet on mount
 
 **Current** (`BackgroundRemovalPanel.tsx:145-171`):
+
 ```ts
 runEmbed(canvas).then(() => {
   runRemoval(c, { mode: 'ml-only', model: 'birefnet-general-lite' }).then(img => { ... });
@@ -960,9 +1005,13 @@ runEmbed(canvas).then(() => {
 ```
 
 **New:**
+
 ```ts
 const embedP = runEmbed(canvas);
-const birefnetP = runRemoval(c, { mode: 'ml-only', model: 'birefnet-general-lite' });
+const birefnetP = runRemoval(c, {
+  mode: 'ml-only',
+  model: 'birefnet-general-lite',
+});
 // embedP resolves → samSession set → samReady banner flips.
 birefnetP.then(img => {
   // Seed cumulativeMaskRef from BiRefNet alpha (only if user hasn't started brushing yet).
@@ -976,8 +1025,8 @@ No `/warm` endpoint, no elapsed-seconds counter (per user choice).
 
 ## Files to Modify
 
-| File | Change |
-|---|---|
+| File                                               | Change                                                                                                                                                                                                                                                                                                            |
+| -------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `src/components/studio/BackgroundRemovalPanel.tsx` | Extend `StrokeRecord` with `rawPath` + `brushSize`. Add `pathToSvgD` helper. Replace dot SVG overlay with stroke `<path>` overlay (committed) + in-progress `<path>` ref updated on `mousemove`. Add `applyColorCleanup` helper + invocation in `commitStroke`. Parallelize embed + BiRefNet in init `useEffect`. |
 
 No other files require changes — server `/predict` and `runPredictRaw` are sufficient as-is.
@@ -1040,9 +1089,10 @@ Continue on **`claude/in-house-background-processing-Ci5rc`**.
 
 ## Context
 
-Phase 1.8 shipped a working SAM-based AI Brush, but user testing on a "TOP GUN" logo revealed a UX problem: every click runs SAM, which returns a *single-object* segmentation, and the panel **replaces** the canvas with that result. So clicking once on the white "P" wipes everything else (the rest of the letters disappear because SAM only returned the P). The user can't iteratively add more keep-points because the rest of the image is now invisible — they can't see what to click on next.
+Phase 1.8 shipped a working SAM-based AI Brush, but user testing on a "TOP GUN" logo revealed a UX problem: every click runs SAM, which returns a _single-object_ segmentation, and the panel **replaces** the canvas with that result. So clicking once on the white "P" wipes everything else (the rest of the letters disappear because SAM only returned the P). The user can't iteratively add more keep-points because the rest of the image is now invisible — they can't see what to click on next.
 
 User wants two changes:
+
 1. **Original visible underneath** at reduced opacity, so "removed" regions remain clickable for further refinement.
 2. **Additive cumulative masking** — Keep strokes ADD to the existing mask (union), Remove strokes SUBTRACT from it (difference). The initial mask is the BiRefNet auto-result from Phase 1.8. So the user starts from a sensible auto-guess and builds on it instead of starting over with each click.
 
@@ -1053,10 +1103,12 @@ This matches the user's mental model: "the BiRefNet result is mostly right; the 
 ### Client: cumulative binary mask + dual-layer rendering
 
 **New state in `BackgroundRemovalPanel.tsx`:**
+
 - `cumulativeMaskRef: useRef<Uint8Array | null>` — W×H of 0/1 bytes; the running mask (1 = keep, 0 = remove). Initialized from the BiRefNet result's alpha channel on mount.
-- `strokeHistory: { tool: 'keep' | 'remove'; points: SamPoint[]; maskBefore: Uint8Array }[]` — replaces the current `SamPoint[][]`. Each entry records the stroke + a snapshot of the cumulative mask *before* the stroke ran, so undo is O(1) and doesn't require re-running SAM.
+- `strokeHistory: { tool: 'keep' | 'remove'; points: SamPoint[]; maskBefore: Uint8Array }[]` — replaces the current `SamPoint[][]`. Each entry records the stroke + a snapshot of the cumulative mask _before_ the stroke ran, so undo is O(1) and doesn't require re-running SAM.
 
 **Stroke commit flow (replaces current `commitStroke` → `runBrushPredict`):**
+
 1. User finishes a stroke (mouseUp / mouseLeave).
 2. Sample the path into SAM points (via the existing `samplePathPoints` helper).
 3. Snapshot the current `cumulativeMaskRef` into a `Uint8Array.slice()` — this is `maskBefore`.
@@ -1069,6 +1121,7 @@ This matches the user's mental model: "the BiRefNet result is mostly right; the 
 8. Re-render the preview (see below).
 
 **Dual-layer preview rendering (replaces `runBrushPredict` re-draw):**
+
 - The preview canvas displays a composite computed by manipulating ImageData directly (single pass, fast):
   - Start from `originalDataRef.current` (the source-of-truth ImageData captured on mount).
   - For each pixel `i`: `previewData[i*4 + 3] = cumulativeMask[i] ? 255 : 76` (76 ≈ 30% of 255).
@@ -1076,23 +1129,27 @@ This matches the user's mental model: "the BiRefNet result is mostly right; the 
 - Result: kept regions render at full opacity against the panel's checkerboard; removed regions render at 30% opacity (visibly faded but still clickable). The user always sees what's there.
 
 **Undo (handleUndoStroke):**
+
 - Pop the last entry from `strokeHistory`.
 - Restore `cumulativeMaskRef.current = maskBefore.slice()`.
 - Re-render preview. **No SAM call needed.**
 
 **Clear (handleClearStrokes):**
+
 - Reset `cumulativeMaskRef` to the initial BiRefNet-derived mask.
 - Empty `strokeHistory`.
 - Re-render preview.
 
 **Apply Mask (handleApplyBrush):**
-- Build the final RGBA from `originalDataRef + cumulativeMask` (alpha = mask × 255, full opacity for kept, 0 for removed — *not* the faded preview).
+
+- Build the final RGBA from `originalDataRef + cumulativeMask` (alpha = mask × 255, full opacity for kept, 0 for removed — _not_ the faded preview).
 - Write that to `canvasRef` (the source-of-truth canvas that gets saved).
 - Set `hasResult = true`.
 
 ### Server: drop chained-refinement caching
 
 **`rembg-service/main.py` `/predict`:**
+
 - Currently caches `low_res_mask` per `embedding_id` and feeds it back on the next call. That made sense for "iteratively refine one mask"; it's wrong for "each stroke is an independent region".
 - Change: stop reading or writing `cached["low_res_mask"]`. Always call `predictor.predict(state, points, labels, prev_low_res=None)`. Each call gets a fresh single-object mask for just its points.
 
@@ -1101,10 +1158,12 @@ This matches the user's mental model: "the BiRefNet result is mostly right; the 
 ### Frontend: extract SAM mask from the predict response
 
 **`src/hooks/useBackgroundRemoval.ts`:**
+
 - `runPredict` currently returns `HTMLImageElement | null`. Add a sibling helper `runPredictRaw(points): Promise<{img: HTMLImageElement; mask: Uint8Array} | null>` that draws the result to a temp canvas, calls `getImageData`, and returns both the image element (for compatibility) and the binary alpha mask (Uint8Array of size W×H, 0 or 1).
 - The panel uses `runPredictRaw` for stroke commits; existing `runPredict` callers (none currently) stay on the simple version.
 
 ### What stays unchanged
+
 - The dot overlay (SVG circles at each placed point) — points are still drawn on the panel for user feedback. **Note**: with the new model, we display dots from `strokeHistory.flatMap(s => s.points)` since strokes track their own points.
 - The brush cursor circle, brush size slider, Keep/Remove tool toggle.
 - `/embed` endpoint and embed flow.
@@ -1113,11 +1172,11 @@ This matches the user's mental model: "the BiRefNet result is mostly right; the 
 
 ## Files to Modify
 
-| File | Change |
-|---|---|
+| File                                               | Change                                                                                                                                                                                                                                  |
+| -------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `src/components/studio/BackgroundRemovalPanel.tsx` | Replace `strokeHistory`/`commitStroke`/`runBrushPredict`/render path with cumulative-mask + dual-layer rendering. Init `cumulativeMaskRef` from the BiRefNet result's alpha. Update Undo/Clear/Apply to operate on the cumulative mask. |
-| `src/hooks/useBackgroundRemoval.ts` | Add `runPredictRaw` returning `{img, mask: Uint8Array}`. |
-| `rembg-service/main.py` | `/predict`: drop `prev_low_res` caching — always call with `prev_low_res=None`. Each stroke is independent. |
+| `src/hooks/useBackgroundRemoval.ts`                | Add `runPredictRaw` returning `{img, mask: Uint8Array}`.                                                                                                                                                                                |
+| `rembg-service/main.py`                            | `/predict`: drop `prev_low_res` caching — always call with `prev_low_res=None`. Each stroke is independent.                                                                                                                             |
 
 ## Critical Files (read before implementing)
 
@@ -1190,12 +1249,14 @@ The frontend already has the SAM scaffolding wired (`runEmbed`, `runPredict`, `e
 If quality is insufficient on graphics, swap to `Xenova/sam-vit-base` (~380MB total, ~6s encode, ~150ms decode) — same API, drop-in.
 
 **New file `rembg-service/sam_predictor.py`:**
+
 - Class `MobileSamPredictor` wrapping two `onnxruntime.InferenceSession`s (encoder + decoder).
 - `set_image(img)` → preprocesses to 1024×1024 (with letterbox + normalize), runs encoder, returns embedding (1×256×64×64) plus stored `(orig_h, orig_w)`.
 - `predict(embedding, points, labels, mask_input=None)` → builds decoder inputs, scales point coords from original space to 1024 space, runs decoder, returns boolean mask at original resolution + confidence score + low-res mask logits (for chained refinement).
 - Lazy module-level loader so cold container startup is fast; first `/embed` call pays the load cost.
 
 **`rembg-service/main.py` rewrites:**
+
 - `/embed`:
   - Run `MobileSamPredictor.set_image()` → cache `{"embedding": np.ndarray, "img_array": np.ndarray, "low_res_mask": None}` in existing `_embeddings` TTLCache (30-min TTL already set).
   - Return `{"embedding_id", "width", "height"}` (unchanged from current contract).
@@ -1212,9 +1273,11 @@ If quality is insufficient on graphics, swap to `Xenova/sam-vit-base` (~380MB to
 ### Frontend: AI Brush mode
 
 **`src/types/backgroundRemoval.ts`:**
+
 - `PanelMode` becomes `'ai-brush' | 'color-pick' | 'ai-only'` (drop `'auto'` and `'click-remove'` — neither is user-facing now). Keep `RemovalMode` server contract unchanged.
 
 **`src/components/studio/BackgroundRemovalPanel.tsx`:**
+
 - Default `panelMode` → `'ai-brush'`.
 - On image load, kick off **two parallel ops**:
   1. `runEmbed(canvas)` — primes SAM for interactive editing.
@@ -1223,6 +1286,7 @@ If quality is insufficient on graphics, swap to `Xenova/sam-vit-base` (~380MB to
 - New state: `samPoints: SamPoint[]`, `brushTool: 'keep' | 'remove'`, `brushSize: number` (5–50, default 20), `lastStrokeId: number`.
 
 **Brush UI (AI Brush mode):**
+
 - Tool toggle: green "Keep" (`Plus` icon, default) ↔ red "Remove" (`Minus` icon).
 - Brush size slider (5–50, default 20). Visual only — controls the cursor circle radius and stroke point sampling interval.
 - Cursor: colored ring overlay following mouse, color = current tool, radius = brush size (in canvas-pixel space, scaled to display).
@@ -1232,6 +1296,7 @@ If quality is insufficient on graphics, swap to `Xenova/sam-vit-base` (~380MB to
 - Each predicted result is drawn into the offscreen `canvasRef` (source of truth) and the visible `previewRef`. Existing `runRemoval` code path stays unchanged (still used by Color Pick / AI Only).
 
 **`src/hooks/useBackgroundRemoval.ts`:** small additions only.
+
 - `runPredict` already exists — it just needs the Python `/predict` to actually work.
 - Add a `samplePathPoints(path, brushSize)` helper exported alongside `clientFloodFill` (pure function, takes an array of `{x, y}` raw mouse positions and returns a deduplicated point list at `brushSize` intervals).
 
@@ -1241,14 +1306,14 @@ Color Pick keeps eyedropper + tolerance + flood-fill. AI Only keeps the model dr
 
 ## Files to Modify
 
-| File | Change |
-|---|---|
-| `rembg-service/requirements.txt` | Add `huggingface_hub`, pin `onnxruntime` |
-| `rembg-service/Dockerfile` | Pre-download MobileSAM ONNX files via `huggingface_hub` |
-| `rembg-service/sam_predictor.py` | **NEW** — MobileSAM ONNX wrapper (encoder + decoder split, point-prompt API) |
-| `rembg-service/main.py` | Rewrite `/embed` to run real encoder + cache embedding; rewrite `/predict` to run real decoder + return RGBA |
-| `src/types/backgroundRemoval.ts` | Replace `PanelMode` with `'ai-brush' \| 'color-pick' \| 'ai-only'` |
-| `src/hooks/useBackgroundRemoval.ts` | Add `samplePathPoints` helper |
+| File                                               | Change                                                                                                                                                                                   |
+| -------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `rembg-service/requirements.txt`                   | Add `huggingface_hub`, pin `onnxruntime`                                                                                                                                                 |
+| `rembg-service/Dockerfile`                         | Pre-download MobileSAM ONNX files via `huggingface_hub`                                                                                                                                  |
+| `rembg-service/sam_predictor.py`                   | **NEW** — MobileSAM ONNX wrapper (encoder + decoder split, point-prompt API)                                                                                                             |
+| `rembg-service/main.py`                            | Rewrite `/embed` to run real encoder + cache embedding; rewrite `/predict` to run real decoder + return RGBA                                                                             |
+| `src/types/backgroundRemoval.ts`                   | Replace `PanelMode` with `'ai-brush' \| 'color-pick' \| 'ai-only'`                                                                                                                       |
+| `src/hooks/useBackgroundRemoval.ts`                | Add `samplePathPoints` helper                                                                                                                                                            |
 | `src/components/studio/BackgroundRemovalPanel.tsx` | Default mode → AI Brush; eager embed + BiRefNet on mount; brush toolbar (Keep/Remove/Size/Undo/Clear); click+drag handlers; cursor overlay; existing Color Pick / AI Only code untouched |
 
 ## Critical Files (read before implementing)
@@ -1319,7 +1384,7 @@ Continue on **`claude/in-house-background-processing-Ci5rc`**.
 
 Phase 1.6 added a `_flood_fill_white_removal()` post-processing step that BFS from every edge pixel and zeroes alpha on connected near-white regions (RGB > 240). Combined with a `model="white-fill"` mode that skips ML entirely, this **perfectly handles white-background DTF art** — including the watercolor turtle case where ML alone left interior whites between petals.
 
-User feedback: *"that gave a great result. But we can't count on solid white backgrounds. What if the background is black, grey, red, purple, multi-toned, or gradient? We need an easy way that is user-friendly to deal with whatever is thrown our way and do it with great results."*
+User feedback: _"that gave a great result. But we can't count on solid white backgrounds. What if the background is black, grey, red, purple, multi-toned, or gradient? We need an easy way that is user-friendly to deal with whatever is thrown our way and do it with great results."_
 
 Real DTF source art arrives with: solid white, solid black (e.g. "TOP DAD" logo), solid colors, gradients, photos, already-transparent PNGs, and mixed two-color backgrounds. The current single-color flood-fill is too narrow.
 

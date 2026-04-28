@@ -46,7 +46,12 @@ export interface Image {
 export interface ImageOperation {
   id: string;
   imageId: string;
-  operationType: 'upscale' | 'background_removal' | 'vectorize' | 'generate' | 'color_change';
+  operationType:
+    | 'upscale'
+    | 'background_removal'
+    | 'vectorize'
+    | 'generate'
+    | 'color_change';
   apiProvider: string;
   status: 'pending' | 'processing' | 'completed' | 'failed';
   inputData?: Record<string, unknown>;

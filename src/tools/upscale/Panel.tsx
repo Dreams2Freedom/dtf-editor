@@ -25,7 +25,11 @@ import type {
   UpscaleProvider,
 } from './providers/types';
 
-const PROCESSING_MODES: { value: UpscaleProcessingMode; label: string; help: string }[] = [
+const PROCESSING_MODES: {
+  value: UpscaleProcessingMode;
+  label: string;
+  help: string;
+}[] = [
   {
     value: 'auto_enhance',
     label: 'Auto Enhance',
@@ -82,7 +86,11 @@ function imageToCanvas(img: HTMLImageElement): HTMLCanvasElement {
   return canvas;
 }
 
-export function UpscalePanel({ image, onApply, onCancel }: StudioToolPanelProps) {
+export function UpscalePanel({
+  image,
+  onApply,
+  onCancel,
+}: StudioToolPanelProps) {
   const [scale, setScale] = useState<2 | 4>(4);
   const [mode, setMode] = useState<UpscaleProcessingMode>('auto_enhance');
   const [isUpscaling, setIsUpscaling] = useState(false);
@@ -122,7 +130,9 @@ export function UpscalePanel({ image, onApply, onCancel }: StudioToolPanelProps)
 
       {/* Scale toggle */}
       <div>
-        <label className="block text-xs font-medium text-gray-600 mb-1.5">Scale</label>
+        <label className="block text-xs font-medium text-gray-600 mb-1.5">
+          Scale
+        </label>
         <div className="flex rounded-lg border border-gray-200 overflow-hidden">
           {([2, 4] as const).map(v => (
             <button
@@ -144,7 +154,9 @@ export function UpscalePanel({ image, onApply, onCancel }: StudioToolPanelProps)
 
       {/* Processing mode */}
       <div>
-        <label className="block text-xs font-medium text-gray-600 mb-1.5">Mode</label>
+        <label className="block text-xs font-medium text-gray-600 mb-1.5">
+          Mode
+        </label>
         <select
           value={mode}
           onChange={e => setMode(e.target.value as UpscaleProcessingMode)}

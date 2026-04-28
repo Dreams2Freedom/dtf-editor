@@ -55,6 +55,7 @@ Studio is now the durable home for the working image. Tools are self-contained p
 Branch: `claude/in-house-background-processing-Ci5rc`. Released as v1.2.0. See `DEVELOPMENT_LOG_PART1.md` (April 27–28 entry) for the full multi-phase development log and `docs/AI_BRUSH_PLAN_HISTORY.md` for the linear plan history.
 
 **Server (`rembg-service/`):**
+
 - ✅ FastAPI app with auth-gated endpoints
 - ✅ Multi-mode `/remove`: `color-fill`, `click-fill`, `ml-only`, `ml+color`
 - ✅ MobileSAM ONNX wrapper (`sam_predictor.py`) — `/embed` + `/predict`
@@ -64,6 +65,7 @@ Branch: `claude/in-house-background-processing-Ci5rc`. Released as v1.2.0. See `
 - ✅ Dockerfile pre-downloads default models (~330MB) for fast cold starts
 
 **Client — Studio Background Removal panel:**
+
 - ✅ AI Brush mode (default): SAM + smart initial mask + per-stroke union/diff + color cleanup + live tolerance slider + marching-ants outline
 - ✅ Color (Color Pick) mode: multi-color remove + multi-color keep palettes + BFS-with-barriers + click-to-clean-spot
 - ✅ AI Only mode: ML mask + model selector

@@ -57,7 +57,10 @@ export class AuthService {
 
       if (response.ok) {
         const data = await response.json();
-        console.log('Effective user response received, isImpersonating:', data.isImpersonating);
+        console.log(
+          'Effective user response received, isImpersonating:',
+          data.isImpersonating
+        );
 
         if (data.user) {
           // If impersonating, use the impersonated user data

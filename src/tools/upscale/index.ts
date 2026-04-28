@@ -21,7 +21,8 @@ export const upscaleTool: StudioTool = {
   id: 'upscale',
   label: 'Upscale',
   icon: Sparkles,
-  description: 'Increase image resolution 2× or 4× with AI enhancement (Deep-Image.ai).',
+  description:
+    'Increase image resolution 2× or 4× with AI enhancement (Deep-Image.ai).',
   gate: { credits: 1 },
   Panel: UpscalePanel,
 };

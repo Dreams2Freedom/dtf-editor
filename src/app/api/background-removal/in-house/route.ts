@@ -16,7 +16,10 @@ async function handler(request: NextRequest) {
   } = await supabase.auth.getUser();
 
   if (authError || !user) {
-    return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
+    return NextResponse.json(
+      { error: 'Authentication required' },
+      { status: 401 }
+    );
   }
 
   const { data: profile } = await supabase
@@ -49,7 +52,10 @@ async function handler(request: NextRequest) {
   try {
     formData = await request.formData();
   } catch {
-    return NextResponse.json({ error: 'Failed to parse request' }, { status: 400 });
+    return NextResponse.json(
+      { error: 'Failed to parse request' },
+      { status: 400 }
+    );
   }
 
   const image = formData.get('image');

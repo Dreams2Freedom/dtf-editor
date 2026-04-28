@@ -16,7 +16,10 @@ async function handler(request: NextRequest) {
   } = await supabase.auth.getUser();
 
   if (authError || !user) {
-    return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
+    return NextResponse.json(
+      { error: 'Authentication required' },
+      { status: 401 }
+    );
   }
 
   const { data: profile } = await supabase
@@ -39,14 +42,20 @@ async function handler(request: NextRequest) {
   }
 
   if (!env.REMBG_SERVICE_URL) {
-    return NextResponse.json({ error: 'Service not configured' }, { status: 503 });
+    return NextResponse.json(
+      { error: 'Service not configured' },
+      { status: 503 }
+    );
   }
 
   let formData: FormData;
   try {
     formData = await request.formData();
   } catch {
-    return NextResponse.json({ error: 'Failed to parse request' }, { status: 400 });
+    return NextResponse.json(
+      { error: 'Failed to parse request' },
+      { status: 400 }
+    );
   }
 
   const image = formData.get('image');
@@ -80,7 +89,11 @@ async function handler(request: NextRequest) {
         if (text) detail = text.slice(0, 500);
       } catch {}
     }
-    console.error('[bg-removal/embed] upstream error', serviceRes.status, detail);
+    console.error(
+      '[bg-removal/embed] upstream error',
+      serviceRes.status,
+      detail
+    );
     return NextResponse.json(
       { error: detail, upstreamStatus: serviceRes.status },
       { status: serviceRes.status === 503 ? 503 : 502 }

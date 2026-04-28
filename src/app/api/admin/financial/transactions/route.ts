@@ -130,10 +130,9 @@ async function handleGet(request: NextRequest) {
         credits: t.credits_purchased || null,
         status: t.status || 'completed',
         stripe_payment_id: t.stripe_payment_intent_id || null,
-        description:
-          t.subscription_tier
-            ? `${t.payment_type === 'subscription' ? 'Subscription' : 'Purchase'} - ${t.subscription_tier}`
-            : `${t.payment_type === 'subscription' ? 'Subscription payment' : 'Credit purchase'} - ${t.credits_purchased || 0} credits`,
+        description: t.subscription_tier
+          ? `${t.payment_type === 'subscription' ? 'Subscription' : 'Purchase'} - ${t.subscription_tier}`
+          : `${t.payment_type === 'subscription' ? 'Subscription payment' : 'Credit purchase'} - ${t.credits_purchased || 0} credits`,
         created_at: t.created_at,
       };
     });
@@ -156,7 +155,8 @@ async function handleGet(request: NextRequest) {
           credits: Math.abs(t.amount),
           status: 'completed' as const,
           stripe_payment_id: null,
-          description: t.description || `${t.type} - ${Math.abs(t.amount)} credits`,
+          description:
+            t.description || `${t.type} - ${Math.abs(t.amount)} credits`,
           created_at: t.created_at,
         };
       });

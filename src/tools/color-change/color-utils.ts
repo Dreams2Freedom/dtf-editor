@@ -118,7 +118,9 @@ export function applyColorShift(
       if (mask.data[maskIdx] !== 1) continue;
       if (data[imgIdx + 3] === 0) continue;
 
-      const pR = data[imgIdx], pG = data[imgIdx + 1], pB = data[imgIdx + 2];
+      const pR = data[imgIdx],
+        pG = data[imgIdx + 1],
+        pB = data[imgIdx + 2];
       const pixLum = lum(pR, pG, pB);
 
       if (!srcIsAchromatic && !tgtIsAchromatic) {
@@ -126,12 +128,14 @@ export function applyColorShift(
         const pixHsl = rgbToHsl(pR, pG, pB);
         let newH = (pixHsl.h + (tgtHsl.h - srcHsl.h)) % 360;
         if (newH < 0) newH += 360;
-        const newS = Math.max(0, Math.min(100, pixHsl.s + (tgtHsl.s - srcHsl.s)));
+        const newS = Math.max(
+          0,
+          Math.min(100, pixHsl.s + (tgtHsl.s - srcHsl.s))
+        );
         const newRgb = hslToRgb(newH, newS, pixHsl.l);
         data[imgIdx] = newRgb.r;
         data[imgIdx + 1] = newRgb.g;
         data[imgIdx + 2] = newRgb.b;
-
       } else if (srcIsAchromatic && !tgtIsAchromatic) {
         // CASE 2: Achromatic → Chromatic (black→red, white→blue, gray→green)
         // Colorize: apply target hue/sat, map luminance structure
@@ -147,11 +151,14 @@ export function applyColorShift(
         // Map to target color with intensity controlling the blend
         const outL = lerp(pixLum * 100, tgtHsl.l, intensity);
         const outS = tgtHsl.s * intensity;
-        const newRgb = hslToRgb(tgtHsl.h, outS, Math.max(0, Math.min(100, outL)));
+        const newRgb = hslToRgb(
+          tgtHsl.h,
+          outS,
+          Math.max(0, Math.min(100, outL))
+        );
         data[imgIdx] = newRgb.r;
         data[imgIdx + 1] = newRgb.g;
         data[imgIdx + 2] = newRgb.b;
-
       } else if (!srcIsAchromatic && tgtIsAchromatic) {
         // CASE 3: Chromatic → Achromatic (red→black, blue→white)
         // Desaturate toward target luminance
@@ -160,11 +167,14 @@ export function applyColorShift(
         const chromaMatch = Math.min(1, pixHsl.s / Math.max(srcHsl.s, 1));
         const outL = lerp(pixHsl.l, tgtHsl.l, chromaMatch);
         const outS = pixHsl.s * (1 - chromaMatch);
-        const newRgb = hslToRgb(pixHsl.h, outS, Math.max(0, Math.min(100, outL)));
+        const newRgb = hslToRgb(
+          pixHsl.h,
+          outS,
+          Math.max(0, Math.min(100, outL))
+        );
         data[imgIdx] = newRgb.r;
         data[imgIdx + 1] = newRgb.g;
         data[imgIdx + 2] = newRgb.b;
-
       } else {
         // CASE 4: Achromatic → Achromatic (black→white, white→black, white→gray, etc.)
         // Direct replacement: set pixel to target color.
@@ -173,7 +183,6 @@ export function applyColorShift(
         data[imgIdx] = targetColor.r;
         data[imgIdx + 1] = targetColor.g;
         data[imgIdx + 2] = targetColor.b;
-
       }
     }
   }
@@ -223,8 +232,10 @@ export function pointInPolygon(
 ): boolean {
   let inside = false;
   for (let i = 0, j = polygon.length - 1; i < polygon.length; j = i++) {
-    const xi = polygon[i].x, yi = polygon[i].y;
-    const xj = polygon[j].x, yj = polygon[j].y;
+    const xi = polygon[i].x,
+      yi = polygon[i].y;
+    const xj = polygon[j].x,
+      yj = polygon[j].y;
 
     const intersect =
       yi > y !== yj > y && x < ((xj - xi) * (y - yi)) / (yj - yi) + xi;

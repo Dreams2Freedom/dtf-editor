@@ -26,6 +26,7 @@ Built a complete in-house background removal pipeline as a no-credit alternative
 Three modes in one panel (`src/components/studio/BackgroundRemovalPanel.tsx`):
 
 **AI Brush mode (default)** — SAM-powered iterative refinement
+
 - Smart initial mask: BRIA cutout chained with auto-color-fill on the detected dominant background color
 - Per-stroke commit: SAM region union (Keep) or difference (Remove) applied to a SAM-only mask
 - Color-aware cleanup: rawPath stride + 3×3 neighborhood + 4-bit dedup → 20–80 unique colors per stroke for refined per-pixel classification
@@ -35,6 +36,7 @@ Three modes in one panel (`src/components/studio/BackgroundRemovalPanel.tsx`):
 - O(1) undo via pre-stroke mask snapshots — no SAM re-call
 
 **Color (Color Pick) mode** — pure color-based BFS with multi-color palettes
+
 - "Pick to Remove" / "Pick to Keep" tool toggle
 - Multi-color palettes with chip rows (click-to-delete)
 - Keep colors act as BFS barriers — same-color content trapped inside the subject is preserved automatically
@@ -43,6 +45,7 @@ Three modes in one panel (`src/components/studio/BackgroundRemovalPanel.tsx`):
 **AI Only mode** — pure ML mask, no flood-fill, model selector
 
 **Shared canvas chrome:**
+
 - View toggle: Cutout (faded) / Preview (final transparent) / Original
 - Zoom: bare wheel toward cursor (desktop), pinch (touch); range 0.25× – 8×
 - Pan: spacebar+drag (desktop), two-finger drag (touch)
@@ -64,18 +67,18 @@ See `BUGS_TRACKER.md` for postmortems.
 
 ## Phase Map (Linear History)
 
-| Phase | Name | Commit |
-|---|---|---|
-| 1.6 | Flood-fill white removal | `3f3eb5a` |
-| 1.7 | Universal BG removal (auto-detect, color pick, AI fallback) | `25eaa2c` |
-| 1.8 | SAM brush masking (real MobileSAM ONNX) | `df85e2e` (+ 4 fixups) |
-| 1.9 | Additive cumulative masking with original-underlay | `a41ff7d` |
-| 1.10 | Solid-line strokes, color cleanup, parallel init | `68e03dd` |
-| 1.11 | Live tolerance slider | `9e1ffbe` (+ TDZ fix `a533398`) |
-| 1.11.5 | BRIA-rmbg as default + BiRefNet massive | `ad2b133` |
-| 1.12 | Smart init mask + marching ants + view toggle | `5d4b390` (+ reset fix `2585beb` + TDZ fix `44b1a92`) |
-| 1.13 | Fix marching ants, Preview view, zoom/pan, touch | `692d733` |
-| 1.14 | Multi-color palettes everywhere | `6590c86` |
+| Phase  | Name                                                        | Commit                                                |
+| ------ | ----------------------------------------------------------- | ----------------------------------------------------- |
+| 1.6    | Flood-fill white removal                                    | `3f3eb5a`                                             |
+| 1.7    | Universal BG removal (auto-detect, color pick, AI fallback) | `25eaa2c`                                             |
+| 1.8    | SAM brush masking (real MobileSAM ONNX)                     | `df85e2e` (+ 4 fixups)                                |
+| 1.9    | Additive cumulative masking with original-underlay          | `a41ff7d`                                             |
+| 1.10   | Solid-line strokes, color cleanup, parallel init            | `68e03dd`                                             |
+| 1.11   | Live tolerance slider                                       | `9e1ffbe` (+ TDZ fix `a533398`)                       |
+| 1.11.5 | BRIA-rmbg as default + BiRefNet massive                     | `ad2b133`                                             |
+| 1.12   | Smart init mask + marching ants + view toggle               | `5d4b390` (+ reset fix `2585beb` + TDZ fix `44b1a92`) |
+| 1.13   | Fix marching ants, Preview view, zoom/pan, touch            | `692d733`                                             |
+| 1.14   | Multi-color palettes everywhere                             | `6590c86`                                             |
 
 Full plan history (with rationale + alternatives + verification matrices) lives in `docs/AI_BRUSH_PLAN_HISTORY.md`.
 
@@ -139,23 +142,24 @@ If picking up the AI Brush work after a break, read these in order:
 **Commits added:** 9 (`dbde45b` → `ec9ee54`)
 **Scope:** Architectural refactor — Studio is the durable home for the working image; tools (BG Remove, Upscale, Color Change) are self-contained plugins under `src/tools/<tool-id>/`. Refactoring one tool can no longer break another, and adding new API-backed tools is a folder-creation exercise rather than a Studio-shell change.
 
-The user asked for a hub-and-spoke architecture: *"As we add tools, those tools stand alone on their own and plug into the studio for us to use… when we make changes, let's say, to the background editor and we're messing with the code that affects the color selection, I don't want it to also affect the code for the color changing plugin."*
+The user asked for a hub-and-spoke architecture: _"As we add tools, those tools stand alone on their own and plug into the studio for us to use… when we make changes, let's say, to the background editor and we're messing with the code that affects the color selection, I don't want it to also affect the code for the color changing plugin."_
 
 ## What Shipped
 
-| Step | Commit | What |
-|---|---|---|
-| 1 | `dbde45b` | `src/tools/types.ts` plugin contract + empty registry + skeleton dirs |
-| 2 | `33eb6ba` | BG Removal moved into `src/tools/bg-removal/` |
-| 3 | `96cc91e` | Color Change moved into `src/tools/color-change/` |
-| 4 | `45005b0` | New Upscale plugin: `Panel.tsx` + `providers/{types,deepImage}.ts` (first contract-native tool) |
-| 5 | `70d5b6b` | Studio shell rewrite: `workingImage` state, plugin-driven tool picker, `onApply` chain handler, Save/Reset buttons |
-| 9 | `410718a` | ESLint `no-restricted-imports` zones blocking cross-tool imports |
-| H1 | `8b23b8b` | Hotfix: rename adapter `index.ts` → `index.tsx` (JSX in `.ts` failed swc) |
-| H2 | `22f21e8` | Hotfix: add `'use client'` to adapter index files; reroute `/api/color-change/use` to import constants from `types.ts` directly |
-| H3 | `ec9ee54` | Hotfix: extend ESLint exemption to include `src/app/api/**` |
+| Step | Commit    | What                                                                                                                            |
+| ---- | --------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| 1    | `dbde45b` | `src/tools/types.ts` plugin contract + empty registry + skeleton dirs                                                           |
+| 2    | `33eb6ba` | BG Removal moved into `src/tools/bg-removal/`                                                                                   |
+| 3    | `96cc91e` | Color Change moved into `src/tools/color-change/`                                                                               |
+| 4    | `45005b0` | New Upscale plugin: `Panel.tsx` + `providers/{types,deepImage}.ts` (first contract-native tool)                                 |
+| 5    | `70d5b6b` | Studio shell rewrite: `workingImage` state, plugin-driven tool picker, `onApply` chain handler, Save/Reset buttons              |
+| 9    | `410718a` | ESLint `no-restricted-imports` zones blocking cross-tool imports                                                                |
+| H1   | `8b23b8b` | Hotfix: rename adapter `index.ts` → `index.tsx` (JSX in `.ts` failed swc)                                                       |
+| H2   | `22f21e8` | Hotfix: add `'use client'` to adapter index files; reroute `/api/color-change/use` to import constants from `types.ts` directly |
+| H3   | `ec9ee54` | Hotfix: extend ESLint exemption to include `src/app/api/**`                                                                     |
 
 Steps 6, 7, 8 of the original plan were intentionally collapsed/deferred:
+
 - **Step 6** (thin standalone wrappers): standalone `/process/` routes already use `@/tools/...` imports as of Steps 2/3. The bigger flows (`/process/background-removal` is ClippingMagic, `/process/upscale` has bulk + DPI) are deliberately distinct UXs.
 - **Step 7** (provider abstraction polish): Upscale already has the `providers/` pattern. BG Removal can adopt it when a 2nd provider lands.
 - **Step 8** (internal nav redirects): the Create dropdown and dashboard cards still link to standalone tool routes. Routing to `/studio?tool=...` requires a unified upload UX (Studio currently needs an `imageId`); deferred.

@@ -53,7 +53,9 @@ export async function handleImpersonation(
       }
 
       // SEC-009: Verify HMAC signature on impersonation cookie before trusting it
-      const verifiedPayload = await verifyCookieValue(impersonationCookie.value);
+      const verifiedPayload = await verifyCookieValue(
+        impersonationCookie.value
+      );
       if (!verifiedPayload) {
         console.warn(
           'Impersonation cookie has invalid HMAC signature — possible forgery attempt'

@@ -54,22 +54,29 @@ export function UserListTable() {
     sort_order: 'desc',
   });
   const [dropdownUserId, setDropdownUserId] = useState<string | null>(null);
-  const [dropdownPos, setDropdownPos] = useState<{ top: number; left: number } | null>(null);
+  const [dropdownPos, setDropdownPos] = useState<{
+    top: number;
+    left: number;
+  } | null>(null);
 
-  const openDropdown = useCallback((userId: string, buttonEl: HTMLButtonElement) => {
-    if (dropdownUserId === userId) {
-      setDropdownUserId(null);
-      setDropdownPos(null);
-      return;
-    }
-    const rect = buttonEl.getBoundingClientRect();
-    const menuHeight = 320; // approximate menu height
-    const spaceBelow = window.innerHeight - rect.bottom;
-    const top = spaceBelow < menuHeight ? rect.top - menuHeight : rect.bottom + 4;
-    const left = rect.right - 192; // 192px = w-48
-    setDropdownPos({ top, left: Math.max(8, left) });
-    setDropdownUserId(userId);
-  }, [dropdownUserId]);
+  const openDropdown = useCallback(
+    (userId: string, buttonEl: HTMLButtonElement) => {
+      if (dropdownUserId === userId) {
+        setDropdownUserId(null);
+        setDropdownPos(null);
+        return;
+      }
+      const rect = buttonEl.getBoundingClientRect();
+      const menuHeight = 320; // approximate menu height
+      const spaceBelow = window.innerHeight - rect.bottom;
+      const top =
+        spaceBelow < menuHeight ? rect.top - menuHeight : rect.bottom + 4;
+      const left = rect.right - 192; // 192px = w-48
+      setDropdownPos({ top, left: Math.max(8, left) });
+      setDropdownUserId(userId);
+    },
+    [dropdownUserId]
+  );
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [creditModalOpen, setCreditModalOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<
@@ -742,7 +749,7 @@ export function UserListTable() {
                   <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                     <div className="relative">
                       <button
-                        onClick={(e) => openDropdown(user.id, e.currentTarget)}
+                        onClick={e => openDropdown(user.id, e.currentTarget)}
                         className="text-gray-400 hover:text-gray-500 focus:outline-none"
                       >
                         <MoreVertical className="h-5 w-5" />
@@ -752,11 +759,17 @@ export function UserListTable() {
                         <>
                           <div
                             className="fixed inset-0 z-10"
-                            onClick={() => { setDropdownUserId(null); setDropdownPos(null); }}
+                            onClick={() => {
+                              setDropdownUserId(null);
+                              setDropdownPos(null);
+                            }}
                           />
                           <div
                             className="fixed w-48 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 z-20"
-                            style={{ top: dropdownPos.top, left: dropdownPos.left }}
+                            style={{
+                              top: dropdownPos.top,
+                              left: dropdownPos.left,
+                            }}
                           >
                             <div className="py-1">
                               <a

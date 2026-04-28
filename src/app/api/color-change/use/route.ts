@@ -26,10 +26,7 @@ export async function POST(_request: NextRequest) {
       .single();
 
     if (profileError || !profile) {
-      return NextResponse.json(
-        { error: 'Profile not found' },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: 'Profile not found' }, { status: 404 });
     }
 
     const tier = profile.subscription_status || 'free';

@@ -19,7 +19,9 @@ function rgbToString(rgb: [number, number, number]): string {
  * Sample border pixels and classify the background.
  * Returns the dominant color, optional secondary, variance, and recommended mode.
  */
-export async function detectBackground(imageBlob: Blob): Promise<BgDetectionResult> {
+export async function detectBackground(
+  imageBlob: Blob
+): Promise<BgDetectionResult> {
   const form = new FormData();
   form.append('image', imageBlob, 'image.png');
 
@@ -47,7 +49,8 @@ export async function removeBackground(
   form.append('image', imageBlob, 'image.png');
   form.append('mode', options.mode);
   if (options.model) form.append('model', options.model);
-  if (options.targetColor) form.append('target_color', rgbToString(options.targetColor));
+  if (options.targetColor)
+    form.append('target_color', rgbToString(options.targetColor));
   if (typeof options.tolerance === 'number')
     form.append('tolerance', String(options.tolerance));
   if (options.seedPoints && options.seedPoints.length > 0) {

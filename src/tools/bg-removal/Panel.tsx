@@ -68,7 +68,10 @@ function rgbToHex([r, g, b]: RGB): string {
   return '#' + [r, g, b].map(v => v.toString(16).padStart(2, '0')).join('');
 }
 
-function pathToSvgD(path: Array<{ x: number; y: number }>, scale: number): string {
+function pathToSvgD(
+  path: Array<{ x: number; y: number }>,
+  scale: number
+): string {
   if (path.length === 0) return '';
   let d = `M ${(path[0].x * scale).toFixed(1)} ${(path[0].y * scale).toFixed(1)}`;
   for (let i = 1; i < path.length; i++) {
@@ -282,14 +285,21 @@ export function BackgroundRemovalPanel({
   const [brushTool, setBrushTool] = useState<BrushTool>('keep');
   const [brushSize, setBrushSize] = useState(20);
   const [cleanupTolerance, setCleanupTolerance] = useState(60);
-  const [viewMode, setViewMode] = useState<'cutout' | 'preview' | 'original'>('cutout');
+  const [viewMode, setViewMode] = useState<'cutout' | 'preview' | 'original'>(
+    'cutout'
+  );
   const viewModeRef = useRef<'cutout' | 'preview' | 'original'>('cutout');
   const [contoursD, setContoursD] = useState<string>('');
   const isDrawingRef = useRef(false);
   const currentStrokeRef = useRef<Array<{ x: number; y: number }>>([]);
   const livePathRef = useRef<SVGPathElement | null>(null);
-  const [cursorPos, setCursorPos] = useState<{ x: number; y: number } | null>(null);
-  const [canvasRect, setCanvasRect] = useState<{ width: number; height: number } | null>(null);
+  const [cursorPos, setCursorPos] = useState<{ x: number; y: number } | null>(
+    null
+  );
+  const [canvasRect, setCanvasRect] = useState<{
+    width: number;
+    height: number;
+  } | null>(null);
 
   // Zoom & pan
   const [zoom, setZoom] = useState(1);
@@ -298,23 +308,24 @@ export function BackgroundRemovalPanel({
   const isSpaceHeldRef = useRef(false);
   const canvasZoomWrapperRef = useRef<HTMLDivElement | null>(null);
   // Pointer-event bookkeeping: active pointers, gesture start, pan-drag start
-  const activePointersRef = useRef<Map<number, { x: number; y: number; type: string }>>(
-    new Map()
-  );
-  const gestureStartRef = useRef<
-    {
-      dist: number;
-      midX: number;
-      midY: number;
-      zoom: number;
-      pan: { x: number; y: number };
-      rectLeft: number;
-      rectTop: number;
-    } | null
-  >(null);
-  const panDragStartRef = useRef<
-    { clientX: number; clientY: number; panX: number; panY: number } | null
-  >(null);
+  const activePointersRef = useRef<
+    Map<number, { x: number; y: number; type: string }>
+  >(new Map());
+  const gestureStartRef = useRef<{
+    dist: number;
+    midX: number;
+    midY: number;
+    zoom: number;
+    pan: { x: number; y: number };
+    rectLeft: number;
+    rectTop: number;
+  } | null>(null);
+  const panDragStartRef = useRef<{
+    clientX: number;
+    clientY: number;
+    panX: number;
+    panY: number;
+  } | null>(null);
   const lastPointerTypeRef = useRef<string>('mouse');
 
   // Common state
@@ -362,7 +373,10 @@ export function BackgroundRemovalPanel({
 
   // Detect upgrade-required errors
   useEffect(() => {
-    if (error && (error.includes('403') || error.toLowerCase().includes('upgrade'))) {
+    if (
+      error &&
+      (error.includes('403') || error.toLowerCase().includes('upgrade'))
+    ) {
       setUpgradeRequired(true);
     }
   }, [error]);
@@ -440,7 +454,14 @@ export function BackgroundRemovalPanel({
         );
       }, 200);
     },
-    [panelMode, hasResult, targetColor, removeColors, keepColors, refreshColorPickPreview]
+    [
+      panelMode,
+      hasResult,
+      targetColor,
+      removeColors,
+      keepColors,
+      refreshColorPickPreview,
+    ]
   );
 
   // ---------- Coordinate mapping ----------
@@ -453,7 +474,12 @@ export function BackgroundRemovalPanel({
       const sy = preview.height / rect.height;
       const x = (e.clientX - rect.left) * sx;
       const y = (e.clientY - rect.top) * sy;
-      return { x, y, displayX: e.clientX - rect.left, displayY: e.clientY - rect.top };
+      return {
+        x,
+        y,
+        displayX: e.clientX - rect.left,
+        displayY: e.clientY - rect.top,
+      };
     },
     []
   );
@@ -593,8 +619,16 @@ export function BackgroundRemovalPanel({
     const orig = originalDataRef.current;
     if (!sam || !orig) return;
     const next = new Uint8Array(sam);
-    const keepColors = collectStrokePaletteColors(strokeHistoryRef.current, 'keep', orig);
-    const removeColors = collectStrokePaletteColors(strokeHistoryRef.current, 'remove', orig);
+    const keepColors = collectStrokePaletteColors(
+      strokeHistoryRef.current,
+      'keep',
+      orig
+    );
+    const removeColors = collectStrokePaletteColors(
+      strokeHistoryRef.current,
+      'remove',
+      orig
+    );
     applyColorCleanup(next, orig, keepColors, removeColors, cleanupTolerance);
     cumulativeMaskRef.current = next;
     renderPreviewFromMask(next);
@@ -628,7 +662,11 @@ export function BackgroundRemovalPanel({
   }, [cleanupTolerance, recomputeCumulative]);
 
   const commitStroke = useCallback(
-    async (tool: BrushTool, path: Array<{ x: number; y: number }>, sizeAtCommit: number) => {
+    async (
+      tool: BrushTool,
+      path: Array<{ x: number; y: number }>,
+      sizeAtCommit: number
+    ) => {
       if (path.length === 0) return;
       const orig = originalDataRef.current;
       if (!orig) return;
@@ -660,7 +698,8 @@ export function BackgroundRemovalPanel({
       if (tool === 'keep') {
         for (let i = 0; i < total; i++) nextSam[i] = nextSam[i] | samMask[i];
       } else {
-        for (let i = 0; i < total; i++) nextSam[i] = nextSam[i] & (samMask[i] ^ 1);
+        for (let i = 0; i < total; i++)
+          nextSam[i] = nextSam[i] & (samMask[i] ^ 1);
       }
 
       const record: StrokeRecord = {
@@ -774,11 +813,11 @@ export function BackgroundRemovalPanel({
       if (live) {
         const scale = overlayScaleNow();
         live.setAttribute('d', pathToSvgD(currentStrokeRef.current, scale));
-        live.setAttribute('stroke', brushTool === 'keep' ? '#10b981' : '#ef4444');
         live.setAttribute(
-          'stroke-width',
-          String(brushSize * scale * zoom)
+          'stroke',
+          brushTool === 'keep' ? '#10b981' : '#ef4444'
         );
+        live.setAttribute('stroke-width', String(brushSize * scale * zoom));
       }
     },
     [
@@ -809,8 +848,7 @@ export function BackgroundRemovalPanel({
       // Two-pointer pinch/pan in progress
       if (activePointersRef.current.size === 2 && gestureStartRef.current) {
         const pts = Array.from(activePointersRef.current.values());
-        const dist =
-          Math.hypot(pts[1].x - pts[0].x, pts[1].y - pts[0].y) || 1;
+        const dist = Math.hypot(pts[1].x - pts[0].x, pts[1].y - pts[0].y) || 1;
         const midX = (pts[0].x + pts[1].x) / 2;
         const midY = (pts[0].y + pts[1].y) / 2;
         const start = gestureStartRef.current;
@@ -975,7 +1013,11 @@ export function BackgroundRemovalPanel({
       const x = Math.floor(c.x);
       const y = Math.floor(c.y);
       const idx = (y * orig.width + x) * 4;
-      const color: RGB = [orig.data[idx], orig.data[idx + 1], orig.data[idx + 2]];
+      const color: RGB = [
+        orig.data[idx],
+        orig.data[idx + 1],
+        orig.data[idx + 2],
+      ];
 
       if (clickRemoveMode) {
         // Seed-fill from this spot using current palettes
@@ -1039,7 +1081,12 @@ export function BackgroundRemovalPanel({
       } else if (originalDataRef.current && previewRef.current) {
         const pCtx = previewRef.current.getContext('2d');
         if (pCtx) {
-          pCtx.clearRect(0, 0, previewRef.current.width, previewRef.current.height);
+          pCtx.clearRect(
+            0,
+            0,
+            previewRef.current.width,
+            previewRef.current.height
+          );
           pCtx.putImageData(originalDataRef.current, 0, 0);
         }
       }
@@ -1145,7 +1192,12 @@ export function BackgroundRemovalPanel({
     if (!ctx) return;
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     ctx.drawImage(image, 0, 0);
-    originalDataRef.current = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    originalDataRef.current = ctx.getImageData(
+      0,
+      0,
+      canvas.width,
+      canvas.height
+    );
     const preview = previewRef.current;
     if (preview) {
       preview.width = canvas.width;
@@ -1190,7 +1242,13 @@ export function BackgroundRemovalPanel({
     link.click();
   }, [hasResult]);
 
-  const isProcessing = ['authorizing', 'detecting', 'removing', 'embedding', 'predicting'].includes(status);
+  const isProcessing = [
+    'authorizing',
+    'detecting',
+    'removing',
+    'embedding',
+    'predicting',
+  ].includes(status);
   const samReady = samSession !== null;
   const cursorClass = (() => {
     if (hasResult) return '';
@@ -1216,7 +1274,10 @@ export function BackgroundRemovalPanel({
             <AlertTriangle className="w-4 h-4 text-amber-600 flex-shrink-0" />
             <p className="text-sm text-amber-800 flex-1">
               The in-house background remover is available on paid plans.{' '}
-              <a href="/pricing" className="font-medium underline hover:text-amber-900">
+              <a
+                href="/pricing"
+                className="font-medium underline hover:text-amber-900"
+              >
                 Upgrade your plan
               </a>{' '}
               or use the{' '}
@@ -1237,7 +1298,10 @@ export function BackgroundRemovalPanel({
           <div className="max-w-[1800px] mx-auto flex items-center gap-3">
             <AlertTriangle className="w-4 h-4 text-red-600 flex-shrink-0" />
             <p className="text-sm text-red-800 flex-1">{error}</p>
-            <button onClick={reset} className="text-xs text-red-600 hover:text-red-800">
+            <button
+              onClick={reset}
+              className="text-xs text-red-600 hover:text-red-800"
+            >
               Dismiss
             </button>
           </div>
@@ -1251,7 +1315,8 @@ export function BackgroundRemovalPanel({
           className={`flex-1 flex items-center justify-center min-h-[300px] overflow-hidden p-4 ${cursorClass}`}
           style={{
             backgroundColor: '#ffffff',
-            backgroundImage: 'repeating-conic-gradient(#e0e0e0 0% 25%, #ffffff 0% 50%)',
+            backgroundImage:
+              'repeating-conic-gradient(#e0e0e0 0% 25%, #ffffff 0% 50%)',
             backgroundSize: '20px 20px',
           }}
         >
@@ -1273,7 +1338,10 @@ export function BackgroundRemovalPanel({
                 ref={previewRef}
                 suppressHydrationWarning
                 className="max-w-full max-h-full shadow-lg rounded block"
-                style={{ maxHeight: 'calc(100vh - 280px)', background: 'transparent' }}
+                style={{
+                  maxHeight: 'calc(100vh - 280px)',
+                  background: 'transparent',
+                }}
                 onClick={handlePreviewClick}
                 onPointerDown={handlePointerDown}
                 onPointerMove={handlePointerMove}
@@ -1356,9 +1424,13 @@ export function BackgroundRemovalPanel({
                   className="absolute pointer-events-none rounded-full border-2"
                   style={{
                     left:
-                      pan.x + cursorPos.x - (brushSize * overlayScale * zoom) / 2,
+                      pan.x +
+                      cursorPos.x -
+                      (brushSize * overlayScale * zoom) / 2,
                     top:
-                      pan.y + cursorPos.y - (brushSize * overlayScale * zoom) / 2,
+                      pan.y +
+                      cursorPos.y -
+                      (brushSize * overlayScale * zoom) / 2,
                     width: brushSize * overlayScale * zoom,
                     height: brushSize * overlayScale * zoom,
                     borderColor: brushTool === 'keep' ? '#10b981' : '#ef4444',
@@ -1434,9 +1506,21 @@ export function BackgroundRemovalPanel({
               <div className="flex rounded-lg border border-gray-200 overflow-hidden">
                 {(
                   [
-                    { mode: 'ai-brush' as PanelMode, label: 'AI Brush', Icon: Wand2 },
-                    { mode: 'color-pick' as PanelMode, label: 'Color', Icon: Pipette },
-                    { mode: 'ai-only' as PanelMode, label: 'AI Only', Icon: Cpu },
+                    {
+                      mode: 'ai-brush' as PanelMode,
+                      label: 'AI Brush',
+                      Icon: Wand2,
+                    },
+                    {
+                      mode: 'color-pick' as PanelMode,
+                      label: 'Color',
+                      Icon: Pipette,
+                    },
+                    {
+                      mode: 'ai-only' as PanelMode,
+                      label: 'AI Only',
+                      Icon: Cpu,
+                    },
                   ] as const
                 ).map(({ mode, label, Icon }) => (
                   <button
@@ -1471,8 +1555,9 @@ export function BackgroundRemovalPanel({
                       <CheckCircle2 className="w-3.5 h-3.5 mt-0.5 text-green-600 flex-shrink-0" />
                       <p>
                         AI Brush ready. We auto-detected the subject. Use{' '}
-                        <span className="text-green-700 font-medium">Keep</span> to add
-                        regions, <span className="text-red-700 font-medium">Remove</span>{' '}
+                        <span className="text-green-700 font-medium">Keep</span>{' '}
+                        to add regions,{' '}
+                        <span className="text-red-700 font-medium">Remove</span>{' '}
                         to erase.
                       </p>
                     </div>
@@ -1515,8 +1600,12 @@ export function BackgroundRemovalPanel({
                 {/* Brush size */}
                 <div>
                   <div className="flex items-center justify-between mb-1">
-                    <label className="text-xs font-medium text-gray-600">Brush Size</label>
-                    <span className="text-xs text-gray-500 tabular-nums">{brushSize}px</span>
+                    <label className="text-xs font-medium text-gray-600">
+                      Brush Size
+                    </label>
+                    <span className="text-xs text-gray-500 tabular-nums">
+                      {brushSize}px
+                    </span>
                   </div>
                   <input
                     type="range"
@@ -1528,16 +1617,20 @@ export function BackgroundRemovalPanel({
                     className="w-full accent-blue-600"
                   />
                   <p className="text-xs text-gray-400 mt-1">
-                    Size of click points along brush strokes. Visual cursor only — SAM
-                    figures out the actual region.
+                    Size of click points along brush strokes. Visual cursor only
+                    — SAM figures out the actual region.
                   </p>
                 </div>
 
                 {/* Edge cleanup tolerance */}
                 <div>
                   <div className="flex items-center justify-between mb-1">
-                    <label className="text-xs font-medium text-gray-600">Edge Cleanup</label>
-                    <span className="text-xs text-gray-500 tabular-nums">{cleanupTolerance}</span>
+                    <label className="text-xs font-medium text-gray-600">
+                      Edge Cleanup
+                    </label>
+                    <span className="text-xs text-gray-500 tabular-nums">
+                      {cleanupTolerance}
+                    </span>
                   </div>
                   <input
                     type="range"
@@ -1549,8 +1642,8 @@ export function BackgroundRemovalPanel({
                     className="w-full accent-blue-600"
                   />
                   <p className="text-xs text-gray-400 mt-1">
-                    Higher = removes more anti-aliased fringe and specks. Too high may erase
-                    darker valid content.
+                    Higher = removes more anti-aliased fringe and specks. Too
+                    high may erase darker valid content.
                   </p>
                 </div>
 
@@ -1643,7 +1736,8 @@ export function BackgroundRemovalPanel({
                   <div className="flex flex-wrap gap-1.5 min-h-[2rem]">
                     {removeColors.length === 0 && (
                       <p className="text-xs text-gray-400 italic">
-                        Click image with &quot;Pick to Remove&quot; to add a color.
+                        Click image with &quot;Pick to Remove&quot; to add a
+                        color.
                       </p>
                     )}
                     {removeColors.map((c, i) => (
@@ -1681,7 +1775,8 @@ export function BackgroundRemovalPanel({
                   <div className="flex flex-wrap gap-1.5 min-h-[2rem]">
                     {keepColors.length === 0 && (
                       <p className="text-xs text-gray-400 italic">
-                        Click image with &quot;Pick to Keep&quot; to protect a color.
+                        Click image with &quot;Pick to Keep&quot; to protect a
+                        color.
                       </p>
                     )}
                     {keepColors.map((c, i) => (
@@ -1752,8 +1847,12 @@ export function BackgroundRemovalPanel({
 
                 <div>
                   <div className="flex items-center justify-between mb-1">
-                    <label className="text-xs font-medium text-gray-600">Tolerance</label>
-                    <span className="text-xs text-gray-500 tabular-nums">{tolerance}</span>
+                    <label className="text-xs font-medium text-gray-600">
+                      Tolerance
+                    </label>
+                    <span className="text-xs text-gray-500 tabular-nums">
+                      {tolerance}
+                    </span>
                   </div>
                   <input
                     type="range"
@@ -1761,7 +1860,9 @@ export function BackgroundRemovalPanel({
                     max={150}
                     step={5}
                     value={tolerance}
-                    onChange={e => handleToleranceChange(Number(e.target.value))}
+                    onChange={e =>
+                      handleToleranceChange(Number(e.target.value))
+                    }
                     disabled={isProcessing}
                     className="w-full accent-blue-600 disabled:opacity-50"
                   />
@@ -1772,7 +1873,9 @@ export function BackgroundRemovalPanel({
 
                 <button
                   onClick={handleRemove}
-                  disabled={isProcessing || (removeColors.length === 0 && !targetColor)}
+                  disabled={
+                    isProcessing || (removeColors.length === 0 && !targetColor)
+                  }
                   className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white text-sm font-medium rounded-lg transition-colors"
                 >
                   {isProcessing ? (
@@ -1895,7 +1998,10 @@ export function BackgroundRemovalPanel({
             <div className="flex items-center gap-2 text-sm text-green-700 font-medium">
               <CheckCircle2 className="w-4 h-4" />
               Saved!{' '}
-              <a href="/dashboard#my-images" className="underline opacity-80 hover:opacity-100">
+              <a
+                href="/dashboard#my-images"
+                className="underline opacity-80 hover:opacity-100"
+              >
                 View gallery
               </a>
             </div>

@@ -1,21 +1,59 @@
 'use client';
 
-import React, { useState, useCallback, useEffect, useRef, useMemo } from 'react';
+import React, {
+  useState,
+  useCallback,
+  useEffect,
+  useRef,
+  useMemo,
+} from 'react';
 import dynamic from 'next/dynamic';
 import {
-  Undo2, Redo2, RotateCcw, Loader2, X, Download, Wand2, Scissors,
-  MousePointer2, Lasso, SlidersHorizontal, ChevronDown, ChevronUp,
-  Pipette, Ban, HelpCircle, Hand, ZoomIn, ZoomOut, Maximize2
+  Undo2,
+  Redo2,
+  RotateCcw,
+  Loader2,
+  X,
+  Download,
+  Wand2,
+  Scissors,
+  MousePointer2,
+  Lasso,
+  SlidersHorizontal,
+  ChevronDown,
+  ChevronUp,
+  Pipette,
+  Ban,
+  HelpCircle,
+  Hand,
+  ZoomIn,
+  ZoomOut,
+  Maximize2,
 } from 'lucide-react';
 import { HexColorPicker, HexColorInput } from 'react-colorful';
 import { ChangesHistory } from './components/ChangesHistory';
-import { applyColorShift, restorePixels, getPixelColor, hexToRgb, rgbToHex, pointInPolygon } from './color-utils';
+import {
+  applyColorShift,
+  restorePixels,
+  getPixelColor,
+  hexToRgb,
+  rgbToHex,
+  pointInPolygon,
+} from './color-utils';
 import { useColorChangeHistory } from './useColorChangeHistory';
 import { SelectionMode, SelectionMask, RGBColor } from './types';
 
 const ColorCanvas = dynamic(
-  () => import('./components/ColorCanvas').then(m => ({ default: m.ColorCanvas })),
-  { ssr: false, loading: () => <div className="flex-1 flex items-center justify-center bg-white"><Loader2 className="w-8 h-8 animate-spin text-gray-400" /></div> }
+  () =>
+    import('./components/ColorCanvas').then(m => ({ default: m.ColorCanvas })),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="flex-1 flex items-center justify-center bg-white">
+        <Loader2 className="w-8 h-8 animate-spin text-gray-400" />
+      </div>
+    ),
+  }
 );
 
 interface SampledColor {
@@ -48,7 +86,11 @@ export function ColorChangeEditor({
   onNavigate,
 }: ColorChangeEditorProps) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
-  const canvasControlsRef = useRef({ fitToView: () => {}, zoomIn: () => {}, zoomOut: () => {} });
+  const canvasControlsRef = useRef({
+    fitToView: () => {},
+    zoomIn: () => {},
+    zoomOut: () => {},
+  });
   const [imageData, setImageData] = useState<ImageData | null>(null);
   const [selectionMode, setSelectionMode] = useState<SelectionMode>('click');
   const [tolerance, setTolerance] = useState(20);
@@ -107,23 +149,34 @@ export function ColorChangeEditor({
     const { data, width, height } = fresh;
 
     const mask = new Uint8Array(width * height);
-    let minX = width, minY = height, maxX = 0, maxY = 0;
+    let minX = width,
+      minY = height,
+      maxX = 0,
+      maxY = 0;
 
     for (let i = 0; i < width * height; i++) {
       const idx = i * 4;
       if (data[idx + 3] === 0) continue;
 
-      const r = data[idx], g = data[idx + 1], b = data[idx + 2];
+      const r = data[idx],
+        g = data[idx + 1],
+        b = data[idx + 2];
 
       if (excludedColors.length > 0) {
         let minTargetDist = Infinity;
         for (const sc of sampledColors) {
-          const dist = Math.abs(r - sc.rgb.r) + Math.abs(g - sc.rgb.g) + Math.abs(b - sc.rgb.b);
+          const dist =
+            Math.abs(r - sc.rgb.r) +
+            Math.abs(g - sc.rgb.g) +
+            Math.abs(b - sc.rgb.b);
           minTargetDist = Math.min(minTargetDist, dist);
         }
         let minExcludedDist = Infinity;
         for (const ec of excludedColors) {
-          const dist = Math.abs(r - ec.rgb.r) + Math.abs(g - ec.rgb.g) + Math.abs(b - ec.rgb.b);
+          const dist =
+            Math.abs(r - ec.rgb.r) +
+            Math.abs(g - ec.rgb.g) +
+            Math.abs(b - ec.rgb.b);
           minExcludedDist = Math.min(minExcludedDist, dist);
         }
         if (minExcludedDist <= minTargetDist) continue;
@@ -151,19 +204,25 @@ export function ColorChangeEditor({
         const excludeRegions = lassoRegions.filter(r => r.mode === 'exclude');
 
         if (includeRegions.length > 0) {
-          const inAnyInclude = includeRegions.some(r => pointInPolygon(px, py, r.polygon));
+          const inAnyInclude = includeRegions.some(r =>
+            pointInPolygon(px, py, r.polygon)
+          );
           if (!inAnyInclude) continue;
         }
 
-        const inAnyExclude = excludeRegions.some(r => pointInPolygon(px, py, r.polygon));
+        const inAnyExclude = excludeRegions.some(r =>
+          pointInPolygon(px, py, r.polygon)
+        );
         if (inAnyExclude) continue;
       }
 
       mask[i] = 1;
       const px = i % width;
       const py = Math.floor(i / width);
-      minX = Math.min(minX, px); minY = Math.min(minY, py);
-      maxX = Math.max(maxX, px); maxY = Math.max(maxY, py);
+      minX = Math.min(minX, px);
+      minY = Math.min(minY, py);
+      maxX = Math.max(maxX, px);
+      maxY = Math.max(maxY, py);
     }
 
     if (maxX < minX) return null;
@@ -181,55 +240,76 @@ export function ColorChangeEditor({
 
   const sourceColor = sampledColors.length > 0 ? sampledColors[0].rgb : null;
 
-  const handlePixelClick = useCallback((x: number, y: number, mode: 'replace' | 'add' | 'subtract') => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext('2d', { willReadFrequently: true });
-    if (!ctx) return;
-    const fresh = ctx.getImageData(0, 0, canvas.width, canvas.height);
-    const color = getPixelColor(fresh, x, y);
-    const hex = rgbToHex(color);
+  const handlePixelClick = useCallback(
+    (x: number, y: number, mode: 'replace' | 'add' | 'subtract') => {
+      const canvas = canvasRef.current;
+      if (!canvas) return;
+      const ctx = canvas.getContext('2d', { willReadFrequently: true });
+      if (!ctx) return;
+      const fresh = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      const color = getPixelColor(fresh, x, y);
+      const hex = rgbToHex(color);
 
-    if (mode === 'replace') {
-      setSampledColors([{ rgb: color, hex }]);
-      setExcludedColors([]);
-      setLassoRegions([]);
-    } else if (mode === 'add') {
-      setSampledColors(prev => {
-        if (prev.some(c => c.hex === hex)) return prev;
-        return [...prev, { rgb: color, hex }];
-      });
-      setExcludedColors(prev => prev.filter(c => c.hex !== hex));
-    } else if (mode === 'subtract') {
-      setExcludedColors(prev => {
-        if (prev.some(c => c.hex === hex)) return prev;
-        return [...prev, { rgb: color, hex }];
-      });
-      setSampledColors(prev => prev.filter(c => c.hex !== hex));
-    }
-  }, []);
+      if (mode === 'replace') {
+        setSampledColors([{ rgb: color, hex }]);
+        setExcludedColors([]);
+        setLassoRegions([]);
+      } else if (mode === 'add') {
+        setSampledColors(prev => {
+          if (prev.some(c => c.hex === hex)) return prev;
+          return [...prev, { rgb: color, hex }];
+        });
+        setExcludedColors(prev => prev.filter(c => c.hex !== hex));
+      } else if (mode === 'subtract') {
+        setExcludedColors(prev => {
+          if (prev.some(c => c.hex === hex)) return prev;
+          return [...prev, { rgb: color, hex }];
+        });
+        setSampledColors(prev => prev.filter(c => c.hex !== hex));
+      }
+    },
+    []
+  );
 
-  const handleLassoComplete = useCallback((polygon: Array<{ x: number; y: number }>, mode: 'trim' | 'add' | 'subtract') => {
-    if (sampledColors.length === 0) return;
+  const handleLassoComplete = useCallback(
+    (
+      polygon: Array<{ x: number; y: number }>,
+      mode: 'trim' | 'add' | 'subtract'
+    ) => {
+      if (sampledColors.length === 0) return;
 
-    if (mode === 'add') {
-      setLassoRegions(prev => [...prev, { polygon, mode: 'include' }]);
-    } else if (mode === 'subtract') {
-      setLassoRegions(prev => [...prev, { polygon, mode: 'exclude' }]);
-    } else {
-      setLassoRegions([{ polygon, mode: 'include' }]);
-    }
-  }, [sampledColors]);
+      if (mode === 'add') {
+        setLassoRegions(prev => [...prev, { polygon, mode: 'include' }]);
+      } else if (mode === 'subtract') {
+        setLassoRegions(prev => [...prev, { polygon, mode: 'exclude' }]);
+      } else {
+        setLassoRegions([{ polygon, mode: 'include' }]);
+      }
+    },
+    [sampledColors]
+  );
 
   const handleApply = useCallback(() => {
     if (!currentMask || !sourceColor || !canvasRef.current) return;
     const target = hexToRgb(targetColor);
 
-    const ctx = canvasRef.current.getContext('2d', { willReadFrequently: true });
+    const ctx = canvasRef.current.getContext('2d', {
+      willReadFrequently: true,
+    });
     if (!ctx) return;
-    const freshImageData = ctx.getImageData(0, 0, canvasRef.current.width, canvasRef.current.height);
+    const freshImageData = ctx.getImageData(
+      0,
+      0,
+      canvasRef.current.width,
+      canvasRef.current.height
+    );
 
-    const originalPixels = applyColorShift(freshImageData, currentMask, sourceColor, target);
+    const originalPixels = applyColorShift(
+      freshImageData,
+      currentMask,
+      sourceColor,
+      target
+    );
     ctx.putImageData(freshImageData, 0, 0);
 
     history.pushChange({
@@ -249,9 +329,16 @@ export function ColorChangeEditor({
   const handleUndo = useCallback(() => {
     const entry = history.undo();
     if (!entry || !canvasRef.current) return;
-    const ctx = canvasRef.current.getContext('2d', { willReadFrequently: true });
+    const ctx = canvasRef.current.getContext('2d', {
+      willReadFrequently: true,
+    });
     if (!ctx) return;
-    const imgData = ctx.getImageData(0, 0, canvasRef.current.width, canvasRef.current.height);
+    const imgData = ctx.getImageData(
+      0,
+      0,
+      canvasRef.current.width,
+      canvasRef.current.height
+    );
     restorePixels(imgData, entry.mask, entry.originalPixels);
     ctx.putImageData(imgData, 0, 0);
     refreshImageData();
@@ -260,9 +347,16 @@ export function ColorChangeEditor({
   const handleRedo = useCallback(() => {
     const entry = history.redo();
     if (!entry || !canvasRef.current) return;
-    const ctx = canvasRef.current.getContext('2d', { willReadFrequently: true });
+    const ctx = canvasRef.current.getContext('2d', {
+      willReadFrequently: true,
+    });
     if (!ctx) return;
-    const imgData = ctx.getImageData(0, 0, canvasRef.current.width, canvasRef.current.height);
+    const imgData = ctx.getImageData(
+      0,
+      0,
+      canvasRef.current.width,
+      canvasRef.current.height
+    );
     applyColorShift(imgData, entry.mask, entry.sourceColor, entry.targetColor);
     ctx.putImageData(imgData, 0, 0);
     refreshImageData();
@@ -271,7 +365,9 @@ export function ColorChangeEditor({
   const handleResetAll = useCallback(() => {
     const entries = history.resetAll();
     if (!canvasRef.current || entries.length === 0) return;
-    const ctx = canvasRef.current.getContext('2d', { willReadFrequently: true });
+    const ctx = canvasRef.current.getContext('2d', {
+      willReadFrequently: true,
+    });
     if (!ctx) return;
     ctx.drawImage(image, 0, 0);
     setSampledColors([]);
@@ -280,19 +376,34 @@ export function ColorChangeEditor({
     refreshImageData();
   }, [history, image, refreshImageData]);
 
-  const handleRemoveChange = useCallback((id: string) => {
-    const removed = history.removeEntry(id);
-    if (!removed || !canvasRef.current) return;
-    const ctx = canvasRef.current.getContext('2d', { willReadFrequently: true });
-    if (!ctx) return;
-    ctx.drawImage(image, 0, 0);
-    for (const entry of history.changes) {
-      const imgData = ctx.getImageData(0, 0, canvasRef.current.width, canvasRef.current.height);
-      applyColorShift(imgData, entry.mask, entry.sourceColor, entry.targetColor);
-      ctx.putImageData(imgData, 0, 0);
-    }
-    refreshImageData();
-  }, [history, image, refreshImageData]);
+  const handleRemoveChange = useCallback(
+    (id: string) => {
+      const removed = history.removeEntry(id);
+      if (!removed || !canvasRef.current) return;
+      const ctx = canvasRef.current.getContext('2d', {
+        willReadFrequently: true,
+      });
+      if (!ctx) return;
+      ctx.drawImage(image, 0, 0);
+      for (const entry of history.changes) {
+        const imgData = ctx.getImageData(
+          0,
+          0,
+          canvasRef.current.width,
+          canvasRef.current.height
+        );
+        applyColorShift(
+          imgData,
+          entry.mask,
+          entry.sourceColor,
+          entry.targetColor
+        );
+        ctx.putImageData(imgData, 0, 0);
+      }
+      refreshImageData();
+    },
+    [history, image, refreshImageData]
+  );
 
   const closeHelp = () => {
     setShowHelp(false);
@@ -326,7 +437,11 @@ export function ColorChangeEditor({
   }, [canvasRef, savedImageId, history.changeCount, onSave]);
 
   if (!imageData) {
-    return <div className="flex-1 flex items-center justify-center bg-white"><Loader2 className="w-8 h-8 animate-spin text-gray-400" /></div>;
+    return (
+      <div className="flex-1 flex items-center justify-center bg-white">
+        <Loader2 className="w-8 h-8 animate-spin text-gray-400" />
+      </div>
+    );
   }
 
   const hasSelection = currentMask !== null;
@@ -388,17 +503,29 @@ export function ColorChangeEditor({
               onChange={e => setTolerance(Number(e.target.value))}
               className="w-20 sm:w-28 h-1.5 bg-gray-200 rounded-full appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3.5 [&::-webkit-slider-thumb]:h-3.5 [&::-webkit-slider-thumb]:bg-amber-500 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:shadow-md"
             />
-            <span className="text-xs font-mono text-gray-500 w-5 text-right">{tolerance}</span>
+            <span className="text-xs font-mono text-gray-500 w-5 text-right">
+              {tolerance}
+            </span>
           </div>
 
           <div className="h-5 w-px bg-gray-200" />
 
           {/* Undo/Redo */}
           <div className="flex gap-0.5">
-            <button onClick={handleUndo} disabled={!history.canUndo} className="p-1.5 rounded-md text-gray-500 hover:text-gray-900 hover:bg-gray-100 disabled:opacity-20 disabled:hover:bg-transparent transition-colors" title="Undo (Ctrl+Z)">
+            <button
+              onClick={handleUndo}
+              disabled={!history.canUndo}
+              className="p-1.5 rounded-md text-gray-500 hover:text-gray-900 hover:bg-gray-100 disabled:opacity-20 disabled:hover:bg-transparent transition-colors"
+              title="Undo (Ctrl+Z)"
+            >
               <Undo2 className="w-4 h-4" />
             </button>
-            <button onClick={handleRedo} disabled={!history.canRedo} className="p-1.5 rounded-md text-gray-500 hover:text-gray-900 hover:bg-gray-100 disabled:opacity-20 disabled:hover:bg-transparent transition-colors" title="Redo (Ctrl+Shift+Z)">
+            <button
+              onClick={handleRedo}
+              disabled={!history.canRedo}
+              className="p-1.5 rounded-md text-gray-500 hover:text-gray-900 hover:bg-gray-100 disabled:opacity-20 disabled:hover:bg-transparent transition-colors"
+              title="Redo (Ctrl+Shift+Z)"
+            >
               <Redo2 className="w-4 h-4" />
             </button>
           </div>
@@ -434,7 +561,11 @@ export function ColorChangeEditor({
           <div className="h-5 w-px bg-gray-200" />
 
           {/* Reset */}
-          <button onClick={handleResetAll} disabled={!hasChanges} className="flex items-center gap-1 px-2.5 py-1.5 rounded-md text-xs text-gray-500 hover:text-gray-900 hover:bg-gray-100 disabled:opacity-20 transition-colors">
+          <button
+            onClick={handleResetAll}
+            disabled={!hasChanges}
+            className="flex items-center gap-1 px-2.5 py-1.5 rounded-md text-xs text-gray-500 hover:text-gray-900 hover:bg-gray-100 disabled:opacity-20 transition-colors"
+          >
             <RotateCcw className="w-3.5 h-3.5" />
             <span className="hidden sm:inline">Reset</span>
           </button>
@@ -453,7 +584,11 @@ export function ColorChangeEditor({
             onClick={() => setPanelOpen(!panelOpen)}
             className="md:hidden p-1.5 rounded-md text-gray-500 hover:text-gray-900 hover:bg-gray-100"
           >
-            {panelOpen ? <ChevronDown className="w-4 h-4" /> : <ChevronUp className="w-4 h-4" />}
+            {panelOpen ? (
+              <ChevronDown className="w-4 h-4" />
+            ) : (
+              <ChevronUp className="w-4 h-4" />
+            )}
           </button>
         </div>
       </div>
@@ -474,15 +609,21 @@ export function ColorChangeEditor({
         />
 
         {/* Side panel — fixed width, never shrinks, scrollable content + fixed footer */}
-        <div className={`${panelOpen ? 'flex' : 'hidden'} md:flex flex-col w-full md:w-[300px] md:flex-shrink-0 bg-white border-t md:border-t-0 md:border-l border-gray-200`}>
+        <div
+          className={`${panelOpen ? 'flex' : 'hidden'} md:flex flex-col w-full md:w-[300px] md:flex-shrink-0 bg-white border-t md:border-t-0 md:border-l border-gray-200`}
+        >
           <div className="flex-1 min-h-0 overflow-y-auto p-4 space-y-5">
             {/* Selected colors */}
             <div>
               <div className="flex items-center gap-1.5 mb-2.5">
                 <Pipette className="w-3.5 h-3.5 text-amber-600" />
-                <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Target Colors</span>
+                <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                  Target Colors
+                </span>
                 {sampledColors.length > 0 && (
-                  <span className="text-xs text-gray-400 ml-auto">{sampledColors.length}</span>
+                  <span className="text-xs text-gray-400 ml-auto">
+                    {sampledColors.length}
+                  </span>
                 )}
               </div>
               {sampledColors.length === 0 ? (
@@ -491,7 +632,7 @@ export function ColorChangeEditor({
                 </div>
               ) : (
                 <div className="flex flex-wrap gap-1.5">
-                  {sampledColors.map((sc) => (
+                  {sampledColors.map(sc => (
                     <div
                       key={sc.hex}
                       className="flex items-center gap-1.5 pl-1 pr-1 py-0.5 bg-gray-100 rounded-md group hover:bg-gray-200 transition-colors"
@@ -500,9 +641,15 @@ export function ColorChangeEditor({
                         className="w-5 h-5 rounded shadow-inner border border-gray-300"
                         style={{ backgroundColor: sc.hex }}
                       />
-                      <span className="text-[10px] text-gray-500 font-mono">{sc.hex.toUpperCase()}</span>
+                      <span className="text-[10px] text-gray-500 font-mono">
+                        {sc.hex.toUpperCase()}
+                      </span>
                       <button
-                        onClick={() => setSampledColors(prev => prev.filter(c => c.hex !== sc.hex))}
+                        onClick={() =>
+                          setSampledColors(prev =>
+                            prev.filter(c => c.hex !== sc.hex)
+                          )
+                        }
                         className="p-0.5 text-gray-400 hover:text-red-500 transition-colors"
                       >
                         <X className="w-2.5 h-2.5" />
@@ -518,23 +665,36 @@ export function ColorChangeEditor({
               <div>
                 <div className="flex items-center gap-1.5 mb-2.5">
                   <Ban className="w-3.5 h-3.5 text-red-500" />
-                  <span className="text-xs font-semibold text-red-500 uppercase tracking-wider">Excluded</span>
-                  <span className="text-xs text-gray-400 ml-auto">{excludedColors.length}</span>
+                  <span className="text-xs font-semibold text-red-500 uppercase tracking-wider">
+                    Excluded
+                  </span>
+                  <span className="text-xs text-gray-400 ml-auto">
+                    {excludedColors.length}
+                  </span>
                 </div>
                 <div className="flex flex-wrap gap-1.5">
-                  {excludedColors.map((ec) => (
+                  {excludedColors.map(ec => (
                     <div
                       key={ec.hex}
                       className="flex items-center gap-1.5 pl-1 pr-1 py-0.5 bg-red-50 border border-red-200 rounded-md group"
                     >
-                      <div className="w-5 h-5 rounded relative overflow-hidden border border-red-300" style={{ backgroundColor: ec.hex }}>
+                      <div
+                        className="w-5 h-5 rounded relative overflow-hidden border border-red-300"
+                        style={{ backgroundColor: ec.hex }}
+                      >
                         <div className="absolute inset-0 flex items-center justify-center">
                           <div className="w-[140%] h-0.5 bg-red-500 rotate-45" />
                         </div>
                       </div>
-                      <span className="text-[10px] text-red-500 font-mono">{ec.hex.toUpperCase()}</span>
+                      <span className="text-[10px] text-red-500 font-mono">
+                        {ec.hex.toUpperCase()}
+                      </span>
                       <button
-                        onClick={() => setExcludedColors(prev => prev.filter(c => c.hex !== ec.hex))}
+                        onClick={() =>
+                          setExcludedColors(prev =>
+                            prev.filter(c => c.hex !== ec.hex)
+                          )
+                        }
                         className="p-0.5 text-red-500 hover:text-red-500 transition-colors"
                       >
                         <X className="w-2.5 h-2.5" />
@@ -548,14 +708,26 @@ export function ColorChangeEditor({
             {/* Lasso regions indicator */}
             {lassoRegions.length > 0 && (
               <div className="flex items-center justify-between text-xs text-gray-500 bg-gray-100 px-3 py-2 rounded-lg">
-                <span>{lassoRegions.filter(r => r.mode === 'include').length} include, {lassoRegions.filter(r => r.mode === 'exclude').length} exclude regions</span>
-                <button onClick={() => setLassoRegions([])} className="text-red-500 hover:text-red-500">Clear</button>
+                <span>
+                  {lassoRegions.filter(r => r.mode === 'include').length}{' '}
+                  include,{' '}
+                  {lassoRegions.filter(r => r.mode === 'exclude').length}{' '}
+                  exclude regions
+                </span>
+                <button
+                  onClick={() => setLassoRegions([])}
+                  className="text-red-500 hover:text-red-500"
+                >
+                  Clear
+                </button>
               </div>
             )}
 
             {/* Replace with color */}
             <div>
-              <div className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2.5">Replace With</div>
+              <div className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2.5">
+                Replace With
+              </div>
               <div className="space-y-3">
                 <div className="rounded-lg overflow-hidden">
                   <HexColorPicker
@@ -593,12 +765,42 @@ export function ColorChangeEditor({
 
             {/* Keyboard hints */}
             <div className="grid grid-cols-2 gap-x-3 gap-y-1 text-[10px] text-gray-400 p-2.5 bg-gray-50 rounded-lg">
-              <span><kbd className="px-1 py-0.5 bg-gray-100 rounded text-gray-500 font-mono">Click</kbd> Select</span>
-              <span><kbd className="px-1 py-0.5 bg-gray-100 rounded text-gray-500 font-mono">Shift</kbd> Add</span>
-              <span><kbd className="px-1 py-0.5 bg-gray-100 rounded text-gray-500 font-mono">Alt</kbd> Exclude</span>
-              <span><kbd className="px-1 py-0.5 bg-gray-100 rounded text-gray-500 font-mono">Lasso</kbd> Refine</span>
-              <span><kbd className="px-1 py-0.5 bg-gray-100 rounded text-gray-500 font-mono">Space</kbd> Pan</span>
-              <span><kbd className="px-1 py-0.5 bg-gray-100 rounded text-gray-500 font-mono">+/−</kbd> Zoom</span>
+              <span>
+                <kbd className="px-1 py-0.5 bg-gray-100 rounded text-gray-500 font-mono">
+                  Click
+                </kbd>{' '}
+                Select
+              </span>
+              <span>
+                <kbd className="px-1 py-0.5 bg-gray-100 rounded text-gray-500 font-mono">
+                  Shift
+                </kbd>{' '}
+                Add
+              </span>
+              <span>
+                <kbd className="px-1 py-0.5 bg-gray-100 rounded text-gray-500 font-mono">
+                  Alt
+                </kbd>{' '}
+                Exclude
+              </span>
+              <span>
+                <kbd className="px-1 py-0.5 bg-gray-100 rounded text-gray-500 font-mono">
+                  Lasso
+                </kbd>{' '}
+                Refine
+              </span>
+              <span>
+                <kbd className="px-1 py-0.5 bg-gray-100 rounded text-gray-500 font-mono">
+                  Space
+                </kbd>{' '}
+                Pan
+              </span>
+              <span>
+                <kbd className="px-1 py-0.5 bg-gray-100 rounded text-gray-500 font-mono">
+                  +/−
+                </kbd>{' '}
+                Zoom
+              </span>
             </div>
 
             {/* Changes history */}
@@ -618,7 +820,10 @@ export function ColorChangeEditor({
                 : 'Over limit — 1 credit per save'}
             </div>
             <div className="grid grid-cols-2 gap-1.5">
-              <button onClick={onCancel} className="px-3 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg text-xs text-gray-500 transition-colors">
+              <button
+                onClick={onCancel}
+                className="px-3 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg text-xs text-gray-500 transition-colors"
+              >
                 Cancel
               </button>
               <button
@@ -638,13 +843,19 @@ export function ColorChangeEditor({
               {savedImageId ? (
                 <div className="flex gap-1">
                   <button
-                    onClick={() => onNavigate(`/process/upscale?imageId=${savedImageId}`)}
+                    onClick={() =>
+                      onNavigate(`/process/upscale?imageId=${savedImageId}`)
+                    }
                     className="flex-1 px-2 py-2 bg-purple-50 hover:bg-purple-100 rounded-lg text-xs text-purple-600 transition-colors flex items-center justify-center gap-1"
                   >
                     <Wand2 className="w-3 h-3" />
                   </button>
                   <button
-                    onClick={() => onNavigate(`/process/background-removal?imageId=${savedImageId}`)}
+                    onClick={() =>
+                      onNavigate(
+                        `/process/background-removal?imageId=${savedImageId}`
+                      )
+                    }
                     className="flex-1 px-2 py-2 bg-emerald-50 hover:bg-emerald-100 rounded-lg text-xs text-emerald-600 transition-colors flex items-center justify-center gap-1"
                   >
                     <Scissors className="w-3 h-3" />
@@ -662,7 +873,10 @@ export function ColorChangeEditor({
 
       {/* Help Modal */}
       {showHelp && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={closeHelp}>
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+          onClick={closeHelp}
+        >
           <div
             className="bg-white border border-gray-200 rounded-2xl shadow-2xl max-w-lg w-full max-h-[85vh] overflow-y-auto"
             onClick={e => e.stopPropagation()}
@@ -671,9 +885,14 @@ export function ColorChangeEditor({
             <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between rounded-t-2xl">
               <div className="flex items-center gap-2">
                 <HelpCircle className="w-5 h-5 text-amber-600" />
-                <h2 className="text-lg font-bold text-gray-900">How to Use Color Changer</h2>
+                <h2 className="text-lg font-bold text-gray-900">
+                  How to Use Color Changer
+                </h2>
               </div>
-              <button onClick={closeHelp} className="p-1 text-gray-500 hover:text-gray-700">
+              <button
+                onClick={closeHelp}
+                className="p-1 text-gray-500 hover:text-gray-700"
+              >
                 <X className="w-5 h-5" />
               </button>
             </div>
@@ -682,29 +901,69 @@ export function ColorChangeEditor({
               {/* Step 1 */}
               <div>
                 <div className="flex items-center gap-2 mb-2">
-                  <span className="w-6 h-6 bg-amber-500 text-gray-900 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0">1</span>
-                  <h3 className="font-semibold text-gray-900">Select the colors you want to change</h3>
+                  <span className="w-6 h-6 bg-amber-500 text-gray-900 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0">
+                    1
+                  </span>
+                  <h3 className="font-semibold text-gray-900">
+                    Select the colors you want to change
+                  </h3>
                 </div>
                 <div className="ml-8 space-y-2 text-gray-500">
-                  <p><strong className="text-gray-700">Click</strong> on any color in the image to select it. All matching pixels across the image will highlight in blue.</p>
-                  <p><strong className="text-gray-700">Shift+Click</strong> to add more shades. For example, click a light green, then Shift+Click a darker green to select both shades.</p>
-                  <p><strong className="text-gray-700">Alt+Click</strong> to exclude a color. If the selection catches some black or brown pixels you don&apos;t want, Alt+Click them to add to the exclusion list. Pixels closer to excluded colors will be automatically removed from the selection.</p>
+                  <p>
+                    <strong className="text-gray-700">Click</strong> on any
+                    color in the image to select it. All matching pixels across
+                    the image will highlight in blue.
+                  </p>
+                  <p>
+                    <strong className="text-gray-700">Shift+Click</strong> to
+                    add more shades. For example, click a light green, then
+                    Shift+Click a darker green to select both shades.
+                  </p>
+                  <p>
+                    <strong className="text-gray-700">Alt+Click</strong> to
+                    exclude a color. If the selection catches some black or
+                    brown pixels you don&apos;t want, Alt+Click them to add to
+                    the exclusion list. Pixels closer to excluded colors will be
+                    automatically removed from the selection.
+                  </p>
                 </div>
               </div>
 
               {/* Step 2 */}
               <div>
                 <div className="flex items-center gap-2 mb-2">
-                  <span className="w-6 h-6 bg-amber-500 text-gray-900 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0">2</span>
-                  <h3 className="font-semibold text-gray-900">Refine with Tolerance and Lasso</h3>
+                  <span className="w-6 h-6 bg-amber-500 text-gray-900 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0">
+                    2
+                  </span>
+                  <h3 className="font-semibold text-gray-900">
+                    Refine with Tolerance and Lasso
+                  </h3>
                 </div>
                 <div className="ml-8 space-y-2 text-gray-500">
-                  <p><strong className="text-gray-700">Tolerance slider</strong> controls how much color variation is included. Drag it to see the selection update in real-time. Higher = more variation, lower = exact match only.</p>
-                  <p><strong className="text-gray-700">Lasso tool</strong> lets you define areas. Switch to Lasso mode and draw around a specific region:</p>
+                  <p>
+                    <strong className="text-gray-700">Tolerance slider</strong>{' '}
+                    controls how much color variation is included. Drag it to
+                    see the selection update in real-time. Higher = more
+                    variation, lower = exact match only.
+                  </p>
+                  <p>
+                    <strong className="text-gray-700">Lasso tool</strong> lets
+                    you define areas. Switch to Lasso mode and draw around a
+                    specific region:
+                  </p>
                   <ul className="list-disc ml-4 space-y-1">
-                    <li><strong className="text-gray-700">Draw</strong> — limit the selection to inside the lasso only</li>
-                    <li><strong className="text-gray-700">Shift+Draw</strong> — add another area (e.g., lasso around a second rose)</li>
-                    <li><strong className="text-gray-700">Alt+Draw</strong> — exclude an area from the selection</li>
+                    <li>
+                      <strong className="text-gray-700">Draw</strong> — limit
+                      the selection to inside the lasso only
+                    </li>
+                    <li>
+                      <strong className="text-gray-700">Shift+Draw</strong> —
+                      add another area (e.g., lasso around a second rose)
+                    </li>
+                    <li>
+                      <strong className="text-gray-700">Alt+Draw</strong> —
+                      exclude an area from the selection
+                    </li>
                   </ul>
                 </div>
               </div>
@@ -712,38 +971,96 @@ export function ColorChangeEditor({
               {/* Step 3 */}
               <div>
                 <div className="flex items-center gap-2 mb-2">
-                  <span className="w-6 h-6 bg-amber-500 text-gray-900 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0">3</span>
-                  <h3 className="font-semibold text-gray-900">Pick the replacement color</h3>
+                  <span className="w-6 h-6 bg-amber-500 text-gray-900 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0">
+                    3
+                  </span>
+                  <h3 className="font-semibold text-gray-900">
+                    Pick the replacement color
+                  </h3>
                 </div>
                 <div className="ml-8 space-y-2 text-gray-500">
-                  <p>Use the <strong className="text-gray-700">color wheel</strong> to visually choose a new color, or type an exact <strong className="text-gray-700">hex code</strong> in the input field.</p>
-                  <p>The color shift preserves shading and texture — dark areas stay dark, light areas stay light. Only the hue and saturation change.</p>
+                  <p>
+                    Use the{' '}
+                    <strong className="text-gray-700">color wheel</strong> to
+                    visually choose a new color, or type an exact{' '}
+                    <strong className="text-gray-700">hex code</strong> in the
+                    input field.
+                  </p>
+                  <p>
+                    The color shift preserves shading and texture — dark areas
+                    stay dark, light areas stay light. Only the hue and
+                    saturation change.
+                  </p>
                 </div>
               </div>
 
               {/* Step 4 */}
               <div>
                 <div className="flex items-center gap-2 mb-2">
-                  <span className="w-6 h-6 bg-amber-500 text-gray-900 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0">4</span>
-                  <h3 className="font-semibold text-gray-900">Apply and repeat</h3>
+                  <span className="w-6 h-6 bg-amber-500 text-gray-900 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0">
+                    4
+                  </span>
+                  <h3 className="font-semibold text-gray-900">
+                    Apply and repeat
+                  </h3>
                 </div>
                 <div className="ml-8 space-y-2 text-gray-500">
-                  <p>Click <strong className="text-gray-700">Apply Color Change</strong> to commit the change. The selection clears and you can start selecting a new color to change.</p>
-                  <p>You can make multiple color changes on the same image. Each change appears in the <strong className="text-gray-700">History</strong> panel where you can remove any individual change.</p>
-                  <p><strong className="text-gray-700">Undo/Redo</strong> with the toolbar buttons or <kbd className="px-1.5 py-0.5 bg-gray-100 rounded text-xs text-gray-700 font-mono">Ctrl+Z</kbd> / <kbd className="px-1.5 py-0.5 bg-gray-100 rounded text-xs text-gray-700 font-mono">Ctrl+Shift+Z</kbd>.</p>
+                  <p>
+                    Click{' '}
+                    <strong className="text-gray-700">
+                      Apply Color Change
+                    </strong>{' '}
+                    to commit the change. The selection clears and you can start
+                    selecting a new color to change.
+                  </p>
+                  <p>
+                    You can make multiple color changes on the same image. Each
+                    change appears in the{' '}
+                    <strong className="text-gray-700">History</strong> panel
+                    where you can remove any individual change.
+                  </p>
+                  <p>
+                    <strong className="text-gray-700">Undo/Redo</strong> with
+                    the toolbar buttons or{' '}
+                    <kbd className="px-1.5 py-0.5 bg-gray-100 rounded text-xs text-gray-700 font-mono">
+                      Ctrl+Z
+                    </kbd>{' '}
+                    /{' '}
+                    <kbd className="px-1.5 py-0.5 bg-gray-100 rounded text-xs text-gray-700 font-mono">
+                      Ctrl+Shift+Z
+                    </kbd>
+                    .
+                  </p>
                 </div>
               </div>
 
               {/* Step 5 */}
               <div>
                 <div className="flex items-center gap-2 mb-2">
-                  <span className="w-6 h-6 bg-amber-500 text-gray-900 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0">5</span>
-                  <h3 className="font-semibold text-gray-900">Save and export</h3>
+                  <span className="w-6 h-6 bg-amber-500 text-gray-900 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0">
+                    5
+                  </span>
+                  <h3 className="font-semibold text-gray-900">
+                    Save and export
+                  </h3>
                 </div>
                 <div className="ml-8 space-y-2 text-gray-500">
-                  <p><strong className="text-gray-700">Save to Gallery</strong> stores the image in your account.</p>
-                  <p><strong className="text-gray-700">Download</strong> saves to your computer (auto-saves to gallery first).</p>
-                  <p>After saving, you can send the image directly to <strong className="text-gray-700">Upscale</strong> or <strong className="text-gray-700">Background Removal</strong> for further processing.</p>
+                  <p>
+                    <strong className="text-gray-700">Save to Gallery</strong>{' '}
+                    stores the image in your account.
+                  </p>
+                  <p>
+                    <strong className="text-gray-700">Download</strong> saves to
+                    your computer (auto-saves to gallery first).
+                  </p>
+                  <p>
+                    After saving, you can send the image directly to{' '}
+                    <strong className="text-gray-700">Upscale</strong> or{' '}
+                    <strong className="text-gray-700">
+                      Background Removal
+                    </strong>{' '}
+                    for further processing.
+                  </p>
                 </div>
               </div>
 
@@ -751,11 +1068,26 @@ export function ColorChangeEditor({
               <div className="bg-amber-50 border border-amber-200 rounded-xl p-4">
                 <h3 className="font-semibold text-amber-700 mb-2">Pro Tips</h3>
                 <ul className="space-y-1.5 text-amber-700 text-xs">
-                  <li>Start with a low tolerance (10-20) and increase gradually to avoid selecting too much.</li>
-                  <li>Use excluded colors (Alt+Click) when similar colors bleed into each other — like dark green near black.</li>
-                  <li>The lasso Shift+Draw is perfect when the same color appears in multiple separate areas (e.g., two roses).</li>
-                  <li>For best print quality, make sure your image is at least 3000px wide (300 DPI at 10&quot;). Upscale first if needed.</li>
-                  <li>Zoom in with the + button to see detail, then scroll to navigate around the image.</li>
+                  <li>
+                    Start with a low tolerance (10-20) and increase gradually to
+                    avoid selecting too much.
+                  </li>
+                  <li>
+                    Use excluded colors (Alt+Click) when similar colors bleed
+                    into each other — like dark green near black.
+                  </li>
+                  <li>
+                    The lasso Shift+Draw is perfect when the same color appears
+                    in multiple separate areas (e.g., two roses).
+                  </li>
+                  <li>
+                    For best print quality, make sure your image is at least
+                    3000px wide (300 DPI at 10&quot;). Upscale first if needed.
+                  </li>
+                  <li>
+                    Zoom in with the + button to see detail, then scroll to
+                    navigate around the image.
+                  </li>
                 </ul>
               </div>
             </div>

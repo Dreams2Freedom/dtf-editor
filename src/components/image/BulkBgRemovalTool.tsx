@@ -161,7 +161,11 @@ export function BulkBgRemovalTool() {
   }
 
   // Review / Complete / Halted phase — show review table
-  if (queue.phase === 'review' || queue.phase === 'complete' || queue.phase === 'halted') {
+  if (
+    queue.phase === 'review' ||
+    queue.phase === 'complete' ||
+    queue.phase === 'halted'
+  ) {
     return (
       <div className="space-y-6">
         <h2 className="text-xl font-bold text-gray-900">
