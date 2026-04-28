@@ -26,6 +26,109 @@ const eslintConfig = [
       'react/no-unescaped-entities': 'off', // Allow apostrophes/quotes in JSX
       'react-hooks/exhaustive-deps': 'warn', // Important - keep as warning
       '@next/next/no-img-element': 'warn', // Warn about img tags instead of error
+
+      // Phase 2.0: enforce Studio plugin isolation. A tool's folder may
+      // not import from another tool's folder. Cross-tool sharing only
+      // flows through src/components/, src/hooks/, src/services/, etc.
+      // The shared plugin contract under src/tools/{types,registry}.ts
+      // is exempt — that's the public surface.
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            {
+              group: ['@/tools/bg-removal*', '@/tools/bg-removal/*'],
+              message:
+                'Cross-tool import not allowed. Tool folders are firewalled — share via src/components, src/hooks, or src/services.',
+            },
+            {
+              group: ['@/tools/upscale*', '@/tools/upscale/*'],
+              message:
+                'Cross-tool import not allowed. Tool folders are firewalled — share via src/components, src/hooks, or src/services.',
+            },
+            {
+              group: ['@/tools/color-change*', '@/tools/color-change/*'],
+              message:
+                'Cross-tool import not allowed. Tool folders are firewalled — share via src/components, src/hooks, or src/services.',
+            },
+          ],
+        },
+      ],
+    },
+  },
+  // Per-tool overrides: each tool may import from its own folder, and any
+  // file may import the shared contract (src/tools/{types,registry}.ts).
+  {
+    files: ['src/tools/bg-removal/**/*.{ts,tsx,js,jsx}'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            {
+              group: ['@/tools/upscale*', '@/tools/upscale/*'],
+              message: 'Cross-tool import not allowed.',
+            },
+            {
+              group: ['@/tools/color-change*', '@/tools/color-change/*'],
+              message: 'Cross-tool import not allowed.',
+            },
+          ],
+        },
+      ],
+    },
+  },
+  {
+    files: ['src/tools/upscale/**/*.{ts,tsx,js,jsx}'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            {
+              group: ['@/tools/bg-removal*', '@/tools/bg-removal/*'],
+              message: 'Cross-tool import not allowed.',
+            },
+            {
+              group: ['@/tools/color-change*', '@/tools/color-change/*'],
+              message: 'Cross-tool import not allowed.',
+            },
+          ],
+        },
+      ],
+    },
+  },
+  {
+    files: ['src/tools/color-change/**/*.{ts,tsx,js,jsx}'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            {
+              group: ['@/tools/bg-removal*', '@/tools/bg-removal/*'],
+              message: 'Cross-tool import not allowed.',
+            },
+            {
+              group: ['@/tools/upscale*', '@/tools/upscale/*'],
+              message: 'Cross-tool import not allowed.',
+            },
+          ],
+        },
+      ],
+    },
+  },
+  // Studio shell + standalone routes + the registry are allowed to import
+  // from any tool — they're the integration layer.
+  {
+    files: [
+      'src/app/studio/**/*.{ts,tsx}',
+      'src/app/process/**/*.{ts,tsx}',
+      'src/tools/registry.ts',
+      'src/tools/types.ts',
+    ],
+    rules: {
+      'no-restricted-imports': 'off',
     },
   },
 ];
