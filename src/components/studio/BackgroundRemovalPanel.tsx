@@ -256,7 +256,63 @@ export function BackgroundRemovalPanel({
     reset,
   } = useBackgroundRemoval();
 
-  // Init canvas, run detect, kick off eager embed + BiRefNet initial guess
+  /**
+   * Kick off the AI pipeline (SAM embed + smart initial mask via BRIA + auto color-fill).
+   * Called on mount AND from handleReset so "Reset to original" re-runs the analysis.
+   */
+  const runInitialAnalysis = useCallback(
+    (canvas: HTMLCanvasElement) => {
+      // SAM encoder loads in parallel; brush is interactive when this resolves.
+      runEmbed(canvas);
+      // Smart initial mask: detect → ml+color when bg is flood-fillable.
+      return runDetect(canvas)
+        .then(detection => {
+          const opts: RemovalOptions = (() => {
+            if (
+              !detection ||
+              detection.recommended_mode === 'ml-only' ||
+              detection.recommended_mode === 'noop'
+            ) {
+              return { mode: 'ml-only', model: 'bria-rmbg' };
+            }
+            return {
+              mode: 'ml+color',
+              model: 'bria-rmbg',
+              targetColor: detection.dominant,
+              tolerance: 30,
+            };
+          })();
+          return runRemoval(canvas, opts);
+        })
+        .then(img => {
+          const orig = originalDataRef.current;
+          if (!img || !orig) return;
+          const off = document.createElement('canvas');
+          off.width = orig.width;
+          off.height = orig.height;
+          const offCtx = off.getContext('2d');
+          if (!offCtx) return;
+          offCtx.drawImage(img, 0, 0, orig.width, orig.height);
+          const data = offCtx.getImageData(0, 0, orig.width, orig.height);
+          initialMaskRef.current = data;
+          // Only seed SAM mask if user hasn't started brushing yet.
+          if (strokeHistoryRef.current.length === 0) {
+            const m = new Uint8Array(orig.width * orig.height);
+            for (let i = 0; i < m.length; i++) {
+              m[i] = data.data[i * 4 + 3] > 127 ? 1 : 0;
+            }
+            samMaskRef.current = m;
+            const next = new Uint8Array(m);
+            cumulativeMaskRef.current = next;
+            renderPreviewFromMask(next);
+            setContoursD(maskToContoursPath(next, orig.width, orig.height));
+          }
+        });
+    },
+    [runEmbed, runDetect, runRemoval, renderPreviewFromMask]
+  );
+
+  // Init canvas, kick off analysis on mount.
   useEffect(() => {
     const canvas = document.createElement('canvas');
     const w = image.naturalWidth || image.width;
@@ -277,57 +333,7 @@ export function BackgroundRemovalPanel({
       if (pCtx) pCtx.drawImage(canvas, 0, 0);
     }
 
-    // Eager: kick off SAM embed in parallel with detect+initial-mask pipeline.
-    // SAM encoder is independent of the initial mask so brush can become
-    // interactive even before the cutout finishes.
-    runEmbed(canvas);
-
-    // Smart initial mask: detect dominant background first (fast, ~100ms),
-    // then dispatch BRIA in `ml+color` mode when there's a flood-fillable
-    // background color. This punches holes through texture leakage (e.g.
-    // black speckles inside white text) automatically.
-    runDetect(canvas).then(detection => {
-      const opts: RemovalOptions = (() => {
-        if (
-          !detection ||
-          detection.recommended_mode === 'ml-only' ||
-          detection.recommended_mode === 'noop'
-        ) {
-          return { mode: 'ml-only', model: 'bria-rmbg' };
-        }
-        return {
-          mode: 'ml+color',
-          model: 'bria-rmbg',
-          targetColor: detection.dominant,
-          tolerance: 30,
-        };
-      })();
-      return runRemoval(canvas, opts);
-    }).then(img => {
-      const orig = originalDataRef.current;
-      if (!img || !orig) return;
-      const off = document.createElement('canvas');
-      off.width = orig.width;
-      off.height = orig.height;
-      const offCtx = off.getContext('2d');
-      if (!offCtx) return;
-      offCtx.drawImage(img, 0, 0, orig.width, orig.height);
-      const data = offCtx.getImageData(0, 0, orig.width, orig.height);
-      initialMaskRef.current = data;
-      // Only seed SAM mask if user hasn't started brushing yet.
-      if (strokeHistoryRef.current.length === 0) {
-        const m = new Uint8Array(orig.width * orig.height);
-        for (let i = 0; i < m.length; i++) {
-          m[i] = data.data[i * 4 + 3] > 127 ? 1 : 0;
-        }
-        samMaskRef.current = m;
-        // No strokes yet → palettes are empty → cleanup is no-op → cumulative === SAM.
-        const next = new Uint8Array(m);
-        cumulativeMaskRef.current = next;
-        renderPreviewFromMask(next);
-        setContoursD(maskToContoursPath(next, orig.width, orig.height));
-      }
-    });
+    runInitialAnalysis(canvas);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [image]);
 
@@ -746,7 +752,9 @@ export function BackgroundRemovalPanel({
     initialMaskRef.current = null;
     setContoursD('');
     reset();
-  }, [image, reset]);
+    // Re-run AI pipeline so the brush + initial mask come back.
+    runInitialAnalysis(canvas);
+  }, [image, reset, runInitialAnalysis]);
 
   const handleSave = useCallback(async () => {
     const canvas = canvasRef.current;
