@@ -64,6 +64,82 @@ function rgbToHex([r, g, b]: RGB): string {
   return '#' + [r, g, b].map(v => v.toString(16).padStart(2, '0')).join('');
 }
 
+function pathToSvgD(path: Array<{ x: number; y: number }>, scale: number): string {
+  if (path.length === 0) return '';
+  let d = `M ${(path[0].x * scale).toFixed(1)} ${(path[0].y * scale).toFixed(1)}`;
+  for (let i = 1; i < path.length; i++) {
+    d += ` L ${(path[i].x * scale).toFixed(1)} ${(path[i].y * scale).toFixed(1)}`;
+  }
+  return d;
+}
+
+/**
+ * After SAM produces a kept region, refine the mask using user-supplied
+ * color hints: any kept pixel whose color is closer to a Remove-stroke
+ * sample than to a Keep-stroke sample (within tolerance) is removed.
+ * No-op unless both palettes are non-empty.
+ */
+function applyColorCleanup(
+  mask: Uint8Array,
+  orig: ImageData,
+  keepColors: Array<[number, number, number]>,
+  removeColors: Array<[number, number, number]>
+): void {
+  if (keepColors.length === 0 || removeColors.length === 0) return;
+  const TOL_SQ = 60 * 60;
+  const data = orig.data;
+  const total = mask.length;
+  for (let i = 0; i < total; i++) {
+    if (mask[i] === 0) continue;
+    const j = i * 4;
+    const r = data[j];
+    const g = data[j + 1];
+    const b = data[j + 2];
+
+    let dK = Infinity;
+    for (let k = 0; k < keepColors.length; k++) {
+      const c = keepColors[k];
+      const dr = r - c[0];
+      const dg = g - c[1];
+      const db = b - c[2];
+      const d = dr * dr + dg * dg + db * db;
+      if (d < dK) dK = d;
+    }
+
+    let dR = Infinity;
+    for (let k = 0; k < removeColors.length; k++) {
+      const c = removeColors[k];
+      const dr = r - c[0];
+      const dg = g - c[1];
+      const db = b - c[2];
+      const d = dr * dr + dg * dg + db * db;
+      if (d < dR) dR = d;
+    }
+
+    if (dR < dK && dR < TOL_SQ) mask[i] = 0;
+  }
+}
+
+function collectStrokeColors(
+  history: Array<{ tool: 'keep' | 'remove'; points: { x: number; y: number; label: 0 | 1 }[] }>,
+  tool: 'keep' | 'remove',
+  orig: ImageData
+): Array<[number, number, number]> {
+  const colors: Array<[number, number, number]> = [];
+  const w = orig.width;
+  const h = orig.height;
+  for (const s of history) {
+    if (s.tool !== tool) continue;
+    for (const p of s.points) {
+      const x = Math.max(0, Math.min(w - 1, Math.round(p.x)));
+      const y = Math.max(0, Math.min(h - 1, Math.round(p.y)));
+      const j = (y * w + x) * 4;
+      colors.push([orig.data[j], orig.data[j + 1], orig.data[j + 2]]);
+    }
+  }
+  return colors;
+}
+
 export function BackgroundRemovalPanel({
   image,
   onSave,
@@ -89,6 +165,8 @@ export function BackgroundRemovalPanel({
   interface StrokeRecord {
     tool: BrushTool;
     points: SamPoint[];
+    rawPath: Array<{ x: number; y: number }>;
+    brushSize: number;
     maskBefore: Uint8Array;
   }
   const [strokeHistory, setStrokeHistory] = useState<StrokeRecord[]>([]);
@@ -98,6 +176,7 @@ export function BackgroundRemovalPanel({
   const [brushSize, setBrushSize] = useState(20);
   const isDrawingRef = useRef(false);
   const currentStrokeRef = useRef<Array<{ x: number; y: number }>>([]);
+  const livePathRef = useRef<SVGPathElement | null>(null);
   const [cursorPos, setCursorPos] = useState<{ x: number; y: number } | null>(null);
   const [canvasRect, setCanvasRect] = useState<{ width: number; height: number } | null>(null);
 
@@ -142,32 +221,30 @@ export function BackgroundRemovalPanel({
 
     runDetect(canvas);
 
-    // Eager: embed for SAM brush, then BiRefNet initial guess
-    runEmbed(canvas).then(() => {
-      const c = canvasRef.current;
-      if (!c) return;
-      runRemoval(c, { mode: 'ml-only', model: 'birefnet-general-lite' }).then(img => {
-        const orig = originalDataRef.current;
-        if (!img || !orig) return;
-        // Extract initial mask from BiRefNet alpha
-        const off = document.createElement('canvas');
-        off.width = orig.width;
-        off.height = orig.height;
-        const offCtx = off.getContext('2d');
-        if (!offCtx) return;
-        offCtx.drawImage(img, 0, 0, orig.width, orig.height);
-        const data = offCtx.getImageData(0, 0, orig.width, orig.height);
-        initialMaskRef.current = data;
-        // Only seed cumulative mask if user hasn't started brushing yet
-        if (strokeHistoryRef.current.length === 0) {
-          const m = new Uint8Array(orig.width * orig.height);
-          for (let i = 0; i < m.length; i++) {
-            m[i] = data.data[i * 4 + 3] > 127 ? 1 : 0;
-          }
-          cumulativeMaskRef.current = m;
-          renderPreviewFromMask(m);
+    // Eager: kick off SAM embed and BiRefNet initial guess IN PARALLEL.
+    // Brush becomes interactive as soon as embed resolves; BiRefNet seeds
+    // the cumulative mask whenever it finishes (assuming user hasn't brushed yet).
+    runEmbed(canvas);
+    runRemoval(canvas, { mode: 'ml-only', model: 'birefnet-general-lite' }).then(img => {
+      const orig = originalDataRef.current;
+      if (!img || !orig) return;
+      const off = document.createElement('canvas');
+      off.width = orig.width;
+      off.height = orig.height;
+      const offCtx = off.getContext('2d');
+      if (!offCtx) return;
+      offCtx.drawImage(img, 0, 0, orig.width, orig.height);
+      const data = offCtx.getImageData(0, 0, orig.width, orig.height);
+      initialMaskRef.current = data;
+      // Only seed cumulative mask if user hasn't started brushing yet.
+      if (strokeHistoryRef.current.length === 0) {
+        const m = new Uint8Array(orig.width * orig.height);
+        for (let i = 0; i < m.length; i++) {
+          m[i] = data.data[i * 4 + 3] > 127 ? 1 : 0;
         }
-      });
+        cumulativeMaskRef.current = m;
+        renderPreviewFromMask(m);
+      }
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [image]);
@@ -240,7 +317,6 @@ export function BackgroundRemovalPanel({
   );
 
   // ---------- AI Brush: cumulative mask + dual-layer rendering ----------
-  const allSamPoints: SamPoint[] = strokeHistory.flatMap((s: StrokeRecord) => s.points);
 
   /** Render preview = original at full opacity for kept pixels, faded to 30% for removed. */
   const renderPreviewFromMask = useCallback((mask: Uint8Array) => {
@@ -281,13 +357,13 @@ export function BackgroundRemovalPanel({
   }, [renderPreviewFromMask]);
 
   const commitStroke = useCallback(
-    async (tool: BrushTool, path: Array<{ x: number; y: number }>) => {
+    async (tool: BrushTool, path: Array<{ x: number; y: number }>, sizeAtCommit: number) => {
       if (path.length === 0) return;
       const orig = originalDataRef.current;
       if (!orig) return;
       const total = orig.width * orig.height;
 
-      const sampled = samplePathPoints(path, brushSize);
+      const sampled = samplePathPoints(path, sizeAtCommit);
       const label: 0 | 1 = tool === 'keep' ? 1 : 0;
       const points: SamPoint[] = sampled.map(p => ({
         x: Math.round(p.x),
@@ -315,17 +391,37 @@ export function BackgroundRemovalPanel({
         for (let i = 0; i < total; i++) next[i] = next[i] & (samMask[i] ^ 1);
       }
 
-      cumulativeMaskRef.current = next;
-      const record: StrokeRecord = { tool, points, maskBefore };
+      const record: StrokeRecord = {
+        tool,
+        points,
+        rawPath: path.slice(),
+        brushSize: sizeAtCommit,
+        maskBefore,
+      };
       const updatedHistory = [...strokeHistoryRef.current, record];
+
+      // Color-aware cleanup: use this stroke's history (incl. the new record)
+      // to refine the mask within kept regions using user color hints.
+      const keepColors = collectStrokeColors(updatedHistory, 'keep', orig);
+      const removeColors = collectStrokeColors(updatedHistory, 'remove', orig);
+      applyColorCleanup(next, orig, keepColors, removeColors);
+
+      cumulativeMaskRef.current = next;
       strokeHistoryRef.current = updatedHistory;
       setStrokeHistory(updatedHistory);
       renderPreviewFromMask(next);
     },
-    [brushSize, runPredictRaw, renderPreviewFromMask]
+    [runPredictRaw, renderPreviewFromMask]
   );
 
   // ---------- Canvas mouse handlers ----------
+  // Compute scale from canvas-pixel space → SVG display space
+  const overlayScaleNow = useCallback(() => {
+    const p = previewRef.current;
+    if (!p || !canvasRect || !p.width) return 1;
+    return canvasRect.width / p.width;
+  }, [canvasRect]);
+
   const handleMouseDown = useCallback(
     (e: React.MouseEvent<HTMLCanvasElement>) => {
       if (hasResult) return;
@@ -336,8 +432,16 @@ export function BackgroundRemovalPanel({
       if (!c) return;
       isDrawingRef.current = true;
       currentStrokeRef.current = [{ x: c.x, y: c.y }];
+      // Begin live SVG path
+      const live = livePathRef.current;
+      if (live) {
+        const scale = overlayScaleNow();
+        live.setAttribute('d', pathToSvgD(currentStrokeRef.current, scale));
+        live.setAttribute('stroke', brushTool === 'keep' ? '#10b981' : '#ef4444');
+        live.setAttribute('stroke-width', String(brushSize * scale));
+      }
     },
-    [panelMode, hasResult, samSession, eventToCanvasCoords]
+    [panelMode, hasResult, samSession, eventToCanvasCoords, brushTool, brushSize, overlayScaleNow]
   );
 
   const handleMouseMove = useCallback(
@@ -347,17 +451,27 @@ export function BackgroundRemovalPanel({
       if (panelMode === 'ai-brush') setCursorPos({ x: c.displayX, y: c.displayY });
       if (!isDrawingRef.current) return;
       currentStrokeRef.current.push({ x: c.x, y: c.y });
+      const live = livePathRef.current;
+      if (live) {
+        const scale = overlayScaleNow();
+        live.setAttribute('d', pathToSvgD(currentStrokeRef.current, scale));
+      }
     },
-    [panelMode, eventToCanvasCoords]
+    [panelMode, eventToCanvasCoords, overlayScaleNow]
   );
 
   const endStroke = useCallback(() => {
     if (!isDrawingRef.current) return;
     const path = currentStrokeRef.current;
+    const sizeAtCommit = brushSize;
+    const toolAtCommit = brushTool;
     isDrawingRef.current = false;
     currentStrokeRef.current = [];
-    commitStroke(brushTool, path);
-  }, [commitStroke, brushTool]);
+    // Clear live preview path (committed stroke takes over via React render)
+    const live = livePathRef.current;
+    if (live) live.setAttribute('d', '');
+    commitStroke(toolAtCommit, path, sizeAtCommit);
+  }, [commitStroke, brushTool, brushSize]);
 
   const handleMouseUp = useCallback(() => endStroke(), [endStroke]);
   const handleMouseLeave = useCallback(() => {
@@ -628,24 +742,35 @@ export function BackgroundRemovalPanel({
                 }}
               />
             )}
-            {/* Placed-point dots overlay */}
-            {panelMode === 'ai-brush' && !hasResult && allSamPoints.length > 0 && canvasRect && (
+            {/* Stroke-line overlay (committed strokes + in-progress live path) */}
+            {panelMode === 'ai-brush' && !hasResult && canvasRect && (
               <svg
                 className="absolute inset-0 pointer-events-none"
                 width={canvasRect.width}
                 height={canvasRect.height}
               >
-                {allSamPoints.map((pt, i) => (
-                  <circle
+                {strokeHistory.map((s: StrokeRecord, i: number) => (
+                  <path
                     key={i}
-                    cx={pt.x * overlayScale}
-                    cy={pt.y * overlayScale}
-                    r={3}
-                    fill={pt.label === 1 ? '#10b981' : '#ef4444'}
-                    stroke="white"
-                    strokeWidth={1.5}
+                    d={pathToSvgD(s.rawPath, overlayScale)}
+                    stroke={s.tool === 'keep' ? '#10b981' : '#ef4444'}
+                    strokeWidth={s.brushSize * overlayScale}
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    fill="none"
+                    opacity={0.65}
                   />
                 ))}
+                <path
+                  ref={livePathRef}
+                  d=""
+                  stroke={brushTool === 'keep' ? '#10b981' : '#ef4444'}
+                  strokeWidth={brushSize * overlayScale}
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  fill="none"
+                  opacity={0.65}
+                />
               </svg>
             )}
           </div>
@@ -784,7 +909,7 @@ export function BackgroundRemovalPanel({
                 <div className="text-xs text-gray-400">
                   {strokeHistory.length === 0
                     ? 'No strokes yet — showing initial AI guess.'
-                    : `${allSamPoints.length} point${allSamPoints.length === 1 ? '' : 's'} placed across ${strokeHistory.length} stroke${strokeHistory.length === 1 ? '' : 's'}.`}
+                    : `${strokeHistory.length} stroke${strokeHistory.length === 1 ? '' : 's'} placed.`}
                 </div>
 
                 {/* Apply button */}
