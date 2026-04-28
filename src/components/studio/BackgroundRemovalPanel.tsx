@@ -52,9 +52,11 @@ const STATUS_LABELS: Record<string, string> = {
 };
 
 const MODELS: { value: BgRemovalModel; label: string }[] = [
+  { value: 'bria-rmbg', label: 'Best Quality (BRIA AI)' },
   { value: 'birefnet-general-lite', label: 'Standard (BiRefNet)' },
   { value: 'birefnet-dis', label: 'High Detail (Graphics + Text)' },
-  { value: 'birefnet-general', label: 'Maximum Quality (slow)' },
+  { value: 'birefnet-general', label: 'Maximum Quality (BiRefNet, slow)' },
+  { value: 'birefnet-massive', label: 'Massive Dataset (BiRefNet, slow)' },
   { value: 'u2net', label: 'Fast (U2Net)' },
   { value: 'u2net_human_seg', label: 'People & Portraits' },
   { value: 'isnet-anime', label: 'Anime / Illustrations' },
@@ -189,7 +191,7 @@ export function BackgroundRemovalPanel({
 
   // Common state
   const [panelMode, setPanelMode] = useState<PanelMode>('ai-brush');
-  const [model, setModel] = useState<BgRemovalModel>('birefnet-general-lite');
+  const [model, setModel] = useState<BgRemovalModel>('bria-rmbg');
   const [isSaving, setIsSaving] = useState(false);
   const [hasResult, setHasResult] = useState(false);
   const [upgradeRequired, setUpgradeRequired] = useState(false);
@@ -232,7 +234,7 @@ export function BackgroundRemovalPanel({
     // Brush becomes interactive as soon as embed resolves; BiRefNet seeds
     // the cumulative mask whenever it finishes (assuming user hasn't brushed yet).
     runEmbed(canvas);
-    runRemoval(canvas, { mode: 'ml-only', model: 'birefnet-general-lite' }).then(img => {
+    runRemoval(canvas, { mode: 'ml-only', model: 'bria-rmbg' }).then(img => {
       const orig = originalDataRef.current;
       if (!img || !orig) return;
       const off = document.createElement('canvas');

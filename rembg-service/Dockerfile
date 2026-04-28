@@ -15,7 +15,10 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Models are cached in ~/.u2net by default; we move them to /app/models.
 ENV U2NET_HOME=/app/models
 
-# Default ML mask model: birefnet-general-lite (~178MB).
+# Default ML mask model: bria-rmbg (state-of-the-art subject cutout, ~150MB).
+RUN python -c "from rembg import new_session; new_session('bria-rmbg')" || true
+
+# Secondary common option: birefnet-general-lite (~178MB).
 RUN python -c "from rembg import new_session; new_session('birefnet-general-lite')" || true
 
 # SAM ViT-B (quantized) for interactive brush masking: ~100MB encoder + ~16MB decoder.

@@ -274,7 +274,7 @@ async def detect_bg(
 @app.post("/remove")
 async def remove_background(
     image: UploadFile = File(...),
-    model: str = Form(default="birefnet-general-lite"),
+    model: str = Form(default="bria-rmbg"),
     mode: str = Form(default="ml+color"),
     target_color: Optional[str] = Form(default=None),
     tolerance: int = Form(default=30),
@@ -297,9 +297,11 @@ async def remove_background(
     _require_auth(x_api_key)
 
     allowed_models = {
+        "bria-rmbg",
         "birefnet-general-lite",
         "birefnet-dis",
         "birefnet-general",
+        "birefnet-massive",
         "u2net",
         "u2netp",
         "u2net_human_seg",

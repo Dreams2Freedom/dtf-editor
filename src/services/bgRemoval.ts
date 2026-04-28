@@ -74,7 +74,7 @@ export async function removeBackground(
  */
 export async function removeBackgroundLegacy(
   imageBlob: Blob,
-  model: BgRemovalModel = 'birefnet-general-lite'
+  model: BgRemovalModel = 'bria-rmbg'
 ): Promise<RemoveResult> {
   return removeBackground(imageBlob, {
     mode: model === 'white-fill' ? 'color-fill' : 'ml+color',
