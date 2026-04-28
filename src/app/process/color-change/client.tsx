@@ -6,8 +6,8 @@ import { Palette, Loader2, AlertTriangle, ArrowUpRight } from 'lucide-react';
 import { useAuthStore } from '@/stores/authStore';
 import { Breadcrumb } from '@/components/ui/Breadcrumb';
 import { SignupModal } from '@/components/auth/SignupModal';
-import { ColorChangeEditor } from '@/components/image/ColorChangeEditor';
-import { COLOR_CHANGE_LIMITS } from '@/types/colorChange';
+import { ColorChangeEditor } from '@/tools/color-change';
+import { COLOR_CHANGE_LIMITS } from '@/tools/color-change';
 import { createClientSupabaseClient } from '@/lib/supabase/client';
 
 export default function ColorChangeClient() {

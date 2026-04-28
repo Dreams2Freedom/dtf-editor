@@ -1,4 +1,4 @@
-import { RGBColor, HSLColor, SelectionMask } from '@/types/colorChange';
+import { RGBColor, HSLColor, SelectionMask } from './types';
 
 export function rgbToHsl(r: number, g: number, b: number): HSLColor {
   r /= 255;

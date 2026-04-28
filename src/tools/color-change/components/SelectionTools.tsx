@@ -2,8 +2,8 @@
 
 // @ts-expect-error — vendored JS module without TypeScript declarations
 import MagicWand from '@/lib/magic-wand';
-import { SelectionMask } from '@/types/colorChange';
-import { pointInPolygon } from '@/lib/color-utils';
+import { SelectionMask } from '../types';
+import { pointInPolygon } from '../color-utils';
 
 /**
  * Global color select: selects ALL pixels in the image that match the clicked

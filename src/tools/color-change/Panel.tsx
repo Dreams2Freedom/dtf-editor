@@ -8,13 +8,13 @@ import {
   Pipette, Ban, HelpCircle, Hand, ZoomIn, ZoomOut, Maximize2
 } from 'lucide-react';
 import { HexColorPicker, HexColorInput } from 'react-colorful';
-import { ChangesHistory } from './color-change/ChangesHistory';
-import { applyColorShift, restorePixels, getPixelColor, hexToRgb, rgbToHex, pointInPolygon } from '@/lib/color-utils';
-import { useColorChangeHistory } from '@/hooks/useColorChangeHistory';
-import { SelectionMode, SelectionMask, RGBColor } from '@/types/colorChange';
+import { ChangesHistory } from './components/ChangesHistory';
+import { applyColorShift, restorePixels, getPixelColor, hexToRgb, rgbToHex, pointInPolygon } from './color-utils';
+import { useColorChangeHistory } from './useColorChangeHistory';
+import { SelectionMode, SelectionMask, RGBColor } from './types';
 
 const ColorCanvas = dynamic(
-  () => import('./color-change/ColorCanvas').then(m => ({ default: m.ColorCanvas })),
+  () => import('./components/ColorCanvas').then(m => ({ default: m.ColorCanvas })),
   { ssr: false, loading: () => <div className="flex-1 flex items-center justify-center bg-white"><Loader2 className="w-8 h-8 animate-spin text-gray-400" /></div> }
 );
 

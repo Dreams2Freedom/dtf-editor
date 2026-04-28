@@ -22,11 +22,12 @@
 import type { StudioTool, StudioToolId } from './types';
 
 import { bgRemovalTool } from './bg-removal';
+import { colorChangeTool } from './color-change';
 
 export const STUDIO_TOOLS: StudioTool[] = [
   bgRemovalTool,
   // upscaleTool,       — added in Step 4
-  // colorChangeTool,   — added in Step 3
+  colorChangeTool,
 ];
 
 export function getStudioTool(id: StudioToolId): StudioTool | undefined {

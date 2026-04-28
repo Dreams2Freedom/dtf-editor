@@ -4,7 +4,7 @@ import React, { useRef, useState, useEffect, useCallback, useLayoutEffect } from
 import { Stage, Layer, Image as KonvaImage, Line } from 'react-konva';
 import Konva from 'konva';
 import { Hand } from 'lucide-react';
-import { SelectionMask, SelectionMode } from '@/types/colorChange';
+import { SelectionMask, SelectionMode } from '../types';
 import { createSelectionOverlay } from './SelectionTools';
 
 interface ColorCanvasProps {

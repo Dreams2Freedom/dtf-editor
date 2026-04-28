@@ -5,11 +5,11 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { AlertTriangle, ArrowUpRight, Loader2, Palette, Scissors } from 'lucide-react';
 
 import { BackgroundRemovalPanel } from '@/tools/bg-removal';
-import { ColorChangeEditor } from '@/components/image/ColorChangeEditor';
+import { ColorChangeEditor } from '@/tools/color-change';
 import { SignupModal } from '@/components/auth/SignupModal';
 import { Breadcrumb } from '@/components/ui/Breadcrumb';
 import { createClientSupabaseClient } from '@/lib/supabase/client';
-import { COLOR_CHANGE_LIMITS } from '@/types/colorChange';
+import { COLOR_CHANGE_LIMITS } from '@/tools/color-change';
 
 type StudioTool = 'bg' | 'color';
 
