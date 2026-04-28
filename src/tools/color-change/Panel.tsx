@@ -324,7 +324,21 @@ export function ColorChangeEditor({
     setExcludedColors([]);
     setLassoRegions([]);
     refreshImageData();
-  }, [currentMask, sourceColor, targetColor, history, refreshImageData]);
+
+    // Phase 2.2: Apply now also pushes to Studio's working image so the
+    // global Save to Gallery commits the result. The old per-tool Save
+    // button has been removed.
+    onSave(canvasRef.current).catch(err => {
+      console.error('[ColorChange] onSave failed:', err);
+    });
+  }, [
+    currentMask,
+    sourceColor,
+    targetColor,
+    history,
+    refreshImageData,
+    onSave,
+  ]);
 
   const handleUndo = useCallback(() => {
     const entry = history.undo();
@@ -449,170 +463,162 @@ export function ColorChangeEditor({
 
   return (
     <div className="flex flex-col flex-1 bg-gray-50">
-      {/* Toolbar */}
-      <div className="bg-white border-b border-gray-200 px-3 py-2">
-        <div className="flex items-center gap-2 flex-wrap">
-          {/* Mode toggle: Select / Lasso / Pan */}
-          <div className="flex bg-gray-100 rounded-lg p-0.5">
+      {/* Phase 2.2: wide top toolbar removed.
+          - Select / Lasso / Pan and zoom controls are now floating pills
+            over the canvas (matching BG Removal's pattern).
+          - Tolerance, Undo, Redo, Reset, Help moved into the right
+            sidebar.
+          - Per-tool Save / Download / Cancel footer dropped — Studio's
+            global Save to Gallery in the header is the only commit. */}
+
+      {/* Main area */}
+      <div className="flex flex-1 min-h-0 flex-col md:flex-row overflow-hidden">
+        {/* Canvas with floating Studio chrome */}
+        <div className="relative flex flex-1 min-h-0">
+          <ColorCanvas
+            key={renderKey}
+            image={image}
+            editCanvas={canvasRef.current}
+            imageData={imageData}
+            selectionMode={selectionMode}
+            currentMask={currentMask}
+            onPixelClick={handlePixelClick}
+            onLassoComplete={handleLassoComplete}
+            controlsRef={canvasControlsRef}
+          />
+
+          {/* Select / Lasso / Pan pill — top-left, mirrors BG Removal */}
+          <div className="absolute top-2 left-2 z-10 flex rounded-full bg-white/90 backdrop-blur-sm shadow border border-gray-200 overflow-hidden text-xs font-medium">
             <button
+              type="button"
               onClick={() => setSelectionMode('click')}
-              className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md transition-all ${
+              className={`flex items-center gap-1 px-3 py-1 transition-colors ${
                 selectionMode === 'click'
-                  ? 'bg-amber-500 text-gray-900 shadow-sm'
-                  : 'text-gray-500 hover:text-gray-900'
+                  ? 'bg-amber-500 text-gray-900'
+                  : 'text-gray-700 hover:bg-gray-50'
               }`}
+              title="Click to pick a color"
             >
               <MousePointer2 className="w-3.5 h-3.5" />
               <span className="hidden sm:inline">Select</span>
             </button>
             <button
+              type="button"
               onClick={() => setSelectionMode('lasso')}
-              className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md transition-all ${
+              className={`flex items-center gap-1 px-3 py-1 transition-colors ${
                 selectionMode === 'lasso'
-                  ? 'bg-amber-500 text-gray-900 shadow-sm'
-                  : 'text-gray-500 hover:text-gray-900'
+                  ? 'bg-amber-500 text-gray-900'
+                  : 'text-gray-700 hover:bg-gray-50'
               }`}
+              title="Lasso a region"
             >
               <Lasso className="w-3.5 h-3.5" />
               <span className="hidden sm:inline">Lasso</span>
             </button>
             <button
+              type="button"
               onClick={() => setSelectionMode('pan')}
-              className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md transition-all ${
+              className={`flex items-center gap-1 px-3 py-1 transition-colors ${
                 selectionMode === 'pan'
-                  ? 'bg-amber-500 text-gray-900 shadow-sm'
-                  : 'text-gray-500 hover:text-gray-900'
+                  ? 'bg-amber-500 text-gray-900'
+                  : 'text-gray-700 hover:bg-gray-50'
               }`}
-              title="Pan tool — drag to move around the image"
+              title="Pan the canvas"
             >
               <Hand className="w-3.5 h-3.5" />
               <span className="hidden sm:inline">Pan</span>
             </button>
           </div>
 
-          <div className="h-5 w-px bg-gray-200" />
-
-          {/* Tolerance */}
-          <div className="flex items-center gap-2">
-            <SlidersHorizontal className="w-3.5 h-3.5 text-gray-500" />
-            <input
-              type="range"
-              min={0}
-              max={100}
-              value={tolerance}
-              onChange={e => setTolerance(Number(e.target.value))}
-              className="w-20 sm:w-28 h-1.5 bg-gray-200 rounded-full appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3.5 [&::-webkit-slider-thumb]:h-3.5 [&::-webkit-slider-thumb]:bg-amber-500 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:shadow-md"
-            />
-            <span className="text-xs font-mono text-gray-500 w-5 text-right">
-              {tolerance}
-            </span>
-          </div>
-
-          <div className="h-5 w-px bg-gray-200" />
-
-          {/* Undo/Redo */}
-          <div className="flex gap-0.5">
+          {/* Zoom pill — top-right */}
+          <div className="absolute top-2 right-2 z-10 flex items-center rounded-full bg-white/90 backdrop-blur-sm shadow border border-gray-200 overflow-hidden text-xs font-medium">
             <button
-              onClick={handleUndo}
-              disabled={!history.canUndo}
-              className="p-1.5 rounded-md text-gray-500 hover:text-gray-900 hover:bg-gray-100 disabled:opacity-20 disabled:hover:bg-transparent transition-colors"
-              title="Undo (Ctrl+Z)"
-            >
-              <Undo2 className="w-4 h-4" />
-            </button>
-            <button
-              onClick={handleRedo}
-              disabled={!history.canRedo}
-              className="p-1.5 rounded-md text-gray-500 hover:text-gray-900 hover:bg-gray-100 disabled:opacity-20 disabled:hover:bg-transparent transition-colors"
-              title="Redo (Ctrl+Shift+Z)"
-            >
-              <Redo2 className="w-4 h-4" />
-            </button>
-          </div>
-
-          <div className="flex-1" />
-
-          {/* Zoom controls in toolbar — always accessible */}
-          <div className="flex items-center gap-0.5">
-            <button
+              type="button"
               onClick={() => canvasControlsRef.current.zoomOut()}
-              className="p-1.5 rounded-md text-gray-500 hover:text-gray-900 hover:bg-gray-100 transition-colors"
-              title="Zoom out (−)"
+              className="px-2.5 py-1 text-gray-700 hover:bg-gray-50"
+              title="Zoom out"
             >
-              <ZoomOut className="w-4 h-4" />
+              <ZoomOut className="w-3.5 h-3.5" />
             </button>
             <button
+              type="button"
               onClick={() => canvasControlsRef.current.zoomIn()}
-              className="p-1.5 rounded-md text-gray-500 hover:text-gray-900 hover:bg-gray-100 transition-colors"
-              title="Zoom in (+)"
+              className="px-2.5 py-1 text-gray-700 hover:bg-gray-50"
+              title="Zoom in"
             >
-              <ZoomIn className="w-4 h-4" />
+              <ZoomIn className="w-3.5 h-3.5" />
             </button>
             <button
+              type="button"
               onClick={() => canvasControlsRef.current.fitToView()}
-              className="flex items-center gap-1 px-2 py-1.5 rounded-md text-xs text-gray-500 hover:text-gray-900 hover:bg-gray-100 transition-colors"
-              title="Fit image to view (0)"
+              className="flex items-center gap-1 px-2 py-1 text-gray-700 hover:bg-gray-50 border-l border-gray-200"
+              title="Fit image to view"
             >
               <Maximize2 className="w-3.5 h-3.5" />
-              <span className="hidden sm:inline">Fit</span>
+              Fit
             </button>
           </div>
-
-          <div className="h-5 w-px bg-gray-200" />
-
-          {/* Reset */}
-          <button
-            onClick={handleResetAll}
-            disabled={!hasChanges}
-            className="flex items-center gap-1 px-2.5 py-1.5 rounded-md text-xs text-gray-500 hover:text-gray-900 hover:bg-gray-100 disabled:opacity-20 transition-colors"
-          >
-            <RotateCcw className="w-3.5 h-3.5" />
-            <span className="hidden sm:inline">Reset</span>
-          </button>
-
-          {/* Help */}
-          <button
-            onClick={() => setShowHelp(true)}
-            className="p-1.5 rounded-md text-gray-500 hover:text-amber-600 hover:bg-gray-100 transition-colors"
-            title="How to use"
-          >
-            <HelpCircle className="w-4 h-4" />
-          </button>
-
-          {/* Mobile panel toggle */}
-          <button
-            onClick={() => setPanelOpen(!panelOpen)}
-            className="md:hidden p-1.5 rounded-md text-gray-500 hover:text-gray-900 hover:bg-gray-100"
-          >
-            {panelOpen ? (
-              <ChevronDown className="w-4 h-4" />
-            ) : (
-              <ChevronUp className="w-4 h-4" />
-            )}
-          </button>
         </div>
-      </div>
-
-      {/* Main area */}
-      <div className="flex flex-1 min-h-0 flex-col md:flex-row overflow-hidden">
-        {/* Canvas */}
-        <ColorCanvas
-          key={renderKey}
-          image={image}
-          editCanvas={canvasRef.current}
-          imageData={imageData}
-          selectionMode={selectionMode}
-          currentMask={currentMask}
-          onPixelClick={handlePixelClick}
-          onLassoComplete={handleLassoComplete}
-          controlsRef={canvasControlsRef}
-        />
 
         {/* Side panel — fixed width, never shrinks, scrollable content + fixed footer */}
         <div
           className={`${panelOpen ? 'flex' : 'hidden'} md:flex flex-col w-full md:w-[300px] md:flex-shrink-0 bg-white border-t md:border-t-0 md:border-l border-gray-200`}
         >
           <div className="flex-1 min-h-0 overflow-y-auto p-4 space-y-5">
+            {/* Phase 2.2: tolerance + undo/redo + reset relocated from
+                the removed wide toolbar into the sidebar so the canvas
+                stays uncluttered. */}
+            <div className="space-y-3">
+              <div>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                    Tolerance
+                  </label>
+                  <span className="text-xs font-mono text-gray-500 tabular-nums">
+                    {tolerance}
+                  </span>
+                </div>
+                <input
+                  type="range"
+                  min={0}
+                  max={100}
+                  value={tolerance}
+                  onChange={e => setTolerance(Number(e.target.value))}
+                  className="w-full h-1.5 bg-gray-200 rounded-full appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3.5 [&::-webkit-slider-thumb]:h-3.5 [&::-webkit-slider-thumb]:bg-amber-500 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:shadow-md"
+                />
+              </div>
+
+              <div className="flex gap-1">
+                <button
+                  onClick={handleUndo}
+                  disabled={!history.canUndo}
+                  className="flex-1 flex items-center justify-center gap-1 px-2 py-1.5 text-xs text-gray-600 hover:text-gray-900 border border-gray-200 hover:border-gray-300 rounded-md disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                  title="Undo (Ctrl+Z)"
+                >
+                  <Undo2 className="w-3.5 h-3.5" />
+                  Undo
+                </button>
+                <button
+                  onClick={handleRedo}
+                  disabled={!history.canRedo}
+                  className="flex-1 flex items-center justify-center gap-1 px-2 py-1.5 text-xs text-gray-600 hover:text-gray-900 border border-gray-200 hover:border-gray-300 rounded-md disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                  title="Redo (Ctrl+Shift+Z)"
+                >
+                  <Redo2 className="w-3.5 h-3.5" />
+                  Redo
+                </button>
+                <button
+                  onClick={handleResetAll}
+                  disabled={!hasChanges}
+                  className="flex-1 flex items-center justify-center gap-1 px-2 py-1.5 text-xs text-gray-600 hover:text-gray-900 border border-gray-200 hover:border-gray-300 rounded-md disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                  title="Reset all changes"
+                >
+                  <RotateCcw className="w-3.5 h-3.5" />
+                  Reset
+                </button>
+              </div>
+            </div>
+
             {/* Selected colors */}
             <div>
               <div className="flex items-center gap-1.5 mb-2.5">
@@ -812,61 +818,16 @@ export function ColorChangeEditor({
             )}
           </div>
 
-          {/* Actions footer — always visible, outside the scroll area */}
-          <div className="flex-shrink-0 p-3 border-t border-gray-200 space-y-2 bg-white">
-            <div className="text-[10px] text-gray-400 text-center">
+          {/* Phase 2.2: per-tool Save / Download / Cancel footer removed.
+              Studio's global Save to Gallery in the header now handles
+              committing the working image. The free-changes counter
+              still surfaces here so users see their remaining quota. */}
+          <div className="flex-shrink-0 px-3 py-2 border-t border-gray-200 bg-white">
+            <p className="text-[10px] text-gray-400 text-center">
               {usageRemaining > 0
-                ? `${usageLimit - usageRemaining}/${usageLimit} free changes used`
-                : 'Over limit — 1 credit per save'}
-            </div>
-            <div className="grid grid-cols-2 gap-1.5">
-              <button
-                onClick={onCancel}
-                className="px-3 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg text-xs text-gray-500 transition-colors"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleSave}
-                disabled={isSaving || !hasChanges}
-                className="px-3 py-2 bg-green-500 hover:bg-green-600 disabled:bg-gray-200 disabled:text-gray-400 text-white font-medium rounded-lg text-xs transition-colors"
-              >
-                {isSaving ? 'Saving...' : 'Save'}
-              </button>
-              <button
-                onClick={handleDownload}
-                disabled={isSaving || !hasChanges}
-                className="px-3 py-2 bg-gray-100 hover:bg-gray-200 disabled:opacity-30 rounded-lg text-xs text-gray-700 transition-colors flex items-center justify-center gap-1"
-              >
-                <Download className="w-3 h-3" /> Download
-              </button>
-              {savedImageId ? (
-                <div className="flex gap-1">
-                  <button
-                    onClick={() =>
-                      onNavigate(`/process/upscale?imageId=${savedImageId}`)
-                    }
-                    className="flex-1 px-2 py-2 bg-purple-50 hover:bg-purple-100 rounded-lg text-xs text-purple-600 transition-colors flex items-center justify-center gap-1"
-                  >
-                    <Wand2 className="w-3 h-3" />
-                  </button>
-                  <button
-                    onClick={() =>
-                      onNavigate(
-                        `/process/background-removal?imageId=${savedImageId}`
-                      )
-                    }
-                    className="flex-1 px-2 py-2 bg-emerald-50 hover:bg-emerald-100 rounded-lg text-xs text-emerald-600 transition-colors flex items-center justify-center gap-1"
-                  >
-                    <Scissors className="w-3 h-3" />
-                  </button>
-                </div>
-              ) : (
-                <div className="px-3 py-2 bg-gray-100 rounded-lg text-[10px] text-gray-400 text-center">
-                  Save to unlock more
-                </div>
-              )}
-            </div>
+                ? `${usageLimit - usageRemaining}/${usageLimit} free changes used — Save to Gallery in the header to commit.`
+                : 'Over limit — saving will use 1 credit.'}
+            </p>
           </div>
         </div>
       </div>
