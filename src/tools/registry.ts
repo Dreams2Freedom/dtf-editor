@@ -21,7 +21,13 @@
 
 import type { StudioTool, StudioToolId } from './types';
 
-export const STUDIO_TOOLS: StudioTool[] = [];
+import { bgRemovalTool } from './bg-removal';
+
+export const STUDIO_TOOLS: StudioTool[] = [
+  bgRemovalTool,
+  // upscaleTool,       — added in Step 4
+  // colorChangeTool,   — added in Step 3
+];
 
 export function getStudioTool(id: StudioToolId): StudioTool | undefined {
   return STUDIO_TOOLS.find(t => t.id === id);

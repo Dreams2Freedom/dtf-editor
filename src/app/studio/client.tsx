@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { AlertTriangle, ArrowUpRight, Loader2, Palette, Scissors } from 'lucide-react';
 
-import { BackgroundRemovalPanel } from '@/components/studio/BackgroundRemovalPanel';
+import { BackgroundRemovalPanel } from '@/tools/bg-removal';
 import { ColorChangeEditor } from '@/components/image/ColorChangeEditor';
 import { SignupModal } from '@/components/auth/SignupModal';
 import { Breadcrumb } from '@/components/ui/Breadcrumb';

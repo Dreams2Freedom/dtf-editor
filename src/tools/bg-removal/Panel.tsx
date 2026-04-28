@@ -25,14 +25,14 @@ import {
   clientMultiFloodFill,
   samplePathPoints,
   useBackgroundRemoval,
-} from '@/hooks/useBackgroundRemoval';
+} from './useBackgroundRemoval';
 import type {
   BgRemovalModel,
   PanelMode,
   RGB,
   RemovalOptions,
   SamPoint,
-} from '@/types/backgroundRemoval';
+} from './types';
 
 interface BackgroundRemovalPanelProps {
   image: HTMLImageElement;

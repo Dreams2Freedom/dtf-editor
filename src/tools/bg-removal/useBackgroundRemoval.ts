@@ -7,7 +7,7 @@ import {
   embedImage,
   predictMask,
   removeBackground,
-} from '@/services/bgRemoval';
+} from './api';
 import type {
   BgDetectionResult,
   BgRemovalStatus,
@@ -15,7 +15,7 @@ import type {
   RemovalOptions,
   SamPoint,
   SamSession,
-} from '@/types/backgroundRemoval';
+} from './types';
 
 export interface UseBackgroundRemovalReturn {
   status: BgRemovalStatus;

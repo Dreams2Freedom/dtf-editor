@@ -4,7 +4,7 @@ import type {
   RemovalOptions,
   SamPoint,
   SamSession,
-} from '@/types/backgroundRemoval';
+} from './types';
 
 export interface RemoveResult {
   blob: Blob;
