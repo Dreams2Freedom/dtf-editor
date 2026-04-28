@@ -256,87 +256,6 @@ export function BackgroundRemovalPanel({
     reset,
   } = useBackgroundRemoval();
 
-  /**
-   * Kick off the AI pipeline (SAM embed + smart initial mask via BRIA + auto color-fill).
-   * Called on mount AND from handleReset so "Reset to original" re-runs the analysis.
-   */
-  const runInitialAnalysis = useCallback(
-    (canvas: HTMLCanvasElement) => {
-      // SAM encoder loads in parallel; brush is interactive when this resolves.
-      runEmbed(canvas);
-      // Smart initial mask: detect → ml+color when bg is flood-fillable.
-      return runDetect(canvas)
-        .then(detection => {
-          const opts: RemovalOptions = (() => {
-            if (
-              !detection ||
-              detection.recommended_mode === 'ml-only' ||
-              detection.recommended_mode === 'noop'
-            ) {
-              return { mode: 'ml-only', model: 'bria-rmbg' };
-            }
-            return {
-              mode: 'ml+color',
-              model: 'bria-rmbg',
-              targetColor: detection.dominant,
-              tolerance: 30,
-            };
-          })();
-          return runRemoval(canvas, opts);
-        })
-        .then(img => {
-          const orig = originalDataRef.current;
-          if (!img || !orig) return;
-          const off = document.createElement('canvas');
-          off.width = orig.width;
-          off.height = orig.height;
-          const offCtx = off.getContext('2d');
-          if (!offCtx) return;
-          offCtx.drawImage(img, 0, 0, orig.width, orig.height);
-          const data = offCtx.getImageData(0, 0, orig.width, orig.height);
-          initialMaskRef.current = data;
-          // Only seed SAM mask if user hasn't started brushing yet.
-          if (strokeHistoryRef.current.length === 0) {
-            const m = new Uint8Array(orig.width * orig.height);
-            for (let i = 0; i < m.length; i++) {
-              m[i] = data.data[i * 4 + 3] > 127 ? 1 : 0;
-            }
-            samMaskRef.current = m;
-            const next = new Uint8Array(m);
-            cumulativeMaskRef.current = next;
-            renderPreviewFromMask(next);
-            setContoursD(maskToContoursPath(next, orig.width, orig.height));
-          }
-        });
-    },
-    [runEmbed, runDetect, runRemoval, renderPreviewFromMask]
-  );
-
-  // Init canvas, kick off analysis on mount.
-  useEffect(() => {
-    const canvas = document.createElement('canvas');
-    const w = image.naturalWidth || image.width;
-    const h = image.naturalHeight || image.height;
-    canvas.width = w;
-    canvas.height = h;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-    ctx.drawImage(image, 0, 0);
-    canvasRef.current = canvas;
-    originalDataRef.current = ctx.getImageData(0, 0, w, h);
-
-    const preview = previewRef.current;
-    if (preview) {
-      preview.width = w;
-      preview.height = h;
-      const pCtx = preview.getContext('2d');
-      if (pCtx) pCtx.drawImage(canvas, 0, 0);
-    }
-
-    runInitialAnalysis(canvas);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [image]);
-
   // Track preview's display rect for cursor / dot overlay positioning
   useEffect(() => {
     const update = () => {
@@ -441,6 +360,88 @@ export function BackgroundRemovalPanel({
     const mask = cumulativeMaskRef.current;
     if (mask) renderPreviewFromMask(mask);
   }, [viewMode, renderPreviewFromMask]);
+
+  /**
+   * Kick off the AI pipeline (SAM embed + smart initial mask via BRIA + auto color-fill).
+   * Called on mount AND from handleReset so "Reset to original" re-runs the analysis.
+   * NOTE: must be declared AFTER renderPreviewFromMask to avoid TDZ on the deps array.
+   */
+  const runInitialAnalysis = useCallback(
+    (canvas: HTMLCanvasElement) => {
+      // SAM encoder loads in parallel; brush is interactive when this resolves.
+      runEmbed(canvas);
+      // Smart initial mask: detect → ml+color when bg is flood-fillable.
+      return runDetect(canvas)
+        .then(detection => {
+          const opts: RemovalOptions = (() => {
+            if (
+              !detection ||
+              detection.recommended_mode === 'ml-only' ||
+              detection.recommended_mode === 'noop'
+            ) {
+              return { mode: 'ml-only', model: 'bria-rmbg' };
+            }
+            return {
+              mode: 'ml+color',
+              model: 'bria-rmbg',
+              targetColor: detection.dominant,
+              tolerance: 30,
+            };
+          })();
+          return runRemoval(canvas, opts);
+        })
+        .then(img => {
+          const orig = originalDataRef.current;
+          if (!img || !orig) return;
+          const off = document.createElement('canvas');
+          off.width = orig.width;
+          off.height = orig.height;
+          const offCtx = off.getContext('2d');
+          if (!offCtx) return;
+          offCtx.drawImage(img, 0, 0, orig.width, orig.height);
+          const data = offCtx.getImageData(0, 0, orig.width, orig.height);
+          initialMaskRef.current = data;
+          // Only seed SAM mask if user hasn't started brushing yet.
+          if (strokeHistoryRef.current.length === 0) {
+            const m = new Uint8Array(orig.width * orig.height);
+            for (let i = 0; i < m.length; i++) {
+              m[i] = data.data[i * 4 + 3] > 127 ? 1 : 0;
+            }
+            samMaskRef.current = m;
+            const next = new Uint8Array(m);
+            cumulativeMaskRef.current = next;
+            renderPreviewFromMask(next);
+            setContoursD(maskToContoursPath(next, orig.width, orig.height));
+          }
+        });
+    },
+    [runEmbed, runDetect, runRemoval, renderPreviewFromMask]
+  );
+
+  // Init canvas, kick off analysis on mount.
+  useEffect(() => {
+    const canvas = document.createElement('canvas');
+    const w = image.naturalWidth || image.width;
+    const h = image.naturalHeight || image.height;
+    canvas.width = w;
+    canvas.height = h;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+    ctx.drawImage(image, 0, 0);
+    canvasRef.current = canvas;
+    originalDataRef.current = ctx.getImageData(0, 0, w, h);
+
+    const preview = previewRef.current;
+    if (preview) {
+      preview.width = w;
+      preview.height = h;
+      const pCtx = preview.getContext('2d');
+      if (pCtx) pCtx.drawImage(canvas, 0, 0);
+    }
+
+    runInitialAnalysis(canvas);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [image]);
 
   /** Derive post-cleanup mask from samMaskRef + current palettes + current tolerance, then render. */
   const recomputeCumulative = useCallback(() => {
