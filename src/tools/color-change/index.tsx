@@ -1,3 +1,5 @@
+'use client';
+
 /**
  * Color Change tool — Studio plugin entry point.
  *

@@ -1,3 +1,5 @@
+'use client';
+
 /**
  * BG Removal tool — Studio plugin entry point.
  *
