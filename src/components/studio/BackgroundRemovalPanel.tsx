@@ -229,14 +229,40 @@ export function BackgroundRemovalPanel({
   const [brushTool, setBrushTool] = useState<BrushTool>('keep');
   const [brushSize, setBrushSize] = useState(20);
   const [cleanupTolerance, setCleanupTolerance] = useState(60);
-  const [viewMode, setViewMode] = useState<'cutout' | 'original'>('cutout');
-  const viewModeRef = useRef<'cutout' | 'original'>('cutout');
+  const [viewMode, setViewMode] = useState<'cutout' | 'preview' | 'original'>('cutout');
+  const viewModeRef = useRef<'cutout' | 'preview' | 'original'>('cutout');
   const [contoursD, setContoursD] = useState<string>('');
   const isDrawingRef = useRef(false);
   const currentStrokeRef = useRef<Array<{ x: number; y: number }>>([]);
   const livePathRef = useRef<SVGPathElement | null>(null);
   const [cursorPos, setCursorPos] = useState<{ x: number; y: number } | null>(null);
   const [canvasRect, setCanvasRect] = useState<{ width: number; height: number } | null>(null);
+
+  // Zoom & pan
+  const [zoom, setZoom] = useState(1);
+  const [pan, setPan] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
+  const [isSpaceHeld, setIsSpaceHeld] = useState(false);
+  const isSpaceHeldRef = useRef(false);
+  const canvasZoomWrapperRef = useRef<HTMLDivElement | null>(null);
+  // Pointer-event bookkeeping: active pointers, gesture start, pan-drag start
+  const activePointersRef = useRef<Map<number, { x: number; y: number; type: string }>>(
+    new Map()
+  );
+  const gestureStartRef = useRef<
+    {
+      dist: number;
+      midX: number;
+      midY: number;
+      zoom: number;
+      pan: { x: number; y: number };
+      rectLeft: number;
+      rectTop: number;
+    } | null
+  >(null);
+  const panDragStartRef = useRef<
+    { clientX: number; clientY: number; panX: number; panY: number } | null
+  >(null);
+  const lastPointerTypeRef = useRef<string>('mouse');
 
   // Common state
   const [panelMode, setPanelMode] = useState<PanelMode>('ai-brush');
@@ -256,17 +282,29 @@ export function BackgroundRemovalPanel({
     reset,
   } = useBackgroundRemoval();
 
-  // Track preview's display rect for cursor / dot overlay positioning
+  // Track preview's UN-transformed layout size via ResizeObserver. Using
+  // `contentRect` (not getBoundingClientRect) is critical: contentRect is
+  // the layout size in CSS pixels, BEFORE CSS transforms are applied. SVG
+  // overlays live inside the zoom transform, so they should be sized in
+  // un-zoomed pixels — the transform multiplies them visually.
   useEffect(() => {
-    const update = () => {
-      const p = previewRef.current;
-      if (!p) return;
-      const r = p.getBoundingClientRect();
+    const p = previewRef.current;
+    if (!p || typeof ResizeObserver === 'undefined') return;
+    const ro = new ResizeObserver(entries => {
+      for (const entry of entries) {
+        const cr = entry.contentRect;
+        if (cr.width > 0 && cr.height > 0) {
+          setCanvasRect({ width: cr.width, height: cr.height });
+        }
+      }
+    });
+    ro.observe(p);
+    // Initial measurement (may report 0 first paint if canvas not yet sized)
+    const r = p.getBoundingClientRect();
+    if (r.width > 0 && r.height > 0) {
       setCanvasRect({ width: r.width, height: r.height });
-    };
-    update();
-    window.addEventListener('resize', update);
-    return () => window.removeEventListener('resize', update);
+    }
+    return () => ro.disconnect();
   }, []);
 
   // Detect upgrade-required errors
@@ -327,8 +365,9 @@ export function BackgroundRemovalPanel({
 
   /**
    * Render preview based on viewMode (read from ref so this callback stays stable):
-   * - 'cutout': original at full alpha for kept pixels, faded to ~30% for removed
-   * - 'original': original at full alpha, mask not applied (marching ants overlay still shows)
+   * - 'cutout' (default): kept = original alpha, removed = faded (≤76, ~30%)
+   * - 'preview': kept = original alpha, removed = 0 (final-result preview, transparent)
+   * - 'original': original at full alpha, mask not applied
    */
   const renderPreviewFromMask = useCallback((mask: Uint8Array) => {
     const orig = originalDataRef.current;
@@ -339,7 +378,8 @@ export function BackgroundRemovalPanel({
     const w = orig.width;
     const h = orig.height;
     pCtx.clearRect(0, 0, w, h);
-    if (viewModeRef.current === 'original') {
+    const mode = viewModeRef.current;
+    if (mode === 'original') {
       pCtx.putImageData(orig, 0, 0);
       return;
     }
@@ -347,9 +387,16 @@ export function BackgroundRemovalPanel({
     const out = new ImageData(new Uint8ClampedArray(orig.data), w, h);
     const od = out.data;
     const src = orig.data;
-    for (let i = 0; i < mask.length; i++) {
-      const a = src[i * 4 + 3];
-      od[i * 4 + 3] = mask[i] ? a : Math.min(a, 76);
+    if (mode === 'preview') {
+      for (let i = 0; i < mask.length; i++) {
+        od[i * 4 + 3] = mask[i] ? src[i * 4 + 3] : 0;
+      }
+    } else {
+      // cutout: faded for removed
+      for (let i = 0; i < mask.length; i++) {
+        const a = src[i * 4 + 3];
+        od[i * 4 + 3] = mask[i] ? a : Math.min(a, 76);
+      }
     }
     pCtx.putImageData(out, 0, 0);
   }, []);
@@ -537,7 +584,7 @@ export function BackgroundRemovalPanel({
     [runPredictRaw, recomputeCumulative]
   );
 
-  // ---------- Canvas mouse handlers ----------
+  // ---------- Canvas pointer handlers (mouse + touch + pen) + zoom/pan ----------
   // Compute scale from canvas-pixel space → SVG display space
   const overlayScaleNow = useCallback(() => {
     const p = previewRef.current;
@@ -545,33 +592,167 @@ export function BackgroundRemovalPanel({
     return canvasRect.width / p.width;
   }, [canvasRect]);
 
-  const handleMouseDown = useCallback(
-    (e: React.MouseEvent<HTMLCanvasElement>) => {
+  const clampZoom = (z: number) => Math.max(0.25, Math.min(8, z));
+
+  const cancelInProgressStroke = useCallback(() => {
+    if (!isDrawingRef.current) return;
+    isDrawingRef.current = false;
+    currentStrokeRef.current = [];
+    const live = livePathRef.current;
+    if (live) live.setAttribute('d', '');
+  }, []);
+
+  const endStroke = useCallback(() => {
+    if (!isDrawingRef.current) return;
+    const path = currentStrokeRef.current;
+    const sizeAtCommit = brushSize;
+    const toolAtCommit = brushTool;
+    isDrawingRef.current = false;
+    currentStrokeRef.current = [];
+    const live = livePathRef.current;
+    if (live) live.setAttribute('d', '');
+    commitStroke(toolAtCommit, path, sizeAtCommit);
+  }, [commitStroke, brushTool, brushSize]);
+
+  const handlePointerDown = useCallback(
+    (e: React.PointerEvent<HTMLCanvasElement>) => {
       if (hasResult) return;
       if (panelMode === 'color-pick') return; // handled by onClick
       if (panelMode !== 'ai-brush') return;
+      lastPointerTypeRef.current = e.pointerType;
+      if (e.pointerType === 'touch') setCursorPos(null);
+
+      // Track pointer
+      activePointersRef.current.set(e.pointerId, {
+        x: e.clientX,
+        y: e.clientY,
+        type: e.pointerType,
+      });
+      try {
+        e.currentTarget.setPointerCapture(e.pointerId);
+      } catch {
+        /* ignore */
+      }
+
+      const activeCount = activePointersRef.current.size;
+
+      // Two pointers down → start pinch/pan gesture; cancel any in-progress stroke
+      if (activeCount === 2) {
+        cancelInProgressStroke();
+        const pts = Array.from(activePointersRef.current.values());
+        const dx = pts[1].x - pts[0].x;
+        const dy = pts[1].y - pts[0].y;
+        const dist = Math.hypot(dx, dy) || 1;
+        const wrapper = canvasZoomWrapperRef.current;
+        const rect = wrapper?.getBoundingClientRect();
+        gestureStartRef.current = {
+          dist,
+          midX: (pts[0].x + pts[1].x) / 2,
+          midY: (pts[0].y + pts[1].y) / 2,
+          zoom,
+          pan: { ...pan },
+          rectLeft: rect?.left ?? 0,
+          rectTop: rect?.top ?? 0,
+        };
+        return;
+      }
+
+      // Single pointer + spacebar → pan drag (desktop only)
+      if (isSpaceHeldRef.current) {
+        panDragStartRef.current = {
+          clientX: e.clientX,
+          clientY: e.clientY,
+          panX: pan.x,
+          panY: pan.y,
+        };
+        return;
+      }
+
       if (!samSession) return;
       const c = eventToCanvasCoords(e);
       if (!c) return;
       isDrawingRef.current = true;
       currentStrokeRef.current = [{ x: c.x, y: c.y }];
-      // Begin live SVG path
       const live = livePathRef.current;
       if (live) {
         const scale = overlayScaleNow();
         live.setAttribute('d', pathToSvgD(currentStrokeRef.current, scale));
         live.setAttribute('stroke', brushTool === 'keep' ? '#10b981' : '#ef4444');
-        live.setAttribute('stroke-width', String(brushSize * scale));
+        live.setAttribute(
+          'stroke-width',
+          String(brushSize * scale * zoom)
+        );
       }
     },
-    [panelMode, hasResult, samSession, eventToCanvasCoords, brushTool, brushSize, overlayScaleNow]
+    [
+      hasResult,
+      panelMode,
+      samSession,
+      eventToCanvasCoords,
+      brushTool,
+      brushSize,
+      overlayScaleNow,
+      pan,
+      zoom,
+      cancelInProgressStroke,
+    ]
   );
 
-  const handleMouseMove = useCallback(
-    (e: React.MouseEvent<HTMLCanvasElement>) => {
+  const handlePointerMove = useCallback(
+    (e: React.PointerEvent<HTMLCanvasElement>) => {
+      // Update tracked pointer
+      if (activePointersRef.current.has(e.pointerId)) {
+        activePointersRef.current.set(e.pointerId, {
+          x: e.clientX,
+          y: e.clientY,
+          type: e.pointerType,
+        });
+      }
+
+      // Two-pointer pinch/pan in progress
+      if (activePointersRef.current.size === 2 && gestureStartRef.current) {
+        const pts = Array.from(activePointersRef.current.values());
+        const dist =
+          Math.hypot(pts[1].x - pts[0].x, pts[1].y - pts[0].y) || 1;
+        const midX = (pts[0].x + pts[1].x) / 2;
+        const midY = (pts[0].y + pts[1].y) / 2;
+        const start = gestureStartRef.current;
+        const newZoom = clampZoom(start.zoom * (dist / start.dist));
+        // Zoom-toward-start-midpoint correction (using start rect, not current).
+        const factor = newZoom / start.zoom;
+        const dxZoom = (start.midX - start.rectLeft) * (1 - factor);
+        const dyZoom = (start.midY - start.rectTop) * (1 - factor);
+        // Plus pan from midpoint translation since gesture start.
+        const dxPan = midX - start.midX;
+        const dyPan = midY - start.midY;
+        setZoom(newZoom);
+        setPan({
+          x: start.pan.x + dxZoom + dxPan,
+          y: start.pan.y + dyZoom + dyPan,
+        });
+        return;
+      }
+
+      // Pan drag (spacebar + mouse)
+      if (panDragStartRef.current) {
+        const start = panDragStartRef.current;
+        setPan({
+          x: start.panX + (e.clientX - start.clientX),
+          y: start.panY + (e.clientY - start.clientY),
+        });
+        return;
+      }
+
+      // Cursor / brush move
       const c = eventToCanvasCoords(e);
       if (!c) return;
-      if (panelMode === 'ai-brush') setCursorPos({ x: c.displayX, y: c.displayY });
+      if (
+        panelMode === 'ai-brush' &&
+        e.pointerType === 'mouse' &&
+        !isSpaceHeldRef.current
+      ) {
+        setCursorPos({ x: c.displayX, y: c.displayY });
+      }
       if (!isDrawingRef.current) return;
       currentStrokeRef.current.push({ x: c.x, y: c.y });
       const live = livePathRef.current;
@@ -583,24 +764,106 @@ export function BackgroundRemovalPanel({
     [panelMode, eventToCanvasCoords, overlayScaleNow]
   );
 
-  const endStroke = useCallback(() => {
-    if (!isDrawingRef.current) return;
-    const path = currentStrokeRef.current;
-    const sizeAtCommit = brushSize;
-    const toolAtCommit = brushTool;
-    isDrawingRef.current = false;
-    currentStrokeRef.current = [];
-    // Clear live preview path (committed stroke takes over via React render)
-    const live = livePathRef.current;
-    if (live) live.setAttribute('d', '');
-    commitStroke(toolAtCommit, path, sizeAtCommit);
-  }, [commitStroke, brushTool, brushSize]);
+  const handlePointerEnd = useCallback(
+    (e: React.PointerEvent<HTMLCanvasElement>) => {
+      activePointersRef.current.delete(e.pointerId);
 
-  const handleMouseUp = useCallback(() => endStroke(), [endStroke]);
-  const handleMouseLeave = useCallback(() => {
-    setCursorPos(null);
-    endStroke();
-  }, [endStroke]);
+      // Exit gesture mode if we drop below 2 pointers
+      if (gestureStartRef.current && activePointersRef.current.size < 2) {
+        gestureStartRef.current = null;
+      }
+
+      // End pan drag
+      if (panDragStartRef.current) {
+        panDragStartRef.current = null;
+        return;
+      }
+
+      // End brush stroke
+      endStroke();
+    },
+    [endStroke]
+  );
+
+  const handlePointerLeave = useCallback(
+    (e: React.PointerEvent<HTMLCanvasElement>) => {
+      if (e.pointerType === 'mouse') setCursorPos(null);
+      // On leave, only end if no remaining pointers / not gesture / not pan-drag
+      if (activePointersRef.current.size === 0) endStroke();
+    },
+    [endStroke]
+  );
+
+  const handlePointerCancel = useCallback(
+    (e: React.PointerEvent<HTMLCanvasElement>) => {
+      activePointersRef.current.delete(e.pointerId);
+      gestureStartRef.current = null;
+      panDragStartRef.current = null;
+      cancelInProgressStroke();
+    },
+    [cancelInProgressStroke]
+  );
+
+  // ---------- Wheel zoom (desktop) ----------
+  // Attach native (non-passive) wheel listener so preventDefault actually works.
+  useEffect(() => {
+    const wrapper = canvasZoomWrapperRef.current;
+    if (!wrapper) return;
+    const handler = (e: WheelEvent) => {
+      if (panelMode !== 'ai-brush' || hasResult) return;
+      e.preventDefault();
+      const rect = wrapper.getBoundingClientRect();
+      const factor = e.deltaY < 0 ? 1.1 : 1 / 1.1;
+      const newZoom = clampZoom(zoom * factor);
+      if (newZoom === zoom) return;
+      const dx = (e.clientX - rect.left) * (1 - newZoom / zoom);
+      const dy = (e.clientY - rect.top) * (1 - newZoom / zoom);
+      setZoom(newZoom);
+      setPan(p => ({ x: p.x + dx, y: p.y + dy }));
+    };
+    wrapper.addEventListener('wheel', handler, { passive: false });
+    return () => wrapper.removeEventListener('wheel', handler);
+  }, [zoom, panelMode, hasResult]);
+
+  // ---------- Spacebar pan-mode (desktop) ----------
+  useEffect(() => {
+    const isFormField = (el: EventTarget | null) =>
+      el instanceof HTMLElement &&
+      ['INPUT', 'TEXTAREA', 'SELECT'].includes(el.tagName);
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.code !== 'Space' || isFormField(e.target)) return;
+      e.preventDefault();
+      isSpaceHeldRef.current = true;
+      setIsSpaceHeld(true);
+      // Cancel any cursor circle while panning
+      setCursorPos(null);
+    };
+    const onKeyUp = (e: KeyboardEvent) => {
+      if (e.code !== 'Space') return;
+      isSpaceHeldRef.current = false;
+      setIsSpaceHeld(false);
+      // If a pan-drag is mid-flight, end it.
+      panDragStartRef.current = null;
+    };
+    window.addEventListener('keydown', onKeyDown);
+    window.addEventListener('keyup', onKeyUp);
+    return () => {
+      window.removeEventListener('keydown', onKeyDown);
+      window.removeEventListener('keyup', onKeyUp);
+    };
+  }, []);
+
+  // ---------- Zoom controls ----------
+  const handleZoomIn = useCallback(() => {
+    setZoom(z => clampZoom(z * 1.25));
+  }, []);
+  const handleZoomOut = useCallback(() => {
+    setZoom(z => clampZoom(z / 1.25));
+  }, []);
+  const handleZoomFit = useCallback(() => {
+    setZoom(1);
+    setPan({ x: 0, y: 0 });
+  }, []);
 
   // Color-pick click (eyedropper or seed-fill)
   const handlePreviewClick = useCallback(
@@ -779,14 +1042,15 @@ export function BackgroundRemovalPanel({
 
   const isProcessing = ['authorizing', 'detecting', 'removing', 'embedding', 'predicting'].includes(status);
   const samReady = samSession !== null;
-  const cursorClass =
-    !hasResult && panelMode === 'color-pick'
-      ? clickRemoveMode
-        ? 'cursor-crosshair'
-        : 'cursor-cell'
-      : !hasResult && panelMode === 'ai-brush' && samReady
-        ? 'cursor-none'
-        : '';
+  const cursorClass = (() => {
+    if (hasResult) return '';
+    if (isSpaceHeld) return 'cursor-grab';
+    if (panelMode === 'color-pick') {
+      return clickRemoveMode ? 'cursor-crosshair' : 'cursor-cell';
+    }
+    if (panelMode === 'ai-brush' && samReady) return 'cursor-none';
+    return '';
+  })();
 
   // Compute overlay scale for cursor + dot positioning
   const overlayScale =
@@ -842,121 +1106,167 @@ export function BackgroundRemovalPanel({
           }}
         >
           <div className="relative">
-            <canvas
-              ref={previewRef}
-              suppressHydrationWarning
-              className="max-w-full max-h-full shadow-lg rounded block"
-              style={{ maxHeight: 'calc(100vh - 280px)', background: 'transparent' }}
-              onClick={handlePreviewClick}
-              onMouseDown={handleMouseDown}
-              onMouseMove={handleMouseMove}
-              onMouseUp={handleMouseUp}
-              onMouseLeave={handleMouseLeave}
-            />
-            {/* Brush cursor overlay */}
-            {panelMode === 'ai-brush' && cursorPos && samReady && !hasResult && (
-              <div
-                className="absolute pointer-events-none rounded-full border-2"
-                style={{
-                  left: cursorPos.x - (brushSize * overlayScale) / 2,
-                  top: cursorPos.y - (brushSize * overlayScale) / 2,
-                  width: brushSize * overlayScale,
-                  height: brushSize * overlayScale,
-                  borderColor: brushTool === 'keep' ? '#10b981' : '#ef4444',
-                  background:
-                    brushTool === 'keep'
-                      ? 'rgba(16,185,129,0.18)'
-                      : 'rgba(239,68,68,0.18)',
-                }}
+            {/* Zoom/pan transform wrapper — only the canvas + SVG overlays
+                live inside this. Cursor circle + view pill + zoom controls
+                stay OUTSIDE so they don't scale or pan. */}
+            <div
+              ref={canvasZoomWrapperRef}
+              style={{
+                transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})`,
+                transformOrigin: '0 0',
+                touchAction: 'none',
+                position: 'relative',
+                lineHeight: 0,
+              }}
+            >
+              <canvas
+                ref={previewRef}
+                suppressHydrationWarning
+                className="max-w-full max-h-full shadow-lg rounded block"
+                style={{ maxHeight: 'calc(100vh - 280px)', background: 'transparent' }}
+                onClick={handlePreviewClick}
+                onPointerDown={handlePointerDown}
+                onPointerMove={handlePointerMove}
+                onPointerUp={handlePointerEnd}
+                onPointerLeave={handlePointerLeave}
+                onPointerCancel={handlePointerCancel}
               />
-            )}
-            {/* Stroke-line overlay (committed strokes + in-progress live path) */}
-            {panelMode === 'ai-brush' && !hasResult && canvasRect && (
-              <svg
-                className="absolute inset-0 pointer-events-none"
-                width={canvasRect.width}
-                height={canvasRect.height}
-              >
-                {strokeHistory.map((s: StrokeRecord, i: number) => (
+              {/* Stroke-line overlay (committed strokes + in-progress live path) */}
+              {panelMode === 'ai-brush' && !hasResult && canvasRect && (
+                <svg
+                  className="absolute inset-0 pointer-events-none"
+                  width={canvasRect.width}
+                  height={canvasRect.height}
+                >
+                  {strokeHistory.map((s: StrokeRecord, i: number) => (
+                    <path
+                      key={i}
+                      d={pathToSvgD(s.rawPath, overlayScale)}
+                      stroke={s.tool === 'keep' ? '#10b981' : '#ef4444'}
+                      strokeWidth={s.brushSize * overlayScale}
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      fill="none"
+                      opacity={0.65}
+                    />
+                  ))}
                   <path
-                    key={i}
-                    d={pathToSvgD(s.rawPath, overlayScale)}
-                    stroke={s.tool === 'keep' ? '#10b981' : '#ef4444'}
-                    strokeWidth={s.brushSize * overlayScale}
+                    ref={livePathRef}
+                    d=""
+                    stroke={brushTool === 'keep' ? '#10b981' : '#ef4444'}
+                    strokeWidth={brushSize * overlayScale}
                     strokeLinecap="round"
                     strokeLinejoin="round"
                     fill="none"
                     opacity={0.65}
                   />
-                ))}
-                <path
-                  ref={livePathRef}
-                  d=""
-                  stroke={brushTool === 'keep' ? '#10b981' : '#ef4444'}
-                  strokeWidth={brushSize * overlayScale}
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  fill="none"
-                  opacity={0.65}
-                />
-              </svg>
-            )}
-            {/* Marching-ants outline: traces the cumulative mask boundary.
-                Uses viewBox so coords are mask-pixel space (resize-stable). */}
-            {panelMode === 'ai-brush' &&
-              !hasResult &&
-              canvasRect &&
-              contoursD &&
-              previewRef.current && (
-                <svg
-                  className="absolute inset-0 pointer-events-none"
-                  width={canvasRect.width}
-                  height={canvasRect.height}
-                  viewBox={`0 0 ${previewRef.current.width} ${previewRef.current.height}`}
-                  preserveAspectRatio="none"
-                >
-                  <path
-                    d={contoursD}
-                    fill="none"
-                    stroke="black"
-                    strokeWidth={1.5}
-                    vectorEffect="non-scaling-stroke"
-                  />
-                  <path
-                    d={contoursD}
-                    fill="none"
-                    stroke="white"
-                    strokeWidth={1.5}
-                    strokeDasharray="4 4"
-                    vectorEffect="non-scaling-stroke"
-                    className="marching-ants"
-                  />
                 </svg>
               )}
-            {/* View-mode pill (Cutout / Original) — top-left of canvas */}
+              {/* Marching-ants outline: hidden in 'preview' view */}
+              {panelMode === 'ai-brush' &&
+                !hasResult &&
+                viewMode !== 'preview' &&
+                canvasRect &&
+                contoursD &&
+                previewRef.current && (
+                  <svg
+                    className="absolute inset-0 pointer-events-none"
+                    width={canvasRect.width}
+                    height={canvasRect.height}
+                    viewBox={`0 0 ${previewRef.current.width} ${previewRef.current.height}`}
+                    preserveAspectRatio="none"
+                  >
+                    <path
+                      d={contoursD}
+                      fill="none"
+                      stroke="black"
+                      strokeWidth={1.5}
+                      vectorEffect="non-scaling-stroke"
+                    />
+                    <path
+                      d={contoursD}
+                      fill="none"
+                      stroke="white"
+                      strokeWidth={1.5}
+                      strokeDasharray="4 4"
+                      vectorEffect="non-scaling-stroke"
+                    />
+                  </svg>
+                )}
+            </div>
+            {/* Brush cursor overlay — outside transform; positioned in untransformed
+                space and sized by zoom so it tracks the visible brush footprint. */}
+            {panelMode === 'ai-brush' &&
+              cursorPos &&
+              samReady &&
+              !hasResult &&
+              lastPointerTypeRef.current === 'mouse' &&
+              !isSpaceHeld && (
+                <div
+                  className="absolute pointer-events-none rounded-full border-2"
+                  style={{
+                    left:
+                      pan.x + cursorPos.x - (brushSize * overlayScale * zoom) / 2,
+                    top:
+                      pan.y + cursorPos.y - (brushSize * overlayScale * zoom) / 2,
+                    width: brushSize * overlayScale * zoom,
+                    height: brushSize * overlayScale * zoom,
+                    borderColor: brushTool === 'keep' ? '#10b981' : '#ef4444',
+                    background:
+                      brushTool === 'keep'
+                        ? 'rgba(16,185,129,0.18)'
+                        : 'rgba(239,68,68,0.18)',
+                  }}
+                />
+              )}
+            {/* View-mode pill (Cutout / Preview / Original) — top-left */}
             {panelMode === 'ai-brush' && !hasResult && (
               <div className="absolute top-2 left-2 z-10 flex rounded-full bg-white/90 backdrop-blur-sm shadow border border-gray-200 overflow-hidden text-xs font-medium">
+                {(['cutout', 'preview', 'original'] as const).map(m => (
+                  <button
+                    key={m}
+                    type="button"
+                    onClick={() => setViewMode(m)}
+                    className={`px-3 py-1 transition-colors capitalize ${
+                      viewMode === m
+                        ? 'bg-blue-600 text-white'
+                        : 'text-gray-700 hover:bg-gray-50'
+                    }`}
+                  >
+                    {m}
+                  </button>
+                ))}
+              </div>
+            )}
+            {/* Zoom-controls pill — top-right */}
+            {panelMode === 'ai-brush' && !hasResult && (
+              <div className="absolute top-2 right-2 z-10 flex items-center rounded-full bg-white/90 backdrop-blur-sm shadow border border-gray-200 overflow-hidden text-xs font-medium">
                 <button
                   type="button"
-                  onClick={() => setViewMode('cutout')}
-                  className={`px-3 py-1 transition-colors ${
-                    viewMode === 'cutout'
-                      ? 'bg-blue-600 text-white'
-                      : 'text-gray-700 hover:bg-gray-50'
-                  }`}
+                  onClick={handleZoomOut}
+                  className="px-2.5 py-1 text-gray-700 hover:bg-gray-50"
+                  title="Zoom out"
                 >
-                  Cutout
+                  −
+                </button>
+                <span className="px-2 text-gray-500 tabular-nums select-none">
+                  {Math.round(zoom * 100)}%
+                </span>
+                <button
+                  type="button"
+                  onClick={handleZoomIn}
+                  className="px-2.5 py-1 text-gray-700 hover:bg-gray-50"
+                  title="Zoom in"
+                >
+                  +
                 </button>
                 <button
                   type="button"
-                  onClick={() => setViewMode('original')}
-                  className={`px-3 py-1 transition-colors ${
-                    viewMode === 'original'
-                      ? 'bg-blue-600 text-white'
-                      : 'text-gray-700 hover:bg-gray-50'
-                  }`}
+                  onClick={handleZoomFit}
+                  className="px-2.5 py-1 text-gray-700 hover:bg-gray-50 border-l border-gray-200"
+                  title="Reset zoom and pan"
                 >
-                  Original
+                  Fit
                 </button>
               </div>
             )}
