@@ -1186,8 +1186,8 @@ export function BackgroundRemovalPanel({
     // Phase 2.2 follow-up: Apply Mask now also propagates the
     // background-removed canvas to Studio's working image so chained
     // tools (Upscale, Color Change, Vectorize) receive the cleaned
-    // version. Studio's global Save to Gallery commits when the user
-    // is done across all tools.
+    // version. Studio's global Download (header) downloads the file
+    // and auto-saves to gallery once the user is done across tools.
     onSave(canvas, 'in-house').catch(err => {
       console.error('[BgRemoval] Apply propagation failed:', err);
     });

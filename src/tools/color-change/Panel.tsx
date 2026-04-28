@@ -825,7 +825,7 @@ export function ColorChangeEditor({
           <div className="flex-shrink-0 px-3 py-2 border-t border-gray-200 bg-white">
             <p className="text-[10px] text-gray-400 text-center">
               {usageRemaining > 0
-                ? `${usageLimit - usageRemaining}/${usageLimit} free changes used — Save to Gallery in the header to commit.`
+                ? `${usageLimit - usageRemaining}/${usageLimit} free changes used — hit Download in the header when finished.`
                 : 'Over limit — saving will use 1 credit.'}
             </p>
           </div>
@@ -1007,8 +1007,9 @@ export function ColorChangeEditor({
                 </div>
                 <div className="ml-8 space-y-2 text-gray-500">
                   <p>
-                    <strong className="text-gray-700">Save to Gallery</strong>{' '}
-                    stores the image in your account.
+                    <strong className="text-gray-700">Download</strong> in the
+                    Studio header saves the file to your computer and your
+                    gallery in one click.
                   </p>
                   <p>
                     <strong className="text-gray-700">Download</strong> saves to

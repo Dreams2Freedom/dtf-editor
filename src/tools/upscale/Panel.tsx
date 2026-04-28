@@ -519,7 +519,7 @@ export function UpscalePanel({ image, onApply }: StudioToolPanelProps) {
 
             <p className="text-xs text-gray-400 mt-auto pt-2">
               Powered by {provider.label}. Each upscale costs 1 credit. When
-              you&apos;re happy, use Save to Gallery in the header.
+              you&apos;re happy, hit Download in the header.
             </p>
           </div>
         </div>

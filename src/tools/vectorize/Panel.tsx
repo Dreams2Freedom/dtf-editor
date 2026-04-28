@@ -198,7 +198,7 @@ export function VectorizePanel({ image, onApply }: StudioToolPanelProps) {
 
             <p className="text-xs text-gray-400 mt-auto pt-2">
               Powered by {provider.label}. Each vectorize costs 2 credits. When
-              you&apos;re happy, use Save to Gallery in the header.
+              you&apos;re happy, hit Download in the header.
             </p>
           </div>
         </div>

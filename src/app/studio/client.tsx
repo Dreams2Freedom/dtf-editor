@@ -13,8 +13,9 @@
  *      whenever a tool emits onApply(canvas, meta).
  *   3. Tool picker pill row at the top lets the user switch tools at any
  *      time. The active tool's Panel renders in the main area.
- *   4. Save to Gallery posts the current workingImage as a new processed
- *      image (operation_type tagged from the most recent applied meta).
+ *   4. Download triggers a PNG download AND auto-saves the workingImage
+ *      to the user's gallery (operation_type tagged from the most recent
+ *      applied meta) — single primary action, Photoshop-style.
  *   5. Reset to Original reverts workingImage back to the upload.
  *
  * Tool plugins live under src/tools/<tool-id>/. Studio knows nothing
@@ -27,9 +28,9 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import {
   AlertTriangle,
   ArrowUpRight,
+  Download,
   Loader2,
   RotateCcw,
-  Save,
 } from 'lucide-react';
 
 import { SignupModal } from '@/components/auth/SignupModal';
@@ -203,8 +204,18 @@ export default function StudioClient() {
     []
   );
 
-  /** Studio-level save: posts the current workingImage to /api/process. */
-  const handleSaveToGallery = useCallback(async () => {
+  /**
+   * Studio-level Download:
+   *   1. Triggers a browser download of the current workingImage as PNG.
+   *   2. Posts the same blob to /api/process so the result also lands
+   *      in the user's gallery as a backup. The save is fire-and-forget
+   *      from the user's perspective — Download is the explicit action,
+   *      gallery insertion is automatic insurance.
+   *
+   * Single primary action chosen over a Save+Download pair to keep the
+   * Photoshop/Canva-style flow simple: one button, no decision required.
+   */
+  const handleDownload = useCallback(async () => {
     const img = workingImage;
     if (!img) return;
     setIsSaving(true);
@@ -221,6 +232,19 @@ export default function StudioClient() {
           'image/png'
         )
       );
+
+      // Trigger the browser download immediately so the user gets the
+      // file even if the gallery save is slow / fails.
+      const downloadUrl = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = downloadUrl;
+      a.download = `dtf-${(lastApplyMeta?.operation ?? 'studio').replace(/[^a-z0-9_-]+/gi, '-')}-${Date.now()}.png`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(() => URL.revokeObjectURL(downloadUrl), 100);
+
+      // Auto-save to gallery so the user can come back later.
       const form = new FormData();
       form.append('image', blob, 'studio-output.png');
       form.append('operation', lastApplyMeta?.operation ?? 'studio_composite');
@@ -233,12 +257,18 @@ export default function StudioClient() {
       });
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
-        throw new Error(data.error || 'Failed to save');
+        // Don't surface a hard error — the user already has their
+        // downloaded file. Log for diagnostics only.
+        console.error(
+          '[Studio] gallery save failed:',
+          data.error || res.status
+        );
+      } else {
+        const result = await res.json();
+        setSavedImageId(result.metadata?.savedId || null);
       }
-      const result = await res.json();
-      setSavedImageId(result.metadata?.savedId || null);
     } catch (err) {
-      console.error('[Studio] save failed:', err);
+      console.error('[Studio] download failed:', err);
     } finally {
       setIsSaving(false);
     }
@@ -306,16 +336,17 @@ export default function StudioClient() {
               Reset
             </button>
             <button
-              onClick={handleSaveToGallery}
+              onClick={handleDownload}
               disabled={!workingImage || isSaving}
               className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-green-600 hover:bg-green-700 text-white rounded-md transition-colors disabled:opacity-60"
+              title="Download PNG (also saved to your gallery)"
             >
               {isSaving ? (
                 <Loader2 className="w-3.5 h-3.5 animate-spin" />
               ) : (
-                <Save className="w-3.5 h-3.5" />
+                <Download className="w-3.5 h-3.5" />
               )}
-              Save to Gallery
+              Download
             </button>
           </div>
         </div>
@@ -390,7 +421,8 @@ export default function StudioClient() {
               </p>
               <p className="text-sm text-gray-500">
                 Your image lives here — apply tools in any order, chain results
-                together, then Save to Gallery when you&apos;re happy.
+                together, then Download when you&apos;re happy (auto-saves
+                to your gallery).
               </p>
             </div>
           </div>
@@ -422,7 +454,7 @@ export default function StudioClient() {
               d="M4.5 12.75l6 6 9-13.5"
             />
           </svg>
-          Saved to gallery
+          Downloaded · Saved to gallery
           <a
             href="/dashboard#my-images"
             className="underline ml-1 opacity-80 hover:opacity-100"
