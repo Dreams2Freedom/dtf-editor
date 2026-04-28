@@ -124,6 +124,7 @@ const eslintConfig = [
     files: [
       'src/app/studio/**/*.{ts,tsx}',
       'src/app/process/**/*.{ts,tsx}',
+      'src/app/api/**/*.{ts,tsx}',
       'src/tools/registry.ts',
       'src/tools/types.ts',
     ],
