@@ -33,6 +33,10 @@ export interface UseBackgroundRemovalReturn {
   runEmbed: (canvas: HTMLCanvasElement) => Promise<void>;
   /** Run SAM prediction with prompt points. Returns updated masked image. */
   runPredict: (points: SamPoint[]) => Promise<HTMLImageElement | null>;
+  /** Run SAM prediction and additionally return the binary alpha mask (1 byte/pixel, 0 or 1). */
+  runPredictRaw: (
+    points: SamPoint[]
+  ) => Promise<{ img: HTMLImageElement; mask: Uint8Array; width: number; height: number } | null>;
   reset: () => void;
 }
 
@@ -310,6 +314,49 @@ export function useBackgroundRemoval(): UseBackgroundRemovalReturn {
     [samSession]
   );
 
+  const runPredictRaw = useCallback(
+    async (
+      points: SamPoint[]
+    ): Promise<
+      { img: HTMLImageElement; mask: Uint8Array; width: number; height: number } | null
+    > => {
+      if (!samSession) {
+        setError('No SAM session — run embed first');
+        return null;
+      }
+      try {
+        setError(null);
+        setStatus('predicting');
+        const { blob: resultBlob } = await predictMask(samSession, points);
+        const img = await blobToImage(resultBlob);
+        const w = img.naturalWidth;
+        const h = img.naturalHeight;
+        const off = document.createElement('canvas');
+        off.width = w;
+        off.height = h;
+        const offCtx = off.getContext('2d');
+        if (!offCtx) {
+          throw new Error('Failed to get 2D context for mask extraction');
+        }
+        offCtx.drawImage(img, 0, 0);
+        const imgData = offCtx.getImageData(0, 0, w, h);
+        const mask = new Uint8Array(w * h);
+        const src = imgData.data;
+        for (let i = 0; i < mask.length; i++) {
+          mask[i] = src[i * 4 + 3] > 127 ? 1 : 0;
+        }
+        setStatus('done');
+        return { img, mask, width: w, height: h };
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : 'Unknown error';
+        setError(msg);
+        setStatus('error');
+        return null;
+      }
+    },
+    [samSession]
+  );
+
   return {
     status,
     error,
@@ -319,6 +366,7 @@ export function useBackgroundRemoval(): UseBackgroundRemovalReturn {
     runDetect,
     runEmbed,
     runPredict,
+    runPredictRaw,
     reset,
   };
 }

@@ -85,8 +85,16 @@ export function BackgroundRemovalPanel({
   const [clickRemoveMode, setClickRemoveMode] = useState(false);
 
   // AI Brush state
-  const [strokeHistory, setStrokeHistory] = useState<SamPoint[][]>([]);
-  const [brushTool, setBrushTool] = useState<'keep' | 'remove'>('keep');
+  type BrushTool = 'keep' | 'remove';
+  interface StrokeRecord {
+    tool: BrushTool;
+    points: SamPoint[];
+    maskBefore: Uint8Array;
+  }
+  const [strokeHistory, setStrokeHistory] = useState<StrokeRecord[]>([]);
+  const strokeHistoryRef = useRef<StrokeRecord[]>([]);
+  const cumulativeMaskRef = useRef<Uint8Array | null>(null);
+  const [brushTool, setBrushTool] = useState<BrushTool>('keep');
   const [brushSize, setBrushSize] = useState(20);
   const isDrawingRef = useRef(false);
   const currentStrokeRef = useRef<Array<{ x: number; y: number }>>([]);
@@ -107,7 +115,7 @@ export function BackgroundRemovalPanel({
     runDetect,
     runRemoval,
     runEmbed,
-    runPredict,
+    runPredictRaw,
     reset,
   } = useBackgroundRemoval();
 
@@ -139,13 +147,26 @@ export function BackgroundRemovalPanel({
       const c = canvasRef.current;
       if (!c) return;
       runRemoval(c, { mode: 'ml-only', model: 'birefnet-general-lite' }).then(img => {
-        const p = previewRef.current;
-        if (!img || !p) return;
-        const pCtx = p.getContext('2d');
-        if (!pCtx) return;
-        pCtx.clearRect(0, 0, p.width, p.height);
-        pCtx.drawImage(img, 0, 0, p.width, p.height);
-        initialMaskRef.current = pCtx.getImageData(0, 0, p.width, p.height);
+        const orig = originalDataRef.current;
+        if (!img || !orig) return;
+        // Extract initial mask from BiRefNet alpha
+        const off = document.createElement('canvas');
+        off.width = orig.width;
+        off.height = orig.height;
+        const offCtx = off.getContext('2d');
+        if (!offCtx) return;
+        offCtx.drawImage(img, 0, 0, orig.width, orig.height);
+        const data = offCtx.getImageData(0, 0, orig.width, orig.height);
+        initialMaskRef.current = data;
+        // Only seed cumulative mask if user hasn't started brushing yet
+        if (strokeHistoryRef.current.length === 0) {
+          const m = new Uint8Array(orig.width * orig.height);
+          for (let i = 0; i < m.length; i++) {
+            m[i] = data.data[i * 4 + 3] > 127 ? 1 : 0;
+          }
+          cumulativeMaskRef.current = m;
+          renderPreviewFromMask(m);
+        }
       });
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -218,54 +239,90 @@ export function BackgroundRemovalPanel({
     []
   );
 
-  // ---------- AI Brush: predict + render ----------
-  const allSamPoints: SamPoint[] = strokeHistory.flat();
+  // ---------- AI Brush: cumulative mask + dual-layer rendering ----------
+  const allSamPoints: SamPoint[] = strokeHistory.flatMap((s: StrokeRecord) => s.points);
 
-  const renderInitialPreview = useCallback(() => {
+  /** Render preview = original at full opacity for kept pixels, faded to 30% for removed. */
+  const renderPreviewFromMask = useCallback((mask: Uint8Array) => {
+    const orig = originalDataRef.current;
     const p = previewRef.current;
-    if (!p) return;
+    if (!orig || !p) return;
     const pCtx = p.getContext('2d');
     if (!pCtx) return;
-    pCtx.clearRect(0, 0, p.width, p.height);
-    if (initialMaskRef.current) {
-      pCtx.putImageData(initialMaskRef.current, 0, 0);
-    } else if (originalDataRef.current) {
-      pCtx.putImageData(originalDataRef.current, 0, 0);
+    const w = orig.width;
+    const h = orig.height;
+    if (mask.length !== w * h) return;
+    const out = new ImageData(new Uint8ClampedArray(orig.data), w, h);
+    const od = out.data;
+    const src = orig.data;
+    for (let i = 0; i < mask.length; i++) {
+      const a = src[i * 4 + 3];
+      // Kept: preserve original alpha. Removed: cap at ~30% (76/255).
+      od[i * 4 + 3] = mask[i] ? a : Math.min(a, 76);
     }
+    pCtx.clearRect(0, 0, w, h);
+    pCtx.putImageData(out, 0, 0);
   }, []);
 
-  const runBrushPredict = useCallback(
-    async (points: SamPoint[]) => {
-      if (points.length === 0) {
-        renderInitialPreview();
-        return;
+  /** Reset cumulative mask to BiRefNet initial (or all-zeros if not loaded). Renders preview. */
+  const resetCumulativeToInitial = useCallback(() => {
+    const orig = originalDataRef.current;
+    if (!orig) return;
+    const total = orig.width * orig.height;
+    const initial = initialMaskRef.current;
+    const m = new Uint8Array(total);
+    if (initial && initial.data.length === total * 4) {
+      for (let i = 0; i < total; i++) {
+        m[i] = initial.data[i * 4 + 3] > 127 ? 1 : 0;
       }
-      const resultImg = await runPredict(points);
-      const p = previewRef.current;
-      if (!resultImg || !p) return;
-      const pCtx = p.getContext('2d');
-      if (!pCtx) return;
-      pCtx.clearRect(0, 0, p.width, p.height);
-      pCtx.drawImage(resultImg, 0, 0, p.width, p.height);
-    },
-    [runPredict, renderInitialPreview]
-  );
+    }
+    cumulativeMaskRef.current = m;
+    renderPreviewFromMask(m);
+  }, [renderPreviewFromMask]);
 
   const commitStroke = useCallback(
-    (path: Array<{ x: number; y: number }>) => {
+    async (tool: BrushTool, path: Array<{ x: number; y: number }>) => {
       if (path.length === 0) return;
+      const orig = originalDataRef.current;
+      if (!orig) return;
+      const total = orig.width * orig.height;
+
       const sampled = samplePathPoints(path, brushSize);
-      const label: 0 | 1 = brushTool === 'keep' ? 1 : 0;
-      const newPoints: SamPoint[] = sampled.map(p => ({
+      const label: 0 | 1 = tool === 'keep' ? 1 : 0;
+      const points: SamPoint[] = sampled.map(p => ({
         x: Math.round(p.x),
         y: Math.round(p.y),
         label,
       }));
-      const next = [...strokeHistory, newPoints];
-      setStrokeHistory(next);
-      runBrushPredict(next.flat());
+      if (points.length === 0) return;
+
+      // Snapshot current cumulative mask BEFORE running SAM (for undo).
+      const current = cumulativeMaskRef.current ?? new Uint8Array(total);
+      const maskBefore = new Uint8Array(current);
+
+      const result = await runPredictRaw(points);
+      if (!result) return;
+      const { mask: samMask, width: rw, height: rh } = result;
+      if (rw !== orig.width || rh !== orig.height || samMask.length !== total) {
+        console.warn('SAM mask dimensions mismatch; ignoring stroke');
+        return;
+      }
+
+      const next = new Uint8Array(current);
+      if (tool === 'keep') {
+        for (let i = 0; i < total; i++) next[i] = next[i] | samMask[i];
+      } else {
+        for (let i = 0; i < total; i++) next[i] = next[i] & (samMask[i] ^ 1);
+      }
+
+      cumulativeMaskRef.current = next;
+      const record: StrokeRecord = { tool, points, maskBefore };
+      const updatedHistory = [...strokeHistoryRef.current, record];
+      strokeHistoryRef.current = updatedHistory;
+      setStrokeHistory(updatedHistory);
+      renderPreviewFromMask(next);
     },
-    [brushSize, brushTool, strokeHistory, runBrushPredict]
+    [brushSize, runPredictRaw, renderPreviewFromMask]
   );
 
   // ---------- Canvas mouse handlers ----------
@@ -299,8 +356,8 @@ export function BackgroundRemovalPanel({
     const path = currentStrokeRef.current;
     isDrawingRef.current = false;
     currentStrokeRef.current = [];
-    commitStroke(path);
-  }, [commitStroke]);
+    commitStroke(brushTool, path);
+  }, [commitStroke, brushTool]);
 
   const handleMouseUp = useCallback(() => endStroke(), [endStroke]);
   const handleMouseLeave = useCallback(() => {
@@ -339,7 +396,9 @@ export function BackgroundRemovalPanel({
       if (hasResult) return;
       // Reset preview based on the mode we're entering
       if (mode === 'ai-brush') {
-        renderInitialPreview();
+        const m = cumulativeMaskRef.current;
+        if (m) renderPreviewFromMask(m);
+        else resetCumulativeToInitial();
       } else if (originalDataRef.current && previewRef.current) {
         const pCtx = previewRef.current.getContext('2d');
         if (pCtx) {
@@ -348,20 +407,25 @@ export function BackgroundRemovalPanel({
         }
       }
     },
-    [hasResult, renderInitialPreview]
+    [hasResult, renderPreviewFromMask, resetCumulativeToInitial]
   );
 
   const handleUndoStroke = useCallback(() => {
-    if (strokeHistory.length === 0) return;
-    const next = strokeHistory.slice(0, -1);
+    const history = strokeHistoryRef.current;
+    if (history.length === 0) return;
+    const popped = history[history.length - 1];
+    const next = history.slice(0, -1);
+    strokeHistoryRef.current = next;
     setStrokeHistory(next);
-    runBrushPredict(next.flat());
-  }, [strokeHistory, runBrushPredict]);
+    cumulativeMaskRef.current = new Uint8Array(popped.maskBefore);
+    renderPreviewFromMask(cumulativeMaskRef.current);
+  }, [renderPreviewFromMask]);
 
   const handleClearStrokes = useCallback(() => {
+    strokeHistoryRef.current = [];
     setStrokeHistory([]);
-    renderInitialPreview();
-  }, [renderInitialPreview]);
+    resetCumulativeToInitial();
+  }, [resetCumulativeToInitial]);
 
   // ---------- Server-removal for Color Pick / AI Only ----------
   const buildOptions = useCallback((): RemovalOptions => {
@@ -399,15 +463,30 @@ export function BackgroundRemovalPanel({
     setHasResult(true);
   }, [buildOptions, runRemoval]);
 
-  // ---------- AI Brush: Apply (commit preview to canvasRef) ----------
+  // ---------- AI Brush: Apply (write final masked RGBA to canvasRef) ----------
   const handleApplyBrush = useCallback(() => {
     const canvas = canvasRef.current;
     const preview = previewRef.current;
-    if (!canvas || !preview) return;
+    const orig = originalDataRef.current;
+    const mask = cumulativeMaskRef.current;
+    if (!canvas || !preview || !orig || !mask) return;
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    ctx.drawImage(preview, 0, 0);
+    const w = orig.width;
+    const h = orig.height;
+    const out = new ImageData(new Uint8ClampedArray(orig.data), w, h);
+    const od = out.data;
+    const src = orig.data;
+    for (let i = 0; i < mask.length; i++) {
+      od[i * 4 + 3] = mask[i] ? src[i * 4 + 3] : 0;
+    }
+    ctx.clearRect(0, 0, w, h);
+    ctx.putImageData(out, 0, 0);
+    const pCtx = preview.getContext('2d');
+    if (pCtx) {
+      pCtx.clearRect(0, 0, w, h);
+      pCtx.putImageData(out, 0, 0);
+    }
     setHasResult(true);
   }, []);
 
@@ -429,7 +508,9 @@ export function BackgroundRemovalPanel({
     }
     setHasResult(false);
     setUpgradeRequired(false);
+    strokeHistoryRef.current = [];
     setStrokeHistory([]);
+    cumulativeMaskRef.current = null;
     initialMaskRef.current = null;
     reset();
   }, [image, reset]);

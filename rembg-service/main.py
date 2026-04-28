@@ -412,7 +412,6 @@ async def embed_image(
     _embeddings[embedding_id] = {
         "state": state,
         "img_array": img_array,
-        "low_res_mask": None,
     }
 
     return {
@@ -451,19 +450,16 @@ async def predict_mask(
     cached = _embeddings[embedding_id]
     state = cached["state"]
     img_array = cached["img_array"]
-    prev_low_res = cached.get("low_res_mask")
 
     input_points = [(float(p["x"]), float(p["y"])) for p in pts]
     input_labels = [int(p["label"]) for p in pts]
 
     try:
-        mask, low_res, _score = predictor.predict(
-            state, input_points, input_labels, prev_low_res=prev_low_res
+        mask, _low_res, _score = predictor.predict(
+            state, input_points, input_labels, prev_low_res=None
         )
     except Exception as e:
         raise HTTPException(status_code=503, detail=f"SAM predict failed: {e}")
-
-    cached["low_res_mask"] = low_res
 
     input_img = Image.fromarray(img_array)
     output_img = apply_mask(input_img, mask)
