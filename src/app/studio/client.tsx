@@ -421,8 +421,8 @@ export default function StudioClient() {
               </p>
               <p className="text-sm text-gray-500">
                 Your image lives here — apply tools in any order, chain results
-                together, then Download when you&apos;re happy (auto-saves
-                to your gallery).
+                together, then Download when you&apos;re happy (auto-saves to
+                your gallery).
               </p>
             </div>
           </div>
