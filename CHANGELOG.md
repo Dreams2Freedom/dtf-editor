@@ -6,6 +6,59 @@ Format based on [Keep a Changelog](https://keepachangelog.com/), versioning foll
 
 ---
 
+## [1.2.0] - 2026-04-28
+
+In-house background removal — a no-credit alternative to ClippingMagic, built on a Python rembg microservice with an interactive SAM-powered AI brush. Branch: `claude/in-house-background-processing-Ci5rc`.
+
+### Added — Server (`rembg-service/`)
+- FastAPI service with auto-detect, multi-mode background removal, SAM encode/decode, health/debug endpoints
+- MobileSAM ONNX wrapper (`sam_predictor.py`) — ~38MB encoder + ~6MB decoder
+- BRIA-rmbg promoted to default ML model (was BiRefNet); BiRefNet-massive added as opt-in slow/quality option
+- Single-color and multi-color BFS flood-fill helpers (`_flood_fill_color_removal`, `_flood_fill_multi_color_removal`)
+- Dockerfile pre-downloads bria-rmbg + birefnet-general-lite + SAM ONNX so cold starts skip ~330MB of HuggingFace fetches
+
+### Added — Studio Background Removal panel
+- **AI Brush mode (default)** — SAM-powered iterative refinement
+  - Smart initial mask: BRIA cutout + auto-color-fill on the detected dominant background color
+  - Per-stroke commit applies SAM region union (Keep) or difference (Remove) to a cumulative mask
+  - Color-aware cleanup: rawPath stride + 3×3 neighborhood sampling + 4-bit dedup yields 20–80 unique colors per stroke for refined per-pixel classification
+  - Solid SVG-path stroke visualization (green Keep / red Remove)
+  - Live "Edge Cleanup" tolerance slider (0–150)
+  - O(1) undo via pre-stroke mask snapshots — no SAM re-call
+  - Marching-ants outline (static dashed) traces the cumulative mask boundary
+- **Color (Color Pick) mode** — pure color-based BFS with multi-color palettes
+  - "Pick to Remove" / "Pick to Keep" tool toggle
+  - Multiple chips per palette, click-to-delete
+  - Keep colors act as BFS barriers — same-color content trapped inside the subject is preserved automatically
+  - Click-to-clean-spot for interior speckles (BFS from seed)
+- **AI Only mode** — ML mask, no flood-fill, model selector
+- **Shared canvas chrome**
+  - View toggle: Cutout (faded preview) / Preview (final transparent) / Original
+  - Zoom: bare wheel toward cursor (desktop), pinch (touch); range 0.25× – 8×
+  - Pan: spacebar+drag (desktop), two-finger drag (touch)
+  - Zoom controls pill: −/percent/+/Fit
+  - PointerEvents unify mouse, touch, and pen input
+  - ResizeObserver tracks un-transformed canvas size for stable overlays under zoom
+
+### Changed
+- Default ML cutout model is now BRIA-rmbg (was BiRefNet General Lite)
+- Studio's BG-removal flow is now a single panel with three modes (was separate routes)
+- All new background removal flows cost 0 credits (ClippingMagic stays at 1 credit per image)
+
+### Fixed
+- Two production TDZ bugs in BG removal panel (commits `a533398`, `44b1a92`) — useCallback deps must reference identifiers declared earlier
+- Marching ants outline rendering at wrong scale/position when canvas grew post-mount (ResizeObserver fix in 1.13)
+- "Reset to original" not re-running AI analysis (commit `2585beb`)
+
+### Technical
+- New types: `BgDetectionResult`, `RemovalOptions` (with `removeColors`/`keepColors`), `SamPoint`, `SamSession`
+- New hooks: `runEmbed`, `runPredict`, `runPredictRaw`, `clientMultiFloodFill`, `samplePathPoints`
+- Dependencies: `huggingface_hub`, `onnxruntime` pinned (server)
+- Reuses vendored `lib.traceContours` (magic-wand-js) for marching ants — no new client deps
+- Full plan history preserved in `docs/AI_BRUSH_PLAN_HISTORY.md`
+
+---
+
 ## [1.1.2] - 2026-03-19
 
 ### Fixed

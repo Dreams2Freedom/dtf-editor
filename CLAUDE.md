@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 **ALWAYS read these files at the beginning of each conversation:**
 
-1. **`SESSION_END_2026_02_18.md`** - 🔴 READ THIS FIRST! Summary of last session and next steps
+1. **`SESSION_END_2026_04_28.md`** - 🔴 READ THIS FIRST! Summary of last session and next steps (in-house BG removal + AI Brush, branch `claude/in-house-background-processing-Ci5rc`)
 2. **`ADMIN_CREDENTIALS.md`** - 🔴 CRITICAL: Admin login info and common mistakes
 3. **`DTF_EDITOR_PRD.md`** - Product Requirements Document (understand the project)
 4. **`DEVELOPMENT_ROADMAP_V3.md`** - Current development plan and phases (use V3, not V2!)
@@ -291,10 +291,12 @@ When implementing Stripe subscriptions, Supabase features, or any API integratio
 ## Current Development Status
 
 - **Completed Phases:** 0, 1, 2, 3, 4, 5, 6, 7, 8.1 ✅
+- **Latest Feature:** In-House BG Removal + AI Brush (v1.2.0, April 28, 2026) — branch `claude/in-house-background-processing-Ci5rc`, awaiting merge
 - **Security Audits:** Feb 8 + Feb 16 re-audit - 30+ issues fixed, 18 remaining
 - **Active Bug:** BUG-062 - Profiles RLS circular reference (needs SQL fix in Supabase)
-- **Priority:** Fix BUG-062, apply security migrations, address remaining security items
-- **Session Summary:** See SESSION_END_2026_02_18.md for detailed handoff
+- **Priority:** User indicated next steps will be larger architectural changes (TBD)
+- **Session Summary:** See `SESSION_END_2026_04_28.md` for the most recent handoff
+- **AI Brush Plan History:** See `docs/AI_BRUSH_PLAN_HISTORY.md` for the linear development history of the in-house BG removal feature (Phases 1.7 → 1.14)
 
 ## 📋 Development Workflow Checklist
 

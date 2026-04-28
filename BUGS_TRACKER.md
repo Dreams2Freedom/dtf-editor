@@ -1,10 +1,74 @@
 # DTF Editor - Bug Tracker
 
-**Last Updated:** February 18, 2026
+**Last Updated:** April 28, 2026
 **Status:** Active Bug Tracking - POST SECURITY AUDIT
 
 > **SECURITY RE-AUDIT (Feb 16, 2026):** A comprehensive re-audit found 28 new issues. 30+ fixes applied across 4 tiers. See `SECURITY_AUDIT_2026_02_16.md` for the full report.
 > **SECURITY AUDIT (Feb 8, 2026):** Original audit found 47 issues (12 Critical, 17 High, 12 Medium, 6 Low). See `SECURITY_AUDIT_2026_02_08.md`.
+
+---
+
+## 🔴 **BG REMOVAL / AI BRUSH BUGS (April 27–28, 2026 Session)**
+
+Branch: `claude/in-house-background-processing-Ci5rc`. All bugs found during the in-house BG removal sprint.
+
+### **BUG-068: Production TDZ — tolerance useEffect referenced recomputeCumulative before declaration**
+
+- **Status:** 🟢 FIXED (Apr 27, commit `a533398`)
+- **Severity:** Critical (page-level crash in production)
+- **Reported:** During Phase 1.11 deploy testing
+- **Symptom:** Studio page crashed with `ReferenceError: Cannot access 'eM' before initialization` in the minified bundle. Whole panel went to "Oops! Something went wrong" boundary.
+- **Root cause:** The debounced `useEffect` for the new Edge Cleanup tolerance slider listed `recomputeCumulative` in its deps array (`[cleanupTolerance, recomputeCumulative]`). React evaluates deps arrays during render, top-to-bottom — but `recomputeCumulative` was declared as a `const useCallback(...)` later in the component body. Accessing the binding before its `const` initialization triggers JavaScript's Temporal Dead Zone error, which the dev build masks but production minification surfaces.
+- **Fix:** Moved the `useEffect` to immediately AFTER `recomputeCumulative`'s declaration so the deps array references an already-initialized binding.
+- **Lesson:** Always verify that `useCallback`/`useEffect` deps arrays only reference identifiers declared earlier in the component body. Dev builds will pass; production minified bundles fail.
+
+---
+
+### **BUG-069: Production TDZ — runInitialAnalysis referenced renderPreviewFromMask before declaration**
+
+- **Status:** 🟢 FIXED (Apr 28, commit `44b1a92`)
+- **Severity:** Critical (page-level crash in production)
+- **Reported:** During Phase 1.12 deploy testing
+- **Symptom:** Same pattern as BUG-068: studio page crashed with `Cannot access 'eO' before initialization` in production after the Phase 1.12 reset-fix landed.
+- **Root cause:** The newly-extracted `runInitialAnalysis` callback was placed at the top of the component body for "logical reading order", but its deps array `[runEmbed, runDetect, runRemoval, renderPreviewFromMask]` referenced `renderPreviewFromMask` — a `const` declared further down. Same TDZ class as BUG-068.
+- **Fix:** Moved `runInitialAnalysis` (and its sibling mount `useEffect`) to AFTER `renderPreviewFromMask` is declared. The mount `useEffect` invokes the callback inside its body (post-commit, so all consts are initialized) without listing it in deps.
+- **Lesson:** This is the SECOND instance of the same TDZ class in this branch. Consider adopting an ESLint rule or pre-commit check that flags `useCallback`/`useEffect` deps arrays referencing identifiers declared after them.
+
+---
+
+### **BUG-070: "Reset to original" left AI Brush stuck on "Preparing..."**
+
+- **Status:** 🟢 FIXED (Apr 28, commit `2585beb`)
+- **Severity:** High (broken UX after Apply Mask + Reset round-trip)
+- **Reported:** During Phase 1.12 user testing
+- **Symptom:** After clicking Apply Mask then "Reset to original", the brush readiness banner stayed at "Preparing AI Brush... (~5s)" forever. SAM session never came back; user couldn't continue refining.
+- **Root cause:** `handleReset` cleared all panel state and called the hook's `reset()` (which nukes `samSession` and `detection`), but never re-fired the AI pipeline. The mount `useEffect` is scoped to `[image]` deps — same image, no re-run.
+- **Fix:** Extracted the embed + detect → ml+color → seed pipeline into a `runInitialAnalysis(canvas)` callback. Mount effect calls it; `handleReset` calls it after clearing state.
+- **Lesson:** When a "reset" handler relies on a `useEffect` to re-bootstrap state, the effect must depend on something that actually changes during reset. Cleaner: bootstrap via a callable that both mount and reset can invoke.
+
+---
+
+### **BUG-071: Marching ants outline rendered tiny in upper-left corner instead of tracing the mask**
+
+- **Status:** 🟢 FIXED (Apr 28, commit `692d733` — Phase 1.13)
+- **Severity:** High (feature visually broken)
+- **Reported:** Phase 1.12 user testing on TOP DAD
+- **Symptom:** Marching-ants SVG showed the correct shape but at maybe 1/4 scale, stuck at the canvas wrapper's top-left.
+- **Root cause:** `canvasRect` was captured once on mount via `getBoundingClientRect`, before the init effect sized the canvas to the image's natural dimensions. The window-resize listener didn't fire because the canvas itself grew (its content changed); only window resizes triggered `update()`. The marching-ants SVG was thus sized at the canvas's empty/default 300×150, while its `viewBox` was set to the image's actual size (e.g., 999×318) — content squashed into the small upper-left rect.
+- **Fix:** Replaced the one-shot rect capture + window-resize listener with a `ResizeObserver` reading `entry.contentRect` (un-transformed layout size). Bonus: `contentRect` doesn't include CSS transforms, so it doesn't double-scale under zoom.
+- **Lesson:** `getBoundingClientRect` includes CSS transforms; `ResizeObserver.contentRect` doesn't. When measuring layout-only dimensions, prefer `contentRect`.
+
+---
+
+### **BUG-072: Sparse SAM-prompt sampling missed fringe colors in cleanup palette**
+
+- **Status:** 🟢 FIXED (Apr 28, commit `6590c86` — Phase 1.14)
+- **Severity:** Medium (cleanup quality limitation)
+- **Reported:** Phase 1.13 user testing — "we're removing black, but there are some grayer tones inside that black"
+- **Symptom:** A Remove stroke that visibly swept across both pure black and gray-fringe pixels left fringe grays in the cleanup palette. User had to repeat strokes many times to make the cleanup converge.
+- **Root cause:** `collectStrokeColors` sampled one pixel per SAM-prompt point; SAM points are spaced every `brushSize` pixels via `samplePathPoints`. With brushSize=5 a 100px stroke yielded ~20 samples; with brushSize=20 only ~5. Fringe grays usually fall between sample points and never enter the palette.
+- **Fix:** Replaced with `collectStrokePaletteColors` that walks the rawPath in 2-pixel strides, samples a 3×3 neighborhood per step, and dedupes via 4-bit-per-channel quantization. A 100px stroke now contributes 20–80 unique colors after dedup.
+- **Lesson:** Don't trust SAM-prompt-point sampling for color analysis. Sample the actual user gesture densely.
 
 ---
 

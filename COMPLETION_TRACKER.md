@@ -1,6 +1,6 @@
 # DTF Editor - Feature Completion Tracker
 
-**Last Updated:** February 18, 2026
+**Last Updated:** April 28, 2026
 **Status:** Production Ready - Post Security Audit
 
 ## 📊 **Overall Progress**
@@ -21,11 +21,40 @@
 - **Admin Financial System:** 🟢 100% Complete (Feb 18, 2026)
 - **Admin Support System:** 🟢 100% Complete (Feb 18, 2026)
 - **Stripe Billing Fixes:** 🟢 100% Complete (Feb 18, 2026)
+- **In-House BG Removal + AI Brush:** 🟢 100% Complete (April 28, 2026)
 - **Production Ready:** 🟢 99% Complete
 
 ---
 
 ## ✅ **COMPLETED FEATURES**
+
+### **In-House Background Removal + AI Brush (100% Complete) - April 28, 2026**
+
+Branch: `claude/in-house-background-processing-Ci5rc`. Released as v1.2.0. See `DEVELOPMENT_LOG_PART1.md` (April 27–28 entry) for the full multi-phase development log and `docs/AI_BRUSH_PLAN_HISTORY.md` for the linear plan history.
+
+**Server (`rembg-service/`):**
+- ✅ FastAPI app with auth-gated endpoints
+- ✅ Multi-mode `/remove`: `color-fill`, `click-fill`, `ml-only`, `ml+color`
+- ✅ MobileSAM ONNX wrapper (`sam_predictor.py`) — `/embed` + `/predict`
+- ✅ Auto-detect `/detect-bg` (k-means edge analysis)
+- ✅ Single-color and multi-color BFS flood-fill helpers
+- ✅ BRIA-rmbg as default model + BiRefNet variants + U2Net + ISNet anime + SAM
+- ✅ Dockerfile pre-downloads default models (~330MB) for fast cold starts
+
+**Client — Studio Background Removal panel:**
+- ✅ AI Brush mode (default): SAM + smart initial mask + per-stroke union/diff + color cleanup + live tolerance slider + marching-ants outline
+- ✅ Color (Color Pick) mode: multi-color remove + multi-color keep palettes + BFS-with-barriers + click-to-clean-spot
+- ✅ AI Only mode: ML mask + model selector
+- ✅ View toggle: Cutout / Preview / Original
+- ✅ Zoom + pan: bare wheel, spacebar+drag (desktop); pinch + two-finger drag (touch)
+- ✅ PointerEvents + ResizeObserver for touch-stable, transform-stable behavior
+- ✅ Mobile-friendly UI throughout (≥32px tap targets, flex-wrap chips, responsive layout)
+
+**Bugs fixed during this sprint:** BUG-068 through BUG-072 (see `BUGS_TRACKER.md`).
+
+**Cost to user:** 0 credits (ClippingMagic stays at 1 credit per image as a quality fallback for hair/fur/complex subjects).
+
+---
 
 ### **Security Re-Audit Fixes (100% Applied) - February 17-18, 2026**
 
