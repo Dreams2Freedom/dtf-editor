@@ -280,15 +280,6 @@ export function BackgroundRemovalPanel({
     }
   }, [error]);
 
-  // Debounced re-cleanup when tolerance slider changes (skip until samMask exists).
-  useEffect(() => {
-    if (!samMaskRef.current) return;
-    const handle = setTimeout(() => {
-      recomputeCumulative();
-    }, 80);
-    return () => clearTimeout(handle);
-  }, [cleanupTolerance, recomputeCumulative]);
-
   // ---------- Color Pick: client-side flood-fill preview ----------
   const applyClientPreview = useCallback(
     (color: RGB, tol: number, seedPoint?: { x: number; y: number } | null) => {
@@ -388,6 +379,15 @@ export function BackgroundRemovalPanel({
     samMaskRef.current = m;
     recomputeCumulative();
   }, [recomputeCumulative]);
+
+  // Debounced re-cleanup when tolerance slider changes (skip until samMask exists).
+  useEffect(() => {
+    if (!samMaskRef.current) return;
+    const handle = setTimeout(() => {
+      recomputeCumulative();
+    }, 80);
+    return () => clearTimeout(handle);
+  }, [cleanupTolerance, recomputeCumulative]);
 
   const commitStroke = useCallback(
     async (tool: BrushTool, path: Array<{ x: number; y: number }>, sizeAtCommit: number) => {
