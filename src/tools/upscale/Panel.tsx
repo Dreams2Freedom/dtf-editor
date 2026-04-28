@@ -159,11 +159,18 @@ function calculateSmartDpi(
 }
 
 export function UpscalePanel({ image, onApply }: StudioToolPanelProps) {
-  const [scaleMode, setScaleMode] = useState<ScaleMode>('simple');
+  // Phase 2.2 follow-up: Smart DPI is the default scale mode (most users
+  // arrive on this tool because their image is too low-res for print).
+  // Pre-seed printWidth at 10″ — the standard DTF transfer width — so
+  // the user can hit Upscale immediately if that's what they want.
+  const aspectRatioRef = useRef(image.width / image.height);
+  const [scaleMode, setScaleMode] = useState<ScaleMode>('smart-dpi');
   const [scale, setScale] = useState<2 | 4>(4);
   const [mode, setMode] = useState<UpscaleProcessingMode>('auto_enhance');
-  const [printWidth, setPrintWidth] = useState<string>('');
-  const [printHeight, setPrintHeight] = useState<string>('');
+  const [printWidth, setPrintWidth] = useState<string>('10');
+  const [printHeight, setPrintHeight] = useState<string>(() =>
+    (10 / aspectRatioRef.current).toFixed(2)
+  );
   const [isUpscaling, setIsUpscaling] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [upscaledImage, setUpscaledImage] = useState<HTMLImageElement | null>(
@@ -173,17 +180,20 @@ export function UpscalePanel({ image, onApply }: StudioToolPanelProps) {
 
   // Canvas zoom — local to the tool, controls forwarded to frame.
   const [zoom, setZoom] = useState(1);
-  const aspectRatioRef = useRef(image.width / image.height);
 
   const provider = DEFAULT_PROVIDER;
 
   // Reset upscaled state if the working image changes (chained from
-  // another tool, or user reset to original).
+  // another tool, or user reset to original). Also re-seed the default
+  // 10″ width so Smart DPI keeps a sane starting state for the new
+  // aspect ratio.
   useEffect(() => {
     setUpscaledImage(null);
     setViewMode('original');
     setError(null);
     aspectRatioRef.current = image.width / image.height;
+    setPrintWidth('10');
+    setPrintHeight((10 / aspectRatioRef.current).toFixed(2));
   }, [image]);
 
   const handleWidthChange = (val: string) => {
