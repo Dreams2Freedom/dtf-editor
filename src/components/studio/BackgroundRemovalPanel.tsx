@@ -77,16 +77,19 @@ function pathToSvgD(path: Array<{ x: number; y: number }>, scale: number): strin
  * After SAM produces a kept region, refine the mask using user-supplied
  * color hints: any kept pixel whose color is closer to a Remove-stroke
  * sample than to a Keep-stroke sample (within tolerance) is removed.
- * No-op unless both palettes are non-empty.
+ * No-op unless both palettes are non-empty. `tolerance` is in linear
+ * RGB-distance units (0-100ish); the function squares it internally.
  */
 function applyColorCleanup(
   mask: Uint8Array,
   orig: ImageData,
   keepColors: Array<[number, number, number]>,
-  removeColors: Array<[number, number, number]>
+  removeColors: Array<[number, number, number]>,
+  tolerance: number
 ): void {
+  if (tolerance <= 0) return;
   if (keepColors.length === 0 || removeColors.length === 0) return;
-  const TOL_SQ = 60 * 60;
+  const TOL_SQ = tolerance * tolerance;
   const data = orig.data;
   const total = mask.length;
   for (let i = 0; i < total; i++) {
@@ -171,9 +174,13 @@ export function BackgroundRemovalPanel({
   }
   const [strokeHistory, setStrokeHistory] = useState<StrokeRecord[]>([]);
   const strokeHistoryRef = useRef<StrokeRecord[]>([]);
+  // samMaskRef: SAM-only mask (pre-cleanup). Updated by stroke unions/diffs.
+  const samMaskRef = useRef<Uint8Array | null>(null);
+  // cumulativeMaskRef: post-cleanup mask, derived from samMaskRef via recomputeCumulative.
   const cumulativeMaskRef = useRef<Uint8Array | null>(null);
   const [brushTool, setBrushTool] = useState<BrushTool>('keep');
   const [brushSize, setBrushSize] = useState(20);
+  const [cleanupTolerance, setCleanupTolerance] = useState(60);
   const isDrawingRef = useRef(false);
   const currentStrokeRef = useRef<Array<{ x: number; y: number }>>([]);
   const livePathRef = useRef<SVGPathElement | null>(null);
@@ -236,14 +243,18 @@ export function BackgroundRemovalPanel({
       offCtx.drawImage(img, 0, 0, orig.width, orig.height);
       const data = offCtx.getImageData(0, 0, orig.width, orig.height);
       initialMaskRef.current = data;
-      // Only seed cumulative mask if user hasn't started brushing yet.
+      // Only seed SAM mask if user hasn't started brushing yet.
       if (strokeHistoryRef.current.length === 0) {
         const m = new Uint8Array(orig.width * orig.height);
         for (let i = 0; i < m.length; i++) {
           m[i] = data.data[i * 4 + 3] > 127 ? 1 : 0;
         }
-        cumulativeMaskRef.current = m;
-        renderPreviewFromMask(m);
+        samMaskRef.current = m;
+        // No strokes yet → palettes are empty → cleanup is no-op → cumulative === SAM.
+        // We still call recomputeCumulative to populate cumulativeMaskRef and render.
+        const next = new Uint8Array(m);
+        cumulativeMaskRef.current = next;
+        renderPreviewFromMask(next);
       }
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -268,6 +279,15 @@ export function BackgroundRemovalPanel({
       setUpgradeRequired(true);
     }
   }, [error]);
+
+  // Debounced re-cleanup when tolerance slider changes (skip until samMask exists).
+  useEffect(() => {
+    if (!samMaskRef.current) return;
+    const handle = setTimeout(() => {
+      recomputeCumulative();
+    }, 80);
+    return () => clearTimeout(handle);
+  }, [cleanupTolerance, recomputeCumulative]);
 
   // ---------- Color Pick: client-side flood-fill preview ----------
   const applyClientPreview = useCallback(
@@ -340,7 +360,20 @@ export function BackgroundRemovalPanel({
     pCtx.putImageData(out, 0, 0);
   }, []);
 
-  /** Reset cumulative mask to BiRefNet initial (or all-zeros if not loaded). Renders preview. */
+  /** Derive post-cleanup mask from samMaskRef + current palettes + current tolerance, then render. */
+  const recomputeCumulative = useCallback(() => {
+    const sam = samMaskRef.current;
+    const orig = originalDataRef.current;
+    if (!sam || !orig) return;
+    const next = new Uint8Array(sam);
+    const keepColors = collectStrokeColors(strokeHistoryRef.current, 'keep', orig);
+    const removeColors = collectStrokeColors(strokeHistoryRef.current, 'remove', orig);
+    applyColorCleanup(next, orig, keepColors, removeColors, cleanupTolerance);
+    cumulativeMaskRef.current = next;
+    renderPreviewFromMask(next);
+  }, [cleanupTolerance, renderPreviewFromMask]);
+
+  /** Reset SAM mask to BiRefNet initial (or all-zeros if not loaded), then derive cumulative. */
   const resetCumulativeToInitial = useCallback(() => {
     const orig = originalDataRef.current;
     if (!orig) return;
@@ -352,9 +385,9 @@ export function BackgroundRemovalPanel({
         m[i] = initial.data[i * 4 + 3] > 127 ? 1 : 0;
       }
     }
-    cumulativeMaskRef.current = m;
-    renderPreviewFromMask(m);
-  }, [renderPreviewFromMask]);
+    samMaskRef.current = m;
+    recomputeCumulative();
+  }, [recomputeCumulative]);
 
   const commitStroke = useCallback(
     async (tool: BrushTool, path: Array<{ x: number; y: number }>, sizeAtCommit: number) => {
@@ -372,9 +405,9 @@ export function BackgroundRemovalPanel({
       }));
       if (points.length === 0) return;
 
-      // Snapshot current cumulative mask BEFORE running SAM (for undo).
-      const current = cumulativeMaskRef.current ?? new Uint8Array(total);
-      const maskBefore = new Uint8Array(current);
+      // Snapshot pre-cleanup SAM mask BEFORE this stroke (for undo).
+      const currentSam = samMaskRef.current ?? new Uint8Array(total);
+      const maskBefore = new Uint8Array(currentSam);
 
       const result = await runPredictRaw(points);
       if (!result) return;
@@ -384,11 +417,12 @@ export function BackgroundRemovalPanel({
         return;
       }
 
-      const next = new Uint8Array(current);
+      // Apply union (Keep) or difference (Remove) to the SAM-only mask.
+      const nextSam = new Uint8Array(currentSam);
       if (tool === 'keep') {
-        for (let i = 0; i < total; i++) next[i] = next[i] | samMask[i];
+        for (let i = 0; i < total; i++) nextSam[i] = nextSam[i] | samMask[i];
       } else {
-        for (let i = 0; i < total; i++) next[i] = next[i] & (samMask[i] ^ 1);
+        for (let i = 0; i < total; i++) nextSam[i] = nextSam[i] & (samMask[i] ^ 1);
       }
 
       const record: StrokeRecord = {
@@ -400,18 +434,13 @@ export function BackgroundRemovalPanel({
       };
       const updatedHistory = [...strokeHistoryRef.current, record];
 
-      // Color-aware cleanup: use this stroke's history (incl. the new record)
-      // to refine the mask within kept regions using user color hints.
-      const keepColors = collectStrokeColors(updatedHistory, 'keep', orig);
-      const removeColors = collectStrokeColors(updatedHistory, 'remove', orig);
-      applyColorCleanup(next, orig, keepColors, removeColors);
-
-      cumulativeMaskRef.current = next;
+      samMaskRef.current = nextSam;
       strokeHistoryRef.current = updatedHistory;
       setStrokeHistory(updatedHistory);
-      renderPreviewFromMask(next);
+      // Derive cumulative (post-cleanup) and render
+      recomputeCumulative();
     },
-    [runPredictRaw, renderPreviewFromMask]
+    [runPredictRaw, recomputeCumulative]
   );
 
   // ---------- Canvas mouse handlers ----------
@@ -531,9 +560,10 @@ export function BackgroundRemovalPanel({
     const next = history.slice(0, -1);
     strokeHistoryRef.current = next;
     setStrokeHistory(next);
-    cumulativeMaskRef.current = new Uint8Array(popped.maskBefore);
-    renderPreviewFromMask(cumulativeMaskRef.current);
-  }, [renderPreviewFromMask]);
+    // Restore pre-cleanup SAM mask, then re-derive cumulative at current tolerance.
+    samMaskRef.current = new Uint8Array(popped.maskBefore);
+    recomputeCumulative();
+  }, [recomputeCumulative]);
 
   const handleClearStrokes = useCallback(() => {
     strokeHistoryRef.current = [];
@@ -624,6 +654,7 @@ export function BackgroundRemovalPanel({
     setUpgradeRequired(false);
     strokeHistoryRef.current = [];
     setStrokeHistory([]);
+    samMaskRef.current = null;
     cumulativeMaskRef.current = null;
     initialMaskRef.current = null;
     reset();
@@ -883,6 +914,27 @@ export function BackgroundRemovalPanel({
                   <p className="text-xs text-gray-400 mt-1">
                     Size of click points along brush strokes. Visual cursor only — SAM
                     figures out the actual region.
+                  </p>
+                </div>
+
+                {/* Edge cleanup tolerance */}
+                <div>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="text-xs font-medium text-gray-600">Edge Cleanup</label>
+                    <span className="text-xs text-gray-500 tabular-nums">{cleanupTolerance}</span>
+                  </div>
+                  <input
+                    type="range"
+                    min={0}
+                    max={100}
+                    step={1}
+                    value={cleanupTolerance}
+                    onChange={e => setCleanupTolerance(Number(e.target.value))}
+                    className="w-full accent-blue-600"
+                  />
+                  <p className="text-xs text-gray-400 mt-1">
+                    Higher = removes more anti-aliased fringe and specks. Too high may erase
+                    darker valid content.
                   </p>
                 </div>
 
