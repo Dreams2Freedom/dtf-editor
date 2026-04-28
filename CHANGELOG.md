@@ -6,6 +6,40 @@ Format based on [Keep a Changelog](https://keepachangelog.com/), versioning foll
 
 ---
 
+## [1.3.0] - 2026-04-28
+
+Studio plugin architecture — Studio becomes the durable home for the working image; tools (BG Remove, Upscale, Color Change) are self-contained plugins under `src/tools/<tool-id>/`. Refactoring one tool can no longer affect another. Same branch (`claude/in-house-background-processing-Ci5rc`).
+
+### Added
+- **Plugin contract** (`src/tools/types.ts`) — `StudioTool`, `StudioToolPanelProps`, `ApplyMetadata` interfaces. Tools emit `onApply(canvas, meta)`; Studio decides what to do (chain into next tool, save, reset).
+- **Tool registry** (`src/tools/registry.ts`) — ordered list driving the Studio tool-picker pill row. Adding a new tool is a folder-creation + registry-append.
+- **Upscale plugin** (`src/tools/upscale/`) — first tool built native to the contract. Includes `providers/types.ts` (`UpscaleProvider` interface) + `providers/deepImage.ts` (Deep-Image.ai impl). Swapping APIs is a registry change.
+- **Tool chaining in Studio** — `workingImage` state separate from `originalImage`. Each tool's `onApply` updates `workingImage`, becoming the next tool's input. "Reset to Original" reverts; "Save to Gallery" persists with the latest applied metadata.
+- **Studio-level Save + Reset buttons** in the header (next to the tool-picker pill row).
+- **ESLint cross-tool import isolation** (`no-restricted-imports` zones) — `src/tools/A/*` literally cannot import `src/tools/B/*`. Integration layer (`src/app/{studio,process,api}/**`) is exempt.
+
+### Changed
+- BG Removal panel moved from `src/components/studio/BackgroundRemovalPanel.tsx` to `src/tools/bg-removal/Panel.tsx` (along with hook, service, types).
+- Color Change editor moved from `src/components/image/ColorChangeEditor.tsx` to `src/tools/color-change/Panel.tsx` (along with components, hook, types, color-utils).
+- Studio shell (`src/app/studio/client.tsx`) rewritten to be plugin-driven — iterates `STUDIO_TOOLS` to render the picker, mounts the active tool's `Panel`. No tool-specific code in the shell.
+- Tool descriptors include `id`, `label`, `icon`, `description`, optional `gate`, `Panel` — the `Panel` field for legacy components wraps them in an adapter so 1700+ lines of working code didn't need to be rewritten.
+
+### Fixed
+- 3 sequential build hotfixes after Step 9 (commits `8b23b8b`, `22f21e8`, `ec9ee54`) corrected: JSX in `.ts` files (renamed to `.tsx`); missing `'use client'` on adapter index files; `/api/color-change/use` route transiting through a client-only module to reach `COLOR_CHANGE_LIMITS`; ESLint exemption list missing `src/app/api/**`.
+
+### Technical
+- Each tool folder is now self-contained: Panel, hooks, types, providers, internal utilities all colocated. Cross-tool sharing flows only through `src/components/`, `src/hooks/`, `src/services/`.
+- Studio shell coordinates lifecycle: `onApply` builds a new `HTMLImageElement` from the result canvas (via `canvas.toBlob` + `URL.createObjectURL`) and updates `workingImage`.
+- ApplyMetadata fields (`operation`, `provider`, `modelId`) flow into `processed_images.operation_type` when Save is clicked.
+
+### Out of Scope (Phase 2.x candidates)
+- Internal nav redirects (Create dropdown, dashboard cards) → `/studio?tool=...` — depends on a unified upload UX.
+- Provider abstraction polish for BG Removal (in-house vs ClippingMagic split into providers/) — adopt when the second provider lands.
+- History strip showing applied operations with one-click revert.
+- Bulk flows as plugins — bulk routes stay separate.
+
+---
+
 ## [1.2.0] - 2026-04-28
 
 In-house background removal — a no-credit alternative to ClippingMagic, built on a Python rembg microservice with an interactive SAM-powered AI brush. Branch: `claude/in-house-background-processing-Ci5rc`.

@@ -1,17 +1,152 @@
-# AI Brush — Plan History (Phases 1.7 → 1.14)
+# AI Brush + Studio Plugin Architecture — Plan History (Phases 1.7 → 2.0)
 
-**Created:** April 28, 2026
+**Created:** April 28, 2026 (extended later that day to cover Phase 2.0)
 **Branch:** `claude/in-house-background-processing-Ci5rc`
-**Purpose:** Linear record of every plan written during the in-house background removal sprint, in reverse-chronological order (newest plan first). Each plan was approved by the user before implementation; each "SHIPPED" header marks a phase that landed in production.
+**Purpose:** Linear record of every plan written during the in-house background removal sprint AND the follow-on Studio plugin architecture refactor. Each plan was approved by the user before implementation; each "SHIPPED" header marks a phase that landed in production.
 
 This file shows **how we got here, decision by decision** — what the user reported, what we considered, what we picked, and what we deferred. Use this when:
 - Re-entering this codebase after a break and trying to remember why a particular abstraction exists
 - Considering a change that conflicts with a deliberately-chosen earlier design
-- Reviewing the full evolution from "simple flood-fill" → "BFS with multi-color barriers + SAM-driven brush"
+- Reviewing the full evolution from "simple flood-fill" → "BFS with multi-color barriers + SAM-driven brush" → "Studio is the image hub; tools are plugins"
 
-For per-phase commit details, see the April 27–28 entry in `DEVELOPMENT_LOG_PART1.md`.
-For bug postmortems, see `BUGS_TRACKER.md` (BUG-068 through BUG-072).
-For the user-visible release summary, see the `[1.2.0]` entry in `CHANGELOG.md`.
+For per-phase commit details, see the April 27–28 entries in `DEVELOPMENT_LOG_PART1.md`.
+For bug postmortems, see `BUGS_TRACKER.md` (BUG-068 through BUG-075).
+For user-visible release summaries, see `[1.2.0]` (AI Brush) and `[1.3.0]` (Studio plugin architecture) in `CHANGELOG.md`.
+
+---
+
+## Phase 2.0 — Studio Plugin Architecture (Apr 28, 2026, follow-on session) — SHIPPED
+
+**Branch:** same (`claude/in-house-background-processing-Ci5rc`)
+**Commits:** `dbde45b` → `33eb6ba` → `96cc91e` → `45005b0` → `70d5b6b` → `410718a` → hotfixes `8b23b8b` / `22f21e8` / `ec9ee54`
+
+### Context
+
+User requested a hub-and-spoke refactor: *"As we add tools, those tools stand alone on their own and plug into the studio for us to use… when we make changes, let's say, to the background editor and we're messing with the code that affects the color selection, I don't want it to also affect the code for the color changing plugin."*
+
+Two prior-architecture problems:
+1. Studio mounted ad-hoc tool panels via `tool` query param. No shared image-state contract.
+2. Tool code was intertwined across `src/components/`, `src/hooks/`, `src/services/`. Changing one risked silently breaking another.
+
+### User-Confirmed UX Choices
+
+- **Initial scope:** BG Remove + Upscale + Color Change.
+- **Tool chaining:** yes — each tool's `onApply` output becomes the next tool's input.
+- **Old standalone routes:** stay (bookmarks). `/process/background-removal` is intentionally ClippingMagic. `/process/upscale` keeps bulk + DPI.
+- **Bulk flows:** out of scope.
+- **Look-and-feel:** preserve Studio chrome; pill picker grows from "BG / Color" to "BG / Upscale / Color".
+
+### Recommended Approach (Implemented)
+
+#### A. Plugin contract (`src/tools/types.ts`)
+
+```ts
+export interface StudioTool {
+  id: 'bg-removal' | 'upscale' | 'color-change';
+  label: string;
+  icon: LucideIcon;
+  description: string;
+  gate?: { credits?: number; planSlug?: string };
+  Panel: ComponentType<StudioToolPanelProps>;
+}
+
+export interface StudioToolPanelProps {
+  image: HTMLImageElement;
+  imageId: string | null;
+  onApply: (canvas: HTMLCanvasElement, meta: ApplyMetadata) => void;
+  onCancel?: () => void;
+  standalone?: boolean;
+}
+
+export interface ApplyMetadata {
+  operation: string;
+  creditsUsed?: number;
+  provider?: string;
+  modelId?: string;
+}
+```
+
+Tools NEVER call save/routing helpers directly. They emit `onApply(canvas, meta)`.
+
+#### B. Folder layout
+
+```
+src/tools/
+  types.ts, registry.ts
+  bg-removal/   Panel.tsx, useBackgroundRemoval.ts, api.ts, types.ts, index.tsx, providers/
+  upscale/      Panel.tsx, index.ts, providers/{types.ts, deepImage.ts}
+  color-change/ Panel.tsx, components/, useColorChangeHistory.ts, color-utils.ts, types.ts, index.tsx
+```
+
+Cross-tool sharing only via `src/components/`, `src/hooks/`, `src/services/`. Enforced by ESLint.
+
+#### C. Studio shell (`src/app/studio/client.tsx`)
+
+```ts
+const [originalImage, setOriginalImage] = useState<HTMLImageElement | null>(null);
+const [workingImage, setWorkingImage] = useState<HTMLImageElement | null>(null);
+const [activeToolId, setActiveToolId] = useState<StudioToolId | null>(...);
+
+const handleApply = (canvas, meta) => {
+  // canvas → new HTMLImageElement → setWorkingImage(newImg)
+  // setLastApplyMeta(meta) for save tagging
+};
+const handleSaveToGallery = () => POST workingImage → /api/process;
+const handleResetToOriginal = () => setWorkingImage(originalImage);
+```
+
+#### D. Provider abstraction
+
+```ts
+// src/tools/upscale/providers/types.ts
+export interface UpscaleProvider {
+  id: string;
+  label: string;
+  run(blob: Blob, options: UpscaleOptions): Promise<UpscaleResult>;
+}
+
+// src/tools/upscale/providers/deepImage.ts
+export const deepImageProvider: UpscaleProvider = {
+  id: 'deepimage', label: 'Deep-Image.ai',
+  async run(blob, opts) { /* POST to /api/upscale */ }
+};
+```
+
+#### E. Code-isolation enforcement (Step 9, `eslint.config.mjs`)
+
+`no-restricted-imports` zones block `src/tools/A/*` from importing `src/tools/B/*`. Integration layer exempt: `src/app/studio/**`, `src/app/process/**`, `src/app/api/**`, `src/tools/registry.ts`, `src/tools/types.ts`.
+
+### Step Map
+
+| Step | Commit | What |
+|---|---|---|
+| 1 | `dbde45b` | Plugin contract + skeleton |
+| 2 | `33eb6ba` | BG Removal moved into `src/tools/bg-removal/` |
+| 3 | `96cc91e` | Color Change moved into `src/tools/color-change/` |
+| 4 | `45005b0` | Upscale plugin built (first contract-native tool) |
+| 5 | `70d5b6b` | Studio shell rewrite (workingImage hub + plugin-driven picker + onApply chain) |
+| 6 | (collapsed) | Standalone routes already use `@/tools/...` imports from Steps 2/3 |
+| 7 | (deferred) | BG Removal provider polish — when 2nd provider arrives |
+| 8 | (deferred) | Internal nav redirects — needs upload UX redesign |
+| 9 | `410718a` | ESLint isolation zones |
+| H1 | `8b23b8b` | Hotfix: `index.ts` → `index.tsx` (JSX requires `.tsx`) |
+| H2 | `22f21e8` | Hotfix: `'use client'` on adapter indexes; reroute `COLOR_CHANGE_LIMITS` import directly to `types.ts` |
+| H3 | `ec9ee54` | Hotfix: extend ESLint exemption to `src/app/api/**` |
+
+### What Stays Unchanged
+
+- DB schema, credit deduction, upload, gallery, auth/RLS.
+- All Phase 1.x AI Brush behavior — moved verbatim into the tool folder. No logic changes.
+
+### Out of Scope (Phase 2.x candidates)
+
+- Bulk flows as plugins. Vectorize / Generate as plugins. History strip UI. Tool marketplace / dynamically-loaded plugins. Multiple working images. Centralized credit deduction at Studio level.
+
+---
+
+## Phase 1.x History — In-House Background Removal + AI Brush
+
+The plans below cover the original AI Brush sprint (Phases 1.7 → 1.14).
 
 ---
 

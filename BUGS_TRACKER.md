@@ -72,6 +72,54 @@ Branch: `claude/in-house-background-processing-Ci5rc`. All bugs found during the
 
 ---
 
+## 🔴 **STUDIO PLUGIN ARCHITECTURE BUILD HOTFIXES (April 28, 2026 Session — Phase 2.0)**
+
+These three bugs all surfaced as Vercel build failures after Phase 2.0 Step 9 (`410718a`) was pushed. Each was a one- or two-line fix landed within minutes of the prior failure. The compile step has been green since hotfix 2 (`22f21e8`); only the lint step kept failing until `ec9ee54`.
+
+### **BUG-073: Vercel build fails — JSX in `.ts` files**
+
+- **Status:** 🟢 FIXED (Apr 28, commit `8b23b8b` — Phase 2.0 hotfix 1)
+- **Severity:** High (deploy-blocking)
+- **Symptom:** swc compiler errored:
+  ```
+  ./src/tools/bg-removal/index.ts
+  Expected '>', got 'image'
+  ```
+- **Root cause:** The new tool descriptors at `src/tools/bg-removal/index.ts` and `src/tools/color-change/index.ts` contained JSX adapter components (`<BackgroundRemovalPanel ... />`, `<ColorChangeEditor ... />`). swc requires `.tsx` for files with JSX.
+- **Fix:** `git mv` both files to `index.tsx`. Module resolution treats `@/tools/<tool-id>` identically across both extensions — no consumer changes.
+- **Lesson:** When extracting adapter components into descriptor files, name them `.tsx` from the start.
+
+### **BUG-074: Vercel build fails — hooks without `'use client'` + server route transit through client module**
+
+- **Status:** 🟢 FIXED (Apr 28, commit `22f21e8` — Phase 2.0 hotfix 2)
+- **Severity:** High (deploy-blocking)
+- **Symptom:** Two errors in one build:
+  1. `You're importing a component that needs useEffect. This React Hook only works in a Client Component.` in `src/tools/color-change/index.tsx`
+  2. The `/api/color-change/use` route was importing `COLOR_CHANGE_LIMITS` from `@/tools/color-change` (the client-only index), dragging hooks into the server bundle.
+- **Root cause:** Two related boundary issues:
+  - The `index.tsx` adapter files used React hooks (`useCallback`, `useState`, `useEffect`) without the `'use client'` directive.
+  - The server API route went through the client-only module to reach a plain constant.
+- **Fix:**
+  1. Added `'use client'` to both `src/tools/{bg-removal,color-change}/index.tsx`.
+  2. Rerouted the API route to import from `@/tools/color-change/types` (the plain types module) directly.
+- **Lesson:** Server routes must not transit through client modules to reach plain constants. Plain types/constants belong in `<tool>/types.ts` (server-safe); the index.tsx is client-only adapters.
+
+### **BUG-075: Vercel build fails on lint — ESLint exemption list missing `src/app/api/**`**
+
+- **Status:** 🟢 FIXED (Apr 28, commit `ec9ee54` — Phase 2.0 hotfix 3)
+- **Severity:** High (deploy-blocking; lint stage)
+- **Symptom:** Compile succeeded (14.5s). Lint failed with one error among ~280 warnings:
+  ```
+  ./src/app/api/color-change/use/route.ts
+  5:1  Error: '@/tools/color-change/types' import is restricted from being used by
+  a pattern. Cross-tool import not allowed. ...  no-restricted-imports
+  ```
+- **Root cause:** Step 9 (`410718a`) added `no-restricted-imports` zones to enforce cross-tool isolation. The exemption block listed `src/app/studio/**` and `src/app/process/**` for the integration layer but **forgot** `src/app/api/**`. Hotfix 2's legitimate import (rerouting the API route to `@/tools/color-change/types`) became the first violation.
+- **Fix:** Added `'src/app/api/**/*.{ts,tsx}'` to the exemption block in `eslint.config.mjs`. The architectural promise (tool A's folder cannot import tool B's folder) stays intact — only the integration layer is exempt.
+- **Lesson:** When restricting imports, enumerate every integration-layer surface up front. UI routes and API routes both qualify as "integration."
+
+---
+
 ## 🔴 **CRITICAL BUGS (February 17-18, 2026 Session)**
 
 ### **BUG-062: Profiles RLS Policy Circular Reference Breaks All Supabase Queries**

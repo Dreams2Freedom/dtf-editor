@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 **ALWAYS read these files at the beginning of each conversation:**
 
-1. **`SESSION_END_2026_04_28.md`** - 🔴 READ THIS FIRST! Summary of last session and next steps (in-house BG removal + AI Brush, branch `claude/in-house-background-processing-Ci5rc`)
+1. **`SESSION_END_2026_04_28.md`** - 🔴 READ THIS FIRST! Summary of last session and next steps (in-house BG removal + AI Brush v1.2.0, AND Studio plugin architecture v1.3.0; both on branch `claude/in-house-background-processing-Ci5rc`)
 2. **`ADMIN_CREDENTIALS.md`** - 🔴 CRITICAL: Admin login info and common mistakes
 3. **`DTF_EDITOR_PRD.md`** - Product Requirements Document (understand the project)
 4. **`DEVELOPMENT_ROADMAP_V3.md`** - Current development plan and phases (use V3, not V2!)
@@ -291,12 +291,12 @@ When implementing Stripe subscriptions, Supabase features, or any API integratio
 ## Current Development Status
 
 - **Completed Phases:** 0, 1, 2, 3, 4, 5, 6, 7, 8.1 ✅
-- **Latest Feature:** In-House BG Removal + AI Brush (v1.2.0, April 28, 2026) — branch `claude/in-house-background-processing-Ci5rc`, awaiting merge
+- **Latest Features:** Studio Plugin Architecture v1.3.0 (Phase 2.0, April 28, 2026 follow-on) + In-House BG Removal + AI Brush v1.2.0 — both on branch `claude/in-house-background-processing-Ci5rc`, awaiting merge
 - **Security Audits:** Feb 8 + Feb 16 re-audit - 30+ issues fixed, 18 remaining
 - **Active Bug:** BUG-062 - Profiles RLS circular reference (needs SQL fix in Supabase)
-- **Priority:** User indicated next steps will be larger architectural changes (TBD)
-- **Session Summary:** See `SESSION_END_2026_04_28.md` for the most recent handoff
-- **AI Brush Plan History:** See `docs/AI_BRUSH_PLAN_HISTORY.md` for the linear development history of the in-house BG removal feature (Phases 1.7 → 1.14)
+- **Priority:** Confirm Vercel build green on `ec9ee54` (3rd Phase 2.0 hotfix); manual end-to-end QA of in-Studio tool chaining; then Step 8 (internal nav redirects) once upload UX is settled
+- **Session Summary:** See `SESSION_END_2026_04_28.md` for the most recent handoff (covers both v1.2.0 AI Brush AND v1.3.0 Studio plugin architecture)
+- **Plan History:** See `docs/AI_BRUSH_PLAN_HISTORY.md` for the linear development history (Phases 1.7 → 2.0)
 
 ## 📋 Development Workflow Checklist
 

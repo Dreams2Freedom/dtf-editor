@@ -5,7 +5,117 @@
 
 ---
 
-## 📅 April 27–28, 2026 — In-House Background Removal + AI Brush (Phases 1.6–1.14)
+## 📅 April 28, 2026 (later) — Studio Plugin Architecture (Phase 2.0)
+
+### **Date: 2026-04-28 — Studio as Image Hub + Self-Contained Tool Plugins**
+
+#### **Session Summary**
+
+**Branch:** `claude/in-house-background-processing-Ci5rc`
+**Commits added in this session:** 9 (`dbde45b` → `ec9ee54`)
+**Scope:** Architectural refactor — Studio becomes the durable home for the working image; tools (BG Remove, Upscale, Color Change) become self-contained plugins under `src/tools/<tool-id>/` so refactoring one tool can't break another, and adding new API-backed tools is a folder-creation exercise rather than a Studio-shell change.
+
+**Why:** User asked for a hub-and-spoke architecture. Quote: *"As we add tools, those tools stand alone on their own and plug into the studio for us to use… when we make changes, let's say, to the background editor and we're messing with the code that affects the color selection, I don't want it to also affect the code for the color changing plugin."* Phase 2.0 implements that contract.
+
+---
+
+#### **Architectural Outcome**
+
+```
+src/tools/
+  types.ts                           ← StudioTool / StudioToolPanelProps / ApplyMetadata contract
+  registry.ts                        ← ordered tool list (3 entries)
+  bg-removal/
+    Panel.tsx, useBackgroundRemoval.ts, api.ts, types.ts, index.tsx
+    providers/                       ← future home for in-house vs ClippingMagic
+  upscale/
+    Panel.tsx, index.ts
+    providers/
+      types.ts, deepImage.ts         ← UpscaleProvider contract + Deep-Image.ai impl
+  color-change/
+    Panel.tsx, components/, useColorChangeHistory.ts, color-utils.ts, types.ts, index.tsx
+```
+
+Cross-tool imports are blocked by ESLint `no-restricted-imports` zones in `eslint.config.mjs`. The integration layer (Studio shell + standalone `/process/` routes + API routes) is exempt.
+
+---
+
+#### **Step-by-step (commits)**
+
+| Step | Commit | What |
+|---|---|---|
+| 1 | `dbde45b` | `src/tools/types.ts` plugin contract + empty registry + skeleton dirs |
+| 2 | `33eb6ba` | BG Removal moved into `src/tools/bg-removal/` (Panel + hook + api + types) |
+| 3 | `96cc91e` | Color Change moved into `src/tools/color-change/` (Panel + components/ + hook + types + color-utils) |
+| 4 | `45005b0` | New Upscale plugin: `Panel.tsx` + `providers/{types,deepImage}.ts` (first tool built native to the contract) |
+| 5 | `70d5b6b` | Studio shell rewrite: `workingImage` state, plugin-driven tool picker, onApply chain handler, Save/Reset buttons |
+| 9 | `410718a` | ESLint `no-restricted-imports` zones blocking cross-tool imports |
+| H1 | `8b23b8b` | Hotfix 1: rename adapter `index.ts` → `index.tsx` (JSX in `.ts` failed swc compiler) |
+| H2 | `22f21e8` | Hotfix 2: add `'use client'` to adapter index files (hooks need it); reroute `/api/color-change/use` to import constants from `types.ts` directly |
+| H3 | `ec9ee54` | Hotfix 3: extend ESLint exemption to include `src/app/api/**` so server routes can legitimately import constants from tool folders |
+
+Steps 6, 7, 8 from the original plan were intentionally collapsed:
+- **Step 6** (thin standalone wrappers): standalone `/process/` routes already use `@/tools/...` imports as of Steps 2/3. The bigger flows (`/process/background-removal` is ClippingMagic, `/process/upscale` has bulk + DPI) are deliberately distinct UXs.
+- **Step 7** (provider abstraction polish): Upscale already has the `providers/` pattern. BG Removal can adopt it when a second provider lands.
+- **Step 8** (internal nav redirects): the Create dropdown and dashboard cards still link to standalone tool routes. Routing to `/studio?tool=...` requires a unified upload UX (Studio currently needs an `imageId`); deferred to a separate UX phase.
+
+---
+
+#### **Key Design Decisions**
+
+1. **`workingImage` separate from `originalImage`.** Studio holds two refs: the upload (immutable) and the current state (mutated by each `onApply`). Reset always reverts to the upload. Tool chaining is automatic — each tool's output replaces `workingImage`, becoming the next tool's input.
+2. **Tool descriptors with adapter components.** Existing components (BG Removal panel, Color Change editor) keep their legacy props; the tool's `index.tsx` exports an adapter that translates between `onSave` (legacy) and `onApply(canvas, meta)` (plugin contract). Lets us migrate without rewriting 1700+ lines of working tool code.
+3. **Provider abstraction for API-backed tools.** Each tool has a `providers/types.ts` interface; concrete providers implement `run(blob, options) → Promise<result>`. Swapping APIs (or adding a second one) is a registry change, no Panel edits.
+4. **ESLint enforces what folder structure suggests.** Convention alone isn't enough — the `no-restricted-imports` rule means a developer literally cannot import `@/tools/upscale` from inside `src/tools/bg-removal/` without a build error. This makes the architectural promise concrete.
+
+---
+
+#### **The Build-Failure Saga (Hotfixes 1–3)**
+
+After Step 9 was pushed, three sequential Vercel build failures surfaced different aspects of Next.js 15's server/client boundary rules:
+
+1. **`Expected '>', got 'image'`** — JSX in `.ts` files. The adapter components in `src/tools/bg-removal/index.ts` and `src/tools/color-change/index.ts` had JSX returns (`<BackgroundRemovalPanel ... />`). Renamed to `.tsx`. Lesson: JSX requires `.tsx`.
+
+2. **`You're importing a component that needs useEffect ... only works in a Client Component`** — adapters used hooks but lacked `'use client'`. Added the directive to both. Plus: the `/api/color-change/use` server route was importing `COLOR_CHANGE_LIMITS` through the now-client-only `index.tsx`, which dragged hooks into the server bundle. Rerouted to import from `@/tools/color-change/types` directly. Lesson: server routes must not transit through client modules to reach plain constants.
+
+3. **`'@/tools/color-change/types' import is restricted ... no-restricted-imports`** — Step 9's lint rule blocked the legitimate cross-cutting import that hotfix 2 introduced. The exemption block listed `src/app/studio/**` and `src/app/process/**` but forgot `src/app/api/**`. Added it. Lesson: when restricting imports, enumerate every integration-layer surface (UI routes + API routes both qualify).
+
+The compile step has been green since hotfix 2 (`22f21e8`); only the lint step kept failing until `ec9ee54`. Each hotfix was a one-or-two-line change pushed within minutes of the prior failure.
+
+---
+
+#### **Files Touched**
+
+| Surface | Change |
+|---|---|
+| `src/tools/{types,registry}.ts` | New: plugin contract + ordered tool list |
+| `src/tools/bg-removal/` | Moved from `src/components/studio/`, `src/hooks/`, `src/services/`, `src/types/` (4 files) |
+| `src/tools/color-change/` | Moved from `src/components/image/`, `src/hooks/`, `src/types/`, `src/lib/` (5 files) |
+| `src/tools/upscale/{Panel.tsx,index.ts,providers/}` | New plugin |
+| `src/app/studio/client.tsx` | Rewritten: workingImage state, plugin registry, onApply chain, Save/Reset |
+| `eslint.config.mjs` | `no-restricted-imports` zones blocking cross-tool imports + integration-layer exemptions |
+| `src/app/api/color-change/use/route.ts` | Import path rerouted to `@/tools/color-change/types` |
+| `src/app/process/color-change/client.tsx`, `src/app/api/color-change/use/route.ts` | Import-path updates after the moves |
+
+---
+
+#### **What's Left for the Next Session**
+
+- **Step 8 (nav redirects):** Create dropdown + dashboard cards + Process page tool buttons should route to `/studio?tool=...` once the upload UX is unified.
+- **Manual QA on deploy** (Step 10 of the original plan): confirm in-Studio tool chaining works (BG Remove → Upscale → Color Change → Save), standalone routes still work (ClippingMagic `/process/background-removal`, bulk routes), and ESLint cross-tool isolation triggers as expected on a deliberate violation.
+- **Provider polish (Step 7):** Eventually extract BG Removal's in-house rembg client + ClippingMagic adapter into `src/tools/bg-removal/providers/`. Low priority.
+
+---
+
+#### **Lessons Learned**
+
+- **`'use client'` cascades upward, not downward.** A server module that imports from a `'use client'` module gets a serializable component-reference, but the server module itself stays server. The flip side: the server module CAN'T then re-export hooks-using values from that client module without dragging it back. Architectural rule: keep tool indexes (which adapt UI) separate from tool types/api modules (plain TS, server-safe).
+- **ESLint exemption lists need to enumerate every integration surface.** Easy to miss API routes when "integration layer" means "Studio + standalone routes" in your head. Cost us hotfix 3.
+- **Plan-as-you-go works for refactors of this size.** 9 commits, 3 of which were hotfixes. The hotfixes were each tractable because the underlying architecture was sound — they were boundary issues, not design issues.
+
+---
+
+
 
 ### **Date: 2026-04-27 to 2026-04-28 — In-House BG Removal Sprint**
 
