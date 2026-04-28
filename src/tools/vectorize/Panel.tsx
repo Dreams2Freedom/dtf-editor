@@ -345,8 +345,8 @@ export function VectorizePanel({ image, onApply }: StudioToolPanelProps) {
 
             <p className="text-xs text-gray-400 mt-auto pt-2">
               Powered by {provider.label}. Vectorize costs 2 credits per call.
-              SVG and PNG download from the same call. PDF triggers a
-              separate call when clicked.
+              SVG and PNG download from the same call. PDF triggers a separate
+              call when clicked.
             </p>
           </div>
         </div>
