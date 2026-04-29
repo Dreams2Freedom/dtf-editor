@@ -817,7 +817,13 @@ export function BackgroundRemovalPanel({
           'stroke',
           brushTool === 'keep' ? '#10b981' : '#ef4444'
         );
-        live.setAttribute('stroke-width', String(brushSize * scale * zoom));
+        // Phase 2.2 fix: the live SVG stroke renders INSIDE the
+        // `canvasZoomWrapperRef` which already has `transform: scale(zoom)`,
+        // so multiplying stroke-width by zoom here doubles the scaling
+        // and made the in-progress line render zoom× too thick.
+        // Committed strokes (rendered in the same SVG via JSX below) use
+        // just `brushSize * overlayScale` — match that.
+        live.setAttribute('stroke-width', String(brushSize * scale));
       }
     },
     [
