@@ -86,6 +86,15 @@ async function handlePost(request: NextRequest) {
         | 'pdf'
         | 'png'
         | undefined,
+      maxColors: (() => {
+        // Vectorize-only: clamp to [1, 256] per Vectorizer.ai's
+        // processing.max_colors range. Undefined → service uses 256.
+        const raw = formData.get('maxColors');
+        if (raw == null || raw === '') return undefined;
+        const n = parseInt(raw as string, 10);
+        if (!Number.isFinite(n)) return undefined;
+        return Math.min(256, Math.max(1, n));
+      })(),
     };
 
     // 8. Validate operation-specific options

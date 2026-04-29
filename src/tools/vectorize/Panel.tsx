@@ -133,8 +133,23 @@ function triggerDownload(href: string, filename: string) {
   document.body.removeChild(a);
 }
 
+// Color-count presets shown in the Vectorize sidebar — mirrors what
+// Vectorizer.ai's web app exposes as palette presets. `null` means "All"
+// (don't constrain max_colors; API uses the default 256).
+const COLOR_PRESETS: { label: string; value: number | null }[] = [
+  { label: '2', value: 2 },
+  { label: '3', value: 3 },
+  { label: '4', value: 4 },
+  { label: '6', value: 6 },
+  { label: '8', value: 8 },
+  { label: '12', value: 12 },
+  { label: '16', value: 16 },
+  { label: 'All', value: null },
+];
+
 export function VectorizePanel({ image, onApply }: StudioToolPanelProps) {
   const [format, setFormat] = useState<OutputFormat>('svg');
+  const [maxColors, setMaxColors] = useState<number | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [vectorizedImage, setVectorizedImage] =
@@ -158,9 +173,11 @@ export function VectorizePanel({ image, onApply }: StudioToolPanelProps) {
       const blob = await imageToBlob(image);
       const stamp = Date.now();
 
+      const colorOpt = maxColors == null ? {} : { maxColors };
+
       if (format === 'pdf') {
         // PDF path: terminal download, no working-image update.
-        const result = await provider.run(blob, { format: 'pdf' });
+        const result = await provider.run(blob, { format: 'pdf', ...colorOpt });
         triggerDownload(result.url, `vectorized-${stamp}.pdf`);
         return;
       }
@@ -168,7 +185,7 @@ export function VectorizePanel({ image, onApply }: StudioToolPanelProps) {
       // SVG and PNG share a single SVG call — we either download the
       // SVG file directly or rasterize it at original dimensions for
       // the PNG download.
-      const result = await provider.run(blob, { format: 'svg' });
+      const result = await provider.run(blob, { format: 'svg', ...colorOpt });
       const targetW = image.naturalWidth || image.width;
       const targetH = image.naturalHeight || image.height;
       const rasterCanvas = await rasterizeSvgAtSize(
@@ -202,7 +219,7 @@ export function VectorizePanel({ image, onApply }: StudioToolPanelProps) {
     } finally {
       setIsProcessing(false);
     }
-  }, [image, format, provider, onApply]);
+  }, [image, format, maxColors, provider, onApply]);
 
   const displayed =
     vectorizedImage && viewMode === 'vectorized' ? vectorizedImage : image;
@@ -276,6 +293,32 @@ export function VectorizePanel({ image, onApply }: StudioToolPanelProps) {
               <p className="text-purple-800/90">
                 Converts your raster image into a clean scalable vector. Best
                 for logos, text, and graphics with solid color regions.
+              </p>
+            </div>
+
+            <div>
+              <label className="block text-xs font-medium text-gray-500 mb-1.5 uppercase tracking-wide">
+                Colors
+              </label>
+              <div className="grid grid-cols-4 gap-1">
+                {COLOR_PRESETS.map(p => (
+                  <button
+                    key={p.label}
+                    type="button"
+                    onClick={() => setMaxColors(p.value)}
+                    disabled={isProcessing}
+                    className={`py-1.5 text-xs font-medium rounded-md border transition-colors disabled:opacity-50 ${
+                      maxColors === p.value
+                        ? 'bg-purple-600 text-white border-purple-600'
+                        : 'text-gray-600 border-gray-200 hover:border-gray-300 hover:bg-gray-50'
+                    }`}
+                  >
+                    {p.label}
+                  </button>
+                ))}
+              </div>
+              <p className="text-xs text-gray-400 mt-1">
+                Lower = bolder, fewer shapes. Higher = closer to original.
               </p>
             </div>
 

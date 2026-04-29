@@ -11,6 +11,15 @@ export type VectorFormat = 'svg' | 'pdf';
 
 export interface VectorizeOptions {
   format: VectorFormat;
+  /**
+   * Target palette size, 1-256. Vectorizer.ai's `processing.max_colors`.
+   * Lower values produce bolder/punchier output (fewer shapes); the
+   * default `undefined` lets the API auto-detect (effectively 256).
+   *
+   * Surfaced via the Vectorize Panel's "Colors" preset row so users
+   * can refine the output palette without touching the API directly.
+   */
+  maxColors?: number;
 }
 
 export interface VectorizeResult {

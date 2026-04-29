@@ -21,6 +21,9 @@ export const vectorizerAiProvider: VectorizeProvider = {
     fd.append('image', blob, 'input.png');
     fd.append('operation', 'vectorization');
     fd.append('vectorFormat', options.format);
+    if (typeof options.maxColors === 'number') {
+      fd.append('maxColors', String(options.maxColors));
+    }
 
     const start = Date.now();
     const res = await fetch('/api/process', {
