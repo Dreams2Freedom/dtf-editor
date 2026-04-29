@@ -1,28 +1,31 @@
 'use client';
 
 /**
- * Vectorize tool — Studio plugin Panel (Phase 2.2 + multi-format).
+ * Vectorize tool — Studio plugin Panel (Phase 2.2 + format-up-front).
  *
- * Layout matches BG Removal / Upscale: shared StudioCanvasFrame on the
- * left with the working image, vertical right-hand sidebar with controls.
- * While Vectorizer.ai is in flight we overlay a processing animation.
- * Once done, the user can compare via an Original / Vectorized view-mode
- * pill in the canvas top-left, then download in their format of choice.
+ * Flow:
+ *   1. User picks output format up front: SVG / PNG / PDF.
+ *   2. Vectorize fires a single API call (one credit charge).
+ *   3. The chosen file auto-downloads when the call completes.
  *
- * Output formats:
- *   - SVG  (the API response, free)
- *   - PNG  (rasterized client-side from the SVG, free)
- *   - PDF  (separate API call with format=pdf, costs additional credits)
+ * For SVG and PNG choices we hit Vectorizer.ai once with format=svg
+ * (the most flexible source of truth), then either:
+ *   - SVG: download the API's SVG file directly, AND rasterize it on the
+ *     client at the ORIGINAL image's dimensions for the working image
+ *     (so chaining into Upscale / Color Change works at the right size).
+ *   - PNG: same call → rasterize at original dimensions client-side and
+ *     download that PNG. Working image is the same canvas.
  *
- * The first SVG call also rasters the SVG to a PNG canvas at the
- * ORIGINAL image's dimensions (not the SVG's intrinsic 300×150 default)
- * so the result fills the canvas like the other tools and chains
- * cleanly into Upscale / Color Change. PDF is download-only — it does
- * not feed into the working image since we can't easily raster PDFs.
+ * For PDF we call with format=pdf and download the result. The working
+ * image stays unchanged because rastering a PDF client-side is
+ * impractical — PDF is a "terminal" format here.
+ *
+ * Single click, single charge. The format selector replaces the old
+ * post-vectorize three-button download row.
  */
 
-import { useCallback, useEffect, useRef, useState } from 'react';
-import { Loader2, Zap, Download, FileType } from 'lucide-react';
+import { useCallback, useEffect, useState } from 'react';
+import { Loader2, Zap } from 'lucide-react';
 
 import {
   StudioCanvasFrame,
@@ -36,6 +39,17 @@ import type { VectorizeProvider } from './providers/types';
 const DEFAULT_PROVIDER: VectorizeProvider = vectorizerAiProvider;
 
 type ViewMode = 'original' | 'vectorized';
+type OutputFormat = 'svg' | 'png' | 'pdf';
+
+const FORMAT_OPTIONS: {
+  value: OutputFormat;
+  label: string;
+  help: string;
+}[] = [
+  { value: 'svg', label: 'SVG', help: 'Editable vector — Illustrator, Inkscape, web.' },
+  { value: 'png', label: 'PNG', help: 'Crisp raster at your original image size.' },
+  { value: 'pdf', label: 'PDF', help: 'Print-ready vector — best for print shops.' },
+];
 
 function imageToBlob(image: HTMLImageElement): Promise<Blob> {
   return new Promise((resolve, reject) => {
@@ -55,12 +69,6 @@ function imageToBlob(image: HTMLImageElement): Promise<Blob> {
   });
 }
 
-/**
- * Load an SVG URL into an HTMLImageElement and rasterize it to a canvas
- * at the explicitly-requested dimensions. Without explicit width/height
- * the browser falls back to the SVG's intrinsic size (often 300×150),
- * which made post-vectorize results render as a tiny thumbnail.
- */
 function rasterizeSvgAtSize(
   svgUrl: string,
   width: number,
@@ -114,26 +122,19 @@ function triggerDownload(href: string, filename: string) {
 }
 
 export function VectorizePanel({ image, onApply }: StudioToolPanelProps) {
+  const [format, setFormat] = useState<OutputFormat>('svg');
   const [isProcessing, setIsProcessing] = useState(false);
-  const [isDownloadingPdf, setIsDownloadingPdf] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [vectorizedImage, setVectorizedImage] =
     useState<HTMLImageElement | null>(null);
-  const [svgUrl, setSvgUrl] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<ViewMode>('original');
   const [zoom, setZoom] = useState(1);
-
-  // Cache the rasterized PNG canvas so the PNG-download button is free
-  // (no re-rasterization on every click).
-  const rasterCanvasRef = useRef<HTMLCanvasElement | null>(null);
 
   const provider = DEFAULT_PROVIDER;
 
   // Reset result if the working image changes (chained from another tool).
   useEffect(() => {
     setVectorizedImage(null);
-    setSvgUrl(null);
-    rasterCanvasRef.current = null;
     setViewMode('original');
     setError(null);
   }, [image]);
@@ -143,12 +144,19 @@ export function VectorizePanel({ image, onApply }: StudioToolPanelProps) {
     setIsProcessing(true);
     try {
       const blob = await imageToBlob(image);
-      const result = await provider.run(blob, { format: 'svg' });
+      const stamp = Date.now();
 
-      // Rasterize the SVG at the ORIGINAL image's dimensions so the
-      // result fills the canvas (and chains correctly into Upscale,
-      // Color Change, etc.) instead of falling back to the SVG's
-      // intrinsic 300×150.
+      if (format === 'pdf') {
+        // PDF path: terminal download, no working-image update.
+        const result = await provider.run(blob, { format: 'pdf' });
+        triggerDownload(result.url, `vectorized-${stamp}.pdf`);
+        return;
+      }
+
+      // SVG and PNG share a single SVG call — we either download the
+      // SVG file directly or rasterize it at original dimensions for
+      // the PNG download.
+      const result = await provider.run(blob, { format: 'svg' });
       const targetW = image.naturalWidth || image.width;
       const targetH = image.naturalHeight || image.height;
       const rasterCanvas = await rasterizeSvgAtSize(
@@ -156,17 +164,25 @@ export function VectorizePanel({ image, onApply }: StudioToolPanelProps) {
         targetW,
         targetH
       );
-      rasterCanvasRef.current = rasterCanvas;
 
+      if (format === 'svg') {
+        triggerDownload(result.url, `vectorized-${stamp}.svg`);
+      } else {
+        // format === 'png'
+        const dataUrl = rasterCanvas.toDataURL('image/png');
+        triggerDownload(dataUrl, `vectorized-${stamp}.png`);
+      }
+
+      // Update Studio's working image so chained tools see the
+      // vectorized result. Only meaningful for SVG / PNG paths since
+      // both are raster-friendly.
       const rasterized = await canvasToImageElement(rasterCanvas);
       setVectorizedImage(rasterized);
-      setSvgUrl(result.url);
       setViewMode('vectorized');
-
       onApply(rasterCanvas, {
         operation: 'vectorization',
         provider: provider.id,
-        modelId: 'svg',
+        modelId: format,
       });
     } catch (e) {
       const msg = e instanceof Error ? e.message : 'Vectorize failed';
@@ -174,40 +190,7 @@ export function VectorizePanel({ image, onApply }: StudioToolPanelProps) {
     } finally {
       setIsProcessing(false);
     }
-  }, [image, provider, onApply]);
-
-  const handleDownloadSvg = useCallback(() => {
-    if (!svgUrl) return;
-    triggerDownload(svgUrl, `vectorized-${Date.now()}.svg`);
-  }, [svgUrl]);
-
-  const handleDownloadPng = useCallback(() => {
-    const canvas = rasterCanvasRef.current;
-    if (!canvas) return;
-    canvas.toBlob(blob => {
-      if (!blob) return;
-      const url = URL.createObjectURL(blob);
-      triggerDownload(url, `vectorized-${Date.now()}.png`);
-      setTimeout(() => URL.revokeObjectURL(url), 100);
-    }, 'image/png');
-  }, []);
-
-  /** PDF requires a separate API call with format=pdf. Costs another
-   *  Vectorizer.ai charge — clearly noted on the button. */
-  const handleDownloadPdf = useCallback(async () => {
-    setError(null);
-    setIsDownloadingPdf(true);
-    try {
-      const blob = await imageToBlob(image);
-      const result = await provider.run(blob, { format: 'pdf' });
-      triggerDownload(result.url, `vectorized-${Date.now()}.pdf`);
-    } catch (e) {
-      const msg = e instanceof Error ? e.message : 'PDF generation failed';
-      setError(msg);
-    } finally {
-      setIsDownloadingPdf(false);
-    }
-  }, [image, provider]);
+  }, [image, format, provider, onApply]);
 
   const displayed =
     vectorizedImage && viewMode === 'vectorized' ? vectorizedImage : image;
@@ -284,69 +267,54 @@ export function VectorizePanel({ image, onApply }: StudioToolPanelProps) {
               </p>
             </div>
 
-            {!hasResult ? (
-              <button
-                type="button"
-                onClick={handleVectorize}
-                disabled={isProcessing}
-                className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-purple-600 hover:bg-purple-700 disabled:opacity-60 text-white text-sm font-medium rounded-lg transition-colors"
-              >
-                {isProcessing ? (
-                  <>
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                    Vectorizing…
-                  </>
-                ) : (
-                  <>
-                    <Zap className="w-4 h-4" />
-                    Vectorize
-                  </>
-                )}
-              </button>
-            ) : (
-              <div className="flex flex-col gap-2">
-                <p className="text-xs font-medium text-gray-600 uppercase tracking-wide">
-                  Download
-                </p>
-                <button
-                  type="button"
-                  onClick={handleDownloadSvg}
-                  className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white text-sm font-medium rounded-lg transition-colors"
-                  title="Download the vector source — opens in Illustrator, Inkscape, etc."
-                >
-                  <FileType className="w-3.5 h-3.5" />
-                  SVG
-                </button>
-                <button
-                  type="button"
-                  onClick={handleDownloadPng}
-                  className="w-full flex items-center justify-center gap-2 px-4 py-2 text-sm text-gray-700 hover:text-gray-900 border border-gray-200 hover:border-gray-300 rounded-lg transition-colors"
-                  title="Rasterized PNG at original image dimensions"
-                >
-                  <Download className="w-3.5 h-3.5" />
-                  PNG
-                </button>
-                <button
-                  type="button"
-                  onClick={handleDownloadPdf}
-                  disabled={isDownloadingPdf}
-                  className="w-full flex items-center justify-center gap-2 px-4 py-2 text-sm text-gray-700 hover:text-gray-900 border border-gray-200 hover:border-gray-300 rounded-lg transition-colors disabled:opacity-60"
-                  title="PDF (print-ready). Requires a second Vectorizer.ai call — costs an extra 2 credits."
-                >
-                  {isDownloadingPdf ? (
-                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                  ) : (
-                    <FileType className="w-3.5 h-3.5" />
-                  )}
-                  PDF (+2 credits)
-                </button>
+            <div>
+              <label className="block text-xs font-medium text-gray-500 mb-1.5 uppercase tracking-wide">
+                Output Format
+              </label>
+              <div className="grid grid-cols-3 rounded-lg border border-gray-200 overflow-hidden">
+                {FORMAT_OPTIONS.map(opt => (
+                  <button
+                    key={opt.value}
+                    type="button"
+                    onClick={() => setFormat(opt.value)}
+                    disabled={isProcessing}
+                    className={`py-2 text-xs font-medium transition-colors disabled:opacity-50 ${
+                      format === opt.value
+                        ? 'bg-purple-600 text-white'
+                        : 'text-gray-600 hover:bg-gray-50'
+                    }`}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
               </div>
-            )}
+              <p className="text-xs text-gray-400 mt-1">
+                {FORMAT_OPTIONS.find(o => o.value === format)?.help}
+              </p>
+            </div>
+
+            <button
+              type="button"
+              onClick={handleVectorize}
+              disabled={isProcessing}
+              className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-purple-600 hover:bg-purple-700 disabled:opacity-60 text-white text-sm font-medium rounded-lg transition-colors"
+            >
+              {isProcessing ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  Vectorizing…
+                </>
+              ) : (
+                <>
+                  <Zap className="w-4 h-4" />
+                  Vectorize &amp; Download {format.toUpperCase()}
+                </>
+              )}
+            </button>
 
             <p className="text-xs text-gray-400 mt-auto pt-2">
               Powered by {provider.label}. Vectorize costs 2 credits per call.
-              SVG and PNG download from the same call. PDF triggers a separate
-              call when clicked.
+              Single call regardless of format.
             </p>
           </div>
         </div>
