@@ -46,9 +46,21 @@ const FORMAT_OPTIONS: {
   label: string;
   help: string;
 }[] = [
-  { value: 'svg', label: 'SVG', help: 'Editable vector — Illustrator, Inkscape, web.' },
-  { value: 'png', label: 'PNG', help: 'Crisp raster at your original image size.' },
-  { value: 'pdf', label: 'PDF', help: 'Print-ready vector — best for print shops.' },
+  {
+    value: 'svg',
+    label: 'SVG',
+    help: 'Editable vector — Illustrator, Inkscape, web.',
+  },
+  {
+    value: 'png',
+    label: 'PNG',
+    help: 'Crisp raster at your original image size.',
+  },
+  {
+    value: 'pdf',
+    label: 'PDF',
+    help: 'Print-ready vector — best for print shops.',
+  },
 ];
 
 function imageToBlob(image: HTMLImageElement): Promise<Blob> {
