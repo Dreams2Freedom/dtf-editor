@@ -38,23 +38,24 @@ import {
 
 type ViewMode = 'original' | 'halftone';
 
-const ALGORITHMS: { value: HalftoneAlgorithm; label: string; help: string }[] = [
-  {
-    value: 'ordered',
-    label: 'Ordered',
-    help: 'Bayer matrix — regular dot pattern, production-consistent.',
-  },
-  {
-    value: 'floyd-steinberg',
-    label: 'Floyd-Steinberg',
-    help: 'Error diffusion — natural gradient, classic photo halftone.',
-  },
-  {
-    value: 'atkinson',
-    label: 'Atkinson',
-    help: 'Tighter, punchier dots — Macintosh-classic look.',
-  },
-];
+const ALGORITHMS: { value: HalftoneAlgorithm; label: string; help: string }[] =
+  [
+    {
+      value: 'ordered',
+      label: 'Ordered',
+      help: 'Bayer matrix — regular dot pattern, production-consistent.',
+    },
+    {
+      value: 'floyd-steinberg',
+      label: 'Floyd-Steinberg',
+      help: 'Error diffusion — natural gradient, classic photo halftone.',
+    },
+    {
+      value: 'atkinson',
+      label: 'Atkinson',
+      help: 'Tighter, punchier dots — Macintosh-classic look.',
+    },
+  ];
 
 const ORDERED_SIZES: { value: OrderedSize; label: string }[] = [
   { value: 16, label: 'Coarse' },
@@ -82,7 +83,9 @@ export function HalftonePanel({
   const [opts, setOpts] = useState<HalftoneOptions>(DEFAULT_HALFTONE_OPTIONS);
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [previewImage, setPreviewImage] = useState<HTMLImageElement | null>(null);
+  const [previewImage, setPreviewImage] = useState<HTMLImageElement | null>(
+    null
+  );
   const [viewMode, setViewMode] = useState<ViewMode>('original');
   const [zoom, setZoom] = useState(1);
 
@@ -146,7 +149,8 @@ export function HalftonePanel({
     }
   }, [image, opts, onApply, onCommit]);
 
-  const displayed = previewImage && viewMode === 'halftone' ? previewImage : image;
+  const displayed =
+    previewImage && viewMode === 'halftone' ? previewImage : image;
 
   return (
     <div className="flex-1 flex flex-col min-h-0">
@@ -314,9 +318,7 @@ export function HalftonePanel({
                 max={100}
                 step={1}
                 value={opts.contrast}
-                onChange={e =>
-                  updateOption('contrast', Number(e.target.value))
-                }
+                onChange={e => updateOption('contrast', Number(e.target.value))}
                 disabled={isProcessing}
                 className="w-full accent-blue-600"
               />
@@ -337,9 +339,7 @@ export function HalftonePanel({
                 max={2}
                 step={0.05}
                 value={opts.gamma}
-                onChange={e =>
-                  updateOption('gamma', Number(e.target.value))
-                }
+                onChange={e => updateOption('gamma', Number(e.target.value))}
                 disabled={isProcessing}
                 className="w-full accent-blue-600"
               />
@@ -368,8 +368,8 @@ export function HalftonePanel({
             </button>
 
             <p className="text-xs text-gray-400 mt-auto pt-2">
-              Free on Starter plans and above. Basic and Free plans pay
-              1 credit per halftone.
+              Free on Starter plans and above. Basic and Free plans pay 1 credit
+              per halftone.
             </p>
           </div>
         </div>

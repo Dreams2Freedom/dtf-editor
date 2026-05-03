@@ -20,11 +20,7 @@
  *      underbase downstream — Phase 1 doesn't generate one.
  */
 
-import {
-  GRAY8,
-  intBufferFromImage,
-  type IntBuffer,
-} from '@thi.ng/pixel';
+import { GRAY8, intBufferFromImage, type IntBuffer } from '@thi.ng/pixel';
 import {
   ATKINSON,
   FLOYD_STEINBERG,

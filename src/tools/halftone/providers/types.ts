@@ -25,5 +25,8 @@ export interface HalftoneResult {
 export interface HalftoneProvider {
   id: string;
   label: string;
-  run(image: HTMLImageElement, options: HalftoneOptions): Promise<HalftoneResult>;
+  run(
+    image: HTMLImageElement,
+    options: HalftoneOptions
+  ): Promise<HalftoneResult>;
 }
