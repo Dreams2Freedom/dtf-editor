@@ -20,6 +20,7 @@ import {
 } from 'lucide-react';
 
 import MagicWand from '@/lib/magic-wand';
+import { CanvasProcessingOverlay } from '@/components/studio/StudioCanvasFrame';
 import {
   clientFloodFill,
   clientMultiFloodFill,
@@ -1427,6 +1428,17 @@ export function BackgroundRemovalPanel({
                   </svg>
                 )}
             </div>
+            {/* Phase 2.2: pulsing overlay while the AI is doing initial
+                setup (`embedding`, `detecting`) or in-flight work
+                (`removing`, `predicting`). Without this, the user sees
+                the original image and assumes nothing's happening
+                while SAM is loading. Sits OUTSIDE the zoom transform so
+                it always covers the visible canvas correctly. */}
+            {isProcessing && (
+              <CanvasProcessingOverlay
+                label={STATUS_LABELS[status] || 'Preparing AI Brush…'}
+              />
+            )}
             {/* Brush cursor overlay — outside transform; positioned in untransformed
                 space and sized by zoom so it tracks the visible brush footprint. */}
             {panelMode === 'ai-brush' &&
