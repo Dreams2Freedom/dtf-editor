@@ -2,8 +2,8 @@
 
 import React from 'react';
 import { X, ArrowRight } from 'lucide-react';
-import { ColorChangeEntry } from '@/types/colorChange';
-import { rgbToHex } from '@/lib/color-utils';
+import { ColorChangeEntry } from '../types';
+import { rgbToHex } from '../color-utils';
 
 interface ChangesHistoryProps {
   changes: ColorChangeEntry[];

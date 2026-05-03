@@ -6,7 +6,11 @@
 
 function getSigningKey(): string {
   // Use a dedicated secret or fall back to service role key
-  return process.env.COOKIE_SIGNING_SECRET || process.env.SUPABASE_SERVICE_ROLE_KEY || '';
+  return (
+    process.env.COOKIE_SIGNING_SECRET ||
+    process.env.SUPABASE_SERVICE_ROLE_KEY ||
+    ''
+  );
 }
 
 const encoder = new TextEncoder();
@@ -19,14 +23,21 @@ async function hmacSign(payload: string): Promise<string> {
     false,
     ['sign']
   );
-  const signature = await crypto.subtle.sign('HMAC', key, encoder.encode(payload));
+  const signature = await crypto.subtle.sign(
+    'HMAC',
+    key,
+    encoder.encode(payload)
+  );
   // Convert to base64url
   const bytes = new Uint8Array(signature);
   let binary = '';
   for (let i = 0; i < bytes.length; i++) {
     binary += String.fromCharCode(bytes[i]);
   }
-  return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+  return btoa(binary)
+    .replace(/\+/g, '-')
+    .replace(/\//g, '_')
+    .replace(/=+$/, '');
 }
 
 export async function signCookieValue(payload: string): Promise<string> {
@@ -34,7 +45,9 @@ export async function signCookieValue(payload: string): Promise<string> {
   return `${payload}.${signature}`;
 }
 
-export async function verifyCookieValue(signedValue: string): Promise<string | null> {
+export async function verifyCookieValue(
+  signedValue: string
+): Promise<string | null> {
   const lastDot = signedValue.lastIndexOf('.');
   if (lastDot === -1) return null;
 

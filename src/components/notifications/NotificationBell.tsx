@@ -236,17 +236,21 @@ export function NotificationBell() {
                                     href={notification.action_url}
                                     {...(notification.action_url.startsWith('/')
                                       ? {}
-                                      : { target: '_blank', rel: 'noopener noreferrer' })}
+                                      : {
+                                          target: '_blank',
+                                          rel: 'noopener noreferrer',
+                                        })}
                                     onClick={() => {
-                                      if (!notification.is_read) markAsRead(notification.id);
+                                      if (!notification.is_read)
+                                        markAsRead(notification.id);
                                       setShowDropdown(false);
                                     }}
                                     className="mt-2 inline-flex items-center gap-1 text-sm font-medium text-purple-600 hover:text-purple-700"
                                   >
                                     {notification.action_text}
-                                    {!notification.action_url.startsWith('/') && (
-                                      <ExternalLink className="h-3 w-3" />
-                                    )}
+                                    {!notification.action_url.startsWith(
+                                      '/'
+                                    ) && <ExternalLink className="h-3 w-3" />}
                                   </a>
                                 )}
                               <div className="mt-2 flex items-center gap-4 text-xs text-gray-500">

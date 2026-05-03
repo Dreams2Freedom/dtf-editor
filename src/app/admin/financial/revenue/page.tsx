@@ -273,7 +273,9 @@ export default function RevenuePage() {
             <Card>
               <CardContent className="p-4">
                 <p className="text-sm text-gray-600">Paying Customers</p>
-                <p className="text-xl font-bold text-green-600">{metrics.payingCustomers}</p>
+                <p className="text-xl font-bold text-green-600">
+                  {metrics.payingCustomers}
+                </p>
                 <p className="text-xs text-gray-400 mt-1">Have spent money</p>
               </CardContent>
             </Card>
@@ -281,7 +283,9 @@ export default function RevenuePage() {
             <Card>
               <CardContent className="p-4">
                 <p className="text-sm text-gray-600">Subscribers</p>
-                <p className="text-xl font-bold text-blue-600">{metrics.subscribers}</p>
+                <p className="text-xl font-bold text-blue-600">
+                  {metrics.subscribers}
+                </p>
                 <p className="text-xs text-gray-400 mt-1">Active plans</p>
               </CardContent>
             </Card>
@@ -289,7 +293,9 @@ export default function RevenuePage() {
             <Card>
               <CardContent className="p-4">
                 <p className="text-sm text-gray-600">Pay-Per-Use</p>
-                <p className="text-xl font-bold text-orange-600">{metrics.payPerUseCustomers}</p>
+                <p className="text-xl font-bold text-orange-600">
+                  {metrics.payPerUseCustomers}
+                </p>
                 <p className="text-xs text-gray-400 mt-1">Credit purchases</p>
               </CardContent>
             </Card>
@@ -297,7 +303,9 @@ export default function RevenuePage() {
             <Card>
               <CardContent className="p-4">
                 <p className="text-sm text-gray-600">Conversion Rate</p>
-                <p className="text-xl font-bold">{formatPercentage(metrics.conversionRate)}</p>
+                <p className="text-xl font-bold">
+                  {formatPercentage(metrics.conversionRate)}
+                </p>
                 <p className="text-xs text-gray-400 mt-1">Users to paid</p>
               </CardContent>
             </Card>
@@ -305,8 +313,12 @@ export default function RevenuePage() {
             <Card>
               <CardContent className="p-4">
                 <p className="text-sm text-gray-600">Churn Rate</p>
-                <p className="text-xl font-bold">{formatPercentage(metrics.churnRate)}</p>
-                <p className="text-xs text-gray-400 mt-1">Of paying customers</p>
+                <p className="text-xl font-bold">
+                  {formatPercentage(metrics.churnRate)}
+                </p>
+                <p className="text-xs text-gray-400 mt-1">
+                  Of paying customers
+                </p>
               </CardContent>
             </Card>
           </div>

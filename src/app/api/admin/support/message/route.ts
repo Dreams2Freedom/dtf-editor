@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createServerSupabaseClient, createServiceRoleClient } from '@/lib/supabase/server';
+import {
+  createServerSupabaseClient,
+  createServiceRoleClient,
+} from '@/lib/supabase/server';
 import { emailService } from '@/services/email';
 import { withAdminAuth } from '@/lib/admin-auth';
 async function handlePost(request: NextRequest) {
@@ -75,7 +78,10 @@ async function handlePost(request: NextRequest) {
             ticketSubject: ticket.subject,
           });
           userNotified = true;
-          console.log('Admin reply notification sent for ticket:', ticket.ticket_number);
+          console.log(
+            'Admin reply notification sent for ticket:',
+            ticket.ticket_number
+          );
         } catch (emailError) {
           console.error('Failed to send admin reply notification:', emailError);
           // Don't fail the request if email fails

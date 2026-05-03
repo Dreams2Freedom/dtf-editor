@@ -33,7 +33,9 @@ function resolveCreditsFromSession(session: any): number {
   const amount = session.amount_total || 0;
   const fallback = PAYG_CREDIT_AMOUNTS[amount];
   if (fallback) {
-    console.log(`✅ [Credit Resolve] Fallback by amount ($${(amount / 100).toFixed(2)}): ${fallback} credits`);
+    console.log(
+      `✅ [Credit Resolve] Fallback by amount ($${(amount / 100).toFixed(2)}): ${fallback} credits`
+    );
     return fallback;
   }
 
@@ -300,7 +302,9 @@ export async function GET() {
     });
     // If error is about the function not existing, rpcExists stays false
     // Any other error (like user not found) means the function exists
-    rpcExists = !error?.message?.includes('function') || error?.message?.includes('null value');
+    rpcExists =
+      !error?.message?.includes('function') ||
+      error?.message?.includes('null value');
     if (error && !error.message.includes('function')) {
       rpcExists = true;
     }
@@ -324,9 +328,15 @@ export async function GET() {
       priceIdConfigured: !!p.stripePriceId,
     })),
     paygPriceIds: {
-      '10credits': !!process.env.STRIPE_LIVE_PAYG_10_CREDITS_PRICE_ID || !!process.env.STRIPE_PAYG_10_CREDITS_PRICE_ID,
-      '20credits': !!process.env.STRIPE_LIVE_PAYG_20_CREDITS_PRICE_ID || !!process.env.STRIPE_PAYG_20_CREDITS_PRICE_ID,
-      '50credits': !!process.env.STRIPE_LIVE_PAYG_50_CREDITS_PRICE_ID || !!process.env.STRIPE_PAYG_50_CREDITS_PRICE_ID,
+      '10credits':
+        !!process.env.STRIPE_LIVE_PAYG_10_CREDITS_PRICE_ID ||
+        !!process.env.STRIPE_PAYG_10_CREDITS_PRICE_ID,
+      '20credits':
+        !!process.env.STRIPE_LIVE_PAYG_20_CREDITS_PRICE_ID ||
+        !!process.env.STRIPE_PAYG_20_CREDITS_PRICE_ID,
+      '50credits':
+        !!process.env.STRIPE_LIVE_PAYG_50_CREDITS_PRICE_ID ||
+        !!process.env.STRIPE_PAYG_50_CREDITS_PRICE_ID,
     },
     listenedEvents: [
       'checkout.session.completed',
@@ -365,7 +375,10 @@ export async function POST(request: NextRequest) {
     event = getStripeService().constructWebhookEvent(body, signature);
     console.log('✅ Webhook signature verified');
   } catch (signatureError: any) {
-    console.error('❌ Webhook SIGNATURE verification failed:', signatureError.message);
+    console.error(
+      '❌ Webhook SIGNATURE verification failed:',
+      signatureError.message
+    );
     return NextResponse.json(
       { error: 'Webhook signature verification failed' },
       { status: 400 }
@@ -662,9 +675,10 @@ async function handleInvoicePaymentSucceeded(invoice: any) {
   let userId = invoice.metadata?.userId;
 
   if (!userId && invoice.customer) {
-    const customerId = typeof invoice.customer === 'string'
-      ? invoice.customer
-      : invoice.customer.id;
+    const customerId =
+      typeof invoice.customer === 'string'
+        ? invoice.customer
+        : invoice.customer.id;
 
     const { data: profile } = await getSupabase()
       .from('profiles')
@@ -737,9 +751,10 @@ async function handleInvoicePaymentSucceeded(invoice: any) {
               p_description: `${plan.name} subscription renewal`,
               p_metadata: {
                 stripe_invoice_id: invoice.id,
-                stripe_subscription_id: typeof invoice.subscription === 'string'
-                  ? invoice.subscription
-                  : invoice.subscription?.id,
+                stripe_subscription_id:
+                  typeof invoice.subscription === 'string'
+                    ? invoice.subscription
+                    : invoice.subscription?.id,
                 billing_reason: 'subscription_cycle',
                 price_paid: invoice.amount_paid || 0,
               },
@@ -747,7 +762,10 @@ async function handleInvoicePaymentSucceeded(invoice: any) {
           );
 
           if (creditError) {
-            console.error('❌ Credit addition failed on renewal:', creditError.message);
+            console.error(
+              '❌ Credit addition failed on renewal:',
+              creditError.message
+            );
           } else {
             console.log(
               `✅ Added ${plan.creditsPerMonth} credits for ${plan.name} renewal for user:`,
@@ -767,16 +785,19 @@ async function handleInvoicePaymentSucceeded(invoice: any) {
       // Log the renewal payment to payment_transactions
       await logPaymentTransaction({
         userId,
-        stripePaymentIntentId: typeof invoice.payment_intent === 'string'
-          ? invoice.payment_intent
-          : invoice.payment_intent?.id,
+        stripePaymentIntentId:
+          typeof invoice.payment_intent === 'string'
+            ? invoice.payment_intent
+            : invoice.payment_intent?.id,
         stripeCheckoutSessionId: `invoice_${invoice.id}`, // Use invoice ID as unique key
-        stripeCustomerId: typeof invoice.customer === 'string'
-          ? invoice.customer
-          : invoice.customer?.id,
-        stripeSubscriptionId: typeof invoice.subscription === 'string'
-          ? invoice.subscription
-          : invoice.subscription?.id,
+        stripeCustomerId:
+          typeof invoice.customer === 'string'
+            ? invoice.customer
+            : invoice.customer?.id,
+        stripeSubscriptionId:
+          typeof invoice.subscription === 'string'
+            ? invoice.subscription
+            : invoice.subscription?.id,
         amount: invoice.amount_paid || 0,
         paymentType: 'subscription',
         creditsPurchased: plan?.creditsPerMonth,
@@ -794,8 +815,13 @@ async function handleInvoicePaymentSucceeded(invoice: any) {
   }
 
   // Handle initial subscription payment (first invoice after checkout)
-  if (invoice.subscription && invoice.billing_reason === 'subscription_create') {
-    console.log('📝 Initial subscription invoice - payment already logged via checkout.session.completed');
+  if (
+    invoice.subscription &&
+    invoice.billing_reason === 'subscription_create'
+  ) {
+    console.log(
+      '📝 Initial subscription invoice - payment already logged via checkout.session.completed'
+    );
     // No need to log again - handleCheckoutSessionCompleted already records the initial payment
   }
 }

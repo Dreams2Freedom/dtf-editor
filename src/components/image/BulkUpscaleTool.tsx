@@ -66,11 +66,14 @@ export function BulkUpscaleTool() {
     setPendingItems(prev => [...prev, ...newItems]);
   }, []);
 
-  const handleUpdateItem = useCallback((id: string, updates: Partial<BulkImageItem>) => {
-    setPendingItems(prev =>
-      prev.map(item => (item.id === id ? { ...item, ...updates } : item))
-    );
-  }, []);
+  const handleUpdateItem = useCallback(
+    (id: string, updates: Partial<BulkImageItem>) => {
+      setPendingItems(prev =>
+        prev.map(item => (item.id === id ? { ...item, ...updates } : item))
+      );
+    },
+    []
+  );
 
   const handleRemoveItem = useCallback((id: string) => {
     setPendingItems(prev => {
@@ -80,8 +83,11 @@ export function BulkUpscaleTool() {
     });
   }, []);
 
-  const allConfigured = pendingItems.length > 0 &&
-    pendingItems.every(item => item.targetWidthPx > 0 && item.targetHeightPx > 0);
+  const allConfigured =
+    pendingItems.length > 0 &&
+    pendingItems.every(
+      item => item.targetWidthPx > 0 && item.targetHeightPx > 0
+    );
 
   const hasEnoughCredits =
     userCredits !== null && pendingItems.length <= userCredits;
@@ -172,8 +178,8 @@ export function BulkUpscaleTool() {
                   </p>
                   <p className="text-sm text-red-600">
                     You have {userCredits} credits but need{' '}
-                    {pendingItems.length}. Remove {pendingItems.length - (userCredits ?? 0)}{' '}
-                    image(s) or{' '}
+                    {pendingItems.length}. Remove{' '}
+                    {pendingItems.length - (userCredits ?? 0)} image(s) or{' '}
                     <a
                       href="/pricing"
                       className="underline font-medium hover:text-red-700"

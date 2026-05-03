@@ -103,7 +103,10 @@ async function handlePost(request: NextRequest) {
     }
 
     // Send welcome email (this happens server-side, so it won't be cancelled)
-    console.log('[SIGNUP API] Step 5: Sending welcome email for user:', signUpData.user.id);
+    console.log(
+      '[SIGNUP API] Step 5: Sending welcome email for user:',
+      signUpData.user.id
+    );
 
     try {
       console.log('[SIGNUP API] Calling emailService.sendWelcomeEmail...');

@@ -113,8 +113,8 @@ export function BulkResultsSummary({
               Processing stopped — insufficient credits
             </p>
             <p className="text-sm text-red-600">
-              {completedItems.length} of {totalItems} images completed.
-              Purchase more credits to process the remaining images.
+              {completedItems.length} of {totalItems} images completed. Purchase
+              more credits to process the remaining images.
             </p>
           </div>
         </div>

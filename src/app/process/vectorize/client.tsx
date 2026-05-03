@@ -248,10 +248,26 @@ export default function VectorizeClient() {
             accentColor="text-purple-600"
             accentBg="bg-purple-500"
             steps={[
-              { title: 'Upload your image', content: 'Upload a raster image (PNG, JPEG, WebP) that you want to convert to a scalable vector format.' },
-              { title: 'Choose output format', content: 'Select SVG for web use and editing in design software, or PDF for print-ready output.' },
-              { title: 'Process', content: 'Click Vectorize to convert. The AI traces your image into clean vector paths that scale to any size without losing quality.' },
-              { title: 'Download', content: 'Download your vector file. SVG files can be opened in Illustrator, Inkscape, or any vector editor.' },
+              {
+                title: 'Upload your image',
+                content:
+                  'Upload a raster image (PNG, JPEG, WebP) that you want to convert to a scalable vector format.',
+              },
+              {
+                title: 'Choose output format',
+                content:
+                  'Select SVG for web use and editing in design software, or PDF for print-ready output.',
+              },
+              {
+                title: 'Process',
+                content:
+                  'Click Vectorize to convert. The AI traces your image into clean vector paths that scale to any size without losing quality.',
+              },
+              {
+                title: 'Download',
+                content:
+                  'Download your vector file. SVG files can be opened in Illustrator, Inkscape, or any vector editor.',
+              },
             ]}
             tips={[
               'Vectorization works best on images with clean, solid colors and clear edges — like logos, text, and simple graphics.',

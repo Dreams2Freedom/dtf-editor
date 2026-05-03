@@ -136,7 +136,9 @@ export function BulkBgRemovalEditModal({
           switch (opts.event) {
             case 'error':
               editorOpenRef.current = false;
-              setError(`Editor error: ${opts.error?.message || 'Unknown error'}`);
+              setError(
+                `Editor error: ${opts.error?.message || 'Unknown error'}`
+              );
               break;
 
             case 'result-generated': {
@@ -183,7 +185,13 @@ export function BulkBgRemovalEditModal({
 
   // Automatically start processing when script is ready and index changes
   useEffect(() => {
-    if (scriptReady && currentItem && !isUploading && !isDownloading && !editorOpenRef.current) {
+    if (
+      scriptReady &&
+      currentItem &&
+      !isUploading &&
+      !isDownloading &&
+      !editorOpenRef.current
+    ) {
       processCurrentItem();
     }
   }, [scriptReady, currentIndex]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -273,7 +281,8 @@ export function BulkBgRemovalEditModal({
         {/* Info banner */}
         <div className="mt-4 p-2 bg-green-50 border border-green-200 rounded-lg">
           <p className="text-xs text-green-700">
-            Re-editing is included at no extra cost — covered by the original 1 credit.
+            Re-editing is included at no extra cost — covered by the original 1
+            credit.
           </p>
         </div>
 

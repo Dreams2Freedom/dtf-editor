@@ -267,7 +267,11 @@ export function useBulkUpscaleQueue() {
         imageId: undefined,
       }));
 
-      setState({ phase: 'processing', items: queuedItems, totalCreditsUsed: 0 });
+      setState({
+        phase: 'processing',
+        items: queuedItems,
+        totalCreditsUsed: 0,
+      });
 
       await runQueue(queuedItems);
 
@@ -322,7 +326,13 @@ export function useBulkUpscaleQueue() {
         phase: 'processing' as QueuePhase,
         items: prev.items.map(item =>
           retryableItems.some(r => r.id === item.id)
-            ? { ...item, status: 'queued' as BulkImageStatus, retryCount: 0, error: undefined, progress: 0 }
+            ? {
+                ...item,
+                status: 'queued' as BulkImageStatus,
+                retryCount: 0,
+                error: undefined,
+                progress: 0,
+              }
             : item
         ),
       };

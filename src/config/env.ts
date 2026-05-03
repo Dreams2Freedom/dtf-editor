@@ -116,9 +116,14 @@ export const env = {
   UPSTASH_REDIS_REST_URL: process.env.UPSTASH_REDIS_REST_URL || '',
   UPSTASH_REDIS_REST_TOKEN: process.env.UPSTASH_REDIS_REST_TOKEN || '',
 
+  // In-house rembg microservice
+  REMBG_SERVICE_URL: process.env.REMBG_SERVICE_URL || '',
+  REMBG_SERVICE_API_KEY: process.env.REMBG_SERVICE_API_KEY || '',
+
   // Feature Flags
   ENABLE_ANALYTICS: process.env.NEXT_PUBLIC_ENABLE_ANALYTICS === 'true',
   ENABLE_DEBUG: process.env.NODE_ENV === 'development',
+  STUDIO_ENABLED: process.env.NEXT_PUBLIC_STUDIO_ENABLED !== 'false',
 } as const;
 
 // Type for environment variables
@@ -200,6 +205,7 @@ export function isFeatureAvailable(
   feature:
     | 'upscaling'
     | 'background-removal'
+    | 'background-removal-inhouse'
     | 'vectorization'
     | 'ai-generation'
     | 'payments'
@@ -211,6 +217,8 @@ export function isFeatureAvailable(
       return !!env.DEEP_IMAGE_API_KEY;
     case 'background-removal':
       return !!env.CLIPPINGMAGIC_API_KEY && !!env.CLIPPINGMAGIC_API_SECRET;
+    case 'background-removal-inhouse':
+      return !!env.REMBG_SERVICE_URL;
     case 'vectorization':
       return !!env.VECTORIZER_API_KEY && !!env.VECTORIZER_API_SECRET;
     case 'ai-generation':

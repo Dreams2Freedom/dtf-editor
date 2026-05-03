@@ -22,17 +22,14 @@ function convertWebpToPng(file: File): Promise<File> {
         return;
       }
       ctx.drawImage(img, 0, 0);
-      canvas.toBlob(
-        blob => {
-          if (!blob) {
-            resolve(file);
-            return;
-          }
-          const pngName = file.name.replace(/\.webp$/i, '.png');
-          resolve(new File([blob], pngName, { type: 'image/png' }));
-        },
-        'image/png'
-      );
+      canvas.toBlob(blob => {
+        if (!blob) {
+          resolve(file);
+          return;
+        }
+        const pngName = file.name.replace(/\.webp$/i, '.png');
+        resolve(new File([blob], pngName, { type: 'image/png' }));
+      }, 'image/png');
       URL.revokeObjectURL(img.src);
     };
     img.onerror = () => {
@@ -48,7 +45,12 @@ const THROTTLED_CONCURRENCY = 1;
 const THROTTLE_DELAY_MS = 5000;
 const RESTORE_AFTER_SUCCESSES = 3;
 
-export type BgRemovalQueuePhase = 'idle' | 'processing' | 'review' | 'complete' | 'halted';
+export type BgRemovalQueuePhase =
+  | 'idle'
+  | 'processing'
+  | 'review'
+  | 'complete'
+  | 'halted';
 
 interface QueueState {
   phase: BgRemovalQueuePhase;
@@ -143,7 +145,8 @@ export function useBulkBgRemovalQueue() {
 
         setState(prev => ({
           ...prev,
-          totalCreditsUsed: prev.totalCreditsUsed + (data.metadata?.creditsUsed || 1),
+          totalCreditsUsed:
+            prev.totalCreditsUsed + (data.metadata?.creditsUsed || 1),
         }));
       } catch (err) {
         clearInterval(progressInterval);
@@ -296,7 +299,11 @@ export function useBulkBgRemovalQueue() {
         editedUrl: undefined,
       }));
 
-      setState({ phase: 'processing', items: queuedItems, totalCreditsUsed: 0 });
+      setState({
+        phase: 'processing',
+        items: queuedItems,
+        totalCreditsUsed: 0,
+      });
 
       await runQueue(queuedItems);
 
@@ -332,17 +339,26 @@ export function useBulkBgRemovalQueue() {
     }));
   }, []);
 
-  const flagItem = useCallback((id: string) => {
-    updateItem(id, { flaggedForEdit: true });
-  }, [updateItem]);
+  const flagItem = useCallback(
+    (id: string) => {
+      updateItem(id, { flaggedForEdit: true });
+    },
+    [updateItem]
+  );
 
-  const unflagItem = useCallback((id: string) => {
-    updateItem(id, { flaggedForEdit: false });
-  }, [updateItem]);
+  const unflagItem = useCallback(
+    (id: string) => {
+      updateItem(id, { flaggedForEdit: false });
+    },
+    [updateItem]
+  );
 
-  const updateItemResult = useCallback((id: string, newUrl: string) => {
-    updateItem(id, { editedUrl: newUrl, flaggedForEdit: false });
-  }, [updateItem]);
+  const updateItemResult = useCallback(
+    (id: string, newUrl: string) => {
+      updateItem(id, { editedUrl: newUrl, flaggedForEdit: false });
+    },
+    [updateItem]
+  );
 
   const markComplete = useCallback(() => {
     setState(prev => ({ ...prev, phase: 'complete' }));
@@ -364,7 +380,13 @@ export function useBulkBgRemovalQueue() {
         phase: 'processing' as BgRemovalQueuePhase,
         items: prev.items.map(item =>
           retryableItems.some(r => r.id === item.id)
-            ? { ...item, status: 'queued' as BulkBgRemovalStatus, retryCount: 0, error: undefined, progress: 0 }
+            ? {
+                ...item,
+                status: 'queued' as BulkBgRemovalStatus,
+                retryCount: 0,
+                error: undefined,
+                progress: 0,
+              }
             : item
         ),
       };
@@ -392,7 +414,9 @@ export function useBulkBgRemovalQueue() {
 
   const completedItems = state.items.filter(i => i.status === 'complete');
   const failedItems = state.items.filter(i => i.status === 'failed');
-  const flaggedItems = state.items.filter(i => i.flaggedForEdit && i.status === 'complete');
+  const flaggedItems = state.items.filter(
+    i => i.flaggedForEdit && i.status === 'complete'
+  );
   const hasRetryableFailures = failedItems.some(
     i =>
       !i.error?.includes('Insufficient credits') &&

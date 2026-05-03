@@ -64,7 +64,9 @@ export function BulkBgRemovalReviewTable({
   const [isZipping, setIsZipping] = useState(false);
   const [zipProgress, setZipProgress] = useState(0);
   const [zipError, setZipError] = useState<string | null>(null);
-  const [previewItem, setPreviewItem] = useState<BulkBgRemovalItem | null>(null);
+  const [previewItem, setPreviewItem] = useState<BulkBgRemovalItem | null>(
+    null
+  );
 
   const completedItems = items.filter(i => i.status === 'complete');
   const failedItems = items.filter(i => i.status === 'failed');
@@ -150,8 +152,8 @@ export function BulkBgRemovalReviewTable({
               Processing stopped — insufficient credits
             </p>
             <p className="text-sm text-red-600">
-              {completedItems.length} of {totalItems} images completed.
-              Purchase more credits to process the remaining images.
+              {completedItems.length} of {totalItems} images completed. Purchase
+              more credits to process the remaining images.
             </p>
           </div>
         </div>
@@ -250,7 +252,9 @@ export function BulkBgRemovalReviewTable({
                           Failed
                         </span>
                         {item.error && (
-                          <p className="text-xs text-red-500 mt-1">{item.error}</p>
+                          <p className="text-xs text-red-500 mt-1">
+                            {item.error}
+                          </p>
                         )}
                       </div>
                     ) : (
@@ -383,8 +387,8 @@ export function BulkBgRemovalReviewTable({
       {flaggedCount > 0 && (
         <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
           <p className="text-sm text-blue-800">
-            Re-editing is included at no extra cost. Each image uses only 1 credit total,
-            regardless of how many times you re-edit it.
+            Re-editing is included at no extra cost. Each image uses only 1
+            credit total, regardless of how many times you re-edit it.
           </p>
         </div>
       )}
@@ -433,10 +437,14 @@ export function BulkBgRemovalReviewTable({
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4">
               {/* Original */}
               <div>
-                <p className="text-sm font-medium text-gray-600 mb-2">Original</p>
+                <p className="text-sm font-medium text-gray-600 mb-2">
+                  Original
+                </p>
                 <div className="bg-gray-100 rounded-lg overflow-hidden flex items-center justify-center min-h-[200px]">
                   <img
-                    src={previewItem.originalPreviewUrl || previewItem.previewUrl}
+                    src={
+                      previewItem.originalPreviewUrl || previewItem.previewUrl
+                    }
                     alt={`Original ${previewItem.filename}`}
                     className="max-w-full max-h-[60vh] object-contain"
                   />
@@ -469,7 +477,9 @@ export function BulkBgRemovalReviewTable({
                   if (url) {
                     const a = document.createElement('a');
                     a.href = url;
-                    a.download = previewItem.filename.replace(/\.[^.]+$/, '') + '_bg-removed.png';
+                    a.download =
+                      previewItem.filename.replace(/\.[^.]+$/, '') +
+                      '_bg-removed.png';
                     a.click();
                   }
                 }}

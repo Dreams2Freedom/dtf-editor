@@ -2,7 +2,14 @@
 
 import { useState, useCallback, useEffect } from 'react';
 import { useDropzone } from 'react-dropzone';
-import { Upload, Wand2, Scissors, Zap, ArrowRight, Palette } from 'lucide-react';
+import {
+  Upload,
+  Wand2,
+  Scissors,
+  Zap,
+  ArrowRight,
+  Palette,
+} from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/Button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
@@ -330,7 +337,8 @@ export default function ProcessClient() {
               </h1>
               {profile && (
                 <p className="text-sm text-gray-500 mt-1">
-                  {profile?.credits ?? profile?.credits_remaining ?? 0} credits remaining
+                  {profile?.credits ?? profile?.credits_remaining ?? 0} credits
+                  remaining
                 </p>
               )}
             </div>
@@ -340,10 +348,26 @@ export default function ProcessClient() {
               accentColor="text-blue-600"
               accentBg="bg-blue-500"
               steps={[
-                { title: 'Upload your image', content: 'Drag and drop an image into the upload area, or click to browse your files. Supports JPEG, PNG, and WebP formats.' },
-                { title: 'Choose a tool', content: 'After uploading, select which processing tool you want to use: Upscale, Remove Background, Vectorize, or Change Colors.' },
-                { title: 'Single vs Bulk mode', content: 'Use Single Image mode to process one image at a time with full control. Switch to Bulk Upload to process multiple images at once.' },
-                { title: 'Credits', content: 'Most tools cost 1 credit per image. Color Change is free (with monthly limits). Your credit balance is shown at the top.' },
+                {
+                  title: 'Upload your image',
+                  content:
+                    'Drag and drop an image into the upload area, or click to browse your files. Supports JPEG, PNG, and WebP formats.',
+                },
+                {
+                  title: 'Choose a tool',
+                  content:
+                    'After uploading, select which processing tool you want to use: Upscale, Remove Background, Vectorize, or Change Colors.',
+                },
+                {
+                  title: 'Single vs Bulk mode',
+                  content:
+                    'Use Single Image mode to process one image at a time with full control. Switch to Bulk Upload to process multiple images at once.',
+                },
+                {
+                  title: 'Credits',
+                  content:
+                    'Most tools cost 1 credit per image. Color Change is free (with monthly limits). Your credit balance is shown at the top.',
+                },
               ]}
               tips={[
                 'Large images are automatically compressed before upload to ensure fast processing.',
@@ -546,16 +570,77 @@ export default function ProcessClient() {
                   <div className="space-y-3">
                     {/* Tool cards */}
                     {[
-                      { key: 'upscale', icon: Wand2, name: 'Upscale Image', desc: 'Enhance resolution up to 4x', cost: '1 credit', color: 'blue' },
-                      { key: 'background-removal', icon: Scissors, name: 'Remove Background', desc: 'Professional background removal', cost: '1 credit', color: 'green' },
-                      { key: 'vectorize', icon: Zap, name: 'Vectorize', desc: 'Convert to scalable vector', cost: '2 credits', color: 'purple' },
-                      { key: 'color-change', icon: Palette, name: 'Change Colors', desc: 'Replace specific colors in your design', cost: 'Free', color: 'amber' },
+                      {
+                        key: 'upscale',
+                        icon: Wand2,
+                        name: 'Upscale Image',
+                        desc: 'Enhance resolution up to 4x',
+                        cost: '1 credit',
+                        color: 'blue',
+                      },
+                      {
+                        key: 'background-removal',
+                        icon: Scissors,
+                        name: 'Remove Background',
+                        desc: 'Professional background removal',
+                        cost: '1 credit',
+                        color: 'green',
+                      },
+                      {
+                        key: 'vectorize',
+                        icon: Zap,
+                        name: 'Vectorize',
+                        desc: 'Convert to scalable vector',
+                        cost: '2 credits',
+                        color: 'purple',
+                      },
+                      {
+                        key: 'color-change',
+                        icon: Palette,
+                        name: 'Change Colors',
+                        desc: 'Replace specific colors in your design',
+                        cost: 'Free',
+                        color: 'amber',
+                      },
                     ].map(tool => {
-                      const colorMap: Record<string, { ring: string; bg: string; iconBg: string; iconText: string; hoverBorder: string }> = {
-                        blue: { ring: 'ring-blue-500', bg: 'bg-blue-50', iconBg: 'bg-blue-50', iconText: 'text-blue-600', hoverBorder: 'hover:border-blue-200' },
-                        green: { ring: 'ring-green-500', bg: 'bg-green-50', iconBg: 'bg-green-50', iconText: 'text-green-600', hoverBorder: 'hover:border-green-200' },
-                        purple: { ring: 'ring-purple-500', bg: 'bg-purple-50', iconBg: 'bg-purple-50', iconText: 'text-purple-600', hoverBorder: 'hover:border-purple-200' },
-                        amber: { ring: 'ring-amber-500', bg: 'bg-amber-50', iconBg: 'bg-amber-50', iconText: 'text-amber-600', hoverBorder: 'hover:border-amber-200' },
+                      const colorMap: Record<
+                        string,
+                        {
+                          ring: string;
+                          bg: string;
+                          iconBg: string;
+                          iconText: string;
+                          hoverBorder: string;
+                        }
+                      > = {
+                        blue: {
+                          ring: 'ring-blue-500',
+                          bg: 'bg-blue-50',
+                          iconBg: 'bg-blue-50',
+                          iconText: 'text-blue-600',
+                          hoverBorder: 'hover:border-blue-200',
+                        },
+                        green: {
+                          ring: 'ring-green-500',
+                          bg: 'bg-green-50',
+                          iconBg: 'bg-green-50',
+                          iconText: 'text-green-600',
+                          hoverBorder: 'hover:border-green-200',
+                        },
+                        purple: {
+                          ring: 'ring-purple-500',
+                          bg: 'bg-purple-50',
+                          iconBg: 'bg-purple-50',
+                          iconText: 'text-purple-600',
+                          hoverBorder: 'hover:border-purple-200',
+                        },
+                        amber: {
+                          ring: 'ring-amber-500',
+                          bg: 'bg-amber-50',
+                          iconBg: 'bg-amber-50',
+                          iconText: 'text-amber-600',
+                          hoverBorder: 'hover:border-amber-200',
+                        },
                       };
                       const c = colorMap[tool.color];
                       const isSelected = preselectedOperation === tool.key;
@@ -570,14 +655,22 @@ export default function ProcessClient() {
                                 ? `ring-2 ${c.ring} ${c.bg}`
                                 : `border-gray-200 ${c.hoverBorder} hover:shadow-sm`
                           }`}
-                          onClick={() => !isProcessing && navigateToTool(tool.key)}
+                          onClick={() =>
+                            !isProcessing && navigateToTool(tool.key)
+                          }
                         >
-                          <div className={`w-11 h-11 ${c.iconBg} rounded-xl flex items-center justify-center flex-shrink-0`}>
+                          <div
+                            className={`w-11 h-11 ${c.iconBg} rounded-xl flex items-center justify-center flex-shrink-0`}
+                          >
                             <tool.icon className={`w-5 h-5 ${c.iconText}`} />
                           </div>
                           <div className="flex-1 min-w-0">
-                            <h3 className="font-semibold text-sm text-gray-900">{tool.name}</h3>
-                            <p className="text-xs text-gray-500 truncate">{tool.desc}</p>
+                            <h3 className="font-semibold text-sm text-gray-900">
+                              {tool.name}
+                            </h3>
+                            <p className="text-xs text-gray-500 truncate">
+                              {tool.desc}
+                            </p>
                           </div>
                           <div className="text-right flex-shrink-0">
                             <p className="text-xs text-gray-400">{tool.cost}</p>

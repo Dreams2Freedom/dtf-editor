@@ -1,6 +1,6 @@
 # DTF Editor - Feature Completion Tracker
 
-**Last Updated:** February 18, 2026
+**Last Updated:** April 28, 2026
 **Status:** Production Ready - Post Security Audit
 
 ## 📊 **Overall Progress**
@@ -21,11 +21,64 @@
 - **Admin Financial System:** 🟢 100% Complete (Feb 18, 2026)
 - **Admin Support System:** 🟢 100% Complete (Feb 18, 2026)
 - **Stripe Billing Fixes:** 🟢 100% Complete (Feb 18, 2026)
+- **In-House BG Removal + AI Brush:** 🟢 100% Complete (April 28, 2026)
+- **Studio Plugin Architecture (Phase 2.0):** 🟢 Core Complete (April 28, 2026 — Steps 1–5 + 9 + hotfixes; Steps 6/7/8 deferred polish)
 - **Production Ready:** 🟢 99% Complete
 
 ---
 
 ## ✅ **COMPLETED FEATURES**
+
+### **Studio Plugin Architecture (Core Complete) - April 28, 2026 — Phase 2.0**
+
+Studio is now the durable home for the working image. Tools are self-contained plugins under `src/tools/<tool-id>/`. Refactoring one tool can no longer affect another. Branch: `claude/in-house-background-processing-Ci5rc`.
+
+- ✅ **Plugin contract** (`src/tools/types.ts`) — `StudioTool`, `StudioToolPanelProps`, `ApplyMetadata`
+- ✅ **Tool registry** (`src/tools/registry.ts`) — ordered list driving the picker
+- ✅ **BG Removal moved** into `src/tools/bg-removal/` (Panel + hook + api + types + adapter)
+- ✅ **Color Change moved** into `src/tools/color-change/` (Panel + components + hook + types + color-utils + adapter)
+- ✅ **Upscale plugin built** (`src/tools/upscale/`) — first tool native to the contract; includes `providers/{types,deepImage}.ts`
+- ✅ **Studio shell rewritten** with `workingImage` state, plugin-driven tool picker, `onApply` chain handler, Save-to-Gallery + Reset-to-Original buttons
+- ✅ **ESLint cross-tool import isolation** via `no-restricted-imports` zones
+- ✅ **3 build hotfixes resolved** (commits `8b23b8b`, `22f21e8`, `ec9ee54`) — JSX in `.ts`, missing `'use client'`, ESLint API-route exemption
+- ⏸️ **Step 6 (thin standalone wrappers):** standalone routes already use `@/tools/...` imports; `/process/background-removal` (ClippingMagic) and `/process/upscale` (bulk + DPI) are intentionally distinct UXs
+- ⏸️ **Step 7 (provider polish for BG Removal):** Upscale already has the `providers/` pattern; BG Removal can adopt it when a second provider lands
+- ⏸️ **Step 8 (internal nav redirects):** Create dropdown + dashboard cards still link to standalone routes; deferred until upload UX is unified
+- ⏸️ **Step 10 (manual QA on deploy):** pending green Vercel build
+
+**See:** `docs/AI_BRUSH_PLAN_HISTORY.md` for the linear plan history; `BUGS_TRACKER.md` BUG-073/074/075 for the build hotfixes; `CHANGELOG.md` v1.3.0 for the user-facing summary.
+
+---
+
+### **In-House Background Removal + AI Brush (100% Complete) - April 28, 2026**
+
+Branch: `claude/in-house-background-processing-Ci5rc`. Released as v1.2.0. See `DEVELOPMENT_LOG_PART1.md` (April 27–28 entry) for the full multi-phase development log and `docs/AI_BRUSH_PLAN_HISTORY.md` for the linear plan history.
+
+**Server (`rembg-service/`):**
+
+- ✅ FastAPI app with auth-gated endpoints
+- ✅ Multi-mode `/remove`: `color-fill`, `click-fill`, `ml-only`, `ml+color`
+- ✅ MobileSAM ONNX wrapper (`sam_predictor.py`) — `/embed` + `/predict`
+- ✅ Auto-detect `/detect-bg` (k-means edge analysis)
+- ✅ Single-color and multi-color BFS flood-fill helpers
+- ✅ BRIA-rmbg as default model + BiRefNet variants + U2Net + ISNet anime + SAM
+- ✅ Dockerfile pre-downloads default models (~330MB) for fast cold starts
+
+**Client — Studio Background Removal panel:**
+
+- ✅ AI Brush mode (default): SAM + smart initial mask + per-stroke union/diff + color cleanup + live tolerance slider + marching-ants outline
+- ✅ Color (Color Pick) mode: multi-color remove + multi-color keep palettes + BFS-with-barriers + click-to-clean-spot
+- ✅ AI Only mode: ML mask + model selector
+- ✅ View toggle: Cutout / Preview / Original
+- ✅ Zoom + pan: bare wheel, spacebar+drag (desktop); pinch + two-finger drag (touch)
+- ✅ PointerEvents + ResizeObserver for touch-stable, transform-stable behavior
+- ✅ Mobile-friendly UI throughout (≥32px tap targets, flex-wrap chips, responsive layout)
+
+**Bugs fixed during this sprint:** BUG-068 through BUG-072 (see `BUGS_TRACKER.md`).
+
+**Cost to user:** 0 credits (ClippingMagic stays at 1 credit per image as a quality fallback for hair/fur/complex subjects).
+
+---
 
 ### **Security Re-Audit Fixes (100% Applied) - February 17-18, 2026**
 

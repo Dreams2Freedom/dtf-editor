@@ -103,8 +103,8 @@ export default function AboutPage() {
               Too many creators were submitting poor-quality images to print
               shops, resulting in disappointing transfers that didn&apos;t match
               their vision. The tools to fix these images were either too
-              expensive, too complex, or simply didn&apos;t understand the specific
-              requirements of DTF printing.
+              expensive, too complex, or simply didn&apos;t understand the
+              specific requirements of DTF printing.
             </p>
           </div>
           <div className="bg-white border border-gray-200 rounded-xl p-6">
@@ -112,10 +112,10 @@ export default function AboutPage() {
               Our Solution
             </h3>
             <p className="text-gray-600">
-              We built DTF Editor as a bridge between creativity and quality.
-              By combining powerful AI tools with DTF-specific optimizations,
-              we&apos;ve created a platform where anyone can transform their ideas
-              into print-ready files that produce stunning transfers every
+              We built DTF Editor as a bridge between creativity and quality. By
+              combining powerful AI tools with DTF-specific optimizations,
+              we&apos;ve created a platform where anyone can transform their
+              ideas into print-ready files that produce stunning transfers every
               time.
             </p>
           </div>

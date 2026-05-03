@@ -170,9 +170,7 @@ export default function FreeDPICheckerPage() {
                 <div className="flex items-start">
                   <CheckCircle className="w-5 h-5 text-emerald-500 mt-1 mr-3 flex-shrink-0" />
                   <div>
-                    <span className="font-medium text-gray-900">
-                      300+ DPI:
-                    </span>{' '}
+                    <span className="font-medium text-gray-900">300+ DPI:</span>{' '}
                     <span className="text-gray-600">
                       Professional quality, crisp details
                     </span>

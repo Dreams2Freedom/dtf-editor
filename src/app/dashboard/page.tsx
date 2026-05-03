@@ -22,6 +22,7 @@ import {
   Sparkles,
   Palette,
   ArrowRight,
+  Grid3x3,
 } from 'lucide-react';
 import Link from 'next/link';
 import { CreditHistory } from '@/components/dashboard/CreditHistory';
@@ -31,7 +32,7 @@ const tools = [
   {
     name: 'Upscale',
     description: 'AI-powered enhancement',
-    href: '/process?operation=upscale',
+    href: '/studio?tool=upscale',
     icon: Upload,
     color: 'text-blue-600',
     bg: 'bg-blue-50',
@@ -40,7 +41,7 @@ const tools = [
   {
     name: 'Remove BG',
     description: 'Background removal',
-    href: '/process?operation=background-removal',
+    href: '/studio?tool=bg-removal',
     icon: Scissors,
     color: 'text-green-600',
     bg: 'bg-green-50',
@@ -49,7 +50,7 @@ const tools = [
   {
     name: 'Change Colors',
     description: 'Replace colors',
-    href: '/process/color-change',
+    href: '/studio?tool=color-change',
     icon: Palette,
     color: 'text-amber-600',
     bg: 'bg-amber-50',
@@ -58,11 +59,20 @@ const tools = [
   {
     name: 'Vectorize',
     description: 'Scalable vectors',
-    href: '/process?operation=vectorize',
+    href: '/studio?tool=vectorize',
     icon: Zap,
     color: 'text-purple-600',
     bg: 'bg-purple-50',
     hoverBorder: 'hover:border-purple-200',
+  },
+  {
+    name: 'Halftone',
+    description: 'DTF-ready dot pattern',
+    href: '/studio?tool=halftone',
+    icon: Grid3x3,
+    color: 'text-blue-600',
+    bg: 'bg-blue-50',
+    hoverBorder: 'hover:border-blue-200',
   },
   {
     name: 'AI Generate',
@@ -76,8 +86,7 @@ const tools = [
 ];
 
 export default function DashboardPage() {
-  const { user, profile, loading, initialize, refreshCredits } =
-    useAuthStore();
+  const { user, profile, loading, initialize, refreshCredits } = useAuthStore();
   const router = useRouter();
   const [showCancellationFlow, setShowCancellationFlow] = useState(false);
 
@@ -115,7 +124,8 @@ export default function DashboardPage() {
       });
 
       const data = await response.json();
-      if (!response.ok) throw new Error(data.error || 'Failed to create portal session');
+      if (!response.ok)
+        throw new Error(data.error || 'Failed to create portal session');
       if (data.url) window.location.href = data.url;
     } catch (error: any) {
       console.error('Manage subscription error:', error);
@@ -155,15 +165,17 @@ export default function DashboardPage() {
           <div className="flex items-center gap-2 mb-6">
             <div className="flex-1">
               <h1 className="text-xl sm:text-2xl font-bold text-gray-900">
-                Welcome back, {profile?.first_name || user.email?.split('@')[0] || 'there'}
+                Welcome back,{' '}
+                {profile?.first_name || user.email?.split('@')[0] || 'there'}
               </h1>
               <p className="text-sm text-gray-500 mt-1">
                 {profile.credits_remaining} credits remaining
-                {profile.subscription_plan && profile.subscription_plan !== 'free' && (
-                  <span className="ml-2 px-2 py-0.5 bg-amber-100 text-amber-700 rounded-full text-xs font-medium capitalize">
-                    {profile.subscription_plan} plan
-                  </span>
-                )}
+                {profile.subscription_plan &&
+                  profile.subscription_plan !== 'free' && (
+                    <span className="ml-2 px-2 py-0.5 bg-amber-100 text-amber-700 rounded-full text-xs font-medium capitalize">
+                      {profile.subscription_plan} plan
+                    </span>
+                  )}
               </p>
             </div>
             <HelpModal
@@ -172,10 +184,26 @@ export default function DashboardPage() {
               accentColor="text-blue-600"
               accentBg="bg-blue-500"
               steps={[
-                { title: 'Quick Actions', content: 'Use the tool cards at the top to quickly access any image processing tool. Each card takes you directly to the tool.' },
-                { title: 'Your Account', content: 'View your credit balance, subscription plan, and account status. Upgrade your plan or purchase more credits here.' },
-                { title: 'My Images', content: 'All your processed images are saved in your gallery. You can download, delete, or send them to other tools for further processing.' },
-                { title: 'Credit History', content: 'Track all your credit purchases and usage at the bottom of the page.' },
+                {
+                  title: 'Quick Actions',
+                  content:
+                    'Use the tool cards at the top to quickly access any image processing tool. Each card takes you directly to the tool.',
+                },
+                {
+                  title: 'Your Account',
+                  content:
+                    'View your credit balance, subscription plan, and account status. Upgrade your plan or purchase more credits here.',
+                },
+                {
+                  title: 'My Images',
+                  content:
+                    'All your processed images are saved in your gallery. You can download, delete, or send them to other tools for further processing.',
+                },
+                {
+                  title: 'Credit History',
+                  content:
+                    'Track all your credit purchases and usage at the bottom of the page.',
+                },
               ]}
               tips={[
                 "Your images are stored permanently — they won't expire.",
@@ -191,9 +219,14 @@ export default function DashboardPage() {
             {/* Tools grid */}
             <div>
               <div className="flex items-center justify-between mb-3">
-                <h2 className="text-sm font-semibold text-gray-900">Quick Actions</h2>
-                <Link href="/process" className="text-xs text-amber-600 hover:text-amber-700 font-medium flex items-center gap-0.5">
-                  All tools <ArrowRight className="w-3 h-3" />
+                <h2 className="text-sm font-semibold text-gray-900">
+                  Quick Actions
+                </h2>
+                <Link
+                  href="/studio"
+                  className="text-xs text-amber-600 hover:text-amber-700 font-medium flex items-center gap-0.5"
+                >
+                  Open Studio <ArrowRight className="w-3 h-3" />
                 </Link>
               </div>
               <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2 sm:gap-3">
@@ -203,11 +236,19 @@ export default function DashboardPage() {
                     href={tool.href}
                     className={`group relative flex flex-col items-center p-4 sm:p-5 rounded-xl border border-gray-200 bg-white ${tool.hoverBorder} hover:shadow-md transition-all`}
                   >
-                    <div className={`w-10 h-10 sm:w-12 sm:h-12 ${tool.bg} rounded-xl flex items-center justify-center mb-2.5 group-hover:scale-110 transition-transform`}>
-                      <tool.icon className={`w-5 h-5 sm:w-6 sm:h-6 ${tool.color}`} />
+                    <div
+                      className={`w-10 h-10 sm:w-12 sm:h-12 ${tool.bg} rounded-xl flex items-center justify-center mb-2.5 group-hover:scale-110 transition-transform`}
+                    >
+                      <tool.icon
+                        className={`w-5 h-5 sm:w-6 sm:h-6 ${tool.color}`}
+                      />
                     </div>
-                    <h3 className="font-semibold text-gray-900 text-xs sm:text-sm text-center">{tool.name}</h3>
-                    <p className="text-gray-400 text-[10px] sm:text-xs text-center mt-0.5 hidden sm:block">{tool.description}</p>
+                    <h3 className="font-semibold text-gray-900 text-xs sm:text-sm text-center">
+                      {tool.name}
+                    </h3>
+                    <p className="text-gray-400 text-[10px] sm:text-xs text-center mt-0.5 hidden sm:block">
+                      {tool.description}
+                    </p>
                   </Link>
                 ))}
               </div>
@@ -232,12 +273,17 @@ export default function DashboardPage() {
                       <p className="text-lg font-medium capitalize">
                         {profile.subscription_plan || 'Free'}
                         {(profile as any).subscription_paused_until && (
-                          <span className="text-xs text-amber-600 ml-1">(Paused)</span>
+                          <span className="text-xs text-amber-600 ml-1">
+                            (Paused)
+                          </span>
                         )}
                       </p>
                       {(profile as any).subscription_paused_until && (
                         <p className="text-xs text-gray-400">
-                          Resumes {new Date((profile as any).subscription_paused_until).toLocaleDateString()}
+                          Resumes{' '}
+                          {new Date(
+                            (profile as any).subscription_paused_until
+                          ).toLocaleDateString()}
                         </p>
                       )}
                     </div>
@@ -293,13 +339,19 @@ export default function DashboardPage() {
                     </>
                   )}
                   <Link href="/pricing" className="block">
-                    <Button variant="secondary" className="w-full justify-start">
+                    <Button
+                      variant="secondary"
+                      className="w-full justify-start"
+                    >
                       <CreditCard className="w-4 h-4 mr-2" />
                       Get More Credits
                     </Button>
                   </Link>
                   <Link href="/settings" className="block">
-                    <Button variant="secondary" className="w-full justify-start">
+                    <Button
+                      variant="secondary"
+                      className="w-full justify-start"
+                    >
                       <Settings className="w-4 h-4 mr-2" />
                       Settings
                     </Button>

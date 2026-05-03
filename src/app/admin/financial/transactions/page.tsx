@@ -235,7 +235,8 @@ export default function TransactionsPage() {
 
       if (result.summary.errors > 0 && result.summary.inserted === 0) {
         // All inserts failed — show the first error
-        const firstError = result.errors?.[0]?.error || 'Unknown database error';
+        const firstError =
+          result.errors?.[0]?.error || 'Unknown database error';
         toast.error(
           `Failed to import: ${firstError} (${result.summary.errors} errors total)`
         );
@@ -506,21 +507,29 @@ export default function TransactionsPage() {
                         </td>
                         <td className="py-3 px-4 text-sm">
                           {transaction.description}
-                          {transaction.credits && transaction.type !== 'usage' && transaction.type !== 'refund' && (
-                            <span className="ml-2 text-gray-500">
-                              ({transaction.credits} credits)
-                            </span>
-                          )}
+                          {transaction.credits &&
+                            transaction.type !== 'usage' &&
+                            transaction.type !== 'refund' && (
+                              <span className="ml-2 text-gray-500">
+                                ({transaction.credits} credits)
+                              </span>
+                            )}
                         </td>
                         <td className="py-3 px-4 text-right font-medium">
-                          {transaction.type === 'usage' || transaction.type === 'refund' ? (
-                            <span className={transaction.type === 'refund' ? 'text-orange-600' : 'text-gray-600'}>
-                              {transaction.type === 'refund' ? '+' : '-'}{transaction.credits || 0} credits
+                          {transaction.type === 'usage' ||
+                          transaction.type === 'refund' ? (
+                            <span
+                              className={
+                                transaction.type === 'refund'
+                                  ? 'text-orange-600'
+                                  : 'text-gray-600'
+                              }
+                            >
+                              {transaction.type === 'refund' ? '+' : '-'}
+                              {transaction.credits || 0} credits
                             </span>
                           ) : (
-                            <>
-                              {formatCurrency(transaction.amount)}
-                            </>
+                            <>{formatCurrency(transaction.amount)}</>
                           )}
                         </td>
                         <td className="py-3 px-4 text-center">
