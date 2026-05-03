@@ -293,18 +293,23 @@ export default function StudioClient() {
 
   return (
     <div className="flex-1 min-h-0 bg-gray-50 flex flex-col overflow-hidden">
-      {/* Header */}
-      <div className="bg-white border-b border-gray-200 px-4 py-2.5">
-        <div className="max-w-[1800px] mx-auto flex items-center justify-between gap-4">
-          <Breadcrumb
-            items={[
-              { label: 'Dashboard', href: '/dashboard' },
-              { label: 'Studio' },
-            ]}
-          />
+      {/* Header.
+          Mobile: tool dropdown + icon-only Reset/Download (no breadcrumb).
+          Desktop (md+): breadcrumb + pill switcher + labeled buttons. */}
+      <div className="bg-white border-b border-gray-200 px-3 sm:px-4 py-2 sm:py-2.5">
+        <div className="max-w-[1800px] mx-auto flex items-center justify-between gap-2 sm:gap-4">
+          {/* Breadcrumb: desktop only — burns too much horizontal space on mobile */}
+          <div className="hidden md:block">
+            <Breadcrumb
+              items={[
+                { label: 'Dashboard', href: '/dashboard' },
+                { label: 'Studio' },
+              ]}
+            />
+          </div>
 
-          {/* Tool switcher — driven by the plugin registry */}
-          <div className="flex items-center gap-1 bg-gray-100 rounded-lg p-1">
+          {/* Tool switcher — pill row on desktop, native select on mobile */}
+          <div className="hidden md:flex items-center gap-1 bg-gray-100 rounded-lg p-1">
             {STUDIO_TOOLS.map(tool => {
               const Icon = tool.icon;
               const active = activeToolId === tool.id;
@@ -325,29 +330,46 @@ export default function StudioClient() {
             })}
           </div>
 
+          <div className="md:hidden flex-1 min-w-0">
+            <select
+              value={activeToolId ?? ''}
+              onChange={e => switchTool(e.target.value as StudioToolId)}
+              className="w-full text-sm font-medium border border-gray-200 rounded-lg px-3 py-2 bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              aria-label="Switch tool"
+            >
+              {STUDIO_TOOLS.map(tool => (
+                <option key={tool.id} value={tool.id}>
+                  {tool.label}
+                </option>
+              ))}
+            </select>
+          </div>
+
           {/* Studio-level actions */}
-          <div className="flex items-center gap-1.5">
+          <div className="flex items-center gap-1.5 flex-shrink-0">
             <button
               onClick={handleResetToOriginal}
               disabled={!hasChanges || !originalImage}
-              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-700 hover:text-gray-900 border border-gray-200 hover:border-gray-300 rounded-md transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+              className="flex items-center gap-1.5 px-2 sm:px-3 py-2 sm:py-1.5 text-xs font-medium text-gray-700 hover:text-gray-900 border border-gray-200 hover:border-gray-300 rounded-md transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
               title="Revert workingImage to the originally-uploaded image"
+              aria-label="Reset to original"
             >
-              <RotateCcw className="w-3.5 h-3.5" />
-              Reset
+              <RotateCcw className="w-4 h-4 sm:w-3.5 sm:h-3.5" />
+              <span className="hidden sm:inline">Reset</span>
             </button>
             <button
               onClick={handleDownload}
               disabled={!workingImage || isSaving}
-              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-green-600 hover:bg-green-700 text-white rounded-md transition-colors disabled:opacity-60"
+              className="flex items-center gap-1.5 px-2 sm:px-3 py-2 sm:py-1.5 text-xs font-medium bg-green-600 hover:bg-green-700 text-white rounded-md transition-colors disabled:opacity-60"
               title="Download PNG (also saved to your gallery)"
+              aria-label="Download"
             >
               {isSaving ? (
-                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                <Loader2 className="w-4 h-4 sm:w-3.5 sm:h-3.5 animate-spin" />
               ) : (
-                <Download className="w-3.5 h-3.5" />
+                <Download className="w-4 h-4 sm:w-3.5 sm:h-3.5" />
               )}
-              Download
+              <span className="hidden sm:inline">Download</span>
             </button>
           </div>
         </div>
