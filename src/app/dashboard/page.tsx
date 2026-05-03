@@ -22,6 +22,7 @@ import {
   Sparkles,
   Palette,
   ArrowRight,
+  Grid3x3,
 } from 'lucide-react';
 import Link from 'next/link';
 import { CreditHistory } from '@/components/dashboard/CreditHistory';
@@ -63,6 +64,15 @@ const tools = [
     color: 'text-purple-600',
     bg: 'bg-purple-50',
     hoverBorder: 'hover:border-purple-200',
+  },
+  {
+    name: 'Halftone',
+    description: 'DTF-ready dot pattern',
+    href: '/studio?tool=halftone',
+    icon: Grid3x3,
+    color: 'text-blue-600',
+    bg: 'bg-blue-50',
+    hoverBorder: 'hover:border-blue-200',
   },
   {
     name: 'AI Generate',

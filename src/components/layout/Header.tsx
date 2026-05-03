@@ -26,6 +26,7 @@ import {
   Palette,
   Scissors,
   Zap,
+  Grid3x3,
 } from 'lucide-react';
 import { CreditDisplay } from '@/components/ui/CreditDisplay';
 import { NotificationBell } from '@/components/notifications/NotificationBell';
@@ -113,6 +114,12 @@ export function Header() {
               href: '/studio?tool=vectorize',
               icon: Zap,
               description: 'Convert to scalable SVG',
+            },
+            {
+              name: 'Halftone',
+              href: '/studio?tool=halftone',
+              icon: Grid3x3,
+              description: 'DTF-ready dot pattern',
             },
             {
               name: 'Generate Image',

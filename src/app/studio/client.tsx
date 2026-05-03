@@ -47,7 +47,8 @@ function isToolId(v: string | null): v is StudioToolId {
     v === 'bg-removal' ||
     v === 'upscale' ||
     v === 'color-change' ||
-    v === 'vectorize'
+    v === 'vectorize' ||
+    v === 'halftone'
   );
 }
 

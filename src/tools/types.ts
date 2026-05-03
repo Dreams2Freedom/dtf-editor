@@ -21,7 +21,8 @@ export type StudioToolId =
   | 'bg-removal'
   | 'upscale'
   | 'color-change'
-  | 'vectorize';
+  | 'vectorize'
+  | 'halftone';
 
 export interface StudioTool {
   id: StudioToolId;

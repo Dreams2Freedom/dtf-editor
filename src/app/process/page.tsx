@@ -16,6 +16,7 @@ const OPERATION_TO_TOOL: Record<string, string> = {
   'color-change': 'color-change',
   vectorization: 'vectorize',
   vectorize: 'vectorize',
+  halftone: 'halftone',
 };
 
 export default async function ProcessPage({

@@ -34,6 +34,8 @@
     "@supabase/auth-helpers-nextjs": "^0.10.0",
     "@supabase/ssr": "^0.6.1",
     "@supabase/supabase-js": "^2.45.4",
+    "@thi.ng/pixel": "^7.5.29",
+    "@thi.ng/pixel-dither": "^1.1.197",
     "@types/marked": "^5.0.2",
     "@upstash/ratelimit": "^2.0.6",
     "@upstash/redis": "^1.35.3",

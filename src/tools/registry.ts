@@ -25,12 +25,14 @@ import { bgRemovalTool } from './bg-removal';
 import { colorChangeTool } from './color-change';
 import { upscaleTool } from './upscale';
 import { vectorizeTool } from './vectorize';
+import { halftoneTool } from './halftone';
 
 export const STUDIO_TOOLS: StudioTool[] = [
   bgRemovalTool,
   upscaleTool,
   colorChangeTool,
   vectorizeTool,
+  halftoneTool,
 ];
 
 export function getStudioTool(id: StudioToolId): StudioTool | undefined {
