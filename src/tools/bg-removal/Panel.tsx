@@ -665,7 +665,13 @@ export function BackgroundRemovalPanel({
     // trapped inside the foreground (insides of letter "O"s, gaps between
     // illustrated features). Aggressive default — Keep brush is the
     // safety net for false positives. sensitivity = 0 → no-op early return.
-    detectInternalHoles(next, orig.data, orig.width, orig.height, holeDetection);
+    detectInternalHoles(
+      next,
+      orig.data,
+      orig.width,
+      orig.height,
+      holeDetection
+    );
     cumulativeMaskRef.current = next;
     renderPreviewFromMask(next);
     // Trace mask boundary for the marching-ants overlay (canvas-pixel coords).
@@ -1729,9 +1735,9 @@ export function BackgroundRemovalPanel({
                     className="w-full accent-blue-600"
                   />
                   <p className="text-xs text-gray-400 mt-1">
-                    Removes background-colored areas trapped inside the
-                    subject (e.g. inside letter shapes). Aggressive by
-                    default — paint back with the Keep brush if needed.
+                    Removes background-colored areas trapped inside the subject
+                    (e.g. inside letter shapes). Aggressive by default — paint
+                    back with the Keep brush if needed.
                   </p>
                 </div>
 

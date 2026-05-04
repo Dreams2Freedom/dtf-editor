@@ -60,10 +60,8 @@ export function classifyImage(image: HTMLImageElement): ImageClass {
     const lum = data[j] * 0.299 + data[j + 1] * 0.587 + data[j + 2] * 0.114;
     const jR = j + 4;
     const jD = j + w * 4;
-    const lumR =
-      data[jR] * 0.299 + data[jR + 1] * 0.587 + data[jR + 2] * 0.114;
-    const lumD =
-      data[jD] * 0.299 + data[jD + 1] * 0.587 + data[jD + 2] * 0.114;
+    const lumR = data[jR] * 0.299 + data[jR + 1] * 0.587 + data[jR + 2] * 0.114;
+    const lumD = data[jD] * 0.299 + data[jD + 1] * 0.587 + data[jD + 2] * 0.114;
     if (
       Math.abs(lum - lumR) >= HARD_EDGE_THRESHOLD ||
       Math.abs(lum - lumD) >= HARD_EDGE_THRESHOLD
@@ -74,7 +72,10 @@ export function classifyImage(image: HTMLImageElement): ImageClass {
   }
   const hardEdgeRatio = sampled > 0 ? hardEdges / sampled : 0;
 
-  if (uniqueColors < UNIQUE_GRAPHIC_MAX && hardEdgeRatio > HARD_EDGE_RATIO_MIN) {
+  if (
+    uniqueColors < UNIQUE_GRAPHIC_MAX &&
+    hardEdgeRatio > HARD_EDGE_RATIO_MIN
+  ) {
     return 'graphic';
   }
   return 'photo';
