@@ -285,6 +285,11 @@ export function BackgroundRemovalPanel({
   const samMaskRef = useRef<Uint8Array | null>(null);
   // cumulativeMaskRef: post-cleanup mask, derived from samMaskRef via recomputeCumulative.
   const cumulativeMaskRef = useRef<Uint8Array | null>(null);
+  // Forward-binding for recomputeCumulative so runInitialAnalysis (defined
+  // earlier in the file) can fire the cleanup + hole-detection pipeline
+  // when the AI mask first arrives. Without this, the first render would
+  // skip both passes and only kick in when the user perturbed a slider.
+  const recomputeCumulativeRef = useRef<(() => void) | null>(null);
   const [brushTool, setBrushTool] = useState<BrushTool>('keep');
   const [brushSize, setBrushSize] = useState(20);
   const [cleanupTolerance, setCleanupTolerance] = useState(60);
@@ -591,10 +596,20 @@ export function BackgroundRemovalPanel({
               m[i] = data.data[i * 4 + 3] > 127 ? 1 : 0;
             }
             samMaskRef.current = m;
-            const next = new Uint8Array(m);
-            cumulativeMaskRef.current = next;
-            renderPreviewFromMask(next);
-            setContoursD(maskToContoursPath(next, orig.width, orig.height));
+            // Run the same cleanup + hole-detection pipeline the
+            // sliders use, via a forward-bound ref. Falls back to the
+            // raw mask if the ref isn't populated yet (shouldn't
+            // happen in practice — the AI is async, the ref is set
+            // synchronously after first render).
+            const recompute = recomputeCumulativeRef.current;
+            if (recompute) {
+              recompute();
+            } else {
+              const next = new Uint8Array(m);
+              cumulativeMaskRef.current = next;
+              renderPreviewFromMask(next);
+              setContoursD(maskToContoursPath(next, orig.width, orig.height));
+            }
           }
         });
     },
@@ -678,6 +693,13 @@ export function BackgroundRemovalPanel({
     // Trace mask boundary for the marching-ants overlay (canvas-pixel coords).
     setContoursD(maskToContoursPath(next, orig.width, orig.height));
   }, [cleanupTolerance, holeDetection, renderPreviewFromMask]);
+
+  // Keep the forward-binding ref in sync — runInitialAnalysis (declared
+  // above) calls through this so the cleanup + hole-detection passes
+  // fire when the AI mask first lands.
+  useEffect(() => {
+    recomputeCumulativeRef.current = recomputeCumulative;
+  }, [recomputeCumulative]);
 
   /** Reset SAM mask to BiRefNet initial (or all-zeros if not loaded), then derive cumulative. */
   const resetCumulativeToInitial = useCallback(() => {
