@@ -21,6 +21,8 @@ import {
 
 import MagicWand from '@/lib/magic-wand';
 import { CanvasProcessingOverlay } from '@/components/studio/StudioCanvasFrame';
+import { detectInternalHoles } from './holeDetection';
+import { classifyImage } from './imageStats';
 import {
   clientFloodFill,
   clientMultiFloodFill,
@@ -286,6 +288,15 @@ export function BackgroundRemovalPanel({
   const [brushTool, setBrushTool] = useState<BrushTool>('keep');
   const [brushSize, setBrushSize] = useState(20);
   const [cleanupTolerance, setCleanupTolerance] = useState(60);
+  // Phase 2.2: aggressive default (70). Carves background-colored regions
+  // trapped inside the AI's foreground mask (insides of letter shapes,
+  // gaps between illustrated features). 0 = disabled.
+  const [holeDetection, setHoleDetection] = useState(70);
+  // Show the "Auto-selected for graphics" badge when the panel routed to
+  // birefnet-dis on its own. Cleared the moment the user manually picks
+  // any model so the manual choice is honored on subsequent loads.
+  const [autoRoutedModel, setAutoRoutedModel] = useState(false);
+  const userPickedModelRef = useRef(false);
   const [viewMode, setViewMode] = useState<'cutout' | 'preview' | 'original'>(
     'cutout'
   );
@@ -610,6 +621,25 @@ export function BackgroundRemovalPanel({
       if (pCtx) pCtx.drawImage(canvas, 0, 0);
     }
 
+    // Phase 2.2 auto-router: classify the input and bump the default
+    // model to birefnet-dis ("High Detail (Graphics + Text)") for
+    // graphics-y inputs. Honors a manual pick — once the user touches
+    // the dropdown, userPickedModelRef pins their choice.
+    if (!userPickedModelRef.current) {
+      try {
+        const cls = classifyImage(image);
+        if (cls === 'graphic') {
+          setModel('birefnet-dis');
+          setAutoRoutedModel(true);
+        } else {
+          setAutoRoutedModel(false);
+        }
+      } catch {
+        // Classifier never throws in practice, but if it does fall
+        // back to the default model silently.
+      }
+    }
+
     runInitialAnalysis(canvas);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [image]);
@@ -631,11 +661,16 @@ export function BackgroundRemovalPanel({
       orig
     );
     applyColorCleanup(next, orig, keepColors, removeColors, cleanupTolerance);
+    // Phase 2.2 hole-detection pass: carve out background-colored regions
+    // trapped inside the foreground (insides of letter "O"s, gaps between
+    // illustrated features). Aggressive default — Keep brush is the
+    // safety net for false positives. sensitivity = 0 → no-op early return.
+    detectInternalHoles(next, orig.data, orig.width, orig.height, holeDetection);
     cumulativeMaskRef.current = next;
     renderPreviewFromMask(next);
     // Trace mask boundary for the marching-ants overlay (canvas-pixel coords).
     setContoursD(maskToContoursPath(next, orig.width, orig.height));
-  }, [cleanupTolerance, renderPreviewFromMask]);
+  }, [cleanupTolerance, holeDetection, renderPreviewFromMask]);
 
   /** Reset SAM mask to BiRefNet initial (or all-zeros if not loaded), then derive cumulative. */
   const resetCumulativeToInitial = useCallback(() => {
@@ -1674,6 +1709,32 @@ export function BackgroundRemovalPanel({
                   </p>
                 </div>
 
+                {/* Hole Detection — Phase 2.2 internal-hole carve. */}
+                <div>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="text-xs font-medium text-gray-600">
+                      Hole Detection
+                    </label>
+                    <span className="text-xs text-gray-500 tabular-nums">
+                      {holeDetection}
+                    </span>
+                  </div>
+                  <input
+                    type="range"
+                    min={0}
+                    max={100}
+                    step={1}
+                    value={holeDetection}
+                    onChange={e => setHoleDetection(Number(e.target.value))}
+                    className="w-full accent-blue-600"
+                  />
+                  <p className="text-xs text-gray-400 mt-1">
+                    Removes background-colored areas trapped inside the
+                    subject (e.g. inside letter shapes). Aggressive by
+                    default — paint back with the Keep brush if needed.
+                  </p>
+                </div>
+
                 {/* Undo / Clear */}
                 <div className="flex gap-2">
                   <button
@@ -1924,12 +1985,26 @@ export function BackgroundRemovalPanel({
             {panelMode === 'ai-only' && !hasResult && (
               <>
                 <div>
-                  <label className="block text-xs font-medium text-gray-600 mb-1.5">
-                    AI Model
-                  </label>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <label className="block text-xs font-medium text-gray-600">
+                      AI Model
+                    </label>
+                    {autoRoutedModel && (
+                      <span
+                        className="text-[10px] font-medium text-blue-600 bg-blue-50 border border-blue-200 rounded px-1.5 py-0.5"
+                        title="Detected as a graphic — routed to BiRefNet-DIS for sharper letter / line work."
+                      >
+                        Auto-selected for graphics
+                      </span>
+                    )}
+                  </div>
                   <select
                     value={model}
-                    onChange={e => setModel(e.target.value as BgRemovalModel)}
+                    onChange={e => {
+                      userPickedModelRef.current = true;
+                      setAutoRoutedModel(false);
+                      setModel(e.target.value as BgRemovalModel);
+                    }}
                     disabled={isProcessing}
                     className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 bg-white text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
                   >
