@@ -288,10 +288,11 @@ export function BackgroundRemovalPanel({
   const [brushTool, setBrushTool] = useState<BrushTool>('keep');
   const [brushSize, setBrushSize] = useState(20);
   const [cleanupTolerance, setCleanupTolerance] = useState(60);
-  // Phase 2.2: aggressive default (70). Carves background-colored regions
-  // trapped inside the AI's foreground mask (insides of letter shapes,
-  // gaps between illustrated features). 0 = disabled.
-  const [holeDetection, setHoleDetection] = useState(70);
+  // Phase 2.2 (revised): default 50 with the new connected-component
+  // algorithm. Higher = wider color tolerance + smaller blob threshold
+  // (more aggressive). 0 = disabled. Earlier 70 default was tuned for
+  // the buggy reachable-flood algorithm and over-carved subject pixels.
+  const [holeDetection, setHoleDetection] = useState(50);
   // Show the "Auto-selected for graphics" badge when the panel routed to
   // birefnet-dis on its own. Cleared the moment the user manually picks
   // any model so the manual choice is honored on subsequent loads.
@@ -1735,9 +1736,10 @@ export function BackgroundRemovalPanel({
                     className="w-full accent-blue-600"
                   />
                   <p className="text-xs text-gray-400 mt-1">
-                    Removes background-colored areas trapped inside the subject
-                    (e.g. inside letter shapes). Aggressive by default — paint
-                    back with the Keep brush if needed.
+                    Removes background-colored regions inside the subject
+                    (insides of letters, white between flowers). Higher = more
+                    aggressive on smaller pockets. Paint back with the Keep
+                    brush if a feature gets carved.
                   </p>
                 </div>
 

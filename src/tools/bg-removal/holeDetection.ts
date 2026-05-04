@@ -1,37 +1,42 @@
 /**
  * Internal hole detection post-pass for the in-house BG Removal tool.
  *
- * Foreground-segmentation models (BRIA-rmbg, BiRefNet variants, U2Net,
- * isnet-anime) all produce a single connected mask — they nail the
- * outer contour but never carve out background-colored regions trapped
- * inside the foreground (the inside of an "O", gaps between turtle
- * features, etc.). ClippingMagic catches those because it runs an
- * explicit second pass after segmentation; this is ours.
+ * Foreground-segmentation models produce a single connected mask and
+ * never carve out background-colored regions trapped inside the
+ * foreground (insides of letters, gaps between flowers in a bouquet,
+ * etc.). This post-pass closes that gap.
  *
  * Algorithm (sensitivity > 0):
  *
- *   1. Auto-detect background color from edge pixels where the AI
- *      mask says background. Median R, G, B is robust to a single
- *      bright outlier in the corner.
- *   2. Build `isBgColor[i]`: 1 where pixel color is within a
- *      sensitivity-tuned tolerance of the background color, else 0.
- *   3. Iterative flood-fill from every image-border pixel through
- *      pixels where (mask=0 OR isBgColor=1). Anything reached is
- *      "external" — connected to the outside via a BG path.
- *   4. Carve: for each pixel where mask=1 AND isBgColor=1 AND NOT
- *      reachable, flip mask to 0. These are BG-colored pixels the AI
- *      left as foreground but that are trapped inside the subject —
- *      i.e., the holes.
+ *   1. Auto-detect background color from edge pixels where the AI mask
+ *      says background (median R, G, B is robust to outliers).
+ *   2. Build `isBgColor[i]`: 1 where pixel color is within a TIGHT,
+ *      sensitivity-tuned tolerance of the background, else 0.
+ *      (Older versions used a way-too-generous tolerance — half the RGB
+ *       cube at sensitivity 70 — which over-carved subject features.)
+ *   3. Find connected components of (mask=1 AND isBgColor=1) candidate
+ *      pixels via iterative BFS (4-connectivity).
+ *   4. Carve every component whose pixel count ≥ a sensitivity-scaled
+ *      MIN_BLOB_SIZE. Smaller blobs are presumed to be subject features
+ *      (a tiny white sparkle inside a flower) and left alone.
  *
- * Aggressive by default. The Keep brush is the safety net for false
- * positives (a real white feature accidentally carved out can be
- * painted back).
+ * The previous "flood-fill from edges and only carve unreached pixels"
+ * approach failed on the turtle bouquet: white between flowers
+ * connects via narrow BG-colored gaps to the outside, gets marked
+ * "external," then the carve rule skips it. Connected-component +
+ * size filter handles both enclosed AND outside-connected internal
+ * background-colored regions correctly.
+ *
+ * Sensitivity drives BOTH knobs in tandem:
+ *   - color tolerance:  tolDistance = sensitivity * 0.5
+ *                       (at 100 → ~50 distance, at 50 → ~25)
+ *   - min blob size:    minSize = max(20, 200 - sensitivity * 2)
+ *                       (at 100 → 20 px, at 50 → 100 px, at 30 → 140 px)
+ *
+ * Aggressive when the user wants it; the Keep brush is the safety net
+ * for legitimate features that get carved (paint them back).
  */
 
-/** Sample edge pixels of the original image where the AI mask says
- *  background, take the per-channel median. Falls back to white (255s)
- *  if no edge background pixels exist (very rare — image entirely
- *  full-bleed). */
 function detectBackgroundColor(
   data: Uint8ClampedArray,
   mask: Uint8Array,
@@ -42,13 +47,12 @@ function detectBackgroundColor(
   const greens: number[] = [];
   const blues: number[] = [];
 
-  // Sample stride: ~1% of perimeter, capped to avoid degenerate cases.
   const perimeter = 2 * width + 2 * height;
   const stride = Math.max(1, Math.floor(perimeter / 400));
 
   const sample = (x: number, y: number) => {
     const i = y * width + x;
-    if (mask[i] !== 0) return; // skip foreground edge pixels
+    if (mask[i] !== 0) return;
     const j = i * 4;
     reds.push(data[j]);
     greens.push(data[j + 1]);
@@ -83,7 +87,7 @@ function detectBackgroundColor(
  * @param data        original RGBA pixels (ImageData.data).
  * @param width
  * @param height
- * @param sensitivity 0..100. 0 = no-op. Higher = wider color tolerance.
+ * @param sensitivity 0..100. 0 = no-op early return.
  *
  * @returns the same `mask` array (in-place mutation).
  */
@@ -98,58 +102,82 @@ export function detectInternalHoles(
 
   const bg = detectBackgroundColor(data, mask, width, height);
 
-  // sensitivity 0..100 → squared distance threshold ~0..40000.
-  // 70 → ~16k (≈ 127 px Euclidean); 100 → ~40k (≈ 200).
-  const tol = sensitivity * 4;
-  const tolSq = tol * tol;
+  const tolDistance = sensitivity * 0.5; // 100 → ~50, 50 → 25, 30 → 15
+  const tolSq = tolDistance * tolDistance;
+
+  // Inversely scale the min-blob threshold: high sensitivity → carve
+  // small blobs too; low sensitivity → only big obvious holes.
+  const minBlobSize = Math.max(20, 200 - sensitivity * 2);
 
   const total = width * height;
-  const isBgColor = new Uint8Array(total);
+  const isCandidate = new Uint8Array(total);
   for (let i = 0; i < total; i++) {
+    if (mask[i] !== 1) continue;
     const j = i * 4;
     const dr = data[j] - bg.r;
     const dg = data[j + 1] - bg.g;
     const db = data[j + 2] - bg.b;
-    if (dr * dr + dg * dg + db * db <= tolSq) isBgColor[i] = 1;
+    if (dr * dr + dg * dg + db * db <= tolSq) isCandidate[i] = 1;
   }
 
-  // Flood-fill from every border pixel through (mask=0 OR isBgColor=1).
-  // Iterative queue, no recursion — handles 4K images without stack overflow.
-  const reachable = new Uint8Array(total);
+  // Connected-component labeling (iterative BFS, 4-connectivity).
+  // For each component, count size first; if it qualifies, carve in a
+  // second pass over the same indices.
+  const visited = new Uint8Array(total);
   const queue: number[] = [];
+  const componentIndices: number[] = [];
 
-  const seed = (i: number) => {
-    if (reachable[i]) return;
-    if (mask[i] === 0 || isBgColor[i] === 1) {
-      reachable[i] = 1;
-      queue.push(i);
+  for (let start = 0; start < total; start++) {
+    if (isCandidate[start] === 0 || visited[start] === 1) continue;
+
+    // BFS from `start` collecting all connected candidate pixels.
+    componentIndices.length = 0;
+    queue.length = 0;
+    queue.push(start);
+    visited[start] = 1;
+
+    while (queue.length) {
+      const i = queue.pop() as number;
+      componentIndices.push(i);
+      const x = i % width;
+      const y = (i - x) / width;
+      // 4-connectivity neighbors.
+      if (x > 0) {
+        const n = i - 1;
+        if (isCandidate[n] === 1 && visited[n] === 0) {
+          visited[n] = 1;
+          queue.push(n);
+        }
+      }
+      if (x < width - 1) {
+        const n = i + 1;
+        if (isCandidate[n] === 1 && visited[n] === 0) {
+          visited[n] = 1;
+          queue.push(n);
+        }
+      }
+      if (y > 0) {
+        const n = i - width;
+        if (isCandidate[n] === 1 && visited[n] === 0) {
+          visited[n] = 1;
+          queue.push(n);
+        }
+      }
+      if (y < height - 1) {
+        const n = i + width;
+        if (isCandidate[n] === 1 && visited[n] === 0) {
+          visited[n] = 1;
+          queue.push(n);
+        }
+      }
     }
-  };
 
-  for (let x = 0; x < width; x++) {
-    seed(x);
-    seed((height - 1) * width + x);
-  }
-  for (let y = 0; y < height; y++) {
-    seed(y * width);
-    seed(y * width + (width - 1));
-  }
-
-  while (queue.length) {
-    const i = queue.pop() as number;
-    const x = i % width;
-    const y = (i - x) / width;
-    if (x > 0) seed(i - 1);
-    if (x < width - 1) seed(i + 1);
-    if (y > 0) seed(i - width);
-    if (y < height - 1) seed(i + width);
-  }
-
-  // Carve: foreground pixels that are BG-colored AND not reachable
-  // from outside via a BG path are trapped holes — flip them.
-  for (let i = 0; i < total; i++) {
-    if (mask[i] === 1 && isBgColor[i] === 1 && !reachable[i]) {
-      mask[i] = 0;
+    // Carve only blobs above the size threshold. Small blobs are
+    // presumed to be legitimate subject features (sparkles, dots).
+    if (componentIndices.length >= minBlobSize) {
+      for (let k = 0; k < componentIndices.length; k++) {
+        mask[componentIndices[k]] = 0;
+      }
     }
   }
 
