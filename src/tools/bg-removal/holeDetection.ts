@@ -27,11 +27,15 @@
  * size filter handles both enclosed AND outside-connected internal
  * background-colored regions correctly.
  *
- * Sensitivity drives BOTH knobs in tandem:
+ * Sensitivity (extended in Phase 2.2 to 0..200) drives BOTH knobs in tandem:
  *   - color tolerance:  tolDistance = sensitivity * 0.5
- *                       (at 100 → ~50 distance, at 50 → ~25)
- *   - min blob size:    minSize = max(20, 200 - sensitivity * 2)
- *                       (at 100 → 20 px, at 50 → 100 px, at 30 → 140 px)
+ *                       (at 100 → ~50 distance, at 200 → ~100, catches grays)
+ *   - min blob size:    minSize = max(5, 200 - sensitivity * 2)
+ *                       (at 100 → 20 px, at 200 → 5 px, very aggressive)
+ *
+ * The 0..100 range is the "normal" operating zone (catches near-pure
+ * background); 100..200 is the "aggressive" zone where the tolerance
+ * widens into mid-grays and even single-pixel pockets get carved.
  *
  * Aggressive when the user wants it; the Keep brush is the safety net
  * for legitimate features that get carved (paint them back).
@@ -102,12 +106,13 @@ export function detectInternalHoles(
 
   const bg = detectBackgroundColor(data, mask, width, height);
 
-  const tolDistance = sensitivity * 0.5; // 100 → ~50, 50 → 25, 30 → 15
+  const tolDistance = sensitivity * 0.5; // 100 → 50, 200 → 100, 50 → 25
   const tolSq = tolDistance * tolDistance;
 
   // Inversely scale the min-blob threshold: high sensitivity → carve
   // small blobs too; low sensitivity → only big obvious holes.
-  const minBlobSize = Math.max(20, 200 - sensitivity * 2);
+  // Floor at 5 px so 100..200 still keeps some noise protection.
+  const minBlobSize = Math.max(5, 200 - sensitivity * 2);
 
   const total = width * height;
   const isCandidate = new Uint8Array(total);

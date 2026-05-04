@@ -1751,7 +1751,7 @@ export function BackgroundRemovalPanel({
                   <input
                     type="range"
                     min={0}
-                    max={100}
+                    max={200}
                     step={1}
                     value={holeDetection}
                     onChange={e => setHoleDetection(Number(e.target.value))}
@@ -1759,8 +1759,10 @@ export function BackgroundRemovalPanel({
                   />
                   <p className="text-xs text-gray-400 mt-1">
                     Removes background-colored regions inside the subject
-                    (insides of letters, white between flowers). Higher = more
-                    aggressive on smaller pockets. Paint back with the Keep
+                    (insides of letters, white between flowers). 0–100 = normal,
+                    100–200 = aggressive (catches grays + single-pixel specks).
+                    Only targets pixels close to the detected background color —
+                    won&apos;t touch dark grunge marks. Paint back with the Keep
                     brush if a feature gets carved.
                   </p>
                 </div>
