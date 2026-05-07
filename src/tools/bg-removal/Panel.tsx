@@ -23,7 +23,7 @@ import MagicWand from '@/lib/magic-wand';
 import { CanvasProcessingOverlay } from '@/components/studio/StudioCanvasFrame';
 import { detectInternalHoles } from './holeDetection';
 import { edgeFloodBackground, detectBgColorFromEdges } from './edgeFlood';
-import { rasterizeStrokes } from './strokeMask';
+import { computeStrokeRegions } from './strokeSemantics';
 import { removeDarkSpecks } from './darkSpeckRemoval';
 import { classifyImage } from './imageStats';
 import {
@@ -281,6 +281,11 @@ export function BackgroundRemovalPanel({
     rawPath: Array<{ x: number; y: number }>;
     brushSize: number;
     maskBefore: Uint8Array;
+    /** Phase 2.4: SAM's predicted region for this stroke. Stored so the
+     *  global passes (edge flood, hole detection, dark speck) can treat
+     *  Keep/Remove strokes as semantic selections — protect or carve the
+     *  whole SAM-predicted segment, not just the literal brush footprint. */
+    samMask: Uint8Array;
   }
   const [strokeHistory, setStrokeHistory] = useState<StrokeRecord[]>([]);
   const strokeHistoryRef = useRef<StrokeRecord[]>([]);
@@ -689,21 +694,14 @@ export function BackgroundRemovalPanel({
       orig
     );
 
-    // Phase 2.3 — rasterize user strokes into binary footprints so
-    // every global pass can honor them. Keep strokes act as walls
-    // (never carve a protected pixel); Remove strokes force-carve.
-    const keepStrokeMask = rasterizeStrokes(
-      strokeHistoryRef.current,
-      'keep',
-      orig.width,
-      orig.height
-    );
-    const removeStrokeMask = rasterizeStrokes(
-      strokeHistoryRef.current,
-      'remove',
-      orig.width,
-      orig.height
-    );
+    // Phase 2.4 — derive SAM-aware protect / force-carve regions from
+    // the brush history. Each stroke's `samMask` is unioned with its
+    // literal brush footprint, then the latest stroke wins per pixel.
+    // A Keep stroke claims SAM's whole predicted segment as protected,
+    // not just the strip under the brush — which matches the user's
+    // mental model that brush marks select REGIONS, not pixels.
+    const { protect: keepStrokeMask, forceCarve: removeStrokeMask } =
+      computeStrokeRegions(strokeHistoryRef.current, orig.width, orig.height);
 
     // Detect background color once and reuse across passes — saves
     // duplicate edge sampling and keeps every pass on the same baseline.
@@ -849,6 +847,9 @@ export function BackgroundRemovalPanel({
         rawPath: path.slice(),
         brushSize: sizeAtCommit,
         maskBefore,
+        // Snapshot SAM's predicted segment so the global passes can
+        // treat this stroke as a semantic selection of the whole region.
+        samMask: new Uint8Array(samMask),
       };
       const updatedHistory = [...strokeHistoryRef.current, record];
 
