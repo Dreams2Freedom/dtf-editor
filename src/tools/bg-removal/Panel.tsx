@@ -22,6 +22,12 @@ import {
 import MagicWand from '@/lib/magic-wand';
 import { CanvasProcessingOverlay } from '@/components/studio/StudioCanvasFrame';
 import { detectInternalHoles } from './holeDetection';
+import {
+  edgeFloodBackground,
+  detectBgColorFromEdges,
+} from './edgeFlood';
+import { rasterizeStrokes } from './strokeMask';
+import { removeDarkSpecks } from './darkSpeckRemoval';
 import { classifyImage } from './imageStats';
 import {
   clientFloodFill,
@@ -298,6 +304,15 @@ export function BackgroundRemovalPanel({
   // (more aggressive). 0 = disabled. Earlier 70 default was tuned for
   // the buggy reachable-flood algorithm and over-carved subject pixels.
   const [holeDetection, setHoleDetection] = useState(50);
+  // Phase 2.3 — primary background detection. Flood from image edges
+  // through pixels matching the detected BG color within tolerance.
+  // Catches background-colored pockets that connect to outside via
+  // narrow gaps (turtle's between-flower whites). Default 30 = tight
+  // tolerance, near-pure background only.
+  const [bgFlood, setBgFlood] = useState(30);
+  // Phase 2.3 — inverse pass for dark grunge marks inside the subject.
+  // Off by default; opt-in for distressed designs like TOP DAD.
+  const [darkSpeck, setDarkSpeck] = useState(0);
   // Show the "Auto-selected for graphics" badge when the panel routed to
   // birefnet-dis on its own. Cleared the moment the user manually picks
   // any model so the manual choice is honored on subsequent loads.
@@ -676,23 +691,87 @@ export function BackgroundRemovalPanel({
       'remove',
       orig
     );
+
+    // Phase 2.3 — rasterize user strokes into binary footprints so
+    // every global pass can honor them. Keep strokes act as walls
+    // (never carve a protected pixel); Remove strokes force-carve.
+    const keepStrokeMask = rasterizeStrokes(
+      strokeHistoryRef.current,
+      'keep',
+      orig.width,
+      orig.height
+    );
+    const removeStrokeMask = rasterizeStrokes(
+      strokeHistoryRef.current,
+      'remove',
+      orig.width,
+      orig.height
+    );
+
+    // Detect background color once and reuse across passes — saves
+    // duplicate edge sampling and keeps every pass on the same baseline.
+    const bgColor = detectBgColorFromEdges(
+      orig.data,
+      next,
+      orig.width,
+      orig.height
+    );
+
+    // Pass 1 (PRIMARY) — edge-flood background detection.
+    // Flood from image edges through pixels matching bgColor within
+    // tolerance. Anything reached is *certainly* background, regardless
+    // of what the AI mask said. This is what cleanly handles
+    // turtle-style "background-colored regions connected to the outside
+    // via narrow gaps." Skips Keep-stroke pixels.
+    if (bgFlood > 0) {
+      const flood = edgeFloodBackground(orig.data, orig.width, orig.height, {
+        bgColor,
+        sensitivity: bgFlood,
+        protectMask: keepStrokeMask,
+      });
+      for (let i = 0; i < next.length; i++) {
+        if (flood[i] === 1) next[i] = 0;
+      }
+    }
+
+    // Pass 2 — color cleanup (existing): palette-aware fringe filter.
     applyColorCleanup(next, orig, keepColors, removeColors, cleanupTolerance);
-    // Phase 2.2 hole-detection pass: carve out background-colored regions
-    // trapped inside the foreground (insides of letter "O"s, gaps between
-    // illustrated features). Aggressive default — Keep brush is the
-    // safety net for false positives. sensitivity = 0 → no-op early return.
+
+    // Pass 3 — hole detection (existing, now stroke-aware): carves
+    // bg-colored regions enclosed inside the foreground that the
+    // edge flood couldn't reach (e.g., inside-of-O on TOP DAD).
     detectInternalHoles(
       next,
       orig.data,
       orig.width,
       orig.height,
-      holeDetection
+      holeDetection,
+      keepStrokeMask,
+      removeStrokeMask
     );
+
+    // Pass 4 (OPTIONAL) — dark-speck removal. Off by default; opt-in
+    // for grunge / distressed designs where small dark specks remain
+    // inside the subject after the white-side cleanup is done.
+    if (darkSpeck > 0) {
+      removeDarkSpecks(next, orig.data, orig.width, orig.height, {
+        bgColor,
+        sensitivity: darkSpeck,
+        protectMask: keepStrokeMask,
+      });
+    }
+
     cumulativeMaskRef.current = next;
     renderPreviewFromMask(next);
     // Trace mask boundary for the marching-ants overlay (canvas-pixel coords).
     setContoursD(maskToContoursPath(next, orig.width, orig.height));
-  }, [cleanupTolerance, holeDetection, renderPreviewFromMask]);
+  }, [
+    bgFlood,
+    cleanupTolerance,
+    holeDetection,
+    darkSpeck,
+    renderPreviewFromMask,
+  ]);
 
   // Keep the forward-binding ref in sync — runInitialAnalysis (declared
   // above) calls through this so the cleanup + hole-detection passes
@@ -1713,6 +1792,36 @@ export function BackgroundRemovalPanel({
                   </p>
                 </div>
 
+                {/* BG Color Flood — Phase 2.3 primary background detection.
+                    Flood from image edges through pixels matching the
+                    detected BG color. The single biggest knob for
+                    DTF-grade cutouts on solid backgrounds. */}
+                <div>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="text-xs font-medium text-gray-600">
+                      BG Color Flood
+                    </label>
+                    <span className="text-xs text-gray-500 tabular-nums">
+                      {bgFlood}
+                    </span>
+                  </div>
+                  <input
+                    type="range"
+                    min={0}
+                    max={100}
+                    step={1}
+                    value={bgFlood}
+                    onChange={e => setBgFlood(Number(e.target.value))}
+                    className="w-full accent-blue-600"
+                  />
+                  <p className="text-xs text-gray-400 mt-1">
+                    Floods from the image edges through anything matching
+                    the detected background color. Higher = wider tolerance
+                    (catches off-whites / light grays). Keep brush strokes
+                    block the flood.
+                  </p>
+                </div>
+
                 {/* Edge cleanup tolerance */}
                 <div>
                   <div className="flex items-center justify-between mb-1">
@@ -1751,19 +1860,48 @@ export function BackgroundRemovalPanel({
                   <input
                     type="range"
                     min={0}
-                    max={200}
+                    max={100}
                     step={1}
                     value={holeDetection}
                     onChange={e => setHoleDetection(Number(e.target.value))}
                     className="w-full accent-blue-600"
                   />
                   <p className="text-xs text-gray-400 mt-1">
-                    Removes background-colored regions inside the subject
-                    (insides of letters, white between flowers). 0–100 = normal,
-                    100–200 = aggressive (catches grays + single-pixel specks).
-                    Only targets pixels close to the detected background color —
-                    won&apos;t touch dark grunge marks. Paint back with the Keep
-                    brush if a feature gets carved.
+                    Carves background-colored pockets fully ENCLOSED by the
+                    subject (inside of letter shapes). The BG Color Flood
+                    above handles open pockets; this catches the leftovers
+                    a flood can&apos;t reach. Honors Keep / Remove brush
+                    strokes.
+                  </p>
+                </div>
+
+                {/* Dark Speck Removal — Phase 2.3 inverse pass.
+                    Off by default; useful for grunge / distressed
+                    designs that leave small dark specks inside the
+                    subject after BG removal. */}
+                <div>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="text-xs font-medium text-gray-600">
+                      Dark Speck Removal
+                    </label>
+                    <span className="text-xs text-gray-500 tabular-nums">
+                      {darkSpeck}
+                    </span>
+                  </div>
+                  <input
+                    type="range"
+                    min={0}
+                    max={100}
+                    step={1}
+                    value={darkSpeck}
+                    onChange={e => setDarkSpeck(Number(e.target.value))}
+                    className="w-full accent-blue-600"
+                  />
+                  <p className="text-xs text-gray-400 mt-1">
+                    Carves small dark blobs inside the subject (grunge
+                    specks, distressed marks). 0 = off. Bump up only if
+                    your design has unwanted dark noise — can erase
+                    legitimate dark detail in illustrations.
                   </p>
                 </div>
 

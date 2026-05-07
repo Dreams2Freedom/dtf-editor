@@ -87,11 +87,16 @@ function detectBackgroundColor(
 /**
  * Carve internal holes from a foreground mask.
  *
- * @param mask        binary Uint8Array, 1 = foreground, 0 = background. Mutated.
- * @param data        original RGBA pixels (ImageData.data).
+ * @param mask          binary Uint8Array, 1 = foreground, 0 = background. Mutated.
+ * @param data          original RGBA pixels (ImageData.data).
  * @param width
  * @param height
- * @param sensitivity 0..100. 0 = no-op early return.
+ * @param sensitivity   0..200. 0 = no-op early return.
+ * @param protectMask   optional Uint8Array — pixels marked 1 here are
+ *                      treated as "user said keep" and never carved.
+ * @param forceCarveMask optional Uint8Array — pixels marked 1 here are
+ *                      always carved regardless of color (user "Remove"
+ *                      strokes).
  *
  * @returns the same `mask` array (in-place mutation).
  */
@@ -100,8 +105,18 @@ export function detectInternalHoles(
   data: Uint8ClampedArray,
   width: number,
   height: number,
-  sensitivity: number
+  sensitivity: number,
+  protectMask?: Uint8Array | null,
+  forceCarveMask?: Uint8Array | null
 ): Uint8Array {
+  // First: apply user "Remove" strokes — those carve regardless of
+  // anything else (color, sensitivity, enclosure).
+  if (forceCarveMask) {
+    for (let i = 0; i < mask.length; i++) {
+      if (forceCarveMask[i] === 1) mask[i] = 0;
+    }
+  }
+
   if (sensitivity <= 0) return mask;
 
   const bg = detectBackgroundColor(data, mask, width, height);
@@ -118,6 +133,7 @@ export function detectInternalHoles(
   const isCandidate = new Uint8Array(total);
   for (let i = 0; i < total; i++) {
     if (mask[i] !== 1) continue;
+    if (protectMask && protectMask[i] === 1) continue; // user said keep
     const j = i * 4;
     const dr = data[j] - bg.r;
     const dg = data[j + 1] - bg.g;
