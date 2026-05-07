@@ -712,18 +712,13 @@ export function BackgroundRemovalPanel({
     // negative-only prompts). See strokeSemantics.ts for the full
     // rationale.
     const { protect: keepStrokeMask, forceCarve: removeStrokeMask } =
-      computeStrokeRegions(
-        strokeHistoryRef.current,
-        orig.width,
-        orig.height,
-        {
-          data: orig.data,
-          bgColor,
-          // Slightly looser than the global edge flood — user explicitly
-          // asked to carve here, so be a touch more permissive.
-          removeFloodTolerance: Math.min(150, Math.round(bgFlood * 1.2)),
-        }
-      );
+      computeStrokeRegions(strokeHistoryRef.current, orig.width, orig.height, {
+        data: orig.data,
+        bgColor,
+        // Slightly looser than the global edge flood — user explicitly
+        // asked to carve here, so be a touch more permissive.
+        removeFloodTolerance: Math.min(150, Math.round(bgFlood * 1.2)),
+      });
 
     // Pass 1 (PRIMARY) — edge-flood background detection.
     // Flood from image edges through pixels matching bgColor within
