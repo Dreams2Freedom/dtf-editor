@@ -694,23 +694,36 @@ export function BackgroundRemovalPanel({
       orig
     );
 
-    // Phase 2.4 — derive SAM-aware protect / force-carve regions from
-    // the brush history. Each stroke's `samMask` is unioned with its
-    // literal brush footprint, then the latest stroke wins per pixel.
-    // A Keep stroke claims SAM's whole predicted segment as protected,
-    // not just the strip under the brush — which matches the user's
-    // mental model that brush marks select REGIONS, not pixels.
-    const { protect: keepStrokeMask, forceCarve: removeStrokeMask } =
-      computeStrokeRegions(strokeHistoryRef.current, orig.width, orig.height);
-
     // Detect background color once and reuse across passes — saves
     // duplicate edge sampling and keeps every pass on the same baseline.
+    // Done BEFORE stroke regions because Phase 2.5 Keep/Remove logic
+    // depends on knowing the bg color.
     const bgColor = detectBgColorFromEdges(
       orig.data,
       next,
       orig.width,
       orig.height
     );
+
+    // Phase 2.5 — asymmetric stroke semantics. Keep refines SAM mask
+    // by subtracting bg-colored pixels (so internal pockets aren't
+    // over-protected). Remove uses a local color flood seeded from
+    // the brush footprint (NOT SAM, which over-predicts on tiny
+    // negative-only prompts). See strokeSemantics.ts for the full
+    // rationale.
+    const { protect: keepStrokeMask, forceCarve: removeStrokeMask } =
+      computeStrokeRegions(
+        strokeHistoryRef.current,
+        orig.width,
+        orig.height,
+        {
+          data: orig.data,
+          bgColor,
+          // Slightly looser than the global edge flood — user explicitly
+          // asked to carve here, so be a touch more permissive.
+          removeFloodTolerance: Math.min(150, Math.round(bgFlood * 1.2)),
+        }
+      );
 
     // Pass 1 (PRIMARY) — edge-flood background detection.
     // Flood from image edges through pixels matching bgColor within
@@ -1777,7 +1790,7 @@ export function BackgroundRemovalPanel({
                   </div>
                   <input
                     type="range"
-                    min={5}
+                    min={1}
                     max={80}
                     step={1}
                     value={brushSize}

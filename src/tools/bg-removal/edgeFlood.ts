@@ -132,6 +132,91 @@ export function edgeFloodBackground(
   return reached;
 }
 
+/**
+ * Same flood algorithm as `edgeFloodBackground`, but seeded from a
+ * caller-provided set of pixel indices instead of the image borders.
+ *
+ * Used by Phase 2.5 Remove brush strokes: we seed from the pixels
+ * under the brush footprint and let the flood expand through
+ * bg-colored neighbors. The flood naturally stops at colored subject
+ * pixels, so a small brush click only carves the local pocket — never
+ * a wild SAM-driven explosion across the whole image.
+ *
+ * Seeds that are NOT bg-colored (or that fall in `protectMask`) are
+ * silently skipped — caller can pass the entire brush trail without
+ * pre-filtering.
+ */
+export function floodFromSeeds(
+  data: Uint8ClampedArray,
+  width: number,
+  height: number,
+  seeds: Iterable<number>,
+  opts: EdgeFloodOptions
+): Uint8Array {
+  const total = width * height;
+  const reached = new Uint8Array(total);
+  if (opts.sensitivity <= 0) return reached;
+
+  const tolDistance = opts.sensitivity * 0.5;
+  const tolSq = tolDistance * tolDistance;
+  const { r: br, g: bg, b: bb } = opts.bgColor;
+  const protect = opts.protectMask;
+
+  const matches = (i: number) => {
+    if (protect && protect[i] === 1) return false;
+    const j = i * 4;
+    const dr = data[j] - br;
+    const dg = data[j + 1] - bg;
+    const db = data[j + 2] - bb;
+    return dr * dr + dg * dg + db * db <= tolSq;
+  };
+
+  const stack: number[] = [];
+  for (const s of seeds) {
+    if (s < 0 || s >= total) continue;
+    if (reached[s]) continue;
+    if (!matches(s)) continue;
+    reached[s] = 1;
+    stack.push(s);
+  }
+
+  while (stack.length) {
+    const i = stack.pop() as number;
+    const x = i % width;
+    const y = (i - x) / width;
+    if (x > 0) {
+      const n = i - 1;
+      if (!reached[n] && matches(n)) {
+        reached[n] = 1;
+        stack.push(n);
+      }
+    }
+    if (x < width - 1) {
+      const n = i + 1;
+      if (!reached[n] && matches(n)) {
+        reached[n] = 1;
+        stack.push(n);
+      }
+    }
+    if (y > 0) {
+      const n = i - width;
+      if (!reached[n] && matches(n)) {
+        reached[n] = 1;
+        stack.push(n);
+      }
+    }
+    if (y < height - 1) {
+      const n = i + width;
+      if (!reached[n] && matches(n)) {
+        reached[n] = 1;
+        stack.push(n);
+      }
+    }
+  }
+
+  return reached;
+}
+
 /** Auto-detect background color from edge pixels, weighted by mask=0
  *  (where the AI says it's background). Median per channel — robust to
  *  a single bright outlier in a corner. */
