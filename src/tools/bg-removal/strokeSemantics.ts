@@ -12,7 +12,7 @@
  *     watercolor / pastel washes — stay protected. A flat per-pixel
  *     filter alone can't tell a smooth gradient pixel from a real hole;
  *     size filtering can. Same algorithmic shape as holeDetection.ts
- *     and darkSpeckRemoval.ts.
+ *     and strandedComponents.ts.
  *   - UNION with the literal brush footprint so the user can always
  *     force a true-bg-colored pixel to stay protected by physically
  *     painting over it.

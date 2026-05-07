@@ -24,7 +24,7 @@ import { CanvasProcessingOverlay } from '@/components/studio/StudioCanvasFrame';
 import { detectInternalHoles } from './holeDetection';
 import { edgeFloodBackground, detectBgColorFromEdges } from './edgeFlood';
 import { computeStrokeRegions } from './strokeSemantics';
-import { removeDarkSpecks } from './darkSpeckRemoval';
+import { removeStrandedSpecks } from './strandedComponents';
 import { classifyImage } from './imageStats';
 import {
   clientFloodFill,
@@ -312,9 +312,13 @@ export function BackgroundRemovalPanel({
   // narrow gaps (turtle's between-flower whites). Default 30 = tight
   // tolerance, near-pure background only.
   const [bgFlood, setBgFlood] = useState(30);
-  // Phase 2.3 — inverse pass for dark grunge marks inside the subject.
-  // Off by default; opt-in for distressed designs like TOP DAD.
-  const [darkSpeck, setDarkSpeck] = useState(0);
+  // Phase 2.7 — stranded-component carving. Generalizes the older
+  // dark-speck pass: any small foreground component sitting in mostly-
+  // transparent territory (after Edge Flood / Hole Detection have done
+  // their work) gets carved, regardless of color. Catches dense grunge
+  // noise that 4-connects past the size cap of the old algorithm.
+  // Default 30 = mild; cranks aggressive for distressed/grunge designs.
+  const [speckRemoval, setSpeckRemoval] = useState(30);
   // Show the "Auto-selected for graphics" badge when the panel routed to
   // birefnet-dis on its own. Cleared the moment the user manually picks
   // any model so the manual choice is honored on subsequent loads.
@@ -753,13 +757,16 @@ export function BackgroundRemovalPanel({
       removeStrokeMask
     );
 
-    // Pass 4 (OPTIONAL) — dark-speck removal. Off by default; opt-in
-    // for grunge / distressed designs where small dark specks remain
-    // inside the subject after the white-side cleanup is done.
-    if (darkSpeck > 0) {
-      removeDarkSpecks(next, orig.data, orig.width, orig.height, {
-        bgColor,
-        sensitivity: darkSpeck,
+    // Pass 4 — stranded-component speck removal (Phase 2.7).
+    // Color-agnostic: carves any small foreground component sitting
+    // in mostly-transparent surroundings. Catches dense grunge noise
+    // (TOP DAD case) where the old size-capped dark-speck pass failed
+    // because dark pixels 4-connected into oversized components.
+    // Always runs after the bg-color passes so its transparency
+    // context is maximally informative.
+    if (speckRemoval > 0) {
+      removeStrandedSpecks(next, orig.width, orig.height, {
+        sensitivity: speckRemoval,
         protectMask: keepStrokeMask,
       });
     }
@@ -772,7 +779,7 @@ export function BackgroundRemovalPanel({
     bgFlood,
     cleanupTolerance,
     holeDetection,
-    darkSpeck,
+    speckRemoval,
     renderPreviewFromMask,
   ]);
 
@@ -1880,17 +1887,18 @@ export function BackgroundRemovalPanel({
                   </p>
                 </div>
 
-                {/* Dark Speck Removal — Phase 2.3 inverse pass.
-                    Off by default; useful for grunge / distressed
-                    designs that leave small dark specks inside the
-                    subject after BG removal. */}
+                {/* Speck Removal — Phase 2.7 stranded-component pass.
+                    Color-agnostic: carves any small foreground island
+                    sitting in mostly-transparent surroundings. Crank up
+                    for distressed/grunge designs (TOP DAD); leave low
+                    for clean illustrations to preserve small details. */}
                 <div>
                   <div className="flex items-center justify-between mb-1">
                     <label className="text-xs font-medium text-gray-600">
-                      Dark Speck Removal
+                      Speck Removal
                     </label>
                     <span className="text-xs text-gray-500 tabular-nums">
-                      {darkSpeck}
+                      {speckRemoval}
                     </span>
                   </div>
                   <input
@@ -1898,15 +1906,15 @@ export function BackgroundRemovalPanel({
                     min={0}
                     max={100}
                     step={1}
-                    value={darkSpeck}
-                    onChange={e => setDarkSpeck(Number(e.target.value))}
+                    value={speckRemoval}
+                    onChange={e => setSpeckRemoval(Number(e.target.value))}
                     className="w-full accent-blue-600"
                   />
                   <p className="text-xs text-gray-400 mt-1">
-                    Carves small dark blobs inside the subject (grunge specks,
-                    distressed marks). 0 = off. Bump up only if your design has
-                    unwanted dark noise — can erase legitimate dark detail in
-                    illustrations.
+                    Carves small foreground specks left stranded after the
+                    background passes — grunge noise, distressed marks, isolated
+                    islands of any color. Higher = larger components eligible.
+                    The main subject is never carved.
                   </p>
                 </div>
 
