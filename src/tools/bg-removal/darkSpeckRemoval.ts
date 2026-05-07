@@ -48,9 +48,7 @@ export function removeDarkSpecks(
   if (opts.sensitivity <= 0) return mask;
 
   const bgLum =
-    opts.bgColor.r * 0.299 +
-    opts.bgColor.g * 0.587 +
-    opts.bgColor.b * 0.114;
+    opts.bgColor.r * 0.299 + opts.bgColor.g * 0.587 + opts.bgColor.b * 0.114;
 
   // sensitivity 100 → darkness gap ≥ 60 lum, max speck size 400 px
   // sensitivity  50 → darkness gap ≥ 80 lum, max speck size 150 px

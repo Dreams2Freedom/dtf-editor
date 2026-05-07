@@ -22,10 +22,7 @@ import {
 import MagicWand from '@/lib/magic-wand';
 import { CanvasProcessingOverlay } from '@/components/studio/StudioCanvasFrame';
 import { detectInternalHoles } from './holeDetection';
-import {
-  edgeFloodBackground,
-  detectBgColorFromEdges,
-} from './edgeFlood';
+import { edgeFloodBackground, detectBgColorFromEdges } from './edgeFlood';
 import { rasterizeStrokes } from './strokeMask';
 import { removeDarkSpecks } from './darkSpeckRemoval';
 import { classifyImage } from './imageStats';
@@ -1815,10 +1812,10 @@ export function BackgroundRemovalPanel({
                     className="w-full accent-blue-600"
                   />
                   <p className="text-xs text-gray-400 mt-1">
-                    Floods from the image edges through anything matching
-                    the detected background color. Higher = wider tolerance
-                    (catches off-whites / light grays). Keep brush strokes
-                    block the flood.
+                    Floods from the image edges through anything matching the
+                    detected background color. Higher = wider tolerance (catches
+                    off-whites / light grays). Keep brush strokes block the
+                    flood.
                   </p>
                 </div>
 
@@ -1868,10 +1865,9 @@ export function BackgroundRemovalPanel({
                   />
                   <p className="text-xs text-gray-400 mt-1">
                     Carves background-colored pockets fully ENCLOSED by the
-                    subject (inside of letter shapes). The BG Color Flood
-                    above handles open pockets; this catches the leftovers
-                    a flood can&apos;t reach. Honors Keep / Remove brush
-                    strokes.
+                    subject (inside of letter shapes). The BG Color Flood above
+                    handles open pockets; this catches the leftovers a flood
+                    can&apos;t reach. Honors Keep / Remove brush strokes.
                   </p>
                 </div>
 
@@ -1898,10 +1894,10 @@ export function BackgroundRemovalPanel({
                     className="w-full accent-blue-600"
                   />
                   <p className="text-xs text-gray-400 mt-1">
-                    Carves small dark blobs inside the subject (grunge
-                    specks, distressed marks). 0 = off. Bump up only if
-                    your design has unwanted dark noise — can erase
-                    legitimate dark detail in illustrations.
+                    Carves small dark blobs inside the subject (grunge specks,
+                    distressed marks). 0 = off. Bump up only if your design has
+                    unwanted dark noise — can erase legitimate dark detail in
+                    illustrations.
                   </p>
                 </div>
 
