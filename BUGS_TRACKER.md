@@ -1,10 +1,122 @@
 # DTF Editor - Bug Tracker
 
-**Last Updated:** February 18, 2026
+**Last Updated:** April 28, 2026
 **Status:** Active Bug Tracking - POST SECURITY AUDIT
 
 > **SECURITY RE-AUDIT (Feb 16, 2026):** A comprehensive re-audit found 28 new issues. 30+ fixes applied across 4 tiers. See `SECURITY_AUDIT_2026_02_16.md` for the full report.
 > **SECURITY AUDIT (Feb 8, 2026):** Original audit found 47 issues (12 Critical, 17 High, 12 Medium, 6 Low). See `SECURITY_AUDIT_2026_02_08.md`.
+
+---
+
+## 🔴 **BG REMOVAL / AI BRUSH BUGS (April 27–28, 2026 Session)**
+
+Branch: `claude/in-house-background-processing-Ci5rc`. All bugs found during the in-house BG removal sprint.
+
+### **BUG-068: Production TDZ — tolerance useEffect referenced recomputeCumulative before declaration**
+
+- **Status:** 🟢 FIXED (Apr 27, commit `a533398`)
+- **Severity:** Critical (page-level crash in production)
+- **Reported:** During Phase 1.11 deploy testing
+- **Symptom:** Studio page crashed with `ReferenceError: Cannot access 'eM' before initialization` in the minified bundle. Whole panel went to "Oops! Something went wrong" boundary.
+- **Root cause:** The debounced `useEffect` for the new Edge Cleanup tolerance slider listed `recomputeCumulative` in its deps array (`[cleanupTolerance, recomputeCumulative]`). React evaluates deps arrays during render, top-to-bottom — but `recomputeCumulative` was declared as a `const useCallback(...)` later in the component body. Accessing the binding before its `const` initialization triggers JavaScript's Temporal Dead Zone error, which the dev build masks but production minification surfaces.
+- **Fix:** Moved the `useEffect` to immediately AFTER `recomputeCumulative`'s declaration so the deps array references an already-initialized binding.
+- **Lesson:** Always verify that `useCallback`/`useEffect` deps arrays only reference identifiers declared earlier in the component body. Dev builds will pass; production minified bundles fail.
+
+---
+
+### **BUG-069: Production TDZ — runInitialAnalysis referenced renderPreviewFromMask before declaration**
+
+- **Status:** 🟢 FIXED (Apr 28, commit `44b1a92`)
+- **Severity:** Critical (page-level crash in production)
+- **Reported:** During Phase 1.12 deploy testing
+- **Symptom:** Same pattern as BUG-068: studio page crashed with `Cannot access 'eO' before initialization` in production after the Phase 1.12 reset-fix landed.
+- **Root cause:** The newly-extracted `runInitialAnalysis` callback was placed at the top of the component body for "logical reading order", but its deps array `[runEmbed, runDetect, runRemoval, renderPreviewFromMask]` referenced `renderPreviewFromMask` — a `const` declared further down. Same TDZ class as BUG-068.
+- **Fix:** Moved `runInitialAnalysis` (and its sibling mount `useEffect`) to AFTER `renderPreviewFromMask` is declared. The mount `useEffect` invokes the callback inside its body (post-commit, so all consts are initialized) without listing it in deps.
+- **Lesson:** This is the SECOND instance of the same TDZ class in this branch. Consider adopting an ESLint rule or pre-commit check that flags `useCallback`/`useEffect` deps arrays referencing identifiers declared after them.
+
+---
+
+### **BUG-070: "Reset to original" left AI Brush stuck on "Preparing..."**
+
+- **Status:** 🟢 FIXED (Apr 28, commit `2585beb`)
+- **Severity:** High (broken UX after Apply Mask + Reset round-trip)
+- **Reported:** During Phase 1.12 user testing
+- **Symptom:** After clicking Apply Mask then "Reset to original", the brush readiness banner stayed at "Preparing AI Brush... (~5s)" forever. SAM session never came back; user couldn't continue refining.
+- **Root cause:** `handleReset` cleared all panel state and called the hook's `reset()` (which nukes `samSession` and `detection`), but never re-fired the AI pipeline. The mount `useEffect` is scoped to `[image]` deps — same image, no re-run.
+- **Fix:** Extracted the embed + detect → ml+color → seed pipeline into a `runInitialAnalysis(canvas)` callback. Mount effect calls it; `handleReset` calls it after clearing state.
+- **Lesson:** When a "reset" handler relies on a `useEffect` to re-bootstrap state, the effect must depend on something that actually changes during reset. Cleaner: bootstrap via a callable that both mount and reset can invoke.
+
+---
+
+### **BUG-071: Marching ants outline rendered tiny in upper-left corner instead of tracing the mask**
+
+- **Status:** 🟢 FIXED (Apr 28, commit `692d733` — Phase 1.13)
+- **Severity:** High (feature visually broken)
+- **Reported:** Phase 1.12 user testing on TOP DAD
+- **Symptom:** Marching-ants SVG showed the correct shape but at maybe 1/4 scale, stuck at the canvas wrapper's top-left.
+- **Root cause:** `canvasRect` was captured once on mount via `getBoundingClientRect`, before the init effect sized the canvas to the image's natural dimensions. The window-resize listener didn't fire because the canvas itself grew (its content changed); only window resizes triggered `update()`. The marching-ants SVG was thus sized at the canvas's empty/default 300×150, while its `viewBox` was set to the image's actual size (e.g., 999×318) — content squashed into the small upper-left rect.
+- **Fix:** Replaced the one-shot rect capture + window-resize listener with a `ResizeObserver` reading `entry.contentRect` (un-transformed layout size). Bonus: `contentRect` doesn't include CSS transforms, so it doesn't double-scale under zoom.
+- **Lesson:** `getBoundingClientRect` includes CSS transforms; `ResizeObserver.contentRect` doesn't. When measuring layout-only dimensions, prefer `contentRect`.
+
+---
+
+### **BUG-072: Sparse SAM-prompt sampling missed fringe colors in cleanup palette**
+
+- **Status:** 🟢 FIXED (Apr 28, commit `6590c86` — Phase 1.14)
+- **Severity:** Medium (cleanup quality limitation)
+- **Reported:** Phase 1.13 user testing — "we're removing black, but there are some grayer tones inside that black"
+- **Symptom:** A Remove stroke that visibly swept across both pure black and gray-fringe pixels left fringe grays in the cleanup palette. User had to repeat strokes many times to make the cleanup converge.
+- **Root cause:** `collectStrokeColors` sampled one pixel per SAM-prompt point; SAM points are spaced every `brushSize` pixels via `samplePathPoints`. With brushSize=5 a 100px stroke yielded ~20 samples; with brushSize=20 only ~5. Fringe grays usually fall between sample points and never enter the palette.
+- **Fix:** Replaced with `collectStrokePaletteColors` that walks the rawPath in 2-pixel strides, samples a 3×3 neighborhood per step, and dedupes via 4-bit-per-channel quantization. A 100px stroke now contributes 20–80 unique colors after dedup.
+- **Lesson:** Don't trust SAM-prompt-point sampling for color analysis. Sample the actual user gesture densely.
+
+---
+
+## 🔴 **STUDIO PLUGIN ARCHITECTURE BUILD HOTFIXES (April 28, 2026 Session — Phase 2.0)**
+
+These three bugs all surfaced as Vercel build failures after Phase 2.0 Step 9 (`410718a`) was pushed. Each was a one- or two-line fix landed within minutes of the prior failure. The compile step has been green since hotfix 2 (`22f21e8`); only the lint step kept failing until `ec9ee54`.
+
+### **BUG-073: Vercel build fails — JSX in `.ts` files**
+
+- **Status:** 🟢 FIXED (Apr 28, commit `8b23b8b` — Phase 2.0 hotfix 1)
+- **Severity:** High (deploy-blocking)
+- **Symptom:** swc compiler errored:
+  ```
+  ./src/tools/bg-removal/index.ts
+  Expected '>', got 'image'
+  ```
+- **Root cause:** The new tool descriptors at `src/tools/bg-removal/index.ts` and `src/tools/color-change/index.ts` contained JSX adapter components (`<BackgroundRemovalPanel ... />`, `<ColorChangeEditor ... />`). swc requires `.tsx` for files with JSX.
+- **Fix:** `git mv` both files to `index.tsx`. Module resolution treats `@/tools/<tool-id>` identically across both extensions — no consumer changes.
+- **Lesson:** When extracting adapter components into descriptor files, name them `.tsx` from the start.
+
+### **BUG-074: Vercel build fails — hooks without `'use client'` + server route transit through client module**
+
+- **Status:** 🟢 FIXED (Apr 28, commit `22f21e8` — Phase 2.0 hotfix 2)
+- **Severity:** High (deploy-blocking)
+- **Symptom:** Two errors in one build:
+  1. `You're importing a component that needs useEffect. This React Hook only works in a Client Component.` in `src/tools/color-change/index.tsx`
+  2. The `/api/color-change/use` route was importing `COLOR_CHANGE_LIMITS` from `@/tools/color-change` (the client-only index), dragging hooks into the server bundle.
+- **Root cause:** Two related boundary issues:
+  - The `index.tsx` adapter files used React hooks (`useCallback`, `useState`, `useEffect`) without the `'use client'` directive.
+  - The server API route went through the client-only module to reach a plain constant.
+- **Fix:**
+  1. Added `'use client'` to both `src/tools/{bg-removal,color-change}/index.tsx`.
+  2. Rerouted the API route to import from `@/tools/color-change/types` (the plain types module) directly.
+- **Lesson:** Server routes must not transit through client modules to reach plain constants. Plain types/constants belong in `<tool>/types.ts` (server-safe); the index.tsx is client-only adapters.
+
+### **BUG-075: Vercel build fails on lint — ESLint exemption list missing `src/app/api/**`\*\*
+
+- **Status:** 🟢 FIXED (Apr 28, commit `ec9ee54` — Phase 2.0 hotfix 3)
+- **Severity:** High (deploy-blocking; lint stage)
+- **Symptom:** Compile succeeded (14.5s). Lint failed with one error among ~280 warnings:
+  ```
+  ./src/app/api/color-change/use/route.ts
+  5:1  Error: '@/tools/color-change/types' import is restricted from being used by
+  a pattern. Cross-tool import not allowed. ...  no-restricted-imports
+  ```
+- **Root cause:** Step 9 (`410718a`) added `no-restricted-imports` zones to enforce cross-tool isolation. The exemption block listed `src/app/studio/**` and `src/app/process/**` for the integration layer but **forgot** `src/app/api/**`. Hotfix 2's legitimate import (rerouting the API route to `@/tools/color-change/types`) became the first violation.
+- **Fix:** Added `'src/app/api/**/*.{ts,tsx}'` to the exemption block in `eslint.config.mjs`. The architectural promise (tool A's folder cannot import tool B's folder) stays intact — only the integration layer is exempt.
+- **Lesson:** When restricting imports, enumerate every integration-layer surface up front. UI routes and API routes both qualify as "integration."
 
 ---
 

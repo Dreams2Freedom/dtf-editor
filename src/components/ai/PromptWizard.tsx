@@ -355,11 +355,31 @@ export function PromptWizard() {
             accentColor="text-pink-600"
             accentBg="bg-pink-500"
             steps={[
-              { title: 'Describe your design', content: 'Type a description of the image you want to create. Be specific about colors, style, and what the design should look like.' },
-              { title: 'Optimize your prompt', content: 'The AI will optimize your description into a detailed prompt that produces better results. You can edit the optimized prompt before generating.' },
-              { title: 'Configure settings', content: 'Choose the image size and quality level. Higher quality takes longer but produces more detailed results.' },
-              { title: 'Generate', content: 'Click Generate to create your image. The AI generates a unique design based on your prompt. All images include transparent backgrounds for DTF printing.' },
-              { title: 'Use your image', content: 'Download your generated image or send it to Upscale, Remove Background, or Change Colors for further processing.' },
+              {
+                title: 'Describe your design',
+                content:
+                  'Type a description of the image you want to create. Be specific about colors, style, and what the design should look like.',
+              },
+              {
+                title: 'Optimize your prompt',
+                content:
+                  'The AI will optimize your description into a detailed prompt that produces better results. You can edit the optimized prompt before generating.',
+              },
+              {
+                title: 'Configure settings',
+                content:
+                  'Choose the image size and quality level. Higher quality takes longer but produces more detailed results.',
+              },
+              {
+                title: 'Generate',
+                content:
+                  'Click Generate to create your image. The AI generates a unique design based on your prompt. All images include transparent backgrounds for DTF printing.',
+              },
+              {
+                title: 'Use your image',
+                content:
+                  'Download your generated image or send it to Upscale, Remove Background, or Change Colors for further processing.',
+              },
             ]}
             tips={[
               'Be specific in your descriptions — mention colors, style (vintage, modern, cartoon), and subject matter.',

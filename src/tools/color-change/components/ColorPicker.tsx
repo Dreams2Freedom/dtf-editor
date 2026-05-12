@@ -2,8 +2,8 @@
 
 import React from 'react';
 import { HexColorPicker, HexColorInput } from 'react-colorful';
-import { RGBColor } from '@/types/colorChange';
-import { rgbToHex } from '@/lib/color-utils';
+import { RGBColor } from '../types';
+import { rgbToHex } from '../color-utils';
 
 interface ColorPickerProps {
   sourceColor: RGBColor | null;

@@ -42,7 +42,9 @@ export default function AdminSupportPage() {
   const [filteredTickets, setFilteredTickets] = useState<AdminTicket[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
-  const [statusFilter, setStatusFilter] = useState<TicketStatus | 'all' | 'active'>('active');
+  const [statusFilter, setStatusFilter] = useState<
+    TicketStatus | 'all' | 'active'
+  >('active');
   const [priorityFilter, setPriorityFilter] = useState<string>('all');
 
   useEffect(() => {
@@ -72,7 +74,11 @@ export default function AdminSupportPage() {
 
       // Fetch all unique user IDs to get their emails (via admin API to bypass RLS)
       const ticketData = tickets || [];
-      const userIds = [...new Set(ticketData.map((t: { user_id: string }) => t.user_id).filter(Boolean))];
+      const userIds = [
+        ...new Set(
+          ticketData.map((t: { user_id: string }) => t.user_id).filter(Boolean)
+        ),
+      ];
       const userEmailMap: Record<string, string> = {};
       if (userIds.length > 0) {
         try {
@@ -83,7 +89,10 @@ export default function AdminSupportPage() {
           });
           if (res.ok) {
             const { profiles: profileMap } = await res.json();
-            for (const [id, p] of Object.entries(profileMap || {}) as [string, { email: string; name: string }][]) {
+            for (const [id, p] of Object.entries(profileMap || {}) as [
+              string,
+              { email: string; name: string },
+            ][]) {
               if (p.email) {
                 userEmailMap[id] = p.name ? `${p.name} (${p.email})` : p.email;
               }
@@ -106,7 +115,9 @@ export default function AdminSupportPage() {
 
           const messageCount = messages?.length || 0;
           const lastMessage = messages?.[0];
-          const hasUserReply = messages?.some((msg: { is_admin: boolean }) => !msg.is_admin) || false;
+          const hasUserReply =
+            messages?.some((msg: { is_admin: boolean }) => !msg.is_admin) ||
+            false;
           const lastReplyIsFromUser = lastMessage && !lastMessage.is_admin;
 
           // Check if waiting for admin response (last message is from user and ticket is open)
@@ -154,7 +165,10 @@ export default function AdminSupportPage() {
     // Apply status filter
     if (statusFilter === 'active') {
       filtered = filtered.filter(
-        ticket => ticket.status === 'open' || ticket.status === 'in_progress' || ticket.status === 'waiting_on_user'
+        ticket =>
+          ticket.status === 'open' ||
+          ticket.status === 'in_progress' ||
+          ticket.status === 'waiting_on_user'
       );
     } else if (statusFilter !== 'all') {
       filtered = filtered.filter(ticket => ticket.status === statusFilter);
@@ -287,9 +301,7 @@ export default function AdminSupportPage() {
         {/* Stats Cards */}
         <div className="grid grid-cols-3 md:grid-cols-6 gap-3 mb-6">
           <Card className="p-3">
-            <div className="text-xl font-bold text-gray-900">
-              {stats.total}
-            </div>
+            <div className="text-xl font-bold text-gray-900">{stats.total}</div>
             <div className="text-xs text-gray-600">Total</div>
           </Card>
           <Card className="p-3 bg-yellow-50 border-yellow-200">
@@ -299,9 +311,7 @@ export default function AdminSupportPage() {
             <div className="text-xs text-gray-600">Awaiting Reply</div>
           </Card>
           <Card className="p-3">
-            <div className="text-xl font-bold text-red-600">
-              {stats.open}
-            </div>
+            <div className="text-xl font-bold text-red-600">{stats.open}</div>
             <div className="text-xs text-gray-600">Open</div>
           </Card>
           <Card className="p-3">
@@ -317,9 +327,7 @@ export default function AdminSupportPage() {
             <div className="text-xs text-gray-600">Resolved</div>
           </Card>
           <Card className="p-3">
-            <div className="text-xl font-bold text-red-600">
-              {stats.urgent}
-            </div>
+            <div className="text-xl font-bold text-red-600">{stats.urgent}</div>
             <div className="text-xs text-gray-600">Urgent</div>
           </Card>
         </div>
@@ -341,7 +349,9 @@ export default function AdminSupportPage() {
               className="px-2 py-1.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
               value={statusFilter}
               onChange={e =>
-                setStatusFilter(e.target.value as TicketStatus | 'all' | 'active')
+                setStatusFilter(
+                  e.target.value as TicketStatus | 'all' | 'active'
+                )
               }
             >
               <option value="active">Active</option>
@@ -384,7 +394,9 @@ export default function AdminSupportPage() {
               No tickets found
             </h3>
             <p className="text-gray-600">
-              {searchQuery || statusFilter !== 'active' || priorityFilter !== 'all'
+              {searchQuery ||
+              statusFilter !== 'active' ||
+              priorityFilter !== 'all'
                 ? 'Try adjusting your filters'
                 : 'No active support tickets'}
             </p>
@@ -431,7 +443,8 @@ export default function AdminSupportPage() {
                       <span className="flex items-center gap-1">
                         <User className="w-3 h-3" />
                         <span className="truncate max-w-[200px]">
-                          {ticket.user_email || ticket.user_id?.substring(0, 8) + '...'}
+                          {ticket.user_email ||
+                            ticket.user_id?.substring(0, 8) + '...'}
                         </span>
                       </span>
                       <span className="flex items-center gap-1">
@@ -454,8 +467,14 @@ export default function AdminSupportPage() {
 
                   {/* Right: Time + Arrow */}
                   <div className="flex items-center gap-2 flex-shrink-0 text-xs text-gray-500">
-                    <span title={formatDate(ticket.last_message_at || ticket.created_at)}>
-                      {formatRelativeDate(ticket.last_message_at || ticket.created_at)}
+                    <span
+                      title={formatDate(
+                        ticket.last_message_at || ticket.created_at
+                      )}
+                    >
+                      {formatRelativeDate(
+                        ticket.last_message_at || ticket.created_at
+                      )}
                     </span>
                     <ChevronRight className="w-4 h-4 text-gray-400" />
                   </div>

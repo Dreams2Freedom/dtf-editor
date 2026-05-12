@@ -151,7 +151,10 @@ export function ImageGalleryEnhanced() {
         if (image.storage_url) {
           if (image.storage_url.startsWith('http')) {
             // Already a full URL — ensure thumbnail_url is set
-            if (!image.thumbnail_url || !image.thumbnail_url.startsWith('http')) {
+            if (
+              !image.thumbnail_url ||
+              !image.thumbnail_url.startsWith('http')
+            ) {
               image.thumbnail_url = image.storage_url;
             }
           } else {
@@ -994,12 +997,16 @@ export function ImageGalleryEnhanced() {
                       alt={image.original_filename}
                       fill
                       className="object-cover"
-                      onError={(e) => {
+                      onError={e => {
                         // Hide broken image and show fallback icon
                         const target = e.currentTarget;
                         target.style.display = 'none';
-                        const fallback = target.parentElement?.querySelector('.image-fallback');
-                        if (fallback) (fallback as HTMLElement).style.display = 'flex';
+                        const fallback =
+                          target.parentElement?.querySelector(
+                            '.image-fallback'
+                          );
+                        if (fallback)
+                          (fallback as HTMLElement).style.display = 'flex';
                       }}
                     />
                   ) : null}
@@ -1096,11 +1103,15 @@ export function ImageGalleryEnhanced() {
                         alt={image.original_filename}
                         fill
                         className="object-cover rounded"
-                        onError={(e) => {
+                        onError={e => {
                           const target = e.currentTarget;
                           target.style.display = 'none';
-                          const fallback = target.parentElement?.querySelector('.image-fallback');
-                          if (fallback) (fallback as HTMLElement).style.display = 'flex';
+                          const fallback =
+                            target.parentElement?.querySelector(
+                              '.image-fallback'
+                            );
+                          if (fallback)
+                            (fallback as HTMLElement).style.display = 'flex';
                         }}
                       />
                     ) : null}

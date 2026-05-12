@@ -118,9 +118,7 @@ function BgRemovalMockup() {
               ★
             </span>
           </div>
-          <span className="text-xs font-medium text-gray-400">
-            Transparent
-          </span>
+          <span className="text-xs font-medium text-gray-400">Transparent</span>
         </div>
       </div>
     </div>

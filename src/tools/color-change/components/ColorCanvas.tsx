@@ -1,10 +1,16 @@
 'use client';
 
-import React, { useRef, useState, useEffect, useCallback, useLayoutEffect } from 'react';
+import React, {
+  useRef,
+  useState,
+  useEffect,
+  useCallback,
+  useLayoutEffect,
+} from 'react';
 import { Stage, Layer, Image as KonvaImage, Line } from 'react-konva';
 import Konva from 'konva';
 import { Hand } from 'lucide-react';
-import { SelectionMask, SelectionMode } from '@/types/colorChange';
+import { SelectionMask, SelectionMode } from '../types';
 import { createSelectionOverlay } from './SelectionTools';
 
 interface ColorCanvasProps {
@@ -13,8 +19,15 @@ interface ColorCanvasProps {
   imageData: ImageData;
   selectionMode: SelectionMode;
   currentMask: SelectionMask | null;
-  onPixelClick: (x: number, y: number, mode: 'replace' | 'add' | 'subtract') => void;
-  onLassoComplete: (polygon: Array<{ x: number; y: number }>, mode: 'trim' | 'add' | 'subtract') => void;
+  onPixelClick: (
+    x: number,
+    y: number,
+    mode: 'replace' | 'add' | 'subtract'
+  ) => void;
+  onLassoComplete: (
+    polygon: Array<{ x: number; y: number }>,
+    mode: 'trim' | 'add' | 'subtract'
+  ) => void;
   /** Ref populated with zoom control functions for the parent toolbar */
   controlsRef?: React.MutableRefObject<{
     fitToView: () => void;
@@ -38,7 +51,9 @@ export function ColorCanvas({
   const minimapCanvasRef = useRef<HTMLCanvasElement>(null);
 
   // Canvas state
-  const [overlayImage, setOverlayImage] = useState<HTMLCanvasElement | null>(null);
+  const [overlayImage, setOverlayImage] = useState<HTMLCanvasElement | null>(
+    null
+  );
   const [lassoPoints, setLassoPoints] = useState<number[]>([]);
   const [isDrawingLasso, setIsDrawingLasso] = useState(false);
   const lassoModeRef = useRef<'trim' | 'add' | 'subtract'>('trim');
@@ -58,12 +73,20 @@ export function ColorCanvas({
   const isPanActive = isSpacePan || selectionMode === 'pan';
 
   // Minimap state
-  const [minimapViewport, setMinimapViewport] = useState({ x: 0, y: 0, w: 0, h: 0 });
+  const [minimapViewport, setMinimapViewport] = useState({
+    x: 0,
+    y: 0,
+    w: 0,
+    h: 0,
+  });
   const minimapDragging = useRef(false);
 
   // Minimap dimensions
   const MINIMAP_MAX = 140;
-  const mRatio = Math.min(MINIMAP_MAX / image.width, MINIMAP_MAX / image.height);
+  const mRatio = Math.min(
+    MINIMAP_MAX / image.width,
+    MINIMAP_MAX / image.height
+  );
   const mW = Math.round(image.width * mRatio);
   const mH = Math.round(image.height * mRatio);
 
@@ -72,6 +95,10 @@ export function ColorCanvas({
   const scaledHeight = Math.max(image.height * scale, stageSize.height);
 
   // ── Fit image on mount ──────────────────────────────────
+  // Phase 2.2 follow-up: Stage width matches the scaled image width
+  // (was `cw`, the full container width) so the image is centered by
+  // the parent's flex layout — matches BG Removal / Upscale chrome
+  // instead of left-aligning with empty checkered space on the right.
   useEffect(() => {
     if (!containerRef.current || !image) return;
     const cw = containerRef.current.clientWidth;
@@ -79,18 +106,31 @@ export function ColorCanvas({
     const fit = Math.min(cw / image.width, ch / image.height, 1);
     setScale(fit);
     setFitScale(fit);
-    setStageSize({ width: cw, height: Math.max(image.height * fit, 300) });
+    setStageSize({
+      width: image.width * fit,
+      height: Math.max(image.height * fit, 300),
+    });
   }, [image]);
 
   // ── Selection overlay ───────────────────────────────────
   useEffect(() => {
-    if (!currentMask) { setOverlayImage(null); return; }
-    const data = createSelectionOverlay(currentMask, imageData.width, imageData.height);
+    if (!currentMask) {
+      setOverlayImage(null);
+      return;
+    }
+    const data = createSelectionOverlay(
+      currentMask,
+      imageData.width,
+      imageData.height
+    );
     const c = document.createElement('canvas');
     c.width = imageData.width;
     c.height = imageData.height;
     const ctx = c.getContext('2d');
-    if (ctx) { ctx.putImageData(data, 0, 0); setOverlayImage(c); }
+    if (ctx) {
+      ctx.putImageData(data, 0, 0);
+      setOverlayImage(c);
+    }
   }, [currentMask, imageData]);
 
   // ── Apply scroll target after scale change (before paint) ──
@@ -103,21 +143,24 @@ export function ColorCanvas({
   }, [scale]);
 
   // ── Zoom handler (for buttons) ──────────────────────────
-  const handleZoom = useCallback((direction: 'in' | 'out' | 'fit') => {
-    if (direction === 'fit') {
-      if (!containerRef.current) return;
-      const cw = containerRef.current.clientWidth;
-      const ch = containerRef.current.clientHeight || 500;
-      const fit = Math.min(cw / image.width, ch / image.height, 1);
-      setScale(fit);
-      setFitScale(fit);
-    } else {
-      setScale(prev => {
-        const factor = direction === 'in' ? 1.25 : 0.8;
-        return Math.max(0.1, Math.min(5, prev * factor));
-      });
-    }
-  }, [image]);
+  const handleZoom = useCallback(
+    (direction: 'in' | 'out' | 'fit') => {
+      if (direction === 'fit') {
+        if (!containerRef.current) return;
+        const cw = containerRef.current.clientWidth;
+        const ch = containerRef.current.clientHeight || 500;
+        const fit = Math.min(cw / image.width, ch / image.height, 1);
+        setScale(fit);
+        setFitScale(fit);
+      } else {
+        setScale(prev => {
+          const factor = direction === 'in' ? 1.25 : 0.8;
+          return Math.max(0.1, Math.min(5, prev * factor));
+        });
+      }
+    },
+    [image]
+  );
 
   // ── Expose zoom controls to parent via ref ──────────────
   useEffect(() => {
@@ -153,7 +196,11 @@ export function ColorCanvas({
         e.preventDefault();
         const c = containerRef.current;
         if (c && image) {
-          const fit = Math.min(c.clientWidth / image.width, (c.clientHeight || 500) / image.height, 1);
+          const fit = Math.min(
+            c.clientWidth / image.width,
+            (c.clientHeight || 500) / image.height,
+            1
+          );
           setScale(fit);
           setFitScale(fit);
         }
@@ -168,7 +215,10 @@ export function ColorCanvas({
     };
     window.addEventListener('keydown', down);
     window.addEventListener('keyup', up);
-    return () => { window.removeEventListener('keydown', down); window.removeEventListener('keyup', up); };
+    return () => {
+      window.removeEventListener('keydown', down);
+      window.removeEventListener('keyup', up);
+    };
   }, [image]);
 
   // ── Scroll-wheel zoom (Ctrl/Cmd + scroll, pinch) ───────
@@ -189,7 +239,10 @@ export function ColorCanvas({
         const imgX = (localX + container.scrollLeft) / prev;
         const imgY = (localY + container.scrollTop) / prev;
         const next = Math.max(0.1, Math.min(5, prev * factor));
-        scrollTargetRef.current = { left: imgX * next - localX, top: imgY * next - localY };
+        scrollTargetRef.current = {
+          left: imgX * next - localX,
+          top: imgY * next - localY,
+        };
         return next;
       });
     };
@@ -219,8 +272,10 @@ export function ColorCanvas({
       const imgPxH = image.height * scale;
       const vl = Math.max(0, container.scrollLeft) / scale;
       const vt = Math.max(0, container.scrollTop) / scale;
-      const vr = Math.min(imgPxW, container.scrollLeft + container.clientWidth) / scale;
-      const vb = Math.min(imgPxH, container.scrollTop + container.clientHeight) / scale;
+      const vr =
+        Math.min(imgPxW, container.scrollLeft + container.clientWidth) / scale;
+      const vb =
+        Math.min(imgPxH, container.scrollTop + container.clientHeight) / scale;
 
       setMinimapViewport({
         x: (vl / image.width) * mW,
@@ -247,7 +302,11 @@ export function ColorCanvas({
       const y = Math.floor(pointer.y / scale);
       if (x >= 0 && x < imageData.width && y >= 0 && y < imageData.height) {
         const nativeEvent = e.evt as MouseEvent;
-        const mode = nativeEvent.shiftKey ? 'add' : nativeEvent.altKey ? 'subtract' : 'replace';
+        const mode = nativeEvent.shiftKey
+          ? 'add'
+          : nativeEvent.altKey
+            ? 'subtract'
+            : 'replace';
         onPixelClick(x, y, mode);
       }
     },
@@ -262,7 +321,11 @@ export function ColorCanvas({
       const pointer = stage.getPointerPosition();
       if (!pointer) return;
       const nativeEvent = e.evt as MouseEvent;
-      lassoModeRef.current = nativeEvent.shiftKey ? 'add' : nativeEvent.altKey ? 'subtract' : 'trim';
+      lassoModeRef.current = nativeEvent.shiftKey
+        ? 'add'
+        : nativeEvent.altKey
+          ? 'subtract'
+          : 'trim';
       setIsDrawingLasso(true);
       setLassoPoints([pointer.x / scale, pointer.y / scale]);
     },
@@ -289,7 +352,10 @@ export function ColorCanvas({
     }
     const polygon: Array<{ x: number; y: number }> = [];
     for (let i = 0; i < lassoPoints.length; i += 2) {
-      polygon.push({ x: Math.floor(lassoPoints[i]), y: Math.floor(lassoPoints[i + 1]) });
+      polygon.push({
+        x: Math.floor(lassoPoints[i]),
+        y: Math.floor(lassoPoints[i + 1]),
+      });
     }
     setIsDrawingLasso(false);
     setLassoPoints([]);
@@ -322,46 +388,53 @@ export function ColorCanvas({
   }, []);
 
   // ── Minimap: click/drag to navigate ─────────────────────
-  const handleMinimapDown = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
-    const container = containerRef.current;
-    if (!container) return;
-    e.stopPropagation();
+  const handleMinimapDown = useCallback(
+    (e: React.MouseEvent<HTMLDivElement>) => {
+      const container = containerRef.current;
+      if (!container) return;
+      e.stopPropagation();
 
-    const rect = e.currentTarget.getBoundingClientRect();
-    const navigate = (cx: number, cy: number) => {
-      const mx = cx - rect.left;
-      const my = cy - rect.top;
-      const imgX = (mx / mW) * image.width;
-      const imgY = (my / mH) * image.height;
-      container.scrollLeft = imgX * scale - container.clientWidth / 2;
-      container.scrollTop = imgY * scale - container.clientHeight / 2;
-    };
+      const rect = e.currentTarget.getBoundingClientRect();
+      const navigate = (cx: number, cy: number) => {
+        const mx = cx - rect.left;
+        const my = cy - rect.top;
+        const imgX = (mx / mW) * image.width;
+        const imgY = (my / mH) * image.height;
+        container.scrollLeft = imgX * scale - container.clientWidth / 2;
+        container.scrollTop = imgY * scale - container.clientHeight / 2;
+      };
 
-    navigate(e.clientX, e.clientY);
-    minimapDragging.current = true;
+      navigate(e.clientX, e.clientY);
+      minimapDragging.current = true;
 
-    const onMove = (me: MouseEvent) => {
-      if (!minimapDragging.current) return;
-      navigate(me.clientX, me.clientY);
-    };
-    const onUp = () => {
-      minimapDragging.current = false;
-      window.removeEventListener('mousemove', onMove);
-      window.removeEventListener('mouseup', onUp);
-    };
-    window.addEventListener('mousemove', onMove);
-    window.addEventListener('mouseup', onUp);
-  }, [scale, image, mW, mH]);
+      const onMove = (me: MouseEvent) => {
+        if (!minimapDragging.current) return;
+        navigate(me.clientX, me.clientY);
+      };
+      const onUp = () => {
+        minimapDragging.current = false;
+        window.removeEventListener('mousemove', onMove);
+        window.removeEventListener('mouseup', onUp);
+      };
+      window.addEventListener('mousemove', onMove);
+      window.addEventListener('mouseup', onUp);
+    },
+    [scale, image, mW, mH]
+  );
 
   return (
-    <div className="relative flex-1 min-w-0 min-h-0 flex flex-col" style={{ isolation: 'isolate' }}>
+    <div
+      className="relative flex-1 min-w-0 min-h-0 flex flex-col"
+      style={{ isolation: 'isolate' }}
+    >
       {/* Scrollable canvas area */}
       <div
         ref={containerRef}
-        className="flex-1 min-h-0 overflow-auto"
+        className="flex-1 min-h-0 overflow-auto flex items-center justify-center p-4"
         style={{
           backgroundColor: '#ffffff',
-          backgroundImage: 'repeating-conic-gradient(#e0e0e0 0% 25%, #ffffff 0% 50%)',
+          backgroundImage:
+            'repeating-conic-gradient(#e0e0e0 0% 25%, #ffffff 0% 50%)',
           backgroundSize: '20px 20px',
         }}
       >
@@ -379,9 +452,18 @@ export function ColorCanvas({
           onTouchEnd={handleMouseUp}
         >
           <Layer>
-            <KonvaImage image={editCanvas || image} scaleX={scale} scaleY={scale} />
+            <KonvaImage
+              image={editCanvas || image}
+              scaleX={scale}
+              scaleY={scale}
+            />
             {overlayImage && (
-              <KonvaImage image={overlayImage} scaleX={scale} scaleY={scale} opacity={1} />
+              <KonvaImage
+                image={overlayImage}
+                scaleX={scale}
+                scaleY={scale}
+                opacity={1}
+              />
             )}
             {lassoPoints.length >= 4 && (
               <Line
@@ -408,7 +490,10 @@ export function ColorCanvas({
 
       {/* Pan mode indicator (only for space key, not pan tool) */}
       {isSpacePan && selectionMode !== 'pan' && (
-        <div className="absolute top-3 left-1/2 -translate-x-1/2 bg-gray-900/80 text-white text-xs px-3 py-1.5 rounded-full shadow-lg pointer-events-none select-none flex items-center gap-1.5" style={{ zIndex: 60 }}>
+        <div
+          className="absolute top-3 left-1/2 -translate-x-1/2 bg-gray-900/80 text-white text-xs px-3 py-1.5 rounded-full shadow-lg pointer-events-none select-none flex items-center gap-1.5"
+          style={{ zIndex: 60 }}
+        >
           <Hand className="w-3.5 h-3.5" />
           Drag to pan
         </div>
@@ -416,16 +501,33 @@ export function ColorCanvas({
 
       {/* Minimap — visible when zoomed in */}
       {isZoomed && (
-        <div className="absolute bottom-3 left-3 bg-white/95 rounded-lg shadow-lg border border-gray-300 p-1.5" style={{ zIndex: 50 }}>
-          <div className="relative overflow-hidden rounded" style={{ width: mW, height: mH }}>
-            <canvas ref={minimapCanvasRef} width={mW} height={mH} className="block" />
+        <div
+          className="absolute bottom-3 left-3 bg-white/95 rounded-lg shadow-lg border border-gray-300 p-1.5"
+          style={{ zIndex: 50 }}
+        >
+          <div
+            className="relative overflow-hidden rounded"
+            style={{ width: mW, height: mH }}
+          >
+            <canvas
+              ref={minimapCanvasRef}
+              width={mW}
+              height={mH}
+              className="block"
+            />
             <div
               className="absolute border-2 border-amber-500 bg-amber-500/15 rounded-[1px]"
               style={{
                 left: Math.max(0, minimapViewport.x),
                 top: Math.max(0, minimapViewport.y),
-                width: Math.min(minimapViewport.w, mW - Math.max(0, minimapViewport.x)),
-                height: Math.min(minimapViewport.h, mH - Math.max(0, minimapViewport.y)),
+                width: Math.min(
+                  minimapViewport.w,
+                  mW - Math.max(0, minimapViewport.x)
+                ),
+                height: Math.min(
+                  minimapViewport.h,
+                  mH - Math.max(0, minimapViewport.y)
+                ),
               }}
             />
             <div
@@ -436,36 +538,10 @@ export function ColorCanvas({
         </div>
       )}
 
-      {/* Floating zoom controls — always visible, high z-index */}
-      <div
-        className="absolute bottom-3 right-3 flex items-center gap-1 bg-gray-900 rounded-xl px-2.5 py-1.5 shadow-2xl border-2 border-gray-600"
-        style={{ zIndex: 50 }}
-      >
-        <button
-          onClick={() => handleZoom('out')}
-          className="w-7 h-7 flex items-center justify-center text-white hover:bg-white/20 rounded-lg transition-colors text-sm font-bold"
-          title="Zoom out (−)"
-        >−</button>
-        <span className="text-white text-[11px] font-mono w-11 text-center select-none">
-          {Math.round(scale * 100)}%
-        </span>
-        <button
-          onClick={() => handleZoom('in')}
-          className="w-7 h-7 flex items-center justify-center text-white hover:bg-white/20 rounded-lg transition-colors text-sm font-bold"
-          title="Zoom in (+)"
-        >+</button>
-        <div className="h-4 w-px bg-gray-500 mx-0.5" />
-        <button
-          onClick={() => handleZoom('fit')}
-          className="h-7 px-2 flex items-center justify-center text-white hover:bg-white/20 rounded-lg transition-colors text-[10px] font-bold"
-          title="Fit to view (0)"
-        >Fit</button>
-        <button
-          onClick={() => setScale(1)}
-          className="h-7 px-1.5 flex items-center justify-center text-white hover:bg-white/20 rounded-lg transition-colors text-[10px] font-mono font-bold"
-          title="Actual pixels"
-        >1:1</button>
-      </div>
+      {/* Phase 2.2 follow-up: internal zoom pill removed.
+          The Studio chrome's top-right zoom pill (rendered by the parent
+          Color Change Panel) now drives zoom via canvasControlsRef, so
+          this duplicate floating control is no longer needed. */}
     </div>
   );
 }

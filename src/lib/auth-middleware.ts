@@ -117,9 +117,7 @@ export async function requireAdmin(
 
   if (!isAdmin) {
     // Log unauthorized admin access attempts
-    console.warn(
-      `Unauthorized admin access attempt by user ID: ${user.id}`
-    );
+    console.warn(`Unauthorized admin access attempt by user ID: ${user.id}`);
 
     return NextResponse.json(
       { error: 'Admin access required' },
@@ -173,9 +171,7 @@ export function withAdmin(
     const isAdmin = await verifyAdmin(user.id);
 
     if (!isAdmin) {
-      console.warn(
-        `Unauthorized admin access attempt by user ID: ${user.id}`
-      );
+      console.warn(`Unauthorized admin access attempt by user ID: ${user.id}`);
       return NextResponse.json(
         { error: 'Admin access required' },
         { status: 403 }

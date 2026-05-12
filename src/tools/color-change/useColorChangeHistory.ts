@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useCallback } from 'react';
-import { ColorChangeEntry } from '@/types/colorChange';
+import { ColorChangeEntry } from './types';
 
 const MAX_HISTORY = 20;
 

@@ -30,7 +30,7 @@ const getCSP = () => {
     "base-uri 'self'",
     "form-action 'self' https://checkout.stripe.com https://clippingmagic.com https://*.clippingmagic.com",
     "frame-ancestors 'none'",
-    "upgrade-insecure-requests",
+    'upgrade-insecure-requests',
   ];
 
   return policy.join('; ');
@@ -104,7 +104,9 @@ export async function middleware(request: NextRequest) {
       .single();
 
     if (profile?.subscription_status === 'past_due') {
-      return NextResponse.redirect(new URL('/settings?tab=billing&reason=past_due', request.url));
+      return NextResponse.redirect(
+        new URL('/settings?tab=billing&reason=past_due', request.url)
+      );
     }
   }
 
