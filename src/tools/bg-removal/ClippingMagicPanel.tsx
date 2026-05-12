@@ -123,6 +123,7 @@ type PanelState =
   | { kind: 'uploading' }
   | { kind: 'editing' }
   | { kind: 'downloading' }
+  | { kind: 'completed' }
   | { kind: 'cancelled' }
   | { kind: 'error'; message: string };
 
@@ -138,9 +139,17 @@ export function ClippingMagicPanel({
   // unmount (user toggled to in-house mid-flight).
   const mountedRef = useRef(true);
   const creditsDeductedRef = useRef(false);
+  // ONE CM session per mount. Without this guard, the effect re-runs
+  // every time Studio updates `image` (which happens immediately after
+  // our own onApply commits the result) and we open a fresh CM editor
+  // on the now-transparent result image. That was the "continuous loop
+  // with a blank image" the user hit in Phase 2.8.
+  const startedRef = useRef(false);
   const { refreshCredits } = useAuthStore();
 
   useEffect(() => {
+    if (startedRef.current) return;
+    startedRef.current = true;
     mountedRef.current = true;
     let cancelled = false;
 
@@ -197,6 +206,14 @@ export function ClippingMagicPanel({
           modelId: 'clippingmagic-v1',
           creditsUsed: 1,
         });
+        // onApply mutates Studio's workingImage; that triggers a re-render
+        // here with a new `image` prop, but the startedRef guard at the top
+        // of useEffect prevents another upload+edit loop. Surface the
+        // completed state so the user knows the cutout is in Studio and
+        // can pick the next tool (upscale, vectorize, halftone, etc.).
+        if (mountedRef.current) {
+          setState({ kind: 'completed' });
+        }
       } catch (err) {
         if (!mountedRef.current) return;
         setState({
@@ -331,6 +348,22 @@ export function ClippingMagicPanel({
           </div>
         )}
 
+        {state.kind === 'completed' && (
+          <div className="text-center">
+            <div className="w-12 h-12 rounded-full bg-green-100 flex items-center justify-center mx-auto mb-4">
+              <Scissors className="w-6 h-6 text-green-600" />
+            </div>
+            <p className="text-base font-medium text-gray-900 mb-1">
+              Background removed
+            </p>
+            <p className="text-sm text-gray-500">
+              Your cutout is now in Studio. Pick another tool from the top of
+              the page (Upscale, Vectorize, Halftone…) to keep editing, or use
+              the Download button to save it.
+            </p>
+          </div>
+        )}
+
         {state.kind === 'cancelled' && (
           <div className="text-center">
             <p className="text-base font-medium text-gray-900 mb-2">
@@ -364,18 +397,20 @@ export function ClippingMagicPanel({
           </div>
         )}
 
-        <div className="mt-12 pt-6 border-t border-gray-200 text-center">
-          <p className="text-xs text-gray-500 mb-2">
-            Want to try our experimental free in-house tool?
-          </p>
-          <button
-            onClick={onSwitchToInHouse}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
-          >
-            <FlaskConical className="w-3.5 h-3.5" />
-            Use in-house Background Remover (beta)
-          </button>
-        </div>
+        {state.kind !== 'completed' && (
+          <div className="mt-12 pt-6 border-t border-gray-200 text-center">
+            <p className="text-xs text-gray-500 mb-2">
+              Want to try our experimental free in-house tool?
+            </p>
+            <button
+              onClick={onSwitchToInHouse}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
+            >
+              <FlaskConical className="w-3.5 h-3.5" />
+              Use in-house Background Remover (beta)
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );
