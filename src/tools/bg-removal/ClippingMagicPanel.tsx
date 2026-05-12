@@ -1,39 +1,58 @@
 /**
- * ClippingMagic panel — Phase 2.8 default BG removal experience inside
- * Studio. Mirrors the flow proven in /process/background-removal/client.tsx
- * but adapted to the StudioToolPanelProps contract so the result chains
- * cleanly into the next tool.
+ * ClippingMagic panel — Phase 2.8 (redesigned).
  *
- * Flow:
- *   1. Convert the working HTMLImageElement to a PNG blob.
- *   2. POST to /api/clippingmagic/upload (credit balance check, no deduction).
- *   3. Load the CM SDK once (module-level promise).
- *   4. Call ClippingMagic.edit({image:{id,secret}}, cb) — the SDK opens its
- *      own modal overlay on top of the Studio shell.
- *   5. On 'result-generated': deduct 1 credit via /api/credits/deduct (ref-
- *      guarded against double charge), download the PNG via
- *      /api/clippingmagic/download/[id] (also saves to gallery server-side),
- *      decode to canvas, and call onApply so Studio commits + chains.
- *   6. On 'editor-exit' (no result): show a Cancelled state — no credits
- *      were deducted; user can retry or switch to the in-house tool.
+ * UX contract (revised after Phase 2.8 v1 user feedback):
+ *   - On mount, DO NOT auto-launch ClippingMagic. The working image is
+ *     just shown inside the shared Studio canvas, like every other
+ *     tool. A primary "Remove Background" button in the sidebar starts
+ *     a CM session only on explicit click.
+ *   - Coming back to the bg-removal tool after running other tools
+ *     (upscale, vectorize, halftone, etc.) shows the CURRENT working
+ *     image — which may already be a cutout from a prior CM session —
+ *     not a fresh CM launch.
+ *   - If the current image already has transparency (heuristic: any
+ *     pixel alpha < 250 in a 64×64 sample), the primary button switches
+ *     to "Re-edit in ClippingMagic" and a "Download Cutout" button
+ *     appears next to it. Otherwise just the primary "Remove
+ *     Background" button is shown.
+ *   - The CM SDK takes over the screen in a modal overlay while
+ *     editing; when the user clicks Done in CM, the result downloads,
+ *     onApply commits it to Studio, and the user lands back in the
+ *     same panel — now showing the cutout in the Studio canvas with
+ *     the post-cutout button set.
  *
- * The "Use in-house Background Remover (beta)" button at the bottom flips
- * the parent adapter into in-house mode. That button is the ONLY surface
- * for reaching the in-house panel now that it's hidden from the picker.
+ * Layout matches Upscale / Vectorize / Halftone: shared
+ * StudioCanvasFrame on the left/top, narrow controls sidebar on the
+ * right/bottom (mobile-first via `flex-col lg:flex-row`).
+ *
+ * Credit deduction continues to flow through /api/credits/deduct on
+ * `result-generated` (SEC-026 ref-guarded against double charges).
+ * The download route saves to gallery server-side as before.
  */
 
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
-import { Loader2, AlertTriangle, FlaskConical, Scissors } from 'lucide-react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import {
+  Loader2,
+  AlertTriangle,
+  FlaskConical,
+  Scissors,
+  Download,
+} from 'lucide-react';
 import { useAuthStore } from '@/stores/authStore';
+import {
+  StudioCanvasFrame,
+  CanvasProcessingOverlay,
+} from '@/components/studio/StudioCanvasFrame';
 import type { StudioToolPanelProps } from '../types';
 
 const CM_SDK_URL = 'https://clippingmagic.com/api/v1/ClippingMagic.js';
 const CM_API_ID = 24469;
 
 // Module-level so the SDK only loads + initializes once per browser tab,
-// even as the user toggles between CM and in-house modes.
+// even as the user toggles between CM and in-house modes, or comes back
+// to bg-removal from another tool.
 let cmSdkPromise: Promise<void> | null = null;
 
 function loadCmSdk(): Promise<void> {
@@ -115,16 +134,60 @@ async function decodePngToCanvas(blob: Blob): Promise<HTMLCanvasElement> {
   }
 }
 
+/** Cheap heuristic: does the working image have transparent pixels? Used
+ *  to decide whether the panel is in "first removal" or "re-edit" mode.
+ *  Samples up to 64×64 down-scaled — bounded cost regardless of source
+ *  resolution. Returns false on any error (treat as opaque). */
+function detectHasTransparency(image: HTMLImageElement): boolean {
+  try {
+    const canvas = document.createElement('canvas');
+    const W = Math.min(64, image.naturalWidth);
+    const H = Math.min(64, image.naturalHeight);
+    if (W === 0 || H === 0) return false;
+    canvas.width = W;
+    canvas.height = H;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return false;
+    ctx.drawImage(image, 0, 0, W, H);
+    const { data } = ctx.getImageData(0, 0, W, H);
+    for (let i = 3; i < data.length; i += 4) {
+      if (data[i] < 250) return true;
+    }
+    return false;
+  } catch {
+    return false;
+  }
+}
+
+function triggerPngDownload(image: HTMLImageElement, filename: string) {
+  const canvas = document.createElement('canvas');
+  canvas.width = image.naturalWidth;
+  canvas.height = image.naturalHeight;
+  const ctx = canvas.getContext('2d');
+  if (!ctx) return;
+  ctx.drawImage(image, 0, 0);
+  canvas.toBlob(blob => {
+    if (!blob) return;
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  }, 'image/png');
+}
+
 interface ClippingMagicPanelProps extends StudioToolPanelProps {
   onSwitchToInHouse: () => void;
 }
 
-type PanelState =
+type Status =
+  | { kind: 'idle' }
   | { kind: 'uploading' }
   | { kind: 'editing' }
   | { kind: 'downloading' }
-  | { kind: 'completed' }
-  | { kind: 'cancelled' }
   | { kind: 'error'; message: string };
 
 export function ClippingMagicPanel({
@@ -132,34 +195,48 @@ export function ClippingMagicPanel({
   onApply,
   onSwitchToInHouse,
 }: ClippingMagicPanelProps) {
-  const [state, setState] = useState<PanelState>({ kind: 'uploading' });
+  const [status, setStatus] = useState<Status>({ kind: 'idle' });
+  const [zoom, setZoom] = useState(1);
 
   // Refs survive re-renders triggered by the CM SDK callback firing
-  // out-of-React. mountedRef guards against state updates after
-  // unmount (user toggled to in-house mid-flight).
+  // out-of-React.
   const mountedRef = useRef(true);
   const creditsDeductedRef = useRef(false);
-  // ONE CM session per mount. Without this guard, the effect re-runs
-  // every time Studio updates `image` (which happens immediately after
-  // our own onApply commits the result) and we open a fresh CM editor
-  // on the now-transparent result image. That was the "continuous loop
-  // with a blank image" the user hit in Phase 2.8.
-  const startedRef = useRef(false);
   const { refreshCredits } = useAuthStore();
 
   useEffect(() => {
-    if (startedRef.current) return;
-    startedRef.current = true;
     mountedRef.current = true;
-    let cancelled = false;
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
+
+  // Recompute when the working image changes (e.g., user just ran CM and
+  // the cutout was committed back via onApply).
+  const hasTransparency = useMemo(
+    () => detectHasTransparency(image),
+    [image]
+  );
+
+  const isBusy =
+    status.kind === 'uploading' ||
+    status.kind === 'editing' ||
+    status.kind === 'downloading';
+
+  const handleRemove = async () => {
+    if (isBusy) return;
+
+    // Reset deduction guard for THIS session. The guard prevents double-
+    // charging within a single CM session (in case the SDK fires
+    // result-generated more than once); a brand-new session starts fresh.
+    creditsDeductedRef.current = false;
+
+    setStatus({ kind: 'uploading' });
 
     const handleResult = async (cmImageId: string) => {
       if (!mountedRef.current) return;
-      setState({ kind: 'downloading' });
+      setStatus({ kind: 'downloading' });
 
-      // Deduct credit (SEC-026: ref guard is set BEFORE the fetch and
-      // never released, even on failure, to prevent double charges on
-      // any retry path).
       if (!creditsDeductedRef.current) {
         creditsDeductedRef.current = true;
         try {
@@ -206,17 +283,16 @@ export function ClippingMagicPanel({
           modelId: 'clippingmagic-v1',
           creditsUsed: 1,
         });
-        // onApply mutates Studio's workingImage; that triggers a re-render
-        // here with a new `image` prop, but the startedRef guard at the top
-        // of useEffect prevents another upload+edit loop. Surface the
-        // completed state so the user knows the cutout is in Studio and
-        // can pick the next tool (upscale, vectorize, halftone, etc.).
+        // After onApply, Studio swaps in a new working image — our
+        // `image` prop will change and the canvas re-renders the cutout
+        // automatically. Return to idle so the post-cutout button set
+        // (Re-edit + Download) shows.
         if (mountedRef.current) {
-          setState({ kind: 'completed' });
+          setStatus({ kind: 'idle' });
         }
       } catch (err) {
         if (!mountedRef.current) return;
-        setState({
+        setStatus({
           kind: 'error',
           message:
             err instanceof Error ? err.message : 'Failed to fetch result',
@@ -229,7 +305,7 @@ export function ClippingMagicPanel({
       if (!mountedRef.current) return;
       switch (opts?.event) {
         case 'error':
-          setState({
+          setStatus({
             kind: 'error',
             message:
               opts?.error?.message ?? 'ClippingMagic editor reported an error',
@@ -240,8 +316,8 @@ export function ClippingMagicPanel({
           break;
         case 'editor-exit':
           // User closed without finishing. No credit was charged.
-          setState(cur =>
-            cur.kind === 'downloading' ? cur : { kind: 'cancelled' }
+          setStatus(cur =>
+            cur.kind === 'downloading' ? cur : { kind: 'idle' }
           );
           break;
         default:
@@ -249,168 +325,184 @@ export function ClippingMagicPanel({
       }
     };
 
-    (async () => {
-      try {
-        const blob = await imageElementToPngBlob(image);
-        if (cancelled) return;
-        const fd = new FormData();
-        fd.append(
-          'image',
-          new File([blob], 'studio-image.png', { type: 'image/png' })
-        );
+    try {
+      const blob = await imageElementToPngBlob(image);
+      if (!mountedRef.current) return;
 
-        const uploadRes = await fetch('/api/clippingmagic/upload', {
-          method: 'POST',
-          body: fd,
-          credentials: 'include',
-        });
-        if (cancelled) return;
-        if (!uploadRes.ok) {
-          const err = await uploadRes.json().catch(() => ({}));
-          throw new Error(err.error ?? `Upload failed (${uploadRes.status})`);
-        }
-        const { image: uploaded } = (await uploadRes.json()) as {
-          image: { id: number; secret: string };
-        };
-        if (cancelled || !mountedRef.current) return;
+      const fd = new FormData();
+      fd.append(
+        'image',
+        new File([blob], 'studio-image.png', { type: 'image/png' })
+      );
 
-        await loadCmSdk();
-        if (cancelled || !mountedRef.current) return;
-
-        setState({ kind: 'editing' });
-
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        (window as any).ClippingMagic.edit(
-          {
-            image: { id: uploaded.id, secret: uploaded.secret },
-            useStickySettings: true,
-            hideBottomToolbar: false,
-            locale: 'en-US',
-          },
-          handleCmEvent
-        );
-      } catch (err) {
-        if (cancelled || !mountedRef.current) return;
-        setState({
-          kind: 'error',
-          message:
-            err instanceof Error
-              ? err.message
-              : 'Failed to start ClippingMagic',
-        });
+      const uploadRes = await fetch('/api/clippingmagic/upload', {
+        method: 'POST',
+        body: fd,
+        credentials: 'include',
+      });
+      if (!mountedRef.current) return;
+      if (!uploadRes.ok) {
+        const err = await uploadRes.json().catch(() => ({}));
+        throw new Error(err.error ?? `Upload failed (${uploadRes.status})`);
       }
-    })();
+      const { image: uploaded } = (await uploadRes.json()) as {
+        image: { id: number; secret: string };
+      };
+      if (!mountedRef.current) return;
 
-    return () => {
-      cancelled = true;
-      mountedRef.current = false;
-    };
-  }, [image, onApply, refreshCredits]);
+      await loadCmSdk();
+      if (!mountedRef.current) return;
+
+      setStatus({ kind: 'editing' });
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (window as any).ClippingMagic.edit(
+        {
+          image: { id: uploaded.id, secret: uploaded.secret },
+          useStickySettings: true,
+          hideBottomToolbar: false,
+          locale: 'en-US',
+        },
+        handleCmEvent
+      );
+    } catch (err) {
+      if (!mountedRef.current) return;
+      setStatus({
+        kind: 'error',
+        message:
+          err instanceof Error ? err.message : 'Failed to start ClippingMagic',
+      });
+    }
+  };
+
+  const handleDownload = () => {
+    triggerPngDownload(image, `background-removed-${Date.now()}.png`);
+  };
+
+  const primaryLabel = hasTransparency
+    ? 'Re-edit in ClippingMagic'
+    : 'Remove Background';
+  const primaryHint = hasTransparency
+    ? 'Re-opens the ClippingMagic editor on this cutout for refinements. 1 credit per edit.'
+    : 'Opens the ClippingMagic editor in an overlay. 1 credit per removal.';
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-[500px] p-8 w-full">
-      <div className="max-w-md w-full">
-        {state.kind === 'uploading' && (
-          <div className="text-center">
-            <Loader2 className="w-10 h-10 text-blue-600 animate-spin mx-auto mb-4" />
-            <p className="text-base font-medium text-gray-900">
-              Preparing ClippingMagic editor…
-            </p>
-            <p className="text-sm text-gray-500 mt-1">
-              Uploading your image and loading the editor.
-            </p>
-          </div>
+    <div className="flex-1 flex flex-col lg:flex-row min-h-0">
+      <StudioCanvasFrame
+        zoom={zoom}
+        onZoomIn={() => setZoom(z => Math.min(z * 1.25, 8))}
+        onZoomOut={() => setZoom(z => Math.max(z / 1.25, 0.1))}
+        onFit={() => setZoom(1)}
+      >
+        <div
+          style={{
+            transform: `scale(${zoom})`,
+            transformOrigin: 'center',
+            lineHeight: 0,
+          }}
+        >
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={image.src}
+            alt="Working image"
+            className="max-w-full max-h-full shadow-lg rounded block"
+            style={{ maxHeight: 'calc(100vh - 280px)' }}
+          />
+        </div>
+        {status.kind === 'uploading' && (
+          <CanvasProcessingOverlay label="Uploading to ClippingMagic…" />
         )}
-
-        {state.kind === 'editing' && (
-          <div className="text-center">
-            <Scissors className="w-10 h-10 text-blue-600 mx-auto mb-4" />
-            <p className="text-base font-medium text-gray-900">
-              ClippingMagic editor is open
-            </p>
-            <p className="text-sm text-gray-500 mt-1">
-              Work on your background removal in the editor overlay. Click{' '}
-              <strong>Done</strong> when finished — your result will land back
-              in Studio automatically.
-            </p>
-          </div>
+        {status.kind === 'editing' && (
+          <CanvasProcessingOverlay label="ClippingMagic editor open" />
         )}
-
-        {state.kind === 'downloading' && (
-          <div className="text-center">
-            <Loader2 className="w-10 h-10 text-blue-600 animate-spin mx-auto mb-4" />
-            <p className="text-base font-medium text-gray-900">
-              Saving your result…
-            </p>
-            <p className="text-sm text-gray-500 mt-1">
-              Downloading the cutout and adding it to your gallery.
-            </p>
-          </div>
+        {status.kind === 'downloading' && (
+          <CanvasProcessingOverlay label="Saving cutout…" />
         )}
+      </StudioCanvasFrame>
 
-        {state.kind === 'completed' && (
-          <div className="text-center">
-            <div className="w-12 h-12 rounded-full bg-green-100 flex items-center justify-center mx-auto mb-4">
-              <Scissors className="w-6 h-6 text-green-600" />
+      <div className="w-full lg:w-72 bg-white border-t lg:border-t-0 lg:border-l border-gray-200 flex flex-col overflow-y-auto">
+        <div className="p-4 flex flex-col gap-4 flex-1">
+          <div className="rounded-lg border border-blue-200 bg-blue-50/60 p-3 text-xs text-blue-900">
+            <p className="font-medium mb-1 flex items-center gap-1.5">
+              <Scissors className="w-3.5 h-3.5" />
+              Background Removal
+            </p>
+            <p className="text-blue-800/90">{primaryHint}</p>
+          </div>
+
+          <button
+            type="button"
+            onClick={handleRemove}
+            disabled={isBusy}
+            className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          >
+            {status.kind === 'uploading' ||
+            status.kind === 'editing' ||
+            status.kind === 'downloading' ? (
+              <>
+                <Loader2 className="w-4 h-4 animate-spin" />
+                {status.kind === 'uploading' && 'Uploading…'}
+                {status.kind === 'editing' && 'Editor open…'}
+                {status.kind === 'downloading' && 'Saving cutout…'}
+              </>
+            ) : (
+              <>
+                <Scissors className="w-4 h-4" />
+                {primaryLabel}
+              </>
+            )}
+          </button>
+
+          {hasTransparency && !isBusy && (
+            <button
+              type="button"
+              onClick={handleDownload}
+              className="w-full flex items-center justify-center gap-2 px-4 py-2 text-sm text-gray-700 hover:text-gray-900 border border-gray-200 hover:border-gray-300 rounded-lg transition-colors"
+            >
+              <Download className="w-4 h-4" />
+              Download Cutout PNG
+            </button>
+          )}
+
+          {status.kind === 'error' && (
+            <div className="rounded-lg border border-red-200 bg-red-50 p-3">
+              <div className="flex items-start gap-2">
+                <AlertTriangle className="w-4 h-4 text-red-600 flex-shrink-0 mt-0.5" />
+                <div className="flex-1">
+                  <p className="text-xs font-medium text-red-900 mb-1">
+                    ClippingMagic error
+                  </p>
+                  <p className="text-xs text-red-800 whitespace-pre-line">
+                    {status.message}
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setStatus({ kind: 'idle' })}
+                className="mt-2 w-full text-xs text-red-700 hover:text-red-900 font-medium"
+              >
+                Dismiss
+              </button>
             </div>
-            <p className="text-base font-medium text-gray-900 mb-1">
-              Background removed
-            </p>
-            <p className="text-sm text-gray-500">
-              Your cutout is now in Studio. Pick another tool from the top of
-              the page (Upscale, Vectorize, Halftone…) to keep editing, or use
-              the Download button to save it.
-            </p>
-          </div>
-        )}
+          )}
 
-        {state.kind === 'cancelled' && (
-          <div className="text-center">
-            <p className="text-base font-medium text-gray-900 mb-2">
-              Editor closed without saving
-            </p>
-            <p className="text-sm text-gray-500 mb-4">No credits were used.</p>
-            <button
-              onClick={() => window.location.reload()}
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-medium"
-            >
-              Try Again
-            </button>
-          </div>
-        )}
-
-        {state.kind === 'error' && (
-          <div className="text-center">
-            <AlertTriangle className="w-10 h-10 text-amber-600 mx-auto mb-4" />
-            <p className="text-base font-medium text-gray-900 mb-2">
-              ClippingMagic error
-            </p>
-            <p className="text-sm text-gray-500 mb-4 whitespace-pre-line">
-              {state.message}
-            </p>
-            <button
-              onClick={() => window.location.reload()}
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-medium"
-            >
-              Retry
-            </button>
-          </div>
-        )}
-
-        {state.kind !== 'completed' && (
-          <div className="mt-12 pt-6 border-t border-gray-200 text-center">
-            <p className="text-xs text-gray-500 mb-2">
-              Want to try our experimental free in-house tool?
-            </p>
-            <button
-              onClick={onSwitchToInHouse}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
-            >
-              <FlaskConical className="w-3.5 h-3.5" />
-              Use in-house Background Remover (beta)
-            </button>
-          </div>
-        )}
+          {!isBusy && (
+            <div className="mt-auto pt-4 border-t border-gray-100">
+              <p className="text-xs text-gray-500 mb-2">
+                Want to try our experimental free in-house tool?
+              </p>
+              <button
+                type="button"
+                onClick={onSwitchToInHouse}
+                className="w-full inline-flex items-center justify-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
+              >
+                <FlaskConical className="w-3.5 h-3.5" />
+                Use in-house Background Remover (beta)
+              </button>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
