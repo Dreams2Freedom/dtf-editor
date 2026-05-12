@@ -1,16 +1,16 @@
-# Generated / build artifacts
-.next/
-node_modules/
-out/
-dist/
-coverage/
+# Build/dependency artifacts
+node_modules
+.next
+out
+build
+dist
+coverage
 
-# Lockfiles (managed by their tools)
+# Lock files
 package-lock.json
-pnpm-lock.yaml
 yarn.lock
+pnpm-lock.yaml
 
-# Pre-existing scripts with non-standard content that prettier can't parse
-# (left here for manual cleanup; ignoring lets the precommit hook succeed)
+# Pre-existing files prettier cannot parse (not related to current work)
 scripts/apply-rate-limiting.js
 scripts/delete-user-completely.js
