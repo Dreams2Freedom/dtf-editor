@@ -86,24 +86,24 @@ export const PayAsYouGo: React.FC<PayAsYouGoProps> = ({
 
   const getPackageIcon = (credits: number) => {
     if (credits >= 50) {
-      return <CreditCard className="w-6 h-6 text-purple-500" />;
+      return <CreditCard className="w-6 h-6 text-amber-500" />;
     } else if (credits >= 20) {
-      return <ShoppingCart className="w-6 h-6 text-blue-500" />;
+      return <ShoppingCart className="w-6 h-6 text-amber-500" />;
     } else {
-      return <CreditCard className="w-6 h-6 text-green-500" />;
+      return <CreditCard className="w-6 h-6 text-gray-400" />;
     }
   };
 
   const getPackageBadge = (credits: number) => {
     if (credits >= 50) {
       return (
-        <span className="bg-purple-100 text-purple-800 text-xs font-medium px-2.5 py-0.5 rounded">
+        <span className="bg-amber-100 text-amber-700 text-xs font-medium px-2.5 py-0.5 rounded">
           Best Value
         </span>
       );
     } else if (credits >= 20) {
       return (
-        <span className="bg-blue-100 text-blue-800 text-xs font-medium px-2.5 py-0.5 rounded">
+        <span className="bg-amber-100 text-amber-700 text-xs font-medium px-2.5 py-0.5 rounded">
           Popular
         </span>
       );
@@ -113,13 +113,6 @@ export const PayAsYouGo: React.FC<PayAsYouGoProps> = ({
 
   return (
     <div className="space-y-6">
-      <div className="text-center">
-        <h2 className="text-3xl font-bold text-gray-900 mb-4">Buy Credits</h2>
-        <p className="text-lg text-gray-600">
-          Purchase credits for one-time image processing needs
-        </p>
-      </div>
-
       {error && (
         <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
           {error}
@@ -136,8 +129,8 @@ export const PayAsYouGo: React.FC<PayAsYouGoProps> = ({
           {packages.map(pkg => (
             <Card
               key={pkg.id}
-              className={`relative p-6 transition-all duration-200 hover:shadow-lg ${
-                selectedPackage === pkg.id ? 'ring-2 ring-blue-500' : ''
+              className={`relative p-6 transition-all duration-200 hover:shadow-lg border border-gray-200 rounded-xl ${
+                selectedPackage === pkg.id ? 'ring-2 ring-amber-500' : ''
               }`}
             >
               {getPackageBadge(pkg.credits) && (
@@ -164,19 +157,19 @@ export const PayAsYouGo: React.FC<PayAsYouGoProps> = ({
 
               <ul className="space-y-2 mb-6">
                 <li className="flex items-center">
-                  <Check className="w-4 h-4 text-green-500 mr-2" />
+                  <Check className="w-4 h-4 text-emerald-500 mr-2" />
                   <span className="text-sm text-gray-700">
                     One-time purchase
                   </span>
                 </li>
                 <li className="flex items-center">
-                  <Check className="w-4 h-4 text-green-500 mr-2" />
+                  <Check className="w-4 h-4 text-emerald-500 mr-2" />
                   <span className="text-sm text-gray-700">
                     No recurring charges
                   </span>
                 </li>
                 <li className="flex items-center">
-                  <Check className="w-4 h-4 text-green-500 mr-2" />
+                  <Check className="w-4 h-4 text-emerald-500 mr-2" />
                   <span className="text-sm text-gray-700">
                     Credits never expire
                   </span>
@@ -186,13 +179,7 @@ export const PayAsYouGo: React.FC<PayAsYouGoProps> = ({
               <Button
                 onClick={() => handlePurchase(pkg)}
                 disabled={isLoading}
-                className={`w-full ${
-                  pkg.credits >= 50
-                    ? 'bg-purple-600 hover:bg-purple-700'
-                    : pkg.credits >= 20
-                      ? 'bg-blue-600 hover:bg-blue-700'
-                      : 'bg-green-600 hover:bg-green-700'
-                }`}
+                className="w-full bg-amber-500 hover:bg-amber-600 text-white"
               >
                 {isLoading && selectedPackage === pkg.id
                   ? 'Processing...'

@@ -1,14 +1,15 @@
 'use client';
 
 import { useState } from 'react';
-import { ChevronDown, ChevronUp, Search } from 'lucide-react';
+import { Search } from 'lucide-react';
 import Link from 'next/link';
-import { useReferralTracking } from '@/hooks/useReferralTracking';
+import { PageHero } from '@/components/public/PageHero';
+import { Accordion } from '@/components/public/Accordion';
 
 interface FAQItem {
   id: string;
   question: string;
-  answer: string | JSX.Element;
+  answer: string | React.ReactNode;
   category: string;
 }
 
@@ -238,7 +239,7 @@ const faqs: FAQItem[] = [
     question: 'What if I forgot my password?',
     answer: (
       <div>
-        You can reset your password by clicking the "Forgot Password?" link on
+        You can reset your password by clicking the &ldquo;Forgot Password?&rdquo; link on
         the login page. We&apos;ll send you an email with instructions to create
         a new password. Check your spam folder if you don&apos;t see it within a
         few minutes.
@@ -303,10 +304,7 @@ const faqs: FAQItem[] = [
 ];
 
 export default function FAQPage() {
-  useReferralTracking();
-
   const [searchTerm, setSearchTerm] = useState('');
-  const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set());
   const [selectedCategory, setSelectedCategory] = useState<string>('All');
 
   const categories = [
@@ -324,43 +322,39 @@ export default function FAQPage() {
     return matchesSearch && matchesCategory;
   });
 
-  const toggleExpanded = (id: string) => {
-    const newExpanded = new Set(expandedItems);
-    if (newExpanded.has(id)) {
-      newExpanded.delete(id);
-    } else {
-      newExpanded.add(id);
-    }
-    setExpandedItems(newExpanded);
-  };
+  // Group filtered FAQs by category
+  const groupedFAQs = filteredFAQs.reduce(
+    (acc, faq) => {
+      if (!acc[faq.category]) {
+        acc[faq.category] = [];
+      }
+      acc[faq.category].push(faq);
+      return acc;
+    },
+    {} as Record<string, FAQItem[]>
+  );
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-50 via-white to-pink-50">
-      <div className="max-w-4xl mx-auto px-4 py-12">
-        {/* Header */}
-        <div className="text-center mb-12">
-          <h1 className="text-4xl font-bold text-gray-900 mb-4">
-            Frequently Asked Questions
-          </h1>
-          <p className="text-lg text-gray-600">
-            Find answers to common questions about DTF Editor
-          </p>
-        </div>
-
-        {/* Search Bar */}
-        <div className="mb-8">
+    <div className="min-h-screen bg-white">
+      <PageHero
+        heading="Frequently asked questions"
+        subheading="Find answers to common questions about DTF Editor"
+      >
+        <div className="max-w-xl mx-auto">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
             <input
               type="text"
               placeholder="Search FAQs..."
-              className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+              className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 text-sm"
               value={searchTerm}
               onChange={e => setSearchTerm(e.target.value)}
             />
           </div>
         </div>
+      </PageHero>
 
+      <div className="max-w-3xl mx-auto px-5 sm:px-6 lg:px-8 pb-16">
         {/* Category Filters */}
         <div className="mb-8">
           <div className="flex flex-wrap gap-2">
@@ -370,7 +364,7 @@ export default function FAQPage() {
                 onClick={() => setSelectedCategory(category)}
                 className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
                   selectedCategory === category
-                    ? 'bg-purple-600 text-white'
+                    ? 'bg-gray-900 text-white'
                     : 'bg-white text-gray-700 hover:bg-gray-100 border border-gray-200'
                 }`}
               >
@@ -380,57 +374,46 @@ export default function FAQPage() {
           </div>
         </div>
 
-        {/* FAQ Items */}
-        <div className="space-y-4">
-          {filteredFAQs.length === 0 ? (
-            <div className="text-center py-12">
-              <p className="text-gray-500">
-                No FAQs found matching your search.
-              </p>
-            </div>
-          ) : (
-            filteredFAQs.map(faq => (
-              <div
-                key={faq.id}
-                className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden"
-              >
-                <button
-                  onClick={() => toggleExpanded(faq.id)}
-                  className="w-full px-6 py-4 text-left flex items-center justify-between hover:bg-gray-50 transition-colors"
-                >
-                  <h3 className="text-lg font-medium text-gray-900 pr-4">
-                    {faq.question}
-                  </h3>
-                  {expandedItems.has(faq.id) ? (
-                    <ChevronUp className="w-5 h-5 text-gray-500 flex-shrink-0" />
-                  ) : (
-                    <ChevronDown className="w-5 h-5 text-gray-500 flex-shrink-0" />
-                  )}
-                </button>
-                {expandedItems.has(faq.id) && (
-                  <div className="px-6 pb-4">
-                    <div className="text-gray-600 leading-relaxed">
-                      {faq.answer}
-                    </div>
-                  </div>
-                )}
+        {/* FAQ Items grouped by category */}
+        {filteredFAQs.length === 0 ? (
+          <div className="text-center py-12">
+            <p className="text-gray-500">
+              No FAQs found matching your search.
+            </p>
+          </div>
+        ) : (
+          <div className="space-y-10">
+            {Object.entries(groupedFAQs).map(([category, items]) => (
+              <div key={category}>
+                <h2 className="text-lg font-semibold text-gray-900 mb-2">
+                  {category}
+                </h2>
+                <Accordion
+                  items={items.map(faq => ({
+                    question: faq.question,
+                    answer: faq.answer,
+                  }))}
+                  className="bg-white border border-gray-200 rounded-xl px-4"
+                />
               </div>
-            ))
-          )}
-        </div>
+            ))}
+          </div>
+        )}
 
-        {/* Still Need Help Section */}
-        <div className="mt-16 text-center bg-gradient-to-r from-purple-600 to-pink-600 rounded-xl p-8 text-white">
-          <h2 className="text-2xl font-bold mb-4">Still have questions?</h2>
-          <p className="mb-6">
+        {/* Can't find what you're looking for? */}
+        <div className="mt-16 text-center bg-white border border-gray-200 rounded-xl p-8">
+          <h2 className="text-xl font-semibold text-gray-900 mb-2">
+            Can&apos;t find what you&apos;re looking for?
+          </h2>
+          <p className="text-gray-500 mb-6">
             Our support team is here to help you with any questions not covered
             in the FAQ.
           </p>
           <Link
-            href="/support"
-            className="inline-block bg-white text-purple-600 px-6 py-3 rounded-lg font-medium hover:bg-gray-100 transition-colors"
+            href="/contact"
+            className="inline-block bg-gray-900 text-white px-6 py-3 rounded-lg font-medium hover:bg-gray-800 transition-colors text-sm"
           >
-            Contact Support
+            Contact us
           </Link>
         </div>
       </div>

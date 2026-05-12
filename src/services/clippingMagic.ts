@@ -89,18 +89,28 @@ export class ClippingMagicService {
       const imageBlob = await imageResponse.blob();
       const originalSize = imageBlob.size;
 
-      // Step 1: Upload image to ClippingMagic
+      // Determine file extension from content type for proper filename
+      const contentType = imageBlob.type || 'image/png';
+      const ext = contentType === 'image/jpeg' ? 'jpg' : contentType === 'image/png' ? 'png' : 'jpg';
+
+      // Use format=result for headless auto-clip (processes and returns result directly)
       const formData = new FormData();
-      formData.append('image', imageBlob, 'image.jpg');
-      formData.append('format', 'json'); // Get JSON response with image ID and secret
+      formData.append('image', imageBlob, `image.${ext}`);
+      formData.append('format', 'result'); // Headless: returns processed image directly
       formData.append('maxPixels', '26214400'); // Preserve full resolution up to 26.2 megapixels
-      formData.append('processing.mode', 'graphics'); // Default to graphics mode for DTF
+      formData.append('processing.mode', 'graphics'); // Graphics mode for DTF
+      formData.append('output.dpi', '300'); // Print-ready 300 DPI
+      formData.append('result.allowEnlarging', 'true'); // Maintain full input size
 
-      // Remove test parameter - we want actual processing
-      // formData.append('test', 'true');
+      if (options.backgroundColor && options.format === 'jpg') {
+        formData.append('background_color', options.backgroundColor);
+      }
+      if (options.quality && options.format === 'jpg') {
+        formData.append('quality', options.quality.toString());
+      }
 
-      // Upload image to get ID and secret
-      const uploadResponse = await fetch(`${this.baseUrl}/images`, {
+      // Single request: upload → auto-process → result returned directly
+      const response = await fetch(`${this.baseUrl}/images`, {
         method: 'POST',
         headers: {
           Authorization: this.authHeader,
@@ -108,102 +118,21 @@ export class ClippingMagicService {
         body: formData,
       });
 
-      if (!uploadResponse.ok) {
-        const errorData = await uploadResponse.text();
-        throw new Error(
-          `ClippingMagic upload error: ${uploadResponse.status} - ${errorData}`
-        );
-      }
-
-      const uploadResult = await uploadResponse.json();
-      const imageId = uploadResult.image?.id;
-      const imageSecret = uploadResult.image?.secret;
-
-      if (!imageId || !imageSecret) {
-        throw new Error('Failed to get image ID from ClippingMagic');
-      }
-
-      // Step 2: Wait for processing and check status
-      let attempts = 0;
-      const maxAttempts = 60; // 60 seconds max wait (increased from 30)
-      let resultReady = false;
-
-      while (attempts < maxAttempts && !resultReady) {
-        await new Promise(resolve => setTimeout(resolve, 1000)); // Wait 1 second
-
-        // Check if result is ready
-        const statusResponse = await fetch(
-          `${this.baseUrl}/images/${imageId}`,
-          {
-            method: 'GET',
-            headers: {
-              Authorization: this.authHeader,
-              Accept: 'application/json',
-            },
-          }
-        );
-
-        if (statusResponse.ok) {
-          const statusData = await statusResponse.json();
-          if (statusData.resultRevision && statusData.resultRevision > 0) {
-            resultReady = true;
-          }
-        }
-
-        attempts++;
-      }
-
-      if (!resultReady) {
-        throw new Error('Background removal timed out. Please try again.');
-      }
-
-      // Step 3: Download the processed result
-      const resultUrl = `${this.baseUrl}/images/${imageId}`;
-      const resultParams = new URLSearchParams();
-
-      // Add format options for download
-      if (options.format) {
-        resultParams.append('format', options.format);
-      } else {
-        resultParams.append('format', 'png'); // Default to PNG for transparency
-      }
-
-      // CRITICAL: Set DPI to 300 for print-ready output (DTF requires high DPI)
-      resultParams.append('output.dpi', '300');
-
-      // CRITICAL: Allow result to maintain full input size
-      resultParams.append('result.allowEnlarging', 'true');
-
-      if (options.backgroundColor && options.format === 'jpg') {
-        resultParams.append('background_color', options.backgroundColor);
-      }
-
-      if (options.quality && options.format === 'jpg') {
-        resultParams.append('quality', options.quality.toString());
-      }
-
-      // Retrieve the result
-      const resultResponse = await fetch(`${resultUrl}?${resultParams}`, {
-        method: 'GET',
-        headers: {
-          Authorization: this.authHeader,
-        },
-      });
-
       const processingTime = Date.now() - startTime;
 
-      if (!resultResponse.ok) {
-        const errorData = await resultResponse.text();
+      if (!response.ok) {
+        const errorData = await response.text();
         throw new Error(
-          `ClippingMagic result error: ${resultResponse.status} - ${errorData}`
+          `ClippingMagic error: ${response.status} - ${errorData}`
         );
       }
 
-      // Get the processed image
-      const resultBlob = await resultResponse.blob();
+      // Response IS the processed image (binary PNG) — no polling needed
+      const resultBlob = await response.blob();
 
-      // Convert blob to data URL for immediate use
-      const processedUrl = await this.blobToDataUrl(resultBlob);
+      // Convert to data URL using Buffer (server-side)
+      const buffer = Buffer.from(await resultBlob.arrayBuffer());
+      const processedUrl = `data:image/png;base64,${buffer.toString('base64')}`;
 
       return {
         status: 'success',

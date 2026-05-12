@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import { useAuthStore } from '@/stores/authStore';
 import { toast } from 'react-hot-toast';
+import { HelpModal } from '@/components/ui/HelpModal';
 
 // Wizard step components (to be created)
 import { DescriptionStep } from './DescriptionStep';
@@ -347,10 +348,31 @@ export function PromptWizard() {
             Create unique images with AI-powered prompt optimization
           </p>
         </div>
-        <div className="text-right">
-          <div className="text-sm text-gray-600">Credits Available</div>
-          <div className="text-2xl font-bold text-purple-600">
-            {profile?.credits_remaining || 0}
+        <div className="flex items-center gap-3">
+          <HelpModal
+            storageKey="help_generate"
+            title="How to Generate Images with AI"
+            accentColor="text-pink-600"
+            accentBg="bg-pink-500"
+            steps={[
+              { title: 'Describe your design', content: 'Type a description of the image you want to create. Be specific about colors, style, and what the design should look like.' },
+              { title: 'Optimize your prompt', content: 'The AI will optimize your description into a detailed prompt that produces better results. You can edit the optimized prompt before generating.' },
+              { title: 'Configure settings', content: 'Choose the image size and quality level. Higher quality takes longer but produces more detailed results.' },
+              { title: 'Generate', content: 'Click Generate to create your image. The AI generates a unique design based on your prompt. All images include transparent backgrounds for DTF printing.' },
+              { title: 'Use your image', content: 'Download your generated image or send it to Upscale, Remove Background, or Change Colors for further processing.' },
+            ]}
+            tips={[
+              'Be specific in your descriptions — mention colors, style (vintage, modern, cartoon), and subject matter.',
+              'All generated images automatically have transparent backgrounds.',
+              'Generation costs 3 credits per image.',
+              "If the result isn't quite right, try adjusting your description and generating again.",
+            ]}
+          />
+          <div className="text-right">
+            <div className="text-sm text-gray-600">Credits Available</div>
+            <div className="text-2xl font-bold text-purple-600">
+              {profile?.credits_remaining || 0}
+            </div>
           </div>
         </div>
       </div>

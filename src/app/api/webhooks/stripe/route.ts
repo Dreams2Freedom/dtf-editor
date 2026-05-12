@@ -13,6 +13,41 @@ const PLAN_PRICE_AMOUNTS: Record<number, string> = {
   4999: 'professional', // $49.99
 };
 
+// Fallback credit detection by checkout session amount (cents) for pay-as-you-go
+const PAYG_CREDIT_AMOUNTS: Record<number, number> = {
+  499: 10,
+  899: 20,
+  1999: 50,
+};
+
+// Resolve credits for a pay-as-you-go checkout session, with fallback by amount
+function resolveCreditsFromSession(session: any): number {
+  // 1. Try metadata first
+  const metaCredits = parseInt(session.metadata?.credits || '0', 10);
+  if (metaCredits > 0) {
+    console.log(`✅ [Credit Resolve] From metadata: ${metaCredits}`);
+    return metaCredits;
+  }
+
+  // 2. Fallback: detect from amount
+  const amount = session.amount_total || 0;
+  const fallback = PAYG_CREDIT_AMOUNTS[amount];
+  if (fallback) {
+    console.log(
+      `✅ [Credit Resolve] Fallback by amount ($${(amount / 100).toFixed(2)}): ${fallback} credits`
+    );
+    return fallback;
+  }
+
+  console.warn(
+    '⚠️ [Credit Resolve] Could not determine credits. metadata.credits:',
+    session.metadata?.credits,
+    'amount_total:',
+    amount
+  );
+  return 0;
+}
+
 // Resolve a Stripe price ID to a plan, with fallback by amount
 async function resolvePlanFromPriceId(priceId: string | undefined) {
   if (!priceId) return null;
@@ -61,6 +96,72 @@ async function resolvePlanFromPriceId(priceId: string | undefined) {
   }
 
   return null;
+}
+
+// Stripe Basil API (2025-03-31+) moved several fields off Invoice and Subscription.
+// These helpers read from both the legacy and Basil paths so the webhook works
+// regardless of which API version Stripe delivers the event with.
+//   - invoice.subscription          → invoice.parent.subscription_details.subscription
+//   - invoice.payment_intent        → invoice.payments[].payment.payment_intent (or invoice.confirmation_secret)
+//   - subscription.current_period_* → subscription.items.data[0].current_period_*
+function getInvoiceSubscriptionId(invoice: any): string | undefined {
+  // Legacy path (pre-Basil)
+  if (invoice?.subscription) {
+    return typeof invoice.subscription === 'string'
+      ? invoice.subscription
+      : invoice.subscription?.id;
+  }
+  // Basil path: invoice.parent.subscription_details.subscription
+  const parentSub = invoice?.parent?.subscription_details?.subscription;
+  if (parentSub) {
+    return typeof parentSub === 'string' ? parentSub : parentSub?.id;
+  }
+  // Fallback: check line items for a subscription reference
+  const lineSub =
+    invoice?.lines?.data?.[0]?.parent?.subscription_item_details
+      ?.subscription || invoice?.lines?.data?.[0]?.subscription;
+  if (lineSub) {
+    return typeof lineSub === 'string' ? lineSub : lineSub?.id;
+  }
+  return undefined;
+}
+
+function getInvoicePaymentIntentId(invoice: any): string | undefined {
+  // Legacy path (pre-Basil)
+  if (invoice?.payment_intent) {
+    return typeof invoice.payment_intent === 'string'
+      ? invoice.payment_intent
+      : invoice.payment_intent?.id;
+  }
+  // Basil path: invoice.payments[] with payment.payment_intent reference
+  const payments = invoice?.payments?.data || invoice?.payments || [];
+  for (const p of payments) {
+    const pi = p?.payment?.payment_intent || p?.payment_intent;
+    if (pi) {
+      return typeof pi === 'string' ? pi : pi?.id;
+    }
+  }
+  return undefined;
+}
+
+function getSubscriptionPeriodEnd(subscription: any): number | undefined {
+  // Legacy path
+  if (typeof subscription?.current_period_end === 'number') {
+    return subscription.current_period_end;
+  }
+  // Basil path: per-item billing period
+  const itemEnd = subscription?.items?.data?.[0]?.current_period_end;
+  return typeof itemEnd === 'number' ? itemEnd : undefined;
+}
+
+function getSubscriptionPeriodStart(subscription: any): number | undefined {
+  // Legacy path
+  if (typeof subscription?.current_period_start === 'number') {
+    return subscription.current_period_start;
+  }
+  // Basil path: per-item billing period
+  const itemStart = subscription?.items?.data?.[0]?.current_period_start;
+  return typeof itemStart === 'number' ? itemStart : undefined;
 }
 
 // Lazy initialize Supabase to avoid build-time errors
@@ -240,6 +341,85 @@ async function logPaymentTransaction(params: {
   }
 }
 
+// GET handler for webhook health check — verifies endpoint is deployed and configured
+export async function GET() {
+  const stripeService = getStripeService();
+  const plans = stripeService.getSubscriptionPlans();
+
+  const hasWebhookSecret = !!(
+    process.env.STRIPE_LIVE_WEBHOOK_SECRET || process.env.STRIPE_WEBHOOK_SECRET
+  );
+  const hasServiceKey = !!process.env.SUPABASE_SERVICE_ROLE_KEY;
+  const hasStripeKey = !!(
+    process.env.STRIPE_LIVE_SECRET_KEY || process.env.STRIPE_SECRET_KEY
+  );
+
+  // Check if add_user_credits RPC exists
+  let rpcExists = false;
+  try {
+    const supabase = getSupabase();
+    // Call with a non-existent user to test if the function exists
+    // It will fail with "no rows" but NOT with "function does not exist"
+    const { error } = await supabase.rpc('add_user_credits', {
+      p_user_id: '00000000-0000-0000-0000-000000000000',
+      p_amount: 0,
+      p_transaction_type: 'test',
+      p_description: 'health check',
+    });
+    // If error is about the function not existing, rpcExists stays false
+    // Any other error (like user not found) means the function exists
+    rpcExists =
+      !error?.message?.includes('function') ||
+      error?.message?.includes('null value');
+    if (error && !error.message.includes('function')) {
+      rpcExists = true;
+    }
+  } catch {
+    rpcExists = false;
+  }
+
+  return NextResponse.json({
+    status: 'ok',
+    endpoint: '/api/webhooks/stripe',
+    environment: process.env.NODE_ENV,
+    config: {
+      webhookSecretConfigured: hasWebhookSecret,
+      stripeKeyConfigured: hasStripeKey,
+      supabaseServiceKeyConfigured: hasServiceKey,
+      addUserCreditsRpcExists: rpcExists,
+    },
+    plans: plans.map((p: any) => ({
+      id: p.id,
+      creditsPerMonth: p.creditsPerMonth,
+      priceIdConfigured: !!p.stripePriceId,
+    })),
+    paygPriceIds: {
+      '10credits':
+        !!process.env.STRIPE_LIVE_PAYG_10_CREDITS_PRICE_ID ||
+        !!process.env.STRIPE_PAYG_10_CREDITS_PRICE_ID,
+      '20credits':
+        !!process.env.STRIPE_LIVE_PAYG_20_CREDITS_PRICE_ID ||
+        !!process.env.STRIPE_PAYG_20_CREDITS_PRICE_ID,
+      '50credits':
+        !!process.env.STRIPE_LIVE_PAYG_50_CREDITS_PRICE_ID ||
+        !!process.env.STRIPE_PAYG_50_CREDITS_PRICE_ID,
+    },
+    listenedEvents: [
+      'checkout.session.completed',
+      'customer.subscription.created',
+      'customer.subscription.updated',
+      'customer.subscription.deleted',
+      'customer.subscription.trial_will_end',
+      'invoice.payment_succeeded',
+      'invoice.payment_failed',
+      'payment_intent.succeeded',
+      'payment_intent.payment_failed',
+      'charge.refunded',
+    ],
+    timestamp: new Date().toISOString(),
+  });
+}
+
 export async function POST(request: NextRequest) {
   console.log('\n🔔 STRIPE WEBHOOK RECEIVED');
   console.log('📍 Webhook URL:', request.url);
@@ -255,12 +435,26 @@ export async function POST(request: NextRequest) {
     );
   }
 
+  // Step 1: Verify webhook signature (separate from handler errors)
+  let event;
   try {
-    const event = getStripeService().constructWebhookEvent(body, signature);
+    event = getStripeService().constructWebhookEvent(body, signature);
     console.log('✅ Webhook signature verified');
+  } catch (signatureError: any) {
+    console.error(
+      '❌ Webhook SIGNATURE verification failed:',
+      signatureError.message
+    );
+    return NextResponse.json(
+      { error: 'Webhook signature verification failed' },
+      { status: 400 }
+    );
+  }
+
+  // Step 2: Process the event (errors here are handler bugs, NOT signature issues)
+  try {
     console.log('📨 Event type:', event.type);
     console.log('📨 Event ID:', event.id);
-    console.log('📨 Event data:', JSON.stringify(event.data.object, null, 2));
 
     // SEC-015: Skip already-processed events (DB-backed dedup)
     if (await isEventProcessed(event.id)) {
@@ -312,22 +506,23 @@ export async function POST(request: NextRequest) {
         break;
 
       default:
-      // Unhandled event type
+        console.log('ℹ️ Unhandled event type:', event.type);
     }
 
     // Mark as processed only after successful completion
     await markEventProcessed(event.id, event.type);
 
-    console.log('✅ Webhook processed successfully');
+    console.log('✅ Webhook processed successfully:', event.type);
     return NextResponse.json({ received: true });
-  } catch (error: any) {
-    console.error('❌ Webhook error:', error);
-    console.error('Error details:', error.message);
+  } catch (handlerError: any) {
+    // This is a HANDLER error, not a signature error — log it clearly
+    console.error('❌ Webhook HANDLER error for event:', event.type, event.id);
+    console.error('❌ Handler error message:', handlerError.message);
+    console.error('❌ Handler error stack:', handlerError.stack);
+    // Return 500 so Stripe retries (400 would indicate we rejected the event)
     return NextResponse.json(
-      {
-        error: 'Webhook signature verification failed',
-      },
-      { status: 400 }
+      { error: 'Webhook handler error', eventType: event.type },
+      { status: 500 }
     );
   }
 }
@@ -405,10 +600,11 @@ async function handleSubscriptionEvent(subscription: any) {
     stripe_subscription_id: subscription.id,
   };
 
-  // Only add period end if it exists
-  if (subscription.current_period_end) {
+  // Only add period end if it exists (Basil moved this to subscription.items.data[].current_period_end)
+  const periodEnd = getSubscriptionPeriodEnd(subscription);
+  if (periodEnd) {
     updateData.subscription_current_period_end = new Date(
-      subscription.current_period_end * 1000
+      periodEnd * 1000
     ).toISOString();
   }
 
@@ -470,13 +666,14 @@ async function handleSubscriptionEvent(subscription: any) {
           '📧 Sending subscription confirmation email to:',
           user.email
         );
+        const subPeriodEnd = getSubscriptionPeriodEnd(subscription);
         const emailSent = await emailService.sendSubscriptionEmail({
           email: user.email,
           firstName: profile?.first_name,
           action: 'created',
           planName: plan.name,
-          nextBillingDate: subscription.current_period_end
-            ? new Date(subscription.current_period_end * 1000)
+          nextBillingDate: subPeriodEnd
+            ? new Date(subPeriodEnd * 1000)
             : undefined,
         });
         console.log('📧 Subscription email sent result:', emailSent);
@@ -542,14 +739,22 @@ async function handleInvoicePaymentSucceeded(invoice: any) {
   console.log('Customer:', invoice.customer);
   console.log('Amount paid:', invoice.amount_paid);
 
+  // Extract subscription ID up-front — Basil API moved this off the top level.
+  // Without this helper, every renewal silently no-ops because invoice.subscription
+  // is undefined in the new payload schema, skipping the credit-add logic entirely.
+  const subscriptionId = getInvoiceSubscriptionId(invoice);
+  const paymentIntentId = getInvoicePaymentIntentId(invoice);
+  console.log('Resolved subscription ID:', subscriptionId);
+  console.log('Resolved payment intent ID:', paymentIntentId);
+
   // Try to get userId from metadata, then fall back to customer ID lookup
   let userId = invoice.metadata?.userId;
-
-  if (!userId && invoice.customer) {
-    const customerId = typeof invoice.customer === 'string'
+  const customerId =
+    typeof invoice.customer === 'string'
       ? invoice.customer
-      : invoice.customer.id;
+      : invoice.customer?.id;
 
+  if (!userId && customerId) {
     const { data: profile } = await getSupabase()
       .from('profiles')
       .select('id, subscription_plan')
@@ -567,120 +772,212 @@ async function handleInvoicePaymentSucceeded(invoice: any) {
     return;
   }
 
-  // Handle subscription renewal
-  if (invoice.subscription && invoice.billing_reason === 'subscription_cycle') {
+  // Process any paid subscription invoice that hasn't already been logged.
+  // We intentionally accept multiple billing_reasons (subscription_cycle for renewals,
+  // subscription_update for plan changes that trigger immediate charges, and even
+  // subscription for older invoices) so a missing/unexpected billing_reason from Stripe
+  // does not silently drop the credit allocation. Initial-subscription invoices are
+  // skipped further down because checkout.session.completed already handled them.
+  const isRenewal =
+    !!subscriptionId &&
+    invoice.billing_reason !== 'subscription_create' &&
+    invoice.billing_reason !== 'manual' &&
+    (invoice.amount_paid || 0) > 0;
+
+  if (isRenewal) {
     console.log('🔄 Processing subscription renewal for user:', userId);
 
-    // Update subscription billing period dates
+    // Idempotency guard: if this invoice was already logged, don't double-credit.
+    // logPaymentTransaction uses `invoice_<id>` as the unique session key, so we
+    // check the same key here BEFORE adding credits.
+    const invoiceSessionKey = `invoice_${invoice.id}`;
+    const { data: existingTxn } = await getSupabase()
+      .from('payment_transactions')
+      .select('id')
+      .eq('stripe_checkout_session_id', invoiceSessionKey)
+      .maybeSingle();
+
+    if (existingTxn) {
+      console.log(
+        '⚠️ Invoice already logged in payment_transactions, skipping credit add to prevent duplicates:',
+        invoice.id
+      );
+      return;
+    }
+
+    // Fetch subscription details for billing period + price info
     const subscription = await getStripeService().getSubscription(
-      invoice.subscription
+      subscriptionId!
     );
-    if (subscription) {
-      // Update the billing period in profiles
-      const updateData: any = {
-        updated_at: new Date().toISOString(),
-      };
+    if (!subscription) {
+      console.error(
+        '❌ Could not fetch subscription for renewal:',
+        subscriptionId
+      );
+      return;
+    }
 
-      if (subscription.current_period_start) {
-        updateData.stripe_current_period_start = new Date(
-          subscription.current_period_start * 1000
-        ).toISOString();
+    // Update the billing period in profiles
+    const updateData: any = {
+      updated_at: new Date().toISOString(),
+    };
+
+    const periodStart = getSubscriptionPeriodStart(subscription);
+    const periodEnd = getSubscriptionPeriodEnd(subscription);
+
+    if (periodStart) {
+      updateData.stripe_current_period_start = new Date(
+        periodStart * 1000
+      ).toISOString();
+    }
+    if (periodEnd) {
+      updateData.stripe_current_period_end = new Date(
+        periodEnd * 1000
+      ).toISOString();
+    }
+
+    const { error: updateError } = await getSupabase()
+      .from('profiles')
+      .update(updateData)
+      .eq('id', userId);
+
+    if (updateError) {
+      console.error('Error updating billing period:', updateError);
+    }
+
+    // Resolve the plan so we know how many credits to add.
+    // Fallback to the invoice line item price ID if subscription items are missing.
+    const priceId =
+      subscription.items?.data?.[0]?.price?.id ||
+      invoice?.lines?.data?.[0]?.price?.id ||
+      invoice?.lines?.data?.[0]?.pricing?.price_details?.price;
+    const plan = await resolvePlanFromPriceId(priceId);
+
+    // Track what was actually credited so admin reporting reflects reality even
+    // when the amount-based fallback fires (plan unresolved but credits added).
+    let creditedAmount: number | undefined = plan?.creditsPerMonth;
+    let creditedTier: string | undefined = plan?.id;
+
+    if (plan?.creditsPerMonth) {
+      try {
+        const supabase = getSupabase();
+        const { error: creditError } = await supabase.rpc('add_user_credits', {
+          p_user_id: userId,
+          p_amount: plan.creditsPerMonth,
+          p_transaction_type: 'subscription',
+          p_description: `${plan.name} subscription renewal`,
+          p_metadata: {
+            stripe_invoice_id: invoice.id,
+            stripe_subscription_id: subscriptionId,
+            billing_reason: invoice.billing_reason || 'subscription_cycle',
+            price_paid: invoice.amount_paid || 0,
+          },
+        });
+
+        if (creditError) {
+          console.error(
+            '❌ Credit addition failed on renewal:',
+            creditError.message
+          );
+        } else {
+          console.log(
+            `✅ Added ${plan.creditsPerMonth} credits for ${plan.name} renewal for user:`,
+            userId
+          );
+        }
+      } catch (error) {
+        console.error('❌ Error adding renewal credits:', error);
       }
-      if (subscription.current_period_end) {
-        updateData.stripe_current_period_end = new Date(
-          subscription.current_period_end * 1000
-        ).toISOString();
+    } else {
+      // Last-resort fallback: derive credits from invoice amount so the user is
+      // not stranded if price IDs are misconfigured. Mirrors the manual-sync logic.
+      const amountCents = invoice.amount_paid || 0;
+      let fallbackCredits: number | null = null;
+      let fallbackTier: string | null = null;
+      if (amountCents > 0 && amountCents <= 999) {
+        fallbackCredits = 20;
+        fallbackTier = 'basic';
+      } else if (amountCents <= 2999) {
+        fallbackCredits = 60;
+        fallbackTier = 'starter';
+      } else if (amountCents <= 4999) {
+        fallbackCredits = 150;
+        fallbackTier = 'professional';
       }
 
-      const { error: updateError } = await getSupabase()
-        .from('profiles')
-        .update(updateData)
-        .eq('id', userId);
-
-      if (updateError) {
-        console.error('Error updating billing period:', updateError);
-      }
-
-      // Resolve the plan so we know how many credits to add
-      const priceId = subscription.items?.data?.[0]?.price?.id;
-      const plan = await resolvePlanFromPriceId(priceId);
-
-      // Add renewal credits directly via add_user_credits RPC.
-      // Previously this called check_credit_reset_needed which only returned
-      // a boolean and never actually added credits — so users were charged
-      // but never received their monthly credits on renewal.
-      if (plan?.creditsPerMonth) {
+      if (fallbackCredits) {
+        console.warn(
+          `⚠️ Plan not resolved from price ID (${priceId}); falling back to amount-based ${fallbackTier} (${fallbackCredits} credits) for invoice ${invoice.id}`
+        );
         try {
-          const supabase = getSupabase();
-          const { error: creditError } = await supabase.rpc(
+          const { error: creditError } = await getSupabase().rpc(
             'add_user_credits',
             {
               p_user_id: userId,
-              p_amount: plan.creditsPerMonth,
+              p_amount: fallbackCredits,
               p_transaction_type: 'subscription',
-              p_description: `${plan.name} subscription renewal`,
+              p_description: `${fallbackTier} subscription renewal (amount-based fallback)`,
               p_metadata: {
                 stripe_invoice_id: invoice.id,
-                stripe_subscription_id: typeof invoice.subscription === 'string'
-                  ? invoice.subscription
-                  : invoice.subscription?.id,
-                billing_reason: 'subscription_cycle',
-                price_paid: invoice.amount_paid || 0,
+                stripe_subscription_id: subscriptionId,
+                billing_reason: invoice.billing_reason || 'subscription_cycle',
+                price_paid: amountCents,
+                fallback: 'amount',
               },
             }
           );
-
           if (creditError) {
-            console.error('❌ Credit addition failed on renewal:', creditError.message);
-          } else {
-            console.log(
-              `✅ Added ${plan.creditsPerMonth} credits for ${plan.name} renewal for user:`,
-              userId
+            console.error(
+              '❌ Fallback credit addition failed on renewal:',
+              creditError.message
             );
+          } else {
+            creditedAmount = fallbackCredits;
+            creditedTier = fallbackTier ?? undefined;
           }
         } catch (error) {
-          console.error('❌ Error adding renewal credits:', error);
+          console.error('❌ Error adding fallback renewal credits:', error);
         }
       } else {
         console.warn(
           '⚠️ Could not determine plan credits for renewal. Price ID:',
-          priceId
+          priceId,
+          'Amount:',
+          amountCents
         );
       }
-
-      // Log the renewal payment to payment_transactions
-      await logPaymentTransaction({
-        userId,
-        stripePaymentIntentId: typeof invoice.payment_intent === 'string'
-          ? invoice.payment_intent
-          : invoice.payment_intent?.id,
-        stripeCheckoutSessionId: `invoice_${invoice.id}`, // Use invoice ID as unique key
-        stripeCustomerId: typeof invoice.customer === 'string'
-          ? invoice.customer
-          : invoice.customer?.id,
-        stripeSubscriptionId: typeof invoice.subscription === 'string'
-          ? invoice.subscription
-          : invoice.subscription?.id,
-        amount: invoice.amount_paid || 0,
-        paymentType: 'subscription',
-        creditsPurchased: plan?.creditsPerMonth,
-        subscriptionTier: plan?.id,
-        metadata: {
-          billingReason: invoice.billing_reason,
-          invoiceId: invoice.id,
-          planName: plan?.name || 'subscription',
-          isRenewal: true,
-        },
-      });
-
-      console.log('✅ Subscription renewal payment logged for user:', userId);
     }
+
+    // Log the renewal payment to payment_transactions
+    await logPaymentTransaction({
+      userId,
+      stripePaymentIntentId: paymentIntentId,
+      stripeCheckoutSessionId: invoiceSessionKey,
+      stripeCustomerId: customerId,
+      stripeSubscriptionId: subscriptionId,
+      amount: invoice.amount_paid || 0,
+      paymentType: 'subscription',
+      creditsPurchased: creditedAmount,
+      subscriptionTier: creditedTier,
+      metadata: {
+        billingReason: invoice.billing_reason,
+        invoiceId: invoice.id,
+        planName: plan?.name || creditedTier || 'subscription',
+        isRenewal: true,
+        ...(plan ? {} : { resolvedVia: 'amount_fallback' }),
+      },
+    });
+
+    console.log('✅ Subscription renewal payment logged for user:', userId);
+    return;
   }
 
-  // Handle initial subscription payment (first invoice after checkout)
-  if (invoice.subscription && invoice.billing_reason === 'subscription_create') {
-    console.log('📝 Initial subscription invoice - payment already logged via checkout.session.completed');
-    // No need to log again - handleCheckoutSessionCompleted already records the initial payment
+  // Initial subscription payment (first invoice after checkout) is logged via
+  // checkout.session.completed — no need to log it again here.
+  if (subscriptionId && invoice.billing_reason === 'subscription_create') {
+    console.log(
+      '📝 Initial subscription invoice - payment already logged via checkout.session.completed'
+    );
   }
 }
 
@@ -1037,12 +1334,15 @@ async function handleCheckoutSessionCompleted(session: any) {
 
           if (user?.email) {
             console.log('📧 Sending subscription email to:', user.email);
+            const subPeriodEnd = getSubscriptionPeriodEnd(subscription);
             await emailService.sendSubscriptionEmail({
               email: user.email,
               firstName: profile?.first_name || '',
               action: 'created',
               planName: plan.name,
-              nextBillingDate: new Date(subscription.current_period_end * 1000),
+              nextBillingDate: subPeriodEnd
+                ? new Date(subPeriodEnd * 1000)
+                : undefined,
             });
 
             // Also send purchase confirmation
@@ -1074,7 +1374,7 @@ async function handleCheckoutSessionCompleted(session: any) {
   if (session.mode === 'payment') {
     console.log('🎯 Processing pay-as-you-go payment from checkout session');
 
-    const credits = parseInt(session.metadata?.credits || '0');
+    const credits = resolveCreditsFromSession(session);
     const customerId = session.customer;
 
     if (credits > 0) {
