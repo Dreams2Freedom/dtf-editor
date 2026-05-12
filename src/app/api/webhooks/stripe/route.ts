@@ -853,6 +853,11 @@ async function handleInvoicePaymentSucceeded(invoice: any) {
       invoice?.lines?.data?.[0]?.pricing?.price_details?.price;
     const plan = await resolvePlanFromPriceId(priceId);
 
+    // Track what was actually credited so admin reporting reflects reality even
+    // when the amount-based fallback fires (plan unresolved but credits added).
+    let creditedAmount: number | undefined = plan?.creditsPerMonth;
+    let creditedTier: string | undefined = plan?.id;
+
     if (plan?.creditsPerMonth) {
       try {
         const supabase = getSupabase();
@@ -926,6 +931,9 @@ async function handleInvoicePaymentSucceeded(invoice: any) {
               '❌ Fallback credit addition failed on renewal:',
               creditError.message
             );
+          } else {
+            creditedAmount = fallbackCredits;
+            creditedTier = fallbackTier ?? undefined;
           }
         } catch (error) {
           console.error('❌ Error adding fallback renewal credits:', error);
@@ -949,13 +957,14 @@ async function handleInvoicePaymentSucceeded(invoice: any) {
       stripeSubscriptionId: subscriptionId,
       amount: invoice.amount_paid || 0,
       paymentType: 'subscription',
-      creditsPurchased: plan?.creditsPerMonth,
-      subscriptionTier: plan?.id,
+      creditsPurchased: creditedAmount,
+      subscriptionTier: creditedTier,
       metadata: {
         billingReason: invoice.billing_reason,
         invoiceId: invoice.id,
-        planName: plan?.name || 'subscription',
+        planName: plan?.name || creditedTier || 'subscription',
         isRenewal: true,
+        ...(plan ? {} : { resolvedVia: 'amount_fallback' }),
       },
     });
 
