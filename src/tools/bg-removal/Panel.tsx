@@ -4,7 +4,6 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   AlertTriangle,
   Download,
-  ExternalLink,
   Loader2,
   Save,
   RotateCcw,
@@ -45,7 +44,14 @@ interface BackgroundRemovalPanelProps {
   onSave: (canvas: HTMLCanvasElement, provider: 'in-house') => Promise<void>;
   onCancel: () => void;
   savedImageId: string | null;
-  advancedBgUrl?: string;
+  /**
+   * Phase 2.8: when this panel is mounted as the in-house "backup" mode
+   * inside the Studio bg-removal tool, the adapter passes a callback
+   * that flips back to the ClippingMagic panel. Rendered as a small
+   * "← Back to ClippingMagic" header button. Omitted when the panel
+   * runs standalone (e.g. /process/background-removal).
+   */
+  onSwitchToCm?: () => void;
 }
 
 const STATUS_LABELS: Record<string, string> = {
@@ -254,7 +260,7 @@ export function BackgroundRemovalPanel({
   onSave,
   onCancel,
   savedImageId,
-  advancedBgUrl,
+  onSwitchToCm,
 }: BackgroundRemovalPanelProps) {
   // Canvases & cached image data
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -1440,6 +1446,24 @@ export function BackgroundRemovalPanel({
 
   return (
     <div className="flex-1 flex flex-col min-h-0">
+      {onSwitchToCm && (
+        <div className="bg-blue-50 border-b border-blue-100 px-4 py-2">
+          <div className="max-w-[1800px] mx-auto flex items-center gap-3">
+            <p className="text-xs text-blue-700 flex-1">
+              You&apos;re using the experimental in-house background remover
+              (free). For best results on complex subjects, switch back to
+              ClippingMagic (1 credit).
+            </p>
+            <button
+              onClick={onSwitchToCm}
+              className="text-xs font-medium text-blue-700 hover:text-blue-900 whitespace-nowrap"
+            >
+              ← Back to ClippingMagic
+            </button>
+          </div>
+        </div>
+      )}
+
       {upgradeRequired && (
         <div className="bg-amber-50 border-b border-amber-200 px-4 py-3">
           <div className="max-w-[1800px] mx-auto flex items-center gap-3">
@@ -1451,15 +1475,22 @@ export function BackgroundRemovalPanel({
                 className="font-medium underline hover:text-amber-900"
               >
                 Upgrade your plan
-              </a>{' '}
-              or use the{' '}
-              <a
-                href={advancedBgUrl || '/process/background-removal'}
-                className="font-medium underline hover:text-amber-900"
-              >
-                Advanced remover
-              </a>{' '}
-              (1 credit).
+              </a>
+              {onSwitchToCm ? (
+                <>
+                  {' '}
+                  or{' '}
+                  <button
+                    onClick={onSwitchToCm}
+                    className="font-medium underline hover:text-amber-900"
+                  >
+                    switch to ClippingMagic
+                  </button>{' '}
+                  (1 credit).
+                </>
+              ) : (
+                '.'
+              )}
             </p>
           </div>
         </div>
@@ -2252,21 +2283,22 @@ export function BackgroundRemovalPanel({
               </div>
             )}
 
-            <div className="mt-auto pt-4 border-t border-gray-100">
-              <p className="text-xs text-gray-500 mb-2">
-                Need cleaner edges for hair, fur, or fine detail?
-              </p>
-              <a
-                href={advancedBgUrl || '/process/background-removal'}
-                className="w-full flex items-center justify-center gap-2 px-3 py-2 text-xs text-gray-600 hover:text-gray-900 border border-gray-200 hover:border-gray-300 rounded-lg transition-colors"
-              >
-                <ExternalLink className="w-3.5 h-3.5" />
-                Advanced BG Removal (1 credit)
-              </a>
-              <p className="text-xs text-gray-400 mt-1.5">
-                Uses ClippingMagic AI — best quality for complex subjects.
-              </p>
-            </div>
+            {onSwitchToCm ? (
+              <div className="mt-auto pt-4 border-t border-gray-100">
+                <p className="text-xs text-gray-500 mb-2">
+                  Need cleaner edges for hair, fur, or fine detail?
+                </p>
+                <button
+                  onClick={onSwitchToCm}
+                  className="w-full flex items-center justify-center gap-2 px-3 py-2 text-xs text-gray-600 hover:text-gray-900 border border-gray-200 hover:border-gray-300 rounded-lg transition-colors"
+                >
+                  ← Back to ClippingMagic (1 credit)
+                </button>
+                <p className="text-xs text-gray-400 mt-1.5">
+                  Best quality for complex subjects.
+                </p>
+              </div>
+            ) : null}
           </div>
         </div>
       </div>

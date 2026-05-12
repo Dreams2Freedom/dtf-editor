@@ -40,6 +40,7 @@ interface NavItem {
     href: string;
     icon: React.ComponentType<{ className?: string }>;
     description?: string;
+    badge?: string;
   }[];
 }
 
@@ -120,6 +121,7 @@ export function Header() {
               href: '/studio?tool=halftone',
               icon: Grid3x3,
               description: 'DTF-ready dot pattern',
+              badge: 'ALPHA',
             },
             {
               name: 'Generate Image',
@@ -233,8 +235,13 @@ export function Header() {
                                 className={`w-4 h-4 mt-0.5 flex-shrink-0 ${isActive(subitem.href) ? 'text-amber-600' : 'text-gray-400'}`}
                               />
                               <div>
-                                <div className="text-sm font-medium">
+                                <div className="text-sm font-medium flex items-center gap-1.5">
                                   {subitem.name}
+                                  {subitem.badge && (
+                                    <span className="px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide rounded bg-amber-100 text-amber-700 leading-none">
+                                      {subitem.badge}
+                                    </span>
+                                  )}
                                 </div>
                                 {subitem.description && (
                                   <div className="text-xs text-gray-400 mt-0.5">
@@ -392,6 +399,11 @@ export function Header() {
                         className={`w-4 h-4 ${isActive(subitem.href) ? 'text-amber-600' : 'text-gray-400'}`}
                       />
                       {subitem.name}
+                      {subitem.badge && (
+                        <span className="ml-1 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide rounded bg-amber-100 text-amber-700 leading-none">
+                          {subitem.badge}
+                        </span>
+                      )}
                     </Link>
                   ))}
                 </div>

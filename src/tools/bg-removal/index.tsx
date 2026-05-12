@@ -3,16 +3,23 @@
 /**
  * BG Removal tool — Studio plugin entry point.
  *
- * Phase 2.0 Step 5: introduces the StudioToolPanelProps adapter so the
- * existing BackgroundRemovalPanel (whose props were designed before
- * the plugin contract existed) can mount inside the new plugin-driven
- * Studio shell without touching its 1700+ lines of internal logic.
+ * Phase 2.8: ClippingMagic is now the DEFAULT bg-removal experience.
+ * The in-house panel (`BackgroundRemovalPanel`) is retained as a
+ * secondary "backup" reachable via a button at the bottom of the CM
+ * panel. The two panels share the StudioToolPanelProps surface; this
+ * adapter is the only place that knows about the mode toggle.
+ *
+ * History:
+ *   - Phase 2.0 introduced the StudioToolPanelProps adapter.
+ *   - Phase 2.7 added stranded-component carving to the in-house panel.
+ *   - Phase 2.8 (this) flipped the default to CM and demoted in-house.
  */
 
-import { useCallback } from 'react';
+import { useCallback, useState } from 'react';
 import { Wand2 } from 'lucide-react';
 
 import { BackgroundRemovalPanel } from './Panel';
+import { ClippingMagicPanel } from './ClippingMagicPanel';
 import type { StudioTool, StudioToolPanelProps } from '../types';
 
 // Re-exports kept for any standalone callers (e.g. /process/background-removal).
@@ -26,16 +33,13 @@ export {
   useBackgroundRemoval,
 } from './useBackgroundRemoval';
 
-/**
- * Adapter: maps the legacy `onSave(canvas, provider)` signature to the
- * Studio plugin contract's `onApply(canvas, meta)`. The Studio shell
- * decides what to do with the canvas (chain into the next tool, save
- * to gallery, etc.) — adapter just shuttles the data across.
- */
+type Mode = 'cm' | 'inhouse';
+
 function BgRemovalToolPanel(props: StudioToolPanelProps) {
   const { image, imageId, onApply, onCancel } = props;
+  const [mode, setMode] = useState<Mode>('cm');
 
-  const handleSave = useCallback(
+  const handleInHouseSave = useCallback(
     async (canvas: HTMLCanvasElement, provider: 'in-house') => {
       onApply(canvas, {
         operation: 'background_removal_in_house',
@@ -45,17 +49,22 @@ function BgRemovalToolPanel(props: StudioToolPanelProps) {
     [onApply]
   );
 
-  const advancedBgUrl = imageId
-    ? `/process/background-removal?imageId=${imageId}`
-    : '/process/background-removal';
+  if (mode === 'cm') {
+    return (
+      <ClippingMagicPanel
+        {...props}
+        onSwitchToInHouse={() => setMode('inhouse')}
+      />
+    );
+  }
 
   return (
     <BackgroundRemovalPanel
       image={image}
-      onSave={handleSave}
+      onSave={handleInHouseSave}
       onCancel={onCancel ?? (() => undefined)}
-      savedImageId={null}
-      advancedBgUrl={advancedBgUrl}
+      savedImageId={imageId}
+      onSwitchToCm={() => setMode('cm')}
     />
   );
 }
@@ -65,6 +74,6 @@ export const bgRemovalTool: StudioTool = {
   label: 'Background Removal',
   icon: Wand2,
   description:
-    'Remove or refine the background of your image with AI Brush, color picker, or AI-only modes.',
+    'Remove or refine the background of your image with the ClippingMagic editor — or switch to our experimental in-house tool.',
   Panel: BgRemovalToolPanel,
 };

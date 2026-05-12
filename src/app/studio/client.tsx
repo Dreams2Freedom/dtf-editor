@@ -325,6 +325,11 @@ export default function StudioClient() {
                 >
                   <Icon className="w-3.5 h-3.5" />
                   {tool.label}
+                  {tool.badge && (
+                    <span className="ml-0.5 px-1 py-0.5 text-[9px] font-semibold uppercase tracking-wide rounded bg-amber-100 text-amber-700 leading-none">
+                      {tool.badge}
+                    </span>
+                  )}
                 </button>
               );
             })}
@@ -340,6 +345,7 @@ export default function StudioClient() {
               {STUDIO_TOOLS.map(tool => (
                 <option key={tool.id} value={tool.id}>
                   {tool.label}
+                  {tool.badge ? ` (${tool.badge})` : ''}
                 </option>
               ))}
             </select>

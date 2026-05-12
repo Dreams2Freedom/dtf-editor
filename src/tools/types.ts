@@ -43,6 +43,12 @@ export interface StudioTool {
   };
   /** The React component the Studio mounts when this tool is active. */
   Panel: ComponentType<StudioToolPanelProps>;
+  /**
+   * Optional release-state badge surfaced next to the tool's label
+   * everywhere it appears (tool picker, dashboard cards, header nav).
+   * e.g. 'ALPHA', 'BETA', 'NEW'. Rendered as a small uppercase pill.
+   */
+  badge?: string;
 }
 
 export interface StudioToolPanelProps {

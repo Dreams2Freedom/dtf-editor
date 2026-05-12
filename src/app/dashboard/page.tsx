@@ -73,6 +73,7 @@ const tools = [
     color: 'text-blue-600',
     bg: 'bg-blue-50',
     hoverBorder: 'hover:border-blue-200',
+    badge: 'ALPHA',
   },
   {
     name: 'AI Generate',
@@ -243,8 +244,13 @@ export default function DashboardPage() {
                         className={`w-5 h-5 sm:w-6 sm:h-6 ${tool.color}`}
                       />
                     </div>
-                    <h3 className="font-semibold text-gray-900 text-xs sm:text-sm text-center">
+                    <h3 className="font-semibold text-gray-900 text-xs sm:text-sm text-center flex items-center gap-1.5">
                       {tool.name}
+                      {'badge' in tool && tool.badge && (
+                        <span className="px-1 py-0.5 text-[9px] font-semibold uppercase tracking-wide rounded bg-amber-100 text-amber-700 leading-none">
+                          {tool.badge}
+                        </span>
+                      )}
                     </h3>
                     <p className="text-gray-400 text-[10px] sm:text-xs text-center mt-0.5 hidden sm:block">
                       {tool.description}

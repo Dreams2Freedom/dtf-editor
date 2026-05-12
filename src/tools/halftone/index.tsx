@@ -60,6 +60,7 @@ export const halftoneTool: StudioTool = {
   description:
     'DTF-ready halftone — transparent PNG of black dots. Free on Starter+ plans.',
   Panel: HalftoneToolPanel,
+  badge: 'ALPHA',
 };
 
 export { HalftonePanel } from './Panel';

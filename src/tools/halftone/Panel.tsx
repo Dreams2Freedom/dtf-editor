@@ -216,7 +216,12 @@ export function HalftonePanel({
         <div className="w-full lg:w-72 bg-white border-t lg:border-t-0 lg:border-l border-gray-200 flex flex-col overflow-y-auto">
           <div className="p-4 flex flex-col gap-4 flex-1">
             <div className="rounded-lg border border-blue-200 bg-blue-50/60 p-3 text-xs text-blue-900">
-              <p className="font-medium mb-1">DTF Halftone</p>
+              <p className="font-medium mb-1 flex items-center gap-1.5">
+                DTF Halftone
+                <span className="px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide rounded bg-amber-100 text-amber-700">
+                  Alpha
+                </span>
+              </p>
               <p className="text-blue-800/90">
                 Outputs a transparent PNG of black dots — your RIP software
                 handles the white underbase.
