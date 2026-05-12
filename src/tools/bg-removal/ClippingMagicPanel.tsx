@@ -213,10 +213,7 @@ export function ClippingMagicPanel({
 
   // Recompute when the working image changes (e.g., user just ran CM and
   // the cutout was committed back via onApply).
-  const hasTransparency = useMemo(
-    () => detectHasTransparency(image),
-    [image]
-  );
+  const hasTransparency = useMemo(() => detectHasTransparency(image), [image]);
 
   const isBusy =
     status.kind === 'uploading' ||
