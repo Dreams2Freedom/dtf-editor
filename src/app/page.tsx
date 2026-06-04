@@ -12,7 +12,6 @@ import { HowItWorks } from '@/components/public/landing/HowItWorks';
 import { ToolShowcase } from '@/components/public/landing/ToolShowcase';
 import { DpiChecker } from '@/components/public/landing/DpiChecker';
 import { PricingTeaser } from '@/components/public/landing/PricingTeaser';
-import { PrintShopExplainer } from '@/components/public/landing/PrintShopExplainer';
 import { FaqAccordion } from '@/components/public/landing/FaqAccordion';
 import { FinalCta } from '@/components/public/landing/FinalCta';
 import { SiteFooter } from '@/components/public/landing/SiteFooter';
@@ -53,7 +52,6 @@ export default function HomePage() {
         <ToolShowcase />
         <DpiChecker />
         <PricingTeaser />
-        <PrintShopExplainer />
         <FaqAccordion />
         <FinalCta />
       </main>

@@ -46,15 +46,6 @@ export function HowItWorks() {
             </div>
           ))}
         </div>
-
-        <div className={styles.cta}>
-          <a className="btn btn--primary btn--lg" href="/auth/signup">
-            Start a Hobbyist Trial
-          </a>
-          <a className="btn btn--ghost btn--lg" href="#dpi">
-            Check DPI Free
-          </a>
-        </div>
       </div>
     </section>
   );

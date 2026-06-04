@@ -302,12 +302,12 @@
 }
 .dtfLanding .brand__logo {
   display: block;
-  height: 40px;
+  height: 56px;
   width: auto;
-  max-width: 200px;
+  max-width: 240px;
 }
 @media (min-width: 900px) {
   .dtfLanding .brand__logo {
-    height: 52px;
+    height: 80px;
   }
 }

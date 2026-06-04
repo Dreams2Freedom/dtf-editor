@@ -10,11 +10,11 @@
   display: flex;
   align-items: center;
   gap: 18px;
-  height: 68px;
+  height: 76px;
 }
 @media (min-width: 900px) {
   .hdr__inner {
-    height: 84px;
+    height: 104px;
   }
 }
 .hdr__nav {

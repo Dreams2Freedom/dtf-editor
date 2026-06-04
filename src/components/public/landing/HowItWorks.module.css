@@ -57,20 +57,3 @@
     gap: 20px;
   }
 }
-
-.cta {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 12px;
-  margin-top: 28px;
-  max-width: 380px;
-  margin-inline: auto;
-}
-@media (min-width: 560px) {
-  .cta {
-    grid-auto-flow: column;
-    grid-template-columns: repeat(2, minmax(0, 220px));
-    justify-content: center;
-    max-width: none;
-  }
-}

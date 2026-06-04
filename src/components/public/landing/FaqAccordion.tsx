@@ -26,6 +26,10 @@ const FAQS = [
     a: "If a tool fails to process your file, the credit is automatically refunded to your account. You're never charged for a result you didn't get.",
   },
   {
+    q: 'How do credits work?',
+    a: 'Credits are used to run specific tools inside DTF Editor — like background removal, image upscaling, vectorization, and AI image generation. Monthly plans include a set number of credits each month, but if you would rather not subscribe, you can buy credit packs instead and use those credits on the paid tools you need. The Free DPI Checker never uses credits and is always free. And if a processing job fails, the credit is automatically refunded.',
+  },
+  {
     q: 'Do credits roll over?',
     a: "Monthly plan credits don't roll over month to month. Credits purchased as Pay As You Go packs never expire, so buy those if you process artwork occasionally.",
   },
