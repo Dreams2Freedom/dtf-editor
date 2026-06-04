@@ -5,14 +5,16 @@ import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/stores/authStore';
 import { useReferralTracking } from '@/hooks/useReferralTracking';
 import { LoadingPage } from '@/components/ui/LoadingPage';
-import { LandingHero } from '@/components/public/LandingHero';
-import { ToolShowcase } from '@/components/public/ToolShowcase';
-import { HowItWorks } from '@/components/public/HowItWorks';
-import { WhyDTFEditor } from '@/components/public/WhyDTFEditor';
-import { PricingTeaser } from '@/components/public/PricingTeaser';
-import { LandingFAQ } from '@/components/public/LandingFAQ';
-import { LandingCTA } from '@/components/public/LandingCTA';
-import { TOOLS } from '@/lib/publicData';
+import { SiteHeader } from '@/components/public/landing/SiteHeader';
+import { Hero } from '@/components/public/landing/Hero';
+import { TestimonialTicker } from '@/components/public/landing/TestimonialTicker';
+import { HowItWorks } from '@/components/public/landing/HowItWorks';
+import { ToolShowcase } from '@/components/public/landing/ToolShowcase';
+import { DpiChecker } from '@/components/public/landing/DpiChecker';
+import { PricingTeaser } from '@/components/public/landing/PricingTeaser';
+import { FaqAccordion } from '@/components/public/landing/FaqAccordion';
+import { SiteFooter } from '@/components/public/landing/SiteFooter';
+import '@/components/public/landing/landing.css';
 
 export default function HomePage() {
   const router = useRouter();
@@ -40,26 +42,18 @@ export default function HomePage() {
   }
 
   return (
-    <main className="min-h-screen">
-      <LandingHero />
-
-      {/* Tool Showcases */}
-      <div id="features" className="bg-white">
-        {TOOLS.map((tool, i) => (
-          <div key={tool.slug}>
-            <ToolShowcase tool={tool} index={i} />
-            {i < TOOLS.length - 1 && (
-              <div className="h-px bg-gray-100 max-w-7xl mx-auto" />
-            )}
-          </div>
-        ))}
-      </div>
-
-      <HowItWorks />
-      <WhyDTFEditor />
-      <PricingTeaser />
-      <LandingFAQ />
-      <LandingCTA />
-    </main>
+    <div className="dtfLanding" id="top">
+      <SiteHeader />
+      <main>
+        <Hero />
+        <TestimonialTicker />
+        <HowItWorks />
+        <ToolShowcase />
+        <DpiChecker />
+        <PricingTeaser />
+        <FaqAccordion />
+      </main>
+      <SiteFooter />
+    </div>
   );
 }

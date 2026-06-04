@@ -5,10 +5,10 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Mail, ArrowLeft } from 'lucide-react';
-import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { useAuthContext } from '@/contexts/AuthContext';
 import Link from 'next/link';
+import styles from './Auth.module.css';
 
 // Forgot password form schema
 const forgotPasswordSchema = z.object({
@@ -55,26 +55,21 @@ export function ForgotPasswordForm({ onSuccess }: ForgotPasswordFormProps) {
 
   if (isSubmitted) {
     return (
-      <div className="w-full max-w-md mx-auto">
-        <div className="text-center mb-8">
-          <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-green-100 mb-4">
-            <Mail className="h-6 w-6 text-green-600" />
+      <div>
+        <div className={styles.header}>
+          <div className={styles.statusIcon}>
+            <Mail className="h-6 w-6" aria-hidden="true" />
           </div>
-          <h1 className="text-2xl font-bold text-gray-900 mb-2">
-            Check your email
-          </h1>
-          <p className="text-gray-600">
+          <h1 className={styles.title}>Check your email</h1>
+          <p className={styles.subtitle}>
             We&apos;ve sent you a password reset link. Please check your email
             and follow the instructions.
           </p>
         </div>
 
-        <div className="text-center">
-          <Link
-            href="/auth/login"
-            className="inline-flex items-center text-sm text-primary-600 hover:text-primary-500"
-          >
-            <ArrowLeft className="h-4 w-4 mr-2" />
+        <div className={`${styles.linkRow} ${styles.center}`}>
+          <Link href="/auth/login" className={`${styles.link} ${styles.backLink}`}>
+            <ArrowLeft className="h-4 w-4" aria-hidden="true" />
             Back to sign in
           </Link>
         </div>
@@ -83,18 +78,16 @@ export function ForgotPasswordForm({ onSuccess }: ForgotPasswordFormProps) {
   }
 
   return (
-    <div className="w-full max-w-md mx-auto">
-      <div className="text-center mb-8">
-        <h1 className="text-2xl font-bold text-gray-900 mb-2">
-          Forgot your password?
-        </h1>
-        <p className="text-gray-600">
-          Enter your email address and we&apos;ll send you a link to reset your
-          password.
+    <div>
+      <div className={styles.header}>
+        <h1 className={styles.title}>Reset your password</h1>
+        <p className={styles.subtitle}>
+          Enter your email and we&apos;ll send instructions to get you back into
+          your account.
         </p>
       </div>
 
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+      <form onSubmit={handleSubmit(onSubmit)} className={styles.form}>
         {/* Email Field */}
         <Input
           label="Email address"
@@ -105,22 +98,23 @@ export function ForgotPasswordForm({ onSuccess }: ForgotPasswordFormProps) {
           {...register('email')}
         />
 
+        {/* Form Error */}
+        {errors.root && (
+          <div className={`${styles.alert} ${styles.alertError}`} role="alert">
+            {errors.root.message}
+          </div>
+        )}
+
         {/* Submit Button */}
-        <button
-          type="submit"
-          className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-4 rounded-lg shadow-sm border-2 border-blue-500"
-          disabled={loading}
-        >
-          {loading ? 'Sending...' : 'Send reset link'}
+        <button type="submit" className={styles.btnPrimary} disabled={loading}>
+          {loading && <span className={styles.spinner} aria-hidden="true" />}
+          {loading ? 'Sending…' : 'Send Reset Link'}
         </button>
 
         {/* Back to Login */}
-        <div className="text-center">
-          <Link
-            href="/auth/login"
-            className="inline-flex items-center text-sm text-primary-600 hover:text-primary-500"
-          >
-            <ArrowLeft className="h-4 w-4 mr-2" />
+        <div className={`${styles.linkRow} ${styles.center}`}>
+          <Link href="/auth/login" className={`${styles.link} ${styles.backLink}`}>
+            <ArrowLeft className="h-4 w-4" aria-hidden="true" />
             Back to sign in
           </Link>
         </div>

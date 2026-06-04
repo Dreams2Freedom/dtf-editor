@@ -1,0 +1,35 @@
+.logos {
+  padding-block: 30px;
+  border-block: 1px solid var(--line);
+  background: #fff;
+}
+.logos__label {
+  text-align: center;
+  font-size: 12.5px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+.logos__row {
+  display: grid;
+  grid-template-columns: repeat(2, auto);
+  justify-content: center;
+  align-items: center;
+  gap: 16px 30px;
+  margin-top: 18px;
+}
+.logos__row span {
+  font-weight: 700;
+  font-size: 16px;
+  color: var(--zinc-400);
+  letter-spacing: -0.01em;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+}
+@media (min-width: 760px) {
+  .logos__row {
+    grid-template-columns: repeat(5, auto);
+  }
+}

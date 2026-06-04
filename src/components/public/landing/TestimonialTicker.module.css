@@ -1,0 +1,120 @@
+/* ============================================================
+   CUSTOMER PROOF — single featured, award-style testimonial.
+   (Slider/ticker functionality intentionally removed for now;
+   see TODO in TestimonialTicker.tsx for the future version.)
+   ============================================================ */
+.strip {
+  padding-block: 48px;
+  border-block: 1px solid var(--line);
+  background: var(--zinc-50, #fafafa);
+}
+.label {
+  text-align: center;
+  font-size: 12.5px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+  margin: 0 0 20px;
+}
+
+/* Featured award-style card */
+.card {
+  position: relative;
+  max-width: 880px;
+  margin: 0 auto;
+  padding: 40px 44px 32px;
+  display: grid;
+  justify-items: center;
+  gap: 18px;
+  text-align: center;
+  background: var(--card-bg);
+  border: 1px solid var(--line);
+  /* Blue structural emphasis along the top edge of the proof block. */
+  border-top: 3px solid var(--blue);
+  border-radius: var(--radius-lg, 14px);
+  box-shadow: var(--shadow-lift);
+}
+
+/* Small badge eyebrow */
+.card__eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 12px;
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--blue);
+  background: var(--blue-tint);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-full);
+}
+.card__eyebrowIcon {
+  color: var(--blue);
+}
+
+/* Star rating row — sparing orange accent */
+.card__stars {
+  display: inline-flex;
+  gap: 4px;
+}
+.card__star {
+  color: var(--orange);
+  fill: var(--orange);
+}
+
+/* Large featured quote */
+.card__quote {
+  position: relative;
+  margin: 0;
+  max-width: 640px;
+  font-size: 22px;
+  line-height: 1.4;
+  font-weight: 600;
+  color: var(--ink);
+}
+.card__quoteMark {
+  display: block;
+  margin: 0 auto 6px;
+  color: var(--blue);
+  opacity: 0.18;
+}
+
+.card__who {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+.card__name {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--ink);
+}
+.card__ctx {
+  font-size: 13px;
+  color: var(--ink-3);
+}
+
+/* Temporary placeholder reminder */
+.card__note {
+  margin: 6px 0 0;
+  font-size: 11.5px;
+  font-style: italic;
+  color: var(--ink-3);
+}
+
+@media (max-width: 640px) {
+  .strip {
+    padding-block: 36px;
+  }
+  .card {
+    padding: 30px 22px 26px;
+    border-radius: var(--radius-md);
+  }
+  .card__quote {
+    font-size: 18px;
+  }
+}

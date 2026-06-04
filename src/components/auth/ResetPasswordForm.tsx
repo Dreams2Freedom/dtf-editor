@@ -8,6 +8,7 @@ import { Lock, Eye, EyeOff, ArrowLeft } from 'lucide-react';
 import { Input } from '@/components/ui/Input';
 import { useAuthContext } from '@/contexts/AuthContext';
 import Link from 'next/link';
+import styles from './Auth.module.css';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { createClient } from '@supabase/supabase-js';
 import { env } from '@/config/env';
@@ -110,26 +111,21 @@ export function ResetPasswordForm({ onSuccess }: ResetPasswordFormProps) {
 
   if (isSubmitted) {
     return (
-      <div className="w-full max-w-md mx-auto">
-        <div className="text-center mb-8">
-          <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-green-100 mb-4">
-            <Lock className="h-6 w-6 text-green-600" />
+      <div>
+        <div className={styles.header}>
+          <div className={styles.statusIcon}>
+            <Lock className="h-6 w-6" aria-hidden="true" />
           </div>
-          <h1 className="text-2xl font-bold text-gray-900 mb-2">
-            Password updated successfully
-          </h1>
-          <p className="text-gray-600">
+          <h1 className={styles.title}>Password updated successfully</h1>
+          <p className={styles.subtitle}>
             Your password has been reset. You can now sign in with your new
             password.
           </p>
         </div>
 
-        <div className="text-center">
-          <Link
-            href="/auth/login"
-            className="inline-flex items-center text-sm text-primary-600 hover:text-primary-500"
-          >
-            <ArrowLeft className="h-4 w-4 mr-2" />
+        <div className={`${styles.linkRow} ${styles.center}`}>
+          <Link href="/auth/login" className={`${styles.link} ${styles.backLink}`}>
+            <ArrowLeft className="h-4 w-4" aria-hidden="true" />
             Back to sign in
           </Link>
         </div>
@@ -138,8 +134,15 @@ export function ResetPasswordForm({ onSuccess }: ResetPasswordFormProps) {
   }
 
   return (
-    <div className="w-full max-w-md mx-auto">
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+    <div>
+      <div className={styles.header}>
+        <h1 className={styles.title}>Create a new password</h1>
+        <p className={styles.subtitle}>
+          Choose a new password to continue using DTF Editor.
+        </p>
+      </div>
+
+      <form onSubmit={handleSubmit(onSubmit)} className={styles.form}>
         {/* Password Field */}
         <div className="relative">
           <Input
@@ -192,44 +195,21 @@ export function ResetPasswordForm({ onSuccess }: ResetPasswordFormProps) {
 
         {/* Error Messages */}
         {errors.root && (
-          <div className="p-3 text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg">
+          <div className={`${styles.alert} ${styles.alertError}`} role="alert">
             {errors.root.message}
           </div>
         )}
 
         {/* Submit Button */}
-        <button
-          type="submit"
-          className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-4 rounded-lg shadow-sm border-2 border-blue-500"
-          disabled={loading}
-        >
-          {loading ? 'Updating password...' : 'Update password'}
+        <button type="submit" className={styles.btnPrimary} disabled={loading}>
+          {loading && <span className={styles.spinner} aria-hidden="true" />}
+          {loading ? 'Updating password…' : 'Update Password'}
         </button>
 
-        {/* Debug Info */}
-        <div className="mt-4 p-3 bg-gray-50 border border-gray-200 rounded-lg text-xs text-gray-600">
-          <p>
-            <strong>Debug Info:</strong>
-          </p>
-          <p>
-            URL Parameters:{' '}
-            {Array.from(searchParams.entries())
-              .map(([k, v]) => `${k}=${v ? 'present' : 'missing'}`)
-              .join(', ')}
-          </p>
-          <p>
-            Current URL:{' '}
-            {typeof window !== 'undefined' ? window.location.href : 'server'}
-          </p>
-        </div>
-
         {/* Back to Login */}
-        <div className="text-center">
-          <Link
-            href="/auth/login"
-            className="inline-flex items-center text-sm text-primary-600 hover:text-primary-500"
-          >
-            <ArrowLeft className="h-4 w-4 mr-2" />
+        <div className={`${styles.linkRow} ${styles.center}`}>
+          <Link href="/auth/login" className={`${styles.link} ${styles.backLink}`}>
+            <ArrowLeft className="h-4 w-4" aria-hidden="true" />
             Back to sign in
           </Link>
         </div>

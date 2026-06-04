@@ -1,0 +1,257 @@
+/* ============================================================
+   PUBLIC PRICING DETAILS — redesigned /pricing page.
+   Scoped under .dtfLanding so it shares the homepage design
+   tokens (landing.css). Reuses the landing plan-card styles
+   (PricingTeaser.module.css) for the comparison cards; this
+   module covers the page-specific sections (how credits work,
+   credit packs, tool table, FAQ, final CTA).
+   ============================================================ */
+
+/* ---- How credits work ---- */
+.credits {
+  display: grid;
+  gap: 28px;
+  align-items: start;
+}
+@media (min-width: 880px) {
+  .credits {
+    grid-template-columns: 1.1fr 0.9fr;
+    gap: 40px;
+  }
+}
+.credits__copy p {
+  margin: 0 0 14px;
+  font-size: 15.5px;
+  line-height: 1.6;
+  color: var(--ink-2);
+}
+.rules {
+  list-style: none;
+  margin: 0;
+  padding: 20px;
+  display: grid;
+  gap: 12px;
+  background: var(--card-bg);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  box-shadow: var(--shadow-card);
+}
+.rules li {
+  display: flex;
+  gap: 10px;
+  font-size: 14px;
+  line-height: 1.45;
+  color: var(--ink-2);
+}
+.rules li svg {
+  flex: none;
+  margin-top: 2px;
+  color: var(--blue);
+}
+.rules li b {
+  color: var(--ink);
+  font-weight: 600;
+}
+
+/* ---- Credit packs ---- */
+.packs {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 16px;
+  margin-top: 8px;
+}
+@media (min-width: 640px) {
+  .packs {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+.pack {
+  position: relative;
+  background: var(--card-bg);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 22px;
+  text-align: center;
+  box-shadow: var(--shadow-card);
+}
+.pack--feat {
+  border-color: var(--orange);
+  box-shadow: 0 0 0 1px var(--orange), var(--shadow-lift);
+}
+.pack__flag {
+  position: absolute;
+  top: -11px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--orange);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  padding: 5px 11px;
+  border-radius: var(--radius-full);
+  white-space: nowrap;
+}
+.pack__credits {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--blue);
+}
+.pack__price {
+  margin: 6px 0 2px;
+  font-size: 30px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: var(--ink);
+}
+.pack__per {
+  font-size: 13px;
+  color: var(--ink-3);
+}
+.packs__note {
+  margin: 18px 0 0;
+  text-align: center;
+  font-size: 13px;
+  color: var(--ink-3);
+}
+
+/* ---- Tool credit table ---- */
+.tableWrap {
+  margin-top: 12px;
+  overflow-x: auto;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  box-shadow: var(--shadow-card);
+  background: var(--card-bg);
+}
+.table {
+  width: 100%;
+  min-width: 640px;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+.table thead th {
+  text-align: left;
+  padding: 14px 18px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--blue);
+  background: var(--blue-tint);
+  border-bottom: 1px solid var(--line);
+}
+.table tbody td {
+  padding: 14px 18px;
+  border-top: 1px solid var(--line);
+  color: var(--ink-2);
+  vertical-align: top;
+}
+.table tbody tr:first-child td {
+  border-top: none;
+}
+.table .tool {
+  font-weight: 600;
+  color: var(--ink);
+  white-space: nowrap;
+}
+.cost {
+  display: inline-block;
+  padding: 2px 10px;
+  border-radius: var(--radius-full);
+  font-size: 12.5px;
+  font-weight: 700;
+  background: var(--surface-raised);
+  color: var(--ink);
+}
+.cost--free {
+  background: var(--green-bg);
+  color: var(--green);
+}
+.cost--paid {
+  background: var(--orange-tint);
+  color: var(--orange-deep);
+}
+
+/* ---- FAQ accordion ---- */
+.faq {
+  display: grid;
+  gap: 12px;
+  max-width: 760px;
+  margin: 0 auto;
+}
+.acc {
+  background: var(--card-bg);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  box-shadow: var(--shadow-card);
+  overflow: hidden;
+}
+.acc__q {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 16px 18px;
+  font-size: 15px;
+  font-weight: 600;
+  text-align: left;
+  color: var(--ink);
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+.acc__q svg {
+  flex: none;
+  color: var(--blue);
+  transition: transform var(--motion-fast);
+}
+.acc.is-open .acc__q svg {
+  transform: rotate(180deg);
+}
+.acc__a {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height var(--motion-fast);
+}
+.acc__a p {
+  margin: 0;
+  padding: 0 18px 18px;
+  font-size: 14.5px;
+  line-height: 1.6;
+  color: var(--ink-2);
+}
+
+/* ---- Final CTA ---- */
+.finalCta {
+  text-align: center;
+  background: var(--card-bg);
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  box-shadow: var(--shadow-lift);
+  padding: 40px 28px;
+  max-width: 760px;
+  margin: 0 auto;
+}
+.finalCta h2 {
+  margin: 0 0 8px;
+  font-size: 26px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: var(--blue);
+}
+.finalCta p {
+  margin: 0 auto 24px;
+  max-width: 460px;
+  font-size: 15.5px;
+  line-height: 1.55;
+  color: var(--ink-2);
+}
+.finalCta__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  justify-content: center;
+}

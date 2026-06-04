@@ -25,6 +25,15 @@ export const metadata: Metadata = {
   metadataBase: new URL(
     process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
   ),
+  icons: {
+    icon: [
+      { url: '/favicon.ico', sizes: 'any' },
+      { url: '/branding/dtf-editor-favicon.png', type: 'image/png' },
+    ],
+    shortcut: '/favicon.ico',
+    apple: '/branding/dtf-editor-favicon.png',
+  },
+  manifest: '/manifest.webmanifest',
   openGraph: {
     title: 'DTF Editor - AI-Powered Image Processing',
     description:
