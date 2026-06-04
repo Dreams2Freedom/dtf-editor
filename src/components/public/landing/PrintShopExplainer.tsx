@@ -1,30 +1,5 @@
-import {
-  UploadCloud,
-  SlidersHorizontal,
-  Download,
-  Coins,
-  Check,
-  CircleCheck,
-} from 'lucide-react';
+import { Coins, Check, CircleCheck } from 'lucide-react';
 import styles from './PrintShopExplainer.module.css';
-
-const STEPS = [
-  {
-    icon: UploadCloud,
-    title: 'Upload your artwork',
-    copy: 'Start with a PNG, JPG, or WebP file. DTF Editor helps you identify the next best step before your artwork becomes a bad print.',
-  },
-  {
-    icon: SlidersHorizontal,
-    title: 'Pick the right tool',
-    copy: 'Remove a background, upscale a low-resolution file, vectorize a logo, generate artwork, or check DPI with a workflow built around DTF printing.',
-  },
-  {
-    icon: Download,
-    title: 'Export cleaner artwork',
-    copy: 'Download improved files that are easier to use in your DTF transfer workflow, including transparent PNGs and print-quality guidance.',
-  },
-];
 
 const CREDIT_NOTES = [
   "Monthly credits don't roll over",
@@ -34,30 +9,17 @@ const CREDIT_NOTES = [
 
 export function PrintShopExplainer() {
   return (
-    <section className="section" id="how-it-works">
+    <section className="section" id="why-dtf-editor">
       <div className="wrap">
         <div className="section-head section-head--center">
-          <span className="eyebrow">How it works</span>
+          <span className="eyebrow">Built for print shops</span>
           <h2 className="h-sec">
             Built by print shop owners who know what goes wrong before a print
           </h2>
           <p className="sub">
-            DTF Editor helps you upload, fix, check, and export artwork with a
-            simple workflow built for DTF transfers.
+            DTF Editor was created to make artwork prep easier for creators,
+            hobbyists, and small shops — with a simple, credit-based workflow.
           </p>
-        </div>
-
-        <div className={styles.steps}>
-          {STEPS.map(({ icon: Icon, title, copy }, i) => (
-            <div key={title} className={styles.ecard}>
-              <div className={styles.ecard__ic}>
-                <Icon size={20} aria-hidden="true" />
-              </div>
-              <span className={styles.ecard__step}>Step {i + 1}</span>
-              <h3>{title}</h3>
-              <p>{copy}</p>
-            </div>
-          ))}
         </div>
 
         <div className={styles.credits}>

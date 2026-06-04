@@ -1,42 +1,59 @@
+import { UploadCloud, SlidersHorizontal, Download } from 'lucide-react';
 import styles from './HowItWorks.module.css';
 
 const STEPS = [
   {
-    n: 1,
+    icon: UploadCloud,
     title: 'Upload your artwork',
-    body: 'PNG, JPG, or WebP files are supported. Drag it in or browse from your device.',
+    copy: 'Start with a PNG, JPG, or WebP file.',
   },
   {
-    n: 2,
-    title: 'Pick the tool you need',
-    body: 'Remove a background, upscale, vectorize, generate, or check DPI — guided every step.',
+    icon: SlidersHorizontal,
+    title: 'Pick the right tool',
+    copy: 'Remove a background, upscale, vectorize, generate, or check DPI.',
   },
   {
-    n: 3,
-    title: 'Download your improved file',
-    body: 'Get cleaner artwork ready for your next DTF transfer workflow.',
+    icon: Download,
+    title: 'Export your image',
+    copy: 'Download cleaner artwork with guidance for print quality.',
   },
 ];
 
 export function HowItWorks() {
   return (
-    <section className="section section--tint">
+    <section className="section" id="how-it-works">
       <div className="wrap">
         <div className="section-head section-head--center">
-          <h2 className="h-sec">From rough artwork to print-ready in minutes</h2>
+          <span className="eyebrow">How it works</span>
+          <h2 className="h-sec">Upload, choose a tool, and export cleaner artwork</h2>
           <p className="sub">
-            No design experience required. DTF Editor walks you through every
-            step.
+            DTF Editor keeps artwork prep simple. Start with your file, pick the
+            fix you need, and download a cleaner version for your DTF workflow.
           </p>
         </div>
+
         <div className={styles.steps}>
-          {STEPS.map(({ n, title, body }) => (
-            <div key={n} className={styles.step}>
-              <div className={styles.step__n}>{n}</div>
+          {STEPS.map(({ icon: Icon, title, copy }, i) => (
+            <div key={title} className={styles.step}>
+              <div className={styles.step__top}>
+                <span className={styles.step__n}>{i + 1}</span>
+                <span className={styles.step__ic}>
+                  <Icon size={18} aria-hidden="true" />
+                </span>
+              </div>
               <h3>{title}</h3>
-              <p>{body}</p>
+              <p>{copy}</p>
             </div>
           ))}
+        </div>
+
+        <div className={styles.cta}>
+          <a className="btn btn--primary btn--lg" href="/auth/signup">
+            Start a Hobbyist Trial
+          </a>
+          <a className="btn btn--ghost btn--lg" href="#dpi">
+            Check DPI Free
+          </a>
         </div>
       </div>
     </section>

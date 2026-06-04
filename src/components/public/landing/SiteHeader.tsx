@@ -5,6 +5,7 @@ import { Menu } from 'lucide-react';
 import styles from './SiteHeader.module.css';
 
 const NAV = [
+  { label: 'How It Works', href: '#how-it-works' },
   { label: 'Tools', href: '#tools' },
   { label: 'Pricing', href: '#pricing' },
   { label: 'DPI Checker', href: '#dpi' },

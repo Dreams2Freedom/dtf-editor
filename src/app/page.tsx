@@ -8,6 +8,7 @@ import { LoadingPage } from '@/components/ui/LoadingPage';
 import { SiteHeader } from '@/components/public/landing/SiteHeader';
 import { Hero } from '@/components/public/landing/Hero';
 import { TrustStrip } from '@/components/public/landing/TrustStrip';
+import { HowItWorks } from '@/components/public/landing/HowItWorks';
 import { ToolShowcase } from '@/components/public/landing/ToolShowcase';
 import { DpiChecker } from '@/components/public/landing/DpiChecker';
 import { PricingTeaser } from '@/components/public/landing/PricingTeaser';
@@ -48,6 +49,7 @@ export default function HomePage() {
       <main>
         <Hero />
         <TrustStrip />
+        <HowItWorks />
         <ToolShowcase />
         <DpiChecker />
         <PricingTeaser />
