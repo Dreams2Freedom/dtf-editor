@@ -8,6 +8,8 @@ import { PayAsYouGo } from '@/components/payment/PayAsYouGo';
 import { CreditCard, Zap, Check, Minus } from 'lucide-react';
 import { COMPARISON_FEATURES, PRICING_FAQS } from '@/lib/publicData';
 import { Accordion } from '@/components/public/Accordion';
+import { Header } from '@/components/layout/Header';
+import { Footer } from '@/components/layout/Footer';
 
 /**
  * Logged-in pricing experience. Preserves the existing functional
@@ -29,9 +31,13 @@ export function LoggedInPricing() {
   }, [searchParams]);
 
   return (
-    <div className="min-h-screen bg-white py-12 lg:py-16">
-      <div className="max-w-7xl mx-auto px-5 sm:px-6 lg:px-8">
-        {/* Page Header */}
+    // /pricing is excluded from the global AppLayout chrome, so render the
+    // app header/footer here to keep logged-in navigation intact.
+    <div className="min-h-screen flex flex-col">
+      <Header />
+      <main className="flex-1 bg-white py-12 lg:py-16">
+        <div className="max-w-7xl mx-auto px-5 sm:px-6 lg:px-8">
+          {/* Page Header */}
         <div className="text-center mb-12">
           <h1 className="text-3xl lg:text-4xl font-extrabold text-gray-900 mb-3">
             Simple pricing that grows with you
@@ -147,7 +153,9 @@ export function LoggedInPricing() {
           </h2>
           <Accordion items={PRICING_FAQS} className="max-w-2xl mx-auto" />
         </div>
-      </div>
+        </div>
+      </main>
+      <Footer />
     </div>
   );
 }

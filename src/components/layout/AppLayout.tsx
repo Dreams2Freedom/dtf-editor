@@ -19,9 +19,18 @@ export function AppLayout({ children, showFooter = true }: AppLayoutProps) {
   const isAdminPage = pathname?.startsWith('/admin');
   const isClippingMagicEditor = pathname?.includes('/clippingmagic-editor');
   const isHomePage = pathname === '/';
+  // /pricing renders its own public/logged-in chrome (see app/pricing),
+  // so skip the global app header/footer here to avoid a duplicate header.
+  const isPricingPage = pathname === '/pricing';
 
   // Hide layout on specific pages
-  if (isAuthPage || isAdminPage || isClippingMagicEditor || isHomePage) {
+  if (
+    isAuthPage ||
+    isAdminPage ||
+    isClippingMagicEditor ||
+    isHomePage ||
+    isPricingPage
+  ) {
     return <>{children}</>;
   }
 

@@ -40,7 +40,9 @@
 }
 .float {
   position: absolute;
-  z-index: 1;
+  /* Sit in front of the demo window (.demo is z-index 2) so the cards
+     read as floating above the mockup, not hidden behind it. */
+  z-index: 3;
   display: flex;
   align-items: center;
   gap: 7px;
