@@ -67,7 +67,7 @@ export function DpiChecker() {
   const [natW, setNatW] = useState(0);
   const [natH, setNatH] = useState(0);
   const [fileName, setFileName] = useState('artwork.png');
-  const [thumb, setThumb] = useState<{ type: 'img' | 'sample'; src?: string } | null>(null);
+  const [thumb, setThumb] = useState<string | null>(null);
   const [printW, setPrintW] = useState('11');
   const [printH, setPrintH] = useState('14');
 
@@ -93,23 +93,12 @@ export function DpiChecker() {
       setNatW(w);
       setNatH(h);
       setFileName(file.name);
-      setThumb({ type: 'img', src: url });
+      setThumb(url);
       setPrintW(String(defW || 11));
       setPrintH(String(Math.round((defW / ar) * 10) / 10 || 11));
       setHasFile(true);
     };
     img.src = url;
-  };
-
-  const loadSample = () => {
-    revoke();
-    setNatW(2400);
-    setNatH(3000);
-    setFileName('summit-co-logo.png');
-    setThumb({ type: 'sample' });
-    setPrintW('9');
-    setPrintH('11.3');
-    setHasFile(true);
   };
 
   const reset = () => {
@@ -160,7 +149,7 @@ export function DpiChecker() {
             <input
               ref={inputRef}
               type="file"
-              accept="image/*"
+              accept="image/png,image/jpeg,image/webp"
               hidden
               onChange={e => handleFile(e.target.files?.[0])}
             />
@@ -200,26 +189,25 @@ export function DpiChecker() {
                 <button
                   className="btn btn--blue btn--sm"
                   type="button"
+                  aria-label="Choose an image from your device to check DPI"
                   onClick={e => {
                     e.stopPropagation();
-                    loadSample();
+                    inputRef.current?.click();
                   }}
                 >
-                  Try a sample file
+                  Choose Image
                 </button>
                 <div className={styles.checker__hint}>
-                  <b>PNG, JPG &amp; WebP supported</b> · No credit card required
+                  <b>PNG, JPG, or WebP supported</b> · No credit card required
                 </div>
               </div>
             ) : (
               <div className={styles.checker__result}>
                 <div className={styles.cres__head}>
                   <div className={styles.cres__thumb}>
-                    {thumb?.type === 'img' ? (
+                    {thumb && (
                       // eslint-disable-next-line @next/next/no-img-element
-                      <img src={thumb.src} alt={fileName} />
-                    ) : (
-                      <div className={styles.cres__sample}>SAMPLE</div>
+                      <img src={thumb} alt={fileName} />
                     )}
                   </div>
                   <div className={styles.cres__meta}>
