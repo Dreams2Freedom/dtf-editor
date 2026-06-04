@@ -95,18 +95,19 @@ export function LoggedInPricing() {
                 <tr className="border-b border-gray-200">
                   <th className="text-left py-3 px-4 font-semibold text-gray-500">Feature</th>
                   <th className="text-center py-3 px-4 font-semibold text-gray-500">Free</th>
-                  <th className="text-center py-3 px-4 font-semibold text-gray-500">Hobbyist</th>
-                  <th className="text-center py-3 px-4 font-semibold text-amber-600 bg-amber-50/50 rounded-t-lg">Business</th>
+                  <th className="text-center py-3 px-4 font-semibold text-amber-600 bg-amber-50/50 rounded-t-lg">Basic</th>
+                  <th className="text-center py-3 px-4 font-semibold text-gray-500">Starter</th>
+                  <th className="text-center py-3 px-4 font-semibold text-gray-500">Professional</th>
                 </tr>
               </thead>
               <tbody>
                 {COMPARISON_FEATURES.map((feature, i) => (
                   <tr key={feature.name} className={i % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
                     <td className="py-3 px-4 font-medium text-gray-900">{feature.name}</td>
-                    {(['free', 'hobbyist', 'business'] as const).map((plan) => {
+                    {(['free', 'basic', 'starter', 'professional'] as const).map((plan) => {
                       const val = feature[plan];
                       return (
-                        <td key={plan} className={`text-center py-3 px-4 ${plan === 'business' ? 'bg-amber-50/30' : ''}`}>
+                        <td key={plan} className={`text-center py-3 px-4 ${plan === 'basic' ? 'bg-amber-50/30' : ''}`}>
                           {val === true ? <Check className="w-4 h-4 text-emerald-500 mx-auto" /> :
                            val === false ? <Minus className="w-4 h-4 text-gray-300 mx-auto" /> :
                            <span className="text-gray-700">{val}</span>}

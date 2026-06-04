@@ -24,7 +24,7 @@ export function Hero() {
         </p>
         <div className={styles.hero__cta}>
           <a className="btn btn--primary btn--lg" href="/auth/signup">
-            Start a Hobbyist Trial
+            Get Started Free
           </a>
           <a className="btn btn--ghost btn--lg" href="#dpi">
             Check DPI Free
@@ -47,7 +47,7 @@ export function Hero() {
         <ProductDemoAnimation />
         <div className={styles['hero__demo-cta']}>
           <a className="btn btn--primary btn--lg" href="/auth/signup">
-            Start a Hobbyist Trial
+            Get Started Free
           </a>
           <p className={styles['hero__demo-note']}>
             See it work on your own artwork —{' '}

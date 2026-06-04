@@ -51,14 +51,10 @@ interface SignupFormProps {
   redirectTo?: string;
 }
 
-// Public plan slugs (used by the pricing-page CTAs) map to the existing
-// Stripe subscription plan ids. Prices match: Hobbyist = Basic ($9.99),
-// Small Business = Starter ($24.99). This only selects which existing plan
-// to check out — it does not change any Stripe price/product IDs.
-const PLAN_SLUG_TO_STRIPE_ID: Record<string, string> = {
-  hobbyist: 'basic',
-  'small-business': 'starter',
-};
+// The pricing-page CTAs pass the Stripe subscription plan id directly
+// (basic | starter | professional). We validate against the known ids before
+// starting checkout; this does not change any Stripe price/product IDs.
+const CHECKOUT_PLAN_IDS = new Set(['basic', 'starter', 'professional']);
 
 // Kick off Stripe Checkout for a just-signed-up user via the existing
 // pricing + checkout-session APIs. Returns the checkout URL, or null on any
@@ -128,9 +124,8 @@ export function SignupForm({ onSuccess, redirectTo }: SignupFormProps) {
       const params = new URLSearchParams(window.location.search);
       const planSlug = params.get('plan');
       const next = params.get('next');
-      const stripePlanId = planSlug
-        ? PLAN_SLUG_TO_STRIPE_ID[planSlug]
-        : undefined;
+      const stripePlanId =
+        planSlug && CHECKOUT_PLAN_IDS.has(planSlug) ? planSlug : undefined;
 
       if (stripePlanId) {
         const checkoutUrl = await startSubscriptionCheckout(stripePlanId);

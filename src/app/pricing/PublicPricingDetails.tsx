@@ -56,7 +56,7 @@ const PLANS: Plan[] = [
     muted: true,
   },
   {
-    name: 'Hobbyist',
+    name: 'Basic',
     price: '$9.99',
     unit: '/mo',
     tag: 'Best place to start',
@@ -64,42 +64,44 @@ const PLANS: Plan[] = [
       '20 credits per month',
       'Unlimited storage while subscribed',
       'All paid artwork tools',
-      '7-day money-back guarantee',
+      'Priority support & HD downloads',
     ],
-    ctaLabel: 'Start a Hobbyist Trial',
+    ctaLabel: 'Start a Basic Trial',
     ctaVariant: 'primary',
-    ctaHref: '/auth/signup?plan=hobbyist',
+    ctaHref: '/auth/signup?plan=basic',
     note: '7-day money-back guarantee',
     featured: true,
     flag: 'Most popular',
   },
   {
-    name: 'Small Business',
+    name: 'Starter',
     price: '$24.99',
     unit: '/mo',
-    tag: 'For higher-volume shops',
+    tag: 'For growing shops',
     features: [
       '60 credits per month',
       'Unlimited storage while subscribed',
-      'Priority & batch features',
+      'Priority support & HD downloads',
+      'Bulk processing (coming soon)',
     ],
-    ctaLabel: 'Start a Small Business Trial',
+    ctaLabel: 'Start a Starter Trial',
     ctaVariant: 'blue',
-    ctaHref: '/auth/signup?plan=small-business',
+    ctaHref: '/auth/signup?plan=starter',
   },
   {
-    name: 'Pay As You Go',
-    price: '$7.99',
-    unit: '+ packs',
-    tag: 'No subscription needed',
+    name: 'Professional',
+    price: '$49.99',
+    unit: '/mo',
+    tag: 'For high-volume shops',
     features: [
-      'Credit packs from $7.99',
-      'Purchased credits never expire',
-      '90-day storage from last purchase',
+      '150 credits per month',
+      'Unlimited storage while subscribed',
+      'Priority support & HD downloads',
+      'Bulk processing (coming soon)',
     ],
-    ctaLabel: 'Buy credit packs',
-    ctaVariant: 'ghost',
-    ctaHref: '/auth/signup?next=%2Fpricing%3Ftab%3Dpayasyougo',
+    ctaLabel: 'Start a Professional Trial',
+    ctaVariant: 'blue',
+    ctaHref: '/auth/signup?plan=professional',
   },
 ];
 
@@ -169,7 +171,7 @@ const FAQS = [
   },
   {
     q: 'Which plan should I start with?',
-    a: 'Most people start with Hobbyist ($9.99/mo, 20 credits) — it unlocks every paid tool and includes a 7-day money-back guarantee. Move up to Small Business for more monthly credits and priority/batch features.',
+    a: 'Most people start with Basic ($9.99/mo, 20 credits) — it unlocks every paid tool and includes a 7-day money-back guarantee. Move up to Starter (60 credits) or Professional (150 credits) for more monthly credits and bulk processing.',
   },
 ];
 
@@ -386,12 +388,15 @@ export function PublicPricingDetails() {
             <div className={styles.finalCta}>
               <h2>Start cleaning up artwork today</h2>
               <p>
-                Begin with a Hobbyist trial and process real artwork right away,
+                Begin with the Basic plan and process real artwork right away,
                 or check your DPI for free first.
               </p>
               <div className={styles.finalCta__actions}>
-                <a className="btn btn--primary btn--lg" href="/auth/signup">
-                  <Sparkles size={18} aria-hidden="true" /> Start a Hobbyist Trial
+                <a
+                  className="btn btn--primary btn--lg"
+                  href="/auth/signup?plan=basic"
+                >
+                  <Sparkles size={18} aria-hidden="true" /> Start a Basic Trial
                 </a>
                 <Link className="btn btn--ghost btn--lg" href="/#dpi">
                   Check DPI Free
