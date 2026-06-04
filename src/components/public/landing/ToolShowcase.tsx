@@ -1,3 +1,6 @@
+'use client';
+
+import { useState } from 'react';
 import {
   Scaling,
   Scissors,
@@ -90,7 +93,23 @@ function VectorPreview() {
   );
 }
 
+/** Exact uploaded image; falls back to the SVG mock if the file isn't present yet. */
 function AiPreview() {
+  const [failed, setFailed] = useState(false);
+  if (failed) return <AiPreviewSvg />;
+  return (
+    // eslint-disable-next-line @next/next/no-img-element
+    <img
+      src="/images/home/ai-generation-preview.png"
+      alt="Prompt creating a mountain badge design on a white t-shirt"
+      className={styles.aiImg}
+      loading="lazy"
+      onError={() => setFailed(true)}
+    />
+  );
+}
+
+function AiPreviewSvg() {
   return (
     <div className={`${styles.pv} ${styles['pv-ai']}`}>
       <span className={styles.dots} aria-hidden="true" />
