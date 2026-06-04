@@ -7,7 +7,7 @@ import { useReferralTracking } from '@/hooks/useReferralTracking';
 import { LoadingPage } from '@/components/ui/LoadingPage';
 import { SiteHeader } from '@/components/public/landing/SiteHeader';
 import { Hero } from '@/components/public/landing/Hero';
-import { TrustStrip } from '@/components/public/landing/TrustStrip';
+import { TestimonialTicker } from '@/components/public/landing/TestimonialTicker';
 import { HowItWorks } from '@/components/public/landing/HowItWorks';
 import { ToolShowcase } from '@/components/public/landing/ToolShowcase';
 import { DpiChecker } from '@/components/public/landing/DpiChecker';
@@ -48,7 +48,7 @@ export default function HomePage() {
       <SiteHeader />
       <main>
         <Hero />
-        <TrustStrip />
+        <TestimonialTicker />
         <HowItWorks />
         <ToolShowcase />
         <DpiChecker />
