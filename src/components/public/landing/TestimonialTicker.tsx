@@ -1,77 +1,39 @@
 import { Quote } from 'lucide-react';
 import styles from './TestimonialTicker.module.css';
 
-// TODO: Replace these placeholder testimonials with approved real customer testimonials before production.
+// TODO: Replace this placeholder testimonial with an approved real customer testimonial before production.
+// TODO: Save testimonial slider/ticker functionality for a later version.
+//
+// The data is kept as an array (rendering only the first entry for now) so a
+// future slider/ticker can iterate over it without restructuring this file.
 const testimonials = [
   {
     quote:
-      'DTF Editor made it easier to clean up customer artwork before sending it to print.',
+      'DTF Editor makes it easier to clean up customer artwork before sending it to print.',
     name: 'Placeholder Customer',
     context: 'Print shop owner',
   },
-  {
-    quote:
-      'The DPI checker helps me know if a design is ready before I waste time testing it.',
-    name: 'Placeholder Customer',
-    context: 'Apparel creator',
-  },
-  {
-    quote:
-      'I like that the workflow is simple. Upload, choose a tool, and export the file.',
-    name: 'Placeholder Customer',
-    context: 'Small business owner',
-  },
-  {
-    quote:
-      'It saves time when customers send low-quality logos or files with messy backgrounds.',
-    name: 'Placeholder Customer',
-    context: 'DTF creator',
-  },
 ];
 
-function Card({
-  quote,
-  name,
-  context,
-  ariaHidden,
-}: {
-  quote: string;
-  name: string;
-  context: string;
-  ariaHidden?: boolean;
-}) {
-  return (
-    <figure className={styles.card} aria-hidden={ariaHidden || undefined}>
-      <Quote className={styles.card__icon} size={16} aria-hidden="true" />
-      <blockquote className={styles.card__quote}>{quote}</blockquote>
-      <figcaption className={styles.card__who}>
-        <span className={styles.card__name}>{name}</span>
-        <span className={styles.card__ctx}>{context}</span>
-      </figcaption>
-    </figure>
-  );
-}
-
 export function TestimonialTicker() {
+  // Single static testimonial for now — no slider/ticker animation.
+  const t = testimonials[0];
+
   return (
-    <section className={styles.strip} aria-label="Customer testimonials">
+    <section className={styles.strip} aria-label="Customer testimonial">
       <div className="wrap">
         <p className={styles.label}>
           Loved by creators, hobbyists, and print shops
         </p>
-      </div>
 
-      <div className={styles.ticker}>
-        {/* The list is rendered twice so the marquee can loop seamlessly.
-            The second copy is decorative and hidden from assistive tech. */}
-        <div className={styles.ticker__track}>
-          {testimonials.map((t, i) => (
-            <Card key={`a-${i}`} {...t} />
-          ))}
-          {testimonials.map((t, i) => (
-            <Card key={`b-${i}`} {...t} ariaHidden />
-          ))}
-        </div>
+        <figure className={styles.card}>
+          <Quote className={styles.card__icon} size={18} aria-hidden="true" />
+          <blockquote className={styles.card__quote}>{t.quote}</blockquote>
+          <figcaption className={styles.card__who}>
+            <span className={styles.card__name}>{t.name}</span>
+            <span className={styles.card__ctx}>{t.context}</span>
+          </figcaption>
+        </figure>
       </div>
     </section>
   );

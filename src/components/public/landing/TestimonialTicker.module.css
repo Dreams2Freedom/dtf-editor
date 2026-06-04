@@ -1,12 +1,12 @@
 /* ============================================================
-   TESTIMONIAL TICKER — slim looping quote strip (replaces the
-   old trusted-logo slip). Pure CSS marquee, hover-pause,
-   prefers-reduced-motion aware.
+   TESTIMONIAL SLIP — single compact static testimonial.
+   (Slider/ticker functionality intentionally removed for now;
+   see TODO in TestimonialTicker.tsx for the future version.)
    ============================================================ */
 .strip {
   padding-block: 22px;
   border-block: 1px solid var(--line);
-  background: #fff;
+  background: var(--zinc-50, #fafafa);
 }
 .label {
   text-align: center;
@@ -18,59 +18,30 @@
   margin: 0 0 16px;
 }
 
-.ticker {
-  overflow: hidden;
-  -webkit-mask-image: linear-gradient(
-    90deg,
-    transparent,
-    #000 7%,
-    #000 93%,
-    transparent
-  );
-  mask-image: linear-gradient(
-    90deg,
-    transparent,
-    #000 7%,
-    #000 93%,
-    transparent
-  );
-}
-.ticker__track {
-  display: flex;
-  width: max-content;
-  animation: ticker-scroll 42s linear infinite;
-}
-.ticker:hover .ticker__track {
-  animation-play-state: paused;
-}
-@keyframes ticker-scroll {
-  from {
-    transform: translateX(0);
-  }
-  to {
-    transform: translateX(-50%);
-  }
-}
-
-/* trailing margin (not flex gap) keeps the loop perfectly periodic */
+/* Compact horizontal slip: quote icon · quote · attribution */
 .card {
-  flex: none;
-  width: 300px;
-  margin: 0 16px 0 0;
-  padding: 14px 16px;
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 14px 20px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
   background: var(--card-bg);
   border: 1px solid var(--line);
+  /* Sparing orange accent on the leading edge of the slip. */
+  border-left: 3px solid var(--orange);
   border-radius: var(--radius-md);
   box-shadow: var(--shadow-soft);
-  display: grid;
-  gap: 8px;
 }
 .card__icon {
+  flex: none;
   color: var(--blue);
 }
 .card__quote {
+  flex: 1 1 320px;
   margin: 0;
-  font-size: 13px;
+  font-size: 14px;
   line-height: 1.45;
   color: var(--ink-2);
 }
@@ -95,19 +66,12 @@
   color: var(--line-strong);
 }
 
-@media (max-width: 480px) {
+@media (max-width: 560px) {
   .card {
-    width: 260px;
+    align-items: flex-start;
+    gap: 10px;
   }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .ticker {
-    overflow-x: auto;
-    -webkit-mask-image: none;
-    mask-image: none;
-  }
-  .ticker__track {
-    animation: none;
+  .card__quote {
+    flex-basis: 100%;
   }
 }
