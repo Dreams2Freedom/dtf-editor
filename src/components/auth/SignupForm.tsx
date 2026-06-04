@@ -51,6 +51,46 @@ interface SignupFormProps {
   redirectTo?: string;
 }
 
+// Public plan slugs (used by the pricing-page CTAs) map to the existing
+// Stripe subscription plan ids. Prices match: Hobbyist = Basic ($9.99),
+// Small Business = Starter ($24.99). This only selects which existing plan
+// to check out — it does not change any Stripe price/product IDs.
+const PLAN_SLUG_TO_STRIPE_ID: Record<string, string> = {
+  hobbyist: 'basic',
+  'small-business': 'starter',
+};
+
+// Kick off Stripe Checkout for a just-signed-up user via the existing
+// pricing + checkout-session APIs. Returns the checkout URL, or null on any
+// failure so the caller can fall back gracefully.
+async function startSubscriptionCheckout(
+  stripePlanId: string
+): Promise<string | null> {
+  try {
+    const pricingRes = await fetch('/api/stripe/pricing');
+    if (!pricingRes.ok) return null;
+    const pricing = await pricingRes.json();
+    const plan = (pricing.subscriptionPlans || []).find(
+      (p: { id: string; stripePriceId?: string }) => p.id === stripePlanId
+    );
+    if (!plan?.stripePriceId) return null;
+
+    const res = await fetch('/api/stripe/create-checkout-session', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        priceId: plan.stripePriceId,
+        mode: 'subscription',
+      }),
+    });
+    if (!res.ok) return null;
+    const data = await res.json();
+    return data.url || null;
+  } catch {
+    return null;
+  }
+}
+
 export function SignupForm({ onSuccess, redirectTo }: SignupFormProps) {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -68,37 +108,45 @@ export function SignupForm({ onSuccess, redirectTo }: SignupFormProps) {
   const onSubmit = async (data: SignupFormData) => {
     clearError();
 
-    console.log('[SIGNUP FORM] Step 1: Starting signup for:', data.email);
-
     const result = await signUp(data.email, data.password, {
       firstName: data.firstName,
       lastName: data.lastName,
       company: data.company,
     });
 
-    console.log('[SIGNUP FORM] Step 2: Signup result:', result);
-
     if (result.success) {
-      console.log(
-        '[SIGNUP FORM] Step 3: Signup successful, waiting 2 seconds before redirect'
-      );
       onSuccess?.();
 
       // Add a 2-second delay to ensure the welcome email fetch completes
       // This is a temporary fix to diagnose the issue
       await new Promise(resolve => setTimeout(resolve, 2000));
 
-      console.log(
-        '[SIGNUP FORM] Step 4: Redirecting to:',
-        redirectTo || '/dashboard'
-      );
-      if (redirectTo) {
-        window.location.href = redirectTo;
-      } else {
-        window.location.href = '/dashboard';
+      // Post-signup handoff: if the user picked a plan on the pricing page
+      // (?plan=hobbyist|small-business), send them straight into Stripe
+      // Checkout; otherwise honor ?next= (e.g. the pay-as-you-go picker), or
+      // fall back to the dashboard.
+      const params = new URLSearchParams(window.location.search);
+      const planSlug = params.get('plan');
+      const next = params.get('next');
+      const stripePlanId = planSlug
+        ? PLAN_SLUG_TO_STRIPE_ID[planSlug]
+        : undefined;
+
+      if (stripePlanId) {
+        const checkoutUrl = await startSubscriptionCheckout(stripePlanId);
+        // If checkout couldn't start, drop the user on the pricing page
+        // rather than leaving them stranded mid-flow.
+        window.location.href = checkoutUrl || '/pricing';
+        return;
       }
+
+      if (next) {
+        window.location.href = next;
+        return;
+      }
+
+      window.location.href = redirectTo || '/dashboard';
     } else {
-      console.log('[SIGNUP FORM] Step 3: Signup failed:', result.error);
       setFormError('root', {
         type: 'manual',
         message: result.error || 'Sign up failed',

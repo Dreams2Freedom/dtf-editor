@@ -41,7 +41,7 @@ const PLANS: Plan[] = [
     ],
     ctaLabel: 'Start a Hobbyist Trial',
     ctaVariant: 'primary',
-    ctaHref: '/auth/signup',
+    ctaHref: '/auth/signup?plan=hobbyist',
     note: '7-day trial · cancel anytime',
     featured: true,
     flag: 'Most popular',
@@ -58,7 +58,7 @@ const PLANS: Plan[] = [
     ],
     ctaLabel: 'Start a Small Business Trial',
     ctaVariant: 'blue',
-    ctaHref: '/auth/signup',
+    ctaHref: '/auth/signup?plan=small-business',
   },
   {
     name: 'Pay As You Go',
@@ -72,7 +72,7 @@ const PLANS: Plan[] = [
     ],
     ctaLabel: 'Buy credits',
     ctaVariant: 'ghost',
-    ctaHref: '/auth/signup',
+    ctaHref: '/auth/signup?next=%2Fpricing%3Ftab%3Dpayasyougo',
   },
 ];
 
