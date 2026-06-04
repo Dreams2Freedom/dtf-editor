@@ -7,32 +7,272 @@ import {
   ListChecks,
   ArrowRight,
   ArrowUp,
-  Sparkles,
-  Check,
+  ChevronsLeftRight,
+  Crosshair,
+  UploadCloud,
+  Wrench,
   Download,
+  Check,
+  type LucideIcon,
 } from 'lucide-react';
+import { MountainBadge, BadgeNodes } from './MountainBadge';
 import styles from './ToolShowcase.module.css';
 
-/** Reusable mountain-badge emblem mock. */
-function Emblem({
-  stroke = '#0f1b3d',
-  pathFill = '#0f1b3d',
-  className,
-  style,
-}: {
-  stroke?: string;
-  pathFill?: string;
-  className?: string;
-  style?: React.CSSProperties;
-}) {
+/* ---------- shared bits ---------- */
+
+function Spark({ className, style }: { className?: string; style?: React.CSSProperties }) {
   return (
-    <svg className={className} viewBox="0 0 100 100" style={style} aria-hidden="true">
-      <circle cx="50" cy="50" r="42" stroke={stroke} strokeWidth="3" fill="none" />
-      <path d="M26 62 L42 42 L54 56 L62 46 L74 62 Z" fill={pathFill} />
-      <circle cx="62" cy="36" r="6" fill="#d7870a" />
+    <svg className={className} style={style} viewBox="0 0 12 12" aria-hidden="true">
+      <path d="M6 0 L7 4.6 L12 6 L7 7.4 L6 12 L5 7.4 L0 6 L5 4.6 Z" fill="currentColor" />
     </svg>
   );
 }
+
+function Divider() {
+  return (
+    <div className={styles.divider}>
+      <span className={styles.divider__ctrl}>
+        <ChevronsLeftRight size={14} aria-hidden="true" />
+      </span>
+    </div>
+  );
+}
+
+/* ---------- preview panels ---------- */
+
+function UpscalePreview() {
+  return (
+    <div className={`${styles.pv} ${styles['pv-split']}`}>
+      <div className={`${styles.half} ${styles['half--gray']}`}>
+        <span className={`${styles.tag} ${styles['tag--l']}`}>Before</span>
+        <MountainBadge className={`${styles.badge} ${styles['badge--blur']}`} />
+      </div>
+      <div className={styles.half}>
+        <span className={`${styles.tag} ${styles['tag--r']}`}>After</span>
+        <Spark className={styles['spark--blue']} style={{ top: '16%', right: '12%' }} />
+        <MountainBadge className={styles.badge} />
+      </div>
+      <Divider />
+    </div>
+  );
+}
+
+function BgRemovalPreview() {
+  return (
+    <div className={`${styles.pv} ${styles['pv-split']}`}>
+      <div className={`${styles.half} ${styles['half--blue']}`}>
+        <Spark className={styles['spark--white']} style={{ top: '18%', left: '14%' }} />
+        <Spark className={styles['spark--white']} style={{ bottom: '20%', left: '22%', opacity: 0.7 }} />
+        <MountainBadge transparent className={styles.badge} />
+      </div>
+      <div className={`${styles.half} ${styles['half--checker']}`}>
+        <MountainBadge transparent className={styles.badge} />
+      </div>
+      <Divider />
+    </div>
+  );
+}
+
+function VectorPreview() {
+  return (
+    <div className={`${styles.pv} ${styles['pv-split']}`}>
+      <div className={`${styles.half} ${styles['half--gray']}`}>
+        <span className={`${styles.tag} ${styles['tag--l']}`}>Raster</span>
+        <MountainBadge className={`${styles.badge} ${styles['badge--pixel']}`} />
+      </div>
+      <div className={styles.half}>
+        <span className={`${styles.tag} ${styles['tag--r']}`}>Vector</span>
+        <MountainBadge className={styles.badge} />
+        <BadgeNodes className={`${styles.badge} ${styles.nodes}`} />
+      </div>
+      <Divider />
+    </div>
+  );
+}
+
+function AiPreview() {
+  return (
+    <div className={`${styles.pv} ${styles['pv-ai']}`}>
+      <span className={styles.dots} aria-hidden="true" />
+      <Spark className={styles['spark--blue']} style={{ top: '14%', left: '46%' }} />
+      <Spark className={styles['spark--orange']} style={{ bottom: '20%', right: '14%' }} />
+
+      <div className={styles.prompt}>
+        <span className={styles.prompt__txt}>
+          retro mountain
+          <br />
+          badge for a tee
+        </span>
+        <span className={styles.prompt__go}>
+          <ArrowUp size={14} aria-hidden="true" />
+        </span>
+      </div>
+
+      <svg className={styles.flow} viewBox="0 0 100 60" aria-hidden="true" preserveAspectRatio="none">
+        <path
+          d="M14 40 C40 56 52 40 70 26"
+          stroke="#9fb3c8"
+          strokeWidth="1.4"
+          strokeDasharray="3 3"
+          fill="none"
+        />
+        <path d="M70 26 l-5 1.5 l3 3.5 z" fill="#9fb3c8" />
+      </svg>
+
+      <div className={styles.tshirt}>
+        <svg viewBox="0 0 100 96" aria-hidden="true">
+          <path
+            d="M33 8 L42 8 Q50 15 58 8 L67 8 L90 26 L80 40 L72 34 L72 90 L28 90 L28 34 L20 40 L10 26 Z"
+            fill="#fff"
+            stroke="#d4d4d8"
+            strokeWidth="2"
+            strokeLinejoin="round"
+          />
+        </svg>
+        <MountainBadge className={styles.tshirt__badge} />
+      </div>
+    </div>
+  );
+}
+
+function DpiPreview() {
+  return (
+    <div className={`${styles.pv} ${styles['pv-pad']}`}>
+      <div className={styles.dpi}>
+        <div className={styles.dpi__row}>
+          <div className={styles.dpi__num}>
+            285 <small>DPI</small>
+          </div>
+          <span className={styles.dpi__target}>
+            <Crosshair size={20} aria-hidden="true" />
+          </span>
+        </div>
+        <span className={styles.dpi__ok}>
+          <Check size={13} aria-hidden="true" /> Good for DTF
+        </span>
+        <div className={styles.dpi__bars}>
+          <i className={styles.on} />
+          <i className={styles.on} />
+          <i className={styles.on} />
+          <i className={styles.on} />
+          <i />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+const FLOW_STEPS: Array<{ icon: LucideIcon; label: string; active?: boolean }> = [
+  { icon: UploadCloud, label: 'Upload artwork' },
+  { icon: Wrench, label: 'Fix & clean up' },
+  { icon: Crosshair, label: 'Check DPI' },
+  { icon: Download, label: 'Download print-ready', active: true },
+];
+
+function WorkflowPreview() {
+  return (
+    <div className={`${styles.pv} ${styles['pv-pad']}`}>
+      <span className={styles.dots} aria-hidden="true" />
+      <Spark className={styles['spark--blue']} style={{ top: '16%', right: '10%' }} />
+      <Spark className={styles['spark--orange']} style={{ bottom: '24%', right: '16%' }} />
+      <div className={styles.flowcard}>
+        <ul className={styles.checklist}>
+          {FLOW_STEPS.map(({ icon: Icon, label, active }) => (
+            <li
+              key={label}
+              className={`${styles.checklist__item} ${active ? styles['checklist__item--active'] : ''}`}
+            >
+              <span className={styles.checklist__ic}>
+                <Icon size={15} aria-hidden="true" />
+              </span>
+              {label}
+            </li>
+          ))}
+        </ul>
+      </div>
+    </div>
+  );
+}
+
+/* ---------- card ---------- */
+
+type Card = {
+  preview: React.ReactNode;
+  icon: LucideIcon;
+  iconGreen?: boolean;
+  title: string;
+  badgeLabel: string;
+  badgeClass: string;
+  desc: string;
+  ctaLabel: string;
+  ctaHref: string;
+  ctaGreen?: boolean;
+};
+
+const CARDS: Card[] = [
+  {
+    preview: <UpscalePreview />,
+    icon: Scaling,
+    title: 'Image Upscaling',
+    badgeLabel: '1 credit',
+    badgeClass: 'badge--credit',
+    desc: 'Make blurry or low-resolution artwork cleaner and sharper before printing.',
+    ctaLabel: 'Start plan to upscale',
+    ctaHref: '#pricing',
+  },
+  {
+    preview: <BgRemovalPreview />,
+    icon: Scissors,
+    title: 'Background Removal',
+    badgeLabel: '1 credit',
+    badgeClass: 'badge--credit',
+    desc: 'Remove unwanted backgrounds and create transparent PNG artwork for transfers.',
+    ctaLabel: 'Start plan to remove backgrounds',
+    ctaHref: '#pricing',
+  },
+  {
+    preview: <VectorPreview />,
+    icon: Spline,
+    title: 'Vectorization',
+    badgeLabel: '1 credit',
+    badgeClass: 'badge--credit',
+    desc: 'Convert logos and graphics into cleaner, scalable artwork with smooth edges.',
+    ctaLabel: 'Start plan to vectorize',
+    ctaHref: '#pricing',
+  },
+  {
+    preview: <AiPreview />,
+    icon: WandSparkles,
+    title: 'AI Image Generation',
+    badgeLabel: 'Paid plans',
+    badgeClass: 'badge--paid',
+    desc: 'Create new shirt-ready artwork ideas from simple text prompts.',
+    ctaLabel: 'Start plan to generate',
+    ctaHref: '#pricing',
+  },
+  {
+    preview: <DpiPreview />,
+    icon: Gauge,
+    iconGreen: true,
+    title: 'Free DPI Checker',
+    badgeLabel: 'Always free',
+    badgeClass: 'badge--free',
+    desc: 'Check whether your image will print crisp or pixelated at your chosen size.',
+    ctaLabel: 'Check DPI free',
+    ctaHref: '#dpi',
+    ctaGreen: true,
+  },
+  {
+    preview: <WorkflowPreview />,
+    icon: ListChecks,
+    title: 'Print-Ready Workflow',
+    badgeLabel: 'Guided',
+    badgeClass: 'badge--neutral',
+    desc: 'Upload, fix, check, and download cleaner artwork in one guided process.',
+    ctaLabel: 'See how it works',
+    ctaHref: '#pricing',
+  },
+];
 
 export function ToolShowcase() {
   return (
@@ -48,262 +288,36 @@ export function ToolShowcase() {
         </div>
 
         <div className={styles.tools__grid}>
-          {/* Upscaling */}
-          <article className={styles.tool}>
-            <div className={styles.tool__preview}>
-              <div className={`${styles.pv} ${styles['pv-split']}`}>
-                <div className={styles.left}>
-                  <span className={`${styles['pv-tag']} ${styles.l}`}>Before</span>
-                  <Emblem className={styles.emblem} style={{ filter: 'blur(2px) contrast(.9)' }} />
-                </div>
-                <div className={styles.right}>
-                  <span className={`${styles['pv-tag']} ${styles.r}`}>After</span>
-                  <Emblem className={styles.emblem} />
-                </div>
-                <div className={styles.divider} />
-              </div>
-            </div>
-            <div className={styles.tool__body}>
-              <div className={styles.tool__top}>
-                <div className={styles.tool__name}>
-                  <span className={styles.ic}>
-                    <Scaling size={17} aria-hidden="true" />
-                  </span>{' '}
-                  Image Upscaling
-                </div>
-                <span className="badge badge--credit">1 credit</span>
-              </div>
-              <p className={styles.tool__desc}>
-                Make blurry or low-resolution artwork cleaner and sharper before
-                printing.
-              </p>
-              <div className={styles.tool__foot}>
-                <a className="btn btn--link" href="#pricing">
-                  Start plan to upscale <ArrowRight size={16} aria-hidden="true" />
-                </a>
-              </div>
-            </div>
-          </article>
-
-          {/* Background Removal */}
-          <article className={styles.tool}>
-            <div className={styles.tool__preview}>
-              <div className={`${styles.pv} ${styles['pv-split']}`}>
-                <div className={styles.left}>
-                  <span className={`${styles['pv-tag']} ${styles.l}`}>Before</span>
-                  <div
-                    style={{
-                      position: 'absolute',
-                      inset: 0,
-                      background: 'radial-gradient(120% 90% at 30% 20%,#6f8bd6,#243a78)',
-                    }}
-                  />
-                  <Emblem stroke="#fff" pathFill="#fff" className={styles.emblem} style={{ position: 'relative' }} />
-                </div>
-                <div className={`${styles.right} ${styles['pv-checker']}`}>
-                  <span className={`${styles['pv-tag']} ${styles.r}`}>After</span>
-                  <Emblem className={styles.emblem} style={{ position: 'relative' }} />
-                </div>
-                <div className={styles.divider} />
-              </div>
-            </div>
-            <div className={styles.tool__body}>
-              <div className={styles.tool__top}>
-                <div className={styles.tool__name}>
-                  <span className={styles.ic}>
-                    <Scissors size={17} aria-hidden="true" />
-                  </span>{' '}
-                  Background Removal
-                </div>
-                <span className="badge badge--credit">1 credit</span>
-              </div>
-              <p className={styles.tool__desc}>
-                Remove unwanted backgrounds and create transparent PNG artwork
-                for transfers.
-              </p>
-              <div className={styles.tool__foot}>
-                <a className="btn btn--link" href="#pricing">
-                  Start plan to remove backgrounds <ArrowRight size={16} aria-hidden="true" />
-                </a>
-              </div>
-            </div>
-          </article>
-
-          {/* Vectorization */}
-          <article className={styles.tool}>
-            <div className={styles.tool__preview}>
-              <div className={`${styles.pv} ${styles['pv-split']}`}>
-                <div className={styles.left}>
-                  <span className={`${styles['pv-tag']} ${styles.l}`}>Raster</span>
-                  <svg className={styles.emblem} viewBox="0 0 100 100" aria-hidden="true">
-                    <g style={{ filter: 'blur(.6px)' }}>
-                      <circle cx="50" cy="50" r="40" stroke="#0f1b3d" strokeWidth="4" fill="none" />
-                      <path d="M30 60 L44 44 L54 55 L70 60 Z" fill="#1f3b86" />
-                    </g>
-                  </svg>
-                </div>
-                <div className={styles.right}>
-                  <span className={`${styles['pv-tag']} ${styles.r}`}>Vector</span>
-                  <svg className={styles.emblem} viewBox="0 0 100 100" aria-hidden="true">
-                    <circle cx="50" cy="50" r="40" stroke="#0f1b3d" strokeWidth="3" fill="none" />
-                    <path d="M30 60 L44 44 L54 55 L70 60 Z" fill="#1f3b86" />
-                    <circle cx="44" cy="44" r="2.4" fill="#d7870a" />
-                    <circle cx="54" cy="55" r="2.4" fill="#d7870a" />
-                    <circle cx="70" cy="60" r="2.4" fill="#d7870a" />
-                    <circle cx="30" cy="60" r="2.4" fill="#d7870a" />
-                  </svg>
-                </div>
-                <div className={styles.divider} />
-              </div>
-            </div>
-            <div className={styles.tool__body}>
-              <div className={styles.tool__top}>
-                <div className={styles.tool__name}>
-                  <span className={styles.ic}>
-                    <Spline size={17} aria-hidden="true" />
-                  </span>{' '}
-                  Vectorization
-                </div>
-                <span className="badge badge--credit">1 credit</span>
-              </div>
-              <p className={styles.tool__desc}>
-                Convert logos and graphics into cleaner, scalable artwork with
-                smooth edges.
-              </p>
-              <div className={styles.tool__foot}>
-                <a className="btn btn--link" href="#pricing">
-                  Start plan to vectorize <ArrowRight size={16} aria-hidden="true" />
-                </a>
-              </div>
-            </div>
-          </article>
-
-          {/* AI Generation */}
-          <article className={styles.tool}>
-            <div
-              className={styles.tool__preview}
-              style={{ background: 'linear-gradient(135deg,#eef1f6,#e4eaf6)' }}
-            >
-              <div className={styles.pv} style={{ display: 'grid', placeItems: 'center' }}>
-                <svg className={styles.emblem} viewBox="0 0 100 100" style={{ width: '52%' }} aria-hidden="true">
-                  <rect x="18" y="22" width="64" height="56" rx="6" fill="#fff" stroke="#0f1b3d" strokeWidth="2.5" />
-                  <circle cx="50" cy="44" r="11" fill="#d7870a" />
-                  <path d="M30 70 L44 54 L54 63 L62 56 L72 70 Z" fill="#1f3b86" />
-                </svg>
-              </div>
-              <div className={styles['pv-prompt']}>
-                <Sparkles size={15} aria-hidden="true" style={{ color: 'var(--blue)' }} />
-                <span className={styles.txt}>retro mountain badge for a tee</span>
-                <span className={styles.go}>
-                  <ArrowUp size={13} aria-hidden="true" />
-                </span>
-              </div>
-            </div>
-            <div className={styles.tool__body}>
-              <div className={styles.tool__top}>
-                <div className={styles.tool__name}>
-                  <span className={styles.ic}>
-                    <WandSparkles size={17} aria-hidden="true" />
-                  </span>{' '}
-                  AI Image Generation
-                </div>
-                <span className="badge badge--paid">Paid plans</span>
-              </div>
-              <p className={styles.tool__desc}>
-                Create new shirt-ready artwork ideas from simple text prompts.
-              </p>
-              <div className={styles.tool__foot}>
-                <a className="btn btn--link" href="#pricing">
-                  Start plan to generate <ArrowRight size={16} aria-hidden="true" />
-                </a>
-              </div>
-            </div>
-          </article>
-
-          {/* Free DPI Checker */}
-          <article className={styles.tool}>
-            <div className={`${styles.tool__preview} ${styles['pv-dpi']}`}>
-              <div className={styles.pv} style={{ display: 'grid', placeItems: 'center', padding: 14 }}>
-                <div className={styles.card}>
-                  <div className={styles.num}>
-                    285 <small>DPI</small>
+          {CARDS.map(card => {
+            const Icon = card.icon;
+            return (
+              <article key={card.title} className={styles.tool}>
+                <div className={styles.tool__preview}>{card.preview}</div>
+                <div className={styles.tool__body}>
+                  <div className={styles.tool__top}>
+                    <div className={styles.tool__name}>
+                      <span
+                        className={`${styles.ic} ${card.iconGreen ? styles['ic--green'] : ''}`}
+                      >
+                        <Icon size={17} aria-hidden="true" />
+                      </span>{' '}
+                      {card.title}
+                    </div>
+                    <span className={`badge ${card.badgeClass}`}>{card.badgeLabel}</span>
                   </div>
-                  <span className={styles.ok}>
-                    <Check size={12} aria-hidden="true" /> Good for DTF
-                  </span>
-                  <div className={styles.bars}>
-                    <i className={styles.on} />
-                    <i className={styles.on} />
-                    <i className={styles.on} />
-                    <i className={styles.on} />
-                    <i />
+                  <p className={styles.tool__desc}>{card.desc}</p>
+                  <div className={styles.tool__foot}>
+                    <a
+                      className={`btn btn--link ${card.ctaGreen ? styles['cta--green'] : ''}`}
+                      href={card.ctaHref}
+                    >
+                      {card.ctaLabel} <ArrowRight size={16} aria-hidden="true" />
+                    </a>
                   </div>
                 </div>
-              </div>
-            </div>
-            <div className={styles.tool__body}>
-              <div className={styles.tool__top}>
-                <div className={styles.tool__name}>
-                  <span className={styles.ic} style={{ background: 'var(--green-bg)', color: 'var(--green)' }}>
-                    <Gauge size={17} aria-hidden="true" />
-                  </span>{' '}
-                  Free DPI Checker
-                </div>
-                <span className="badge badge--free">Always free</span>
-              </div>
-              <p className={styles.tool__desc}>
-                Check whether your image will print crisp or pixelated at your
-                chosen size.
-              </p>
-              <div className={styles.tool__foot}>
-                <a className="btn btn--link" href="#dpi" style={{ color: 'var(--green)' }}>
-                  Check DPI free <ArrowRight size={16} aria-hidden="true" />
-                </a>
-              </div>
-            </div>
-          </article>
-
-          {/* Print-ready workflow */}
-          <article className={styles.tool}>
-            <div className={styles.tool__preview} style={{ background: 'var(--blue-tint)' }}>
-              <div className={styles.pv} style={{ display: 'grid', placeItems: 'center', padding: 16 }}>
-                <div className={styles.workflow}>
-                  <div className={styles.workflow__row}>
-                    <Check size={14} aria-hidden="true" style={{ color: 'var(--green)' }} /> Upload artwork
-                  </div>
-                  <div className={styles.workflow__row}>
-                    <Check size={14} aria-hidden="true" style={{ color: 'var(--green)' }} /> Fix &amp; clean up
-                  </div>
-                  <div className={styles.workflow__row}>
-                    <Check size={14} aria-hidden="true" style={{ color: 'var(--green)' }} /> Check DPI
-                  </div>
-                  <div className={`${styles.workflow__row} ${styles['workflow__row--active']}`}>
-                    <Download size={14} aria-hidden="true" /> Download print-ready
-                  </div>
-                </div>
-              </div>
-            </div>
-            <div className={styles.tool__body}>
-              <div className={styles.tool__top}>
-                <div className={styles.tool__name}>
-                  <span className={styles.ic}>
-                    <ListChecks size={17} aria-hidden="true" />
-                  </span>{' '}
-                  Print-Ready Workflow
-                </div>
-                <span className="badge badge--neutral">Guided</span>
-              </div>
-              <p className={styles.tool__desc}>
-                Upload, fix, check, and download cleaner artwork in one guided
-                process.
-              </p>
-              <div className={styles.tool__foot}>
-                <a className="btn btn--link" href="#pricing">
-                  See how it works <ArrowRight size={16} aria-hidden="true" />
-                </a>
-              </div>
-            </div>
-          </article>
+              </article>
+            );
+          })}
         </div>
       </div>
     </section>
