@@ -51,7 +51,13 @@ export async function middleware(request: NextRequest) {
       pathname.startsWith('/api/debug-') ||
       pathname.startsWith('/api/test-') ||
       pathname.startsWith('/test-') ||
-      pathname.startsWith('/debug-')
+      pathname.startsWith('/debug-') ||
+      // Throwaway dev/debug pages that don't match the prefixes above
+      pathname.startsWith('/auth-debug') ||
+      pathname.startsWith('/process-test') ||
+      pathname.startsWith('/simple') ||
+      pathname === '/test' ||
+      pathname.startsWith('/test/')
     ) {
       return NextResponse.json({ error: 'Not found' }, { status: 404 });
     }
