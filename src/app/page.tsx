@@ -13,7 +13,6 @@ import { ToolShowcase } from '@/components/public/landing/ToolShowcase';
 import { DpiChecker } from '@/components/public/landing/DpiChecker';
 import { PricingTeaser } from '@/components/public/landing/PricingTeaser';
 import { FaqAccordion } from '@/components/public/landing/FaqAccordion';
-import { FinalCta } from '@/components/public/landing/FinalCta';
 import { SiteFooter } from '@/components/public/landing/SiteFooter';
 import '@/components/public/landing/landing.css';
 
@@ -53,7 +52,6 @@ export default function HomePage() {
         <DpiChecker />
         <PricingTeaser />
         <FaqAccordion />
-        <FinalCta />
       </main>
       <SiteFooter />
     </div>
