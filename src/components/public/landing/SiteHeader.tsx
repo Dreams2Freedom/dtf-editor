@@ -1,15 +1,18 @@
 'use client';
 
 import { useState } from 'react';
+import Link from 'next/link';
 import { Menu } from 'lucide-react';
 import styles from './SiteHeader.module.css';
 
+// Absolute hashes (/#x) so the nav also works from sub-pages like /pricing,
+// where these homepage sections don't exist on the current page.
 const NAV = [
-  { label: 'How It Works', href: '#how-it-works' },
-  { label: 'Tools', href: '#tools' },
-  { label: 'Pricing', href: '#pricing' },
-  { label: 'DPI Checker', href: '#dpi' },
-  { label: 'FAQ', href: '#faq' },
+  { label: 'How It Works', href: '/#how-it-works' },
+  { label: 'Tools', href: '/#tools' },
+  { label: 'Pricing', href: '/#pricing' },
+  { label: 'DPI Checker', href: '/#dpi' },
+  { label: 'FAQ', href: '/#faq' },
 ];
 
 export function SiteHeader() {
@@ -18,10 +21,10 @@ export function SiteHeader() {
   return (
     <header className={styles.hdr}>
       <div className={`wrap ${styles.hdr__inner}`}>
-        <a className="brand" href="#top" aria-label="DTF Editor home">
+        <Link className="brand" href="/" aria-label="DTF Editor home">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src="/branding/dtf-editor-logo.png" alt="DTF Editor" className="brand__logo" />
-        </a>
+        </Link>
 
         <nav className={styles.hdr__nav} aria-label="Primary">
           {NAV.map(item => (
@@ -62,9 +65,9 @@ export function SiteHeader() {
           <a className="btn btn--primary btn--block" href="/auth/signup" onClick={() => setOpen(false)}>
             Start a Hobbyist Trial
           </a>
-          <a className="btn btn--ghost btn--block" href="#dpi" onClick={() => setOpen(false)}>
+          <Link className="btn btn--ghost btn--block" href="/#dpi" onClick={() => setOpen(false)}>
             Check DPI Free
-          </a>
+          </Link>
         </div>
       </div>
     </header>

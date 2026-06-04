@@ -1,19 +1,20 @@
+import Link from 'next/link';
 import styles from './SiteFooter.module.css';
 
 const COLUMNS = [
   {
     title: 'Product',
     links: [
-      { label: 'Tools', href: '#tools' },
-      { label: 'Pricing', href: '#pricing' },
-      { label: 'DPI Checker', href: '#dpi' },
+      { label: 'Tools', href: '/#tools' },
+      { label: 'Pricing', href: '/#pricing' },
+      { label: 'DPI Checker', href: '/#dpi' },
     ],
   },
   {
     title: 'Company',
     links: [
       { label: 'About', href: '/about' },
-      { label: 'FAQ', href: '#faq' },
+      { label: 'FAQ', href: '/#faq' },
       { label: 'Contact', href: '/contact' },
     ],
   },
@@ -33,10 +34,10 @@ export function SiteFooter() {
       <div className={`wrap ${styles.foot__inner}`}>
         <div className={styles.foot__top}>
           <div className={styles.foot__brand}>
-            <a className="brand" href="#top">
+            <Link className="brand" href="/">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src="/branding/dtf-editor-logo.png" alt="DTF Editor" className="brand__logo" />
-            </a>
+            </Link>
             <p>
               AI artwork prep built specifically for DTF transfer creators,
               hobbyists, and small apparel businesses.

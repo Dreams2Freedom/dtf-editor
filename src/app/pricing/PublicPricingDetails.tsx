@@ -10,6 +10,7 @@ import {
   ShieldCheck,
   Sparkles,
 } from 'lucide-react';
+import Link from 'next/link';
 import { SiteHeader } from '@/components/public/landing/SiteHeader';
 import { SiteFooter } from '@/components/public/landing/SiteFooter';
 import card from '@/components/public/landing/PricingTeaser.module.css';
@@ -392,9 +393,9 @@ export function PublicPricingDetails() {
                 <a className="btn btn--primary btn--lg" href="/auth/signup">
                   <Sparkles size={18} aria-hidden="true" /> Start a Hobbyist Trial
                 </a>
-                <a className="btn btn--ghost btn--lg" href="/free-dpi-checker">
+                <Link className="btn btn--ghost btn--lg" href="/#dpi">
                   Check DPI Free
-                </a>
+                </Link>
               </div>
             </div>
           </div>
