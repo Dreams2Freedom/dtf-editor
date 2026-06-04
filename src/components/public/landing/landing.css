@@ -300,3 +300,8 @@
 .dtfLanding .brand__mark b {
   color: var(--orange);
 }
+.dtfLanding .brand__logo {
+  display: block;
+  height: 30px;
+  width: auto;
+}

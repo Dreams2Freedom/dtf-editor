@@ -18,10 +18,8 @@ export function SiteHeader() {
     <header className={styles.hdr}>
       <div className={`wrap ${styles.hdr__inner}`}>
         <a className="brand" href="#top" aria-label="DTF Editor home">
-          <span className="brand__mark">
-            D<b>T</b>F
-          </span>
-          <span>DTF Editor</span>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/branding/dtf-editor-logo.png" alt="DTF Editor" className="brand__logo" />
         </a>
 
         <nav className={styles.hdr__nav} aria-label="Primary">

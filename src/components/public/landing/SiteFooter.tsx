@@ -34,10 +34,8 @@ export function SiteFooter() {
         <div className={styles.foot__top}>
           <div className={styles.foot__brand}>
             <a className="brand" href="#top">
-              <span className="brand__mark">
-                D<b>T</b>F
-              </span>
-              <span>DTF Editor</span>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src="/branding/dtf-editor-logo.png" alt="DTF Editor" className="brand__logo" />
             </a>
             <p>
               AI artwork prep built specifically for DTF transfer creators,
