@@ -55,7 +55,7 @@ const PLANS: Plan[] = [
     muted: true,
   },
   {
-    name: 'Starter',
+    name: 'Hobbyist',
     price: '$9.99',
     unit: '/mo',
     tag: 'Best place to start',
@@ -65,24 +65,24 @@ const PLANS: Plan[] = [
       'All paid artwork tools',
       '7-day money-back guarantee',
     ],
-    ctaLabel: 'Start a Starter Trial',
+    ctaLabel: 'Start a Hobbyist Trial',
     ctaVariant: 'primary',
     ctaHref: '/auth/signup',
     note: '7-day money-back guarantee',
     featured: true,
-    flag: 'Recommended',
+    flag: 'Most popular',
   },
   {
-    name: 'Pro',
-    price: '$19.99',
+    name: 'Small Business',
+    price: '$24.99',
     unit: '/mo',
-    tag: 'More credits + priority',
+    tag: 'For higher-volume shops',
     features: [
-      '50 credits per month',
+      '60 credits per month',
       'Unlimited storage while subscribed',
       'Priority & batch features',
     ],
-    ctaLabel: 'Choose Pro',
+    ctaLabel: 'Start a Small Business Trial',
     ctaVariant: 'blue',
     ctaHref: '/auth/signup',
   },
@@ -168,7 +168,7 @@ const FAQS = [
   },
   {
     q: 'Which plan should I start with?',
-    a: 'Most people start with Starter ($9.99/mo, 20 credits) — it unlocks every paid tool and includes a 7-day money-back guarantee. Move up to Pro for more monthly credits and priority/batch features.',
+    a: 'Most people start with Hobbyist ($9.99/mo, 20 credits) — it unlocks every paid tool and includes a 7-day money-back guarantee. Move up to Small Business for more monthly credits and priority/batch features.',
   },
 ];
 
@@ -385,12 +385,12 @@ export function PublicPricingDetails() {
             <div className={styles.finalCta}>
               <h2>Start cleaning up artwork today</h2>
               <p>
-                Begin with a Starter trial and process real artwork right away,
+                Begin with a Hobbyist trial and process real artwork right away,
                 or check your DPI for free first.
               </p>
               <div className={styles.finalCta__actions}>
                 <a className="btn btn--primary btn--lg" href="/auth/signup">
-                  <Sparkles size={18} aria-hidden="true" /> Start a Starter Trial
+                  <Sparkles size={18} aria-hidden="true" /> Start a Hobbyist Trial
                 </a>
                 <a className="btn btn--ghost btn--lg" href="/free-dpi-checker">
                   Check DPI Free
