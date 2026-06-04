@@ -8,12 +8,10 @@ import { LoadingPage } from '@/components/ui/LoadingPage';
 import { SiteHeader } from '@/components/public/landing/SiteHeader';
 import { Hero } from '@/components/public/landing/Hero';
 import { TrustStrip } from '@/components/public/landing/TrustStrip';
-import { ProblemStrip } from '@/components/public/landing/ProblemStrip';
 import { ToolShowcase } from '@/components/public/landing/ToolShowcase';
 import { DpiChecker } from '@/components/public/landing/DpiChecker';
-import { HowItWorks } from '@/components/public/landing/HowItWorks';
-import { WhyDtfEditor } from '@/components/public/landing/WhyDtfEditor';
 import { PricingTeaser } from '@/components/public/landing/PricingTeaser';
+import { PrintShopExplainer } from '@/components/public/landing/PrintShopExplainer';
 import { FaqAccordion } from '@/components/public/landing/FaqAccordion';
 import { FinalCta } from '@/components/public/landing/FinalCta';
 import { SiteFooter } from '@/components/public/landing/SiteFooter';
@@ -50,12 +48,10 @@ export default function HomePage() {
       <main>
         <Hero />
         <TrustStrip />
-        <ProblemStrip />
         <ToolShowcase />
         <DpiChecker />
-        <HowItWorks />
-        <WhyDtfEditor />
         <PricingTeaser />
+        <PrintShopExplainer />
         <FaqAccordion />
         <FinalCta />
       </main>
