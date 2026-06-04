@@ -1,0 +1,231 @@
+/* ============================================================
+   AUTH — public authentication shell + forms.
+   Brand-matched to the DTF Editor homepage redesign (light mode
+   only). Tokens mirror src/components/public/landing/landing.css
+   so the auth flow reads as the same brand system. CSS Modules,
+   BEM-ish naming, mobile-first. Presentational only — no auth
+   logic lives here.
+   ============================================================ */
+.page {
+  /* ---- Brand tokens (mirror of the landing design system) ---- */
+  --blue: #013193;
+  --blue-deep: #021f5e;
+  --blue-tint: #eaf0fb;
+  --orange: #d7870a;
+  --orange-deep: #a86700;
+  --ink: #09090b;
+  --ink-2: #52525b;
+  --ink-3: #71717a;
+  --line: #e4e4e7;
+  --line-strong: #d4d4d8;
+  --card-bg: #ffffff;
+  --green: #16a34a;
+  --green-bg: #f0fdf4;
+  --red: #dc2626;
+  --red-bg: #fef2f2;
+  --radius-md: 10px;
+  --radius-lg: 16px;
+  --radius-full: 9999px;
+  --shadow-lift: 0 2px 4px rgba(16, 24, 40, 0.05),
+    0 18px 40px rgba(16, 24, 40, 0.1);
+
+  font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 20px;
+  color: var(--ink);
+  /* Subtle light-gray field with a faint brand-blue wash at the top. */
+  background: radial-gradient(
+      1100px 460px at 50% -8%,
+      var(--blue-tint),
+      transparent 70%
+    ),
+    #fafafa;
+}
+
+/* ---- Card ---- */
+.card {
+  width: 100%;
+  max-width: 440px;
+  background: var(--card-bg);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lift);
+  padding: 36px 32px;
+}
+
+/* ---- Logo ---- */
+.brandLink {
+  display: block;
+  width: fit-content;
+  margin: 0 auto 24px;
+  border-radius: var(--radius-md);
+}
+.brandLink:focus-visible {
+  outline: 2px solid var(--blue);
+  outline-offset: 4px;
+}
+.logo {
+  display: block;
+  height: 44px;
+  width: auto;
+}
+
+/* ---- Header (title + subtitle) ---- */
+.header {
+  text-align: center;
+  margin-bottom: 28px;
+}
+.title {
+  margin: 0 0 8px;
+  font-size: 24px;
+  line-height: 1.25;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  color: var(--blue);
+}
+.subtitle {
+  margin: 0;
+  font-size: 14.5px;
+  line-height: 1.5;
+  color: var(--ink-2);
+}
+
+/* ---- Form layout ---- */
+.form {
+  display: grid;
+  gap: 18px;
+}
+.nameGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+@media (max-width: 420px) {
+  .nameGrid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ---- Primary CTA (one orange action per view) ---- */
+.btnPrimary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  min-height: 48px;
+  padding: 12px 20px;
+  font-size: 15px;
+  font-weight: 700;
+  color: #fff;
+  background: var(--orange);
+  border: 1px solid var(--orange);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition:
+    background 150ms ease,
+    border-color 150ms ease,
+    transform 150ms ease;
+}
+.btnPrimary:hover:not(:disabled) {
+  background: var(--orange-deep);
+  border-color: var(--orange-deep);
+}
+.btnPrimary:focus-visible {
+  outline: 2px solid var(--orange);
+  outline-offset: 2px;
+}
+.btnPrimary:active:not(:disabled) {
+  transform: translateY(1px);
+}
+.btnPrimary:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Small inline spinner for loading state */
+.spinner {
+  height: 16px;
+  width: 16px;
+  border: 2px solid rgba(255, 255, 255, 0.45);
+  border-top-color: #fff;
+  border-radius: var(--radius-full);
+  animation: auth-spin 0.7s linear infinite;
+}
+@keyframes auth-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* ---- Links / helper rows (blue for structure) ---- */
+.linkRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+  font-size: 13.5px;
+  color: var(--ink-2);
+}
+.center {
+  text-align: center;
+  justify-content: center;
+}
+.link {
+  color: var(--blue);
+  font-weight: 600;
+  text-decoration: none;
+}
+.link:hover {
+  color: var(--blue-deep);
+  text-decoration: underline;
+}
+.link:focus-visible {
+  outline: 2px solid var(--blue);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+.backLink {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* ---- Fine print (terms / helper) ---- */
+.fineprint {
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--ink-3);
+  text-align: center;
+}
+
+/* ---- Alerts ---- */
+.alert {
+  padding: 10px 12px;
+  font-size: 13px;
+  line-height: 1.45;
+  border-radius: var(--radius-md);
+  border: 1px solid transparent;
+}
+.alertError {
+  color: var(--red);
+  background: var(--red-bg);
+  border-color: #fecaca;
+}
+
+/* ---- Confirmation / success state ---- */
+.statusIcon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 52px;
+  width: 52px;
+  margin: 0 auto 16px;
+  border-radius: var(--radius-full);
+  background: var(--green-bg);
+  color: var(--green);
+}
