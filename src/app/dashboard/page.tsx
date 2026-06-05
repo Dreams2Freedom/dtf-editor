@@ -20,6 +20,7 @@ import {
 import Link from 'next/link';
 import { CreditHistory } from '@/components/dashboard/CreditHistory';
 import { ToolQuickActions } from '@/components/dashboard/ToolQuickActions';
+import { DashboardImageGalleryPreview } from '@/components/dashboard/DashboardImageGalleryPreview';
 import { HelpModal } from '@/components/ui/HelpModal';
 
 export default function DashboardPage() {
@@ -137,6 +138,9 @@ export default function DashboardPage() {
 
             {/* Tool quick actions — prominent, always-visible tool shortcuts */}
             <ToolQuickActions />
+
+            {/* Image gallery preview — recent artwork + link to full gallery */}
+            <DashboardImageGalleryPreview />
 
             {/* Account overview */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
