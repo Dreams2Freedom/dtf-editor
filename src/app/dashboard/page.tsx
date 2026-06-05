@@ -8,7 +8,6 @@ import { LoadingPage } from '@/components/ui/LoadingPage';
 import { Button } from '@/components/ui/Button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { CancellationFlow } from '@/components/subscription/CancellationFlow';
-import { PlanSwitcher } from '@/components/subscription/PlanSwitcher';
 import { CreditExpirationBanner } from '@/components/credits/CreditExpirationBanner';
 import { StorageUsageCard } from '@/components/storage/StorageUsageCard';
 import {
@@ -236,21 +235,6 @@ export default function DashboardPage() {
             </div>
 
             <StorageUsageCard />
-
-            {/* Plan Switcher */}
-            {hasActiveSubscription && (
-              <Card>
-                <CardHeader>
-                  <CardTitle>Change Subscription Plan</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <PlanSwitcher
-                    currentPlan={profile.subscription_plan}
-                    onPlanChange={() => window.location.reload()}
-                  />
-                </CardContent>
-              </Card>
-            )}
           </div>
         </main>
       </div>
