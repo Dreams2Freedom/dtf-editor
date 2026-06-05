@@ -1163,7 +1163,7 @@ export class EmailService {
   private getEmailLogoHeader(): string {
     return `
       <div style="background-color: #ffffff; padding: 20px; text-align: center; border-bottom: 2px solid #366494;">
-        <img src="${env.APP_URL}/logo-horizontal.png" alt="DTF Editor" style="height: 60px; max-width: 250px; width: auto;">
+        <img src="${env.APP_URL}/branding/dtf-editor-logo.png" alt="DTF Editor" style="height: 60px; max-width: 250px; width: auto;">
       </div>
     `;
   }
