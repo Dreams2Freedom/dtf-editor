@@ -35,6 +35,7 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import { Breadcrumb } from '@/components/ui/Breadcrumb';
+import { CreditHistory } from '@/components/dashboard/CreditHistory';
 
 export default function SettingsPage() {
   const { user, profile, loading, initialize, refreshProfile } = useAuthStore();
@@ -44,6 +45,23 @@ export default function SettingsPage() {
   useEffect(() => {
     initialize();
   }, [initialize]);
+
+  // Deep-link to a specific tab via ?tab= (e.g. /settings?tab=billing).
+  // Read from the URL directly to avoid a useSearchParams Suspense boundary.
+  useEffect(() => {
+    const tab = new URLSearchParams(window.location.search).get('tab');
+    const validTabs = [
+      'profile',
+      'account',
+      'password',
+      'notifications',
+      'billing',
+      'security',
+    ];
+    if (tab && validTabs.includes(tab)) {
+      setActiveTab(tab);
+    }
+  }, []);
 
   useEffect(() => {
     if (!loading && !user) {
@@ -64,7 +82,7 @@ export default function SettingsPage() {
     { id: 'account', label: 'Account', icon: Mail },
     { id: 'password', label: 'Password', icon: Lock },
     { id: 'notifications', label: 'Notifications', icon: Bell },
-    { id: 'billing', label: 'Billing', icon: CreditCard },
+    { id: 'billing', label: 'Billing & Membership', icon: CreditCard },
     { id: 'security', label: 'Security', icon: Shield },
   ];
 
@@ -670,10 +688,21 @@ function NotificationSettings() {
   );
 }
 
-// Billing Settings Component
+// Billing & Membership Component
+const PLAN_CREDITS: Record<string, string> = {
+  free: '2 credits per month',
+  basic: '20 credits per month',
+  starter: '60 credits per month',
+  professional: '150 credits per month',
+};
+
 function BillingSettings() {
   const { user, profile } = useAuthStore();
   const router = useRouter();
+
+  const plan = profile?.subscription_plan || 'free';
+  const isPaid = plan !== 'free';
+  const planCredits = PLAN_CREDITS[plan] || '';
 
   const handleManageSubscription = async () => {
     try {
@@ -682,7 +711,7 @@ function BillingSettings() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           userId: user?.id,
-          returnUrl: window.location.origin + '/settings',
+          returnUrl: window.location.origin + '/settings?tab=billing',
         }),
       });
 
@@ -702,50 +731,139 @@ function BillingSettings() {
   };
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Billing & Subscription</CardTitle>
-        <CardDescription>
-          Manage your subscription and payment methods
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-        <div className="space-y-6">
-          <div>
-            <h3 className="text-sm font-medium text-gray-700 mb-2">
-              Current Plan
-            </h3>
-            <div className="bg-gray-50 rounded-lg p-4">
-              <p className="font-medium text-lg capitalize">
-                {profile?.subscription_plan || 'Free'} Plan
-              </p>
-              <p className="text-sm text-gray-600 mt-1">
-                {profile?.subscription_plan === 'free'
-                  ? '2 credits per month'
-                  : profile?.subscription_plan === 'basic'
-                    ? '20 credits per month'
-                    : '60 credits per month'}
-              </p>
+    <div className="space-y-6">
+      {/* Billing & Membership */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Billing & Membership</CardTitle>
+          <CardDescription>
+            Manage your plan, update billing, buy credits, or cancel your
+            membership.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-6">
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <p className="text-xs text-gray-500">Current plan</p>
+                <p className="text-lg font-medium capitalize">{plan}</p>
+                {planCredits && (
+                  <p className="text-sm text-gray-500">{planCredits}</p>
+                )}
+              </div>
+              <div>
+                <p className="text-xs text-gray-500">Billing status</p>
+                <p className="font-medium capitalize">
+                  {profile?.subscription_status || (isPaid ? 'Active' : 'Free')}
+                </p>
+              </div>
+            </div>
+
+            <div className="space-y-3">
+              {isPaid ? (
+                <>
+                  <Button
+                    onClick={handleManageSubscription}
+                    className="w-full justify-start"
+                  >
+                    <CreditCard className="w-4 h-4 mr-2" />
+                    Manage Membership
+                  </Button>
+                  <Button
+                    variant="secondary"
+                    onClick={() => router.push('/pricing')}
+                    className="w-full justify-start"
+                  >
+                    Change Plan
+                  </Button>
+                  <Button
+                    variant="secondary"
+                    onClick={() => router.push('/pricing?tab=payasyougo')}
+                    className="w-full justify-start"
+                  >
+                    Buy Credits
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    onClick={handleManageSubscription}
+                    className="w-full justify-start text-red-600 hover:text-red-700 hover:bg-red-50"
+                  >
+                    Cancel Membership
+                  </Button>
+                  <p className="px-1 text-xs text-gray-500">
+                    You can update or cancel your membership through the secure
+                    billing portal.
+                  </p>
+                </>
+              ) : (
+                <>
+                  <Button
+                    onClick={() => router.push('/pricing')}
+                    className="w-full justify-start"
+                  >
+                    <CreditCard className="w-4 h-4 mr-2" />
+                    Choose a Plan
+                  </Button>
+                  <Button
+                    variant="secondary"
+                    onClick={() => router.push('/pricing?tab=payasyougo')}
+                    className="w-full justify-start"
+                  >
+                    Buy Credits
+                  </Button>
+                  <p className="px-1 text-xs text-gray-500">
+                    You&apos;re on the Free plan. Upgrade anytime — you can change
+                    or cancel later through the secure billing portal.
+                  </p>
+                </>
+              )}
             </div>
           </div>
+        </CardContent>
+      </Card>
 
-          <div className="space-y-3">
-            <Button onClick={handleManageSubscription} className="w-full">
+      {/* Credits & Usage */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Credits & Usage</CardTitle>
+          <CardDescription>
+            Your available credits and how to get more.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            <div>
+              <p className="text-xs text-gray-500">Available credits</p>
+              <p className="text-3xl font-bold text-blue-600">
+                {profile?.credits_remaining ?? 0}
+              </p>
+              {planCredits && (
+                <p className="text-sm text-gray-500">
+                  {planCredits} included with your plan
+                </p>
+              )}
+            </div>
+            <Button onClick={() => router.push('/pricing?tab=payasyougo')}>
               <CreditCard className="w-4 h-4 mr-2" />
-              Manage Billing in Stripe
-            </Button>
-
-            <Button
-              variant="secondary"
-              onClick={() => router.push('/pricing')}
-              className="w-full"
-            >
-              View Available Plans
+              Buy Credits
             </Button>
           </div>
-        </div>
-      </CardContent>
-    </Card>
+        </CardContent>
+      </Card>
+
+      {/* Credit History (moved from the dashboard home) */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Credit History</CardTitle>
+          <CardDescription>
+            Your credit purchases, usage, and refunds.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <CreditHistory />
+        </CardContent>
+      </Card>
+    </div>
   );
 }
 

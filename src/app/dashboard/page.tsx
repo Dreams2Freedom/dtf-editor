@@ -18,7 +18,6 @@ import {
   Crown,
 } from 'lucide-react';
 import Link from 'next/link';
-import { CreditHistory } from '@/components/dashboard/CreditHistory';
 import { ToolQuickActions } from '@/components/dashboard/ToolQuickActions';
 import { DashboardImageGalleryPreview } from '@/components/dashboard/DashboardImageGalleryPreview';
 import { HelpModal } from '@/components/ui/HelpModal';
@@ -258,16 +257,6 @@ export default function DashboardPage() {
                 </CardContent>
               </Card>
             )}
-
-            {/* Credit History */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Credit History & Purchases</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <CreditHistory />
-              </CardContent>
-            </Card>
           </div>
         </main>
       </div>

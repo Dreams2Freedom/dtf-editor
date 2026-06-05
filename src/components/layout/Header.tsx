@@ -13,6 +13,7 @@ import {
   Images,
   Upload,
   Settings,
+  CreditCard,
   LogOut,
   User,
   DollarSign,
@@ -100,7 +101,8 @@ export function Header() {
       : []),
     { name: 'Affiliate Dashboard', href: '/dashboard/affiliate', icon: Crown },
     { name: 'Storage', href: '/storage', icon: HardDrive },
-    { name: 'Settings', href: '/settings', icon: Settings },
+    { name: 'Billing & Membership', href: '/settings?tab=billing', icon: CreditCard },
+    { name: 'Account Settings', href: '/settings', icon: Settings },
     {
       name: 'Support',
       href: isAdmin ? '/admin/support' : '/support',
