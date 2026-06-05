@@ -110,7 +110,7 @@ export function ToolQuickActions({
         <p className="text-sm text-gray-500 mt-1">{subheading}</p>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
         {TOOLS.map(tool => (
           <Link
             key={tool.name}
@@ -129,8 +129,10 @@ export function ToolQuickActions({
               </span>
             </div>
 
-            <h3 className="mt-3 font-semibold text-gray-900">{tool.name}</h3>
-            <p className="mt-1 flex-1 text-sm text-gray-500">
+            <h3 className="mt-2 sm:mt-3 font-semibold text-gray-900">
+              {tool.name}
+            </h3>
+            <p className="mt-1 flex-1 text-sm text-gray-500 line-clamp-2 sm:line-clamp-none">
               {tool.description}
             </p>
 
