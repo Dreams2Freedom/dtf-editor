@@ -8,15 +8,6 @@
   border-block: 1px solid var(--line);
   background: var(--zinc-50, #fafafa);
 }
-.label {
-  text-align: center;
-  font-size: 12.5px;
-  font-weight: 600;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: var(--ink-3);
-  margin: 0 0 20px;
-}
 
 /* Featured award-style card */
 .card {
@@ -34,25 +25,6 @@
   border-top: 3px solid var(--blue);
   border-radius: var(--radius-lg, 14px);
   box-shadow: var(--shadow-lift);
-}
-
-/* Small badge eyebrow */
-.card__eyebrow {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 5px 12px;
-  font-size: 11.5px;
-  font-weight: 700;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
-  color: var(--blue);
-  background: var(--blue-tint);
-  border: 1px solid var(--line);
-  border-radius: var(--radius-full);
-}
-.card__eyebrowIcon {
-  color: var(--blue);
 }
 
 /* Star rating row — sparing orange accent */

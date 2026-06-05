@@ -16,16 +16,9 @@ export function TestimonialTicker() {
   const t = testimonial;
 
   return (
-    <section className={styles.strip} aria-label="Customer proof">
+    <section className={styles.strip} aria-label="Customer testimonial">
       <div className="wrap">
-        <p className={styles.label}>Customer proof</p>
-
         <figure className={styles.card}>
-          <span className={styles.card__eyebrow}>
-            <Quote className={styles.card__eyebrowIcon} size={13} aria-hidden="true" />
-            Customer proof
-          </span>
-
           <div
             className={styles.card__stars}
             role="img"
