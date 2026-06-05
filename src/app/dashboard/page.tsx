@@ -13,67 +13,14 @@ import { CreditExpirationBanner } from '@/components/credits/CreditExpirationBan
 import { ImageGalleryEnhanced } from '@/components/image/ImageGalleryEnhanced';
 import { StorageUsageCard } from '@/components/storage/StorageUsageCard';
 import {
-  Upload,
   Settings,
   CreditCard,
-  Scissors,
-  Zap,
   Crown,
-  Sparkles,
-  Palette,
-  ArrowRight,
 } from 'lucide-react';
 import Link from 'next/link';
 import { CreditHistory } from '@/components/dashboard/CreditHistory';
+import { ToolQuickActions } from '@/components/dashboard/ToolQuickActions';
 import { HelpModal } from '@/components/ui/HelpModal';
-
-const tools = [
-  {
-    name: 'Upscale',
-    description: 'AI-powered enhancement',
-    href: '/process?operation=upscale',
-    icon: Upload,
-    color: 'text-blue-600',
-    bg: 'bg-blue-50',
-    hoverBorder: 'hover:border-blue-200',
-  },
-  {
-    name: 'Remove BG',
-    description: 'Background removal',
-    href: '/process?operation=background-removal',
-    icon: Scissors,
-    color: 'text-green-600',
-    bg: 'bg-green-50',
-    hoverBorder: 'hover:border-green-200',
-  },
-  {
-    name: 'Change Colors',
-    description: 'Replace colors',
-    href: '/process/color-change',
-    icon: Palette,
-    color: 'text-amber-600',
-    bg: 'bg-amber-50',
-    hoverBorder: 'hover:border-amber-200',
-  },
-  {
-    name: 'Vectorize',
-    description: 'Scalable vectors',
-    href: '/process?operation=vectorize',
-    icon: Zap,
-    color: 'text-purple-600',
-    bg: 'bg-purple-50',
-    hoverBorder: 'hover:border-purple-200',
-  },
-  {
-    name: 'AI Generate',
-    description: 'Create with AI',
-    href: '/generate',
-    icon: Sparkles,
-    color: 'text-pink-600',
-    bg: 'bg-pink-50',
-    hoverBorder: 'hover:border-pink-200',
-  },
-];
 
 export default function DashboardPage() {
   const { user, profile, loading, initialize, refreshCredits } =
@@ -188,30 +135,8 @@ export default function DashboardPage() {
           <div className="space-y-6">
             <CreditExpirationBanner />
 
-            {/* Tools grid */}
-            <div>
-              <div className="flex items-center justify-between mb-3">
-                <h2 className="text-sm font-semibold text-gray-900">Quick Actions</h2>
-                <Link href="/process" className="text-xs text-amber-600 hover:text-amber-700 font-medium flex items-center gap-0.5">
-                  All tools <ArrowRight className="w-3 h-3" />
-                </Link>
-              </div>
-              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2 sm:gap-3">
-                {tools.map(tool => (
-                  <Link
-                    key={tool.name}
-                    href={tool.href}
-                    className={`group relative flex flex-col items-center p-4 sm:p-5 rounded-xl border border-gray-200 bg-white ${tool.hoverBorder} hover:shadow-md transition-all`}
-                  >
-                    <div className={`w-10 h-10 sm:w-12 sm:h-12 ${tool.bg} rounded-xl flex items-center justify-center mb-2.5 group-hover:scale-110 transition-transform`}>
-                      <tool.icon className={`w-5 h-5 sm:w-6 sm:h-6 ${tool.color}`} />
-                    </div>
-                    <h3 className="font-semibold text-gray-900 text-xs sm:text-sm text-center">{tool.name}</h3>
-                    <p className="text-gray-400 text-[10px] sm:text-xs text-center mt-0.5 hidden sm:block">{tool.description}</p>
-                  </Link>
-                ))}
-              </div>
-            </div>
+            {/* Tool quick actions — prominent, always-visible tool shortcuts */}
+            <ToolQuickActions />
 
             {/* Account overview */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
