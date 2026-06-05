@@ -255,3 +255,117 @@
   gap: 12px;
   justify-content: center;
 }
+
+/* ---- Compact pricing hero + tabs ---- */
+.pricingTop {
+  padding-block: 36px 36px;
+}
+.tabsWrap {
+  display: flex;
+  justify-content: center;
+  margin-top: 22px;
+}
+.tabs {
+  display: inline-flex;
+  padding: 4px;
+  gap: 4px;
+  background: var(--surface-raised);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-full);
+}
+.tab {
+  appearance: none;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 44px;
+  padding: 0 22px;
+  border-radius: var(--radius-full);
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--ink-2);
+  transition:
+    background 150ms ease,
+    color 150ms ease;
+}
+.tab:hover {
+  color: var(--ink);
+}
+.tab:focus-visible {
+  outline: 2px solid var(--blue);
+  outline-offset: 2px;
+}
+.tabActive,
+.tabActive:hover {
+  background: var(--orange);
+  color: #fff;
+}
+
+/* ---- Pay-as-you-go grid (3 cards, reuses .plan card styles) ---- */
+.paygGrid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 18px;
+  margin-top: 40px;
+}
+@media (min-width: 680px) {
+  .paygGrid {
+    grid-template-columns: repeat(3, 1fr);
+    max-width: 900px;
+    margin-inline: auto;
+  }
+}
+
+/* ---- Plan comparison table ---- */
+.compareTable {
+  width: 100%;
+  min-width: 600px;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+.compareTable thead th {
+  padding: 12px 14px;
+  font-size: 12.5px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: var(--blue);
+  background: var(--blue-tint);
+  border-bottom: 1px solid var(--line);
+  text-align: center;
+}
+.compareTable thead th:first-child {
+  text-align: left;
+}
+.compareTable tbody td {
+  padding: 12px 14px;
+  border-top: 1px solid var(--line);
+  color: var(--ink-2);
+  text-align: center;
+  white-space: nowrap;
+}
+.compareTable tbody td:first-child {
+  text-align: left;
+  font-weight: 600;
+  color: var(--ink);
+  white-space: normal;
+}
+.compareTable tbody tr:first-child td {
+  border-top: none;
+}
+.colFeat {
+  background: color-mix(in srgb, var(--orange-tint) 70%, transparent);
+}
+.ok {
+  color: var(--green);
+  margin-inline: auto;
+  display: block;
+}
+.no {
+  color: var(--line-strong);
+  margin-inline: auto;
+  display: block;
+}
+

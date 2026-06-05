@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import {
   Check,
+  Minus,
   ChevronDown,
   Info,
   Infinity as InfinityIcon,
@@ -13,44 +14,39 @@ import {
 import Link from 'next/link';
 import { SiteHeader } from '@/components/public/landing/SiteHeader';
 import { SiteFooter } from '@/components/public/landing/SiteFooter';
+import { COMPARISON_FEATURES } from '@/lib/publicData';
 import card from '@/components/public/landing/PricingTeaser.module.css';
 import styles from './PublicPricingDetails.module.css';
 import '@/components/public/landing/landing.css';
 
 /* ----------------------------- Pricing data -----------------------------
-   Source of truth for the public pricing details page. Kept here in one
-   place so values are easy to update. Note: monthly checkout itself is
-   handled elsewhere (logged-in SubscriptionPlans / Stripe) — these CTAs
-   route public visitors to sign up. */
+   Source of truth for the public pricing details page (matches the Stripe
+   plans in services/stripe.ts). CTAs route public visitors to sign up; the
+   existing signup -> checkout handoff carries the chosen plan. No Stripe
+   price/product IDs or checkout logic live here. */
 
 type Plan = {
   name: string;
   price: string;
   unit: string;
-  tag: string;
+  tag?: string;
   features: string[];
   ctaLabel: string;
   ctaVariant: 'primary' | 'blue' | 'ghost';
   ctaHref: string;
-  note?: string;
   featured?: boolean;
   muted?: boolean;
   flag?: string;
 };
 
-const PLANS: Plan[] = [
+const SUBSCRIPTION_PLANS: Plan[] = [
   {
     name: 'Free',
     price: '$0',
     unit: '/mo',
-    tag: 'A quick look at the tools',
-    features: [
-      '2 credits per month',
-      '48-hour file storage',
-      'Free DPI Checker',
-      'Good for testing the tools',
-    ],
-    ctaLabel: 'Start Free',
+    tag: 'Try the tools',
+    features: ['2 credits per month', 'All basic features', 'Email support'],
+    ctaLabel: 'Get Started Free',
     ctaVariant: 'ghost',
     ctaHref: '/auth/signup',
     muted: true,
@@ -62,16 +58,15 @@ const PLANS: Plan[] = [
     tag: 'Best place to start',
     features: [
       '20 credits per month',
-      'Unlimited storage while subscribed',
-      'All paid artwork tools',
-      'Priority support & HD downloads',
+      'All features',
+      'Priority support',
+      'HD downloads',
     ],
-    ctaLabel: 'Start a Basic Trial',
+    ctaLabel: 'Subscribe Now',
     ctaVariant: 'primary',
     ctaHref: '/auth/signup?plan=basic',
-    note: '7-day money-back guarantee',
     featured: true,
-    flag: 'Most popular',
+    flag: 'Popular',
   },
   {
     name: 'Starter',
@@ -80,13 +75,15 @@ const PLANS: Plan[] = [
     tag: 'For growing shops',
     features: [
       '60 credits per month',
-      'Unlimited storage while subscribed',
-      'Priority support & HD downloads',
+      'All features',
+      'Priority support',
+      'HD downloads',
       'Bulk processing (coming soon)',
     ],
-    ctaLabel: 'Start a Starter Trial',
+    ctaLabel: 'Subscribe Now',
     ctaVariant: 'blue',
     ctaHref: '/auth/signup?plan=starter',
+    flag: 'Best Value',
   },
   {
     name: 'Professional',
@@ -95,41 +92,75 @@ const PLANS: Plan[] = [
     tag: 'For high-volume shops',
     features: [
       '150 credits per month',
-      'Unlimited storage while subscribed',
-      'Priority support & HD downloads',
+      'All features',
+      'Priority support',
+      'HD downloads',
       'Bulk processing (coming soon)',
     ],
-    ctaLabel: 'Start a Professional Trial',
+    ctaLabel: 'Subscribe Now',
     ctaVariant: 'blue',
     ctaHref: '/auth/signup?plan=professional',
+    flag: 'Professional',
   },
 ];
 
-const CREDIT_PACKS = [
-  { credits: 10, price: '$7.99', per: '$0.80 / credit' },
-  { credits: 20, price: '$14.99', per: '$0.75 / credit', flag: 'Popular' },
-  { credits: 50, price: '$29.99', per: '$0.60 / credit', flag: 'Best value' },
+const PAYG_HREF = '/auth/signup?next=%2Fpricing%3Ftab%3Dpayasyougo';
+
+const PAYG_PACKS: Plan[] = [
+  {
+    name: '10 Credits',
+    price: '$7.99',
+    unit: 'one-time',
+    tag: '$0.80 per credit',
+    features: [
+      'One-time purchase',
+      'No recurring charges',
+      'Credits never expire',
+    ],
+    ctaLabel: 'Buy 10 Credits',
+    ctaVariant: 'blue',
+    ctaHref: PAYG_HREF,
+  },
+  {
+    name: '20 Credits',
+    price: '$14.99',
+    unit: 'one-time',
+    tag: '$0.75 per credit',
+    features: [
+      'One-time purchase',
+      'No recurring charges',
+      'Credits never expire',
+    ],
+    ctaLabel: 'Buy 20 Credits',
+    ctaVariant: 'primary',
+    ctaHref: PAYG_HREF,
+    featured: true,
+    flag: 'Popular',
+  },
+  {
+    name: '50 Credits',
+    price: '$29.99',
+    unit: 'one-time',
+    tag: '$0.60 per credit',
+    features: [
+      'One-time purchase',
+      'No recurring charges',
+      'Credits never expire',
+    ],
+    ctaLabel: 'Buy 50 Credits',
+    ctaVariant: 'blue',
+    ctaHref: PAYG_HREF,
+    flag: 'Best Value',
+  },
 ];
 
-const RULES = [
-  {
-    text: <><b>Monthly credits do not roll over</b> — each plan refreshes its credits every month.</>,
-  },
-  {
-    text: <><b>Purchased credits never expire</b> — Pay As You Go credits stay until you use them.</>,
-  },
-  {
-    text: <><b>The Free DPI Checker is always free</b> and never uses credits.</>,
-  },
-  {
-    text: <><b>Paid tools use credits</b> — background removal, upscaling, vectorization, and AI generation.</>,
-  },
-  {
-    text: <><b>7-day money-back guarantee</b> on monthly plans.</>,
-  },
-  {
-    text: <><b>Auto-refund on failure</b> — if a job fails to process, the credit is returned automatically.</>,
-  },
+const RULES: string[] = [
+  'Paid tools use credits — background removal, upscaling, vectorization, and AI generation.',
+  'The Free DPI Checker is always free and never uses credits.',
+  'Subscription plans include monthly credits.',
+  'Pay As You Go credits are one-time purchases.',
+  'Pay As You Go credits never expire.',
+  'Failed processing automatically refunds the credit.',
 ];
 
 type ToolRow = {
@@ -171,9 +202,39 @@ const FAQS = [
   },
   {
     q: 'Which plan should I start with?',
-    a: 'Most people start with Basic ($9.99/mo, 20 credits) — it unlocks every paid tool and includes a 7-day money-back guarantee. Move up to Starter (60 credits) or Professional (150 credits) for more monthly credits and bulk processing.',
+    a: 'Most people start with Basic ($9.99/mo, 20 credits) — it unlocks every paid tool. Move up to Starter (60 credits) or Professional (150 credits) for more monthly credits and bulk processing.',
   },
 ];
+
+const COMPARE_COLS = ['free', 'basic', 'starter', 'professional'] as const;
+
+function PlanCard({ plan }: { plan: Plan }) {
+  return (
+    <div
+      className={`${card.plan} ${plan.featured ? card['plan--feat'] : ''} ${
+        plan.muted ? card['plan--muted'] : ''
+      }`}
+    >
+      {plan.flag && <span className={card.plan__flag}>{plan.flag}</span>}
+      <div className={card.plan__name}>{plan.name}</div>
+      <div className={card.plan__price}>
+        <b>{plan.price}</b>
+        <span>{plan.unit}</span>
+      </div>
+      {plan.tag && <div className={card.plan__tag}>{plan.tag}</div>}
+      <ul className={card.plan__list}>
+        {plan.features.map(f => (
+          <li key={f}>
+            <Check size={16} aria-hidden="true" /> {f}
+          </li>
+        ))}
+      </ul>
+      <a className={`btn btn--${plan.ctaVariant} btn--block`} href={plan.ctaHref}>
+        {plan.ctaLabel}
+      </a>
+    </div>
+  );
+}
 
 function FaqRow({ q, a, defaultOpen }: { q: string; a: string; defaultOpen?: boolean }) {
   const [open, setOpen] = useState(!!defaultOpen);
@@ -186,11 +247,7 @@ function FaqRow({ q, a, defaultOpen }: { q: string; a: string; defaultOpen?: boo
 
   return (
     <div className={`${styles.acc} ${open ? styles['is-open'] : ''}`}>
-      <button
-        className={styles.acc__q}
-        aria-expanded={open}
-        onClick={() => setOpen(v => !v)}
-      >
+      <button className={styles.acc__q} aria-expanded={open} onClick={() => setOpen(v => !v)}>
         {q}
         <ChevronDown size={20} aria-hidden="true" />
       </button>
@@ -202,56 +259,64 @@ function FaqRow({ q, a, defaultOpen }: { q: string; a: string; defaultOpen?: boo
 }
 
 export function PublicPricingDetails() {
+  const [tab, setTab] = useState<'subscription' | 'payg'>('subscription');
+
+  // Allow /pricing?tab=payasyougo to open the Pay As You Go tab directly.
+  useEffect(() => {
+    const t = new URLSearchParams(window.location.search).get('tab');
+    if (t === 'payasyougo' || t === 'payg') setTab('payg');
+  }, []);
+
   return (
     <div className="dtfLanding" id="top">
       <SiteHeader />
 
       <main>
-        {/* Hero */}
-        <section className="section">
+        {/* Compact hero + tabs + active cards */}
+        <section className={`section ${styles.pricingTop}`}>
           <div className="wrap">
             <div className="section-head section-head--center">
               <span className="eyebrow">Pricing</span>
-              <h1 className="h-sec">Simple pricing for cleaner DTF artwork</h1>
-              <p className="sub">
-                Start free, choose a monthly plan, or buy credits only when you
-                need them.
-              </p>
+              <h1 className="h-sec">Simple pricing that grows with you</h1>
+              <p className="sub">Start free. Upgrade when you need more.</p>
             </div>
 
-            {/* Plan cards */}
-            <div className={card.pricing__grid}>
-              {PLANS.map(plan => (
-                <div
-                  key={plan.name}
-                  className={`${card.plan} ${plan.featured ? card['plan--feat'] : ''} ${
-                    plan.muted ? card['plan--muted'] : ''
-                  }`}
+            <div className={styles.tabsWrap}>
+              <div className={styles.tabs} role="tablist" aria-label="Pricing options">
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={tab === 'subscription'}
+                  className={`${styles.tab} ${tab === 'subscription' ? styles.tabActive : ''}`}
+                  onClick={() => setTab('subscription')}
                 >
-                  {plan.flag && <span className={card.plan__flag}>{plan.flag}</span>}
-                  <div className={card.plan__name}>{plan.name}</div>
-                  <div className={card.plan__price}>
-                    <b>{plan.price}</b>
-                    <span>{plan.unit}</span>
-                  </div>
-                  <div className={card.plan__tag}>{plan.tag}</div>
-                  <ul className={card.plan__list}>
-                    {plan.features.map(f => (
-                      <li key={f}>
-                        <Check size={16} aria-hidden="true" /> {f}
-                      </li>
-                    ))}
-                  </ul>
-                  <a
-                    className={`btn btn--${plan.ctaVariant} btn--block`}
-                    href={plan.ctaHref}
-                  >
-                    {plan.ctaLabel}
-                  </a>
-                  {plan.note && <p className={card.plan__note}>{plan.note}</p>}
-                </div>
-              ))}
+                  Subscription Plans
+                </button>
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={tab === 'payg'}
+                  className={`${styles.tab} ${tab === 'payg' ? styles.tabActive : ''}`}
+                  onClick={() => setTab('payg')}
+                >
+                  Pay As You Go
+                </button>
+              </div>
             </div>
+
+            {tab === 'subscription' ? (
+              <div className={card.pricing__grid}>
+                {SUBSCRIPTION_PLANS.map(plan => (
+                  <PlanCard key={plan.name} plan={plan} />
+                ))}
+              </div>
+            ) : (
+              <div className={styles.paygGrid}>
+                {PAYG_PACKS.map(plan => (
+                  <PlanCard key={plan.name} plan={plan} />
+                ))}
+              </div>
+            )}
 
             <div className={card.pricing__note}>
               <span>
@@ -278,62 +343,28 @@ export function PublicPricingDetails() {
             <div className={styles.credits}>
               <div className={styles.credits__copy}>
                 <p>
-                  Credits are used to run specific tools inside DTF Editor, such
-                  as background removal, image upscaling, vectorization, and AI
-                  image generation. If you do not want a monthly plan, you can
-                  buy credit packs instead and redeem those credits for the
-                  tools you need.
-                </p>
-                <p>
-                  The Free DPI Checker does not require credits — it&apos;s
-                  always free, so you can check artwork resolution as often as
-                  you like.
+                  Credits are used to run paid tools like background removal,
+                  image upscaling, vectorization, and AI image generation.
+                  Subscription plans include credits each month. If you do not
+                  want a monthly subscription, you can buy Pay As You Go credit
+                  packs instead. The Free DPI Checker does not require credits.
                 </p>
               </div>
 
               <ul className={styles.rules}>
-                {RULES.map((r, i) => (
-                  <li key={i}>
+                {RULES.map(text => (
+                  <li key={text}>
                     <ShieldCheck size={18} aria-hidden="true" />
-                    <span>{r.text}</span>
+                    <span>{text}</span>
                   </li>
                 ))}
               </ul>
             </div>
 
-            {/* Credit packs */}
+            {/* Tool credit costs */}
             <div className="section-head section-head--center" style={{ marginTop: 48 }}>
-              <h3 className="h-sec">Pay-as-you-go credit packs</h3>
-              <p className="sub">No subscription required — buy credits when you need them.</p>
+              <h3 className="h-sec">What each tool costs</h3>
             </div>
-            <div className={styles.packs}>
-              {CREDIT_PACKS.map(pack => (
-                <div
-                  key={pack.credits}
-                  className={`${styles.pack} ${pack.flag === 'Best value' ? styles['pack--feat'] : ''}`}
-                >
-                  {pack.flag && <span className={styles.pack__flag}>{pack.flag}</span>}
-                  <div className={styles.pack__credits}>{pack.credits} credits</div>
-                  <div className={styles.pack__price}>{pack.price}</div>
-                  <div className={styles.pack__per}>{pack.per}</div>
-                </div>
-              ))}
-            </div>
-            <p className={styles.packs__note}>
-              Purchased credits never expire · storage stays active for 90 days
-              from your last purchase.
-            </p>
-          </div>
-        </section>
-
-        {/* Tool credit table */}
-        <section className="section">
-          <div className="wrap">
-            <div className="section-head section-head--center">
-              <span className="eyebrow">Tool credits</span>
-              <h2 className="h-sec">What each tool costs</h2>
-            </div>
-
             <div className={styles.tableWrap}>
               <table className={styles.table}>
                 <thead>
@@ -367,6 +398,51 @@ export function PublicPricingDetails() {
           </div>
         </section>
 
+        {/* Plan comparison */}
+        <section className="section">
+          <div className="wrap">
+            <div className="section-head section-head--center">
+              <span className="eyebrow">Compare plans</span>
+              <h2 className="h-sec">What&apos;s included in each plan</h2>
+            </div>
+
+            <div className={styles.tableWrap}>
+              <table className={styles.compareTable}>
+                <thead>
+                  <tr>
+                    <th>Feature</th>
+                    <th>Free</th>
+                    <th className={styles.colFeat}>Basic</th>
+                    <th>Starter</th>
+                    <th>Professional</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {COMPARISON_FEATURES.map(feature => (
+                    <tr key={feature.name}>
+                      <td>{feature.name}</td>
+                      {COMPARE_COLS.map(col => {
+                        const v = feature[col];
+                        return (
+                          <td key={col} className={col === 'basic' ? styles.colFeat : ''}>
+                            {v === true ? (
+                              <Check size={16} className={styles.ok} aria-label="Included" />
+                            ) : v === false ? (
+                              <Minus size={16} className={styles.no} aria-label="Not included" />
+                            ) : (
+                              <span>{v}</span>
+                            )}
+                          </td>
+                        );
+                      })}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
         {/* FAQ */}
         <section className="section section--tint">
           <div className="wrap">
@@ -388,15 +464,12 @@ export function PublicPricingDetails() {
             <div className={styles.finalCta}>
               <h2>Start cleaning up artwork today</h2>
               <p>
-                Begin with the Basic plan and process real artwork right away,
-                or check your DPI for free first.
+                Start free and upgrade whenever you need more, or check your DPI
+                for free first.
               </p>
               <div className={styles.finalCta__actions}>
-                <a
-                  className="btn btn--primary btn--lg"
-                  href="/auth/signup?plan=basic"
-                >
-                  <Sparkles size={18} aria-hidden="true" /> Start a Basic Trial
+                <a className="btn btn--primary btn--lg" href="/auth/signup">
+                  <Sparkles size={18} aria-hidden="true" /> Get Started Free
                 </a>
                 <Link className="btn btn--ghost btn--lg" href="/#dpi">
                   Check DPI Free
