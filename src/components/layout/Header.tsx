@@ -125,7 +125,7 @@ export function Header() {
       ref={dropdownRef}
     >
       <nav className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        <div className="flex h-16 justify-between items-center">
+        <div className="flex h-20 justify-between items-center">
           {/* Logo */}
           <div className="flex items-center gap-8">
             <Link
@@ -137,7 +137,7 @@ export function Header() {
                 alt="DTF Editor"
                 width={1672}
                 height={941}
-                className="h-12 w-auto"
+                className="h-16 w-auto"
                 priority
               />
             </Link>
