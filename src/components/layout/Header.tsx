@@ -133,10 +133,10 @@ export function Header() {
               className="flex items-center flex-shrink-0"
             >
               <Image
-                src="/branding/dtf-editor-logo.png"
+                src="/branding/dtf-editor-favicon.png"
                 alt="DTF Editor"
-                width={1672}
-                height={941}
+                width={1254}
+                height={1254}
                 className="h-16 w-auto"
                 priority
               />
