@@ -266,7 +266,7 @@ export function DpiChecker() {
 
                 <div className={styles.checker__cta}>
                   <a className="btn btn--blue btn--block" href="/auth/signup">
-                    Need to fix it? Start a Hobbyist Trial
+                    Need to fix it? Get started free
                   </a>
                 </div>
               </div>

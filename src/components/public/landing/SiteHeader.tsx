@@ -63,7 +63,7 @@ export function SiteHeader() {
         </a>
         <div className={styles.mnav__cta}>
           <a className="btn btn--primary btn--block" href="/auth/signup" onClick={() => setOpen(false)}>
-            Start a Hobbyist Trial
+            Get Started Free
           </a>
           <Link className="btn btn--ghost btn--block" href="/#dpi" onClick={() => setOpen(false)}>
             Check DPI Free

@@ -21,7 +21,7 @@ const PLANS: Plan[] = [
     name: 'Free',
     price: '$0',
     unit: '/mo',
-    tag: 'A quick test — not built for real jobs',
+    tag: 'A quick look at the tools',
     features: ['2 credits per month', '48-hour file storage', 'Free DPI checker'],
     ctaLabel: 'Continue with Free',
     ctaVariant: 'ghost',
@@ -29,7 +29,7 @@ const PLANS: Plan[] = [
     muted: true,
   },
   {
-    name: 'Hobbyist',
+    name: 'Basic',
     price: '$9.99',
     unit: '/mo',
     tag: 'Best place to start fixing artwork',
@@ -37,42 +37,44 @@ const PLANS: Plan[] = [
       '20 credits per month',
       'Unlimited storage while subscribed',
       'All artwork tools',
-      '7-day money-back guarantee',
+      'Priority support & HD downloads',
     ],
-    ctaLabel: 'Start a Hobbyist Trial',
+    ctaLabel: 'Start a Basic Trial',
     ctaVariant: 'primary',
-    ctaHref: '/auth/signup?plan=hobbyist',
-    note: '7-day trial · cancel anytime',
+    ctaHref: '/auth/signup?plan=basic',
+    note: '7-day money-back guarantee',
     featured: true,
     flag: 'Most popular',
   },
   {
-    name: 'Small Business',
+    name: 'Starter',
     price: '$24.99',
     unit: '/mo',
-    tag: 'For higher-volume shops',
+    tag: 'For growing shops',
     features: [
       '60 credits per month',
       'Unlimited storage while subscribed',
-      'Priority & batch features',
+      'Priority support & HD downloads',
+      'Bulk processing (coming soon)',
     ],
-    ctaLabel: 'Start a Small Business Trial',
+    ctaLabel: 'Start a Starter Trial',
     ctaVariant: 'blue',
-    ctaHref: '/auth/signup?plan=small-business',
+    ctaHref: '/auth/signup?plan=starter',
   },
   {
-    name: 'Pay As You Go',
-    price: '$7.99',
-    unit: '+ packs',
-    tag: 'No subscription required',
+    name: 'Professional',
+    price: '$49.99',
+    unit: '/mo',
+    tag: 'For high-volume shops',
     features: [
-      'Credit packs from $7.99',
-      'Purchased credits never expire',
-      '90-day storage from last purchase',
+      '150 credits per month',
+      'Unlimited storage while subscribed',
+      'Priority support & HD downloads',
+      'Bulk processing (coming soon)',
     ],
-    ctaLabel: 'Buy credits',
-    ctaVariant: 'ghost',
-    ctaHref: '/auth/signup?next=%2Fpricing%3Ftab%3Dpayasyougo',
+    ctaLabel: 'Start a Professional Trial',
+    ctaVariant: 'blue',
+    ctaHref: '/auth/signup?plan=professional',
   },
 ];
 
@@ -84,8 +86,9 @@ export function PricingTeaser() {
           <span className="eyebrow">Pricing</span>
           <h2 className="h-sec">Start a trial, scale when you grow</h2>
           <p className="sub">
-            Most creators start with a Hobbyist trial and process real artwork
-            right away. The free plan is just a quick look at the tools.
+            Most creators start with the Basic plan and process real artwork
+            right away. The free plan is just a quick look — and you can buy
+            credit packs without a subscription.
           </p>
         </div>
 

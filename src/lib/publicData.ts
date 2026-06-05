@@ -96,22 +96,31 @@ export const PLANS: PlanData[] = [
     ctaText: 'Start Free',
   },
   {
-    name: 'Hobbyist',
-    slug: 'hobbyist',
+    name: 'Basic',
+    slug: 'basic',
     price: '$9.99',
     period: '/mo',
-    features: ['20 credits monthly', '2-month credit rollover', '90-day file storage', 'Email support'],
+    features: ['20 credits monthly', 'Priority support', 'HD downloads', 'Unlimited storage while subscribed'],
+    highlighted: true,
+    badge: 'MOST POPULAR',
+    ctaText: 'Get Started',
+  },
+  {
+    name: 'Starter',
+    slug: 'starter',
+    price: '$24.99',
+    period: '/mo',
+    features: ['60 credits monthly', 'Priority support', 'HD downloads', 'Bulk processing (coming soon)'],
     highlighted: false,
     ctaText: 'Get Started',
   },
   {
-    name: 'Business',
-    slug: 'business',
-    price: '$24.99',
+    name: 'Professional',
+    slug: 'professional',
+    price: '$49.99',
     period: '/mo',
-    features: ['60 credits monthly', '2-month credit rollover', 'Permanent file storage', 'Priority support', 'Batch processing'],
-    highlighted: true,
-    badge: 'BEST VALUE',
+    features: ['150 credits monthly', 'Priority support', 'HD downloads', 'Bulk processing (coming soon)'],
+    highlighted: false,
     ctaText: 'Get Started',
   },
 ];
@@ -141,7 +150,7 @@ export const LANDING_FAQS: FAQItem[] = [
   { question: 'Can I try it before paying?', answer: 'Yes. Every account starts with 2 free credits. No credit card required.' },
   { question: 'What does "print-ready" mean?', answer: '300 DPI resolution with transparent backgrounds, optimized for DTF transfer printing.' },
   { question: 'How is this different from Photoshop?', answer: 'DTF Editor is purpose-built for transfer printing. One click does what takes 15 minutes in Photoshop. No design skills needed.' },
-  { question: 'Do you store my images?', answer: 'Storage depends on your plan. Free: 48 hours. Hobbyist: 90 days. Business: permanent. You can delete anytime.' },
+  { question: 'Do you store my images?', answer: 'Storage depends on your plan. Free: 48 hours. Paid plans (Basic, Starter, Professional): unlimited while subscribed. Pay-as-you-go: 90 days from your last purchase. You can delete anytime.' },
 ];
 
 export const PRICING_FAQS: FAQItem[] = [
@@ -153,14 +162,13 @@ export const PRICING_FAQS: FAQItem[] = [
 ];
 
 export const COMPARISON_FEATURES = [
-  { name: 'Monthly credits', free: '2', hobbyist: '20', business: '60' },
-  { name: 'AI Upscaling', free: true, hobbyist: true, business: true },
-  { name: 'Background Removal', free: true, hobbyist: true, business: true },
-  { name: 'Color Changing', free: true, hobbyist: true, business: true },
-  { name: 'Vectorization', free: true, hobbyist: true, business: true },
-  { name: 'AI Generation', free: true, hobbyist: true, business: true },
-  { name: 'Batch Processing', free: false, hobbyist: false, business: true },
-  { name: 'Credit Rollover', free: '—', hobbyist: '2 months', business: '2 months' },
-  { name: 'File Storage', free: '48 hours', hobbyist: '90 days', business: 'Permanent' },
-  { name: 'Support', free: 'Basic', hobbyist: 'Email', business: 'Priority' },
+  { name: 'Monthly credits', free: '2', basic: '20', starter: '60', professional: '150' },
+  { name: 'AI Upscaling', free: true, basic: true, starter: true, professional: true },
+  { name: 'Background Removal', free: true, basic: true, starter: true, professional: true },
+  { name: 'Color Changing', free: true, basic: true, starter: true, professional: true },
+  { name: 'Vectorization', free: true, basic: true, starter: true, professional: true },
+  { name: 'AI Generation', free: true, basic: true, starter: true, professional: true },
+  { name: 'Batch Processing', free: false, basic: false, starter: 'Coming soon', professional: 'Coming soon' },
+  { name: 'File Storage', free: '48 hours', basic: 'Unlimited', starter: 'Unlimited', professional: 'Unlimited' },
+  { name: 'Support', free: 'Email', basic: 'Priority', starter: 'Priority', professional: 'Priority' },
 ] as const;

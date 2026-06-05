@@ -69,8 +69,14 @@
 }
 .logo {
   display: block;
-  height: 44px;
-  width: auto;
+  width: 220px;
+  max-width: 78%;
+  height: auto;
+}
+@media (max-width: 480px) {
+  .logo {
+    width: 184px;
+  }
 }
 
 /* ---- Header (title + subtitle) ---- */

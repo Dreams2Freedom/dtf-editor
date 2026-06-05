@@ -1,14 +1,18 @@
 .steps {
   display: grid;
-  grid-template-columns: 1fr;
-  gap: 18px;
-  margin-top: 40px;
+  /* Mobile: steps 1 & 2 side by side, step 3 spans the full width below. */
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 32px;
+}
+.step:last-child {
+  grid-column: 1 / -1;
 }
 .step {
   background: var(--card-bg);
   border: 1px solid var(--line);
   border-radius: var(--radius-md);
-  padding: 24px;
+  padding: 16px;
   box-shadow: var(--shadow-card);
 }
 .step__top {
@@ -55,5 +59,13 @@
   .steps {
     grid-template-columns: repeat(3, 1fr);
     gap: 20px;
+    margin-top: 40px;
+  }
+  /* Restore the even 3-up row on tablet/desktop. */
+  .step:last-child {
+    grid-column: auto;
+  }
+  .step {
+    padding: 24px;
   }
 }

@@ -1,16 +1,13 @@
 import { Quote, Star } from 'lucide-react';
 import styles from './TestimonialTicker.module.css';
 
-// TODO: Replace this placeholder testimonial with an approved real customer testimonial before production.
-// TODO: Slider/ticker version is intentionally saved for a later version.
-//
-// The data is kept as a single editable object so a future slider/ticker can
-// promote it into an array without restructuring this file.
+// Single featured customer testimonial. Update the fields below to change it.
+// A slider/ticker version is intentionally deferred to a later iteration.
 const testimonial = {
   quote:
-    'DTF Editor makes it easier to clean up customer artwork before sending it to print.',
-  name: 'Placeholder Customer',
-  context: 'Print shop owner',
+    'One of our biggest frustrations when it comes to running a print shop is bad artwork. However, we understand that everyone is not a graphic designer. DTF Editor is so easy to use we are able to send our customers to DTF Editor to have them fix their own artwork. It has saved us countless hours and we just can’t say enough good things about this tool.',
+  name: 'Tami N.',
+  context: 'Print Shop Manager',
   rating: 5,
 };
 
@@ -19,16 +16,9 @@ export function TestimonialTicker() {
   const t = testimonial;
 
   return (
-    <section className={styles.strip} aria-label="Customer proof">
+    <section className={styles.strip} aria-label="Customer testimonial">
       <div className="wrap">
-        <p className={styles.label}>Customer proof</p>
-
         <figure className={styles.card}>
-          <span className={styles.card__eyebrow}>
-            <Quote className={styles.card__eyebrowIcon} size={13} aria-hidden="true" />
-            Customer proof
-          </span>
-
           <div
             className={styles.card__stars}
             role="img"
@@ -53,12 +43,6 @@ export function TestimonialTicker() {
             <span className={styles.card__name}>{t.name}</span>
             <span className={styles.card__ctx}>{t.context}</span>
           </figcaption>
-
-          {/* Visible reminder while content is unapproved; remove with the real review. */}
-          <p className={styles.card__note}>
-            Placeholder testimonial — replace with approved customer review
-            before production.
-          </p>
         </figure>
       </div>
     </section>

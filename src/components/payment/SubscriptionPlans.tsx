@@ -148,11 +148,11 @@ export const SubscriptionPlans: React.FC<SubscriptionPlansProps> = ({
           <p className="text-gray-600 mt-2">Loading pricing...</p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
           {plans.map(plan => (
             <Card
               key={plan.id}
-              className={`relative p-6 transition-all duration-200 hover:shadow-lg border border-gray-200 rounded-xl ${
+              className={`relative flex h-full flex-col p-6 transition-all duration-200 hover:shadow-lg border border-gray-200 rounded-xl ${
                 selectedPlan === plan.id
                   ? 'ring-2 ring-amber-500'
                   : plan.id === 'basic' || plan.id === 'starter'
@@ -186,7 +186,7 @@ export const SubscriptionPlans: React.FC<SubscriptionPlansProps> = ({
                 )}
               </div>
 
-              <ul className="space-y-3 mb-6">
+              <ul className="space-y-3 mb-6 flex-1">
                 {plan.features.map((feature, index) => (
                   <li key={index} className="flex items-start">
                     <Check className="w-5 h-5 text-emerald-500 mr-3 mt-0.5 flex-shrink-0" />
