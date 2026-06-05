@@ -72,6 +72,8 @@ export function Header() {
   }, [pathname]);
 
   const isAdmin = profile?.is_admin === true;
+  // The DPI Checker page wants a static (non-sticky) header so it scrolls away.
+  const stickyHeader = pathname !== '/tools/dpi-checker';
 
   const navigation: NavItem[] = user
     ? [
@@ -83,7 +85,7 @@ export function Header() {
             { name: 'Process Image', href: '/process', icon: Upload, description: 'Upscale, remove bg, vectorize' },
             { name: 'Change Colors', href: '/process/color-change', icon: Palette, description: 'Replace colors in designs' },
             { name: 'Generate Image', href: '/generate', icon: Sparkles, description: 'Create with AI' },
-            { name: 'DPI Checker', href: '/free-dpi-checker', icon: Ruler, description: 'Check print quality' },
+            { name: 'DPI Checker', href: '/tools/dpi-checker', icon: Ruler, description: 'Check print quality' },
           ],
         },
         { name: 'My Images', href: '/dashboard#my-images', icon: Images },
@@ -118,9 +120,12 @@ export function Header() {
   };
 
   return (
-    <header className="bg-white/80 backdrop-blur-lg border-b border-gray-200/80 sticky top-0 z-40" ref={dropdownRef}>
+    <header
+      className={`bg-white/80 backdrop-blur-lg border-b border-gray-200/80 z-40 ${stickyHeader ? 'sticky top-0' : 'relative'}`}
+      ref={dropdownRef}
+    >
       <nav className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        <div className="flex h-14 justify-between items-center">
+        <div className="flex h-16 justify-between items-center">
           {/* Logo */}
           <div className="flex items-center gap-8">
             <Link
@@ -132,7 +137,7 @@ export function Header() {
                 alt="DTF Editor"
                 width={1672}
                 height={941}
-                className="h-9 w-auto"
+                className="h-12 w-auto"
                 priority
               />
             </Link>
