@@ -4,14 +4,20 @@ import { useEffect, useState, type CSSProperties } from 'react';
 import Link from 'next/link';
 import { useAuthStore } from '@/stores/authStore';
 import { createClientSupabaseClient } from '@/lib/supabase/client';
-import { Image as ImageIcon, Ruler, ArrowRight } from 'lucide-react';
+import {
+  Image as ImageIcon,
+  Ruler,
+  ArrowRight,
+  Download,
+  Wand2,
+} from 'lucide-react';
 
 /**
- * DashboardImageGalleryPreview — a prominent, at-a-glance preview of the
- * user's most recent artwork on the dashboard home, with a clear link to the
- * full gallery. Reuses the SAME data source as the full gallery (the
- * `get_user_images` Supabase RPC) so there is no second source of truth.
- * Read-only preview — no processing/auth/payment logic here.
+ * DashboardImageGalleryPreview — compact preview of the user's 6 most recent
+ * uploads on the dashboard home, with quick Download / Use-a-Tool actions.
+ * Reuses the SAME data source as the full gallery (the `get_user_images`
+ * Supabase RPC) — no second source of truth. The full library lives at
+ * /dashboard/my-images.
  */
 
 interface RecentImage {
@@ -40,6 +46,26 @@ const CHECKER: CSSProperties = {
   backgroundSize: '16px 16px',
   backgroundPosition: '0 0,0 8px,8px -8px,-8px 0',
 };
+
+// Download via the existing public URL (client-only, no backend); fall back to
+// opening the file if the blob fetch is blocked.
+async function downloadImage(url: string, filename: string) {
+  try {
+    const res = await fetch(url);
+    if (!res.ok) throw new Error('download failed');
+    const blob = await res.blob();
+    const objectUrl = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = objectUrl;
+    a.download = filename || 'dtf-editor-image';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(objectUrl);
+  } catch {
+    window.open(url, '_blank', 'noopener');
+  }
+}
 
 export function DashboardImageGalleryPreview() {
   const { user } = useAuthStore();
@@ -114,17 +140,14 @@ export function DashboardImageGalleryPreview() {
           >
             Your Image Gallery
           </h2>
-          <p className="mt-1 text-sm text-gray-500">
-            View your uploaded artwork, processed files, and recent downloads in
-            one place.
-          </p>
+          <p className="mt-1 text-sm text-gray-500">Your 6 most recent uploads.</p>
         </div>
-        <a
-          href="#my-images"
+        <Link
+          href="/dashboard/my-images"
           className="hidden shrink-0 items-center gap-1 rounded-lg border border-gray-200 px-3 py-2 text-sm font-semibold text-blue-600 transition-colors hover:border-blue-300 hover:bg-blue-50 sm:inline-flex"
         >
-          View Full Gallery <ArrowRight className="h-4 w-4" aria-hidden="true" />
-        </a>
+          View All Images <ArrowRight className="h-4 w-4" aria-hidden="true" />
+        </Link>
       </div>
 
       {loading ? (
@@ -143,7 +166,7 @@ export function DashboardImageGalleryPreview() {
           </div>
           <h3 className="font-semibold text-gray-900">No images yet</h3>
           <p className="mt-1 text-sm text-gray-500">
-            Upload artwork or use a tool to start building your gallery.
+            Upload artwork or use a tool to start building your image library.
           </p>
           <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
             <Link
@@ -170,13 +193,9 @@ export function DashboardImageGalleryPreview() {
               const status =
                 STATUS[img.processing_status || 'pending'] || STATUS.pending;
               return (
-                <a
+                <div
                   key={img.id}
-                  href={url || '#my-images'}
-                  target={url ? '_blank' : undefined}
-                  rel={url ? 'noopener noreferrer' : undefined}
-                  aria-label={`View ${name}`}
-                  className="group block overflow-hidden rounded-lg border border-gray-200 transition-all hover:border-blue-300 hover:shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+                  className="group overflow-hidden rounded-lg border border-gray-200 transition-all hover:border-blue-300 hover:shadow-md"
                 >
                   <div className="relative aspect-square" style={CHECKER}>
                     {url ? (
@@ -185,7 +204,7 @@ export function DashboardImageGalleryPreview() {
                         src={url}
                         alt={name}
                         loading="lazy"
-                        className="absolute inset-0 h-full w-full object-cover transition-transform group-hover:scale-105"
+                        className="absolute inset-0 h-full w-full object-cover"
                       />
                     ) : (
                       <div className="absolute inset-0 flex items-center justify-center">
@@ -200,6 +219,29 @@ export function DashboardImageGalleryPreview() {
                     >
                       {status.label}
                     </span>
+
+                    {/* Quick actions: always visible on touch, hover-revealed on desktop */}
+                    {url && (
+                      <div className="absolute inset-x-0 bottom-0 flex gap-1.5 bg-gradient-to-t from-black/70 to-transparent p-1.5 opacity-100 transition-opacity md:opacity-0 md:group-hover:opacity-100 md:group-focus-within:opacity-100">
+                        <button
+                          type="button"
+                          onClick={() => downloadImage(url, name)}
+                          aria-label={`Download ${name}`}
+                          className="inline-flex flex-1 items-center justify-center gap-1 rounded-md bg-white/95 px-2 py-1.5 text-[11px] font-semibold text-gray-900 transition-colors hover:bg-white focus:outline-none focus-visible:ring-2 focus-visible:ring-white"
+                        >
+                          <Download className="h-3.5 w-3.5" aria-hidden="true" />
+                          Download
+                        </button>
+                        <Link
+                          href={`/process?image=${encodeURIComponent(url)}`}
+                          aria-label={`Use a tool on ${name}`}
+                          className="inline-flex flex-1 items-center justify-center gap-1 rounded-md bg-amber-500 px-2 py-1.5 text-[11px] font-semibold text-white transition-colors hover:bg-amber-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-300"
+                        >
+                          <Wand2 className="h-3.5 w-3.5" aria-hidden="true" />
+                          Use a Tool
+                        </Link>
+                      </div>
+                    )}
                   </div>
                   <div className="p-2">
                     <p className="truncate text-xs font-medium text-gray-900">
@@ -209,18 +251,18 @@ export function DashboardImageGalleryPreview() {
                       {new Date(img.created_at).toLocaleDateString()}
                     </p>
                   </div>
-                </a>
+                </div>
               );
             })}
           </div>
 
-          {/* Mobile: keep the full-gallery link clearly visible */}
-          <a
-            href="#my-images"
+          {/* Mobile: keep the full-library link clearly visible */}
+          <Link
+            href="/dashboard/my-images"
             className="mt-4 flex min-h-[44px] w-full items-center justify-center gap-1 rounded-lg border border-gray-200 px-3 py-2.5 text-sm font-semibold text-blue-600 transition-colors hover:bg-blue-50 sm:hidden"
           >
-            View Full Gallery <ArrowRight className="h-4 w-4" aria-hidden="true" />
-          </a>
+            View All Images <ArrowRight className="h-4 w-4" aria-hidden="true" />
+          </Link>
         </>
       )}
     </section>

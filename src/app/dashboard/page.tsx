@@ -10,7 +10,6 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { CancellationFlow } from '@/components/subscription/CancellationFlow';
 import { PlanSwitcher } from '@/components/subscription/PlanSwitcher';
 import { CreditExpirationBanner } from '@/components/credits/CreditExpirationBanner';
-import { ImageGalleryEnhanced } from '@/components/image/ImageGalleryEnhanced';
 import { StorageUsageCard } from '@/components/storage/StorageUsageCard';
 import {
   Settings,
@@ -237,11 +236,6 @@ export default function DashboardPage() {
             </div>
 
             <StorageUsageCard />
-
-            {/* Gallery */}
-            <div id="my-images">
-              <ImageGalleryEnhanced />
-            </div>
 
             {/* Plan Switcher */}
             {hasActiveSubscription && (

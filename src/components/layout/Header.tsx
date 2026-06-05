@@ -88,7 +88,7 @@ export function Header() {
             { name: 'DPI Checker', href: '/tools/dpi-checker', icon: Ruler, description: 'Check print quality' },
           ],
         },
-        { name: 'My Images', href: '/dashboard#my-images', icon: Images },
+        { name: 'My Images', href: '/dashboard/my-images', icon: Images },
         { name: 'Pricing', href: '/pricing', icon: DollarSign },
       ]
     : [
