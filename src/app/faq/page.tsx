@@ -67,7 +67,7 @@ const faqs: FAQItem[] = [
           </li>
           <li>Background removal: 1 credit</li>
           <li>Image upscaling: 1 credit</li>
-          <li>Vectorization: 1 credit</li>
+          <li>Vectorization: 2 credits</li>
           <li>
             AI image generation (Beta): 1 credit (standard) or 2 credits (HD)
           </li>

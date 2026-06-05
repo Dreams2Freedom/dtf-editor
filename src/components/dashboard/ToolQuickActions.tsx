@@ -61,7 +61,7 @@ const TOOLS: Tool[] = [
     href: '/process?operation=vectorize',
     cta: 'Vectorize Artwork',
     icon: Pen,
-    badge: { label: '1 credit', tone: 'credit' },
+    badge: { label: '2 credits', tone: 'credit' },
   },
   {
     name: 'Change Colors',

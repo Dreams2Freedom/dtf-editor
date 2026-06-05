@@ -175,7 +175,7 @@ const TOOL_ROWS: ToolRow[] = [
   { tool: 'Free DPI Checker', cost: '0 credits', costKind: 'free', access: 'Public / free', notes: 'Always free' },
   { tool: 'Background Removal', cost: '1 credit', costKind: 'paid', access: 'Plan or credit pack', notes: 'Removes backgrounds' },
   { tool: 'Image Upscaling', cost: '1 credit', costKind: 'paid', access: 'Plan or credit pack', notes: 'Improves low-resolution artwork' },
-  { tool: 'Vectorization', cost: '1 credit', costKind: 'paid', access: 'Plan or credit pack', notes: 'Converts graphics to cleaner scalable artwork' },
+  { tool: 'Vectorization', cost: '2 credits', costKind: 'paid', access: 'Plan or credit pack', notes: 'Converts graphics to cleaner scalable artwork' },
   { tool: 'AI Image Generation', cost: '1 credit · HD may cost 2', costKind: 'paid', access: 'Paid only', notes: 'Creates artwork from prompts' },
 ];
 

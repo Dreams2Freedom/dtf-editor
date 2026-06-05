@@ -890,7 +890,7 @@ export function ImageProcessor() {
                     {processingOptions.operation === 'background-removal' &&
                       'Remove Background (1 credit)'}
                     {processingOptions.operation === 'vectorization' &&
-                      'Vectorize Image (1 credit)'}
+                      'Vectorize Image (2 credits)'}
                   </>
                 )}
               </Button>
