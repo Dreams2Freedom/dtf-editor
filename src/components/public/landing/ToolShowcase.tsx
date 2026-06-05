@@ -253,7 +253,7 @@ const CARDS: Card[] = [
     preview: <VectorPreview />,
     icon: Spline,
     title: 'Vectorization',
-    badgeLabel: '1 credit',
+    badgeLabel: '2 credits',
     badgeClass: 'badge--credit',
     desc: 'Convert logos and graphics into cleaner, scalable artwork with smooth edges.',
     ctaLabel: 'Start plan to vectorize',
