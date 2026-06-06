@@ -611,7 +611,11 @@ async function handleSubscriptionEvent(subscription: any) {
   // If we found a matching plan, update both status and plan
   if (plan) {
     console.log('✅ [Subscription] Matched plan:', plan.id);
-    updateData.subscription_status = plan.id; // 'basic', 'starter', etc.
+    // During the 7-day trial, surface 'trialing' as the status (the plan/tier
+    // still reflect the chosen plan). subscription_current_period_end holds the
+    // trial end date, which the UI uses for "billing starts on …".
+    updateData.subscription_status =
+      subscription.status === 'trialing' ? 'trialing' : plan.id;
     updateData.subscription_plan = plan.id;
     updateData.subscription_tier = plan.id; // Keep subscription_tier in sync
   } else {
@@ -1221,7 +1225,9 @@ async function handleCheckoutSessionCompleted(session: any) {
           .from('profiles')
           .update({
             subscription_plan: plan.id,
-            subscription_status: plan.id, // Set status to plan name (basic, starter, etc)
+            // 'trialing' during the 7-day trial; otherwise the plan name.
+            subscription_status:
+              subscription.status === 'trialing' ? 'trialing' : plan.id,
             subscription_tier: plan.id, // Keep subscription_tier in sync
           })
           .eq('id', userId);

@@ -56,6 +56,10 @@ interface SignupFormProps {
 // starting checkout; this does not change any Stripe price/product IDs.
 const CHECKOUT_PLAN_IDS = new Set(['basic', 'starter', 'professional']);
 
+// Basic & Starter are offered as 7-day trials; the server re-validates trial
+// eligibility and ignores the flag for anything else.
+const TRIAL_PLAN_IDS = new Set(['basic', 'starter']);
+
 // Kick off Stripe Checkout for a just-signed-up user via the existing
 // pricing + checkout-session APIs. Returns the checkout URL, or null on any
 // failure so the caller can fall back gracefully.
@@ -77,6 +81,7 @@ async function startSubscriptionCheckout(
       body: JSON.stringify({
         priceId: plan.stripePriceId,
         mode: 'subscription',
+        trial: TRIAL_PLAN_IDS.has(stripePlanId),
       }),
     });
     if (!res.ok) return null;
@@ -140,7 +145,10 @@ export function SignupForm({ onSuccess, redirectTo }: SignupFormProps) {
         return;
       }
 
-      window.location.href = redirectTo || '/dashboard';
+      // No explicit plan/next chosen: route new users through the
+      // trial-focused plan selection screen (Free remains a secondary option
+      // there) instead of dropping them straight on the dashboard.
+      window.location.href = redirectTo || '/auth/select-plan';
     } else {
       setFormError('root', {
         type: 'manual',

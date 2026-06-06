@@ -4,6 +4,7 @@ import { createClient } from '@supabase/supabase-js';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { env } from '@/config/env';
 import { withRateLimit } from '@/lib/rate-limit';
+import { TRIAL_DAYS, isTrialEligible } from '@/lib/trial';
 
 const supabase = createClient(env.SUPABASE_URL, env.SUPABASE_SERVICE_ROLE_KEY);
 
@@ -23,7 +24,11 @@ async function handlePost(request: NextRequest) {
       );
     }
 
-    const { priceId, mode = 'subscription' } = await request.json();
+    const {
+      priceId,
+      mode = 'subscription',
+      trial = false,
+    } = await request.json();
 
     if (!priceId) {
       return NextResponse.json(
@@ -114,6 +119,22 @@ async function handlePost(request: NextRequest) {
           userEmail: authUser.email!,
         },
       };
+
+      // 7-day trial for Basic & Starter. We re-validate eligibility server-side
+      // ("one trial per user, ever") and only honor the request for the Basic
+      // or Starter price IDs — so a trial can never be granted twice or to an
+      // unsupported plan, regardless of what the client sends.
+      const isTrialPriceId =
+        priceId === env.STRIPE_BASIC_PLAN_PRICE_ID ||
+        priceId === env.STRIPE_STARTER_PLAN_PRICE_ID;
+
+      if (trial === true && isTrialPriceId && isTrialEligible(profile)) {
+        sessionConfig.subscription_data.trial_period_days = TRIAL_DAYS;
+        sessionConfig.subscription_data.metadata.trial = 'true';
+        // Require a card even though $0 is due today, so billing can begin
+        // automatically when the trial ends unless the user cancels.
+        sessionConfig.payment_method_collection = 'always';
+      }
     } else {
       // Payment mode for one-time purchases
       // Get the product details to add credits to metadata
