@@ -5,6 +5,7 @@ import { goHighLevelService } from '@/services/goHighLevel';
 import { createClient } from '@supabase/supabase-js';
 import { ApiCostTracker } from '@/lib/api-cost-tracker';
 import { trackReferralConversion } from '@/services/affiliate';
+import { env } from '@/config/env';
 
 // Fallback plan matching by price amount (cents) when price ID env vars are misconfigured
 const PLAN_PRICE_AMOUNTS: Record<number, string> = {
@@ -1546,11 +1547,71 @@ async function handleCheckoutSessionCompleted(session: any) {
 }
 
 async function handleTrialWillEnd(subscription: any) {
-  const userId = subscription.metadata?.userId;
-  if (!userId) return;
+  console.log('⏰ Handling trial_will_end for subscription:', subscription.id);
 
-  // Trial ending in 3 days - send reminder email
-  // TODO: Implement email notification
+  // Resolve the user: prefer metadata, fall back to customer lookup.
+  let userId = subscription.metadata?.userId as string | undefined;
+  if (!userId && subscription.customer) {
+    const { data: profile } = await getSupabase()
+      .from('profiles')
+      .select('id')
+      .eq('stripe_customer_id', subscription.customer)
+      .single();
+    userId = profile?.id as string | undefined;
+  }
+  if (!userId) {
+    console.warn('⏰ [trial_will_end] Could not resolve userId — skipping');
+    return;
+  }
+
+  try {
+    // User email + first name.
+    const {
+      data: { user },
+    } = await getSupabase().auth.admin.getUserById(userId);
+    const { data: profile } = await getSupabase()
+      .from('profiles')
+      .select('first_name')
+      .eq('id', userId)
+      .single();
+
+    if (!user?.email) {
+      console.warn('⏰ [trial_will_end] No email for user — skipping');
+      return;
+    }
+
+    // Plan name + price after the trial.
+    const priceId = subscription.items?.data?.[0]?.price?.id;
+    const plan = await resolvePlanFromPriceId(priceId);
+
+    // Trial end / first billing date.
+    const trialEndUnix =
+      subscription.trial_end || getSubscriptionPeriodEnd(subscription);
+    const trialEndDate = trialEndUnix
+      ? new Date(trialEndUnix * 1000)
+      : undefined;
+
+    if (!plan || !trialEndDate) {
+      console.warn(
+        '⏰ [trial_will_end] Missing plan or trial end date — skipping',
+        { hasPlan: !!plan, trialEndUnix }
+      );
+      return;
+    }
+
+    const sent = await emailService.sendTrialEndingEmail({
+      email: user.email,
+      firstName: profile?.first_name as string | undefined,
+      planName: plan.name,
+      price: plan.price,
+      trialEndDate,
+      manageUrl: `${env.APP_URL}/settings?tab=billing`,
+    });
+    console.log('⏰ [trial_will_end] Reminder email sent:', sent);
+  } catch (error) {
+    console.error('⏰ [trial_will_end] Failed to send reminder:', error);
+    // Don't throw — a failed reminder must not fail the webhook.
+  }
 }
 
 async function handleInvoicePaymentFailed(invoice: any) {

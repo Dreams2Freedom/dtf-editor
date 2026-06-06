@@ -45,6 +45,18 @@ export interface SubscriptionEmailData {
   pauseUntil?: Date;
 }
 
+export interface TrialEndingEmailData {
+  firstName?: string;
+  email: string;
+  planName: string;
+  /** Monthly price (in dollars) that will be charged when the trial ends. */
+  price: number;
+  /** Date the trial ends and billing begins. */
+  trialEndDate: Date;
+  /** Link to Billing & Membership where the user can manage/cancel. */
+  manageUrl: string;
+}
+
 export interface RetentionDiscountEmailData {
   firstName?: string;
   email: string;
@@ -377,6 +389,107 @@ export class EmailService {
       return await this.sendMailgunEmail(mailOptions);
     } catch (error) {
       console.error('Error sending subscription email:', error);
+      return false;
+    }
+  }
+
+  /**
+   * Send a "your trial ends soon" reminder before the card is first charged.
+   * Triggered by Stripe's customer.subscription.trial_will_end event so users
+   * are never surprised by the first charge (clear, non-deceptive billing).
+   */
+  async sendTrialEndingEmail(data: TrialEndingEmailData): Promise<boolean> {
+    if (!this.enabled || !this.mailgunApiKey) {
+      console.log('EmailService: Would send trial-ending email to', data.email);
+      return true;
+    }
+
+    try {
+      const endDate = data.trialEndDate.toLocaleDateString('en-US', {
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+      });
+      const price = `$${data.price.toFixed(2)}`;
+      const subject = `Your ${data.planName} trial ends soon`;
+
+      const html = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <meta charset="utf-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        </head>
+        <body style="margin: 0; padding: 0; font-family: Arial, sans-serif; background-color: #f5f5f5;">
+          <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff;">
+            ${this.getEmailLogoHeader()}
+            <div style="padding: 40px 30px;">
+              <h2 style="color: #333; margin-bottom: 16px;">Hi ${data.firstName || 'there'},</h2>
+              <p style="color: #444; font-size: 15px; line-height: 1.6;">
+                Your <strong>7-day ${data.planName} trial</strong> is almost over.
+                Unless you cancel before it ends, your membership will continue
+                automatically and your card will be charged
+                <strong>${price}/month</strong> starting <strong>${endDate}</strong>.
+              </p>
+              <div style="margin: 24px 0; padding: 16px 20px; background-color: #fff7ed; border: 1px solid #fed7aa; border-radius: 8px;">
+                <p style="margin: 0; color: #9a3412; font-size: 14px;">
+                  <strong>Trial ends:</strong> ${endDate}<br>
+                  <strong>Then:</strong> ${price}/month for the ${data.planName} plan
+                </p>
+              </div>
+              <p style="color: #444; font-size: 15px; line-height: 1.6;">
+                Happy with DTF Editor? No action needed — you'll keep all your
+                ${data.planName} credits and tools. Want to make a change? You can
+                manage or cancel your membership anytime, before billing begins.
+              </p>
+              <div style="text-align: center; margin: 28px 0;">
+                <a href="${data.manageUrl}" style="display: inline-block; background-color: #2563eb; color: #ffffff; text-decoration: none; padding: 12px 28px; border-radius: 8px; font-weight: 600; font-size: 15px;">
+                  Manage or Cancel Membership
+                </a>
+              </div>
+              <hr style="margin: 28px 0; border: none; border-top: 1px solid #eee;">
+              <p style="color: #888; font-size: 13px;">
+                You're receiving this because you started a DTF Editor trial. If
+                you have any questions, just reply to this email.
+              </p>
+            </div>
+          </div>
+        </body>
+        </html>
+      `;
+
+      const text = [
+        `Hi ${data.firstName || 'there'},`,
+        '',
+        `Your 7-day ${data.planName} trial is almost over. Unless you cancel before it ends, your membership will continue automatically and your card will be charged ${price}/month starting ${endDate}.`,
+        '',
+        `Trial ends: ${endDate}`,
+        `Then: ${price}/month for the ${data.planName} plan`,
+        '',
+        `Manage or cancel anytime before billing begins: ${data.manageUrl}`,
+        '',
+        "Happy with DTF Editor? No action needed — you'll keep all your credits and tools.",
+      ].join('\n');
+
+      const mailOptions = {
+        from: `${env.MAILGUN_FROM_NAME} <${env.MAILGUN_FROM_EMAIL}>`,
+        to: data.email,
+        subject,
+        html,
+        text,
+        'o:tag': ['subscription', 'trial-ending'],
+        'o:tracking': true,
+        'o:tracking-clicks': true,
+        'o:tracking-opens': true,
+        'v:user_email': data.email,
+        'v:user_name': data.firstName || 'User',
+        'v:plan_name': data.planName,
+      };
+
+      return await this.sendMailgunEmail(mailOptions);
+    } catch (error) {
+      console.error('Error sending trial-ending email:', error);
       return false;
     }
   }
