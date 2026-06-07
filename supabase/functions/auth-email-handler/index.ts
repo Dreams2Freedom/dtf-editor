@@ -4,6 +4,12 @@ const MAILGUN_API_KEY = Deno.env.get('MAILGUN_API_KEY')!;
 const MAILGUN_DOMAIN = Deno.env.get('MAILGUN_DOMAIN')!;
 const MAILGUN_FROM_EMAIL = Deno.env.get('MAILGUN_FROM_EMAIL')!;
 const MAILGUN_FROM_NAME = Deno.env.get('MAILGUN_FROM_NAME')!;
+// Mailgun region: 'eu' uses api.eu.mailgun.net, otherwise US (api.mailgun.net).
+const MAILGUN_REGION = (Deno.env.get('MAILGUN_REGION') || 'us').toLowerCase();
+const MAILGUN_BASE_URL =
+  MAILGUN_REGION === 'eu'
+    ? 'https://api.eu.mailgun.net'
+    : 'https://api.mailgun.net';
 const APP_URL = Deno.env.get('APP_URL')!;
 
 interface EmailRequest {
@@ -136,7 +142,7 @@ async function sendEmail(options: {
     form.append('o:tracking-opens', 'false');
 
     const response = await fetch(
-      `https://api.mailgun.net/v3/${MAILGUN_DOMAIN}/messages`,
+      `${MAILGUN_BASE_URL}/v3/${MAILGUN_DOMAIN}/messages`,
       {
         method: 'POST',
         headers: {

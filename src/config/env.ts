@@ -105,6 +105,9 @@ export const env = {
   MAILGUN_WEBHOOK_SIGNING_KEY: (
     process.env.MAILGUN_WEBHOOK_SIGNING_KEY || ''
   ).trim(),
+  // Mailgun region: 'us' (api.mailgun.net) or 'eu' (api.eu.mailgun.net).
+  // A domain provisioned in the EU region returns 401 on the US endpoint.
+  MAILGUN_REGION: (process.env.MAILGUN_REGION || 'us').trim().toLowerCase(),
 
   // URLs
   APP_URL: process.env.NEXT_PUBLIC_APP_URL || process.env.APP_URL || '',
@@ -178,6 +181,13 @@ export function validateEnv(): {
   if (!env.OPENAI_API_KEY) {
     warnings.push(
       'OPENAI_API_KEY is missing - AI image generation will not work'
+    );
+  }
+
+  // Check Mailgun (required for all transactional/notification emails)
+  if (!env.MAILGUN_API_KEY || !env.MAILGUN_DOMAIN) {
+    warnings.push(
+      '⚠️  MAILGUN_API_KEY or MAILGUN_DOMAIN is missing - NO emails will be sent (welcome, signup admin alerts, receipts, etc.)'
     );
   }
 
