@@ -1,10 +1,57 @@
 # DTF Editor - Bug Tracker
 
-**Last Updated:** February 18, 2026
+**Last Updated:** June 7, 2026
 **Status:** Active Bug Tracking - POST SECURITY AUDIT
 
 > **SECURITY RE-AUDIT (Feb 16, 2026):** A comprehensive re-audit found 28 new issues. 30+ fixes applied across 4 tiers. See `SECURITY_AUDIT_2026_02_16.md` for the full report.
 > **SECURITY AUDIT (Feb 8, 2026):** Original audit found 47 issues (12 Critical, 17 High, 12 Medium, 6 Low). See `SECURITY_AUDIT_2026_02_08.md`.
+
+---
+
+## 🔴 **CRITICAL BUGS (June 7, 2026 Session)**
+
+### **BUG-063: No Emails Being Sent (Welcome / Signup Admin Alerts / Receipts)**
+
+- **Status:** 🟡 ROOT CAUSE CONFIRMED — code hardened; awaits Vercel env-var restore
+- **Severity:** Critical (no transactional or notification emails reaching users/admin)
+- **Component:** Email Service (Mailgun) / Vercel Production environment
+- **Description:** No emails of any kind are being delivered — no welcome emails, no
+  new-signup admin notifications, no purchase receipts. Previously working.
+- **Reported:** June 7, 2026
+- **Diagnosis (via Vercel MCP):** Production runtime logs show
+  `EmailService: Mailgun not configured` firing on `/api/auth/signup` and
+  `/api/auth/security-alert`. That warning only fires when
+  `isFeatureAvailable('mailgun')` is false — i.e. **`MAILGUN_API_KEY` and/or
+  `MAILGUN_DOMAIN` are missing/empty in the Vercel Production environment.** Every
+  send was hitting a guard that logged `"Would send…"` and then **`return true`**,
+  so callers logged "sent successfully" and the outage was invisible. (An
+  invalid-but-present key would instead log a `401`, which we did NOT see —
+  confirming the value is absent, not merely wrong.)
+- **Why it stayed hidden (3 compounding issues):**
+  1. Every send method returned `true` when unconfigured (silent success).
+  2. The Mailgun API URL was hardcoded to the US region (`api.mailgun.net`); an
+     EU-region domain would 401 on every request.
+  3. `validateEnv()` never warned about missing Mailgun config.
+- **Fix Applied (code, this session):**
+  - All send-method guards now call `notSent()` → log a loud `NOT SENT [type]`
+    error and **return `false`** (failures are now visible; safe — callers already
+    treat `false` as failure and never crash).
+  - Added `MAILGUN_REGION` (us/eu) support across `email.ts`, the auth-email edge
+    function, and a region-aware base-URL helper.
+  - `validateEnv()` now warns when Mailgun config is missing.
+  - New admin endpoint `GET/POST /api/admin/email-health` to check config and send
+    a test email from the live app.
+- **Action Required (account owner):** Set `MAILGUN_API_KEY`, `MAILGUN_DOMAIN`
+  (+ `MAILGUN_FROM_EMAIL`, `MAILGUN_FROM_NAME`, and `MAILGUN_REGION=eu` only if the
+  domain is EU) in Vercel **Production**, redeploy, then verify via
+  `/api/admin/email-health`. If the Mailgun trial lapsed or the domain is
+  unverified/deactivated, re-activate/upgrade the Mailgun account first.
+- **Also found:** No Supabase Edge Functions are deployed, so `auth-email-handler`
+  (password reset / confirmation / magic link via Mailgun) is NOT live — those rely
+  on Supabase Auth's built-in SMTP. Separate from the app-email outage.
+- **Pre-existing latent bug noted:** `this.getEmailFooter()` is called in
+  `email.ts` (retention discount + refund emails) but never defined — would throw at
+  runtime for those two emails. Out of scope here; tracked for follow-up.
 
 ---
 

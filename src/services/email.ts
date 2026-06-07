@@ -114,21 +114,70 @@ export class EmailService {
   private enabled: boolean;
   private mailgunApiKey: string;
   private mailgunDomain: string;
+  private mailgunRegion: string;
   private mailgunUrl: string;
 
   constructor() {
     this.enabled = isFeatureAvailable('mailgun');
     this.mailgunApiKey = env.MAILGUN_API_KEY;
     this.mailgunDomain = env.MAILGUN_DOMAIN;
-    this.mailgunUrl = `https://api.mailgun.net/v3/${this.mailgunDomain}/messages`;
+    this.mailgunRegion = env.MAILGUN_REGION === 'eu' ? 'eu' : 'us';
+    this.mailgunUrl = `${EmailService.mailgunBaseUrl(this.mailgunRegion)}/v3/${this.mailgunDomain}/messages`;
 
     if (this.enabled && this.mailgunApiKey && this.mailgunDomain) {
-      console.log('EmailService: Mailgun configured successfully');
+      console.log(
+        `EmailService: Mailgun configured successfully (domain=${this.mailgunDomain}, region=${this.mailgunRegion})`
+      );
     } else {
       console.warn(
-        'EmailService: Mailgun not configured. Emails will not be sent.'
+        'EmailService: Mailgun NOT configured (MAILGUN_API_KEY/MAILGUN_DOMAIN missing or empty). Emails will NOT be sent.'
       );
     }
+  }
+
+  /**
+   * Mailgun API base URL for the given region.
+   * EU-provisioned domains MUST use api.eu.mailgun.net or every request 401s.
+   */
+  private static mailgunBaseUrl(region: string): string {
+    return region === 'eu'
+      ? 'https://api.eu.mailgun.net'
+      : 'https://api.mailgun.net';
+  }
+
+  /**
+   * Configuration status for diagnostics (used by the admin email-health endpoint).
+   * Never exposes the API key itself.
+   */
+  getConfigStatus(): {
+    configured: boolean;
+    region: string;
+    domain: string;
+    fromEmail: string;
+    fromName: string;
+    hasApiKey: boolean;
+  } {
+    return {
+      configured: this.enabled && !!this.mailgunApiKey && !!this.mailgunDomain,
+      region: this.mailgunRegion,
+      domain: this.mailgunDomain || '(not set)',
+      fromEmail: env.MAILGUN_FROM_EMAIL,
+      fromName: env.MAILGUN_FROM_NAME,
+      hasApiKey: !!this.mailgunApiKey,
+    };
+  }
+
+  /**
+   * Logs a loud, unambiguous "not sent" error and returns false so callers
+   * (signup, webhooks, cron, email queue) see the real failure instead of a
+   * silent success. Previously these paths returned true and masked the outage.
+   */
+  private notSent(emailType: string): false {
+    console.error(
+      `EmailService: NOT SENT [${emailType}] — Mailgun unconfigured ` +
+        `(enabled=${this.enabled}, hasKey=${!!this.mailgunApiKey}, hasDomain=${!!this.mailgunDomain})`
+    );
+    return false;
   }
 
   static getInstance(): EmailService {
@@ -222,14 +271,7 @@ export class EmailService {
     console.log('[EmailService] Mailgun Domain:', this.mailgunDomain);
 
     if (!this.enabled || !this.mailgunApiKey) {
-      console.log('EmailService: Would send welcome email to', data.email);
-      console.log(
-        'EmailService: Skipping because enabled=',
-        this.enabled,
-        'hasKey=',
-        !!this.mailgunApiKey
-      );
-      return true;
+      return this.notSent('welcome');
     }
 
     try {
@@ -264,8 +306,7 @@ export class EmailService {
    */
   async sendPurchaseEmail(data: PurchaseEmailData): Promise<boolean> {
     if (!this.enabled || !this.mailgunApiKey) {
-      console.log('EmailService: Would send purchase email to', data.email);
-      return true;
+      return this.notSent('purchase');
     }
 
     try {
@@ -306,11 +347,7 @@ export class EmailService {
    */
   async sendCreditWarningEmail(data: CreditWarningEmailData): Promise<boolean> {
     if (!this.enabled || !this.mailgunApiKey) {
-      console.log(
-        'EmailService: Would send credit warning email to',
-        data.email
-      );
-      return true;
+      return this.notSent('credit-warning');
     }
 
     try {
@@ -344,8 +381,7 @@ export class EmailService {
    */
   async sendSubscriptionEmail(data: SubscriptionEmailData): Promise<boolean> {
     if (!this.enabled || !this.mailgunApiKey) {
-      console.log('EmailService: Would send subscription email to', data.email);
-      return true;
+      return this.notSent('subscription');
     }
 
     try {
@@ -391,8 +427,7 @@ export class EmailService {
     firstName?: string
   ): Promise<boolean> {
     if (!this.enabled || !this.mailgunApiKey) {
-      console.log('EmailService: Would send admin notification to', to);
-      return true;
+      return this.notSent('admin-notification');
     }
 
     try {
@@ -450,12 +485,12 @@ export class EmailService {
     content: string
   ): Promise<{ sent: number; failed: number }> {
     if (!this.enabled || !this.mailgunApiKey) {
-      console.log(
-        'EmailService: Would send batch emails to',
+      console.error(
+        'EmailService: NOT SENT [batch] — Mailgun unconfigured;',
         recipients.length,
-        'recipients'
+        'recipients not emailed'
       );
-      return { sent: recipients.length, failed: 0 };
+      return { sent: 0, failed: recipients.length };
     }
 
     let sent = 0;
@@ -496,11 +531,7 @@ export class EmailService {
    */
   async sendPasswordResetEmail(data: PasswordResetEmailData): Promise<boolean> {
     if (!this.enabled || !this.mailgunApiKey) {
-      console.log(
-        'EmailService: Would send password reset email to',
-        data.email
-      );
-      return true;
+      return this.notSent('password-reset');
     }
 
     try {
@@ -530,8 +561,7 @@ export class EmailService {
    */
   async sendEmailConfirmation(data: EmailConfirmationData): Promise<boolean> {
     if (!this.enabled || !this.mailgunApiKey) {
-      console.log('EmailService: Would send email confirmation to', data.email);
-      return true;
+      return this.notSent('email-confirmation');
     }
 
     try {
@@ -561,8 +591,7 @@ export class EmailService {
    */
   async sendMagicLinkEmail(data: MagicLinkEmailData): Promise<boolean> {
     if (!this.enabled || !this.mailgunApiKey) {
-      console.log('EmailService: Would send magic link email to', data.email);
-      return true;
+      return this.notSent('magic-link');
     }
 
     try {
@@ -598,11 +627,7 @@ export class EmailService {
     ticketSubject: string;
   }): Promise<boolean> {
     if (!this.enabled || !this.mailgunApiKey) {
-      console.log(
-        'EmailService: Would send ticket reply notification to',
-        data.userEmail
-      );
-      return true;
+      return this.notSent('ticket-reply-user');
     }
 
     try {
@@ -676,11 +701,7 @@ export class EmailService {
     const adminEmail = 's2transfers@gmail.com';
 
     if (!this.enabled || !this.mailgunApiKey) {
-      console.log(
-        'EmailService: Would send user reply notification to',
-        adminEmail
-      );
-      return true;
+      return this.notSent('ticket-reply-admin');
     }
 
     try {
@@ -759,11 +780,7 @@ export class EmailService {
     amount: number;
   }): Promise<boolean> {
     if (!this.enabled || !this.mailgunApiKey) {
-      console.log(
-        'EmailService: Would send payment failed email to',
-        data.email
-      );
-      return true;
+      return this.notSent('payment-failed');
     }
 
     try {
@@ -867,8 +884,7 @@ export class EmailService {
     planName: string;
   }): Promise<boolean> {
     if (!this.enabled || !this.mailgunApiKey) {
-      console.log('EmailService: Would send monthly summary to', data.email);
-      return true;
+      return this.notSent('monthly-summary');
     }
 
     try {
@@ -1006,11 +1022,7 @@ export class EmailService {
     fileName?: string;
   }): Promise<boolean> {
     if (!this.enabled || !this.mailgunApiKey) {
-      console.log(
-        'EmailService: Would send processing error email to',
-        data.email
-      );
-      return true;
+      return this.notSent('processing-error');
     }
 
     try {
@@ -1128,12 +1140,7 @@ export class EmailService {
     const adminEmail = 's2transfers@gmail.com';
 
     if (!this.enabled || !this.mailgunApiKey) {
-      console.log(
-        'EmailService: Would send support ticket notification to',
-        adminEmail
-      );
-      console.log('Ticket details:', data);
-      return true;
+      return this.notSent('support-ticket');
     }
 
     try {
@@ -1912,7 +1919,7 @@ ${process.env.NEXT_PUBLIC_APP_URL || 'https://dtfeditor.com'}/admin/support
       formData.append('o:tag', `security-${data.alertType}`);
 
       const response = await fetch(
-        `https://api.mailgun.net/v3/${env.MAILGUN_DOMAIN}/messages`,
+        `${EmailService.mailgunBaseUrl(this.mailgunRegion)}/v3/${env.MAILGUN_DOMAIN}/messages`,
         {
           method: 'POST',
           headers: {
@@ -2106,7 +2113,7 @@ ${process.env.NEXT_PUBLIC_APP_URL}/account/verify
       formData.append('o:tag', `activity-${data.period}`);
 
       const response = await fetch(
-        `https://api.mailgun.net/v3/${env.MAILGUN_DOMAIN}/messages`,
+        `${EmailService.mailgunBaseUrl(this.mailgunRegion)}/v3/${env.MAILGUN_DOMAIN}/messages`,
         {
           method: 'POST',
           headers: {
@@ -2136,11 +2143,7 @@ ${process.env.NEXT_PUBLIC_APP_URL}/account/verify
     data: RetentionDiscountEmailData
   ): Promise<boolean> {
     if (!this.enabled || !this.mailgunApiKey) {
-      console.log(
-        'EmailService: Would send retention discount email to',
-        data.email
-      );
-      return true;
+      return this.notSent('retention-discount');
     }
 
     try {
@@ -2235,8 +2238,7 @@ ${process.env.NEXT_PUBLIC_APP_URL}/account/verify
    */
   async sendRefundEmail(data: RefundEmailData): Promise<boolean> {
     if (!this.enabled || !this.mailgunApiKey) {
-      console.log('EmailService: Would send refund email to', data.email);
-      return true;
+      return this.notSent('refund');
     }
 
     try {
@@ -2379,11 +2381,7 @@ ${process.env.NEXT_PUBLIC_APP_URL}/account/preferences
     const SUPER_ADMIN_EMAIL = 'Shannon@S2Transfers.com';
 
     if (!this.enabled || !this.mailgunApiKey) {
-      console.log(
-        'EmailService: Would send admin notification to',
-        SUPER_ADMIN_EMAIL
-      );
-      return true;
+      return this.notSent('admin-notification');
     }
 
     try {
