@@ -1,5 +1,20 @@
 # Supabase Auth Emails with Mailgun Setup Guide
 
+> ⚠️ **UPDATE (June 7, 2026): The Edge Function approach below is SUPERSEDED.**
+> Auth emails are now sent via **Supabase Custom SMTP → Mailgun** (simpler, no
+> Edge Function, no hook/HMAC wiring). This is the live, working configuration:
+>
+> **Supabase → Authentication → Emails → SMTP Settings** (Enable Custom SMTP):
+> - Host: `smtp.mailgun.org`  ·  Port: `587`
+> - Username: `postmaster@mg.dtfeditor.com`  ·  Password: *Mailgun SMTP password (NOT the API key)*
+> - **Sender email: `noreply@mg.dtfeditor.com`** ← MUST be on the verified `mg.dtfeditor.com` domain.
+>   Using the root `noreply@dtfeditor.com` causes Gmail to accept (250) then silently
+>   drop the message (DKIM/DMARC alignment failure) — emails won't even hit spam.
+> - Also raise **Authentication → Rate Limits → Emails per hour**, and set
+>   **URL Configuration → Site URL** to `https://dtfeditor.com`.
+>
+> The Edge Function instructions below are kept for historical reference only.
+
 This guide explains how to configure Supabase to use Mailgun for all authentication emails (password reset, email confirmation, magic links).
 
 ## Overview
