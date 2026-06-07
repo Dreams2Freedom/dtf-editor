@@ -16,11 +16,22 @@ export default function ContactPage() {
   const { user } = useAuthStore();
   const [loading, setLoading] = useState(false);
   const [submitted, setSubmitted] = useState(false);
-  const [formData, setFormData] = useState({
-    name: '',
-    email: user?.email || '',
-    subject: '',
-    message: '',
+  const [formData, setFormData] = useState(() => {
+    // Prefill the subject when arriving from the "Contact us about a larger
+    // plan" out-of-credit CTA (?topic=custom-plan).
+    let subject = '';
+    if (typeof window !== 'undefined') {
+      const topic = new URLSearchParams(window.location.search).get('topic');
+      if (topic === 'custom-plan') {
+        subject = 'Custom plan / higher credit limit request';
+      }
+    }
+    return {
+      name: '',
+      email: user?.email || '',
+      subject,
+      message: '',
+    };
   });
 
   const handleSubmit = async (e: React.FormEvent) => {

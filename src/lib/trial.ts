@@ -63,6 +63,37 @@ export function isTrialEligible(
   return onFree && !looksSubscribed;
 }
 
+/**
+ * Which out-of-credit prompt to show, by the user's plan/trial state.
+ * - free_eligible: Free user who can still start a trial (Case A)
+ * - free_not_eligible: Free user who already used their trial (Case B)
+ * - trialing: currently on a Basic/Starter trial (Case E)
+ * - paid: active Basic/Starter subscriber (Case C)
+ * - professional: highest standard plan (Case D)
+ */
+export type OutOfCreditCase =
+  | 'free_eligible'
+  | 'free_not_eligible'
+  | 'trialing'
+  | 'paid'
+  | 'professional';
+
+export function getOutOfCreditCase(
+  profile: TrialEligibilityProfile | null | undefined,
+  eligible: boolean
+): OutOfCreditCase {
+  const plan = (profile?.subscription_plan || 'free').toLowerCase();
+  const status = (profile?.subscription_status || '').toLowerCase();
+
+  if (status === 'trialing') return 'trialing';
+  if (plan === 'free' || plan === '') {
+    return eligible ? 'free_eligible' : 'free_not_eligible';
+  }
+  if (plan === 'professional') return 'professional';
+  // basic / starter (or any other active paid plan)
+  return 'paid';
+}
+
 /** Identifier for the user's current free cycle (calendar month proxy). */
 export function freeCycleKey(date: Date = new Date()): string {
   const y = date.getUTCFullYear();

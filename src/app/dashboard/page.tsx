@@ -19,6 +19,7 @@ import Link from 'next/link';
 import { ToolQuickActions } from '@/components/dashboard/ToolQuickActions';
 import { DashboardImageGalleryPreview } from '@/components/dashboard/DashboardImageGalleryPreview';
 import { FreeTrialUpgradeModal } from '@/components/dashboard/FreeTrialUpgradeModal';
+import { ResumeToolBanner } from '@/components/dashboard/ResumeToolBanner';
 import { HelpModal } from '@/components/ui/HelpModal';
 
 export default function DashboardPage() {
@@ -135,6 +136,7 @@ export default function DashboardPage() {
           <FreeTrialUpgradeModal />
 
           <div className="space-y-6">
+            <ResumeToolBanner />
             <CreditExpirationBanner />
 
             {/* Tool quick actions — prominent, always-visible tool shortcuts */}
