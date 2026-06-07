@@ -12,7 +12,7 @@
 
 ### **BUG-063: No Emails Being Sent (Welcome / Signup Admin Alerts / Receipts)**
 
-- **Status:** 🟡 ROOT CAUSE CONFIRMED — code hardened; awaits Vercel env-var restore
+- **Status:** 🟢 FIXED (June 7, 2026 — verified in production: welcome, signup admin alert, and password-reset emails all delivered)
 - **Severity:** Critical (no transactional or notification emails reaching users/admin)
 - **Component:** Email Service (Mailgun) / Vercel Production environment
 - **Description:** No emails of any kind are being delivered — no welcome emails, no
@@ -51,7 +51,23 @@
   on Supabase Auth's built-in SMTP. Separate from the app-email outage.
 - **Pre-existing latent bug noted:** `this.getEmailFooter()` is called in
   `email.ts` (retention discount + refund emails) but never defined — would throw at
-  runtime for those two emails. Out of scope here; tracked for follow-up.
+  runtime for those two emails. **FIXED** (PR #41) — added the missing method.
+- **RESOLUTION (June 7, 2026):**
+  1. **App emails (welcome / signup admin alert / receipts):** restored
+     `MAILGUN_API_KEY` + `MAILGUN_DOMAIN` in Vercel Production + redeployed.
+     Verified: `Email sent successfully` in prod logs; both emails received.
+  2. **Code hardening** merged (PR #40): loud `notSent()` failures instead of
+     silent `return true`, `MAILGUN_REGION` (us/eu) support, `validateEnv()`
+     warning, and `GET/POST /api/admin/email-health` diagnostic endpoint.
+  3. **Auth emails (password reset / confirmation / magic link):** enabled
+     Supabase **Custom SMTP** pointing at Mailgun (`smtp.mailgun.org:587`,
+     user `postmaster@mg.dtfeditor.com`). **Gotcha that cost a delivery:** the
+     SMTP *Sender email* was initially `noreply@dtfeditor.com` (root domain) while
+     the DKIM-signed sending domain is `mg.dtfeditor.com` → Gmail accepted (250)
+     then silently dropped it (DKIM/DMARC alignment failure, not even in spam).
+     **Fix:** set Sender email to `noreply@mg.dtfeditor.com`. Verified delivered.
+  4. Supabase Edge Functions: none deployed — the `auth-email-handler` function is
+     superseded by the Custom SMTP approach above (simpler, no payload/HMAC wiring).
 
 ---
 
