@@ -5,7 +5,11 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Sparkles } from 'lucide-react';
 import { useAuthStore } from '@/stores/authStore';
-import { isTrialEligible, dismissPromptForCycle } from '@/lib/trial';
+import {
+  isTrialEligible,
+  dismissPromptForCycle,
+  markFirstDashboardPromptSeen,
+} from '@/lib/trial';
 import { TrialPlanCards } from '@/components/billing/TrialPlanCards';
 import { LoadingPage } from '@/components/ui/LoadingPage';
 
@@ -26,6 +30,12 @@ export default function SelectPlanPage() {
   useEffect(() => {
     if (!loading && !user) router.push('/auth/login');
   }, [loading, user, router]);
+
+  // This screen IS the first-dashboard trial prompt for users routed through
+  // it after signup. Mark it seen so the dashboard doesn't re-prompt them.
+  useEffect(() => {
+    if (user?.id) markFirstDashboardPromptSeen(user.id);
+  }, [user?.id]);
 
   if (loading || !user) {
     return <LoadingPage message="Setting up your account…" />;

@@ -11,19 +11,27 @@ import {
   getOutOfCreditCase,
   isPromptDismissedThisCycle,
   dismissPromptForCycle,
+  isFirstDashboardPromptSeen,
+  markFirstDashboardPromptSeen,
 } from '@/lib/trial';
 
 /**
- * Shown once per free monthly cycle to Free users. Trial-eligible users get a
- * 7-day Basic/Starter trial push; Free users who already used their trial get a
- * "pick a plan / buy credits" prompt instead. Dismissal is tracked in
- * localStorage keyed to the current cycle, so it won't nag again this cycle but
- * returns next cycle. Paid / trialing users never see it.
+ * Dashboard upgrade prompt for Free users. Handles two distinct prompts with a
+ * single component so they never double up on the first visit:
+ *
+ *  - First-dashboard prompt: shown once ever, the first time a Free user lands
+ *    on the dashboard (task copy). Tracked via markFirstDashboardPromptSeen.
+ *  - Monthly Free-cycle prompt: shown once per free monthly cycle thereafter.
+ *
+ * Trial-eligible users see Basic/Starter trial cards; Free users who already
+ * used their trial see Pick-a-Plan / Buy-Credits instead. Paid / trialing users
+ * never see it.
  */
 export function FreeTrialUpgradeModal() {
   const router = useRouter();
   const { user, profile, loading } = useAuthStore();
   const [open, setOpen] = useState(false);
+  const [isFirstTime, setIsFirstTime] = useState(false);
 
   const userId = user?.id;
   const eligible = isTrialEligible(
@@ -38,9 +46,24 @@ export function FreeTrialUpgradeModal() {
 
   useEffect(() => {
     if (loading || !userId || !isFreeUser) return;
-    if (isPromptDismissedThisCycle(userId)) return;
+
+    const firstTime = !isFirstDashboardPromptSeen(userId);
+    const cycleDismissed = isPromptDismissedThisCycle(userId);
+    // Nothing to show: already saw the first-dashboard prompt AND dismissed this
+    // cycle's monthly prompt.
+    if (!firstTime && cycleDismissed) return;
+
+    setIsFirstTime(firstTime);
     // Small delay so the dashboard shell paints first (non-blocking).
-    const t = setTimeout(() => setOpen(true), 600);
+    const t = setTimeout(() => {
+      setOpen(true);
+      if (firstTime) {
+        // Record the one-time prompt as shown, and treat this cycle as handled
+        // so the monthly prompt doesn't also fire now (it resumes next cycle).
+        markFirstDashboardPromptSeen(userId);
+        dismissPromptForCycle(userId);
+      }
+    }, 600);
     return () => clearTimeout(t);
   }, [loading, userId, isFreeUser]);
 
@@ -56,6 +79,18 @@ export function FreeTrialUpgradeModal() {
 
   if (!isFreeUser) return null;
 
+  const title = eligible
+    ? isFirstTime
+      ? 'Start your 7-day trial and unlock more artwork tools'
+      : 'Your free credits are ready — want more power this month?'
+    : 'Your free credits are ready';
+
+  const description = eligible
+    ? isFirstTime
+      ? 'Basic and Starter give you more credits for background removal, upscaling, vectorization, and AI image generation. Add a card today and billing starts after your trial unless canceled.'
+      : 'Start a 7-day Basic or Starter trial to unlock more credits, HD downloads, and faster artwork cleanup.'
+    : 'Choose a monthly plan for more credits, or buy Pay As You Go credits if you only need a few extra tool runs.';
+
   return (
     <Modal
       open={open}
@@ -64,16 +99,8 @@ export function FreeTrialUpgradeModal() {
         if (!next) dismiss();
         else setOpen(true);
       }}
-      title={
-        eligible
-          ? 'Your free credits are ready — want more power this month?'
-          : 'Your free credits are ready'
-      }
-      description={
-        eligible
-          ? 'Start a 7-day Basic or Starter trial to unlock more credits, HD downloads, and faster artwork cleanup.'
-          : 'Choose a monthly plan for more credits, or buy Pay As You Go credits if you only need a few extra tool runs.'
-      }
+      title={title}
+      description={description}
       size={eligible ? 'lg' : 'md'}
     >
       {eligible ? (

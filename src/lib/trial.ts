@@ -102,6 +102,33 @@ export function freeCycleKey(date: Date = new Date()): string {
 }
 
 const dismissKey = (userId: string) => `dtf_trial_prompt_dismissed_${userId}`;
+const firstDashKey = (userId: string) => `dtf_first_dashboard_prompt_${userId}`;
+
+/**
+ * Whether the one-time first-dashboard-visit trial prompt has already been
+ * shown to this user. Tracked separately from the recurring monthly cycle
+ * dismissal so the two prompts don't double up on the very first visit.
+ */
+export function isFirstDashboardPromptSeen(userId: string): boolean {
+  if (typeof window === 'undefined' || !userId) return false;
+  try {
+    return !!window.localStorage.getItem(firstDashKey(userId));
+  } catch {
+    return false;
+  }
+}
+
+/** Records (once, ever) that the first-dashboard trial prompt has been shown. */
+export function markFirstDashboardPromptSeen(userId: string): void {
+  if (typeof window === 'undefined' || !userId) return;
+  try {
+    if (!window.localStorage.getItem(firstDashKey(userId))) {
+      window.localStorage.setItem(firstDashKey(userId), new Date().toISOString());
+    }
+  } catch {
+    /* ignore storage failures */
+  }
+}
 
 /** Returns true if the free-cycle upgrade prompt was already dismissed this cycle. */
 export function isPromptDismissedThisCycle(userId: string): boolean {

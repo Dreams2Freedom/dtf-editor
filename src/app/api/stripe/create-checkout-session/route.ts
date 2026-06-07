@@ -129,11 +129,19 @@ async function handlePost(request: NextRequest) {
         priceId === env.STRIPE_STARTER_PLAN_PRICE_ID;
 
       if (trial === true && isTrialPriceId && isTrialEligible(profile)) {
-        sessionConfig.subscription_data.trial_period_days = TRIAL_DAYS;
-        sessionConfig.subscription_data.metadata.trial = 'true';
-        // Require a card even though $0 is due today, so billing can begin
-        // automatically when the trial ends unless the user cancels.
-        sessionConfig.payment_method_collection = 'always';
+        // Authoritative one-trial-per-account gate: Stripe is the source of
+        // truth. If this customer has EVER had a trialed subscription (even a
+        // canceled one), do not grant another trial — fall back to a normal
+        // subscription. An abandoned prior checkout created no subscription, so
+        // it correctly does not count as "trial used".
+        const alreadyTrialed = await stripeService.hasUsedTrial(customerId);
+        if (!alreadyTrialed) {
+          sessionConfig.subscription_data.trial_period_days = TRIAL_DAYS;
+          sessionConfig.subscription_data.metadata.trial = 'true';
+          // Require a card even though $0 is due today, so billing can begin
+          // automatically when the trial ends unless the user cancels.
+          sessionConfig.payment_method_collection = 'always';
+        }
       }
     } else {
       // Payment mode for one-time purchases
