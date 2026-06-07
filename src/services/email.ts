@@ -180,6 +180,25 @@ export class EmailService {
     return false;
   }
 
+  /**
+   * Shared HTML footer used by templates that call this.getEmailFooter().
+   * Matches the gray footer block used inline by the other email templates.
+   */
+  private getEmailFooter(): string {
+    return `
+          <div style="background-color: #f5f5f5; padding: 20px; text-align: center; margin-top: 20px;">
+            <p style="color: #999; font-size: 14px; margin: 0;">
+              © ${new Date().getFullYear()} DTF Editor. All rights reserved.
+            </p>
+            <p style="color: #999; font-size: 12px; margin: 8px 0 0;">
+              <a href="${env.APP_URL}/dashboard" style="color: #366494; text-decoration: none;">Dashboard</a>
+              &nbsp;•&nbsp;
+              <a href="${env.APP_URL}/help" style="color: #366494; text-decoration: none;">Help Center</a>
+            </p>
+          </div>
+    `;
+  }
+
   static getInstance(): EmailService {
     if (!EmailService.instance) {
       EmailService.instance = new EmailService();
