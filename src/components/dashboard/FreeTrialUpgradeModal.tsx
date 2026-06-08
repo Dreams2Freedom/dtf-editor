@@ -2,10 +2,10 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowUpRight, CreditCard } from 'lucide-react';
 import { Modal } from '@/components/ui/Modal';
 import { useAuthStore } from '@/stores/authStore';
 import { TrialPlanCards } from '@/components/billing/TrialPlanCards';
+import { PaidPlanCards } from '@/components/billing/PaidPlanCards';
 import {
   isTrialEligible,
   getOutOfCreditCase,
@@ -79,17 +79,18 @@ export function FreeTrialUpgradeModal() {
 
   if (!isFreeUser) return null;
 
+  // Case A: trial-eligible Free user. Case B: trial already used.
   const title = eligible
     ? isFirstTime
       ? 'Start your 7-day trial and unlock more artwork tools'
       : 'Your free credits are ready — want more power this month?'
-    : 'Your free credits are ready';
+    : 'Ready for more credits this month?';
 
   const description = eligible
     ? isFirstTime
       ? 'Basic and Starter give you more credits for background removal, upscaling, vectorization, and AI image generation. Add a card today and billing starts after your trial unless canceled.'
       : 'Start a 7-day Basic or Starter trial to unlock more credits, HD downloads, and faster artwork cleanup.'
-    : 'Choose a monthly plan for more credits, or buy Pay As You Go credits if you only need a few extra tool runs.';
+    : 'You have used your free trial, but you can keep working with a monthly plan or Pay As You Go credits.';
 
   return (
     <Modal
@@ -101,36 +102,15 @@ export function FreeTrialUpgradeModal() {
       }}
       title={title}
       description={description}
-      size={eligible ? 'lg' : 'md'}
+      size="lg"
     >
       {eligible ? (
         <TrialPlanCards eligible onStayFree={dismiss} />
       ) : (
-        <div className="space-y-3">
-          <button
-            type="button"
-            onClick={() => navigate('/pricing')}
-            className="flex w-full min-h-[44px] items-center justify-center gap-2 rounded-xl bg-amber-500 px-4 py-3 font-semibold text-white transition-colors hover:bg-amber-600"
-          >
-            <ArrowUpRight className="h-4 w-4" /> Pick a Plan
-          </button>
-          <button
-            type="button"
-            onClick={() => navigate('/pricing?tab=payasyougo')}
-            className="flex w-full min-h-[44px] items-center justify-center gap-2 rounded-xl border border-blue-300 bg-white px-4 py-3 font-semibold text-blue-700 transition-colors hover:bg-blue-50"
-          >
-            <CreditCard className="h-4 w-4" /> Buy Pay As You Go Credits
-          </button>
-          <div className="pt-1 text-center">
-            <button
-              type="button"
-              onClick={dismiss}
-              className="text-sm font-medium text-gray-500 underline-offset-2 hover:text-gray-700 hover:underline"
-            >
-              No thanks, stay on Free
-            </button>
-          </div>
-        </div>
+        <PaidPlanCards
+          onBuyCredits={() => navigate('/pricing?tab=payasyougo')}
+          onStayFree={dismiss}
+        />
       )}
     </Modal>
   );
