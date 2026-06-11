@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import Link from 'next/link';
 import {
   Ruler,
@@ -11,6 +12,8 @@ import {
   ArrowRight,
   type LucideIcon,
 } from 'lucide-react';
+import { useAuthStore } from '@/stores/authStore';
+import { OutOfCreditsModal } from '@/components/credits/OutOfCreditsModal';
 
 /**
  * ToolQuickActions — prominent, always-visible tool shortcuts for the
@@ -28,6 +31,10 @@ interface Tool {
   cta: string;
   icon: LucideIcon;
   badge: { label: string; tone: BadgeTone };
+  /** Credits needed to start this tool (omit for free tools). */
+  requiredCredits?: number;
+  /** Tool requires an active paid plan (e.g. AI generation). */
+  requiresPaidPlan?: boolean;
 }
 
 const TOOLS: Tool[] = [
@@ -46,6 +53,7 @@ const TOOLS: Tool[] = [
     cta: 'Upscale Image',
     icon: ArrowUpCircle,
     badge: { label: '1 credit', tone: 'credit' },
+    requiredCredits: 1,
   },
   {
     name: 'Background Removal',
@@ -54,6 +62,7 @@ const TOOLS: Tool[] = [
     cta: 'Remove Background',
     icon: Scissors,
     badge: { label: '1 credit', tone: 'credit' },
+    requiredCredits: 1,
   },
   {
     name: 'Vectorization',
@@ -62,6 +71,7 @@ const TOOLS: Tool[] = [
     cta: 'Vectorize Artwork',
     icon: Pen,
     badge: { label: '2 credits', tone: 'credit' },
+    requiredCredits: 2,
   },
   {
     name: 'Change Colors',
@@ -78,6 +88,8 @@ const TOOLS: Tool[] = [
     cta: 'Generate Artwork',
     icon: Sparkles,
     badge: { label: 'Paid plans', tone: 'paid' },
+    requiredCredits: 2,
+    requiresPaidPlan: true,
   },
 ];
 
@@ -98,6 +110,22 @@ export function ToolQuickActions({
   subheading = 'Choose the tool you need. DTF Editor will guide you through the next step.',
   className = '',
 }: ToolQuickActionsProps) {
+  const { profile, isAdmin } = useAuthStore();
+  const [blocked, setBlocked] = useState<{ name: string; route: string } | null>(
+    null
+  );
+
+  // UX gate: stop a paid tool launch up front when the user can't afford it
+  // (server-side credit checks still apply). Admins bypass.
+  const shouldBlock = (tool: Tool): boolean => {
+    if (isAdmin) return false;
+    const credits = profile?.credits_remaining ?? 0;
+    const plan = (profile?.subscription_plan || 'free').toLowerCase();
+    if (tool.requiresPaidPlan && (plan === 'free' || plan === '')) return true;
+    if (tool.requiredCredits && credits < tool.requiredCredits) return true;
+    return false;
+  };
+
   return (
     <section className={className} aria-labelledby="tool-quick-actions-heading">
       <div className="mb-4">
@@ -115,6 +143,12 @@ export function ToolQuickActions({
           <Link
             key={tool.name}
             href={tool.href}
+            onClick={e => {
+              if (shouldBlock(tool)) {
+                e.preventDefault();
+                setBlocked({ name: tool.name, route: tool.href });
+              }
+            }}
             aria-label={`${tool.cta}: ${tool.description}`}
             className="group flex min-h-[44px] flex-col rounded-xl border border-gray-200 bg-white p-4 sm:p-5 shadow-sm transition-all hover:border-blue-300 hover:shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
           >
@@ -150,6 +184,13 @@ export function ToolQuickActions({
         uses credits. Each paid tool uses 1 credit, and failed jobs are
         automatically refunded.
       </p>
+
+      <OutOfCreditsModal
+        open={!!blocked}
+        onClose={() => setBlocked(null)}
+        toolName={blocked?.name}
+        toolRoute={blocked?.route}
+      />
     </section>
   );
 }

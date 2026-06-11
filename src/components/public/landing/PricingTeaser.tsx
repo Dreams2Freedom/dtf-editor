@@ -1,4 +1,5 @@
 import { Check, Info, Infinity as InfinityIcon, RotateCcw, ArrowRight } from 'lucide-react';
+import { TRIAL_DISCLOSURE } from '@/lib/trial';
 import styles from './PricingTeaser.module.css';
 
 type Plan = {
@@ -42,7 +43,7 @@ const PLANS: Plan[] = [
     ctaLabel: 'Start a Basic Trial',
     ctaVariant: 'primary',
     ctaHref: '/auth/signup?plan=basic',
-    note: '7-day money-back guarantee',
+    note: '7-day free trial · card required',
     featured: true,
     flag: 'Most popular',
   },
@@ -72,7 +73,7 @@ const PLANS: Plan[] = [
       'Priority support & HD downloads',
       'Bulk processing (coming soon)',
     ],
-    ctaLabel: 'Start a Professional Trial',
+    ctaLabel: 'Choose Professional',
     ctaVariant: 'blue',
     ctaHref: '/auth/signup?plan=professional',
   },
@@ -133,6 +134,16 @@ export function PricingTeaser() {
             <RotateCcw size={14} aria-hidden="true" /> Auto-refund on processing failure
           </span>
         </div>
+        <p
+          style={{
+            marginTop: '0.75rem',
+            textAlign: 'center',
+            fontSize: '0.8rem',
+            color: 'var(--muted, #64748b)',
+          }}
+        >
+          {TRIAL_DISCLOSURE}
+        </p>
         <div className={styles.pricing__more}>
           <a className="btn btn--link" href="/pricing">
             See full pricing details <ArrowRight size={16} aria-hidden="true" />

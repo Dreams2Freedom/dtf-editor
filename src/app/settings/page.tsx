@@ -759,6 +759,18 @@ function BillingSettings() {
               </div>
             </div>
 
+            {profile?.subscription_status === 'trialing' && (
+              <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
+                Your trial ends on{' '}
+                {(profile as any).subscription_current_period_end
+                  ? new Date(
+                      (profile as any).subscription_current_period_end
+                    ).toLocaleDateString()
+                  : 'soon'}
+                . Billing begins after your trial unless canceled.
+              </div>
+            )}
+
             <div className="space-y-3">
               {isPaid ? (
                 <>

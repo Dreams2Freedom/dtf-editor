@@ -16,11 +16,28 @@ import { compressImage } from '@/lib/image-compression';
 import { BulkUpscaleTool } from '@/components/image/BulkUpscaleTool';
 import { BulkBgRemovalTool } from '@/components/image/BulkBgRemovalTool';
 import { HelpModal } from '@/components/ui/HelpModal';
+import { OutOfCreditsModal } from '@/components/credits/OutOfCreditsModal';
+
+// Credits needed to start each paid tool (color-change/DPI are not gated here).
+const TOOL_CREDIT_REQUIREMENTS: Record<string, number> = {
+  upscale: 1,
+  'background-removal': 1,
+  vectorize: 2,
+};
+const TOOL_DISPLAY_NAMES: Record<string, string> = {
+  upscale: 'Image Upscaling',
+  'background-removal': 'Background Removal',
+  vectorize: 'Vectorization',
+};
 
 export default function ProcessClient() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { user, profile, refreshCredits } = useAuthStore();
+  const { user, profile, isAdmin, refreshCredits } = useAuthStore();
+  const [creditBlock, setCreditBlock] = useState<{
+    name: string;
+    route: string;
+  } | null>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [uploadError, setUploadError] = useState<string | null>(null);
@@ -275,6 +292,21 @@ export default function ProcessClient() {
       setPendingTool(tool);
       setShowSignupModal(true);
       return;
+    }
+
+    // Out-of-credit gate (UX): intercept BEFORE any upload/navigation so the
+    // user doesn't go through the workflow only to fail. Server-side credit
+    // validation still applies. Admins bypass.
+    const requiredCredits = TOOL_CREDIT_REQUIREMENTS[tool] ?? 0;
+    if (!isAdmin && requiredCredits > 0) {
+      const credits = profile?.credits_remaining ?? 0;
+      if (credits < requiredCredits) {
+        setCreditBlock({
+          name: TOOL_DISPLAY_NAMES[tool] ?? 'this tool',
+          route: `/process?operation=${tool}`,
+        });
+        return;
+      }
     }
 
     setIsProcessing(true);
@@ -607,6 +639,14 @@ export default function ProcessClient() {
         isOpen={showSignupModal}
         onClose={handleSignupModalClose}
         feature="AI image processing"
+      />
+
+      {/* Out-of-credit prompt — shown before the tool workflow begins */}
+      <OutOfCreditsModal
+        open={!!creditBlock}
+        onClose={() => setCreditBlock(null)}
+        toolName={creditBlock?.name}
+        toolRoute={creditBlock?.route}
       />
     </div>
   );

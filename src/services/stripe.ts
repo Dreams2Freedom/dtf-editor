@@ -228,6 +228,31 @@ export class StripeService {
     return this.getStripeClient().subscriptions.list(params);
   }
 
+  /**
+   * Authoritative "has this account ever used a trial?" check — the source of
+   * truth for the one-trial-per-user rule. Looks at ALL of the customer's
+   * subscriptions (including canceled) and returns true if any of them had a
+   * trial period. Returns false for customers with no trialed subscription,
+   * which correctly treats an abandoned checkout (no subscription created) as
+   * "trial not used". Fails open to false so a Stripe hiccup never blocks a
+   * legitimate first trial (the heuristic eligibility check still applies).
+   */
+  public async hasUsedTrial(customerId: string): Promise<boolean> {
+    try {
+      const subs = await this.getStripeClient().subscriptions.list({
+        customer: customerId,
+        status: 'all',
+        limit: 100,
+      });
+      return subs.data.some(
+        s => s.trial_start != null || s.trial_end != null
+      );
+    } catch (error) {
+      console.error('[Stripe] hasUsedTrial check failed:', error);
+      return false;
+    }
+  }
+
   public async updateSubscription(
     subscriptionId: string,
     params: Stripe.SubscriptionUpdateParams

@@ -18,6 +18,8 @@ import {
 import Link from 'next/link';
 import { ToolQuickActions } from '@/components/dashboard/ToolQuickActions';
 import { DashboardImageGalleryPreview } from '@/components/dashboard/DashboardImageGalleryPreview';
+import { FreeTrialUpgradeModal } from '@/components/dashboard/FreeTrialUpgradeModal';
+import { ResumeToolBanner } from '@/components/dashboard/ResumeToolBanner';
 import { HelpModal } from '@/components/ui/HelpModal';
 
 export default function DashboardPage() {
@@ -130,7 +132,11 @@ export default function DashboardPage() {
             />
           </div>
 
+          {/* Free-user upgrade modal — once per free cycle, eligible users only */}
+          <FreeTrialUpgradeModal />
+
           <div className="space-y-6">
+            <ResumeToolBanner />
             <CreditExpirationBanner />
 
             {/* Tool quick actions — prominent, always-visible tool shortcuts */}
@@ -180,6 +186,23 @@ export default function DashboardPage() {
                       </p>
                     </div>
                   </div>
+
+                  {profile.subscription_status === 'trialing' && (
+                    <div className="mt-4 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
+                      You&apos;re on a 7-day free trial
+                      {(profile as any).subscription_current_period_end
+                        ? ` — billing starts ${new Date((profile as any).subscription_current_period_end).toLocaleDateString()}`
+                        : ''}
+                      . Manage or cancel anytime in{' '}
+                      <Link
+                        href="/settings?tab=billing"
+                        className="font-medium underline"
+                      >
+                        Billing &amp; Membership
+                      </Link>
+                      .
+                    </div>
+                  )}
 
                   {!hasActiveSubscription && (
                     <div className="mt-4 pt-4 border-t">

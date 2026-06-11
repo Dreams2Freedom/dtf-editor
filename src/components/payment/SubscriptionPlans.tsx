@@ -2,10 +2,12 @@
 
 import React, { useState, useEffect } from 'react';
 import { useAuthContext } from '@/contexts/AuthContext';
+import { useAuthStore } from '@/stores/authStore';
 import { SubscriptionPlan } from '@/services/stripe';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { Check, CreditCard, Star, Zap } from 'lucide-react';
+import { isTrialEligible, isTrialPlan, TRIAL_DISCLOSURE } from '@/lib/trial';
 
 interface SubscriptionPlansProps {
   onSubscriptionComplete?: () => void;
@@ -15,6 +17,10 @@ export const SubscriptionPlans: React.FC<SubscriptionPlansProps> = ({
   onSubscriptionComplete,
 }) => {
   const { user } = useAuthContext();
+  const { profile } = useAuthStore();
+  const trialEligible = isTrialEligible(
+    profile as Parameters<typeof isTrialEligible>[0]
+  );
   const [selectedPlan, setSelectedPlan] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -54,6 +60,7 @@ export const SubscriptionPlans: React.FC<SubscriptionPlansProps> = ({
     }
 
     setIsLoading(true);
+    setSelectedPlan(plan.id);
     setError(null);
 
     try {
@@ -66,6 +73,8 @@ export const SubscriptionPlans: React.FC<SubscriptionPlansProps> = ({
           priceId: plan.stripePriceId,
           userId: user.id,
           mode: 'subscription',
+          // Server re-validates eligibility; only honored for Basic/Starter.
+          trial: trialEligible && isTrialPlan(plan.id),
         }),
       });
 
@@ -208,7 +217,11 @@ export const SubscriptionPlans: React.FC<SubscriptionPlansProps> = ({
                   ? 'Processing...'
                   : plan.price === 0
                     ? 'Get Started Free'
-                    : 'Subscribe Now'}
+                    : trialEligible && isTrialPlan(plan.id)
+                      ? `Start ${plan.name} Trial`
+                      : plan.id === 'professional'
+                        ? 'Choose Professional'
+                        : 'Subscribe Now'}
               </Button>
             </Card>
           ))}
@@ -216,6 +229,9 @@ export const SubscriptionPlans: React.FC<SubscriptionPlansProps> = ({
       )}
 
       <div className="text-center text-sm text-gray-500">
+        {trialEligible && (
+          <p className="mb-1 font-medium text-gray-600">{TRIAL_DISCLOSURE}</p>
+        )}
         <p>All plans include secure payment processing via Stripe</p>
         <p>Cancel or change your plan at any time</p>
       </div>

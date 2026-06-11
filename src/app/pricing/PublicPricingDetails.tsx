@@ -15,6 +15,7 @@ import Link from 'next/link';
 import { SiteHeader } from '@/components/public/landing/SiteHeader';
 import { SiteFooter } from '@/components/public/landing/SiteFooter';
 import { COMPARISON_FEATURES } from '@/lib/publicData';
+import { TRIAL_DISCLOSURE } from '@/lib/trial';
 import card from '@/components/public/landing/PricingTeaser.module.css';
 import styles from './PublicPricingDetails.module.css';
 import '@/components/public/landing/landing.css';
@@ -62,7 +63,7 @@ const SUBSCRIPTION_PLANS: Plan[] = [
       'Priority support',
       'HD downloads',
     ],
-    ctaLabel: 'Subscribe Now',
+    ctaLabel: 'Start Basic Trial',
     ctaVariant: 'primary',
     ctaHref: '/auth/signup?plan=basic',
     featured: true,
@@ -80,7 +81,7 @@ const SUBSCRIPTION_PLANS: Plan[] = [
       'HD downloads',
       'Bulk processing (coming soon)',
     ],
-    ctaLabel: 'Subscribe Now',
+    ctaLabel: 'Start Starter Trial',
     ctaVariant: 'blue',
     ctaHref: '/auth/signup?plan=starter',
     flag: 'Best Value',
@@ -97,7 +98,7 @@ const SUBSCRIPTION_PLANS: Plan[] = [
       'HD downloads',
       'Bulk processing (coming soon)',
     ],
-    ctaLabel: 'Subscribe Now',
+    ctaLabel: 'Choose Professional',
     ctaVariant: 'blue',
     ctaHref: '/auth/signup?plan=professional',
     flag: 'Professional',
@@ -305,11 +306,23 @@ export function PublicPricingDetails() {
             </div>
 
             {tab === 'subscription' ? (
-              <div className={card.pricing__grid}>
-                {SUBSCRIPTION_PLANS.map(plan => (
-                  <PlanCard key={plan.name} plan={plan} />
-                ))}
-              </div>
+              <>
+                <div className={card.pricing__grid}>
+                  {SUBSCRIPTION_PLANS.map(plan => (
+                    <PlanCard key={plan.name} plan={plan} />
+                  ))}
+                </div>
+                <p
+                  style={{
+                    marginTop: '1rem',
+                    textAlign: 'center',
+                    fontSize: '0.8rem',
+                    color: '#64748b',
+                  }}
+                >
+                  {TRIAL_DISCLOSURE}
+                </p>
+              </>
             ) : (
               <div className={styles.paygGrid}>
                 {PAYG_PACKS.map(plan => (
