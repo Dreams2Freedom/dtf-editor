@@ -31,6 +31,7 @@ import {
 } from '@/utils/imageCompression';
 import { compressImage as compressImageForUpload } from '@/lib/image-compression';
 import { HelpModal } from '@/components/ui/HelpModal';
+import { NeedHelpButton } from '@/components/manual/NeedHelpButton';
 
 export default function UpscaleClient() {
   const searchParams = useSearchParams();
@@ -1952,6 +1953,11 @@ export default function UpscaleClient() {
             </CardContent>
           </Card>
           )}
+
+          {/* Link to the in-app Owner's Manual (separate from the first-time popup) */}
+          <div className="mt-6 flex justify-center">
+            <NeedHelpButton toolKey="upscale" />
+          </div>
         </div>
       </main>
 

@@ -10,6 +10,7 @@ import { useAuthStore } from '@/stores/authStore';
 import { Breadcrumb } from '@/components/ui/Breadcrumb';
 import { SignupModal } from '@/components/auth/SignupModal';
 import { HelpModal } from '@/components/ui/HelpModal';
+import { NeedHelpButton } from '@/components/manual/NeedHelpButton';
 
 export default function VectorizeClient() {
   const searchParams = useSearchParams();
@@ -554,6 +555,11 @@ export default function VectorizeClient() {
               )}
             </CardContent>
           </Card>
+
+          {/* Link to the in-app Owner's Manual (separate from the first-time popup) */}
+          <div className="mt-6 flex justify-center">
+            <NeedHelpButton toolKey="vectorize" />
+          </div>
         </div>
       </main>
 
