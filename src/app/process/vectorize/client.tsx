@@ -10,6 +10,7 @@ import { useAuthStore } from '@/stores/authStore';
 import { Breadcrumb } from '@/components/ui/Breadcrumb';
 import { SignupModal } from '@/components/auth/SignupModal';
 import { HelpModal } from '@/components/ui/HelpModal';
+import { ToolHelpButton } from '@/components/help/ToolHelpButton';
 
 export default function VectorizeClient() {
   const searchParams = useSearchParams();
@@ -554,6 +555,11 @@ export default function VectorizeClient() {
               )}
             </CardContent>
           </Card>
+
+          {/* Tool-specific tutorial graphic (separate from the first-time popup) */}
+          <div className="mt-6 flex justify-center">
+            <ToolHelpButton toolKey="vectorize" />
+          </div>
         </div>
       </main>
 

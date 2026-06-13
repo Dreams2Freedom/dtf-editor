@@ -1,6 +1,7 @@
 'use client';
 
 import { DpiCheckerCard } from '@/components/dpi-tool/DpiCheckerCard';
+import { ToolHelpButton } from '@/components/help/ToolHelpButton';
 import { ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
 
@@ -27,6 +28,11 @@ export default function DPICheckerPage() {
         </div>
 
         <DpiCheckerCard />
+
+        {/* Tool-specific tutorial graphic (separate from the first-time popup) */}
+        <div className="mt-6 flex justify-center">
+          <ToolHelpButton toolKey="dpi-checker" />
+        </div>
       </div>
     </div>
   );

@@ -31,6 +31,7 @@ import {
 } from '@/utils/imageCompression';
 import { compressImage as compressImageForUpload } from '@/lib/image-compression';
 import { HelpModal } from '@/components/ui/HelpModal';
+import { ToolHelpButton } from '@/components/help/ToolHelpButton';
 
 export default function UpscaleClient() {
   const searchParams = useSearchParams();
@@ -1952,6 +1953,11 @@ export default function UpscaleClient() {
             </CardContent>
           </Card>
           )}
+
+          {/* Tool-specific tutorial graphic (separate from the first-time popup) */}
+          <div className="mt-6 flex justify-center">
+            <ToolHelpButton toolKey="upscale" />
+          </div>
         </div>
       </main>
 

@@ -7,6 +7,7 @@ import { useAuthStore } from '@/stores/authStore';
 import { Breadcrumb } from '@/components/ui/Breadcrumb';
 import { SignupModal } from '@/components/auth/SignupModal';
 import { ColorChangeEditor } from '@/components/image/ColorChangeEditor';
+import { ToolHelpButton } from '@/components/help/ToolHelpButton';
 import { COLOR_CHANGE_LIMITS } from '@/types/colorChange';
 import { createClientSupabaseClient } from '@/lib/supabase/client';
 
@@ -160,9 +161,13 @@ export default function ColorChangeClient() {
               ]}
             />
           </div>
-          <div className="flex items-center gap-2">
-            <Palette className="w-4 h-4 text-amber-600" />
-            <span className="text-sm font-medium text-gray-700">Color Changer</span>
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2">
+              <Palette className="w-4 h-4 text-amber-600" />
+              <span className="text-sm font-medium text-gray-700">Color Changer</span>
+            </div>
+            {/* Tool-specific tutorial graphic (separate from the first-time popup) */}
+            <ToolHelpButton toolKey="color-change" />
           </div>
         </div>
       </div>

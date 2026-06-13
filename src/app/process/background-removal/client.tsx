@@ -11,6 +11,7 @@ import { Breadcrumb } from '@/components/ui/Breadcrumb';
 import { SignupModal } from '@/components/auth/SignupModal';
 import { BulkBgRemovalTool } from '@/components/image/BulkBgRemovalTool';
 import { HelpModal } from '@/components/ui/HelpModal';
+import { ToolHelpButton } from '@/components/help/ToolHelpButton';
 
 declare global {
   interface Window {
@@ -1043,6 +1044,11 @@ export default function BackgroundRemovalClient() {
             </CardContent>
           </Card>
           )}
+
+          {/* Tool-specific tutorial graphic (separate from the first-time popup) */}
+          <div className="mt-6 flex justify-center">
+            <ToolHelpButton toolKey="background-removal" />
+          </div>
         </div>
       </main>
 
