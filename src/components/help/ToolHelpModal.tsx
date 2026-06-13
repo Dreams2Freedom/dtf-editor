@@ -40,21 +40,24 @@ export function ToolHelpModal({
       description={help.subtitle}
       size="xl"
     >
-      <div className="space-y-5">
+      <div className="flex flex-col items-center gap-5">
         {imgError ? (
-          <p className="rounded-lg border border-gray-200 bg-gray-50 px-4 py-6 text-center text-sm text-gray-600">
+          <p className="w-full rounded-lg border border-gray-200 bg-gray-50 px-4 py-6 text-center text-sm text-gray-600">
             The tutorial graphic could not be loaded right now. {help.subtitle}
           </p>
         ) : (
+          // Cap by both width and height so the full graphic fits inside the
+          // modal viewport without scrolling, scaling down while preserving its
+          // aspect ratio (never cropped or stretched).
           <img
             src={help.image}
             alt={help.alt}
             onError={() => setImgError(true)}
-            className="mx-auto h-auto w-full rounded-lg border border-gray-200"
+            className="block max-h-[55vh] w-auto max-w-full rounded-lg border border-gray-200 object-contain sm:max-h-[68vh]"
           />
         )}
 
-        <div className="flex justify-end">
+        <div className="flex w-full justify-end">
           <Button type="button" onClick={() => onOpenChange(false)}>
             Got it
           </Button>
