@@ -43,6 +43,18 @@ export const serverEnv = {
   // Admin/Cron secrets
   CRON_SECRET: process.env.CRON_SECRET || '',
 
+  // AgentMail (agent email integration for automated analytics reports)
+  AGENTMAIL_API_KEY: (process.env.AGENTMAIL_API_KEY || '').trim(),
+  AGENTMAIL_INBOX_ID: (process.env.AGENTMAIL_INBOX_ID || '').trim(),
+
+  // Windsor.ai REST API (server-side GA4 access for scheduled reports)
+  WINDSOR_API_KEY: (process.env.WINDSOR_API_KEY || '').trim(),
+
+  // Default recipient for scheduled analytics reports
+  REPORT_RECIPIENT_EMAIL: (
+    process.env.REPORT_RECIPIENT_EMAIL || 'Shannon@s2transfers.com'
+  ).trim(),
+
   // Upstash Redis
   UPSTASH_REDIS_REST_URL: process.env.UPSTASH_REDIS_REST_URL || '',
   UPSTASH_REDIS_REST_TOKEN: process.env.UPSTASH_REDIS_REST_TOKEN || '',

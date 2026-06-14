@@ -57,6 +57,9 @@
     "src/app/api/cron/cleanup-previews/route.ts": {
       "maxDuration": 60
     },
+    "src/app/api/cron/weekly-rtp-report/route.ts": {
+      "maxDuration": 60
+    },
     "src/app/api/generate/preview/route.ts": {
       "maxDuration": 300
     },
@@ -76,6 +79,10 @@
     {
       "path": "/api/cron/cleanup-previews",
       "schedule": "0 * * * *"
+    },
+    {
+      "path": "/api/cron/weekly-rtp-report",
+      "schedule": "0 13 * * 1"
     }
   ]
 }
