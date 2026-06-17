@@ -6,6 +6,7 @@ import { useAuthStore } from '@/stores/authStore';
 import { useReferralTracking } from '@/hooks/useReferralTracking';
 import { LoadingPage } from '@/components/ui/LoadingPage';
 import { SiteHeader } from '@/components/public/landing/SiteHeader';
+import { HashScroll } from '@/components/public/landing/HashScroll';
 import { Hero } from '@/components/public/landing/Hero';
 import { TestimonialTicker } from '@/components/public/landing/TestimonialTicker';
 import { HowItWorks } from '@/components/public/landing/HowItWorks';
@@ -43,6 +44,7 @@ export default function HomePage() {
 
   return (
     <div className="dtfLanding" id="top">
+      <HashScroll />
       <SiteHeader />
       <main>
         <Hero />

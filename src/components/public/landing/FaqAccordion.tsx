@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import Link from 'next/link';
 import { ChevronDown } from 'lucide-react';
 import styles from './FaqAccordion.module.css';
 
@@ -73,6 +74,18 @@ export function FaqAccordion() {
           {FAQS.map((item, i) => (
             <FaqItem key={item.q} q={item.q} a={item.a} defaultOpen={i === 0} />
           ))}
+        </div>
+
+        <div style={{ marginTop: 32, textAlign: 'center' }}>
+          <p className="sub" style={{ marginBottom: 14 }}>
+            Don&rsquo;t see your question? Look here.
+          </p>
+          <Link
+            href="/dashboard/owner-manual"
+            className="btn btn--primary btn--lg"
+          >
+            Open the Owner&rsquo;s Manual
+          </Link>
         </div>
       </div>
     </section>
