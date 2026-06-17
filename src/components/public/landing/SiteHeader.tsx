@@ -5,14 +5,16 @@ import Link from 'next/link';
 import { Menu } from 'lucide-react';
 import styles from './SiteHeader.module.css';
 
-// Absolute hashes (/#x) so the nav also works from sub-pages like /pricing,
-// where these homepage sections don't exist on the current page.
+// Homepage-section links use absolute hashes (/#x) so they at least route home
+// from sub-pages. FAQ has a dedicated page (/faq), so it links there directly —
+// reliable from every page (a cross-page /#faq hash does not scroll in the App
+// Router and just lands at the top of the homepage).
 const NAV = [
   { label: 'How It Works', href: '/#how-it-works' },
   { label: 'Tools', href: '/#tools' },
   { label: 'Pricing', href: '/#pricing' },
   { label: 'DPI Checker', href: '/#dpi' },
-  { label: 'FAQ', href: '/#faq' },
+  { label: 'FAQ', href: '/faq' },
 ];
 
 export function SiteHeader() {
