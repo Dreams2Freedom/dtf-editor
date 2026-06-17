@@ -9,7 +9,6 @@ import { Button } from '@/components/ui/Button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { CancellationFlow } from '@/components/subscription/CancellationFlow';
 import { CreditExpirationBanner } from '@/components/credits/CreditExpirationBanner';
-import { StorageUsageCard } from '@/components/storage/StorageUsageCard';
 import {
   Settings,
   CreditCard,
@@ -256,8 +255,6 @@ export default function DashboardPage() {
                 </CardContent>
               </Card>
             </div>
-
-            <StorageUsageCard />
           </div>
         </main>
       </div>
