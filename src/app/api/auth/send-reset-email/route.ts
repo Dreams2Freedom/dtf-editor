@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { emailService } from '@/services/email';
 import { withRateLimit } from '@/lib/rate-limit';
+import { env } from '@/config/env';
 
 async function handlePost(request: NextRequest) {
   try {
@@ -30,7 +31,7 @@ async function handlePost(request: NextRequest) {
 
     // Generate password reset token using Supabase
     const { data, error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${process.env.NEXT_PUBLIC_APP_URL}/auth/reset-password`,
+      redirectTo: `${env.APP_URL}/auth/reset-password`,
     });
 
     if (error) {
@@ -44,7 +45,7 @@ async function handlePost(request: NextRequest) {
     // Get the reset link from Supabase response
     // Note: In production, Supabase sends the email automatically
     // We'll need to intercept this or use Supabase webhooks
-    const resetLink = `${process.env.NEXT_PUBLIC_APP_URL}/auth/reset-password?token=${data.properties?.action_link}`;
+    const resetLink = `${env.APP_URL}/auth/reset-password?token=${data.properties?.action_link}`;
 
     // Send custom email via Mailgun
     const emailSent = await emailService.sendPasswordResetEmail({

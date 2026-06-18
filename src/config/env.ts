@@ -109,8 +109,25 @@ export const env = {
   // A domain provisioned in the EU region returns 401 on the US endpoint.
   MAILGUN_REGION: (process.env.MAILGUN_REGION || 'us').trim().toLowerCase(),
 
-  // URLs
-  APP_URL: process.env.NEXT_PUBLIC_APP_URL || process.env.APP_URL || '',
+  // URLs — always resolve to an absolute https URL so links in emails never
+  // render as "not secure". Defaults to production, upgrades http→https for real
+  // domains, and leaves localhost alone for local dev.
+  APP_URL: (() => {
+    const raw = (
+      process.env.NEXT_PUBLIC_APP_URL ||
+      process.env.APP_URL ||
+      'https://dtfeditor.com'
+    ).trim();
+    const noSlash = raw.replace(/\/+$/, '');
+    const isLocal = /^https?:\/\/(localhost|127\.0\.0\.1)(:|\/|$)/i.test(
+      noSlash
+    );
+    if (!/^https?:\/\//i.test(noSlash)) return `https://${noSlash}`;
+    if (!isLocal && /^http:\/\//i.test(noSlash)) {
+      return noSlash.replace(/^http:\/\//i, 'https://');
+    }
+    return noSlash;
+  })(),
 
   // Admin/Cron
   CRON_SECRET: process.env.CRON_SECRET || '',
