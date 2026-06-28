@@ -19,6 +19,11 @@ import { withRateLimit } from '@/lib/rate-limit';
  *   - in-app cancellation reason (Stripe cancellation_details.feedback used if present)
  */
 
+// This endpoint fans out to Stripe + several DB queries; give it headroom and
+// keep it dynamic (never statically cached).
+export const maxDuration = 60;
+export const dynamic = 'force-dynamic';
+
 const service = createClient(env.SUPABASE_URL, env.SUPABASE_SERVICE_ROLE_KEY);
 
 // Monthly plan prices (consistent with admin/analytics/revenue).
@@ -34,7 +39,6 @@ const AMOUNT_TO_PLAN: Record<number, string> = {
   4999: 'professional',
 };
 
-const SUB_PAGE_CAP = 5; // up to 500 subscriptions per refresh
 const DAY = 86400; // seconds
 
 async function requireAdmin() {
@@ -73,25 +77,52 @@ function planValue(plan: string): number {
   return PLAN_PRICES[plan] ?? 0;
 }
 
-async function listAllSubscriptions(stripe: ReturnType<typeof getStripeService>) {
-  const all: any[] = [];
+// Paginate one Stripe status up to `pageCap` pages.
+async function listByStatus(
+  stripe: ReturnType<typeof getStripeService>,
+  status: string,
+  extra: Record<string, any> = {},
+  pageCap = 2
+) {
+  const out: any[] = [];
   let startingAfter: string | undefined;
   let truncated = false;
-  for (let page = 0; page < SUB_PAGE_CAP; page++) {
+  for (let page = 0; page < pageCap; page++) {
     const res = await stripe.listSubscriptions({
-      status: 'all',
+      status,
       limit: 100,
+      ...extra,
       ...(startingAfter ? { starting_after: startingAfter } : {}),
     } as any);
-    all.push(...res.data);
-    if (!res.has_more) {
-      truncated = false;
-      break;
-    }
+    out.push(...res.data);
+    if (!res.has_more) break;
     startingAfter = res.data[res.data.length - 1]?.id;
-    if (page === SUB_PAGE_CAP - 1) truncated = true;
+    if (page === pageCap - 1) truncated = true;
   }
-  return { subscriptions: all, truncated };
+  return { data: out, truncated };
+}
+
+// Fetch only the statuses we need, in PARALLEL, instead of paginating every
+// historical subscription sequentially (which timed out). Canceled subs are
+// scoped to the last 180 days — enough to catch any canceled/expired trial,
+// since trials are only 7 days. Deduped by id.
+async function loadSubscriptions(
+  stripe: ReturnType<typeof getStripeService>
+) {
+  const since = Math.floor(Date.now() / 1000) - 180 * DAY;
+  const results = await Promise.all([
+    listByStatus(stripe, 'trialing'),
+    listByStatus(stripe, 'active', {}, 3),
+    listByStatus(stripe, 'past_due'),
+    listByStatus(stripe, 'unpaid'),
+    listByStatus(stripe, 'canceled', { created: { gte: since } }, 3),
+  ]);
+  const byId = new Map<string, any>();
+  results.forEach(r => r.data.forEach(s => byId.set(s.id, s)));
+  return {
+    subscriptions: Array.from(byId.values()),
+    truncated: results.some(r => r.truncated),
+  };
 }
 
 async function handleGet(request: NextRequest) {
@@ -108,7 +139,7 @@ async function handleGet(request: NextRequest) {
   let subscriptions: any[] = [];
   let truncated = false;
   try {
-    const result = await listAllSubscriptions(stripe);
+    const result = await loadSubscriptions(stripe);
     subscriptions = result.subscriptions;
     truncated = result.truncated;
   } catch (err: any) {
