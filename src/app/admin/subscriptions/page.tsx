@@ -239,6 +239,8 @@ export default function SubscriptionTrackingPage() {
   const proj = data?.revenueProjections ?? {};
   const ins = data?.conversionInsights ?? {};
   const canceled = data?.canceledTrials ?? [];
+  const trialsByPlan: Record<string, { count: number; projectedMRR: number }> =
+    data?.trialsByPlan ?? {};
 
   return (
     <AdminLayout>
@@ -296,6 +298,37 @@ export default function SubscriptionTrackingPage() {
             <StatCard label="Active subscription MRR" value={money(s.activeMRR)} icon={DollarSign} tone="green" />
             <StatCard label="Total projected MRR" value={money(s.totalProjectedMRR)} hint={`subs + weighted trials @ ${(appliedRate * 100).toFixed(0)}%`} icon={TrendingUp} tone="green" />
           </div>
+        </section>
+
+        {/* Trials by plan */}
+        <section>
+          <SectionLabel>Trials by Plan</SectionLabel>
+          <Card>
+            <CardContent className="p-5">
+              {Object.keys(trialsByPlan).length === 0 ? (
+                <p className="text-sm text-gray-400">No active trials.</p>
+              ) : (
+                <div className="flex flex-wrap gap-4">
+                  {Object.entries(trialsByPlan).map(([plan, v]) => (
+                    <div
+                      key={plan}
+                      className="min-w-[150px] rounded-lg border border-gray-200 px-4 py-3"
+                    >
+                      <p className="text-xs uppercase tracking-wide text-gray-500">
+                        {plan} trial
+                      </p>
+                      <p className="mt-1 text-2xl font-bold text-gray-900">
+                        {v.count}
+                      </p>
+                      <p className="text-xs text-gray-500">
+                        {money(v.projectedMRR)}/mo if they convert
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
         </section>
 
         {/* 2. Trialing users table */}
@@ -365,7 +398,7 @@ export default function SubscriptionTrackingPage() {
                     <tr>
                       <th className="px-2 py-2">User</th>
                       <th className="px-2 py-2">Plan</th>
-                      <th className="px-2 py-2">Trial end</th>
+                      <th className="px-2 py-2">Bills on</th>
                       <th className="px-2 py-2">Days left</th>
                       <th className="px-2 py-2">Status</th>
                       <th className="px-2 py-2">Card</th>
@@ -438,13 +471,12 @@ export default function SubscriptionTrackingPage() {
                         <th className="px-2 py-2">Day of trial</th>
                         <th className="px-2 py-2">Credits</th>
                         <th className="px-2 py-2">Uploaded?</th>
-                        <th className="px-2 py-2">Reason</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-100">
                       {canceled.length === 0 && (
                         <tr>
-                          <td colSpan={7} className="px-2 py-6 text-center text-gray-400">
+                          <td colSpan={6} className="px-2 py-6 text-center text-gray-400">
                             No canceled trials.
                           </td>
                         </tr>
@@ -460,18 +492,11 @@ export default function SubscriptionTrackingPage() {
                           <td className="px-2 py-2">{c.daysIntoTrial ?? '—'}</td>
                           <td className="px-2 py-2">{c.creditsUsed}</td>
                           <td className="px-2 py-2">{c.uploadedFileCount > 0 ? 'Yes' : 'No'}</td>
-                          <td className="px-2 py-2 text-xs text-gray-600">
-                            {c.cancellationReason || '—'}
-                          </td>
                         </tr>
                       ))}
                     </tbody>
                   </table>
                 </div>
-                <p className="mt-3 text-xs text-gray-400">
-                  Download/export tracking and in-app cancellation reasons are not
-                  collected yet — shown as “—”.
-                </p>
               </CardContent>
             </Card>
           </section>
@@ -487,7 +512,6 @@ export default function SubscriptionTrackingPage() {
                 <Insight label="High usage but no conversion" value={ins.highUsageNoConversion ?? 0} />
                 <Insight label="Trial users with no activity" value={ins.noActivity ?? 0} />
                 <Insight label="Used credits but didn’t subscribe" value={ins.usedCreditsNoSubscribe ?? 0} />
-                <Insight label="Uploaded artwork (downloads not tracked)" value={ins.uploadedNoDownload ?? 0} />
                 <Insight label="Used the free DPI checker only" value={ins.dpiCheckerOnly ?? 0} />
               </CardContent>
             </Card>

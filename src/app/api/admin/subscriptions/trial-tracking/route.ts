@@ -220,7 +220,6 @@ async function handleGet(request: NextRequest) {
       creditsUsed: usage?.creditsUsed ?? 0,
       toolsUsed: usage ? Array.from(usage.tools) : [],
       uploadedFileCount: p ? uploadsByUser.get(p.id) || 0 : 0,
-      downloadedFileCount: null as number | null, // not tracked
       hasPaid: p ? paidUserIds.has(p.id) : false,
       firstSubChargeAt: p ? firstSubChargeAt.get(p.id) || null : null,
     };
@@ -251,7 +250,6 @@ async function handleGet(request: NextRequest) {
       daysRemaining: daysRemaining != null ? Math.round(daysRemaining * 10) / 10 : null,
       cardOnFile: !!sub.default_payment_method,
       monthlyValue,
-      cancellationReason: sub.cancellation_details?.feedback || null,
       ...info,
     };
 
@@ -333,6 +331,15 @@ async function handleGet(request: NextRequest) {
     0
   );
 
+  // How many active trials are on each plan + the MRR they'd add if they convert.
+  const trialsByPlan: Record<string, { count: number; projectedMRR: number }> =
+    {};
+  for (const t of activeTrialList) {
+    trialsByPlan[t.plan] = trialsByPlan[t.plan] || { count: 0, projectedMRR: 0 };
+    trialsByPlan[t.plan].count++;
+    trialsByPlan[t.plan].projectedMRR += t.monthlyValue || 0;
+  }
+
   // --- Active recurring subscriptions (from Stripe truth) ---
   const activeSubs = subscriptions.filter(s => s.status === 'active');
   const pastDueSubs = subscriptions.filter(
@@ -399,9 +406,6 @@ async function handleGet(request: NextRequest) {
     highUsageNoConversion: canceledTrials.filter(t => t.creditsUsed >= 3).length,
     noActivity: [...activeTrialList, ...canceledTrials].filter(isInactive).length,
     usedCreditsNoSubscribe: canceledTrials.filter(t => t.creditsUsed > 0).length,
-    uploadedNoDownload: [...activeTrialList, ...canceledTrials].filter(
-      t => t.uploadedFileCount > 0
-    ).length, // downloads not tracked, so this = uploaded-at-all
     dpiCheckerOnly: [...activeTrialList, ...canceledTrials].filter(
       t =>
         t.toolsUsed.length === 1 &&
@@ -430,6 +434,7 @@ async function handleGet(request: NextRequest) {
       activeMRR,
       totalProjectedMRR,
     },
+    trialsByPlan,
     trialingUsers,
     canceledTrials,
     conversionInsights: insights,
