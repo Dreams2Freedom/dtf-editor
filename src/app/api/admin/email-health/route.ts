@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { emailService } from '@/services/email';
 import { withRateLimit } from '@/lib/rate-limit';
+import { env } from '@/config/env';
 
 /**
  * Admin email-health endpoint.
@@ -45,6 +46,11 @@ async function handleGet() {
   const status = emailService.getConfigStatus();
   return NextResponse.json({
     ...status,
+    // Resolved base URL used for links in transactional emails — should be an
+    // absolute https URL (e.g. https://dtfeditor.com). If this shows http:// or
+    // a wrong host, email links will render as "not secure".
+    appUrl: env.APP_URL,
+    appUrlSecure: /^https:\/\//i.test(env.APP_URL),
     message: status.configured
       ? `Mailgun is configured (region=${status.region}, domain=${status.domain}). Emails should send.`
       : 'Mailgun is NOT configured — set MAILGUN_API_KEY and MAILGUN_DOMAIN in the environment. No emails will be sent until this is fixed.',

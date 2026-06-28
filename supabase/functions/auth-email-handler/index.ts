@@ -10,7 +10,11 @@ const MAILGUN_BASE_URL =
   MAILGUN_REGION === 'eu'
     ? 'https://api.eu.mailgun.net'
     : 'https://api.mailgun.net';
-const APP_URL = Deno.env.get('APP_URL')!;
+// Force an absolute https base URL so auth links never render as "not secure".
+const APP_URL = (Deno.env.get('APP_URL') || 'https://dtfeditor.com')
+  .trim()
+  .replace(/\/+$/, '')
+  .replace(/^http:\/\/(?!localhost|127\.0\.0\.1)/i, 'https://');
 
 interface EmailRequest {
   type: 'confirmation' | 'recovery' | 'magic_link';

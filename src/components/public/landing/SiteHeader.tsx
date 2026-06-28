@@ -5,8 +5,9 @@ import Link from 'next/link';
 import { Menu } from 'lucide-react';
 import styles from './SiteHeader.module.css';
 
-// Absolute hashes (/#x) so the nav also works from sub-pages like /pricing,
-// where these homepage sections don't exist on the current page.
+// Absolute hashes (/#x) route home from sub-pages; the homepage's HashScroll
+// handler then scrolls to the section (accounting for the sticky-header offset),
+// so these links work both on the landing page and from other pages.
 const NAV = [
   { label: 'How It Works', href: '/#how-it-works' },
   { label: 'Tools', href: '/#tools' },

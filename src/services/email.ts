@@ -789,7 +789,7 @@ export class EmailService {
                 </div>
                 
                 <div style="margin-top: 30px;">
-                  <a href="${process.env.NEXT_PUBLIC_APP_URL || 'https://dtfeditor.com'}/support/${data.ticketNumber}" 
+                  <a href="${env.APP_URL || 'https://dtfeditor.com'}/support/${data.ticketNumber}" 
                      style="display: inline-block; background: #366494; color: white; padding: 12px 30px; text-decoration: none; border-radius: 4px;">
                     View Full Conversation
                   </a>
@@ -804,7 +804,7 @@ export class EmailService {
           </body>
           </html>
         `,
-        text: `Support Team Reply\n\nHi ${data.userName || 'there'},\n\nOur support team has replied to your ticket #${data.ticketNumber}.\n\nReply:\n${data.adminMessage}\n\nView full conversation: ${process.env.NEXT_PUBLIC_APP_URL || 'https://dtfeditor.com'}/support/${data.ticketNumber}\n\n© ${new Date().getFullYear()} DTF Editor`,
+        text: `Support Team Reply\n\nHi ${data.userName || 'there'},\n\nOur support team has replied to your ticket #${data.ticketNumber}.\n\nReply:\n${data.adminMessage}\n\nView full conversation: ${env.APP_URL || 'https://dtfeditor.com'}/support/${data.ticketNumber}\n\n© ${new Date().getFullYear()} DTF Editor`,
         'o:tag': ['support', 'ticket-reply', 'admin-reply'],
         'o:tracking': true,
         'o:tracking-clicks': true,
@@ -873,7 +873,7 @@ export class EmailService {
                 </div>
                 
                 <div style="margin-top: 30px;">
-                  <a href="${process.env.NEXT_PUBLIC_APP_URL || 'https://dtfeditor.com'}/admin/support" 
+                  <a href="${env.APP_URL || 'https://dtfeditor.com'}/admin/support" 
                      style="display: inline-block; background: #366494; color: white; padding: 12px 30px; text-decoration: none; border-radius: 4px;">
                     View in Admin Panel
                   </a>
@@ -883,7 +883,7 @@ export class EmailService {
           </body>
           </html>
         `,
-        text: `USER REPLY - Ticket #${data.ticketNumber}\n\nFrom: ${data.userName || 'User'} (${data.userEmail})\nSubject: ${data.ticketSubject}\n\nMessage:\n${data.userMessage}\n\nView in admin panel: ${process.env.NEXT_PUBLIC_APP_URL || 'https://dtfeditor.com'}/admin/support\n\n© ${new Date().getFullYear()} DTF Editor`,
+        text: `USER REPLY - Ticket #${data.ticketNumber}\n\nFrom: ${data.userName || 'User'} (${data.userEmail})\nSubject: ${data.ticketSubject}\n\nMessage:\n${data.userMessage}\n\nView in admin panel: ${env.APP_URL || 'https://dtfeditor.com'}/admin/support\n\n© ${new Date().getFullYear()} DTF Editor`,
         'o:tag': ['support', 'ticket-reply', 'user-reply'],
         'o:tracking': true,
         'o:tracking-clicks': true,
@@ -968,7 +968,7 @@ export class EmailService {
                 </div>
                 
                 <div style="margin-top: 30px; text-align: center;">
-                  <a href="${process.env.NEXT_PUBLIC_APP_URL || 'https://dtfeditor.com'}/dashboard" 
+                  <a href="${env.APP_URL || 'https://dtfeditor.com'}/dashboard" 
                      style="display: inline-block; background: #dc3545; color: white; padding: 12px 30px; text-decoration: none; border-radius: 4px;">
                     Update Payment Method
                   </a>
@@ -986,7 +986,7 @@ export class EmailService {
           </body>
           </html>
         `,
-        text: `Payment Failed\n\nHi ${data.firstName || 'there'},\n\nWe attempted to charge $${(data.amount / 100).toFixed(2)} for your DTF Editor ${data.planName} subscription, but the payment was declined.\n\n${data.nextRetryDate ? `We'll automatically retry the payment on ${data.nextRetryDate.toLocaleDateString()}.\n\n` : ''}What you can do:\n- Update your payment method\n- Ensure sufficient funds are available\n- Contact your bank if the issue persists\n\nUpdate your payment method: ${process.env.NEXT_PUBLIC_APP_URL || 'https://dtfeditor.com'}/dashboard\n\n© ${new Date().getFullYear()} DTF Editor`,
+        text: `Payment Failed\n\nHi ${data.firstName || 'there'},\n\nWe attempted to charge $${(data.amount / 100).toFixed(2)} for your DTF Editor ${data.planName} subscription, but the payment was declined.\n\n${data.nextRetryDate ? `We'll automatically retry the payment on ${data.nextRetryDate.toLocaleDateString()}.\n\n` : ''}What you can do:\n- Update your payment method\n- Ensure sufficient funds are available\n- Contact your bank if the issue persists\n\nUpdate your payment method: ${env.APP_URL || 'https://dtfeditor.com'}/dashboard\n\n© ${new Date().getFullYear()} DTF Editor`,
         'o:tag': ['payment', 'payment-failed', `attempt-${data.attemptCount}`],
         'o:tracking': true,
         'o:tracking-clicks': true,
@@ -1102,7 +1102,7 @@ export class EmailService {
                   data.creditsRemaining < 5
                     ? `
                   <div style="margin-top: 30px; text-align: center;">
-                    <a href="${process.env.NEXT_PUBLIC_APP_URL || 'https://dtfeditor.com'}/pricing" 
+                    <a href="${env.APP_URL || 'https://dtfeditor.com'}/pricing" 
                        style="display: inline-block; background: #366494; color: white; padding: 12px 30px; text-decoration: none; border-radius: 4px;">
                       Get More Credits
                     </a>
@@ -1121,7 +1121,7 @@ export class EmailService {
           </body>
           </html>
         `,
-        text: `Your Monthly Summary\n\nHi ${data.firstName || 'there'},\n\nHere's your DTF Editor activity summary for ${data.month}:\n\nImages Processed: ${data.imagesProcessed}\nCredits Used: ${data.creditsUsed}\nCredits Remaining: ${data.creditsRemaining}\n\n${topFeatures.length > 0 ? `Most Used Features:\n${topFeatures.map(f => `- ${f.feature}: ${f.count} uses`).join('\n')}\n\n` : ''}Your Plan: ${data.planName}\n\nView your dashboard: ${process.env.NEXT_PUBLIC_APP_URL || 'https://dtfeditor.com'}/dashboard\n\n© ${new Date().getFullYear()} DTF Editor`,
+        text: `Your Monthly Summary\n\nHi ${data.firstName || 'there'},\n\nHere's your DTF Editor activity summary for ${data.month}:\n\nImages Processed: ${data.imagesProcessed}\nCredits Used: ${data.creditsUsed}\nCredits Remaining: ${data.creditsRemaining}\n\n${topFeatures.length > 0 ? `Most Used Features:\n${topFeatures.map(f => `- ${f.feature}: ${f.count} uses`).join('\n')}\n\n` : ''}Your Plan: ${data.planName}\n\nView your dashboard: ${env.APP_URL || 'https://dtfeditor.com'}/dashboard\n\n© ${new Date().getFullYear()} DTF Editor`,
         'o:tag': ['monthly-summary', 'engagement'],
         'o:tracking': true,
         'o:tracking-clicks': true,
@@ -1225,11 +1225,11 @@ export class EmailService {
                 </div>
                 
                 <div style="margin-top: 30px; text-align: center;">
-                  <a href="${process.env.NEXT_PUBLIC_APP_URL || 'https://dtfeditor.com'}/support" 
+                  <a href="${env.APP_URL || 'https://dtfeditor.com'}/support" 
                      style="display: inline-block; background: #366494; color: white; padding: 12px 30px; text-decoration: none; border-radius: 4px; margin-right: 10px;">
                     Contact Support
                   </a>
-                  <a href="${process.env.NEXT_PUBLIC_APP_URL || 'https://dtfeditor.com'}/process" 
+                  <a href="${env.APP_URL || 'https://dtfeditor.com'}/process" 
                      style="display: inline-block; background: #fff; color: #366494; border: 2px solid #366494; padding: 10px 28px; text-decoration: none; border-radius: 4px;">
                     Try Again
                   </a>
@@ -1246,7 +1246,7 @@ export class EmailService {
           </body>
           </html>
         `,
-        text: `Processing Error\n\nHi ${data.firstName || 'there'},\n\nWe encountered an error while processing your ${errorTypeDisplay[data.errorType]} request${data.fileName ? ` for "${data.fileName}"` : ''}.\n\nError Details:\n${data.errorMessage}\n\n${data.creditsRefunded ? `✓ ${data.creditsRefunded} credit${data.creditsRefunded > 1 ? 's have' : ' has'} been refunded to your account.\n\n` : ''}What to do next:\n- Try uploading a different image\n- Ensure your image meets our requirements\n- Check your internet connection\n- Contact support if the issue persists\n\nContact Support: ${process.env.NEXT_PUBLIC_APP_URL || 'https://dtfeditor.com'}/support\nTry Again: ${process.env.NEXT_PUBLIC_APP_URL || 'https://dtfeditor.com'}/process\n\n© ${new Date().getFullYear()} DTF Editor`,
+        text: `Processing Error\n\nHi ${data.firstName || 'there'},\n\nWe encountered an error while processing your ${errorTypeDisplay[data.errorType]} request${data.fileName ? ` for "${data.fileName}"` : ''}.\n\nError Details:\n${data.errorMessage}\n\n${data.creditsRefunded ? `✓ ${data.creditsRefunded} credit${data.creditsRefunded > 1 ? 's have' : ' has'} been refunded to your account.\n\n` : ''}What to do next:\n- Try uploading a different image\n- Ensure your image meets our requirements\n- Check your internet connection\n- Contact support if the issue persists\n\nContact Support: ${env.APP_URL || 'https://dtfeditor.com'}/support\nTry Again: ${env.APP_URL || 'https://dtfeditor.com'}/process\n\n© ${new Date().getFullYear()} DTF Editor`,
         'o:tag': ['error', `error-${data.errorType}`],
         'o:tracking': true,
         'o:tracking-clicks': true,
@@ -1856,7 +1856,7 @@ This link will expire in ${data.expiresIn || '10 minutes'}.
               </div>
 
               <div style="text-align: center; padding-top: 20px; border-top: 1px solid #e5e7eb;">
-                <a href="${process.env.NEXT_PUBLIC_APP_URL || 'https://dtfeditor.com'}/admin/support" 
+                <a href="${env.APP_URL || 'https://dtfeditor.com'}/admin/support" 
                    style="display: inline-block; background: #366494; color: white; padding: 12px 24px; border-radius: 6px; text-decoration: none; font-weight: 500;">
                   View Ticket in Admin Panel
                 </a>
@@ -1896,7 +1896,7 @@ ${data.message}
 ---
 
 View ticket in admin panel:
-${process.env.NEXT_PUBLIC_APP_URL || 'https://dtfeditor.com'}/admin/support
+${env.APP_URL || 'https://dtfeditor.com'}/admin/support
 
 © ${new Date().getFullYear()} DTF Editor
     `.trim();
@@ -2002,7 +2002,7 @@ ${process.env.NEXT_PUBLIC_APP_URL || 'https://dtfeditor.com'}/admin/support
             <p><strong>Was this you?</strong></p>
             <p>If you recognize this activity, you can safely ignore this email.</p>
             <p>If you don't recognize this activity, please secure your account immediately:</p>
-            <a href="${process.env.NEXT_PUBLIC_APP_URL}/account/security" class="button">Secure My Account</a>
+            <a href="${env.APP_URL}/account/security" class="button">Secure My Account</a>
             `
                 : ''
             }
@@ -2029,7 +2029,7 @@ ${process.env.NEXT_PUBLIC_APP_URL || 'https://dtfeditor.com'}/admin/support
               data.alertType === 'suspicious_activity'
                 ? `
             <p>We've temporarily secured your account. Please verify your identity to continue using DTF Editor.</p>
-            <a href="${process.env.NEXT_PUBLIC_APP_URL}/account/verify" class="button">Verify My Account</a>
+            <a href="${env.APP_URL}/account/verify" class="button">Verify My Account</a>
             `
                 : ''
             }
@@ -2107,7 +2107,7 @@ ${
     ? `
 If you recognize this activity, you can safely ignore this email.
 If you don't recognize this activity, please secure your account at:
-${process.env.NEXT_PUBLIC_APP_URL}/account/security
+${env.APP_URL}/account/security
 `
     : ''
 }
@@ -2124,7 +2124,7 @@ ${
   data.alertType === 'suspicious_activity'
     ? `
 We've temporarily secured your account. Please verify your identity at:
-${process.env.NEXT_PUBLIC_APP_URL}/account/verify
+${env.APP_URL}/account/verify
 `
     : ''
 }
@@ -2229,7 +2229,7 @@ ${process.env.NEXT_PUBLIC_APP_URL}/account/verify
 
             <div class="footer">
               <p>You're receiving this because you're subscribed to activity summaries.</p>
-              <p><a href="${process.env.NEXT_PUBLIC_APP_URL}/account/preferences">Update Email Preferences</a></p>
+              <p><a href="${env.APP_URL}/account/preferences">Update Email Preferences</a></p>
               <p>© ${new Date().getFullYear()} DTF Editor. All rights reserved.</p>
             </div>
           </div>
@@ -2497,7 +2497,7 @@ Keep creating amazing DTF transfers!
 ---
 
 Update email preferences:
-${process.env.NEXT_PUBLIC_APP_URL}/account/preferences
+${env.APP_URL}/account/preferences
 
 © ${new Date().getFullYear()} DTF Editor
     `.trim();
@@ -2519,7 +2519,7 @@ ${process.env.NEXT_PUBLIC_APP_URL}/account/preferences
     try {
       // Check if admin has this notification type enabled
       const prefsResponse = await fetch(
-        `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/admin/notification-preferences`,
+        `${env.APP_URL || 'http://localhost:3000'}/api/admin/notification-preferences`,
         {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
