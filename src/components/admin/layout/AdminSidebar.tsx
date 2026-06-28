@@ -17,6 +17,7 @@ import {
   Bell,
   UsersRound,
   ShieldCheck,
+  CreditCard,
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { createClientSupabaseClient } from '@/lib/supabase/client';
@@ -69,6 +70,12 @@ const menuItems: MenuItem[] = [
     href: '/admin/analytics',
     icon: BarChart3,
     permission: ['analytics', 'view'],
+  },
+  {
+    name: 'Subscriptions',
+    href: '/admin/subscriptions',
+    icon: CreditCard,
+    permission: ['financial', 'view'],
   },
   {
     name: 'Affiliates',
