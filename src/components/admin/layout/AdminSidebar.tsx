@@ -18,6 +18,7 @@ import {
   UsersRound,
   ShieldCheck,
   CreditCard,
+  Activity,
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { createClientSupabaseClient } from '@/lib/supabase/client';
@@ -69,6 +70,12 @@ const menuItems: MenuItem[] = [
     name: 'Analytics',
     href: '/admin/analytics',
     icon: BarChart3,
+    permission: ['analytics', 'view'],
+  },
+  {
+    name: 'Tool Usage',
+    href: '/admin/tool-usage',
+    icon: Activity,
     permission: ['analytics', 'view'],
   },
   {
