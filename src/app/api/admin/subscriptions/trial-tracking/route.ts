@@ -384,6 +384,36 @@ async function handleGet(request: NextRequest) {
       nowSec - s.canceled_at <= 30 * DAY
   );
 
+  // Unified "canceled" list — canceled TRIALS (never paid) + canceled
+  // MEMBERSHIPS (paid then canceled). kind distinguishes them; cancellationReason
+  // is surfaced from Stripe if present (sets up the future cancel-workflow).
+  const canceledList = subscriptions
+    .filter(s => s.status === 'canceled')
+    .map(s => {
+      const info = userInfo(s);
+      const plan = planForSub(s);
+      const isTrial = s.trial_start != null;
+      const kind = isTrial && !info.hasPaid ? 'trial' : 'membership';
+      return {
+        kind,
+        subscriptionId: s.id,
+        userId: info.userId,
+        name: info.name,
+        email: info.email,
+        plan,
+        monthlyValue: planValue(plan),
+        canceledAt: s.canceled_at
+          ? new Date(s.canceled_at * 1000).toISOString()
+          : null,
+        cancellationReason: s.cancellation_details?.feedback || null,
+      };
+    })
+    .sort(
+      (a, b) =>
+        new Date(b.canceledAt || 0).getTime() -
+        new Date(a.canceledAt || 0).getTime()
+    );
+
   const planBreakdown: Record<string, { count: number; mrr: number }> = {};
   let activeMRR = 0;
   for (const s of activeSubs) {
@@ -451,6 +481,13 @@ async function handleGet(request: NextRequest) {
       truncated,
       downloadsTracked: false,
     },
+    // Condensed top-level counts for the three categories.
+    counts: {
+      onPlan: activeSubs.length,
+      trialing: activeTrials,
+      canceled: canceledList.length,
+    },
+    canceled: canceledList,
     summary: {
       activeTrials,
       endingIn24h: endingWithin(1),
@@ -482,6 +519,7 @@ async function handleGet(request: NextRequest) {
         const plan = planForSub(s);
         return {
           subscriptionId: s.id,
+          userId: info.userId,
           plan,
           monthlyValue: planValue(plan),
           cancelAtPeriodEnd: !!s.cancel_at_period_end,
