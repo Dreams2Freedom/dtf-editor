@@ -108,6 +108,23 @@ async function handleGet(request: NextRequest) {
       }
     }
 
+    // Lifetime once-per-account discount: Stripe customer metadata is the
+    // source of truth (backed by the DB counter), so the offer is hidden once
+    // it's been used even if the DB column never persisted.
+    let discountUsed = (profile.discount_used_count || 0) >= 1;
+    if (!discountUsed && profile.stripe_customer_id) {
+      try {
+        const customer: any = await getStripeService().getCustomer(
+          profile.stripe_customer_id
+        );
+        if (customer?.metadata?.retention_discount_used === 'true') {
+          discountUsed = true;
+        }
+      } catch {
+        /* ignore — fall back to the DB counter */
+      }
+    }
+
     // Calculate pause options based on current billing period end
     const pauseOptions = [
       {
@@ -159,7 +176,7 @@ async function handleGet(request: NextRequest) {
       pauseReason: pauseResult?.reason,
       // Lifetime once-per-account: only offer the 50% discount if it has never
       // been used (mirrors the once-ever rule the apply endpoint enforces).
-      canUseDiscount: (profile.discount_used_count || 0) < 1,
+      canUseDiscount: !discountUsed,
       discountReason: discountResult?.reason,
       pauseOptions,
       pauseHistory: pauseHistory || [],
