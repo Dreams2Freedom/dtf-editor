@@ -5,10 +5,10 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Mail, Lock, Eye, EyeOff, User, Building } from 'lucide-react';
-import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { useAuthContext } from '@/contexts/AuthContext';
 import Link from 'next/link';
+import styles from './Auth.module.css';
 
 // Signup form schema
 const signupSchema = z
@@ -51,6 +51,47 @@ interface SignupFormProps {
   redirectTo?: string;
 }
 
+// The pricing-page CTAs pass the Stripe subscription plan id directly
+// (basic | starter | professional). We validate against the known ids before
+// starting checkout; this does not change any Stripe price/product IDs.
+const CHECKOUT_PLAN_IDS = new Set(['basic', 'starter', 'professional']);
+
+// Basic & Starter are offered as 7-day trials; the server re-validates trial
+// eligibility and ignores the flag for anything else.
+const TRIAL_PLAN_IDS = new Set(['basic', 'starter']);
+
+// Kick off Stripe Checkout for a just-signed-up user via the existing
+// pricing + checkout-session APIs. Returns the checkout URL, or null on any
+// failure so the caller can fall back gracefully.
+async function startSubscriptionCheckout(
+  stripePlanId: string
+): Promise<string | null> {
+  try {
+    const pricingRes = await fetch('/api/stripe/pricing');
+    if (!pricingRes.ok) return null;
+    const pricing = await pricingRes.json();
+    const plan = (pricing.subscriptionPlans || []).find(
+      (p: { id: string; stripePriceId?: string }) => p.id === stripePlanId
+    );
+    if (!plan?.stripePriceId) return null;
+
+    const res = await fetch('/api/stripe/create-checkout-session', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        priceId: plan.stripePriceId,
+        mode: 'subscription',
+        trial: TRIAL_PLAN_IDS.has(stripePlanId),
+      }),
+    });
+    if (!res.ok) return null;
+    const data = await res.json();
+    return data.url || null;
+  } catch {
+    return null;
+  }
+}
+
 export function SignupForm({ onSuccess, redirectTo }: SignupFormProps) {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -68,37 +109,47 @@ export function SignupForm({ onSuccess, redirectTo }: SignupFormProps) {
   const onSubmit = async (data: SignupFormData) => {
     clearError();
 
-    console.log('[SIGNUP FORM] Step 1: Starting signup for:', data.email);
-
     const result = await signUp(data.email, data.password, {
       firstName: data.firstName,
       lastName: data.lastName,
       company: data.company,
     });
 
-    console.log('[SIGNUP FORM] Step 2: Signup result:', result);
-
     if (result.success) {
-      console.log(
-        '[SIGNUP FORM] Step 3: Signup successful, waiting 2 seconds before redirect'
-      );
       onSuccess?.();
 
       // Add a 2-second delay to ensure the welcome email fetch completes
       // This is a temporary fix to diagnose the issue
       await new Promise(resolve => setTimeout(resolve, 2000));
 
-      console.log(
-        '[SIGNUP FORM] Step 4: Redirecting to:',
-        redirectTo || '/dashboard'
-      );
-      if (redirectTo) {
-        window.location.href = redirectTo;
-      } else {
-        window.location.href = '/dashboard';
+      // Post-signup handoff: if the user picked a plan on the pricing page
+      // (?plan=hobbyist|small-business), send them straight into Stripe
+      // Checkout; otherwise honor ?next= (e.g. the pay-as-you-go picker), or
+      // fall back to the dashboard.
+      const params = new URLSearchParams(window.location.search);
+      const planSlug = params.get('plan');
+      const next = params.get('next');
+      const stripePlanId =
+        planSlug && CHECKOUT_PLAN_IDS.has(planSlug) ? planSlug : undefined;
+
+      if (stripePlanId) {
+        const checkoutUrl = await startSubscriptionCheckout(stripePlanId);
+        // If checkout couldn't start, drop the user on the pricing page
+        // rather than leaving them stranded mid-flow.
+        window.location.href = checkoutUrl || '/pricing';
+        return;
       }
+
+      if (next) {
+        window.location.href = next;
+        return;
+      }
+
+      // No explicit plan/next chosen: route new users through the
+      // trial-focused plan selection screen (Free remains a secondary option
+      // there) instead of dropping them straight on the dashboard.
+      window.location.href = redirectTo || '/auth/select-plan';
     } else {
-      console.log('[SIGNUP FORM] Step 3: Signup failed:', result.error);
       setFormError('root', {
         type: 'manual',
         message: result.error || 'Sign up failed',
@@ -107,17 +158,18 @@ export function SignupForm({ onSuccess, redirectTo }: SignupFormProps) {
   };
 
   return (
-    <div className="w-full max-w-md mx-auto">
-      <div className="text-center mb-8">
-        <h1 className="text-2xl font-bold text-gray-900 mb-2">
-          Create your account
-        </h1>
-        <p className="text-gray-600">Get started with DTF Editor today</p>
+    <div>
+      <div className={styles.header}>
+        <h1 className={styles.title}>Create your DTF Editor account</h1>
+        <p className={styles.subtitle}>
+          Start with the free DPI checker, then unlock artwork tools when you
+          choose a plan.
+        </p>
       </div>
 
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+      <form onSubmit={handleSubmit(onSubmit)} className={styles.form}>
         {/* Name Fields */}
-        <div className="grid grid-cols-2 gap-4">
+        <div className={styles.nameGrid}>
           <Input
             label="First name"
             type="text"
@@ -209,50 +261,44 @@ export function SignupForm({ onSuccess, redirectTo }: SignupFormProps) {
 
         {/* Error Message */}
         {error && (
-          <div className="p-3 text-sm text-error-600 bg-error-50 border border-error-200 rounded-lg">
+          <div className={`${styles.alert} ${styles.alertError}`} role="alert">
             {error}
           </div>
         )}
 
         {/* Form Error */}
         {errors.root && (
-          <div className="p-3 text-sm text-error-600 bg-error-50 border border-error-200 rounded-lg">
+          <div className={`${styles.alert} ${styles.alertError}`} role="alert">
             {errors.root.message}
           </div>
         )}
 
         {/* Terms and Privacy */}
-        <div className="text-sm text-gray-600">
+        <p className={styles.fineprint}>
           By creating an account, you agree to our{' '}
-          <Link
-            href="/terms"
-            className="text-primary-600 hover:text-primary-500 transition-colors"
-          >
+          <Link href="/terms" className={styles.link}>
             Terms of Service
           </Link>{' '}
           and{' '}
-          <Link
-            href="/privacy"
-            className="text-primary-600 hover:text-primary-500 transition-colors"
-          >
+          <Link href="/privacy" className={styles.link}>
             Privacy Policy
           </Link>
-        </div>
+        </p>
 
         {/* Submit Button */}
-        <Button type="submit" fullWidth loading={loading} disabled={loading}>
-          Create account
-        </Button>
+        <button type="submit" className={styles.btnPrimary} disabled={loading}>
+          {loading && <span className={styles.spinner} aria-hidden="true" />}
+          {loading ? 'Creating account…' : 'Create Account'}
+        </button>
 
         {/* Sign In Link */}
-        <div className="text-center text-sm text-gray-600">
-          Already have an account?{' '}
-          <Link
-            href="/auth/login"
-            className="text-primary-600 hover:text-primary-500 font-medium transition-colors"
-          >
-            Sign in
-          </Link>
+        <div className={`${styles.linkRow} ${styles.center}`}>
+          <span>
+            Already have an account?{' '}
+            <Link href="/auth/login" className={styles.link}>
+              Sign in
+            </Link>
+          </span>
         </div>
       </form>
     </div>

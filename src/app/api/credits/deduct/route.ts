@@ -7,7 +7,7 @@ import { withRateLimit } from '@/lib/rate-limit';
 const OPERATION_COSTS: Record<string, number> = {
   'upscale': 1,
   'background-removal': 1,
-  'vectorization': 1,
+  'vectorization': 2,
   'ai-generation': 2,
 };
 

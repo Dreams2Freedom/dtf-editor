@@ -13,6 +13,7 @@ import {
   Settings,
   User,
   Shield,
+  ArrowLeft,
 } from 'lucide-react';
 
 interface AdminHeaderProps {
@@ -85,6 +86,16 @@ export function AdminHeader({ onMenuToggle }: AdminHeaderProps) {
 
           {/* Right side */}
           <div className="flex items-center space-x-4">
+            {/* Back to the normal dashboard (admins only — this header only
+                renders inside the admin-gated layout) */}
+            <a
+              href="/dashboard"
+              className="hidden sm:inline-flex items-center gap-2 rounded-lg border border-gray-200 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 transition-colors"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              Back to Dashboard
+            </a>
+
             {/* Notifications */}
             <NotificationBell />
 
@@ -129,6 +140,15 @@ export function AdminHeader({ onMenuToggle }: AdminHeaderProps) {
                           Admin ID: {user?.id.slice(0, 8)}...
                         </p>
                       </div>
+
+                      {/* Mobile only — desktop uses the visible top-bar button */}
+                      <a
+                        href="/dashboard"
+                        className="flex sm:hidden items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                      >
+                        <ArrowLeft className="mr-3 h-4 w-4" />
+                        Back to Dashboard
+                      </a>
 
                       <a
                         href="/admin/profile"

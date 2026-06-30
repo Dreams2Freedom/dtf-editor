@@ -21,22 +21,27 @@ async function handlePost(request: NextRequest) {
 
     const { duration } = await request.json();
 
-    if (!duration || !['2_weeks', '1_month', '2_months'].includes(duration)) {
+    if (
+      !duration ||
+      !['60_days', '2_weeks', '1_month', '2_months'].includes(duration)
+    ) {
       return NextResponse.json(
         { error: 'Invalid pause duration' },
         { status: 400 }
       );
     }
 
-    // Check eligibility
-    const { data: eligibility, error: eligibilityError } = await supabase.rpc(
-      'check_pause_eligibility',
-      { p_user_id: user.id }
-    );
-
-    if (eligibilityError || !eligibility?.can_pause) {
+    // Check eligibility. The RPC may be absent or return an array shape; only
+    // hard-block when it EXPLICITLY says no, so a missing/odd RPC doesn't break
+    // the 60-day suspension (pausing is self-limiting — it auto-resumes and the
+    // user has no access while paused).
+    const { data: eligibility } = await supabase.rpc('check_pause_eligibility', {
+      p_user_id: user.id,
+    });
+    const elig = Array.isArray(eligibility) ? eligibility[0] : eligibility;
+    if (elig && elig.can_pause === false) {
       return NextResponse.json(
-        { error: eligibility?.reason || 'Not eligible to pause subscription' },
+        { error: elig.reason || 'Not eligible to pause subscription' },
         { status: 403 }
       );
     }
@@ -68,11 +73,21 @@ async function handlePost(request: NextRequest) {
       );
     }
 
-    // Calculate resume date from current period end, not from today
-    const currentPeriodEnd = new Date(subscription.current_period_end * 1000);
+    // Calculate resume date from current period end, not from today.
+    // Read both the legacy and Basil API period-end paths so it isn't undefined.
+    const sub: any = subscription;
+    const periodEndSec =
+      sub.current_period_end ?? sub.items?.data?.[0]?.current_period_end;
+    const currentPeriodEnd = periodEndSec
+      ? new Date(periodEndSec * 1000)
+      : new Date();
     const resumeDate = new Date(currentPeriodEnd);
 
     switch (duration) {
+      case '60_days':
+        // Suspend for 60 days from now; subscription auto-resumes after that.
+        resumeDate.setTime(Date.now() + 60 * 24 * 60 * 60 * 1000);
+        break;
       case '2_weeks':
         resumeDate.setDate(resumeDate.getDate() + 14);
         break;

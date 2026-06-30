@@ -359,7 +359,7 @@ export function ImageProcessor() {
         }
       }
 
-      if (processingOptions.operation === 'background-removal') {
+      if ((processingOptions.operation as string) === 'background-removal') {
         if (processingOptions.backgroundColor) {
           formData.append('backgroundColor', processingOptions.backgroundColor);
         }
@@ -890,7 +890,7 @@ export function ImageProcessor() {
                     {processingOptions.operation === 'background-removal' &&
                       'Remove Background (1 credit)'}
                     {processingOptions.operation === 'vectorization' &&
-                      'Vectorize Image (1 credit)'}
+                      'Vectorize Image (2 credits)'}
                   </>
                 )}
               </Button>

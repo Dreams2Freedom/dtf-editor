@@ -39,13 +39,25 @@ const getCSP = () => {
 export async function middleware(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
 
+  // Skip middleware for webhook routes — they need raw body access
+  // and have their own auth (Stripe signature verification)
+  if (pathname.startsWith('/api/webhooks/')) {
+    return NextResponse.next();
+  }
+
   // Block access to debug/test endpoints in production
   if (process.env.NODE_ENV === 'production') {
     if (
       pathname.startsWith('/api/debug-') ||
       pathname.startsWith('/api/test-') ||
       pathname.startsWith('/test-') ||
-      pathname.startsWith('/debug-')
+      pathname.startsWith('/debug-') ||
+      // Throwaway dev/debug pages that don't match the prefixes above
+      pathname.startsWith('/auth-debug') ||
+      pathname.startsWith('/process-test') ||
+      pathname.startsWith('/simple') ||
+      pathname === '/test' ||
+      pathname.startsWith('/test/')
     ) {
       return NextResponse.json({ error: 'Not found' }, { status: 404 });
     }

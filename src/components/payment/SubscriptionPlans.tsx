@@ -2,10 +2,12 @@
 
 import React, { useState, useEffect } from 'react';
 import { useAuthContext } from '@/contexts/AuthContext';
+import { useAuthStore } from '@/stores/authStore';
 import { SubscriptionPlan } from '@/services/stripe';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { Check, CreditCard, Star, Zap } from 'lucide-react';
+import { isTrialEligible, isTrialPlan, TRIAL_DISCLOSURE } from '@/lib/trial';
 
 interface SubscriptionPlansProps {
   onSubscriptionComplete?: () => void;
@@ -15,6 +17,10 @@ export const SubscriptionPlans: React.FC<SubscriptionPlansProps> = ({
   onSubscriptionComplete,
 }) => {
   const { user } = useAuthContext();
+  const { profile } = useAuthStore();
+  const trialEligible = isTrialEligible(
+    profile as Parameters<typeof isTrialEligible>[0]
+  );
   const [selectedPlan, setSelectedPlan] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -54,6 +60,7 @@ export const SubscriptionPlans: React.FC<SubscriptionPlansProps> = ({
     }
 
     setIsLoading(true);
+    setSelectedPlan(plan.id);
     setError(null);
 
     try {
@@ -66,6 +73,8 @@ export const SubscriptionPlans: React.FC<SubscriptionPlansProps> = ({
           priceId: plan.stripePriceId,
           userId: user.id,
           mode: 'subscription',
+          // Server re-validates eligibility; only honored for Basic/Starter.
+          trial: trialEligible && isTrialPlan(plan.id),
         }),
       });
 
@@ -93,11 +102,11 @@ export const SubscriptionPlans: React.FC<SubscriptionPlansProps> = ({
       case 'free':
         return <Star className="w-6 h-6 text-gray-400" />;
       case 'basic':
-        return <Zap className="w-6 h-6 text-blue-500" />;
+        return <Zap className="w-6 h-6 text-amber-500" />;
       case 'starter':
-        return <CreditCard className="w-6 h-6 text-purple-500" />;
+        return <CreditCard className="w-6 h-6 text-amber-500" />;
       case 'professional':
-        return <Star className="w-6 h-6 text-yellow-500" />;
+        return <Star className="w-6 h-6 text-amber-500" />;
       default:
         return <Star className="w-6 h-6" />;
     }
@@ -107,26 +116,26 @@ export const SubscriptionPlans: React.FC<SubscriptionPlansProps> = ({
     switch (planId) {
       case 'free':
         return (
-          <span className="bg-gray-100 text-gray-800 text-xs font-medium px-2.5 py-0.5 rounded">
+          <span className="bg-gray-100 text-gray-600 text-xs font-medium px-2.5 py-0.5 rounded">
             Free
           </span>
         );
       case 'basic':
         return (
-          <span className="bg-blue-100 text-blue-800 text-xs font-medium px-2.5 py-0.5 rounded">
+          <span className="bg-amber-100 text-amber-700 text-xs font-medium px-2.5 py-0.5 rounded">
             Popular
           </span>
         );
       case 'starter':
         return (
-          <span className="bg-purple-100 text-purple-800 text-xs font-medium px-2.5 py-0.5 rounded">
-            Pro
+          <span className="bg-amber-100 text-amber-700 text-xs font-medium px-2.5 py-0.5 rounded">
+            Best Value
           </span>
         );
       case 'professional':
         return (
-          <span className="bg-yellow-100 text-yellow-800 text-xs font-medium px-2.5 py-0.5 rounded">
-            Best Value
+          <span className="bg-amber-100 text-amber-700 text-xs font-medium px-2.5 py-0.5 rounded">
+            Professional
           </span>
         );
       default:
@@ -136,15 +145,6 @@ export const SubscriptionPlans: React.FC<SubscriptionPlansProps> = ({
 
   return (
     <div className="space-y-6">
-      <div className="text-center">
-        <h2 className="text-3xl font-bold text-gray-900 mb-4">
-          Choose Your Plan
-        </h2>
-        <p className="text-lg text-gray-600">
-          Select the perfect plan for your image processing needs
-        </p>
-      </div>
-
       {error && (
         <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
           {error}
@@ -157,12 +157,16 @@ export const SubscriptionPlans: React.FC<SubscriptionPlansProps> = ({
           <p className="text-gray-600 mt-2">Loading pricing...</p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
           {plans.map(plan => (
             <Card
               key={plan.id}
-              className={`relative p-6 transition-all duration-200 hover:shadow-lg ${
-                selectedPlan === plan.id ? 'ring-2 ring-blue-500' : ''
+              className={`relative flex h-full flex-col p-6 transition-all duration-200 hover:shadow-lg border border-gray-200 rounded-xl ${
+                selectedPlan === plan.id
+                  ? 'ring-2 ring-amber-500'
+                  : plan.id === 'basic' || plan.id === 'starter'
+                    ? 'border-amber-300 ring-1 ring-amber-200'
+                    : ''
               }`}
             >
               {getPlanBadge(plan.id) && (
@@ -191,10 +195,10 @@ export const SubscriptionPlans: React.FC<SubscriptionPlansProps> = ({
                 )}
               </div>
 
-              <ul className="space-y-3 mb-6">
+              <ul className="space-y-3 mb-6 flex-1">
                 {plan.features.map((feature, index) => (
                   <li key={index} className="flex items-start">
-                    <Check className="w-5 h-5 text-green-500 mr-3 mt-0.5 flex-shrink-0" />
+                    <Check className="w-5 h-5 text-emerald-500 mr-3 mt-0.5 flex-shrink-0" />
                     <span className="text-sm text-gray-700">{feature}</span>
                   </li>
                 ))}
@@ -204,18 +208,20 @@ export const SubscriptionPlans: React.FC<SubscriptionPlansProps> = ({
                 onClick={() => handleSubscribe(plan)}
                 disabled={isLoading}
                 className={`w-full ${
-                  plan.id === 'basic'
-                    ? 'bg-blue-600 hover:bg-blue-700'
-                    : plan.id === 'free'
-                      ? 'bg-gray-600 hover:bg-gray-700'
-                      : 'bg-purple-600 hover:bg-purple-700'
+                  plan.id === 'free'
+                    ? 'bg-gray-100 hover:bg-gray-200 text-gray-900'
+                    : 'bg-amber-500 hover:bg-amber-600 text-white'
                 }`}
               >
                 {isLoading && selectedPlan === plan.id
                   ? 'Processing...'
                   : plan.price === 0
                     ? 'Get Started Free'
-                    : 'Subscribe Now'}
+                    : trialEligible && isTrialPlan(plan.id)
+                      ? `Start ${plan.name} Trial`
+                      : plan.id === 'professional'
+                        ? 'Choose Professional'
+                        : 'Subscribe Now'}
               </Button>
             </Card>
           ))}
@@ -223,6 +229,9 @@ export const SubscriptionPlans: React.FC<SubscriptionPlansProps> = ({
       )}
 
       <div className="text-center text-sm text-gray-500">
+        {trialEligible && (
+          <p className="mb-1 font-medium text-gray-600">{TRIAL_DISCLOSURE}</p>
+        )}
         <p>All plans include secure payment processing via Stripe</p>
         <p>Cancel or change your plan at any time</p>
       </div>

@@ -87,10 +87,10 @@ export default function AdminLoginPage() {
         {/* Logo and Title */}
         <div className="text-center mb-8">
           <Image
-            src="/logo-horizontal.png"
+            src="/branding/dtf-editor-logo.png"
             alt="DTF Editor"
-            width={180}
-            height={50}
+            width={1672}
+            height={941}
             className="h-14 w-auto mx-auto mb-6"
             priority
           />

@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { createClientSupabaseClient } from '@/lib/supabase/client';
 import { AuthLayout } from '@/components/layout/AuthLayout';
 import { CheckCircle, XCircle, Loader2 } from 'lucide-react';
+import styles from '@/components/auth/Auth.module.css';
 
 export default function AuthCallbackPage() {
   const router = useRouter();
@@ -49,45 +50,61 @@ export default function AuthCallbackPage() {
   const getIcon = () => {
     switch (status) {
       case 'loading':
-        return <Loader2 className="h-16 w-16 text-primary-500 animate-spin" />;
+        return (
+          <Loader2
+            className="h-12 w-12 animate-spin"
+            style={{ color: '#013193' }}
+            aria-hidden="true"
+          />
+        );
       case 'success':
-        return <CheckCircle className="h-16 w-16 text-success-500" />;
+        return (
+          <CheckCircle
+            className="h-12 w-12"
+            style={{ color: '#16a34a' }}
+            aria-hidden="true"
+          />
+        );
       case 'error':
-        return <XCircle className="h-16 w-16 text-error-500" />;
+        return (
+          <XCircle
+            className="h-12 w-12"
+            style={{ color: '#dc2626' }}
+            aria-hidden="true"
+          />
+        );
     }
   };
 
   const getTitle = () => {
     switch (status) {
       case 'loading':
-        return 'Processing...';
+        return 'Signing you in…';
       case 'success':
-        return 'Success!';
+        return "You're signed in";
       case 'error':
-        return 'Error';
+        return 'Something went wrong';
     }
   };
 
   return (
-    <AuthLayout title="Authentication" subtitle="Sign in to your account">
-      <div className="text-center">
-        <div className="flex justify-center mb-6">{getIcon()}</div>
-
-        <h1 className="text-2xl font-bold text-gray-900 mb-2">{getTitle()}</h1>
-
-        <p className="text-gray-600 mb-6">{message}</p>
-
-        {status === 'error' && (
-          <div className="space-y-4">
-            <button
-              onClick={() => router.push('/auth/login')}
-              className="w-full bg-primary-500 text-white py-2 px-4 rounded-lg hover:bg-primary-600 transition-colors"
-            >
-              Back to Sign In
-            </button>
-          </div>
-        )}
+    <AuthLayout>
+      <div className={styles.header}>
+        <div className={styles.statusIcon} style={{ background: 'transparent' }}>
+          {getIcon()}
+        </div>
+        <h1 className={styles.title}>{getTitle()}</h1>
+        <p className={styles.subtitle}>{message}</p>
       </div>
+
+      {status === 'error' && (
+        <button
+          onClick={() => router.push('/auth/login')}
+          className={styles.btnPrimary}
+        >
+          Back to sign in
+        </button>
+      )}
     </AuthLayout>
   );
 }

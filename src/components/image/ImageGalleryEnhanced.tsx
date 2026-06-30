@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useAuthStore } from '@/stores/authStore';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
@@ -22,6 +22,7 @@ import {
   ChevronDown,
   ChevronLeft,
   ChevronRight,
+  RefreshCw,
 } from 'lucide-react';
 import { toast } from '@/lib/toast';
 import Image from 'next/image';
@@ -61,6 +62,10 @@ type DateFilter = 'all' | 'today' | 'week' | 'month' | 'custom';
 const ITEMS_PER_PAGE_OPTIONS = [8, 16, 32, 64, 'all'] as const;
 type ItemsPerPageOption = (typeof ITEMS_PER_PAGE_OPTIONS)[number];
 
+// Retries for transient failures (e.g. Supabase client session not yet
+// hydrated immediately after login) before surfacing an error state.
+const MAX_RETRIES = 3;
+
 export function ImageGalleryEnhanced() {
   const { user, profile } = useAuthStore();
   const [images, setImages] = useState<ProcessedImage[]>([]);
@@ -85,19 +90,189 @@ export function ImageGalleryEnhanced() {
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState<ItemsPerPageOption>(8);
   const [hasMore, setHasMore] = useState(false);
+  // Raw, unfiltered library — fetched ONCE per user. The visible page is
+  // derived from this client-side, so sort/filter/page changes never refetch.
+  const [rawImages, setRawImages] = useState<ProcessedImage[]>([]);
+  const [loadError, setLoadError] = useState(false);
 
+  // Guards so stale responses / retries can't update state after unmount or a
+  // newer request, plus a handle to cancel a pending retry.
+  const requestRef = useRef(0);
+  const retryTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Fetch the full library ONCE per user (with retry for the post-login race
+  // where the Supabase client session isn't hydrated yet).
+  const loadLibrary = useCallback(
+    (attempt = 0) => {
+      const id = user?.id;
+      if (!id) return;
+      const requestId = ++requestRef.current;
+      if (attempt === 0) {
+        setLoading(true);
+        setLoadError(false);
+      }
+
+      (async () => {
+        try {
+          const supabase = createClientSupabaseClient();
+          const { data, error } = await supabase.rpc('get_user_images', {
+            p_user_id: id,
+          });
+
+          // Ignore stale responses (newer request started or user changed).
+          if (requestId !== requestRef.current) return;
+
+          if (error) {
+            if (attempt < MAX_RETRIES) {
+              retryTimer.current = setTimeout(
+                () => loadLibrary(attempt + 1),
+                400 * 2 ** attempt
+              );
+              return;
+            }
+            console.error('Error fetching images:', error);
+            setLoadError(true);
+            setLoading(false);
+            return;
+          }
+
+          const list: ProcessedImage[] = (data as ProcessedImage[]) || [];
+
+          // Resolve public URLs once. The 'images' bucket is public, so
+          // getPublicUrl is a local string build (no network, no signed URLs).
+          for (const image of list) {
+            if (image.storage_url) {
+              if (image.storage_url.startsWith('http')) {
+                if (
+                  !image.thumbnail_url ||
+                  !image.thumbnail_url.startsWith('http')
+                ) {
+                  image.thumbnail_url = image.storage_url;
+                }
+              } else {
+                const { data: publicUrlData } = supabase.storage
+                  .from('images')
+                  .getPublicUrl(image.storage_url);
+                if (publicUrlData?.publicUrl) {
+                  image.storage_url = publicUrlData.publicUrl;
+                  image.thumbnail_url = publicUrlData.publicUrl;
+                }
+              }
+            }
+          }
+
+          setRawImages(list);
+          setLoadError(false);
+          setLoading(false);
+        } catch (error) {
+          if (requestId !== requestRef.current) return;
+          if (attempt < MAX_RETRIES) {
+            retryTimer.current = setTimeout(
+              () => loadLibrary(attempt + 1),
+              400 * 2 ** attempt
+            );
+            return;
+          }
+          console.error('Error:', error);
+          setLoadError(true);
+          setLoading(false);
+        }
+      })();
+    },
+    [user?.id]
+  );
+
+  // Load library + collections once the user is available.
   useEffect(() => {
-    if (user) {
-      fetchImages();
-      fetchCollections();
+    if (!user?.id) return;
+    loadLibrary();
+    fetchCollections();
+
+    const timerRef = retryTimer;
+    return () => {
+      // Invalidate in-flight requests / pending retries on unmount or id change.
+      // requestRef is a request-sequence counter (not a DOM node).
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+      requestRef.current++;
+      if (timerRef.current) clearTimeout(timerRef.current);
+    };
+  }, [user?.id, loadLibrary]);
+
+  // Derive the visible page (date/type filter -> sort -> paginate) from the raw
+  // library. Pure client-side: changing sort/filter/page never refetches.
+  useEffect(() => {
+    let list: ProcessedImage[] = [...rawImages];
+
+    if (dateFilter !== 'all') {
+      const now = new Date();
+      let startDate: Date | undefined;
+      switch (dateFilter) {
+        case 'today':
+          startDate = new Date(new Date().setHours(0, 0, 0, 0));
+          break;
+        case 'week':
+          startDate = subDays(now, 7);
+          break;
+        case 'month':
+          startDate = subDays(now, 30);
+          break;
+        case 'custom':
+          if (customDateRange.start && customDateRange.end) {
+            const start = new Date(customDateRange.start);
+            const end = new Date(customDateRange.end);
+            list = list.filter(img => {
+              const d = new Date(img.created_at);
+              return isAfter(d, start) && isBefore(d, end);
+            });
+          }
+          break;
+      }
+      if (dateFilter !== 'custom' && startDate) {
+        const sd = startDate;
+        list = list.filter(img => isAfter(new Date(img.created_at), sd));
+      }
+    }
+
+    if (filterType !== 'all') {
+      list = list.filter(img => img.operation_type === filterType);
+    }
+
+    list.sort((a, b) => {
+      switch (sortBy) {
+        case 'oldest':
+          return (
+            new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+          );
+        case 'newest':
+          return (
+            new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+          );
+        case 'size':
+          return b.file_size - a.file_size;
+        case 'name':
+          return a.original_filename.localeCompare(b.original_filename);
+        default:
+          return 0;
+      }
+    });
+
+    setAllImages(list);
+
+    if (itemsPerPage === 'all') {
+      setImages(list);
+      setHasMore(false);
+    } else {
+      const startIndex = (currentPage - 1) * itemsPerPage;
+      const endIndex = startIndex + itemsPerPage;
+      setImages(list.slice(startIndex, endIndex));
+      setHasMore(endIndex < list.length);
     }
   }, [
-    user,
+    rawImages,
     sortBy,
     filterType,
     dateFilter,
     customDateRange,
-    selectedCollection,
     currentPage,
     itemsPerPage,
   ]);
@@ -106,6 +281,10 @@ export function ImageGalleryEnhanced() {
   useEffect(() => {
     setCurrentPage(1);
   }, [filterType, sortBy, dateFilter, searchTerm]);
+
+  const handleRetry = useCallback(() => {
+    loadLibrary(0);
+  }, [loadLibrary]);
 
   const fetchCollections = async () => {
     try {
@@ -120,152 +299,6 @@ export function ImageGalleryEnhanced() {
       setCollections([defaultCollection]);
     } catch (error) {
       // Silently fail if collections not implemented yet
-    }
-  };
-
-  const fetchImages = async () => {
-    try {
-      setLoading(true);
-      const supabase = createClientSupabaseClient();
-
-      // Use RPC function to fetch images (same as StorageManager)
-      // This bypasses RLS issues and ensures consistency
-      const { data, error } = await supabase.rpc('get_user_images', {
-        p_user_id: user.id,
-      });
-
-      if (error) {
-        console.error('Error fetching images:', error);
-        // Don't show toast for this, just return empty array
-        setImages([]);
-        setLoading(false);
-        return;
-      }
-
-      let images: ProcessedImage[] = data || [];
-
-      // Resolve storage URLs for each image
-      // The 'images' bucket is public, so use getPublicUrl (no API call needed)
-      const supabaseClient = createClientSupabaseClient();
-      for (const image of images) {
-        if (image.storage_url) {
-          if (image.storage_url.startsWith('http')) {
-            // Already a full URL — ensure thumbnail_url is set
-            if (!image.thumbnail_url || !image.thumbnail_url.startsWith('http')) {
-              image.thumbnail_url = image.storage_url;
-            }
-          } else {
-            // It's a storage path (e.g., "userId/processed/file.png")
-            // Generate the public URL from the path
-            const { data: publicUrlData } = supabaseClient.storage
-              .from('images')
-              .getPublicUrl(image.storage_url);
-
-            if (publicUrlData?.publicUrl) {
-              image.storage_url = publicUrlData.publicUrl;
-              image.thumbnail_url = publicUrlData.publicUrl;
-            }
-          }
-        }
-      }
-
-      // Apply date filtering
-      if (dateFilter !== 'all') {
-        const now = new Date();
-        let startDate: Date | undefined;
-
-        switch (dateFilter) {
-          case 'today':
-            startDate = new Date(now.setHours(0, 0, 0, 0));
-            break;
-          case 'week':
-            startDate = subDays(now, 7);
-            break;
-          case 'month':
-            startDate = subDays(now, 30);
-            break;
-          case 'custom':
-            if (customDateRange.start && customDateRange.end) {
-              const start = new Date(customDateRange.start);
-              const end = new Date(customDateRange.end);
-              images = images.filter((img: ProcessedImage) => {
-                const imgDate = new Date(img.created_at);
-                return isAfter(imgDate, start) && isBefore(imgDate, end);
-              });
-            }
-            break;
-        }
-
-        if (dateFilter !== 'custom' && startDate) {
-          images = images.filter((img: ProcessedImage) =>
-            isAfter(new Date(img.created_at), startDate)
-          );
-        }
-      }
-
-      // Apply type filtering
-      if (filterType !== 'all') {
-        images = images.filter(img => img.operation_type === filterType);
-      }
-
-      // Apply sorting
-      images.sort((a, b) => {
-        switch (sortBy) {
-          case 'oldest':
-            return (
-              new Date(a.created_at).getTime() -
-              new Date(b.created_at).getTime()
-            );
-          case 'newest':
-            return (
-              new Date(b.created_at).getTime() -
-              new Date(a.created_at).getTime()
-            );
-          case 'size':
-            return b.file_size - a.file_size;
-          case 'name':
-            return a.original_filename.localeCompare(b.original_filename);
-          default:
-            return 0;
-        }
-      });
-
-      // Store all filtered images
-      setAllImages(images);
-
-      // Apply pagination
-      if (itemsPerPage === 'all') {
-        setImages(images);
-        setHasMore(false);
-        console.log(
-          '[ImageGalleryEnhanced] Total images:',
-          images.length,
-          'Showing all'
-        );
-      } else {
-        const startIndex = (currentPage - 1) * itemsPerPage;
-        const endIndex = startIndex + itemsPerPage;
-        const paginatedImages = images.slice(startIndex, endIndex);
-        const hasMorePages = endIndex < images.length;
-
-        setImages(paginatedImages);
-        setHasMore(hasMorePages);
-        console.log(
-          '[ImageGalleryEnhanced] Total images:',
-          images.length,
-          'Page:',
-          currentPage,
-          'Showing:',
-          paginatedImages.length,
-          'Has more:',
-          hasMorePages
-        );
-      }
-    } catch (error) {
-      console.error('Error:', error);
-      toast.error('Failed to load images');
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -331,7 +364,8 @@ export function ImageGalleryEnhanced() {
       if (error) throw error;
 
       if (deleted) {
-        setImages(images.filter(img => img.id !== imageId));
+        // Update the raw library; the derived view recomputes automatically.
+        setRawImages(prev => prev.filter(img => img.id !== imageId));
         toast.success('Image deleted successfully');
       } else {
         toast.error('Image not found or already deleted');
@@ -376,7 +410,7 @@ export function ImageGalleryEnhanced() {
         }
       }
 
-      setImages(images.filter(img => !selectedImages.has(img.id)));
+      setRawImages(prev => prev.filter(img => !selectedImages.has(img.id)));
       setSelectedImages(new Set());
       setIsSelectionMode(false);
       toast.success(`Deleted ${deletedCount} images`);
@@ -495,6 +529,31 @@ export function ImageGalleryEnhanced() {
                 <div key={i} className="h-48 bg-gray-200 rounded-lg"></div>
               ))}
             </div>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (loadError && rawImages.length === 0) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>My Images</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="text-center py-12">
+            <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
+            <p className="text-gray-900 font-semibold mb-1">
+              We couldn&apos;t load your images
+            </p>
+            <p className="text-sm text-gray-500 mb-4">
+              Try again in a moment — your images are safe.
+            </p>
+            <Button onClick={handleRetry}>
+              <RefreshCw className="w-4 h-4 mr-2" />
+              Retry
+            </Button>
           </div>
         </CardContent>
       </Card>
@@ -993,6 +1052,8 @@ export function ImageGalleryEnhanced() {
                       src={image.thumbnail_url}
                       alt={image.original_filename}
                       fill
+                      sizes="(max-width: 640px) 100vw, (max-width: 768px) 50vw, (max-width: 1024px) 33vw, 25vw"
+                      loading="lazy"
                       className="object-cover"
                       onError={(e) => {
                         // Hide broken image and show fallback icon
@@ -1095,6 +1156,8 @@ export function ImageGalleryEnhanced() {
                         src={image.thumbnail_url}
                         alt={image.original_filename}
                         fill
+                        sizes="64px"
+                        loading="lazy"
                         className="object-cover rounded"
                         onError={(e) => {
                           const target = e.currentTarget;

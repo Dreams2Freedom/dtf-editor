@@ -4,7 +4,17 @@ const MAILGUN_API_KEY = Deno.env.get('MAILGUN_API_KEY')!;
 const MAILGUN_DOMAIN = Deno.env.get('MAILGUN_DOMAIN')!;
 const MAILGUN_FROM_EMAIL = Deno.env.get('MAILGUN_FROM_EMAIL')!;
 const MAILGUN_FROM_NAME = Deno.env.get('MAILGUN_FROM_NAME')!;
-const APP_URL = Deno.env.get('APP_URL')!;
+// Mailgun region: 'eu' uses api.eu.mailgun.net, otherwise US (api.mailgun.net).
+const MAILGUN_REGION = (Deno.env.get('MAILGUN_REGION') || 'us').toLowerCase();
+const MAILGUN_BASE_URL =
+  MAILGUN_REGION === 'eu'
+    ? 'https://api.eu.mailgun.net'
+    : 'https://api.mailgun.net';
+// Force an absolute https base URL so auth links never render as "not secure".
+const APP_URL = (Deno.env.get('APP_URL') || 'https://dtfeditor.com')
+  .trim()
+  .replace(/\/+$/, '')
+  .replace(/^http:\/\/(?!localhost|127\.0\.0\.1)/i, 'https://');
 
 interface EmailRequest {
   type: 'confirmation' | 'recovery' | 'magic_link';
@@ -136,7 +146,7 @@ async function sendEmail(options: {
     form.append('o:tracking-opens', 'false');
 
     const response = await fetch(
-      `https://api.mailgun.net/v3/${MAILGUN_DOMAIN}/messages`,
+      `${MAILGUN_BASE_URL}/v3/${MAILGUN_DOMAIN}/messages`,
       {
         method: 'POST',
         headers: {
