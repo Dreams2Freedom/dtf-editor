@@ -78,6 +78,19 @@ async function handlePost(request: NextRequest) {
       );
     }
 
+    // Lifetime once-per-account: the 50% retention discount can only ever be
+    // used a single time (like the free trial). Hard gate regardless of any
+    // cooldown logic in the eligibility RPC.
+    if ((profile.discount_used_count || 0) >= 1) {
+      return NextResponse.json(
+        {
+          error:
+            'The retention discount has already been used on this account and can only be used once.',
+        },
+        { status: 403 }
+      );
+    }
+
     try {
       // Create a one-time 50% off coupon
       const coupon = await getStripe().coupons.create({

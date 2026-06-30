@@ -157,7 +157,9 @@ async function handleGet(request: NextRequest) {
       eligible: true,
       canPause: pauseResult?.can_pause || false,
       pauseReason: pauseResult?.reason,
-      canUseDiscount: discountResult?.can_use_discount || false,
+      // Lifetime once-per-account: only offer the 50% discount if it has never
+      // been used (mirrors the once-ever rule the apply endpoint enforces).
+      canUseDiscount: (profile.discount_used_count || 0) < 1,
       discountReason: discountResult?.reason,
       pauseOptions,
       pauseHistory: pauseHistory || [],
