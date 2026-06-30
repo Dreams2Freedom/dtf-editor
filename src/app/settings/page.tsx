@@ -15,6 +15,7 @@ import {
 } from '@/components/ui/Card';
 import { Input } from '@/components/ui/Input';
 import { Checkbox } from '@/components/ui/Checkbox';
+import { CancellationFlow } from '@/components/subscription/CancellationFlow';
 import { toast } from '@/lib/toast';
 import {
   formatPhoneNumber,
@@ -703,6 +704,7 @@ function BillingSettings() {
   const plan = profile?.subscription_plan || 'free';
   const isPaid = plan !== 'free';
   const planCredits = PLAN_CREDITS[plan] || '';
+  const [showCancellationFlow, setShowCancellationFlow] = useState(false);
 
   const handleManageSubscription = async () => {
     try {
@@ -797,13 +799,13 @@ function BillingSettings() {
                   </Button>
                   <Button
                     variant="ghost"
-                    onClick={handleManageSubscription}
+                    onClick={() => setShowCancellationFlow(true)}
                     className="w-full justify-start text-red-600 hover:text-red-700 hover:bg-red-50"
                   >
                     Cancel Membership
                   </Button>
                   <p className="px-1 text-xs text-gray-500">
-                    You can update or cancel your membership through the secure
+                    Manage billing details and payment methods through the secure
                     billing portal.
                   </p>
                 </>
@@ -875,6 +877,24 @@ function BillingSettings() {
           <CreditHistory />
         </CardContent>
       </Card>
+
+      {/* In-app retention/cancellation flow (instead of the Stripe portal) */}
+      {profile && isPaid && (
+        <CancellationFlow
+          isOpen={showCancellationFlow}
+          onClose={() => setShowCancellationFlow(false)}
+          onComplete={() => {
+            setShowCancellationFlow(false);
+            window.location.reload();
+          }}
+          subscription={{
+            plan: profile.subscription_plan || 'basic',
+            nextBillingDate:
+              (profile as any).subscription_current_period_end ||
+              new Date().toISOString(),
+          }}
+        />
+      )}
     </div>
   );
 }
