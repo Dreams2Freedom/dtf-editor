@@ -73,8 +73,14 @@ async function handlePost(request: NextRequest) {
       );
     }
 
-    // Calculate resume date from current period end, not from today
-    const currentPeriodEnd = new Date(subscription.current_period_end * 1000);
+    // Calculate resume date from current period end, not from today.
+    // Read both the legacy and Basil API period-end paths so it isn't undefined.
+    const sub: any = subscription;
+    const periodEndSec =
+      sub.current_period_end ?? sub.items?.data?.[0]?.current_period_end;
+    const currentPeriodEnd = periodEndSec
+      ? new Date(periodEndSec * 1000)
+      : new Date();
     const resumeDate = new Date(currentPeriodEnd);
 
     switch (duration) {
