@@ -92,10 +92,15 @@ async function handleGet(request: NextRequest) {
     let currentPeriodEnd = new Date();
     if (profile.stripe_subscription_id) {
       try {
-        const subscription = await getStripeService().getSubscription(
+        const subscription: any = await getStripeService().getSubscription(
           profile.stripe_subscription_id
         );
-        currentPeriodEnd = new Date(subscription.current_period_end * 1000);
+        // Basil API moved current_period_end onto the per-item billing period;
+        // read both paths so the date isn't undefined (-> Invalid Date).
+        const periodEnd =
+          subscription.current_period_end ??
+          subscription.items?.data?.[0]?.current_period_end;
+        if (periodEnd) currentPeriodEnd = new Date(periodEnd * 1000);
       } catch (err) {
         console.error('Failed to get subscription period:', err);
         // Fall back to 30 days from now
