@@ -422,8 +422,60 @@
   font-weight: 600;
 }
 
+/* ---------- mobile: compact tool picker ----------
+   The toolkit is the tallest block on the phone. On mobile only we drop the
+   heavy per-tool preview panels and the descriptions, and lay the cards out
+   two-per-row so the whole section reads as a quick tool picker with far less
+   scrolling. Desktop/tablet (>=640px) is untouched. */
 @media (max-width: 639px) {
+  .tools__grid {
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-top: 26px;
+  }
+  /* Removing the preview cuts most of the section's height and its paint cost. */
   .tool__preview {
-    aspect-ratio: 16 / 9;
+    display: none;
+  }
+  .tool {
+    border-radius: 12px;
+  }
+  /* Disable the hover lift/transform on touch — no hover, and it just adds paint. */
+  .tool:hover {
+    transform: none;
+    box-shadow: var(--shadow-card);
+    border-color: var(--line);
+  }
+  .tool__body {
+    padding: 14px 13px;
+    gap: 8px;
+    justify-content: space-between;
+  }
+  .tool__top {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+  .tool__name {
+    font-size: 14.5px;
+    gap: 9px;
+    line-height: 1.2;
+  }
+  .ic {
+    width: 28px;
+    height: 28px;
+    border-radius: 7px;
+  }
+  /* The tool name + credit badge carry enough on mobile; hide the paragraph. */
+  .tool__desc {
+    display: none;
+  }
+  .tool__foot {
+    margin-top: 0;
+  }
+  .tool__foot a {
+    font-size: 12px;
+    line-height: 1.3;
+    gap: 4px;
   }
 }

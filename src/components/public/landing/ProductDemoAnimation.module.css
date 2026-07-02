@@ -867,9 +867,16 @@
   .demo-scene {
     padding: 6px 0;
   }
+  /* The blurred glow and the infinite scan line are the two big mobile jank
+     sources: a large blur repaints while scrolling, and the scan animates the
+     layout property `top` every frame. Drop both on mobile only — the demo
+     still runs smoothly through every phase. Desktop keeps both effects. */
   .demo-scene__glow {
-    filter: blur(24px);
-    inset: 10%;
+    display: none;
+  }
+  .demo[data-phase='2'] .art__scan {
+    animation: none;
+    opacity: 0;
   }
 }
 @media (max-width: 480px) {
