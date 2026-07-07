@@ -13,7 +13,8 @@ interface SaveImageParams {
   originalFilename?: string;
   fileSize?: number;
   metadata?: Record<string, any>;
-  originalImageUrl?: string; // Original image URL for alpha channel preservation
+  originalImageUrl?: string;
+  provider?: string;
 }
 
 export async function saveProcessedImageToGallery({
@@ -24,6 +25,7 @@ export async function saveProcessedImageToGallery({
   fileSize = 0,
   metadata = {},
   originalImageUrl,
+  provider,
 }: SaveImageParams) {
   console.log('[SaveProcessedImage] Starting save:', {
     userId,
@@ -334,6 +336,7 @@ export async function saveProcessedImageToGallery({
           original_url: processedUrl,
           storage_path: storagePath,
           saved_at: new Date().toISOString(),
+          ...(provider ? { provider } : {}),
         },
       }
     );

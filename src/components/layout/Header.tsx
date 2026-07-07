@@ -25,6 +25,7 @@ import {
   Shield,
   Ruler,
   Palette,
+  Wand2,
 } from 'lucide-react';
 import { CreditDisplay } from '@/components/ui/CreditDisplay';
 import { NotificationBell } from '@/components/notifications/NotificationBell';
@@ -75,6 +76,8 @@ export function Header() {
   // The DPI Checker page wants a static (non-sticky) header so it scrolls away.
   const stickyHeader = pathname !== '/tools/dpi-checker';
 
+  const studioEnabled = process.env.NEXT_PUBLIC_STUDIO_ENABLED !== 'false';
+
   const navigation: NavItem[] = user
     ? [
         { name: 'Dashboard', href: '/dashboard', icon: Home },
@@ -82,6 +85,16 @@ export function Header() {
           name: 'Create',
           icon: Sparkles,
           submenu: [
+            ...(studioEnabled
+              ? [
+                  {
+                    name: 'Studio',
+                    href: '/studio',
+                    icon: Wand2,
+                    description: 'All tools on one canvas — no jumping around',
+                  },
+                ]
+              : []),
             { name: 'Process Image', href: '/process', icon: Upload, description: 'Upscale, remove bg, vectorize' },
             { name: 'Change Colors', href: '/process/color-change', icon: Palette, description: 'Replace colors in designs' },
             { name: 'Generate Image', href: '/generate', icon: Sparkles, description: 'Create with AI' },

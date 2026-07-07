@@ -39,7 +39,9 @@ export function Accordion({ items, className }: AccordionProps) {
               openIndex === i ? 'max-h-96 pb-4' : 'max-h-0'
             )}
           >
-            <div className="text-sm text-gray-500 leading-relaxed">{item.answer}</div>
+            <div className="text-sm text-gray-500 leading-relaxed">
+              {item.answer}
+            </div>
           </div>
         </div>
       ))}

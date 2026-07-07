@@ -113,7 +113,9 @@ async function handlePost(request: NextRequest) {
       try {
         // Skip users who have opted out of marketing emails
         if (user.email_marketing_opted_out && template === 'promotional') {
-          console.log(`Skipping user ${user.id} - opted out of marketing emails`);
+          console.log(
+            `Skipping user ${user.id} - opted out of marketing emails`
+          );
           continue;
         }
 

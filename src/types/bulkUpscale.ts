@@ -20,14 +20,14 @@ export const MIN_CUSTOM_INCHES = 1;
 export const ACCEPTED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
 
 export type BulkImageStatus =
-  | 'pending'      // In settings table, not yet processed
-  | 'queued'       // Waiting in queue
-  | 'uploading'    // Uploading to Supabase Storage
-  | 'processing'   // Sent to /api/upscale, waiting for result
-  | 'complete'     // Successfully processed
-  | 'failed'       // Failed after retry
-  | 'retrying'     // Auto-retrying after first failure
-  | 'cancelled';   // Cancelled by user
+  | 'pending' // In settings table, not yet processed
+  | 'queued' // Waiting in queue
+  | 'uploading' // Uploading to Supabase Storage
+  | 'processing' // Sent to /api/upscale, waiting for result
+  | 'complete' // Successfully processed
+  | 'failed' // Failed after retry
+  | 'retrying' // Auto-retrying after first failure
+  | 'cancelled'; // Cancelled by user
 
 export interface BulkImageItem {
   id: string;
@@ -39,20 +39,20 @@ export interface BulkImageItem {
   originalHeight: number;
 
   // Settings (user-configurable)
-  presetIndex: number;          // Index into PRINT_SIZE_PRESETS, 0 = Custom
+  presetIndex: number; // Index into PRINT_SIZE_PRESETS, 0 = Custom
   customWidthInches: number;
   customHeightInches: number;
-  targetWidthPx: number;        // Computed: inches * DPI
-  targetHeightPx: number;       // Computed: inches * DPI
+  targetWidthPx: number; // Computed: inches * DPI
+  targetHeightPx: number; // Computed: inches * DPI
   processingMode: ProcessingMode;
 
   // Processing state
   status: BulkImageStatus;
-  progress: number;              // 0-100
+  progress: number; // 0-100
   error?: string;
   retryCount: number;
-  resultUrl?: string;            // Public Supabase storage URL after success
-  imageId?: string;              // Gallery image ID after success
+  resultUrl?: string; // Public Supabase storage URL after success
+  imageId?: string; // Gallery image ID after success
 }
 
 // Note: includes 502/503 (Bad Gateway, Service Unavailable) as retryable

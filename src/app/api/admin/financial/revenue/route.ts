@@ -71,7 +71,9 @@ async function handleGet(request: NextRequest) {
     // Fetch all users
     const { data: users, error: usersError } = await serviceClient
       .from('profiles')
-      .select('id, subscription_plan, subscription_status, stripe_customer_id, created_at');
+      .select(
+        'id, subscription_plan, subscription_status, stripe_customer_id, created_at'
+      );
 
     if (usersError) {
       console.error('Error fetching users:', usersError);
@@ -80,9 +82,7 @@ async function handleGet(request: NextRequest) {
 
     // Calculate metrics using payment_transactions columns
     const allTxns = transactions || [];
-    const completedTransactions = allTxns.filter(
-      t => t.status === 'completed'
-    );
+    const completedTransactions = allTxns.filter(t => t.status === 'completed');
     const subscriptionTransactions = completedTransactions.filter(
       t => t.payment_type === 'subscription'
     );
@@ -139,14 +139,19 @@ async function handleGet(request: NextRequest) {
     const allPayingCustomers = users?.filter(u => u.stripe_customer_id) || [];
 
     // Subscribers = paying customers with an active paid plan
-    const subscribers = allPayingCustomers.filter(u =>
-      paidPlans.includes(u.subscription_plan) ||
-      (u.subscription_status && !['free', 'canceled', 'cancelled', 'past_due'].includes(u.subscription_status) && u.subscription_status !== null)
+    const subscribers = allPayingCustomers.filter(
+      u =>
+        paidPlans.includes(u.subscription_plan) ||
+        (u.subscription_status &&
+          !['free', 'canceled', 'cancelled', 'past_due'].includes(
+            u.subscription_status
+          ) &&
+          u.subscription_status !== null)
     );
 
     // Pay-per-use = has stripe_customer_id but no active subscription
-    const payPerUseCustomers = allPayingCustomers.filter(u =>
-      !paidPlans.includes(u.subscription_plan)
+    const payPerUseCustomers = allPayingCustomers.filter(
+      u => !paidPlans.includes(u.subscription_plan)
     );
 
     const payingCustomers = allPayingCustomers.length;
@@ -227,9 +232,7 @@ async function handleGet(request: NextRequest) {
         const monthTransactions = allTxns.filter(t => {
           const date = new Date(t.created_at);
           return (
-            date >= monthStart &&
-            date <= monthEnd &&
-            t.status === 'completed'
+            date >= monthStart && date <= monthEnd && t.status === 'completed'
           );
         });
 

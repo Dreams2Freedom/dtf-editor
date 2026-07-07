@@ -96,10 +96,7 @@ async function handleDelete(
     const serviceClient = createServiceRoleSupabaseClient();
 
     // Delete coupon
-    const { error } = await serviceClient
-      .from('coupons')
-      .delete()
-      .eq('id', id);
+    const { error } = await serviceClient.from('coupons').delete().eq('id', id);
 
     if (error) {
       console.error('Error deleting coupon:', error);

@@ -94,7 +94,10 @@ async function handlePost(request: NextRequest) {
 
       if (rpcError) {
         // Fallback: non-atomic approach if RPC not deployed yet
-        console.error('add_credits_bulk RPC failed, using fallback:', rpcError.message);
+        console.error(
+          'add_credits_bulk RPC failed, using fallback:',
+          rpcError.message
+        );
         for (const userId of userIds) {
           try {
             const { data: currentUser, error: fetchError } = await supabase
@@ -152,7 +155,10 @@ async function handlePost(request: NextRequest) {
 
       if (rpcError) {
         // Fallback: non-atomic approach
-        console.error('set_credits_bulk RPC failed, using fallback:', rpcError.message);
+        console.error(
+          'set_credits_bulk RPC failed, using fallback:',
+          rpcError.message
+        );
         const { data: updatedUsers, error: updateError } = await supabase
           .from('profiles')
           .update({

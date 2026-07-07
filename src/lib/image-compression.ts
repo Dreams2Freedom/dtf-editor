@@ -136,46 +136,43 @@ export async function compressImage(
             ctx.clearRect(0, 0, scaledWidth, scaledHeight);
             ctx.drawImage(img, 0, 0, scaledWidth, scaledHeight);
 
-            canvas.toBlob(
-              blob => {
-                if (blob) {
-                  if (blob.size > maxSizeBytes && scaleFactor > minScale) {
-                    scaleFactor -= 0.1;
-                    console.log(
-                      '[ImageCompression] PNG still too large (' +
-                        (blob.size / 1024 / 1024).toFixed(2) +
-                        ' MB), scaling to ' +
-                        (scaleFactor * 100).toFixed(0) +
-                        '% (' +
-                        Math.floor(width * scaleFactor) +
-                        'x' +
-                        Math.floor(height * scaleFactor) +
-                        ')'
-                    );
-                    tryCompressPNG();
-                  } else {
-                    const compressedFile = new File([blob], file.name, {
-                      type: 'image/png',
-                    });
-                    console.log(
-                      '[ImageCompression] PNG compressed to:',
-                      (compressedFile.size / 1024 / 1024).toFixed(2),
-                      'MB at scale:',
-                      (scaleFactor * 100).toFixed(0) + '%',
-                      'dimensions:',
-                      scaledWidth + 'x' + scaledHeight
-                    );
-                    resolve(compressedFile);
-                  }
-                } else {
+            canvas.toBlob(blob => {
+              if (blob) {
+                if (blob.size > maxSizeBytes && scaleFactor > minScale) {
+                  scaleFactor -= 0.1;
                   console.log(
-                    '[ImageCompression] Failed to compress PNG, using original'
+                    '[ImageCompression] PNG still too large (' +
+                      (blob.size / 1024 / 1024).toFixed(2) +
+                      ' MB), scaling to ' +
+                      (scaleFactor * 100).toFixed(0) +
+                      '% (' +
+                      Math.floor(width * scaleFactor) +
+                      'x' +
+                      Math.floor(height * scaleFactor) +
+                      ')'
                   );
-                  resolve(file);
+                  tryCompressPNG();
+                } else {
+                  const compressedFile = new File([blob], file.name, {
+                    type: 'image/png',
+                  });
+                  console.log(
+                    '[ImageCompression] PNG compressed to:',
+                    (compressedFile.size / 1024 / 1024).toFixed(2),
+                    'MB at scale:',
+                    (scaleFactor * 100).toFixed(0) + '%',
+                    'dimensions:',
+                    scaledWidth + 'x' + scaledHeight
+                  );
+                  resolve(compressedFile);
                 }
-              },
-              'image/png'
-            );
+              } else {
+                console.log(
+                  '[ImageCompression] Failed to compress PNG, using original'
+                );
+                resolve(file);
+              }
+            }, 'image/png');
           };
 
           tryCompressPNG();
