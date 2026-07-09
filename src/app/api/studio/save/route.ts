@@ -15,19 +15,26 @@ import { withRateLimit } from '@/lib/rate-limit';
  */
 
 // Map a Studio tool's `meta.operation` to a value the processed_images
-// operation_type CHECK constraint accepts today
-// ('upscale' | 'background-removal' | 'vectorization' | 'generate').
-// Client-only edits (color change, halftone) have no dedicated tag yet, so
-// they fall back to 'background-removal' (they also produce a transparent
-// PNG). Proper tags can be added later via a widening migration.
+// operation_type CHECK constraint accepts:
+// upscale | background-removal | vectorization | generate | color-change |
+// halftone. Map a Studio tool's meta.operation onto one of those so the
+// gallery tags the composite by the last tool used. Unknown ops fall back to
+// 'background-removal'.
 function normalizeOperationType(
   raw: string | null
-): 'upscale' | 'background-removal' | 'vectorization' {
+):
+  | 'upscale'
+  | 'background-removal'
+  | 'vectorization'
+  | 'color-change'
+  | 'halftone' {
   const op = (raw || '').toLowerCase();
   if (op.startsWith('upscale')) return 'upscale';
   if (op.startsWith('vector')) return 'vectorization';
+  if (op.startsWith('color')) return 'color-change';
+  if (op.startsWith('halftone')) return 'halftone';
   // background_removal, background-removal, background_removal_in_house,
-  // color_change, halftone, studio_composite, and anything else.
+  // studio_composite, and anything else.
   return 'background-removal';
 }
 
