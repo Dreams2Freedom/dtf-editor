@@ -41,6 +41,7 @@ import {
   Download,
 } from 'lucide-react';
 import { useAuthStore } from '@/stores/authStore';
+import { createClientSupabaseClient } from '@/lib/supabase/client';
 import {
   StudioCanvasFrame,
   CanvasProcessingOverlay,
@@ -104,13 +105,11 @@ function loadCmSdk(): Promise<void> {
   return cmSdkPromise;
 }
 
-// The binding limit here is NOT ClippingMagic's 10MB API cap — it's Vercel's
-// serverless request-body limit (~4.5MB), which /api/clippingmagic/upload hits
-// while buffering the multipart body, returning a bare 413 before the route's
-// own check runs. Target ~4MB for the encoded PNG so the request stays under
-// that platform limit. (A larger, full-resolution path would upload the image
-// to storage client-side and hand ClippingMagic a URL instead — future work.)
-const CM_MAX_UPLOAD_BYTES = 4 * 1024 * 1024;
+// Full-resolution path: the browser uploads the image straight to Supabase
+// Storage (no Vercel request-body limit) and we hand ClippingMagic the URL.
+// The only client-side resize is to avoid shipping more than ClippingMagic's
+// 26.2-megapixel maximum, which it would downscale to anyway.
+const CM_MAX_PIXELS = 26214400;
 
 function pngBlobAtScale(
   image: HTMLImageElement,
@@ -133,31 +132,17 @@ function pngBlobAtScale(
 }
 
 /**
- * PNG-encode the working image, downscaling only as far as needed to fit under
- * ClippingMagic's upload cap. Keeps the upscale → background-removal chain
- * working for large images instead of hard-failing with a 413. Returns whether
- * a downscale happened so the UI can tell the user.
+ * PNG-encode the working image at full resolution, downscaling only if it
+ * exceeds ClippingMagic's 26.2-megapixel maximum. Returns whether a downscale
+ * happened so the UI can note it.
  */
-async function pngBlobUnderLimit(
-  image: HTMLImageElement,
-  maxBytes = CM_MAX_UPLOAD_BYTES
+async function pngBlobForCm(
+  image: HTMLImageElement
 ): Promise<{ blob: Blob; resized: boolean }> {
-  let blob = await pngBlobAtScale(image, 1);
-  if (blob.size <= maxBytes) return { blob, resized: false };
-
-  let scale = 1;
-  // PNG size isn't linear in dimensions, so estimate then verify, shrinking
-  // area toward the cap (with margin) and guaranteeing progress each pass.
-  for (let attempt = 0; attempt < 6 && blob.size > maxBytes; attempt++) {
-    const ratio = Math.sqrt((maxBytes * 0.9) / blob.size);
-    scale = scale * Math.min(0.92, ratio);
-    blob = await pngBlobAtScale(image, scale);
-  }
-  return { blob, resized: true };
-}
-
-async function imageElementToPngBlob(image: HTMLImageElement): Promise<Blob> {
-  return pngBlobAtScale(image, 1);
+  const pixels = image.naturalWidth * image.naturalHeight;
+  const scale = pixels > CM_MAX_PIXELS ? Math.sqrt(CM_MAX_PIXELS / pixels) : 1;
+  const blob = await pngBlobAtScale(image, scale);
+  return { blob, resized: scale < 1 };
 }
 
 async function decodePngToCanvas(blob: Blob): Promise<HTMLCanvasElement> {
@@ -256,7 +241,7 @@ export function ClippingMagicPanel({
   // out-of-React.
   const mountedRef = useRef(true);
   const creditsDeductedRef = useRef(false);
-  const { refreshCredits } = useAuthStore();
+  const { user, refreshCredits } = useAuthStore();
 
   useEffect(() => {
     mountedRef.current = true;
@@ -405,21 +390,40 @@ export function ClippingMagicPanel({
     };
 
     try {
-      // Downscale only if needed to fit CM's 10MB upload cap (e.g. a large
-      // upscaled image) so the upscale → bg-removal chain doesn't 413.
-      const { blob, resized } = await pngBlobUnderLimit(image);
+      if (!user?.id) {
+        throw new Error('Please sign in to remove backgrounds.');
+      }
+
+      // Full resolution — downscale only if beyond ClippingMagic's 26.2MP max.
+      const { blob, resized } = await pngBlobForCm(image);
       if (!mountedRef.current) return;
       if (resized) setResizeNotice(true);
 
-      const fd = new FormData();
-      fd.append(
-        'image',
-        new File([blob], 'studio-image.png', { type: 'image/png' })
-      );
+      // Upload the image straight to Supabase Storage from the browser (no
+      // Vercel request-body limit), then hand ClippingMagic the public URL.
+      const supabase = createClientSupabaseClient();
+      const storagePath = `${user.id}/studio-cm/${Date.now()}.png`;
+      const { error: uploadErr } = await supabase.storage
+        .from('images')
+        .upload(storagePath, blob, {
+          contentType: 'image/png',
+          upsert: true,
+        });
+      if (!mountedRef.current) return;
+      if (uploadErr) {
+        throw new Error(`Couldn't stage image for upload: ${uploadErr.message}`);
+      }
 
-      const uploadRes = await fetch('/api/clippingmagic/upload', {
+      const { data: pub } = supabase.storage
+        .from('images')
+        .getPublicUrl(storagePath);
+      const publicUrl = pub?.publicUrl;
+      if (!publicUrl) throw new Error('Could not resolve uploaded image URL');
+
+      const uploadRes = await fetch('/api/clippingmagic/upload-url', {
         method: 'POST',
-        body: fd,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url: publicUrl, path: storagePath }),
         credentials: 'include',
       });
       if (!mountedRef.current) return;
