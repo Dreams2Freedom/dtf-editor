@@ -104,19 +104,56 @@ function loadCmSdk(): Promise<void> {
   return cmSdkPromise;
 }
 
-async function imageElementToPngBlob(image: HTMLImageElement): Promise<Blob> {
+// ClippingMagic's upload API caps at 10MB. A large working image — e.g. after
+// a 4x upscale — would otherwise 413, breaking the upscale → bg-removal chain.
+const CM_MAX_UPLOAD_BYTES = 10 * 1024 * 1024;
+
+function pngBlobAtScale(
+  image: HTMLImageElement,
+  scale: number
+): Promise<Blob> {
+  const w = Math.max(1, Math.round(image.naturalWidth * scale));
+  const h = Math.max(1, Math.round(image.naturalHeight * scale));
   const canvas = document.createElement('canvas');
-  canvas.width = image.naturalWidth;
-  canvas.height = image.naturalHeight;
+  canvas.width = w;
+  canvas.height = h;
   const ctx = canvas.getContext('2d');
   if (!ctx) throw new Error('Could not get 2D canvas context');
-  ctx.drawImage(image, 0, 0);
+  ctx.drawImage(image, 0, 0, w, h);
   return new Promise<Blob>((resolve, reject) => {
     canvas.toBlob(
       b => (b ? resolve(b) : reject(new Error('Canvas toBlob returned null'))),
       'image/png'
     );
   });
+}
+
+/**
+ * PNG-encode the working image, downscaling only as far as needed to fit under
+ * ClippingMagic's upload cap. Keeps the upscale → background-removal chain
+ * working for large images instead of hard-failing with a 413. Returns whether
+ * a downscale happened so the UI can tell the user.
+ */
+async function pngBlobUnderLimit(
+  image: HTMLImageElement,
+  maxBytes = CM_MAX_UPLOAD_BYTES
+): Promise<{ blob: Blob; resized: boolean }> {
+  let blob = await pngBlobAtScale(image, 1);
+  if (blob.size <= maxBytes) return { blob, resized: false };
+
+  let scale = 1;
+  // PNG size isn't linear in dimensions, so estimate then verify, shrinking
+  // area toward the cap (with margin) and guaranteeing progress each pass.
+  for (let attempt = 0; attempt < 6 && blob.size > maxBytes; attempt++) {
+    const ratio = Math.sqrt((maxBytes * 0.9) / blob.size);
+    scale = scale * Math.min(0.92, ratio);
+    blob = await pngBlobAtScale(image, scale);
+  }
+  return { blob, resized: true };
+}
+
+async function imageElementToPngBlob(image: HTMLImageElement): Promise<Blob> {
+  return pngBlobAtScale(image, 1);
 }
 
 async function decodePngToCanvas(blob: Blob): Promise<HTMLCanvasElement> {
@@ -204,6 +241,12 @@ export function ClippingMagicPanel({
 }: ClippingMagicPanelProps) {
   const [status, setStatus] = useState<Status>({ kind: 'idle' });
   const [zoom, setZoom] = useState(1);
+  // True when the working image had to be downscaled to fit CM's upload cap.
+  const [resizeNotice, setResizeNotice] = useState(false);
+  // True once the editor has been "open" a while with no event — lets the
+  // user escape if the CM overlay was blocked (popup/ad blocker) and never
+  // actually appeared, without auto-killing a legitimately long edit.
+  const [editingStuck, setEditingStuck] = useState(false);
 
   // Refs survive re-renders triggered by the CM SDK callback firing
   // out-of-React.
@@ -217,6 +260,33 @@ export function ClippingMagicPanel({
       mountedRef.current = false;
     };
   }, []);
+
+  // Watchdog: surface an escape hatch if the editor has been "open" for a
+  // while with no result/exit/error event. Purely additive UI — it never
+  // cancels an active edit on its own.
+  useEffect(() => {
+    if (status.kind !== 'editing') {
+      setEditingStuck(false);
+      return;
+    }
+    const t = setTimeout(() => {
+      if (mountedRef.current) setEditingStuck(true);
+    }, 15000);
+    return () => clearTimeout(t);
+  }, [status.kind]);
+
+  const handleCancel = () => {
+    // Reset the panel to idle so a stuck upload/editor session is recoverable.
+    // No credit is charged until result-generated, so cancelling here is safe.
+    creditsDeductedRef.current = false;
+    setStatus({ kind: 'idle' });
+  };
+
+  // Rough low-resolution heuristic (min edge under ~1200px). Used only to nudge
+  // the user to upscale first for a cleaner cutout — not a hard gate.
+  const isLowRes =
+    Math.min(image.naturalWidth, image.naturalHeight) > 0 &&
+    Math.min(image.naturalWidth, image.naturalHeight) < 1200;
 
   // Recompute when the working image changes (e.g., user just ran CM and
   // the cutout was committed back via onApply).
@@ -234,6 +304,7 @@ export function ClippingMagicPanel({
     // charging within a single CM session (in case the SDK fires
     // result-generated more than once); a brand-new session starts fresh.
     creditsDeductedRef.current = false;
+    setResizeNotice(false);
 
     setStatus({ kind: 'uploading' });
 
@@ -330,8 +401,11 @@ export function ClippingMagicPanel({
     };
 
     try {
-      const blob = await imageElementToPngBlob(image);
+      // Downscale only if needed to fit CM's 10MB upload cap (e.g. a large
+      // upscaled image) so the upscale → bg-removal chain doesn't 413.
+      const { blob, resized } = await pngBlobUnderLimit(image);
       if (!mountedRef.current) return;
+      if (resized) setResizeNotice(true);
 
       const fd = new FormData();
       fd.append(
@@ -434,6 +508,28 @@ export function ClippingMagicPanel({
             <p className="text-blue-800/90">{primaryHint}</p>
           </div>
 
+          {/* Guidance: upscaling a low-res image first yields cleaner cutout
+              edges. Non-blocking tip — the Upscale action lives on the
+              Studio-level low-resolution banner. */}
+          {isLowRes && !hasTransparency && !isBusy && (
+            <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs text-amber-900">
+              <p className="font-medium mb-0.5">Tip: upscale first</p>
+              <p className="text-amber-800/90">
+                This image is low-resolution. For the cleanest cutout, run{' '}
+                <span className="font-medium">Upscale</span> before removing the
+                background.
+              </p>
+            </div>
+          )}
+
+          {resizeNotice && (
+            <div className="rounded-lg border border-gray-200 bg-gray-50 p-3 text-xs text-gray-700">
+              This image was large, so it was resized to fit the background
+              remover. Re-upscale the cutout afterward if you need full print
+              resolution.
+            </div>
+          )}
+
           <button
             type="button"
             onClick={handleRemove}
@@ -456,6 +552,26 @@ export function ClippingMagicPanel({
               </>
             )}
           </button>
+
+          {/* Escape hatch while busy — recover from a stuck upload or an
+              editor overlay that never appeared (e.g. blocked by a popup
+              blocker). */}
+          {isBusy && (
+            <div className="-mt-2">
+              {editingStuck && status.kind === 'editing' && (
+                <p className="mb-1.5 text-[11px] text-gray-500">
+                  Editor not showing? It may be blocked by a popup / ad blocker.
+                </p>
+              )}
+              <button
+                type="button"
+                onClick={handleCancel}
+                className="w-full text-xs font-medium text-gray-500 hover:text-gray-800"
+              >
+                Cancel
+              </button>
+            </div>
+          )}
 
           {hasTransparency && !isBusy && (
             <button
