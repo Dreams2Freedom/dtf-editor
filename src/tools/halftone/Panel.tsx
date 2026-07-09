@@ -126,19 +126,15 @@ export function HalftonePanel({
         result.canvas.toBlob(resolve, 'image/png')
       );
       if (!blob) throw new Error('Halftone export failed');
+      // NOTE: do NOT revoke this object URL — `previewImage.src` (this blob
+      // URL) is rendered via `<img src={displayed.src}>` for the Halftone
+      // view, so it must stay alive while displayed. Revoking here blanks the
+      // halftone preview.
       const url = URL.createObjectURL(blob);
       const preview = await new Promise<HTMLImageElement>((resolve, reject) => {
         const img = new Image();
-        // Revoke once decoded so repeated Apply/tweak cycles don't leak a
-        // blob URL each time (the image keeps its own bitmap).
-        img.onload = () => {
-          URL.revokeObjectURL(url);
-          resolve(img);
-        };
-        img.onerror = () => {
-          URL.revokeObjectURL(url);
-          reject(new Error('Failed to load halftone'));
-        };
+        img.onload = () => resolve(img);
+        img.onerror = () => reject(new Error('Failed to load halftone'));
         img.src = url;
       });
       setPreviewImage(preview);

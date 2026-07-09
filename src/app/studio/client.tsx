@@ -52,14 +52,41 @@ function isToolId(v: string | null): v is StudioToolId {
   );
 }
 
-function loadImageFromUrl(url: string): Promise<HTMLImageElement> {
+function loadImageFromUrl(url: string, attempt = 0): Promise<HTMLImageElement> {
   return new Promise((resolve, reject) => {
     const img = new Image();
     img.crossOrigin = 'anonymous';
     img.onload = () => resolve(img);
     img.onerror = () => reject(new Error('Failed to load image'));
-    img.src = url;
+    // On retries, cache-bust so a just-uploaded object that wasn't propagated
+    // yet — or a non-CORS cached copy poisoned by a plain <img> elsewhere
+    // (e.g. the gallery) — is refetched cleanly with CORS.
+    img.src =
+      attempt > 0
+        ? `${url}${url.includes('?') ? '&' : '?'}cb=${attempt}`
+        : url;
   });
+}
+
+// Retry the image load with backoff. Freshly-uploaded Supabase objects are
+// occasionally not readable for a beat, which otherwise surfaces as "image
+// didn't upload" with no recovery.
+async function loadImageWithRetry(
+  url: string,
+  retries = 3
+): Promise<HTMLImageElement> {
+  let lastErr: unknown;
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    try {
+      return await loadImageFromUrl(url, attempt);
+    } catch (e) {
+      lastErr = e;
+      if (attempt < retries) {
+        await new Promise(r => setTimeout(r, 400 * 2 ** attempt));
+      }
+    }
+  }
+  throw lastErr instanceof Error ? lastErr : new Error('Failed to load image');
 }
 
 function canvasToImage(canvas: HTMLCanvasElement): Promise<HTMLImageElement> {
@@ -69,19 +96,15 @@ function canvasToImage(canvas: HTMLCanvasElement): Promise<HTMLImageElement> {
         reject(new Error('Failed to convert canvas'));
         return;
       }
+      // NOTE: do NOT revoke this object URL on load. The resulting
+      // HTMLImageElement's `.src` (this blob URL) is what the tool panels
+      // render via `<img src={image.src}>`, so it must stay alive for as
+      // long as the image is displayed. Revoking here blanks the working
+      // image after every tool apply.
       const url = URL.createObjectURL(blob);
       const img = new Image();
-      img.onload = () => {
-        // Revoke once decoded — the HTMLImageElement keeps its own bitmap,
-        // so the blob URL is no longer needed. Prevents an unbounded leak
-        // across chained tool applies / resets in a long editing session.
-        URL.revokeObjectURL(url);
-        resolve(img);
-      };
-      img.onerror = () => {
-        URL.revokeObjectURL(url);
-        reject(new Error('Failed to load image'));
-      };
+      img.onload = () => resolve(img);
+      img.onerror = () => reject(new Error('Failed to load image'));
       img.src = url;
     }, 'image/png');
   });
@@ -152,7 +175,7 @@ export default function StudioClient() {
             throw new Error(data.error || 'Failed to load image');
           url = data.publicUrl;
         }
-        const img = await loadImageFromUrl(url);
+        const img = await loadImageWithRetry(url);
         setOriginalImage(img);
         setWorkingImage(img);
         setIsLoading(false);
