@@ -104,9 +104,13 @@ function loadCmSdk(): Promise<void> {
   return cmSdkPromise;
 }
 
-// ClippingMagic's upload API caps at 10MB. A large working image — e.g. after
-// a 4x upscale — would otherwise 413, breaking the upscale → bg-removal chain.
-const CM_MAX_UPLOAD_BYTES = 10 * 1024 * 1024;
+// The binding limit here is NOT ClippingMagic's 10MB API cap — it's Vercel's
+// serverless request-body limit (~4.5MB), which /api/clippingmagic/upload hits
+// while buffering the multipart body, returning a bare 413 before the route's
+// own check runs. Target ~4MB for the encoded PNG so the request stays under
+// that platform limit. (A larger, full-resolution path would upload the image
+// to storage client-side and hand ClippingMagic a URL instead — future work.)
+const CM_MAX_UPLOAD_BYTES = 4 * 1024 * 1024;
 
 function pngBlobAtScale(
   image: HTMLImageElement,
