@@ -271,12 +271,6 @@ export function ClippingMagicPanel({
     setStatus({ kind: 'idle' });
   };
 
-  // Rough low-resolution heuristic (min edge under ~1200px). Used only to nudge
-  // the user to upscale first for a cleaner cutout — not a hard gate.
-  const isLowRes =
-    Math.min(image.naturalWidth, image.naturalHeight) > 0 &&
-    Math.min(image.naturalWidth, image.naturalHeight) < 1200;
-
   // Recompute when the working image changes (e.g., user just ran CM and
   // the cutout was committed back via onApply).
   const hasTransparency = useMemo(() => detectHasTransparency(image), [image]);
@@ -515,20 +509,6 @@ export function ClippingMagicPanel({
             </p>
             <p className="text-blue-800/90">{primaryHint}</p>
           </div>
-
-          {/* Guidance: upscaling a low-res image first yields cleaner cutout
-              edges. Non-blocking tip — the Upscale action lives on the
-              Studio-level low-resolution banner. */}
-          {isLowRes && !hasTransparency && !isBusy && (
-            <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs text-amber-900">
-              <p className="font-medium mb-0.5">Tip: upscale first</p>
-              <p className="text-amber-800/90">
-                This image is low-resolution. For the cleanest cutout, run{' '}
-                <span className="font-medium">Upscale</span> before removing the
-                background.
-              </p>
-            </div>
-          )}
 
           {resizeNotice && (
             <div className="rounded-lg border border-gray-200 bg-gray-50 p-3 text-xs text-gray-700">

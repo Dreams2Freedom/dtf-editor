@@ -40,7 +40,7 @@ import type { ApplyMetadata, StudioToolId } from '@/tools/types';
 
 import { StudioUploadZone } from './StudioUploadZone';
 
-const DEFAULT_TOOL: StudioToolId = 'bg-removal';
+const DEFAULT_TOOL: StudioToolId = 'upscale';
 
 function isToolId(v: string | null): v is StudioToolId {
   return (
@@ -424,8 +424,9 @@ export default function StudioClient() {
         </div>
       </div>
 
-      {/* DPI warning */}
-      {lowQualityWarning && workingImage && (
+      {/* DPI warning — shown across every tool. Hidden on the Upscale tool
+          itself, where it would just point users at the tool they're on. */}
+      {lowQualityWarning && workingImage && activeToolId !== 'upscale' && (
         <div className="bg-amber-50 border-b border-amber-200 px-4 py-2.5">
           <div className="max-w-[1800px] mx-auto flex items-center gap-3">
             <AlertTriangle className="w-4 h-4 text-amber-600 flex-shrink-0" />

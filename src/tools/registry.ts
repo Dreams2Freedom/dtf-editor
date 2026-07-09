@@ -27,11 +27,14 @@ import { upscaleTool } from './upscale';
 import { vectorizeTool } from './vectorize';
 import { halftoneTool } from './halftone';
 
+// Ordered to match the general workflow when using several tools in sequence:
+// upscale for quality first, then background removal, vectorize, color change,
+// and halftone last.
 export const STUDIO_TOOLS: StudioTool[] = [
-  bgRemovalTool,
   upscaleTool,
-  colorChangeTool,
+  bgRemovalTool,
   vectorizeTool,
+  colorChangeTool,
   halftoneTool,
 ];
 
