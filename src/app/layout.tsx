@@ -6,6 +6,7 @@ import { AuthProvider } from '@/contexts/AuthContext';
 import { ErrorBoundary } from '@/components/ui/ErrorBoundary';
 import { ToastContainer } from '@/components/ui/ToastContainer';
 import { AppLayout } from '@/components/layout/AppLayout';
+import { MetaPixelRouteTracker } from '@/components/analytics/MetaPixelRouteTracker';
 
 // Meta (Facebook) Pixel ID — used for ad-performance tracking site-wide.
 const META_PIXEL_ID = '1537210417861525';
@@ -106,6 +107,8 @@ s.parentNode.insertBefore(t,s)}(window, document,'script',
 fbq('init', '${META_PIXEL_ID}');
 fbq('track', 'PageView');`}
         </Script>
+        {/* Fires PageView on client-side route changes (SPA navigations). */}
+        <MetaPixelRouteTracker />
         <noscript>
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
