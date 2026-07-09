@@ -10,6 +10,7 @@ import {
   Palette,
   Sparkles,
   ArrowRight,
+  Grip,
   type LucideIcon,
 } from 'lucide-react';
 import { useAuthStore } from '@/stores/authStore';
@@ -22,7 +23,7 @@ import { OutOfCreditsModal } from '@/components/credits/OutOfCreditsModal';
  * routes and tool icons; no processing/auth/payment logic lives here.
  */
 
-type BadgeTone = 'credit' | 'free' | 'paid';
+type BadgeTone = 'credit' | 'free' | 'paid' | 'alpha';
 
 interface Tool {
   name: string;
@@ -82,6 +83,14 @@ const TOOLS: Tool[] = [
     badge: { label: '1 credit', tone: 'credit' },
   },
   {
+    name: 'Halftone',
+    description: 'Turn artwork into print-ready halftone dots.',
+    href: '/studio?tool=halftone',
+    cta: 'Try Halftone',
+    icon: Grip,
+    badge: { label: 'Alpha', tone: 'alpha' },
+  },
+  {
     name: 'AI Image Generation',
     description: 'Create new artwork ideas from a simple prompt.',
     href: '/generate',
@@ -97,6 +106,7 @@ const BADGE_TONE: Record<BadgeTone, string> = {
   credit: 'bg-blue-50 text-blue-700',
   free: 'bg-green-50 text-green-700',
   paid: 'bg-amber-50 text-amber-700',
+  alpha: 'bg-violet-50 text-violet-700',
 };
 
 interface ToolQuickActionsProps {

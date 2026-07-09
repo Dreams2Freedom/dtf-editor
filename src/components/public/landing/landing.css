@@ -274,6 +274,11 @@
   color: var(--zinc-600);
   background: var(--surface-raised);
 }
+.dtfLanding .badge--alpha {
+  color: #6d28d9;
+  background: #f2ecfe;
+  border-color: transparent;
+}
 
 /* ---------- brand mark ---------- */
 .dtfLanding .brand {
