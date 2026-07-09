@@ -74,6 +74,12 @@ interface ColorChangeEditorProps {
   onCancel: () => void;
   savedImageId: string | null;
   onNavigate: (path: string) => void;
+  /**
+   * Push the current canvas to the host WITHOUT charging (used for
+   * Undo/Redo/Reset). onSave is the charged commit; this keeps the host's
+   * working image in sync with what the user sees after a revert.
+   */
+  onCanvasUpdate?: (canvas: HTMLCanvasElement) => void;
 }
 
 export function ColorChangeEditor({
@@ -84,6 +90,7 @@ export function ColorChangeEditor({
   onCancel,
   savedImageId,
   onNavigate,
+  onCanvasUpdate,
 }: ColorChangeEditorProps) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const canvasControlsRef = useRef({
@@ -94,6 +101,11 @@ export function ColorChangeEditor({
   const [imageData, setImageData] = useState<ImageData | null>(null);
   const [selectionMode, setSelectionMode] = useState<SelectionMode>('click');
   const [tolerance, setTolerance] = useState(20);
+  // Debounced copy of `tolerance` that actually drives the (expensive) mask
+  // recompute. The slider updates `tolerance` immediately for a responsive
+  // handle + label, but the full-image mask only recomputes ~150ms after the
+  // user stops dragging — so dragging no longer freezes on large images.
+  const [maskTolerance, setMaskTolerance] = useState(20);
   const [targetColor, setTargetColor] = useState('#2563eb');
   const [isSaving, setIsSaving] = useState(false);
   const [renderKey, setRenderKey] = useState(0);
@@ -114,7 +126,22 @@ export function ColorChangeEditor({
 
   const history = useColorChangeHistory();
 
+  // The image swap that follows our OWN apply/undo/redo/reset is self-
+  // originated — we must NOT rebuild the canvas or clear history when it
+  // arrives, or Undo would be impossible right after an Apply.
+  const selfUpdateRef = useRef(false);
+  // The true original for this editing session (independent of the per-apply
+  // image swaps), so "Reset all" reverts to the real original, not the latest
+  // applied result.
+  const baseImageRef = useRef<HTMLImageElement>(image);
+
   useEffect(() => {
+    if (selfUpdateRef.current) {
+      // This image change came from our own commit/revert — keep canvas,
+      // history and selections intact.
+      selfUpdateRef.current = false;
+      return;
+    }
     const canvas = document.createElement('canvas');
     canvas.width = image.width;
     canvas.height = image.height;
@@ -122,18 +149,34 @@ export function ColorChangeEditor({
     if (!ctx) return;
     ctx.drawImage(image, 0, 0);
     canvasRef.current = canvas;
+    baseImageRef.current = image;
     setImageData(ctx.getImageData(0, 0, canvas.width, canvas.height));
-    // The base image changed (e.g. Studio chained in another tool's result,
-    // or reset to original). The prior undo/redo history and colour
-    // selections describe the OLD pixels, so clear them — otherwise Undo /
-    // Reset operate on stale entries and corrupt the canvas. No-op on first
-    // mount (history/selections already empty).
+    // A genuinely NEW base image arrived (e.g. Studio chained in another
+    // tool's result, or reset to original). The prior undo/redo history and
+    // colour selections describe the OLD pixels, so clear them. No-op on
+    // first mount (history/selections already empty).
     history.resetAll();
     setSampledColors([]);
     setExcludedColors([]);
     setLassoRegions([]);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [image]);
+
+  // Push a revert (undo/redo/reset) to the host without charging, and mark it
+  // self-originated so the image effect above doesn't wipe our history.
+  const bubbleCanvas = useCallback(() => {
+    if (onCanvasUpdate && canvasRef.current) {
+      selfUpdateRef.current = true;
+      onCanvasUpdate(canvasRef.current);
+    }
+  }, [onCanvasUpdate]);
+
+  // Debounce tolerance -> maskTolerance so the mask recompute fires once the
+  // user pauses, not on every drag tick.
+  useEffect(() => {
+    const t = setTimeout(() => setMaskTolerance(tolerance), 150);
+    return () => clearTimeout(t);
+  }, [tolerance]);
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
@@ -195,9 +238,9 @@ export function ColorChangeEditor({
       let matches = false;
       for (const sc of sampledColors) {
         if (
-          Math.abs(r - sc.rgb.r) <= tolerance &&
-          Math.abs(g - sc.rgb.g) <= tolerance &&
-          Math.abs(b - sc.rgb.b) <= tolerance
+          Math.abs(r - sc.rgb.r) <= maskTolerance &&
+          Math.abs(g - sc.rgb.g) <= maskTolerance &&
+          Math.abs(b - sc.rgb.b) <= maskTolerance
         ) {
           matches = true;
           break;
@@ -237,7 +280,7 @@ export function ColorChangeEditor({
 
     if (maxX < minX) return null;
     return { data: mask, width, height, bounds: { minX, minY, maxX, maxY } };
-  }, [sampledColors, excludedColors, tolerance, lassoRegions]);
+  }, [sampledColors, excludedColors, maskTolerance, lassoRegions]);
 
   const refreshImageData = useCallback(() => {
     const canvas = canvasRef.current;
@@ -337,8 +380,12 @@ export function ColorChangeEditor({
 
     // Phase 2.2: Apply now also pushes to Studio's working image so the
     // global Save to Gallery commits the result. The old per-tool Save
-    // button has been removed.
+    // button has been removed. Mark self-originated so the resulting image
+    // swap keeps our undo history (reset the flag if the commit fails, so a
+    // later external change isn't wrongly skipped).
+    selfUpdateRef.current = true;
     onSave(canvasRef.current).catch(err => {
+      selfUpdateRef.current = false;
       console.error('[ColorChange] onSave failed:', err);
     });
   }, [
@@ -366,7 +413,8 @@ export function ColorChangeEditor({
     restorePixels(imgData, entry.mask, entry.originalPixels);
     ctx.putImageData(imgData, 0, 0);
     refreshImageData();
-  }, [history, refreshImageData]);
+    bubbleCanvas();
+  }, [history, refreshImageData, bubbleCanvas]);
 
   const handleRedo = useCallback(() => {
     const entry = history.redo();
@@ -384,7 +432,8 @@ export function ColorChangeEditor({
     applyColorShift(imgData, entry.mask, entry.sourceColor, entry.targetColor);
     ctx.putImageData(imgData, 0, 0);
     refreshImageData();
-  }, [history, refreshImageData]);
+    bubbleCanvas();
+  }, [history, refreshImageData, bubbleCanvas]);
 
   const handleResetAll = useCallback(() => {
     const entries = history.resetAll();
@@ -393,12 +442,14 @@ export function ColorChangeEditor({
       willReadFrequently: true,
     });
     if (!ctx) return;
-    ctx.drawImage(image, 0, 0);
+    // Revert to the true session original, not the latest applied image.
+    ctx.drawImage(baseImageRef.current, 0, 0);
     setSampledColors([]);
     setExcludedColors([]);
     setLassoRegions([]);
     refreshImageData();
-  }, [history, image, refreshImageData]);
+    bubbleCanvas();
+  }, [history, refreshImageData, bubbleCanvas]);
 
   const handleRemoveChange = useCallback(
     (id: string) => {
@@ -408,7 +459,8 @@ export function ColorChangeEditor({
         willReadFrequently: true,
       });
       if (!ctx) return;
-      ctx.drawImage(image, 0, 0);
+      // Rebuild from the true original, then re-apply the remaining changes.
+      ctx.drawImage(baseImageRef.current, 0, 0);
       for (const entry of history.changes) {
         const imgData = ctx.getImageData(
           0,
@@ -425,8 +477,9 @@ export function ColorChangeEditor({
         ctx.putImageData(imgData, 0, 0);
       }
       refreshImageData();
+      bubbleCanvas();
     },
-    [history, image, refreshImageData]
+    [history, refreshImageData, bubbleCanvas]
   );
 
   const closeHelp = () => {

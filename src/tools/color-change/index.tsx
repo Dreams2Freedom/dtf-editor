@@ -89,12 +89,23 @@ function ColorChangeToolPanel(props: StudioToolPanelProps) {
     [onApply, remaining, setRemaining]
   );
 
+  // Undo/Redo/Reset sync the canvas to Studio WITHOUT charging (only a real
+  // Apply hits /api/color-change/use), so the exported image always matches
+  // what the user sees.
+  const handleCanvasUpdate = useCallback(
+    (canvas: HTMLCanvasElement) => {
+      onApply(canvas, { operation: 'color_change' });
+    },
+    [onApply]
+  );
+
   return (
     <ColorChangeEditor
       image={image}
       usageRemaining={remaining}
       usageLimit={limit}
       onSave={handleSave}
+      onCanvasUpdate={handleCanvasUpdate}
       onCancel={onCancel ?? (() => undefined)}
       savedImageId={null}
       onNavigate={() => undefined}
