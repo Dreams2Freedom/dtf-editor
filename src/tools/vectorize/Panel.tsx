@@ -186,33 +186,49 @@ export function VectorizePanel({ image, onApply }: StudioToolPanelProps) {
       // SVG file directly or rasterize it at original dimensions for
       // the PNG download.
       const result = await provider.run(blob, { format: 'svg', ...colorOpt });
-      const targetW = image.naturalWidth || image.width;
-      const targetH = image.naturalHeight || image.height;
-      const rasterCanvas = await rasterizeSvgAtSize(
-        result.url,
-        targetW,
-        targetH
-      );
 
+      // Download the SVG FIRST, before any rasterization. Rasterizing is
+      // only needed to update the canvas / produce the PNG; if it were to
+      // fail, we must not swallow the SVG the user already paid credits for.
       if (format === 'svg') {
         triggerDownload(result.url, `vectorized-${stamp}.svg`);
-      } else {
-        // format === 'png'
+      }
+
+      const targetW = image.naturalWidth || image.width;
+      const targetH = image.naturalHeight || image.height;
+
+      // Rasterize to update Studio's working image (and, for PNG, to build
+      // the download). Guard it so a rasterize failure can't lose an
+      // already-downloaded SVG. PNG output genuinely depends on it, so a
+      // PNG-mode failure is surfaced.
+      let rasterCanvas: HTMLCanvasElement | null = null;
+      try {
+        rasterCanvas = await rasterizeSvgAtSize(result.url, targetW, targetH);
+      } catch (rasterErr) {
+        if (format === 'png') throw rasterErr;
+        console.error(
+          '[Vectorize] rasterization failed (SVG was still downloaded):',
+          rasterErr
+        );
+      }
+
+      if (format === 'png' && rasterCanvas) {
         const dataUrl = rasterCanvas.toDataURL('image/png');
         triggerDownload(dataUrl, `vectorized-${stamp}.png`);
       }
 
-      // Update Studio's working image so chained tools see the
-      // vectorized result. Only meaningful for SVG / PNG paths since
-      // both are raster-friendly.
-      const rasterized = await canvasToImageElement(rasterCanvas);
-      setVectorizedImage(rasterized);
-      setViewMode('vectorized');
-      onApply(rasterCanvas, {
-        operation: 'vectorization',
-        provider: provider.id,
-        modelId: format,
-      });
+      // Update Studio's working image so chained tools see the vectorized
+      // result — only when rasterization succeeded.
+      if (rasterCanvas) {
+        const rasterized = await canvasToImageElement(rasterCanvas);
+        setVectorizedImage(rasterized);
+        setViewMode('vectorized');
+        onApply(rasterCanvas, {
+          operation: 'vectorization',
+          provider: provider.id,
+          modelId: format,
+        });
+      }
     } catch (e) {
       const msg = e instanceof Error ? e.message : 'Vectorize failed';
       setError(msg);

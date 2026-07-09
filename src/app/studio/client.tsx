@@ -71,8 +71,17 @@ function canvasToImage(canvas: HTMLCanvasElement): Promise<HTMLImageElement> {
       }
       const url = URL.createObjectURL(blob);
       const img = new Image();
-      img.onload = () => resolve(img);
-      img.onerror = () => reject(new Error('Failed to load image'));
+      img.onload = () => {
+        // Revoke once decoded — the HTMLImageElement keeps its own bitmap,
+        // so the blob URL is no longer needed. Prevents an unbounded leak
+        // across chained tool applies / resets in a long editing session.
+        URL.revokeObjectURL(url);
+        resolve(img);
+      };
+      img.onerror = () => {
+        URL.revokeObjectURL(url);
+        reject(new Error('Failed to load image'));
+      };
       img.src = url;
     }, 'image/png');
   });
@@ -471,7 +480,11 @@ export default function StudioClient() {
         {workingImage && !error && activeTool && (
           <activeTool.Panel
             image={workingImage}
-            imageId={imageId}
+            // Once a tool result has been applied, workingImage is a
+            // tool-derived blob, not the original upload — so imageId no
+            // longer describes it. Pass null then (per the StudioTool
+            // contract) so a tool can't attribute work to the wrong source.
+            imageId={hasChanges ? null : imageId}
             onApply={handleApply}
             onCancel={() => switchTool(null)}
           />

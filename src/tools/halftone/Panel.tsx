@@ -129,8 +129,16 @@ export function HalftonePanel({
       const url = URL.createObjectURL(blob);
       const preview = await new Promise<HTMLImageElement>((resolve, reject) => {
         const img = new Image();
-        img.onload = () => resolve(img);
-        img.onerror = () => reject(new Error('Failed to load halftone'));
+        // Revoke once decoded so repeated Apply/tweak cycles don't leak a
+        // blob URL each time (the image keeps its own bitmap).
+        img.onload = () => {
+          URL.revokeObjectURL(url);
+          resolve(img);
+        };
+        img.onerror = () => {
+          URL.revokeObjectURL(url);
+          reject(new Error('Failed to load halftone'));
+        };
         img.src = url;
       });
       setPreviewImage(preview);

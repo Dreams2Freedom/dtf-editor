@@ -123,6 +123,16 @@ export function ColorChangeEditor({
     ctx.drawImage(image, 0, 0);
     canvasRef.current = canvas;
     setImageData(ctx.getImageData(0, 0, canvas.width, canvas.height));
+    // The base image changed (e.g. Studio chained in another tool's result,
+    // or reset to original). The prior undo/redo history and colour
+    // selections describe the OLD pixels, so clear them — otherwise Undo /
+    // Reset operate on stale entries and corrupt the canvas. No-op on first
+    // mount (history/selections already empty).
+    history.resetAll();
+    setSampledColors([]);
+    setExcludedColors([]);
+    setLassoRegions([]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [image]);
 
   useEffect(() => {

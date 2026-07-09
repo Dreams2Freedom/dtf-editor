@@ -48,7 +48,14 @@ import {
 import type { StudioToolPanelProps } from '../types';
 
 const CM_SDK_URL = 'https://clippingmagic.com/api/v1/ClippingMagic.js';
-const CM_API_ID = 24469;
+// Client SDK apiId. MUST belong to the same ClippingMagic account as the
+// server's CLIPPINGMAGIC_API_KEY, or edit() rejects the uploaded image. Read
+// from env so a credential rotation doesn't silently break the editor; falls
+// back to the current account id.
+const CM_API_ID = parseInt(
+  process.env.NEXT_PUBLIC_CLIPPING_MAGIC_API_ID || '24469',
+  10
+);
 
 // Module-level so the SDK only loads + initializes once per browser tab,
 // even as the user toggles between CM and in-house modes, or comes back
