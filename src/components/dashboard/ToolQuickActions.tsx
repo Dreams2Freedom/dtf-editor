@@ -128,17 +128,19 @@ export function ToolQuickActions({
 
   return (
     <section className={className} aria-labelledby="tool-quick-actions-heading">
-      <div className="mb-4">
+      <div className="mb-3">
         <h2
           id="tool-quick-actions-heading"
-          className="text-lg sm:text-xl font-bold text-gray-900"
+          className="text-base sm:text-lg font-bold text-gray-900"
         >
           {heading}
         </h2>
-        <p className="text-sm text-gray-500 mt-1">{subheading}</p>
+        <p className="mt-0.5 text-xs sm:text-sm text-gray-500">{subheading}</p>
       </div>
 
-      <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
+      {/* Compact tool cards: kept dense so the image gallery below rises into
+          view on the dashboard without scrolling. */}
+      <div className="grid grid-cols-2 gap-2 sm:gap-3 lg:grid-cols-3">
         {TOOLS.map(tool => (
           <Link
             key={tool.name}
@@ -150,27 +152,27 @@ export function ToolQuickActions({
               }
             }}
             aria-label={`${tool.cta}: ${tool.description}`}
-            className="group flex min-h-[44px] flex-col rounded-xl border border-gray-200 bg-white p-4 sm:p-5 shadow-sm transition-all hover:border-blue-300 hover:shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
+            className="group flex min-h-[44px] flex-col rounded-xl border border-gray-200 bg-white p-3 shadow-sm transition-all hover:border-blue-300 hover:shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
           >
-            <div className="flex items-start justify-between gap-3">
-              <span className="flex h-11 w-11 items-center justify-center rounded-lg bg-blue-50 transition-transform group-hover:scale-105">
+            <div className="flex items-center justify-between gap-2">
+              <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-blue-50 transition-transform group-hover:scale-105">
                 <tool.icon className="h-5 w-5 text-blue-600" aria-hidden="true" />
               </span>
               <span
-                className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ${BADGE_TONE[tool.badge.tone]}`}
+                className={`inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-semibold ${BADGE_TONE[tool.badge.tone]}`}
               >
                 {tool.badge.label}
               </span>
             </div>
 
-            <h3 className="mt-2 sm:mt-3 font-semibold text-gray-900">
+            <h3 className="mt-2 text-sm font-semibold text-gray-900">
               {tool.name}
             </h3>
-            <p className="mt-1 flex-1 text-sm text-gray-500 line-clamp-2 sm:line-clamp-none">
+            <p className="mt-0.5 flex-1 text-xs text-gray-500 line-clamp-1 sm:line-clamp-2">
               {tool.description}
             </p>
 
-            <span className="mt-3 inline-flex items-center gap-1 text-sm font-semibold text-blue-600 transition-all group-hover:gap-1.5">
+            <span className="mt-2 inline-flex items-center gap-1 text-sm font-semibold text-blue-600 transition-all group-hover:gap-1.5">
               {tool.cta}
               <ArrowRight className="h-4 w-4" aria-hidden="true" />
             </span>
@@ -178,7 +180,7 @@ export function ToolQuickActions({
         ))}
       </div>
 
-      <p className="mt-3 text-xs text-gray-500">
+      <p className="mt-2 text-[11px] text-gray-500">
         Not sure where to start? The{' '}
         <span className="font-medium text-gray-700">Free DPI Checker</span> never
         uses credits. Each paid tool uses 1 credit, and failed jobs are
