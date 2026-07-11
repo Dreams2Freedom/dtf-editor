@@ -210,14 +210,13 @@ export default function StudioClient() {
    * hydrates originalImage / workingImage — same path as a deep link.
    */
   const handleUploaded = useCallback(
-    ({ imageId: newId, publicUrl }: { imageId: string; publicUrl: string }) => {
+    ({ imageId: newId }: { imageId: string; publicUrl: string }) => {
       const params = new URLSearchParams(searchParams.toString());
       params.set('imageId', newId);
-      // Use the URL /api/upload already returned so the load effect loads it
-      // directly, skipping a second auth-gated /api/uploads/[id] round-trip
-      // (noticeably faster upload → canvas, especially on cold starts).
-      if (publicUrl) params.set('imageUrl', publicUrl);
-      else params.delete('imageUrl');
+      // Load via imageId → /api/uploads/[id], which resolves a clean
+      // getPublicUrl. (An earlier attempt to reuse /api/upload's raw url
+      // directly failed to load, so we keep the reliable path.)
+      params.delete('imageUrl');
       if (activeToolId) params.set('tool', activeToolId);
       router.replace(`/studio?${params.toString()}`);
     },
