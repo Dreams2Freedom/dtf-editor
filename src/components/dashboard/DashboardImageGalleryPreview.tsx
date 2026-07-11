@@ -357,7 +357,7 @@ export function DashboardImageGalleryPreview() {
                           Download
                         </button>
                         <Link
-                          href={`/process?image=${encodeURIComponent(url)}`}
+                          href={`/studio?imageUrl=${encodeURIComponent(url)}`}
                           aria-label={`Use a tool on ${name}`}
                           className="inline-flex flex-1 items-center justify-center gap-1 rounded-md bg-amber-500 px-2 py-1.5 text-[11px] font-semibold text-white transition-colors hover:bg-amber-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-300"
                         >

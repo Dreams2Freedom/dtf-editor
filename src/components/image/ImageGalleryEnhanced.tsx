@@ -1088,7 +1088,7 @@ export function ImageGalleryEnhanced() {
                         Download
                       </button>
                       <Link
-                        href={`/process?image=${encodeURIComponent(image.storage_url)}`}
+                        href={`/studio?imageUrl=${encodeURIComponent(image.storage_url)}`}
                         aria-label={`Use a tool on ${image.original_filename}`}
                         className="inline-flex flex-1 items-center justify-center gap-1 rounded-md bg-amber-500 px-2 py-1.5 text-[11px] font-semibold text-white transition-colors hover:bg-amber-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-300"
                       >
@@ -1242,7 +1242,7 @@ export function ImageGalleryEnhanced() {
                   <div className="flex items-center gap-2">
                     {image.storage_url && (
                       <Link
-                        href={`/process?image=${encodeURIComponent(image.storage_url)}`}
+                        href={`/studio?imageUrl=${encodeURIComponent(image.storage_url)}`}
                         aria-label={`Use a tool on ${image.original_filename}`}
                         className="flex items-center justify-center gap-1 rounded border border-amber-300 bg-amber-500 px-2 py-2 text-xs font-semibold text-white hover:bg-amber-600"
                       >
