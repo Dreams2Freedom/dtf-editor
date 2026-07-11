@@ -42,6 +42,7 @@ import {
 } from './color-utils';
 import { useColorChangeHistory } from './useColorChangeHistory';
 import { SelectionMode, SelectionMask, RGBColor } from './types';
+import { toast } from '@/lib/toast';
 
 const ColorCanvas = dynamic(
   () =>
@@ -387,6 +388,9 @@ export function ColorChangeEditor({
     onSave(canvasRef.current).catch(err => {
       selfUpdateRef.current = false;
       console.error('[ColorChange] onSave failed:', err);
+      toast.error(
+        err instanceof Error ? err.message : 'Could not apply color change.'
+      );
     });
   }, [
     currentMask,

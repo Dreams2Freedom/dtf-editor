@@ -65,18 +65,34 @@ function ColorChangeToolPanel(props: StudioToolPanelProps) {
 
   const handleSave = useCallback(
     async (canvas: HTMLCanvasElement) => {
-      // Color-change usage gating still calls /api/color-change/use server-side
-      // for accurate quota tracking. We do that here, then bubble up the
-      // canvas via onApply so Studio can chain or save.
-      let useResult = { allowed: true, remaining, creditCharged: false };
+      // Server-side usage gate (/api/color-change/use) tracks the tier quota
+      // and charges past the free limit. FAIL CLOSED: if the gate call errors
+      // or is rejected, do NOT apply — never hand over a limited/paid
+      // operation for free.
+      let useResult: {
+        allowed: boolean;
+        remaining: number;
+        creditCharged?: boolean;
+      };
       try {
         const r = await fetch('/api/color-change/use', {
           method: 'POST',
           credentials: 'include',
         });
-        if (r.ok) useResult = await r.json();
-      } catch {
-        /* allow */
+        if (!r.ok) {
+          const err = await r.json().catch(() => ({}));
+          throw new Error(
+            err?.error ??
+              (r.status === 402
+                ? 'No color changes remaining. Purchase credits or upgrade your plan.'
+                : 'Could not verify your color-change allowance. Please try again.')
+          );
+        }
+        useResult = await r.json();
+      } catch (e) {
+        throw e instanceof Error
+          ? e
+          : new Error('Could not apply color change. Please try again.');
       }
       if (!useResult.allowed) {
         throw new Error(
@@ -86,7 +102,7 @@ function ColorChangeToolPanel(props: StudioToolPanelProps) {
       setRemaining(useResult.remaining);
       onApply(canvas, { operation: 'color_change' });
     },
-    [onApply, remaining, setRemaining]
+    [onApply, setRemaining]
   );
 
   // Undo/Redo/Reset sync the canvas to Studio WITHOUT charging (only a real

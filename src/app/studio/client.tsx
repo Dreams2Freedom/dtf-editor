@@ -35,6 +35,7 @@ import {
 
 import { SignupModal } from '@/components/auth/SignupModal';
 import { Breadcrumb } from '@/components/ui/Breadcrumb';
+import { toast } from '@/lib/toast';
 import { STUDIO_TOOLS, getStudioTool } from '@/tools/registry';
 import type { ApplyMetadata, StudioToolId } from '@/tools/types';
 
@@ -239,6 +240,9 @@ export default function StudioClient() {
         setLowQualityWarning(dpi < 300);
       } catch (err) {
         console.error('[Studio] handleApply failed:', err);
+        toast.error(
+          "Couldn't apply that change to the canvas. Please try again."
+        );
       }
     },
     []
@@ -313,6 +317,9 @@ export default function StudioClient() {
       }
     } catch (err) {
       console.error('[Studio] download failed:', err);
+      toast.error(
+        "Couldn't prepare the download. Please try again."
+      );
     } finally {
       setIsSaving(false);
     }

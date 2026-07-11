@@ -295,8 +295,12 @@ export function ClippingMagicPanel({
       if (!mountedRef.current) return;
       setStatus({ kind: 'downloading' });
 
+      // Charge FIRST and only deliver the cutout if the charge succeeds.
+      // Fail CLOSED: a failed deduction must not hand over a paid result.
+      // The guard ref also prevents a double-charge if result-generated fires
+      // more than once within one session.
       if (!creditsDeductedRef.current) {
-        creditsDeductedRef.current = true;
+        creditsDeductedRef.current = true; // guard repeat result-generated
         try {
           const deductRes = await fetch('/api/credits/deduct', {
             method: 'POST',
@@ -307,18 +311,28 @@ export function ClippingMagicPanel({
             }),
             credentials: 'include',
           });
-          if (deductRes.ok) {
-            await refreshCredits();
-          } else {
-            console.error(
-              'Credit deduction failed — ref remains locked to prevent double charge'
+          if (!deductRes.ok) {
+            const err = await deductRes.json().catch(() => ({}));
+            throw new Error(
+              err.error ??
+                (deductRes.status === 402
+                  ? 'Not enough credits to remove the background.'
+                  : 'Could not deduct a credit for background removal.')
             );
           }
+          await refreshCredits();
         } catch (e) {
-          console.error(
-            'Credit deduction network error — ref remains locked',
-            e
-          );
+          // Unlock so the user can retry, and do NOT deliver the cutout.
+          creditsDeductedRef.current = false;
+          if (!mountedRef.current) return;
+          setStatus({
+            kind: 'error',
+            message:
+              e instanceof Error
+                ? e.message
+                : 'Credit deduction failed — your cutout was not delivered.',
+          });
+          return;
         }
       }
 
