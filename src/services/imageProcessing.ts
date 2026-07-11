@@ -25,6 +25,8 @@ export interface ProcessingOptions {
   backgroundColor?: string;
   // Vectorization options
   vectorFormat?: 'svg' | 'pdf';
+  /** Vectorizer.ai `processing.max_colors` (1-256). Undefined = full palette. */
+  maxColors?: number;
   // AI generation options
   prompt?: string;
   style?: string;
@@ -359,8 +361,10 @@ export class ImageProcessingService {
     const result = await this.vectorizerService.vectorizeImage(imageUrl, {
       format: options.vectorFormat || 'svg',
       mode: 'production',
-      // Use correct Vectorizer.ai API parameters
-      max_colors: 256, // Full color range
+      // Use correct Vectorizer.ai API parameters. The user-selected
+      // palette size (Colors preset row in the Vectorize sidebar)
+      // flows through as `maxColors`; default 256 = full palette.
+      max_colors: options.maxColors ?? 256,
       min_area_px: 1.0, // Filter tiny shapes/dust
       draw_style: 'fill_shapes', // Filled paths (critical for PDF)
       shape_stacking: 'stacked', // Stack shapes properly

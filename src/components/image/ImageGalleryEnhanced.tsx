@@ -23,9 +23,11 @@ import {
   ChevronLeft,
   ChevronRight,
   RefreshCw,
+  Wand2,
 } from 'lucide-react';
 import { toast } from '@/lib/toast';
 import Image from 'next/image';
+import Link from 'next/link';
 import { format, subDays, isAfter, isBefore } from 'date-fns';
 
 interface ProcessedImage {
@@ -1069,6 +1071,32 @@ export function ImageGalleryEnhanced() {
                   >
                     <ImageIcon className="w-12 h-12 text-gray-400" />
                   </div>
+
+                  {/* Hover quick-actions overlay — matches the dashboard
+                      home gallery: Download + Use a Tool. Always visible on
+                      touch, hover-revealed on desktop. Hidden in selection
+                      mode so taps toggle selection instead of navigating. */}
+                  {!isSelectionMode && image.storage_url && (
+                    <div className="absolute inset-x-0 bottom-0 flex gap-1.5 bg-gradient-to-t from-black/70 to-transparent p-1.5 opacity-100 transition-opacity md:opacity-0 md:group-hover:opacity-100 md:group-focus-within:opacity-100">
+                      <button
+                        type="button"
+                        onClick={() => handleDownload(image)}
+                        aria-label={`Download ${image.original_filename}`}
+                        className="inline-flex flex-1 items-center justify-center gap-1 rounded-md bg-white/95 px-2 py-1.5 text-[11px] font-semibold text-gray-900 transition-colors hover:bg-white focus:outline-none focus-visible:ring-2 focus-visible:ring-white"
+                      >
+                        <Download className="h-3.5 w-3.5" aria-hidden="true" />
+                        Download
+                      </button>
+                      <Link
+                        href={`/studio?imageUrl=${encodeURIComponent(image.storage_url)}`}
+                        aria-label={`Use a tool on ${image.original_filename}`}
+                        className="inline-flex flex-1 items-center justify-center gap-1 rounded-md bg-amber-500 px-2 py-1.5 text-[11px] font-semibold text-white transition-colors hover:bg-amber-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-300"
+                      >
+                        <Wand2 className="h-3.5 w-3.5" aria-hidden="true" />
+                        Use a Tool
+                      </Link>
+                    </div>
+                  )}
                 </div>
                 <div className="p-3">
                   <p className="text-sm font-medium text-gray-900 truncate">
@@ -1212,6 +1240,16 @@ export function ImageGalleryEnhanced() {
                 </div>
                 {!isSelectionMode && (
                   <div className="flex items-center gap-2">
+                    {image.storage_url && (
+                      <Link
+                        href={`/studio?imageUrl=${encodeURIComponent(image.storage_url)}`}
+                        aria-label={`Use a tool on ${image.original_filename}`}
+                        className="flex items-center justify-center gap-1 rounded border border-amber-300 bg-amber-500 px-2 py-2 text-xs font-semibold text-white hover:bg-amber-600"
+                      >
+                        <Wand2 className="w-4 h-4" />
+                        <span className="hidden sm:inline">Use a Tool</span>
+                      </Link>
+                    )}
                     <button
                       onClick={() => handleDownload(image)}
                       className="flex items-center justify-center p-2 text-gray-700 bg-white border border-gray-300 rounded hover:bg-gray-50 active:bg-gray-100"

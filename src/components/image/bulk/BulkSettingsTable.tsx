@@ -36,7 +36,9 @@ export function BulkSettingsTable({
   const [applyAllCustomW, setApplyAllCustomW] = useState(0);
   const [applyAllCustomH, setApplyAllCustomH] = useState(0);
   // Which dimension the user is driving: 'width' or 'height'
-  const [applyAllDrivenBy, setApplyAllDrivenBy] = useState<'width' | 'height'>('width');
+  const [applyAllDrivenBy, setApplyAllDrivenBy] = useState<'width' | 'height'>(
+    'width'
+  );
 
   const handlePresetChange = (item: BulkImageItem, presetIndex: number) => {
     const preset = PRINT_SIZE_PRESETS[presetIndex];
@@ -75,7 +77,8 @@ export function BulkSettingsTable({
 
     if (field === 'customWidthInches') {
       // User entered width — auto-calculate height from aspect ratio
-      const autoHeight = clamped > 0 ? parseFloat((clamped / aspectRatio).toFixed(2)) : 0;
+      const autoHeight =
+        clamped > 0 ? parseFloat((clamped / aspectRatio).toFixed(2)) : 0;
       updates.customWidthInches = clamped;
       updates.customHeightInches = autoHeight;
 
@@ -86,7 +89,8 @@ export function BulkSettingsTable({
       }
     } else {
       // User entered height — auto-calculate width from aspect ratio
-      const autoWidth = clamped > 0 ? parseFloat((clamped * aspectRatio).toFixed(2)) : 0;
+      const autoWidth =
+        clamped > 0 ? parseFloat((clamped * aspectRatio).toFixed(2)) : 0;
       updates.customHeightInches = clamped;
       updates.customWidthInches = autoWidth;
 
@@ -110,7 +114,8 @@ export function BulkSettingsTable({
 
       if (applyAllPresetIndex === 0) {
         // Custom — use the driven dimension and auto-calculate the other per image
-        const drivenValue = applyAllDrivenBy === 'width' ? applyAllCustomW : applyAllCustomH;
+        const drivenValue =
+          applyAllDrivenBy === 'width' ? applyAllCustomW : applyAllCustomH;
 
         if (applyAllDrivenBy === 'width' && drivenValue >= MIN_CUSTOM_INCHES) {
           const autoH = parseFloat((drivenValue / aspectRatio).toFixed(2));
@@ -119,7 +124,10 @@ export function BulkSettingsTable({
           const target = computeTargetPixels(drivenValue, autoH);
           updates.targetWidthPx = target.width;
           updates.targetHeightPx = target.height;
-        } else if (applyAllDrivenBy === 'height' && drivenValue >= MIN_CUSTOM_INCHES) {
+        } else if (
+          applyAllDrivenBy === 'height' &&
+          drivenValue >= MIN_CUSTOM_INCHES
+        ) {
           const autoW = parseFloat((drivenValue * aspectRatio).toFixed(2));
           updates.customWidthInches = autoW;
           updates.customHeightInches = drivenValue;
@@ -160,7 +168,10 @@ export function BulkSettingsTable({
         <tbody>
           {/* Apply to All row */}
           <tr className="border-b border-blue-100 bg-blue-50">
-            <td className="py-2 px-2 text-xs font-medium text-blue-700" colSpan={2}>
+            <td
+              className="py-2 px-2 text-xs font-medium text-blue-700"
+              colSpan={2}
+            >
               Apply to All
             </td>
             <td className="py-2 px-2"></td>
@@ -181,7 +192,11 @@ export function BulkSettingsTable({
                   <div className="flex gap-1 items-center">
                     <select
                       value={applyAllDrivenBy}
-                      onChange={e => setApplyAllDrivenBy(e.target.value as 'width' | 'height')}
+                      onChange={e =>
+                        setApplyAllDrivenBy(
+                          e.target.value as 'width' | 'height'
+                        )
+                      }
                       className="border rounded px-1 py-0.5 text-xs"
                     >
                       <option value="width">Width</option>
@@ -189,10 +204,16 @@ export function BulkSettingsTable({
                     </select>
                     <input
                       type="number"
-                      placeholder={applyAllDrivenBy === 'width' ? 'W (in)' : 'H (in)'}
+                      placeholder={
+                        applyAllDrivenBy === 'width' ? 'W (in)' : 'H (in)'
+                      }
                       min={MIN_CUSTOM_INCHES}
                       max={MAX_CUSTOM_INCHES}
-                      value={applyAllDrivenBy === 'width' ? (applyAllCustomW || '') : (applyAllCustomH || '')}
+                      value={
+                        applyAllDrivenBy === 'width'
+                          ? applyAllCustomW || ''
+                          : applyAllCustomH || ''
+                      }
                       onChange={e => {
                         if (applyAllDrivenBy === 'width') {
                           setApplyAllCustomW(Number(e.target.value));
@@ -204,7 +225,9 @@ export function BulkSettingsTable({
                     />
                     <span className="text-xs text-gray-400">in</span>
                   </div>
-                  <p className="text-xs text-gray-400">Height auto-calculated per image aspect ratio</p>
+                  <p className="text-xs text-gray-400">
+                    Height auto-calculated per image aspect ratio
+                  </p>
                 </div>
               )}
             </td>
@@ -236,7 +259,10 @@ export function BulkSettingsTable({
 
           {/* Image rows */}
           {items.map(item => (
-            <tr key={item.id} className="border-b border-gray-100 hover:bg-gray-50">
+            <tr
+              key={item.id}
+              className="border-b border-gray-100 hover:bg-gray-50"
+            >
               <td className="py-2 px-2">
                 <img
                   src={item.previewUrl}

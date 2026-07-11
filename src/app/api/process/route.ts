@@ -29,6 +29,7 @@ async function handlePost(request: NextRequest) {
     const formData = await request.formData();
     const imageFile = formData.get('image') as File;
     const operation = formData.get('operation') as string;
+    const provider = (formData.get('provider') as string) || undefined;
 
     // 3. Validate required fields
     if (!imageFile || !operation) {
@@ -85,6 +86,15 @@ async function handlePost(request: NextRequest) {
         | 'pdf'
         | 'png'
         | undefined,
+      maxColors: (() => {
+        // Vectorize-only: clamp to [1, 256] per Vectorizer.ai's
+        // processing.max_colors range. Undefined → service uses 256.
+        const raw = formData.get('maxColors');
+        if (raw == null || raw === '') return undefined;
+        const n = parseInt(raw as string, 10);
+        if (!Number.isFinite(n)) return undefined;
+        return Math.min(256, Math.max(1, n));
+      })(),
     };
 
     // 8. Validate operation-specific options
@@ -131,6 +141,7 @@ async function handlePost(request: NextRequest) {
             operationType: operation as any,
             originalFilename: imageFile.name,
             fileSize: imageFile.size,
+            provider,
             metadata: {
               ...result.metadata,
               format: processingOptions.vectorFormat || 'png',

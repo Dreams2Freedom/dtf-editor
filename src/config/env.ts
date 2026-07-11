@@ -136,9 +136,18 @@ export const env = {
   UPSTASH_REDIS_REST_URL: process.env.UPSTASH_REDIS_REST_URL || '',
   UPSTASH_REDIS_REST_TOKEN: process.env.UPSTASH_REDIS_REST_TOKEN || '',
 
+  // In-house rembg microservice (Studio experimental in-house background removal).
+  // Unset by default — the in-house BG-removal path stays disabled and the
+  // Studio uses ClippingMagic. Set these only when a rembg/SAM service is deployed.
+  REMBG_SERVICE_URL: process.env.REMBG_SERVICE_URL || '',
+  REMBG_SERVICE_API_KEY: process.env.REMBG_SERVICE_API_KEY || '',
+
   // Feature Flags
   ENABLE_ANALYTICS: process.env.NEXT_PUBLIC_ENABLE_ANALYTICS === 'true',
   ENABLE_DEBUG: process.env.NODE_ENV === 'development',
+  // Studio (unified canvas editor). Defaults on; set NEXT_PUBLIC_STUDIO_ENABLED=false
+  // to hide the Studio entry points without removing the feature.
+  STUDIO_ENABLED: process.env.NEXT_PUBLIC_STUDIO_ENABLED !== 'false',
 } as const;
 
 // Type for environment variables

@@ -5,9 +5,7 @@ import { getStripe } from '@/lib/stripe';
 import { withRateLimit } from '@/lib/rate-limit';
 import type Stripe from 'stripe';
 
-function detectTier(
-  session: Stripe.Checkout.Session
-): string | null {
+function detectTier(session: Stripe.Checkout.Session): string | null {
   const meta = session.metadata || {};
   if (meta.plan_name) return meta.plan_name;
   if (meta.tier) return meta.tier;
@@ -137,7 +135,12 @@ async function handlePost(request: NextRequest) {
     let skippedDuplicate = 0;
     let skippedNoUser = 0;
     let skippedNoAmount = 0;
-    const errors: Array<{ sessionId: string; error: string; code?: string; details?: string }> = [];
+    const errors: Array<{
+      sessionId: string;
+      error: string;
+      code?: string;
+      details?: string;
+    }> = [];
     const preview: Array<Record<string, unknown>> = [];
 
     for (const session of sessions) {
@@ -248,7 +251,10 @@ async function handlePost(request: NextRequest) {
                 {
                   p_user_id: userInfo.userId,
                   p_amount: credits,
-                  p_transaction_type: paymentType === 'subscription' ? 'subscription' : 'purchase',
+                  p_transaction_type:
+                    paymentType === 'subscription'
+                      ? 'subscription'
+                      : 'purchase',
                   p_description: `Backfill: ${credits} credits from Stripe ${paymentType}`,
                   p_metadata: {
                     backfilled: true,
@@ -258,14 +264,20 @@ async function handlePost(request: NextRequest) {
                 }
               );
               if (creditError) {
-                console.error(`Credit allocation failed for ${session.id}:`, creditError.message);
+                console.error(
+                  `Credit allocation failed for ${session.id}:`,
+                  creditError.message
+                );
                 errors.push({
                   sessionId: session.id,
                   error: `Credits not added: ${creditError.message}`,
                 });
               }
             } catch (creditErr) {
-              console.error(`Credit allocation error for ${session.id}:`, creditErr);
+              console.error(
+                `Credit allocation error for ${session.id}:`,
+                creditErr
+              );
             }
           }
         }
@@ -284,13 +296,15 @@ async function handlePost(request: NextRequest) {
         limit: 100,
         status: 'paid',
       };
-      if (invoiceStartingAfter) invoiceParams.starting_after = invoiceStartingAfter;
+      if (invoiceStartingAfter)
+        invoiceParams.starting_after = invoiceStartingAfter;
 
       const invoiceBatch = await stripe.invoices.list(invoiceParams);
       invoices.push(...invoiceBatch.data);
       invoiceHasMore = invoiceBatch.has_more;
       if (invoiceBatch.data.length > 0) {
-        invoiceStartingAfter = invoiceBatch.data[invoiceBatch.data.length - 1].id;
+        invoiceStartingAfter =
+          invoiceBatch.data[invoiceBatch.data.length - 1].id;
       }
     }
 
@@ -323,10 +337,18 @@ async function handlePost(request: NextRequest) {
 
       if (invoice.subscription) {
         // Subscription invoice - detect tier from amount
-        if (amountCents <= 999) { tier = 'basic'; credits = 20; }
-        else if (amountCents <= 2999) { tier = 'starter'; credits = 60; }
-        else if (amountCents <= 4999) { tier = 'professional'; credits = 150; }
-        else { tier = 'subscription'; }
+        if (amountCents <= 999) {
+          tier = 'basic';
+          credits = 20;
+        } else if (amountCents <= 2999) {
+          tier = 'starter';
+          credits = 60;
+        } else if (amountCents <= 4999) {
+          tier = 'professional';
+          credits = 150;
+        } else {
+          tier = 'subscription';
+        }
       }
 
       let paymentIntentId: string | null = null;
@@ -421,14 +443,20 @@ async function handlePost(request: NextRequest) {
                 }
               );
               if (creditError) {
-                console.error(`Credit allocation failed for invoice ${invoice.id}:`, creditError.message);
+                console.error(
+                  `Credit allocation failed for invoice ${invoice.id}:`,
+                  creditError.message
+                );
                 errors.push({
                   sessionId: uniqueKey,
                   error: `Credits not added: ${creditError.message}`,
                 });
               }
             } catch (creditErr) {
-              console.error(`Credit allocation error for invoice ${invoice.id}:`, creditErr);
+              console.error(
+                `Credit allocation error for invoice ${invoice.id}:`,
+                creditErr
+              );
             }
           }
         }

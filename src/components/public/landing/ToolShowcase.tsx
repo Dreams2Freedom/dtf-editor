@@ -7,6 +7,7 @@ import {
   Spline,
   WandSparkles,
   Gauge,
+  Grip,
   ListChecks,
   ArrowRight,
   ArrowUp,
@@ -181,6 +182,23 @@ function DpiPreview() {
   );
 }
 
+function HalftonePreview() {
+  return (
+    <div className={`${styles.pv} ${styles['pv-split']}`}>
+      <div className={`${styles.half} ${styles['half--gray']}`}>
+        <span className={`${styles.tag} ${styles['tag--l']}`}>Art</span>
+        <MountainBadge className={styles.badge} />
+      </div>
+      <div className={`${styles.half} ${styles['half--checker']}`}>
+        <span className={`${styles.tag} ${styles['tag--r']}`}>Halftone</span>
+        <MountainBadge transparent className={styles.badge} />
+        <span className={styles.halftoneDots} aria-hidden="true" />
+      </div>
+      <Divider />
+    </div>
+  );
+}
+
 const FLOW_STEPS: Array<{ icon: LucideIcon; label: string; active?: boolean }> = [
   { icon: UploadCloud, label: 'Upload artwork' },
   { icon: Wrench, label: 'Fix & clean up' },
@@ -257,6 +275,16 @@ const CARDS: Card[] = [
     badgeClass: 'badge--credit',
     desc: 'Convert logos and graphics into cleaner, scalable artwork with smooth edges.',
     ctaLabel: 'Start plan to vectorize',
+    ctaHref: '#pricing',
+  },
+  {
+    preview: <HalftonePreview />,
+    icon: Grip,
+    title: 'Halftone',
+    badgeLabel: 'Alpha',
+    badgeClass: 'badge--alpha',
+    desc: 'Turn artwork into print-ready halftone dots — a transparent dot pattern for DTF.',
+    ctaLabel: 'Start plan for halftone',
     ctaHref: '#pricing',
   },
   {

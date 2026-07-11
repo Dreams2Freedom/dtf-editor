@@ -275,7 +275,13 @@ export function CancellationFlow({
               </Button>
               <Button
                 variant="outline"
-                onClick={() => setCurrentStep('discount_offer')}
+                onClick={() =>
+                  setCurrentStep(
+                    eligibility?.canUseDiscount
+                      ? 'discount_offer'
+                      : 'confirm_cancel'
+                  )
+                }
                 disabled={loading}
               >
                 No Thanks

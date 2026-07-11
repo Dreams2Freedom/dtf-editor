@@ -5,6 +5,280 @@
 
 ---
 
+## 📅 April 28, 2026 (later) — Studio Plugin Architecture (Phase 2.0)
+
+### **Date: 2026-04-28 — Studio as Image Hub + Self-Contained Tool Plugins**
+
+#### **Session Summary**
+
+**Branch:** `claude/in-house-background-processing-Ci5rc`
+**Commits added in this session:** 9 (`dbde45b` → `ec9ee54`)
+**Scope:** Architectural refactor — Studio becomes the durable home for the working image; tools (BG Remove, Upscale, Color Change) become self-contained plugins under `src/tools/<tool-id>/` so refactoring one tool can't break another, and adding new API-backed tools is a folder-creation exercise rather than a Studio-shell change.
+
+**Why:** User asked for a hub-and-spoke architecture. Quote: _"As we add tools, those tools stand alone on their own and plug into the studio for us to use… when we make changes, let's say, to the background editor and we're messing with the code that affects the color selection, I don't want it to also affect the code for the color changing plugin."_ Phase 2.0 implements that contract.
+
+---
+
+#### **Architectural Outcome**
+
+```
+src/tools/
+  types.ts                           ← StudioTool / StudioToolPanelProps / ApplyMetadata contract
+  registry.ts                        ← ordered tool list (3 entries)
+  bg-removal/
+    Panel.tsx, useBackgroundRemoval.ts, api.ts, types.ts, index.tsx
+    providers/                       ← future home for in-house vs ClippingMagic
+  upscale/
+    Panel.tsx, index.ts
+    providers/
+      types.ts, deepImage.ts         ← UpscaleProvider contract + Deep-Image.ai impl
+  color-change/
+    Panel.tsx, components/, useColorChangeHistory.ts, color-utils.ts, types.ts, index.tsx
+```
+
+Cross-tool imports are blocked by ESLint `no-restricted-imports` zones in `eslint.config.mjs`. The integration layer (Studio shell + standalone `/process/` routes + API routes) is exempt.
+
+---
+
+#### **Step-by-step (commits)**
+
+| Step | Commit    | What                                                                                                                                              |
+| ---- | --------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1    | `dbde45b` | `src/tools/types.ts` plugin contract + empty registry + skeleton dirs                                                                             |
+| 2    | `33eb6ba` | BG Removal moved into `src/tools/bg-removal/` (Panel + hook + api + types)                                                                        |
+| 3    | `96cc91e` | Color Change moved into `src/tools/color-change/` (Panel + components/ + hook + types + color-utils)                                              |
+| 4    | `45005b0` | New Upscale plugin: `Panel.tsx` + `providers/{types,deepImage}.ts` (first tool built native to the contract)                                      |
+| 5    | `70d5b6b` | Studio shell rewrite: `workingImage` state, plugin-driven tool picker, onApply chain handler, Save/Reset buttons                                  |
+| 9    | `410718a` | ESLint `no-restricted-imports` zones blocking cross-tool imports                                                                                  |
+| H1   | `8b23b8b` | Hotfix 1: rename adapter `index.ts` → `index.tsx` (JSX in `.ts` failed swc compiler)                                                              |
+| H2   | `22f21e8` | Hotfix 2: add `'use client'` to adapter index files (hooks need it); reroute `/api/color-change/use` to import constants from `types.ts` directly |
+| H3   | `ec9ee54` | Hotfix 3: extend ESLint exemption to include `src/app/api/**` so server routes can legitimately import constants from tool folders                |
+
+Steps 6, 7, 8 from the original plan were intentionally collapsed:
+
+- **Step 6** (thin standalone wrappers): standalone `/process/` routes already use `@/tools/...` imports as of Steps 2/3. The bigger flows (`/process/background-removal` is ClippingMagic, `/process/upscale` has bulk + DPI) are deliberately distinct UXs.
+- **Step 7** (provider abstraction polish): Upscale already has the `providers/` pattern. BG Removal can adopt it when a second provider lands.
+- **Step 8** (internal nav redirects): the Create dropdown and dashboard cards still link to standalone tool routes. Routing to `/studio?tool=...` requires a unified upload UX (Studio currently needs an `imageId`); deferred to a separate UX phase.
+
+---
+
+#### **Key Design Decisions**
+
+1. **`workingImage` separate from `originalImage`.** Studio holds two refs: the upload (immutable) and the current state (mutated by each `onApply`). Reset always reverts to the upload. Tool chaining is automatic — each tool's output replaces `workingImage`, becoming the next tool's input.
+2. **Tool descriptors with adapter components.** Existing components (BG Removal panel, Color Change editor) keep their legacy props; the tool's `index.tsx` exports an adapter that translates between `onSave` (legacy) and `onApply(canvas, meta)` (plugin contract). Lets us migrate without rewriting 1700+ lines of working tool code.
+3. **Provider abstraction for API-backed tools.** Each tool has a `providers/types.ts` interface; concrete providers implement `run(blob, options) → Promise<result>`. Swapping APIs (or adding a second one) is a registry change, no Panel edits.
+4. **ESLint enforces what folder structure suggests.** Convention alone isn't enough — the `no-restricted-imports` rule means a developer literally cannot import `@/tools/upscale` from inside `src/tools/bg-removal/` without a build error. This makes the architectural promise concrete.
+
+---
+
+#### **The Build-Failure Saga (Hotfixes 1–3)**
+
+After Step 9 was pushed, three sequential Vercel build failures surfaced different aspects of Next.js 15's server/client boundary rules:
+
+1. **`Expected '>', got 'image'`** — JSX in `.ts` files. The adapter components in `src/tools/bg-removal/index.ts` and `src/tools/color-change/index.ts` had JSX returns (`<BackgroundRemovalPanel ... />`). Renamed to `.tsx`. Lesson: JSX requires `.tsx`.
+
+2. **`You're importing a component that needs useEffect ... only works in a Client Component`** — adapters used hooks but lacked `'use client'`. Added the directive to both. Plus: the `/api/color-change/use` server route was importing `COLOR_CHANGE_LIMITS` through the now-client-only `index.tsx`, which dragged hooks into the server bundle. Rerouted to import from `@/tools/color-change/types` directly. Lesson: server routes must not transit through client modules to reach plain constants.
+
+3. **`'@/tools/color-change/types' import is restricted ... no-restricted-imports`** — Step 9's lint rule blocked the legitimate cross-cutting import that hotfix 2 introduced. The exemption block listed `src/app/studio/**` and `src/app/process/**` but forgot `src/app/api/**`. Added it. Lesson: when restricting imports, enumerate every integration-layer surface (UI routes + API routes both qualify).
+
+The compile step has been green since hotfix 2 (`22f21e8`); only the lint step kept failing until `ec9ee54`. Each hotfix was a one-or-two-line change pushed within minutes of the prior failure.
+
+---
+
+#### **Files Touched**
+
+| Surface                                                                            | Change                                                                                     |
+| ---------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------ |
+| `src/tools/{types,registry}.ts`                                                    | New: plugin contract + ordered tool list                                                   |
+| `src/tools/bg-removal/`                                                            | Moved from `src/components/studio/`, `src/hooks/`, `src/services/`, `src/types/` (4 files) |
+| `src/tools/color-change/`                                                          | Moved from `src/components/image/`, `src/hooks/`, `src/types/`, `src/lib/` (5 files)       |
+| `src/tools/upscale/{Panel.tsx,index.ts,providers/}`                                | New plugin                                                                                 |
+| `src/app/studio/client.tsx`                                                        | Rewritten: workingImage state, plugin registry, onApply chain, Save/Reset                  |
+| `eslint.config.mjs`                                                                | `no-restricted-imports` zones blocking cross-tool imports + integration-layer exemptions   |
+| `src/app/api/color-change/use/route.ts`                                            | Import path rerouted to `@/tools/color-change/types`                                       |
+| `src/app/process/color-change/client.tsx`, `src/app/api/color-change/use/route.ts` | Import-path updates after the moves                                                        |
+
+---
+
+#### **What's Left for the Next Session**
+
+- **Step 8 (nav redirects):** Create dropdown + dashboard cards + Process page tool buttons should route to `/studio?tool=...` once the upload UX is unified.
+- **Manual QA on deploy** (Step 10 of the original plan): confirm in-Studio tool chaining works (BG Remove → Upscale → Color Change → Save), standalone routes still work (ClippingMagic `/process/background-removal`, bulk routes), and ESLint cross-tool isolation triggers as expected on a deliberate violation.
+- **Provider polish (Step 7):** Eventually extract BG Removal's in-house rembg client + ClippingMagic adapter into `src/tools/bg-removal/providers/`. Low priority.
+
+---
+
+#### **Lessons Learned**
+
+- **`'use client'` cascades upward, not downward.** A server module that imports from a `'use client'` module gets a serializable component-reference, but the server module itself stays server. The flip side: the server module CAN'T then re-export hooks-using values from that client module without dragging it back. Architectural rule: keep tool indexes (which adapt UI) separate from tool types/api modules (plain TS, server-safe).
+- **ESLint exemption lists need to enumerate every integration surface.** Easy to miss API routes when "integration layer" means "Studio + standalone routes" in your head. Cost us hotfix 3.
+- **Plan-as-you-go works for refactors of this size.** 9 commits, 3 of which were hotfixes. The hotfixes were each tractable because the underlying architecture was sound — they were boundary issues, not design issues.
+
+---
+
+### **Date: 2026-04-27 to 2026-04-28 — In-House BG Removal Sprint**
+
+#### **Session Summary**
+
+**Branch:** `claude/in-house-background-processing-Ci5rc`
+**Duration:** Multi-part session (24 commits)
+**Scope:** Built a full in-house background removal pipeline as a no-credit alternative to the existing ClippingMagic paid flow. Started as a simple Python rembg microservice; evolved into an interactive SAM-powered AI brush with multi-color palette analysis, marching-ants outline, zoom/pan, and full mobile/touch support.
+
+**Top-level outcome:** AI Brush ships an iterative refinement UX comparable to ClippingMagic's editor for many DTF source images, runs entirely on our Railway-hosted rembg microservice, and costs the user 0 credits.
+
+---
+
+#### **Phase Map (Linear History)**
+
+The full plan history is preserved in `docs/AI_BRUSH_PLAN_HISTORY.md`. Each phase here corresponds to one user-feedback iteration:
+
+| Phase  | Name                                                  | Commit(s)                                             | Key Deliverable                                                                                                                                            |
+| ------ | ----------------------------------------------------- | ----------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1.6    | Flood-fill white removal                              | `3f3eb5a`                                             | `_flood_fill_white_removal()` post-process; perfect on white-bg DTF art                                                                                    |
+| 1.7    | Universal BG removal                                  | `25eaa2c`                                             | Auto-detect background color, eyedropper, tolerance slider, AI fallback                                                                                    |
+| 1.8    | SAM brush masking                                     | `30fd6f5`, `df85e2e`, `69635f4`, `e66c3a9`, `c0e83ff` | Real MobileSAM ONNX wrapper; `/embed` + `/predict` endpoints; brush UI scaffolding                                                                         |
+| 1.9    | Additive cumulative masking                           | `a41ff7d`                                             | BiRefNet seed + per-stroke union/diff; dual-layer faded preview; O(1) undo                                                                                 |
+| 1.10   | Solid-line strokes + color cleanup                    | `68e03dd`                                             | SVG path strokes (no dots); SAM region + color-classifier post-process; parallel embed+BiRefNet init                                                       |
+| 1.11   | Live tolerance slider                                 | `9e1ffbe`, `a533398`                                  | Pre-cleanup vs post-cleanup mask split; debounced re-cleanup; TDZ fix                                                                                      |
+| 1.11.5 | BRIA-rmbg + birefnet-massive                          | `ad2b133`                                             | Promote BRIA AI to default model; pre-download in Dockerfile                                                                                               |
+| 1.12   | Smart init mask + marching ants + view toggle         | `5d4b390`, `2585beb`, `44b1a92`                       | Detect → ml+color initial cutout; Moore-Neighbor contour traces; Cutout/Original toggle; reset re-runs analysis; 2nd TDZ fix                               |
+| 1.13   | Fixed marching ants + Preview view + zoom/pan + touch | `692d733`                                             | ResizeObserver for canvasRect; static dashed line; Preview view mode; bare-wheel zoom; spacebar+drag pan; PointerEvents; pinch-zoom; two-finger pan        |
+| 1.14   | Multi-color palettes everywhere                       | `6590c86`                                             | Dense path-stride+3×3 brush palette sampling; multi-color BFS with keep-as-barrier; Color Pick rewritten with two pick palettes + chips; tolerance max 150 |
+
+---
+
+#### **What Was Built**
+
+##### **Server: Python rembg microservice (`rembg-service/`)**
+
+- `main.py` FastAPI app exposing:
+  - `/detect-bg` — k-means edge analysis returning `{dominant, secondary, confidence, recommended_mode}`
+  - `/remove` — multi-mode background removal (`color-fill`, `click-fill`, `ml-only`, `ml+color`)
+  - `/embed` + `/predict` — SAM encode + decode for the interactive brush
+  - `/health`, `/debug-sam` — diagnostics
+- `sam_predictor.py` — MobileSAM ONNX wrapper (encoder ~38MB + decoder ~6MB; CPU ~2s encode, ~50ms decode)
+- `_flood_fill_color_removal` — single-color BFS edge-seed fill
+- `_flood_fill_multi_color_removal` — multi-color BFS with keep-color barriers (Phase 1.14)
+- `Dockerfile` — pre-downloads `bria-rmbg` (default), `birefnet-general-lite`, and SAM ONNX so cold starts skip ~330MB of HuggingFace fetches
+
+##### **Client: BackgroundRemovalPanel.tsx**
+
+The studio's "Background Removal" pane. Three modes:
+
+1. **AI Brush (default)**: SAM-powered iterative brush
+   - Initial mask: BRIA-rmbg + auto-detected color flood-fill (Phase 1.12)
+   - Per-stroke commit: SAM region union/diff applied to a SAM-only mask (`samMaskRef`)
+   - Color cleanup: derived `cumulativeMaskRef` = `samMaskRef` + palette-based per-pixel classifier
+   - Edge Cleanup slider (0–150, default 60) tunes the cleanup tolerance live
+   - Marching-ants outline traces the cumulative-mask boundary (Phase 1.12; positioning fixed in 1.13)
+   - View toggle: Cutout (faded) / Preview (final transparent) / Original
+   - Brush size 5–80, brush tool toggle (Keep/Remove)
+   - Undo restores pre-stroke SAM-mask snapshot (O(1), no SAM re-call)
+
+2. **Color (Color Pick)**: pure color-based BFS with multi-color palettes (Phase 1.14)
+   - Two pick palettes: `removeColors` and `keepColors`
+   - Pick tool toggle (Pick to Remove / Pick to Keep)
+   - Chips for each palette with click-to-delete
+   - Click-to-clean-spot button for interior speckles (BFS from seed)
+   - Tolerance slider 5–150
+   - Reset Palettes button
+
+3. **AI Only**: pure ML mask, no flood-fill
+   - Model selector: BRIA AI (default), BiRefNet variants, BiRefNet Massive, U2Net, U2Net Human, ISNet Anime
+
+**Shared canvas chrome:**
+
+- Zoom/pan (Phase 1.13): bare wheel = zoom toward cursor (desktop), spacebar+drag = pan, PointerEvents unify mouse/touch/pen, pinch + two-finger pan on touch, zoom controls pill with −/percent/+/Fit
+- ResizeObserver tracks canvas display size; SVG overlays use `viewBox` for transform-stable rendering
+
+##### **Models supported (rembg)**
+
+- `bria-rmbg` (default) — BRIA AI's state-of-the-art subject cutout
+- `birefnet-general-lite` (Standard)
+- `birefnet-dis` (High Detail / Graphics + Text)
+- `birefnet-general` (Maximum Quality, slow)
+- `birefnet-massive` (Massive Dataset, slow)
+- `u2net`, `u2netp`, `u2net_human_seg`
+- `isnet-general-use`, `isnet-anime`
+- `sam` (used internally for the brush)
+
+##### **What Went Right**
+
+- The phase-by-phase user-feedback loop produced a cohesive product. Each iteration solved a specific user complaint and added a clean piece (cumulative masking → solid strokes → color cleanup → tolerance slider → smart init → marching ants → Preview → zoom/pan → multi-color).
+- Reusing `lib.traceContours` from the vendored magic-wand-js for marching ants — no new dependency.
+- Phase 1.12's "smart initial mask" by chaining BRIA + auto-color-fill (existing `ml+color` mode) gave a near-ClippingMagic-quality first pass for free.
+- Pointer Events refactor in 1.13 unified mouse/touch/pen with one set of handlers — pinch zoom and two-finger pan came in cleanly.
+- Multi-color BFS with keep-as-barrier (1.14) cleanly addresses the user's "same color in two places — remove one, keep the other" requirement.
+
+##### **Challenges Faced**
+
+- **TDZ bugs in production builds, twice.** Production minified bundles produced `Cannot access 'eM' before initialization` and `'eO'` errors that didn't show in dev builds. Both stemmed from `useCallback` deps arrays referencing identifiers declared LATER in the component body. The deps array is evaluated at render time top-to-bottom, so accessing the binding before its `const` declaration enters TDZ.
+  - Phase 1.11: tolerance `useEffect` placed before `recomputeCumulative` (`a533398`).
+  - Phase 1.12: `runInitialAnalysis` placed before `renderPreviewFromMask` (`44b1a92`).
+- **`canvasRect` was stale.** Phase 1.12 marching ants rendered tiny in the upper-left corner because `canvasRect` was captured once on mount via `getBoundingClientRect`, before the canvas was sized to the image's natural dims. Fixed in 1.13 by switching to a `ResizeObserver` reading `entry.contentRect` (un-transformed layout size — also avoids double-scaling under zoom).
+- **`handleReset` didn't re-run AI analysis.** Reset cleared state but `useEffect[image]` doesn't re-fire when the image hasn't changed, so the brush sat at "Preparing AI Brush..." forever (`2585beb`). Fix: extracted the init flow into `runInitialAnalysis(canvas)` callable, called from both mount and reset.
+- **Initial cutout missed texture leakage.** Phase 1.10's color cleanup (per-stroke palette) couldn't fix the macro shape. Phase 1.12 fixed by chaining BRIA's subject cutout with `_flood_fill_color_removal` on the auto-detected dominant color, server-side, in one round-trip.
+- **Sparse SAM-prompt sampling missed fringe colors.** A stroke that visually swept over both black and gray would only sample the click points (every brushSize pixels), missing the gray fringes between samples (`6590c86`). Phase 1.14 replaced with rawPath stride + 3×3 neighborhood + 4-bit dedup → 20–80 unique colors per stroke vs 5–10 before.
+- **Pure pixel-classifier in Color Pick wasn't right.** The user pointed out that same-colored content sometimes needs to be both kept AND removed depending on its location (e.g., black bg vs black ink in a logo). Solution: BFS from edges with keep-color **barriers**.
+
+##### **How They Were Overcome**
+
+- TDZ: code-level — keep useCallback deps arrays that reference local consts AFTER those consts are declared. Lesson built into the workflow now (verify deps order before commit).
+- Stale canvasRect: ResizeObserver + `entry.contentRect` (NOT `getBoundingClientRect`) to track un-transformed layout size.
+- Reset: extract reusable init flow into a callable.
+- Texture leakage: lean on existing server endpoint capabilities (the `ml+color` mode already chained BRIA + flood-fill) instead of building anything new.
+- Sparse sampling: walk the actual brush path densely, sample neighborhoods, dedupe via quantization.
+- Color-pick spatial nuance: BFS structure preserves "edge-connected" semantics; keep palette as barriers extends single-color BFS to multi-color without losing locality.
+
+##### **Code Changes (high-level)**
+
+| File                                                                         | Lines added | What                                                                                                     |
+| ---------------------------------------------------------------------------- | ----------- | -------------------------------------------------------------------------------------------------------- |
+| `rembg-service/main.py`                                                      | +200        | `_flood_fill_*`, `_detect_background`, multi-mode `/remove`, `/embed`, `/predict` endpoints              |
+| `rembg-service/sam_predictor.py`                                             | +130 (new)  | MobileSAM ONNX encoder + decoder wrapper                                                                 |
+| `rembg-service/Dockerfile`                                                   | +5          | Pre-download bria-rmbg + birefnet-general-lite + sam                                                     |
+| `src/components/studio/BackgroundRemovalPanel.tsx`                           | +1700       | Entire panel: 3 modes, brush + zoom/pan + touch + multi-color UI                                         |
+| `src/hooks/useBackgroundRemoval.ts`                                          | +400        | `runEmbed`, `runPredict`, `runPredictRaw`, `samplePathPoints`, `clientFloodFill`, `clientMultiFloodFill` |
+| `src/services/bgRemoval.ts`                                                  | +60         | `detectBackground`, `removeBackground`, `embedImage`, `predictMask`                                      |
+| `src/types/backgroundRemoval.ts`                                             | +60         | All shared types                                                                                         |
+| `src/app/api/background-removal/{detect-bg,embed,in-house,predict}/route.ts` | +200        | Auth-gated proxies to the rembg microservice                                                             |
+
+##### **Testing Results**
+
+- **TOP DAD logo regression** (the canonical hard case — speckled distress texture, white text, black bg): Phase 1.6 white-fill couldn't help (bg was black). Phase 1.7 Color Pick failed (BFS leaked through distress gaps and erased the logo). Phase 1.8–1.9 SAM brush worked but each stroke was independent. Phase 1.10–1.11 added color cleanup but couldn't catch all fringe. Phase 1.12 smart init nearly nailed it on first pass. Phase 1.14 multi-color brush palette + tolerance 100+ effectively cleans residual speckles.
+- **Touch (DevTools emulation + real device)**: pinch zoom, two-finger pan, single-finger brush stroke all confirmed working on iPhone-sized viewport.
+- **Edge cases**: already-transparent PNGs, low-resolution inputs (with the `Upscale first` warning), photos with complex backgrounds all behave reasonably.
+
+##### **Time Taken**
+
+- Estimated: 6–8 hours for a basic in-house BG removal.
+- Actual: ~25–30 hours across 1.5 days, driven by user feedback.
+- Most of the over-run was iterative quality polish (Phases 1.10 onward), each phase responding to a specific UX gap surfaced by testing on real DTF art.
+
+##### **Lessons Learned**
+
+1. **Verify useCallback deps order before commit.** Two TDZ bugs in one branch.
+2. **`getBoundingClientRect` includes CSS transforms; `ResizeObserver.contentRect` doesn't.** When measuring layout-only sizes, prefer `contentRect`.
+3. **Reuse server modes instead of inventing new ones.** Phase 1.12's smart init mask used existing `ml+color` mode + the existing `/detect-bg` result. Zero new server code.
+4. **Sparse sampling lies.** Don't trust SAM-prompt-point sampling for color analysis — sample the actual user gesture densely.
+5. **Spatial context matters in color removal.** Pure pixel classifiers can't distinguish identical colors in different regions; BFS with keep-as-barrier handles it elegantly.
+6. **Dual-state (state + ref) for high-frequency callback inputs.** `viewMode` is mirrored to `viewModeRef` so `renderPreviewFromMask` stays a stable callback (avoids cascading re-renders through the cleanup pipeline).
+
+##### **Next Steps**
+
+User indicated "we are going to move on to making some larger changes" after this session. Specific next-phase candidates already noted across plan files:
+
+- Touch-first eyedropper magnifier overlay
+- Per-color tolerance (currently global)
+- Color-cube lookup optimization for cleanup pass on >1MP images
+- AI Brush "click to add a color to global palette" (currently brush colors only come from strokes)
+- Save brush sessions per-image / across sessions
+- Numeric zoom input + cmd-+/-/0 keyboard shortcuts
+
+---
+
+---
+
 ## 📅 February 17-18, 2026 - Major Session: Security Fixes, Admin Overhaul, Dashboard UX
 
 ### **Date: 2026-02-17 to 2026-02-18 - Comprehensive Security + Admin + UX Sprint**
@@ -135,6 +409,7 @@ Built a fully functional admin support ticket system:
 While fixing the "From: Unknown" issue in admin support tickets, a `profiles_admin_select` RLS policy was created on the `profiles` table. This policy contained a circular self-reference (querying `profiles` from within a policy on `profiles`), causing infinite recursion.
 
 **Impact:**
+
 - ALL Supabase queries to `profiles`, `support_tickets`, and `support_messages` return 500 errors
 - Users cannot create or view support tickets
 - Users cannot view their own profile data

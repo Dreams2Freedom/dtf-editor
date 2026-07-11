@@ -91,7 +91,12 @@ export class ClippingMagicService {
 
       // Determine file extension from content type for proper filename
       const contentType = imageBlob.type || 'image/png';
-      const ext = contentType === 'image/jpeg' ? 'jpg' : contentType === 'image/png' ? 'png' : 'jpg';
+      const ext =
+        contentType === 'image/jpeg'
+          ? 'jpg'
+          : contentType === 'image/png'
+            ? 'png'
+            : 'jpg';
 
       // Use format=result for headless auto-clip (processes and returns result directly)
       const formData = new FormData();

@@ -47,11 +47,17 @@ export function LandingHero() {
       >
         <div className="max-w-7xl mx-auto flex items-center justify-between px-5 sm:px-6 lg:px-8 h-14">
           <Link href="/" className="flex-shrink-0">
-            <Image src="/logo-horizontal.png" alt="DTF Editor" width={130} height={28} priority />
+            <Image
+              src="/logo-horizontal.png"
+              alt="DTF Editor"
+              width={130}
+              height={28}
+              priority
+            />
           </Link>
 
           <div className="hidden lg:flex items-center gap-6">
-            {NAV_LINKS.map((l) => (
+            {NAV_LINKS.map(l => (
               <Link
                 key={l.href}
                 href={l.href}
@@ -99,7 +105,7 @@ export function LandingHero() {
           </button>
         </div>
         <div className="flex flex-col items-center justify-center gap-2 mt-12">
-          {NAV_LINKS.map((l) => (
+          {NAV_LINKS.map(l => (
             <Link
               key={l.href}
               href={l.href}
@@ -151,8 +157,8 @@ export function LandingHero() {
 
           {/* Subheadline */}
           <p className="text-base lg:text-lg text-gray-400 max-w-xl mx-auto mt-4 mb-8 leading-relaxed">
-            Upscale, recolor, remove backgrounds, and get print-ready files in seconds. Built for
-            DTF transfer shops.
+            Upscale, recolor, remove backgrounds, and get print-ready files in
+            seconds. Built for DTF transfer shops.
           </p>
 
           {/* CTAs */}
@@ -179,7 +185,7 @@ export function LandingHero() {
       {/* ── Tool Strip (transition zone) ── */}
       <section className="relative pb-16 lg:pb-20 px-5 sm:px-6 lg:px-8 bg-gradient-to-b from-gray-950 via-gray-900 to-white">
         <div className="grid grid-cols-3 lg:grid-cols-6 gap-2 sm:gap-3 max-w-4xl mx-auto pt-2">
-          {TOOLS.map((tool) => {
+          {TOOLS.map(tool => {
             const colors = TOOL_COLOR_MAP[tool.color] ?? TOOL_COLOR_MAP.blue;
             const Icon = tool.icon;
             return (
@@ -195,7 +201,9 @@ export function LandingHero() {
                 >
                   <Icon className={cn('w-4 h-4', colors.text)} />
                 </div>
-                <span className="text-xs font-semibold text-gray-200">{tool.name}</span>
+                <span className="text-xs font-semibold text-gray-200">
+                  {tool.name}
+                </span>
               </div>
             );
           })}

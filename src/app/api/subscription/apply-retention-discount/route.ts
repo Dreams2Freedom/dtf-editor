@@ -78,7 +78,42 @@ async function handlePost(request: NextRequest) {
       );
     }
 
+    // Lifetime once-per-account: the 50% retention discount can only ever be
+    // used a single time (like the free trial). Source of truth is Stripe
+    // customer metadata (durable + API-version-agnostic), backed by the DB
+    // counter — so this holds even if the DB column doesn't persist.
+    let stripeCustomer: any = null;
     try {
+      stripeCustomer = await getStripe().customers.retrieve(
+        profile.stripe_customer_id
+      );
+    } catch {
+      /* fall back to the DB counter below */
+    }
+    const alreadyUsedDiscount =
+      stripeCustomer?.metadata?.retention_discount_used === 'true' ||
+      (profile.discount_used_count || 0) >= 1;
+    if (alreadyUsedDiscount) {
+      return NextResponse.json(
+        {
+          error:
+            'The retention discount has already been used on this account and can only be used once.',
+        },
+        { status: 403 }
+      );
+    }
+
+    try {
+      // Claim the discount on the Stripe customer FIRST, so it can never be
+      // granted twice even if a later step (DB write) fails. Rolled back in the
+      // catch below if applying the coupon fails.
+      await getStripe().customers.update(profile.stripe_customer_id, {
+        metadata: {
+          retention_discount_used: 'true',
+          retention_discount_date: new Date().toISOString(),
+        },
+      });
+
       // Create a one-time 50% off coupon
       const coupon = await getStripe().coupons.create({
         percent_off: 50,
@@ -176,6 +211,14 @@ async function handlePost(request: NextRequest) {
       });
     } catch (stripeError: any) {
       console.error('Stripe error:', stripeError);
+      // Roll back the claim so a failed apply doesn't permanently block the user.
+      try {
+        await getStripe().customers.update(profile.stripe_customer_id, {
+          metadata: { retention_discount_used: '', retention_discount_date: '' },
+        });
+      } catch {
+        /* ignore rollback failure */
+      }
       return NextResponse.json(
         { error: 'Failed to apply discount: ' + stripeError.message },
         { status: 500 }
