@@ -150,7 +150,10 @@ export function ToolQuickActions({
 
       {/* Compact tool cards: kept dense so the image gallery below rises into
           view on the dashboard without scrolling. */}
-      <div className="grid grid-cols-2 gap-2 sm:gap-3 lg:grid-cols-3">
+      {/* 4 columns on wide screens so all 7 tools fit in 2 rows (not 3),
+          keeping the toolkit short enough that the recent-images gallery
+          below stays visible without scrolling. */}
+      <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 sm:gap-3 lg:grid-cols-4">
         {TOOLS.map(tool => (
           <Link
             key={tool.name}
