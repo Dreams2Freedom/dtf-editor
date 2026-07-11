@@ -13,6 +13,7 @@ import {
   Settings,
   CreditCard,
   Crown,
+  ChevronDown,
 } from 'lucide-react';
 import Link from 'next/link';
 import { ToolQuickActions } from '@/components/dashboard/ToolQuickActions';
@@ -141,8 +142,25 @@ export default function DashboardPage() {
             {/* Tool quick actions — prominent, always-visible tool shortcuts */}
             <ToolQuickActions />
 
+            {/* Cue so users know their recent images are just below the
+                toolkit (and can jump straight to them). */}
+            <button
+              type="button"
+              onClick={() =>
+                document
+                  .getElementById('recent-images')
+                  ?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+              }
+              className="mx-auto -mt-1 flex items-center gap-1.5 rounded-full border border-gray-200 bg-white px-3 py-1.5 text-sm font-medium text-gray-600 shadow-sm transition-colors hover:border-blue-300 hover:text-blue-600"
+            >
+              Your recent images
+              <ChevronDown className="h-4 w-4 animate-bounce" />
+            </button>
+
             {/* Image gallery preview — recent artwork + link to full gallery */}
-            <DashboardImageGalleryPreview />
+            <div id="recent-images" className="scroll-mt-24">
+              <DashboardImageGalleryPreview />
+            </div>
 
             {/* Account overview */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
