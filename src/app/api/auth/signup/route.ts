@@ -5,6 +5,7 @@ import { goHighLevelService } from '@/services/goHighLevel';
 import { trackReferralSignup } from '@/services/affiliate';
 import { env } from '@/config/env';
 import { withRateLimit } from '@/lib/rate-limit';
+import { getTrustedBaseUrl } from '@/lib/auth/request-base-url';
 
 async function handlePost(request: NextRequest) {
   console.log('[SIGNUP API] Step 1: Signup request received');
@@ -16,7 +17,7 @@ async function handlePost(request: NextRequest) {
     const affiliateCookie = request.cookies.get('dtf_ref')?.value;
     const affiliateCode = request.cookies.get('dtf_ref_code')?.value;
 
-    console.log('[SIGNUP API] Step 2: Creating user');
+    console.log('[SIGNUP API] Step 2: Creating user (unconfirmed)');
 
     // Create Supabase client with service role for signup
     const supabase = createClient(
@@ -24,13 +25,19 @@ async function handlePost(request: NextRequest) {
       env.SUPABASE_SERVICE_ROLE_KEY
     );
 
-    // Sign up the user
+    // Create the user in an UNCONFIRMED state and get a confirmation token in
+    // one call. We deliberately do NOT auto-confirm the email anymore — new
+    // users must verify their email before they can access the dashboard/tools
+    // (this stops fake-email signups from consuming free credits). The
+    // verification email is sent by us via Mailgun (below), not by Supabase.
     const { data: signUpData, error: signUpError } =
-      await supabase.auth.admin.createUser({
+      await supabase.auth.admin.generateLink({
+        type: 'signup',
         email,
         password,
-        email_confirm: true, // Auto-confirm email
-        user_metadata: metadata || {},
+        options: {
+          data: metadata || {},
+        },
       });
 
     if (signUpError) {
@@ -102,39 +109,44 @@ async function handlePost(request: NextRequest) {
       }
     }
 
-    // Send welcome email (this happens server-side, so it won't be cancelled)
-    console.log(
-      '[SIGNUP API] Step 5: Sending welcome email for user:',
-      signUpData.user.id
-    );
-
-    try {
-      console.log('[SIGNUP API] Calling emailService.sendWelcomeEmail...');
-      const emailSent = await emailService.sendWelcomeEmail({
-        email: email,
-        firstName: metadata?.firstName || '',
-        planName: 'Free',
-      });
+    // Send the email-verification link via Mailgun. The user must click it to
+    // confirm their email before they can use the app. The welcome email is
+    // sent AFTER they verify (see /auth/confirm) so only real users get it.
+    const tokenHash = signUpData.properties?.hashed_token;
+    if (tokenHash) {
+      // Build the confirmation link from the host the signup came in on (so it
+      // works on preview deployments too), not just the fixed production URL.
+      const baseUrl = getTrustedBaseUrl(request);
+      const confirmationLink = `${baseUrl}/auth/confirm?token_hash=${encodeURIComponent(
+        tokenHash
+      )}&type=signup`;
 
       console.log(
-        '[SIGNUP API] emailService.sendWelcomeEmail returned:',
-        emailSent
+        '[SIGNUP API] Step 5: Sending verification email for user:',
+        signUpData.user.id
       );
-
-      if (emailSent) {
-        console.log('[SIGNUP API] Step 6: Welcome email sent successfully');
-      } else {
-        console.error(
-          '[SIGNUP API] Step 6: Welcome email failed to send (returned false)'
+      try {
+        const emailSent = await emailService.sendEmailConfirmation({
+          email,
+          firstName: metadata?.firstName || '',
+          confirmationLink,
+        });
+        console.log(
+          '[SIGNUP API] Step 6: Verification email sent:',
+          emailSent
         );
+      } catch (emailError) {
+        console.error(
+          '[SIGNUP API] Step 6: Verification email error caught:',
+          emailError
+        );
+        // Don't fail signup if email fails — the user can request a resend
+        // from the /verify-email page.
       }
-    } catch (emailError) {
+    } else {
       console.error(
-        '[SIGNUP API] Step 6: Welcome email error caught:',
-        emailError
+        '[SIGNUP API] Step 5: No confirmation token returned; user must use resend'
       );
-      console.error('[SIGNUP API] Error stack:', (emailError as any)?.stack);
-      // Don't fail signup if email fails
     }
 
     // Send admin notification for new signup
@@ -153,6 +165,7 @@ async function handlePost(request: NextRequest) {
           plan: 'Free',
           initial_credits: 2,
           signup_method: 'Email/Password',
+          email_verified: false,
         },
         timestamp: new Date().toISOString(),
       });
@@ -196,30 +209,15 @@ async function handlePost(request: NextRequest) {
         );
       });
 
-    // Sign in the user to create a session
-    const { data: signInData, error: signInError } =
-      await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
-
-    if (signInError) {
-      console.error('[SIGNUP API] Step 7: Auto sign-in error:', signInError);
-      // User was created but couldn't sign in automatically
-      return NextResponse.json({
-        success: true,
-        user: signUpData.user,
-        session: null,
-        message: 'Account created successfully. Please sign in.',
-      });
-    }
-
-    console.log('[SIGNUP API] Step 7: User signed in successfully');
-
+    // IMPORTANT: We do NOT sign the user in here. They must verify their email
+    // first. The client redirects them to /verify-email.
     return NextResponse.json({
       success: true,
-      user: signInData.user,
-      session: signInData.session,
+      requiresVerification: true,
+      user: signUpData.user,
+      session: null,
+      message:
+        'Account created. Please check your email to verify your account before signing in.',
     });
   } catch (error) {
     console.error('[SIGNUP API] Unexpected error:', error);

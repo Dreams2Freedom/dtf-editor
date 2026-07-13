@@ -104,6 +104,52 @@ export async function middleware(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser();
 
+  // Email-verification gate: NEW users must verify their email before they can
+  // reach the dashboard or use any tool. This stops people signing up with fake
+  // emails just to consume free credits.
+  //
+  // Grandfathering is automatic: every pre-existing account already has
+  // `email_confirmed_at` set (signups used to be auto-confirmed), so existing
+  // users — paid or free — always pass this check. Only a logged-in user whose
+  // email is genuinely unconfirmed (i.e. a new signup that hasn't clicked the
+  // link) is blocked. No cutoff date or data migration required.
+  if (user && !user.email_confirmed_at) {
+    const GATED_PAGES = ['/dashboard', '/studio', '/generate', '/process'];
+    // Credit-consuming / processing endpoints — blocked so the gate can't be
+    // bypassed by scripting the API directly.
+    const GATED_APIS = [
+      '/api/generate',
+      '/api/upscale',
+      '/api/upscale-async',
+      '/api/clippingmagic',
+      '/api/process',
+      '/api/analyze',
+      '/api/upload',
+      '/api/uploads',
+      '/api/credits/deduct',
+      '/api/jobs',
+    ];
+
+    const matches = (prefix: string) =>
+      pathname === prefix || pathname.startsWith(prefix + '/');
+
+    if (GATED_APIS.some(matches)) {
+      return NextResponse.json(
+        {
+          error: 'Please verify your email to use this feature.',
+          code: 'email_unverified',
+        },
+        { status: 403 }
+      );
+    }
+
+    if (GATED_PAGES.some(matches)) {
+      const url = new URL('/verify-email', request.url);
+      if (user.email) url.searchParams.set('email', user.email);
+      return NextResponse.redirect(url);
+    }
+  }
+
   // NEW-16: Block paid-feature access for users with past-due subscriptions.
   // Processing routes require an active subscription; past_due users are
   // redirected to their billing page to update payment.
