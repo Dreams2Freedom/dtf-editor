@@ -216,7 +216,14 @@ export function UpscalePanel({ image, onApply }: StudioToolPanelProps) {
     setError(null);
     setIsUpscaling(true);
     try {
-      const blob = await imageToBlob(image);
+      // Fast path: if the working image is already URL-backed (the original
+      // upload / a gallery image), hand the server that URL so Deep-Image
+      // fetches it directly. Only re-encode + upload pixels when it's a blob
+      // (output of a previous tool in the chain), which has no URL.
+      const src = image.currentSrc || image.src || '';
+      const input = /^https?:\/\//i.test(src)
+        ? { imageUrl: src }
+        : { blob: await imageToBlob(image) };
       const opts: UpscaleOptions = { scale, processingMode: mode };
 
       if (scaleMode === 'smart-dpi') {
@@ -236,7 +243,7 @@ export function UpscalePanel({ image, onApply }: StudioToolPanelProps) {
         opts.scale = calc.effectiveScale > 2 ? 4 : 2;
       }
 
-      const result = await provider.run(blob, opts);
+      const result = await provider.run(input, opts);
       const upscaled = await loadImageFromUrl(result.url);
       setUpscaledImage(upscaled);
       setViewMode('upscaled');

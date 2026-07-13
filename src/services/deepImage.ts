@@ -601,7 +601,10 @@ export class DeepImageService {
 
   private async pollForResult(
     jobHash: string,
-    maxRetries = 24,
+    // ~280s of polling headroom, kept just under the upscale route's 290s
+    // internal timeout / 300s function maxDuration. Deep-Image's generative
+    // ("predicting") upscale can take a couple of minutes on large images.
+    maxRetries = 56,
     delayMs = 5000
   ): Promise<UpscaleResponse> {
     for (let attempt = 1; attempt <= maxRetries; attempt++) {

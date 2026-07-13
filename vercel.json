@@ -31,7 +31,7 @@
       "maxDuration": 120
     },
     "src/app/api/upscale/route.ts": {
-      "maxDuration": 60
+      "maxDuration": 300
     },
     "src/app/api/upscale-direct/route.ts": {
       "maxDuration": 60

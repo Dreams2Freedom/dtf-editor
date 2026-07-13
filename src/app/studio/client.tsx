@@ -206,18 +206,18 @@ export default function StudioClient() {
   );
 
   /**
-   * Called by StudioUploadZone after a successful /api/upload. Updates
-   * the URL with the new imageId so the load effect picks it up and
-   * hydrates originalImage / workingImage — same path as a deep link.
+   * Called by StudioUploadZone after it uploads straight to Supabase Storage.
+   * The image is already staged and we have its public URL, so we load it
+   * directly via the imageUrl param — no /api/uploads/[id] round-trip. (The
+   * earlier "raw url failed to load" case was /api/upload's StorageService
+   * url; a fresh getPublicUrl on a direct upload is CORS-loadable, same as the
+   * gallery "Use a Tool" flow already relies on.)
    */
   const handleUploaded = useCallback(
-    ({ imageId: newId }: { imageId: string; publicUrl: string }) => {
+    ({ publicUrl }: { publicUrl: string }) => {
       const params = new URLSearchParams(searchParams.toString());
-      params.set('imageId', newId);
-      // Load via imageId → /api/uploads/[id], which resolves a clean
-      // getPublicUrl. (An earlier attempt to reuse /api/upload's raw url
-      // directly failed to load, so we keep the reliable path.)
-      params.delete('imageUrl');
+      params.set('imageUrl', publicUrl);
+      params.delete('imageId');
       if (activeToolId) params.set('tool', activeToolId);
       router.replace(`/studio?${params.toString()}`);
     },
