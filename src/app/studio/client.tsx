@@ -35,6 +35,7 @@ import {
 
 import { SignupModal } from '@/components/auth/SignupModal';
 import { Breadcrumb } from '@/components/ui/Breadcrumb';
+import { createClientSupabaseClient } from '@/lib/supabase/client';
 import { toast } from '@/lib/toast';
 import { STUDIO_TOOLS, getStudioTool } from '@/tools/registry';
 import type { ApplyMetadata, StudioToolId } from '@/tools/types';
@@ -295,18 +296,54 @@ export default function StudioClient() {
       setTimeout(() => URL.revokeObjectURL(downloadUrl), 100);
 
       // Save the finished composite to the gallery (no reprocessing, no charge).
-      const form = new FormData();
-      form.append('image', blob, 'studio-output.png');
-      form.append('operation', lastApplyMeta?.operation ?? 'studio_composite');
-      if (lastApplyMeta?.provider)
-        form.append('provider', lastApplyMeta.provider);
+      // Stage the full-resolution PNG straight to Supabase Storage from the
+      // browser, then hand the save route the public URL. Posting the blob
+      // inline (multipart) previously 413'd at Vercel's ~4.5MB body limit for
+      // large chained composites (e.g. bg-removal → upscale), which showed a
+      // false "couldn't save to gallery" error even though the save was fine.
+      const supabase = createClientSupabaseClient();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user) {
+        // Logged-out (or expired) — prompt sign-up instead of failing quietly.
+        setShowSignupModal(true);
+        return;
+      }
+
+      const storagePath = `${user.id}/studio-output/${Date.now()}.png`;
+      const { error: stageErr } = await supabase.storage
+        .from('images')
+        .upload(storagePath, blob, { contentType: 'image/png', upsert: true });
+      if (stageErr) {
+        setSaveError('Could not save to your gallery');
+        console.error('[Studio] gallery stage failed:', stageErr.message);
+        return;
+      }
+
+      const { data: pub } = supabase.storage
+        .from('images')
+        .getPublicUrl(storagePath);
+      const publicUrl = pub?.publicUrl;
+      if (!publicUrl) {
+        setSaveError('Could not save to your gallery');
+        console.error('[Studio] could not resolve staged image URL');
+        return;
+      }
+
       const res = await fetch('/api/studio/save', {
         method: 'POST',
-        body: form,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          url: publicUrl,
+          path: storagePath,
+          operation: lastApplyMeta?.operation ?? 'studio_composite',
+          provider: lastApplyMeta?.provider,
+          fileSize: blob.size,
+        }),
         credentials: 'include',
       });
       if (res.status === 401) {
-        // Logged-out (or expired) — prompt sign-up instead of failing quietly.
         setShowSignupModal(true);
       } else if (!res.ok) {
         const data = await res.json().catch(() => ({}));
