@@ -51,48 +51,7 @@ interface SignupFormProps {
   redirectTo?: string;
 }
 
-// The pricing-page CTAs pass the Stripe subscription plan id directly
-// (basic | starter | professional). We validate against the known ids before
-// starting checkout; this does not change any Stripe price/product IDs.
-const CHECKOUT_PLAN_IDS = new Set(['basic', 'starter', 'professional']);
-
-// Basic & Starter are offered as 7-day trials; the server re-validates trial
-// eligibility and ignores the flag for anything else.
-const TRIAL_PLAN_IDS = new Set(['basic', 'starter']);
-
-// Kick off Stripe Checkout for a just-signed-up user via the existing
-// pricing + checkout-session APIs. Returns the checkout URL, or null on any
-// failure so the caller can fall back gracefully.
-async function startSubscriptionCheckout(
-  stripePlanId: string
-): Promise<string | null> {
-  try {
-    const pricingRes = await fetch('/api/stripe/pricing');
-    if (!pricingRes.ok) return null;
-    const pricing = await pricingRes.json();
-    const plan = (pricing.subscriptionPlans || []).find(
-      (p: { id: string; stripePriceId?: string }) => p.id === stripePlanId
-    );
-    if (!plan?.stripePriceId) return null;
-
-    const res = await fetch('/api/stripe/create-checkout-session', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        priceId: plan.stripePriceId,
-        mode: 'subscription',
-        trial: TRIAL_PLAN_IDS.has(stripePlanId),
-      }),
-    });
-    if (!res.ok) return null;
-    const data = await res.json();
-    return data.url || null;
-  } catch {
-    return null;
-  }
-}
-
-export function SignupForm({ onSuccess, redirectTo }: SignupFormProps) {
+export function SignupForm({ onSuccess }: SignupFormProps) {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const { signUp, loading, error, clearError } = useAuthContext();
@@ -118,37 +77,13 @@ export function SignupForm({ onSuccess, redirectTo }: SignupFormProps) {
     if (result.success) {
       onSuccess?.();
 
-      // Add a 2-second delay to ensure the welcome email fetch completes
-      // This is a temporary fix to diagnose the issue
-      await new Promise(resolve => setTimeout(resolve, 2000));
-
-      // Post-signup handoff: if the user picked a plan on the pricing page
-      // (?plan=hobbyist|small-business), send them straight into Stripe
-      // Checkout; otherwise honor ?next= (e.g. the pay-as-you-go picker), or
-      // fall back to the dashboard.
-      const params = new URLSearchParams(window.location.search);
-      const planSlug = params.get('plan');
-      const next = params.get('next');
-      const stripePlanId =
-        planSlug && CHECKOUT_PLAN_IDS.has(planSlug) ? planSlug : undefined;
-
-      if (stripePlanId) {
-        const checkoutUrl = await startSubscriptionCheckout(stripePlanId);
-        // If checkout couldn't start, drop the user on the pricing page
-        // rather than leaving them stranded mid-flow.
-        window.location.href = checkoutUrl || '/pricing';
-        return;
-      }
-
-      if (next) {
-        window.location.href = next;
-        return;
-      }
-
-      // No explicit plan/next chosen: route new users through the
-      // trial-focused plan selection screen (Free remains a secondary option
-      // there) instead of dropping them straight on the dashboard.
-      window.location.href = redirectTo || '/auth/select-plan';
+      // New accounts must verify their email before they can access the
+      // dashboard/tools (this blocks fake-email signups from using free
+      // credits). Send them to the verification screen; the plan/checkout
+      // handoff resumes at /auth/select-plan after they click the email link.
+      window.location.href = `/verify-email?email=${encodeURIComponent(
+        data.email
+      )}`;
     } else {
       setFormError('root', {
         type: 'manual',
