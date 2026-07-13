@@ -1,6 +1,5 @@
 import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
-import Script from 'next/script';
 import './globals.css';
 import { AuthProvider } from '@/contexts/AuthContext';
 import { ErrorBoundary } from '@/components/ui/ErrorBoundary';
@@ -94,9 +93,23 @@ export default function RootLayout({
           </AuthProvider>
         </ErrorBoundary>
 
-        {/* Meta Pixel Code — loads on every page for ad-performance tracking. */}
-        <Script id="meta-pixel" strategy="afterInteractive">
-          {`!function(f,b,e,v,n,t,s)
+        {/* Fires PageView on client-side route changes (SPA navigations). */}
+        <MetaPixelRouteTracker />
+
+        {/*
+          Meta (Facebook) Pixel — raw base code, rendered directly into the
+          server HTML (not via next/script) so the browser executes it on page
+          parse and Meta's setup/detection tools reliably recognize the pixel.
+          Placed at the very end of <body> so it loads on every page.
+
+          Automatic Advanced Matching and Automatic Events (button clicks, page
+          metadata) are toggled ON in Events Manager to gather the maximum
+          amount of analytics data; the base code below is all that's required
+          on-site for those to work.
+        */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `!function(f,b,e,v,n,t,s)
 {if(f.fbq)return;n=f.fbq=function(){n.callMethod?
 n.callMethod.apply(n,arguments):n.queue.push(arguments)};
 if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
@@ -105,20 +118,14 @@ t.src=v;s=b.getElementsByTagName(e)[0];
 s.parentNode.insertBefore(t,s)}(window, document,'script',
 'https://connect.facebook.net/en_US/fbevents.js');
 fbq('init', '${META_PIXEL_ID}');
-fbq('track', 'PageView');`}
-        </Script>
-        {/* Fires PageView on client-side route changes (SPA navigations). */}
-        <MetaPixelRouteTracker />
-        <noscript>
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            height="1"
-            width="1"
-            style={{ display: 'none' }}
-            src={`https://www.facebook.com/tr?id=${META_PIXEL_ID}&ev=PageView&noscript=1`}
-            alt=""
-          />
-        </noscript>
+fbq('track', 'PageView');`,
+          }}
+        />
+        <noscript
+          dangerouslySetInnerHTML={{
+            __html: `<img height="1" width="1" style="display:none" src="https://www.facebook.com/tr?id=${META_PIXEL_ID}&ev=PageView&noscript=1" alt="" />`,
+          }}
+        />
         {/* End Meta Pixel Code */}
       </body>
     </html>
