@@ -5,6 +5,7 @@ import { goHighLevelService } from '@/services/goHighLevel';
 import { trackReferralSignup } from '@/services/affiliate';
 import { env } from '@/config/env';
 import { withRateLimit } from '@/lib/rate-limit';
+import { getTrustedBaseUrl } from '@/lib/auth/request-base-url';
 
 async function handlePost(request: NextRequest) {
   console.log('[SIGNUP API] Step 1: Signup request received');
@@ -113,7 +114,10 @@ async function handlePost(request: NextRequest) {
     // sent AFTER they verify (see /auth/confirm) so only real users get it.
     const tokenHash = signUpData.properties?.hashed_token;
     if (tokenHash) {
-      const confirmationLink = `${env.APP_URL}/auth/confirm?token_hash=${encodeURIComponent(
+      // Build the confirmation link from the host the signup came in on (so it
+      // works on preview deployments too), not just the fixed production URL.
+      const baseUrl = getTrustedBaseUrl(request);
+      const confirmationLink = `${baseUrl}/auth/confirm?token_hash=${encodeURIComponent(
         tokenHash
       )}&type=signup`;
 

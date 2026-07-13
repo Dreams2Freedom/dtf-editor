@@ -3,6 +3,7 @@ import { createClient } from '@supabase/supabase-js';
 import { emailService } from '@/services/email';
 import { env } from '@/config/env';
 import { withRateLimit } from '@/lib/rate-limit';
+import { getTrustedBaseUrl } from '@/lib/auth/request-base-url';
 
 /**
  * Resend the email-verification link for an unverified account.
@@ -71,7 +72,9 @@ async function handlePost(request: NextRequest) {
       return GENERIC_OK;
     }
 
-    const confirmationLink = `${env.APP_URL}/auth/confirm?token_hash=${encodeURIComponent(
+    const confirmationLink = `${getTrustedBaseUrl(
+      request
+    )}/auth/confirm?token_hash=${encodeURIComponent(
       linkData.properties.hashed_token
     )}&type=magiclink`;
 
