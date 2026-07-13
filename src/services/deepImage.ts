@@ -685,23 +685,11 @@ export class DeepImageService {
           */
         }
 
-        // Job still processing
+        // Job explicitly failed — stop and surface the error.
         else if (
-          result.status === 'processing' ||
-          result.status === 'not_started' ||
-          result.status === 'queued'
+          String(result.status).toLowerCase() === 'failed' ||
+          String(result.status).toLowerCase() === 'error'
         ) {
-          if (attempt === maxRetries) {
-            return {
-              status: 'error',
-              error: `Job did not complete after ${(maxRetries * delayMs) / 1000} seconds`,
-            };
-          }
-          continue;
-        }
-
-        // Job failed
-        else if (result.status === 'failed' || result.status === 'error') {
           return {
             status: 'error',
             error:
@@ -709,12 +697,21 @@ export class DeepImageService {
           };
         }
 
-        // Unexpected status
+        // Any other status means the job is still running. Deep-Image.ai
+        // reports several intermediate states (processing, not_started,
+        // queued, received, in_progress, predicting, …) and can introduce new
+        // ones. Treat every non-complete / non-failed status as "keep polling"
+        // instead of erroring. A hard-coded allowlist here previously errored
+        // on Deep-Image's newer `predicting` state ("Unexpected job status:
+        // predicting"), failing upscales that would otherwise have completed.
         else {
-          return {
-            status: 'error',
-            error: `Unexpected job status: ${result.status}`,
-          };
+          if (attempt === maxRetries) {
+            return {
+              status: 'error',
+              error: `Job did not complete in time (last status: ${result.status})`,
+            };
+          }
+          continue;
         }
       } catch (error) {
         if (attempt === maxRetries) {
