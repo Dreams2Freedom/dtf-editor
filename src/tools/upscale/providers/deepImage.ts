@@ -7,14 +7,27 @@
  * marshaling + response parsing.
  */
 
-import type { UpscaleOptions, UpscaleProvider, UpscaleResult } from './types';
+import type {
+  UpscaleInput,
+  UpscaleOptions,
+  UpscaleProvider,
+  UpscaleResult,
+} from './types';
 
 export const deepImageProvider: UpscaleProvider = {
   id: 'deepimage',
   label: 'Deep-Image.ai',
-  async run(blob: Blob, options: UpscaleOptions): Promise<UpscaleResult> {
+  async run(input: UpscaleInput, options: UpscaleOptions): Promise<UpscaleResult> {
     const fd = new FormData();
-    fd.append('image', blob, 'input.png');
+    // Prefer the URL path: the server hands Deep-Image the URL and it fetches
+    // the image directly — no large PNG upload through the function.
+    if (input.imageUrl) {
+      fd.append('imageUrl', input.imageUrl);
+    } else if (input.blob) {
+      fd.append('image', input.blob, 'input.png');
+    } else {
+      throw new Error('No image provided for upscaling');
+    }
     fd.append('processingMode', options.processingMode);
     if (typeof options.scale === 'number') {
       fd.append('scale', String(options.scale));

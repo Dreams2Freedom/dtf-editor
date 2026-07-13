@@ -18,9 +18,11 @@ import { useCallback, useState } from 'react';
 import { useDropzone, type FileRejection } from 'react-dropzone';
 import { Upload, Loader2, AlertCircle } from 'lucide-react';
 
+import { createClientSupabaseClient } from '@/lib/supabase/client';
+
 interface StudioUploadZoneProps {
-  /** Called after a successful upload with the new imageId + publicUrl. */
-  onUploaded: (info: { imageId: string; publicUrl: string }) => void;
+  /** Called after a successful upload with the image's public URL. */
+  onUploaded: (info: { publicUrl: string }) => void;
 }
 
 const ACCEPT = {
@@ -29,7 +31,23 @@ const ACCEPT = {
   'image/webp': ['.webp'],
 };
 
-const MAX_SIZE = 10 * 1024 * 1024; // 10MB — must match /api/upload server limit
+const MAX_SIZE = 10 * 1024 * 1024; // 10MB
+
+// Magic-byte signatures — a client-side parity check for the server's old
+// validation, since we now upload straight to Storage. Prevents a mislabeled /
+// non-image file from being staged even if the MIME type is spoofed.
+const IMAGE_SIGNATURES: { type: string; bytes: number[] }[] = [
+  { type: 'image/jpeg', bytes: [0xff, 0xd8, 0xff] },
+  { type: 'image/png', bytes: [0x89, 0x50, 0x4e, 0x47] },
+  { type: 'image/webp', bytes: [0x52, 0x49, 0x46, 0x46] }, // RIFF….WEBP
+];
+
+async function looksLikeDeclaredImage(file: File): Promise<boolean> {
+  const header = new Uint8Array(await file.slice(0, 12).arrayBuffer());
+  const sig = IMAGE_SIGNATURES.find(s => s.type === file.type);
+  if (!sig) return false;
+  return sig.bytes.every((b, i) => header[i] === b);
+}
 
 export function StudioUploadZone({ onUploaded }: StudioUploadZoneProps) {
   const [isUploading, setIsUploading] = useState(false);
@@ -49,18 +67,40 @@ export function StudioUploadZone({ onUploaded }: StudioUploadZoneProps) {
 
       setIsUploading(true);
       try {
-        const fd = new FormData();
-        fd.append('image', file, file.name);
-        const res = await fetch('/api/upload', {
-          method: 'POST',
-          body: fd,
-          credentials: 'include',
-        });
-        const data = await res.json();
-        if (!res.ok || !data.success) {
-          throw new Error(data.error || 'Upload failed');
+        if (!(await looksLikeDeclaredImage(file))) {
+          throw new Error('That file does not look like a valid image.');
         }
-        onUploaded({ imageId: data.imageId, publicUrl: data.publicUrl });
+
+        // Upload straight to Supabase Storage from the browser — no serverless
+        // function in the path, so no ~4.5MB request-body limit and no extra
+        // round-trip. Then load the image into the canvas from its public URL.
+        const supabase = createClientSupabaseClient();
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
+        if (!user) {
+          throw new Error('Please sign in to upload an image.');
+        }
+
+        const ext = (file.name.split('.').pop() || 'png')
+          .toLowerCase()
+          .replace(/[^a-z0-9]/g, '');
+        const path = `${user.id}/studio-uploads/${Date.now()}.${ext || 'png'}`;
+        const { error: upErr } = await supabase.storage
+          .from('images')
+          .upload(path, file, { contentType: file.type, upsert: true });
+        if (upErr) {
+          throw new Error(upErr.message || 'Upload failed');
+        }
+
+        const { data: pub } = supabase.storage
+          .from('images')
+          .getPublicUrl(path);
+        if (!pub?.publicUrl) {
+          throw new Error('Could not resolve the uploaded image URL.');
+        }
+
+        onUploaded({ publicUrl: pub.publicUrl });
       } catch (e) {
         const msg = e instanceof Error ? e.message : 'Upload failed';
         setError(msg);
