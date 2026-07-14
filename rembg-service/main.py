@@ -375,6 +375,16 @@ async def remove_background(
     # Legacy compatibility:
     post_process_white: bool = Form(default=True),
     white_threshold: int = Form(default=240),
+    # Edge-refinement knobs for the ML mask (Tier A quality upgrade).
+    # alpha_matting softens/cleans the cutout boundary (big first-pass quality
+    # win on photographic content); None = model-aware default (off for crisp
+    # graphics/text models, on for photographic models). post_process_mask
+    # removes stray background specks and fills small holes in the subject.
+    alpha_matting: Optional[bool] = Form(default=None),
+    alpha_matting_fg: int = Form(default=240),
+    alpha_matting_bg: int = Form(default=15),
+    alpha_matting_erode: int = Form(default=11),
+    post_process_mask: bool = Form(default=True),
     x_api_key: Optional[str] = Header(default=None),
 ):
     """
@@ -467,6 +477,29 @@ async def remove_background(
             )
         return _flood_fill_color_removal(src_img, target_rgb, tolerance, seeds_in)
 
+    # Helper: run the ML cutout with edge refinement (Tier A). alpha matting +
+    # mask post-processing markedly improve first-pass quality vs a bare
+    # remove(). Crisp graphics/text models keep hard edges by default; photo
+    # models get soft matting. Falls back to a plain (post-processed) mask if
+    # matting is unavailable so a removal never hard-fails.
+    def _ml_remove(src_img, session, model_name):
+        use_matting = alpha_matting
+        if use_matting is None:
+            use_matting = model_name not in ("birefnet-dis", "isnet-anime")
+        try:
+            return remove(
+                src_img,
+                session=session,
+                alpha_matting=use_matting,
+                alpha_matting_foreground_threshold=alpha_matting_fg,
+                alpha_matting_background_threshold=alpha_matting_bg,
+                alpha_matting_erode_size=alpha_matting_erode,
+                post_process_mask=post_process_mask,
+            )
+        except Exception as e:  # pragma: no cover - defensive
+            print(f"[remove] matting failed ({e}); retrying without matting")
+            return remove(src_img, session=session, post_process_mask=post_process_mask)
+
     # New mode-driven dispatch
     if mode == "color-fill":
         output_img = _do_color_fill(input_img)
@@ -485,11 +518,11 @@ async def remove_background(
 
     elif mode == "ml-only":
         session = _get_session(model)
-        output_img = remove(input_img, session=session)
+        output_img = _ml_remove(input_img, session, model)
 
     elif mode == "ml+color":
         session = _get_session(model)
-        output_img = remove(input_img, session=session)
+        output_img = _ml_remove(input_img, session, model)
         # Prefer multi-color cleanup when a palette was sent;
         # otherwise legacy: single-color or white-fill fallback.
         if target_rgbs:
