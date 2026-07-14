@@ -3,6 +3,10 @@ import { NextRequest, NextResponse } from 'next/server';
 import { env } from '@/config/env';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { withRateLimit } from '@/lib/rate-limit';
+import {
+  resolveRemovalImage,
+  cleanupStagedImage,
+} from '@/lib/background-removal/resolveImage';
 
 export const runtime = 'nodejs';
 export const maxDuration = 60;
@@ -48,23 +52,13 @@ async function handler(request: NextRequest) {
     );
   }
 
-  let formData: FormData;
-  try {
-    formData = await request.formData();
-  } catch {
-    return NextResponse.json(
-      { error: 'Failed to parse request' },
-      { status: 400 }
-    );
-  }
-
-  const image = formData.get('image');
-  if (!image || !(image instanceof Blob)) {
-    return NextResponse.json({ error: 'No image provided' }, { status: 400 });
+  const resolved = await resolveRemovalImage(request, user.id);
+  if (!resolved.ok) {
+    return NextResponse.json({ error: resolved.error }, { status: resolved.status });
   }
 
   const upstream = new FormData();
-  upstream.append('image', image, 'image.png');
+  upstream.append('image', resolved.blob, 'image.png');
 
   let serviceRes: Response;
   try {
@@ -75,8 +69,11 @@ async function handler(request: NextRequest) {
     });
   } catch (err) {
     console.error('[bg-removal/embed] fetch failed:', err);
+    await cleanupStagedImage(resolved.cleanupPath);
     return NextResponse.json({ error: 'Service unreachable' }, { status: 503 });
   }
+
+  await cleanupStagedImage(resolved.cleanupPath);
 
   if (!serviceRes.ok) {
     let detail = 'Embedding failed';
