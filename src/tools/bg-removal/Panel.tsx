@@ -330,6 +330,11 @@ export function BackgroundRemovalPanel({
   // any model so the manual choice is honored on subsequent loads.
   const [autoRoutedModel, setAutoRoutedModel] = useState(false);
   const userPickedModelRef = useRef(false);
+  // Whether the current image was classified as a graphic (multi-element
+  // artwork / logo / text). Used to bias the first pass toward the lossless
+  // color-key, which preserves disconnected elements (e.g. letters below a
+  // logo) that the ML saliency model would otherwise delete.
+  const isGraphicRef = useRef(false);
   const [viewMode, setViewMode] = useState<'cutout' | 'preview' | 'original'>(
     'cutout'
   );
@@ -589,13 +594,46 @@ export function BackgroundRemovalPanel({
       return runDetect(canvas)
         .then(detection => {
           const opts: RemovalOptions = (() => {
-            if (
-              !detection ||
-              detection.recommended_mode === 'ml-only' ||
-              detection.recommended_mode === 'noop'
-            ) {
+            if (!detection || detection.recommended_mode === 'noop') {
               return { mode: 'ml-only', model: 'bria-rmbg' };
             }
+            const rec = detection.recommended_mode;
+            const graphic = isGraphicRef.current;
+
+            // Solid / two-color backgrounds → lossless edge-connected color key.
+            // It removes only background reachable from the border, so it strips
+            // the background AND the empty space between elements while KEEPING
+            // every foreground element — including disconnected text (e.g.
+            // letters below a logo) that the ML saliency model deletes.
+            //
+            // For graphic artwork we also route the near-solid "gradient" case
+            // here: on multi-element designs the ML model eats disconnected
+            // pieces, so we prefer the color key unless the background is
+            // genuinely complex. ML stays the default for photographic content.
+            if (rec === 'color-fill' || (rec === 'ml+color' && graphic)) {
+              return {
+                mode: 'color-fill',
+                targetColor: detection.dominant,
+                tolerance: 30,
+              };
+            }
+            if (rec === 'two-color-fill') {
+              return {
+                mode: 'color-fill',
+                targetColor: detection.dominant,
+                removeColors: detection.secondary
+                  ? [detection.dominant, detection.secondary]
+                  : undefined,
+                tolerance: 30,
+              };
+            }
+            if (rec === 'ml-only') {
+              return {
+                mode: 'ml-only',
+                model: graphic ? 'birefnet-dis' : 'bria-rmbg',
+              };
+            }
+            // gradient on photographic content → ML mask + color cleanup
             return {
               mode: 'ml+color',
               model: 'bria-rmbg',
@@ -668,18 +706,19 @@ export function BackgroundRemovalPanel({
     // model to birefnet-dis ("High Detail (Graphics + Text)") for
     // graphics-y inputs. Honors a manual pick — once the user touches
     // the dropdown, userPickedModelRef pins their choice.
+    let graphic = false;
+    try {
+      graphic = classifyImage(image) === 'graphic';
+    } catch {
+      // Classifier never throws in practice; fall back to non-graphic.
+    }
+    isGraphicRef.current = graphic;
     if (!userPickedModelRef.current) {
-      try {
-        const cls = classifyImage(image);
-        if (cls === 'graphic') {
-          setModel('birefnet-dis');
-          setAutoRoutedModel(true);
-        } else {
-          setAutoRoutedModel(false);
-        }
-      } catch {
-        // Classifier never throws in practice, but if it does fall
-        // back to the default model silently.
+      if (graphic) {
+        setModel('birefnet-dis');
+        setAutoRoutedModel(true);
+      } else {
+        setAutoRoutedModel(false);
       }
     }
 
