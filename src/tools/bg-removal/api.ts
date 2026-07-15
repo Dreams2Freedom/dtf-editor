@@ -105,12 +105,23 @@ export async function removeBackground(
     payload.keep_colors_json = JSON.stringify(options.keepColors);
   }
 
-  const res = await fetch('/api/background-removal/in-house', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload),
-    credentials: 'include',
-  });
+  // The Python rembg-service loads its ML model lazily on the first request to
+  // a cold container (~3-6s), which can surface as a 502/503/504 before the
+  // model is warm. Retry server-side (5xx) failures once after a short delay so
+  // the user doesn't see a spurious "didn't remove" on the very first open.
+  const doFetch = () =>
+    fetch('/api/background-removal/in-house', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+      credentials: 'include',
+    });
+
+  let res = await doFetch();
+  if (!res.ok && res.status >= 500) {
+    await new Promise(resolve => setTimeout(resolve, 1500));
+    res = await doFetch();
+  }
 
   if (!res.ok) {
     const body = await res.json().catch(() => ({}));

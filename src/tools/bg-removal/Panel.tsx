@@ -16,6 +16,7 @@ import {
   Trash2,
   Scissors,
   CheckCircle2,
+  Hand,
 } from 'lucide-react';
 
 import MagicWand from '@/lib/magic-wand';
@@ -78,6 +79,52 @@ const MODELS: { value: BgRemovalModel; label: string }[] = [
 
 function rgbToHex([r, g, b]: RGB): string {
   return '#' + [r, g, b].map(v => v.toString(16).padStart(2, '0')).join('');
+}
+
+// ---------- Brush size → AI reach ----------
+// The brush is an AI region-selector (SAM), not a per-pixel paint brush, so a
+// single dot can select a whole region far from where you clicked. To make the
+// brush behave predictably, brush size now controls how far the AI's selection
+// is allowed to extend from the actual stroke:
+//   • small brush  → tight reach → precise, local touch-ups
+//   • large brush  → wide reach  → bulk-removes the whole detected region
+// At/above REACH_UNLIMITED_SIZE the reach is uncapped (original bulk behavior).
+const REACH_RADIUS_PER_SIZE = 5; // canvas px of reach per brush-size unit
+const REACH_UNLIMITED_SIZE = 64; // brush size at/above which reach is uncapped
+
+/**
+ * Build a binary mask (1 byte/pixel) covering everything within `radius`
+ * canvas-pixels of any point on the stroke. Used to confine the AI's selected
+ * region to the neighborhood of the brush stroke. Points are already spaced
+ * closely relative to `radius`, so stamping a filled disc at each covers the
+ * stroke without gaps.
+ */
+function buildReachMask(
+  points: Array<{ x: number; y: number }>,
+  radius: number,
+  width: number,
+  height: number
+): Uint8Array {
+  const mask = new Uint8Array(width * height);
+  const r = Math.max(1, Math.round(radius));
+  const r2 = r * r;
+  for (const p of points) {
+    const cx = p.x;
+    const cy = p.y;
+    const minX = Math.max(0, Math.floor(cx - r));
+    const maxX = Math.min(width - 1, Math.ceil(cx + r));
+    const minY = Math.max(0, Math.floor(cy - r));
+    const maxY = Math.min(height - 1, Math.ceil(cy + r));
+    for (let y = minY; y <= maxY; y++) {
+      const dy = y - cy;
+      const rowBase = y * width;
+      for (let x = minX; x <= maxX; x++) {
+        const dx = x - cx;
+        if (dx * dx + dy * dy <= r2) mask[rowBase + x] = 1;
+      }
+    }
+  }
+  return mask;
 }
 
 function pathToSvgD(
@@ -356,6 +403,11 @@ export function BackgroundRemovalPanel({
   const [pan, setPan] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
   const [isSpaceHeld, setIsSpaceHeld] = useState(false);
   const isSpaceHeldRef = useRef(false);
+  // Pan (hand) tool: when on, dragging pans the canvas instead of painting.
+  // Complements spacebar-pan (desktop power users) and middle-mouse-pan with a
+  // discoverable, touch-friendly toggle. Mirrored to a ref for pointer handlers.
+  const [isPanMode, setIsPanMode] = useState(false);
+  const isPanModeRef = useRef(false);
   const canvasZoomWrapperRef = useRef<HTMLDivElement | null>(null);
   // Pointer-event bookkeeping: active pointers, gesture start, pan-drag start
   const activePointersRef = useRef<
@@ -388,6 +440,8 @@ export function BackgroundRemovalPanel({
   const {
     status,
     error,
+    isEmbedding,
+    embedError,
     samSession,
     runDetect,
     runRemoval,
@@ -886,10 +940,31 @@ export function BackgroundRemovalPanel({
 
       const result = await runPredictRaw(points);
       if (!result) return;
-      const { mask: samMask, width: rw, height: rh } = result;
-      if (rw !== orig.width || rh !== orig.height || samMask.length !== total) {
+      const { mask: samRawMask, width: rw, height: rh } = result;
+      if (
+        rw !== orig.width ||
+        rh !== orig.height ||
+        samRawMask.length !== total
+      ) {
         console.warn('SAM mask dimensions mismatch; ignoring stroke');
         return;
+      }
+
+      // Confine SAM's selection to the neighborhood of the stroke, scaled by
+      // brush size. Small brush → tight reach (precise); large brush → wide
+      // reach; at/above REACH_UNLIMITED_SIZE the full SAM region applies (bulk).
+      let samMask = samRawMask;
+      if (sizeAtCommit < REACH_UNLIMITED_SIZE) {
+        const reachRadius = sizeAtCommit * REACH_RADIUS_PER_SIZE;
+        const reach = buildReachMask(
+          sampled,
+          reachRadius,
+          orig.width,
+          orig.height
+        );
+        const confined = new Uint8Array(total);
+        for (let i = 0; i < total; i++) confined[i] = samRawMask[i] & reach[i];
+        samMask = confined;
       }
 
       // Apply union (Keep) or difference (Remove) to the SAM-only mask.
@@ -995,8 +1070,9 @@ export function BackgroundRemovalPanel({
         return;
       }
 
-      // Single pointer + spacebar → pan drag (desktop only)
-      if (isSpaceHeldRef.current) {
+      // Single pointer → pan drag when the Hand tool is on, the spacebar is
+      // held (desktop), or the middle mouse button is used. Otherwise paint.
+      if (isPanModeRef.current || isSpaceHeldRef.current || e.button === 1) {
         panDragStartRef.current = {
           clientX: e.clientX,
           clientY: e.clientY,
@@ -1092,7 +1168,8 @@ export function BackgroundRemovalPanel({
       if (
         panelMode === 'ai-brush' &&
         e.pointerType === 'mouse' &&
-        !isSpaceHeldRef.current
+        !isSpaceHeldRef.current &&
+        !isPanModeRef.current
       ) {
         setCursorPos({ x: c.displayX, y: c.displayY });
       }
@@ -1156,7 +1233,13 @@ export function BackgroundRemovalPanel({
       if (panelMode !== 'ai-brush' || hasResult) return;
       e.preventDefault();
       const rect = wrapper.getBoundingClientRect();
-      const factor = e.deltaY < 0 ? 1.1 : 1 / 1.1;
+      // Proportional, smoothed zoom. Trackpads fire many small deltas and mouse
+      // wheels fire large ones; exp(delta * k) gives a gentle, consistent feel
+      // instead of the old fixed 10%-per-event step (which felt hyper-sensitive
+      // on trackpads). Normalize line-mode deltas (deltaMode 1) to pixels first.
+      const unit = e.deltaMode === 1 ? 16 : 1;
+      const delta = Math.max(-40, Math.min(40, e.deltaY * unit));
+      const factor = Math.exp(-delta * 0.0025);
       const newZoom = clampZoom(zoom * factor);
       if (newZoom === zoom) return;
       const dx = (e.clientX - rect.left) * (1 - newZoom / zoom);
@@ -1459,17 +1542,18 @@ export function BackgroundRemovalPanel({
     link.click();
   }, [hasResult]);
 
-  const isProcessing = [
-    'authorizing',
-    'detecting',
-    'removing',
-    'embedding',
-    'predicting',
-  ].includes(status);
+  const isProcessing =
+    [
+      'authorizing',
+      'detecting',
+      'removing',
+      'embedding',
+      'predicting',
+    ].includes(status) || isEmbedding;
   const samReady = samSession !== null;
   const cursorClass = (() => {
     if (hasResult) return '';
-    if (isSpaceHeld) return 'cursor-grab';
+    if (isSpaceHeld || isPanMode) return 'cursor-grab';
     if (panelMode === 'color-pick') {
       return clickRemoveMode ? 'cursor-crosshair' : 'cursor-cell';
     }
@@ -1672,7 +1756,8 @@ export function BackgroundRemovalPanel({
               samReady &&
               !hasResult &&
               lastPointerTypeRef.current === 'mouse' &&
-              !isSpaceHeld && (
+              !isSpaceHeld &&
+              !isPanMode && (
                 <div
                   className="absolute pointer-events-none rounded-full border-2"
                   style={{
@@ -1798,7 +1883,15 @@ export function BackgroundRemovalPanel({
               <>
                 {/* Readiness banner */}
                 <div className="rounded-lg border border-gray-200 bg-gray-50 p-3 text-xs">
-                  {!samReady ? (
+                  {embedError && !samReady ? (
+                    <div className="flex items-start gap-2 text-red-700">
+                      <AlertTriangle className="w-3.5 h-3.5 mt-0.5 flex-shrink-0" />
+                      <p>
+                        The AI Brush couldn&apos;t load ({embedError}). You can
+                        still use Color Pick, or reopen the tool to retry.
+                      </p>
+                    </div>
+                  ) : !samReady ? (
                     <div className="flex items-center gap-2 text-gray-600">
                       <Loader2 className="w-3.5 h-3.5 animate-spin" />
                       Preparing AI Brush... (~5s)
@@ -1820,14 +1913,18 @@ export function BackgroundRemovalPanel({
                 {/* Tool toggle */}
                 <div>
                   <label className="block text-xs font-medium text-gray-600 mb-1.5">
-                    Brush Tool
+                    Tool
                   </label>
                   <div className="flex rounded-lg border border-gray-200 overflow-hidden">
                     <button
-                      onClick={() => setBrushTool('keep')}
+                      onClick={() => {
+                        setBrushTool('keep');
+                        setIsPanMode(false);
+                        isPanModeRef.current = false;
+                      }}
                       disabled={!samReady}
                       className={`flex-1 flex items-center justify-center gap-1 py-2 text-xs font-medium transition-colors disabled:opacity-50 ${
-                        brushTool === 'keep'
+                        !isPanMode && brushTool === 'keep'
                           ? 'bg-green-600 text-white'
                           : 'text-gray-600 hover:bg-gray-50'
                       }`}
@@ -1836,10 +1933,14 @@ export function BackgroundRemovalPanel({
                       Keep
                     </button>
                     <button
-                      onClick={() => setBrushTool('remove')}
+                      onClick={() => {
+                        setBrushTool('remove');
+                        setIsPanMode(false);
+                        isPanModeRef.current = false;
+                      }}
                       disabled={!samReady}
-                      className={`flex-1 flex items-center justify-center gap-1 py-2 text-xs font-medium transition-colors disabled:opacity-50 ${
-                        brushTool === 'remove'
+                      className={`flex-1 flex items-center justify-center gap-1 py-2 text-xs font-medium transition-colors disabled:opacity-50 border-l border-gray-200 ${
+                        !isPanMode && brushTool === 'remove'
                           ? 'bg-red-600 text-white'
                           : 'text-gray-600 hover:bg-gray-50'
                       }`}
@@ -1847,17 +1948,52 @@ export function BackgroundRemovalPanel({
                       <Minus className="w-3.5 h-3.5" />
                       Remove
                     </button>
+                    <button
+                      onClick={() => {
+                        const next = !isPanMode;
+                        setIsPanMode(next);
+                        isPanModeRef.current = next;
+                      }}
+                      title="Drag to move the design around the canvas"
+                      className={`flex-1 flex items-center justify-center gap-1 py-2 text-xs font-medium transition-colors border-l border-gray-200 ${
+                        isPanMode
+                          ? 'bg-blue-600 text-white'
+                          : 'text-gray-600 hover:bg-gray-50'
+                      }`}
+                    >
+                      <Hand className="w-3.5 h-3.5" />
+                      Move
+                    </button>
                   </div>
+                  <p className="text-xs text-gray-400 mt-1">
+                    Use <span className="font-medium">Move</span> (or hold Space,
+                    or drag with the middle mouse button) to pan. Scroll to zoom.
+                  </p>
                 </div>
 
-                {/* Brush size */}
+                {/* Brush size — now also controls AI reach (see below). */}
                 <div>
                   <div className="flex items-center justify-between mb-1">
                     <label className="text-xs font-medium text-gray-600">
-                      Brush Size
+                      Brush Size &amp; Reach
                     </label>
                     <span className="text-xs text-gray-500 tabular-nums">
-                      {brushSize}px
+                      {brushSize}px ·{' '}
+                      <span
+                        className={
+                          brushSize >= REACH_UNLIMITED_SIZE
+                            ? 'text-amber-600 font-medium'
+                            : brushSize <= 20
+                              ? 'text-green-600 font-medium'
+                              : 'text-blue-600 font-medium'
+                        }
+                      >
+                        {brushSize >= REACH_UNLIMITED_SIZE
+                          ? 'Bulk'
+                          : brushSize <= 20
+                            ? 'Precise'
+                            : 'Medium'}
+                      </span>
                     </span>
                   </div>
                   <input
@@ -1870,8 +2006,12 @@ export function BackgroundRemovalPanel({
                     className="w-full accent-blue-600"
                   />
                   <p className="text-xs text-gray-400 mt-1">
-                    Size of click points along brush strokes. Visual cursor only
-                    — SAM figures out the actual region.
+                    Controls both the cursor size and how far the AI reaches from
+                    your stroke.{' '}
+                    <span className="text-green-600">Small = precise</span>{' '}
+                    touch-ups near where you paint;{' '}
+                    <span className="text-amber-600">large = bulk</span> removal
+                    of the whole detected region.
                   </p>
                 </div>
 
