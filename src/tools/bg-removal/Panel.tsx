@@ -16,6 +16,7 @@ import {
   Trash2,
   Scissors,
   CheckCircle2,
+  Hand,
 } from 'lucide-react';
 
 import MagicWand from '@/lib/magic-wand';
@@ -23,6 +24,11 @@ import { CanvasProcessingOverlay } from '@/components/studio/StudioCanvasFrame';
 import { detectInternalHoles } from './holeDetection';
 import { edgeFloodBackground, detectBgColorFromEdges } from './edgeFlood';
 import { computeStrokeRegions } from './strokeSemantics';
+import {
+  strokeToSeeds,
+  growRegionFromStroke,
+  featherAlpha,
+} from './scribbleBrush';
 import { removeStrandedSpecks } from './strandedComponents';
 import { classifyImage } from './imageStats';
 import {
@@ -79,6 +85,23 @@ const MODELS: { value: BgRemovalModel; label: string }[] = [
 function rgbToHex([r, g, b]: RGB): string {
   return '#' + [r, g, b].map(v => v.toString(16).padStart(2, '0')).join('');
 }
+
+// ---------- Edge-aware scribble brush tuning ----------
+// The brush is a client-side, edge-aware region grow (ClippingMagic-style),
+// not a semantic AI object selector. Each stroke floods outward from where you
+// paint, snapping to real image edges and staying within a color band of the
+// seed color. Brush size controls the spatial reach:
+//   • small brush → short reach → precise, local touch-ups
+//   • large brush → long reach  → fills a whole coherent region up to its edges
+const GROW_REACH_PER_SIZE = 4; // BFS reach (px) per brush-size unit
+const GROW_SEED_RADIUS_DIVISOR = 4; // seed disc radius = brushSize / this
+const GROW_EDGE_THRESHOLD = 40; // per-step RGB gradient that counts as an edge
+const GROW_COLOR_TOLERANCE = 80; // max RGB distance from the seed mean color
+// Feather radius (px) for softening the cutout edge into a 0-255 alpha ramp.
+const FEATHER_RADIUS = 1;
+// Brush-size thresholds for the Precise / Medium / Bulk label.
+const BRUSH_MEDIUM_SIZE = 20;
+const BRUSH_BULK_SIZE = 48;
 
 function pathToSvgD(
   path: Array<{ x: number; y: number }>,
@@ -306,6 +329,9 @@ export function BackgroundRemovalPanel({
   const recomputeCumulativeRef = useRef<(() => void) | null>(null);
   const [brushTool, setBrushTool] = useState<BrushTool>('keep');
   const [brushSize, setBrushSize] = useState(20);
+  // The edge-aware scribble brush runs entirely on the client, so it's usable
+  // as soon as the original pixels are loaded — no SAM embed / model warm-up.
+  const [brushReady, setBrushReady] = useState(false);
   const [cleanupTolerance, setCleanupTolerance] = useState(60);
   // Phase 2.2 (revised): default 50 with the new connected-component
   // algorithm. Higher = wider color tolerance + smaller blob threshold
@@ -330,6 +356,11 @@ export function BackgroundRemovalPanel({
   // any model so the manual choice is honored on subsequent loads.
   const [autoRoutedModel, setAutoRoutedModel] = useState(false);
   const userPickedModelRef = useRef(false);
+  // Whether the current image was classified as a graphic (multi-element
+  // artwork / logo / text). Used to bias the first pass toward the lossless
+  // color-key, which preserves disconnected elements (e.g. letters below a
+  // logo) that the ML saliency model would otherwise delete.
+  const isGraphicRef = useRef(false);
   const [viewMode, setViewMode] = useState<'cutout' | 'preview' | 'original'>(
     'cutout'
   );
@@ -351,6 +382,11 @@ export function BackgroundRemovalPanel({
   const [pan, setPan] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
   const [isSpaceHeld, setIsSpaceHeld] = useState(false);
   const isSpaceHeldRef = useRef(false);
+  // Pan (hand) tool: when on, dragging pans the canvas instead of painting.
+  // Complements spacebar-pan (desktop power users) and middle-mouse-pan with a
+  // discoverable, touch-friendly toggle. Mirrored to a ref for pointer handlers.
+  const [isPanMode, setIsPanMode] = useState(false);
+  const isPanModeRef = useRef(false);
   const canvasZoomWrapperRef = useRef<HTMLDivElement | null>(null);
   // Pointer-event bookkeeping: active pointers, gesture start, pan-drag start
   const activePointersRef = useRef<
@@ -383,11 +419,8 @@ export function BackgroundRemovalPanel({
   const {
     status,
     error,
-    samSession,
     runDetect,
     runRemoval,
-    runEmbed,
-    runPredictRaw,
     reset,
   } = useBackgroundRemoval();
 
@@ -556,8 +589,11 @@ export function BackgroundRemovalPanel({
     const od = out.data;
     const src = orig.data;
     if (mode === 'preview') {
+      // Feather the boundary into a soft alpha ramp so edges are anti-aliased
+      // (the ClippingMagic-quality edge), not a hard 0/255 stairstep.
+      const soft = featherAlpha(mask, w, h, FEATHER_RADIUS);
       for (let i = 0; i < mask.length; i++) {
-        od[i * 4 + 3] = mask[i] ? src[i * 4 + 3] : 0;
+        od[i * 4 + 3] = Math.round((src[i * 4 + 3] * soft[i]) / 255);
       }
     } else {
       // cutout: faded for removed
@@ -577,25 +613,57 @@ export function BackgroundRemovalPanel({
   }, [viewMode, renderPreviewFromMask]);
 
   /**
-   * Kick off the AI pipeline (SAM embed + smart initial mask via BRIA + auto color-fill).
-   * Called on mount AND from handleReset so "Reset to original" re-runs the analysis.
+   * Kick off the smart initial mask (detect → ML/color-key auto-cutout).
+   * Called on mount AND from handleReset so "Reset to original" re-runs it.
+   * The brush itself is client-side and needs no server warm-up here.
    * NOTE: must be declared AFTER renderPreviewFromMask to avoid TDZ on the deps array.
    */
   const runInitialAnalysis = useCallback(
     (canvas: HTMLCanvasElement) => {
-      // SAM encoder loads in parallel; brush is interactive when this resolves.
-      runEmbed(canvas);
       // Smart initial mask: detect → ml+color when bg is flood-fillable.
       return runDetect(canvas)
         .then(detection => {
           const opts: RemovalOptions = (() => {
-            if (
-              !detection ||
-              detection.recommended_mode === 'ml-only' ||
-              detection.recommended_mode === 'noop'
-            ) {
+            if (!detection || detection.recommended_mode === 'noop') {
               return { mode: 'ml-only', model: 'bria-rmbg' };
             }
+            const rec = detection.recommended_mode;
+            const graphic = isGraphicRef.current;
+
+            // Solid / two-color backgrounds → lossless edge-connected color key.
+            // It removes only background reachable from the border, so it strips
+            // the background AND the empty space between elements while KEEPING
+            // every foreground element — including disconnected text (e.g.
+            // letters below a logo) that the ML saliency model deletes.
+            //
+            // For graphic artwork we also route the near-solid "gradient" case
+            // here: on multi-element designs the ML model eats disconnected
+            // pieces, so we prefer the color key unless the background is
+            // genuinely complex. ML stays the default for photographic content.
+            if (rec === 'color-fill' || (rec === 'ml+color' && graphic)) {
+              return {
+                mode: 'color-fill',
+                targetColor: detection.dominant,
+                tolerance: 30,
+              };
+            }
+            if (rec === 'two-color-fill') {
+              return {
+                mode: 'color-fill',
+                targetColor: detection.dominant,
+                removeColors: detection.secondary
+                  ? [detection.dominant, detection.secondary]
+                  : undefined,
+                tolerance: 30,
+              };
+            }
+            if (rec === 'ml-only') {
+              return {
+                mode: 'ml-only',
+                model: graphic ? 'birefnet-dis' : 'bria-rmbg',
+              };
+            }
+            // gradient on photographic content → ML mask + color cleanup
             return {
               mode: 'ml+color',
               model: 'bria-rmbg',
@@ -640,7 +708,7 @@ export function BackgroundRemovalPanel({
           }
         });
     },
-    [runEmbed, runDetect, runRemoval, renderPreviewFromMask]
+    [runDetect, runRemoval, renderPreviewFromMask]
   );
 
   // Init canvas, kick off analysis on mount.
@@ -655,6 +723,8 @@ export function BackgroundRemovalPanel({
     ctx.drawImage(image, 0, 0);
     canvasRef.current = canvas;
     originalDataRef.current = ctx.getImageData(0, 0, w, h);
+    // Original pixels are in memory — the client-side scribble brush is ready.
+    setBrushReady(true);
 
     const preview = previewRef.current;
     if (preview) {
@@ -668,18 +738,19 @@ export function BackgroundRemovalPanel({
     // model to birefnet-dis ("High Detail (Graphics + Text)") for
     // graphics-y inputs. Honors a manual pick — once the user touches
     // the dropdown, userPickedModelRef pins their choice.
+    let graphic = false;
+    try {
+      graphic = classifyImage(image) === 'graphic';
+    } catch {
+      // Classifier never throws in practice; fall back to non-graphic.
+    }
+    isGraphicRef.current = graphic;
     if (!userPickedModelRef.current) {
-      try {
-        const cls = classifyImage(image);
-        if (cls === 'graphic') {
-          setModel('birefnet-dis');
-          setAutoRoutedModel(true);
-        } else {
-          setAutoRoutedModel(false);
-        }
-      } catch {
-        // Classifier never throws in practice, but if it does fall
-        // back to the default model silently.
+      if (graphic) {
+        setModel('birefnet-dis');
+        setAutoRoutedModel(true);
+      } else {
+        setAutoRoutedModel(false);
       }
     }
 
@@ -822,7 +893,7 @@ export function BackgroundRemovalPanel({
   }, [cleanupTolerance, recomputeCumulative]);
 
   const commitStroke = useCallback(
-    async (
+    (
       tool: BrushTool,
       path: Array<{ x: number; y: number }>,
       sizeAtCommit: number
@@ -839,27 +910,37 @@ export function BackgroundRemovalPanel({
         y: Math.round(p.y),
         label,
       }));
-      if (points.length === 0) return;
 
-      // Snapshot pre-cleanup SAM mask BEFORE this stroke (for undo).
+      // Snapshot pre-cleanup mask BEFORE this stroke (for undo).
       const currentSam = samMaskRef.current ?? new Uint8Array(total);
       const maskBefore = new Uint8Array(currentSam);
 
-      const result = await runPredictRaw(points);
-      if (!result) return;
-      const { mask: samMask, width: rw, height: rh } = result;
-      if (rw !== orig.width || rh !== orig.height || samMask.length !== total) {
-        console.warn('SAM mask dimensions mismatch; ignoring stroke');
-        return;
-      }
+      // Edge-aware region grow (client-side, no server round-trip): seed from
+      // the stroke footprint, then flood over the original pixels — stopping at
+      // real edges and staying within a color band of the seed color. Brush
+      // size drives both the seed radius and how far the flood may travel.
+      const seedRadius = Math.max(1, sizeAtCommit / GROW_SEED_RADIUS_DIVISOR);
+      const seeds = strokeToSeeds(path, seedRadius, orig.width, orig.height);
+      const region = growRegionFromStroke(
+        orig.data,
+        orig.width,
+        orig.height,
+        seeds,
+        {
+          reachRadius: sizeAtCommit * GROW_REACH_PER_SIZE,
+          edgeThreshold: GROW_EDGE_THRESHOLD,
+          colorTolerance: GROW_COLOR_TOLERANCE,
+        }
+      );
+      if (region.length !== total) return;
 
-      // Apply union (Keep) or difference (Remove) to the SAM-only mask.
+      // Keep = add the region; Remove = subtract it.
       const nextSam = new Uint8Array(currentSam);
       if (tool === 'keep') {
-        for (let i = 0; i < total; i++) nextSam[i] = nextSam[i] | samMask[i];
+        for (let i = 0; i < total; i++) nextSam[i] = nextSam[i] | region[i];
       } else {
         for (let i = 0; i < total; i++)
-          nextSam[i] = nextSam[i] & (samMask[i] ^ 1);
+          nextSam[i] = nextSam[i] & (region[i] ^ 1);
       }
 
       const record: StrokeRecord = {
@@ -868,9 +949,10 @@ export function BackgroundRemovalPanel({
         rawPath: path.slice(),
         brushSize: sizeAtCommit,
         maskBefore,
-        // Snapshot SAM's predicted segment so the global passes can
-        // treat this stroke as a semantic selection of the whole region.
-        samMask: new Uint8Array(samMask),
+        // Store the grown region so the global passes (edge flood, hole
+        // detection, speck removal) can treat this stroke as a coherent
+        // selection, not just the literal brush footprint.
+        samMask: region,
       };
       const updatedHistory = [...strokeHistoryRef.current, record];
 
@@ -880,7 +962,7 @@ export function BackgroundRemovalPanel({
       // Derive cumulative (post-cleanup) and render
       recomputeCumulative();
     },
-    [runPredictRaw, recomputeCumulative]
+    [recomputeCumulative]
   );
 
   // ---------- Canvas pointer handlers (mouse + touch + pen) + zoom/pan ----------
@@ -956,8 +1038,9 @@ export function BackgroundRemovalPanel({
         return;
       }
 
-      // Single pointer + spacebar → pan drag (desktop only)
-      if (isSpaceHeldRef.current) {
+      // Single pointer → pan drag when the Hand tool is on, the spacebar is
+      // held (desktop), or the middle mouse button is used. Otherwise paint.
+      if (isPanModeRef.current || isSpaceHeldRef.current || e.button === 1) {
         panDragStartRef.current = {
           clientX: e.clientX,
           clientY: e.clientY,
@@ -967,7 +1050,7 @@ export function BackgroundRemovalPanel({
         return;
       }
 
-      if (!samSession) return;
+      if (!brushReady) return;
       const c = eventToCanvasCoords(e);
       if (!c) return;
       isDrawingRef.current = true;
@@ -992,7 +1075,7 @@ export function BackgroundRemovalPanel({
     [
       hasResult,
       panelMode,
-      samSession,
+      brushReady,
       eventToCanvasCoords,
       brushTool,
       brushSize,
@@ -1053,7 +1136,8 @@ export function BackgroundRemovalPanel({
       if (
         panelMode === 'ai-brush' &&
         e.pointerType === 'mouse' &&
-        !isSpaceHeldRef.current
+        !isSpaceHeldRef.current &&
+        !isPanModeRef.current
       ) {
         setCursorPos({ x: c.displayX, y: c.displayY });
       }
@@ -1117,7 +1201,13 @@ export function BackgroundRemovalPanel({
       if (panelMode !== 'ai-brush' || hasResult) return;
       e.preventDefault();
       const rect = wrapper.getBoundingClientRect();
-      const factor = e.deltaY < 0 ? 1.1 : 1 / 1.1;
+      // Proportional, smoothed zoom. Trackpads fire many small deltas and mouse
+      // wheels fire large ones; exp(delta * k) gives a gentle, consistent feel
+      // instead of the old fixed 10%-per-event step (which felt hyper-sensitive
+      // on trackpads). Normalize line-mode deltas (deltaMode 1) to pixels first.
+      const unit = e.deltaMode === 1 ? 16 : 1;
+      const delta = Math.max(-40, Math.min(40, e.deltaY * unit));
+      const factor = Math.exp(-delta * 0.0025);
       const newZoom = clampZoom(zoom * factor);
       if (newZoom === zoom) return;
       const dx = (e.clientX - rect.left) * (1 - newZoom / zoom);
@@ -1340,8 +1430,10 @@ export function BackgroundRemovalPanel({
     const out = new ImageData(new Uint8ClampedArray(orig.data), w, h);
     const od = out.data;
     const src = orig.data;
+    // Feather the cutout edge into a soft alpha ramp for anti-aliased edges.
+    const soft = featherAlpha(mask, w, h, FEATHER_RADIUS);
     for (let i = 0; i < mask.length; i++) {
-      od[i * 4 + 3] = mask[i] ? src[i * 4 + 3] : 0;
+      od[i * 4 + 3] = Math.round((src[i * 4 + 3] * soft[i]) / 255);
     }
     ctx.clearRect(0, 0, w, h);
     ctx.putImageData(out, 0, 0);
@@ -1420,21 +1512,18 @@ export function BackgroundRemovalPanel({
     link.click();
   }, [hasResult]);
 
-  const isProcessing = [
-    'authorizing',
-    'detecting',
-    'removing',
-    'embedding',
-    'predicting',
-  ].includes(status);
-  const samReady = samSession !== null;
+  // Only the initial auto-cutout (detect → ML/color-key) drives the overlay
+  // now; the brush is client-side and instant.
+  const isProcessing = ['authorizing', 'detecting', 'removing'].includes(
+    status
+  );
   const cursorClass = (() => {
     if (hasResult) return '';
-    if (isSpaceHeld) return 'cursor-grab';
+    if (isSpaceHeld || isPanMode) return 'cursor-grab';
     if (panelMode === 'color-pick') {
       return clickRemoveMode ? 'cursor-crosshair' : 'cursor-cell';
     }
-    if (panelMode === 'ai-brush' && samReady) return 'cursor-none';
+    if (panelMode === 'ai-brush' && brushReady) return 'cursor-none';
     return '';
   })();
 
@@ -1630,10 +1719,11 @@ export function BackgroundRemovalPanel({
                 space and sized by zoom so it tracks the visible brush footprint. */}
             {panelMode === 'ai-brush' &&
               cursorPos &&
-              samReady &&
+              brushReady &&
               !hasResult &&
               lastPointerTypeRef.current === 'mouse' &&
-              !isSpaceHeld && (
+              !isSpaceHeld &&
+              !isPanMode && (
                 <div
                   className="absolute pointer-events-none rounded-full border-2"
                   style={{
@@ -1759,20 +1849,21 @@ export function BackgroundRemovalPanel({
               <>
                 {/* Readiness banner */}
                 <div className="rounded-lg border border-gray-200 bg-gray-50 p-3 text-xs">
-                  {!samReady ? (
+                  {!brushReady ? (
                     <div className="flex items-center gap-2 text-gray-600">
                       <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                      Preparing AI Brush... (~5s)
+                      Loading image...
                     </div>
                   ) : (
                     <div className="flex items-start gap-2 text-gray-700">
                       <CheckCircle2 className="w-3.5 h-3.5 mt-0.5 text-green-600 flex-shrink-0" />
                       <p>
-                        AI Brush ready. We auto-detected the subject. Use{' '}
+                        Brush ready. We auto-detected the subject. Paint a rough
+                        line — it snaps to the nearest edge. Use{' '}
                         <span className="text-green-700 font-medium">Keep</span>{' '}
-                        to add regions,{' '}
+                        to add,{' '}
                         <span className="text-red-700 font-medium">Remove</span>{' '}
-                        to erase.
+                        to erase. Bigger brush = wider reach.
                       </p>
                     </div>
                   )}
@@ -1781,14 +1872,18 @@ export function BackgroundRemovalPanel({
                 {/* Tool toggle */}
                 <div>
                   <label className="block text-xs font-medium text-gray-600 mb-1.5">
-                    Brush Tool
+                    Tool
                   </label>
                   <div className="flex rounded-lg border border-gray-200 overflow-hidden">
                     <button
-                      onClick={() => setBrushTool('keep')}
-                      disabled={!samReady}
+                      onClick={() => {
+                        setBrushTool('keep');
+                        setIsPanMode(false);
+                        isPanModeRef.current = false;
+                      }}
+                      disabled={!brushReady}
                       className={`flex-1 flex items-center justify-center gap-1 py-2 text-xs font-medium transition-colors disabled:opacity-50 ${
-                        brushTool === 'keep'
+                        !isPanMode && brushTool === 'keep'
                           ? 'bg-green-600 text-white'
                           : 'text-gray-600 hover:bg-gray-50'
                       }`}
@@ -1797,10 +1892,14 @@ export function BackgroundRemovalPanel({
                       Keep
                     </button>
                     <button
-                      onClick={() => setBrushTool('remove')}
-                      disabled={!samReady}
-                      className={`flex-1 flex items-center justify-center gap-1 py-2 text-xs font-medium transition-colors disabled:opacity-50 ${
-                        brushTool === 'remove'
+                      onClick={() => {
+                        setBrushTool('remove');
+                        setIsPanMode(false);
+                        isPanModeRef.current = false;
+                      }}
+                      disabled={!brushReady}
+                      className={`flex-1 flex items-center justify-center gap-1 py-2 text-xs font-medium transition-colors disabled:opacity-50 border-l border-gray-200 ${
+                        !isPanMode && brushTool === 'remove'
                           ? 'bg-red-600 text-white'
                           : 'text-gray-600 hover:bg-gray-50'
                       }`}
@@ -1808,17 +1907,52 @@ export function BackgroundRemovalPanel({
                       <Minus className="w-3.5 h-3.5" />
                       Remove
                     </button>
+                    <button
+                      onClick={() => {
+                        const next = !isPanMode;
+                        setIsPanMode(next);
+                        isPanModeRef.current = next;
+                      }}
+                      title="Drag to move the design around the canvas"
+                      className={`flex-1 flex items-center justify-center gap-1 py-2 text-xs font-medium transition-colors border-l border-gray-200 ${
+                        isPanMode
+                          ? 'bg-blue-600 text-white'
+                          : 'text-gray-600 hover:bg-gray-50'
+                      }`}
+                    >
+                      <Hand className="w-3.5 h-3.5" />
+                      Move
+                    </button>
                   </div>
+                  <p className="text-xs text-gray-400 mt-1">
+                    Use <span className="font-medium">Move</span> (or hold Space,
+                    or drag with the middle mouse button) to pan. Scroll to zoom.
+                  </p>
                 </div>
 
-                {/* Brush size */}
+                {/* Brush size — controls cursor size and edge-aware reach. */}
                 <div>
                   <div className="flex items-center justify-between mb-1">
                     <label className="text-xs font-medium text-gray-600">
-                      Brush Size
+                      Brush Size &amp; Reach
                     </label>
                     <span className="text-xs text-gray-500 tabular-nums">
-                      {brushSize}px
+                      {brushSize}px ·{' '}
+                      <span
+                        className={
+                          brushSize >= BRUSH_BULK_SIZE
+                            ? 'text-amber-600 font-medium'
+                            : brushSize <= BRUSH_MEDIUM_SIZE
+                              ? 'text-green-600 font-medium'
+                              : 'text-blue-600 font-medium'
+                        }
+                      >
+                        {brushSize >= BRUSH_BULK_SIZE
+                          ? 'Wide'
+                          : brushSize <= BRUSH_MEDIUM_SIZE
+                            ? 'Precise'
+                            : 'Medium'}
+                      </span>
                     </span>
                   </div>
                   <input
@@ -1831,8 +1965,12 @@ export function BackgroundRemovalPanel({
                     className="w-full accent-blue-600"
                   />
                   <p className="text-xs text-gray-400 mt-1">
-                    Size of click points along brush strokes. Visual cursor only
-                    — SAM figures out the actual region.
+                    Controls the cursor size and how far each stroke floods —
+                    every stroke snaps to the nearest real edge.{' '}
+                    <span className="text-green-600">Small = precise</span>{' '}
+                    touch-ups;{' '}
+                    <span className="text-amber-600">large = wide</span> fills up
+                    to the region&apos;s edges.
                   </p>
                 </div>
 
@@ -1978,7 +2116,7 @@ export function BackgroundRemovalPanel({
                 {/* Apply button */}
                 <button
                   onClick={handleApplyBrush}
-                  disabled={isProcessing || !samReady}
+                  disabled={isProcessing || !brushReady}
                   className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white text-sm font-medium rounded-lg transition-colors"
                 >
                   {isProcessing ? (

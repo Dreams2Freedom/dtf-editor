@@ -1,3 +1,4 @@
+import { createClientSupabaseClient } from '@/lib/supabase/client';
 import type {
   BgDetectionResult,
   BgRemovalModel,
@@ -16,18 +17,54 @@ function rgbToString(rgb: [number, number, number]): string {
 }
 
 /**
+ * Upload the full-resolution image straight to Supabase Storage from the
+ * browser and return its public URL + storage path. The API routes then fetch
+ * it server-side, so large designs bypass Vercel's ~4.5MB serverless
+ * request-body limit (which otherwise 413s). Mirrors the ClippingMagic path.
+ */
+async function stageImage(
+  imageBlob: Blob
+): Promise<{ url: string; path: string }> {
+  const supabase = createClientSupabaseClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user?.id) {
+    throw new Error('Please sign in to remove backgrounds.');
+  }
+
+  const path = `${user.id}/studio-inhouse/${Date.now()}-${Math.random()
+    .toString(36)
+    .slice(2, 8)}.png`;
+
+  const { error: uploadErr } = await supabase.storage
+    .from('images')
+    .upload(path, imageBlob, { contentType: 'image/png', upsert: true });
+  if (uploadErr) {
+    throw new Error(`Couldn't stage image: ${uploadErr.message}`);
+  }
+
+  const { data: pub } = supabase.storage.from('images').getPublicUrl(path);
+  if (!pub?.publicUrl) {
+    throw new Error('Could not resolve staged image URL');
+  }
+  return { url: pub.publicUrl, path };
+}
+
+/**
  * Sample border pixels and classify the background.
  * Returns the dominant color, optional secondary, variance, and recommended mode.
  */
 export async function detectBackground(
   imageBlob: Blob
 ): Promise<BgDetectionResult> {
-  const form = new FormData();
-  form.append('image', imageBlob, 'image.png');
+  const { url, path } = await stageImage(imageBlob);
 
   const res = await fetch('/api/background-removal/detect', {
     method: 'POST',
-    body: form,
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ url, path }),
+    credentials: 'include',
   });
 
   if (!res.ok) {
@@ -45,29 +82,46 @@ export async function removeBackground(
   imageBlob: Blob,
   options: RemovalOptions
 ): Promise<RemoveResult> {
-  const form = new FormData();
-  form.append('image', imageBlob, 'image.png');
-  form.append('mode', options.mode);
-  if (options.model) form.append('model', options.model);
+  const { url, path } = await stageImage(imageBlob);
+
+  const payload: Record<string, unknown> = {
+    url,
+    path,
+    mode: options.mode,
+  };
+  if (options.model) payload.model = options.model;
   if (options.targetColor)
-    form.append('target_color', rgbToString(options.targetColor));
+    payload.target_color = rgbToString(options.targetColor);
   if (typeof options.tolerance === 'number')
-    form.append('tolerance', String(options.tolerance));
+    payload.tolerance = String(options.tolerance);
   if (options.seedPoints && options.seedPoints.length > 0) {
-    form.append('seed_points', JSON.stringify(options.seedPoints));
+    payload.seed_points = JSON.stringify(options.seedPoints);
   }
   // Multi-color palettes (Phase 1.14): JSON arrays of [r, g, b].
   if (options.removeColors && options.removeColors.length > 0) {
-    form.append('target_colors_json', JSON.stringify(options.removeColors));
+    payload.target_colors_json = JSON.stringify(options.removeColors);
   }
   if (options.keepColors && options.keepColors.length > 0) {
-    form.append('keep_colors_json', JSON.stringify(options.keepColors));
+    payload.keep_colors_json = JSON.stringify(options.keepColors);
   }
 
-  const res = await fetch('/api/background-removal/in-house', {
-    method: 'POST',
-    body: form,
-  });
+  // The Python rembg-service loads its ML model lazily on the first request to
+  // a cold container (~3-6s), which can surface as a 502/503/504 before the
+  // model is warm. Retry server-side (5xx) failures once after a short delay so
+  // the user doesn't see a spurious "didn't remove" on the very first open.
+  const doFetch = () =>
+    fetch('/api/background-removal/in-house', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+      credentials: 'include',
+    });
+
+  let res = await doFetch();
+  if (!res.ok && res.status >= 500) {
+    await new Promise(resolve => setTimeout(resolve, 1500));
+    res = await doFetch();
+  }
 
   if (!res.ok) {
     const body = await res.json().catch(() => ({}));
@@ -95,12 +149,13 @@ export async function removeBackgroundLegacy(
 }
 
 export async function embedImage(imageBlob: Blob): Promise<SamSession> {
-  const form = new FormData();
-  form.append('image', imageBlob, 'image.png');
+  const { url, path } = await stageImage(imageBlob);
 
   const res = await fetch('/api/background-removal/embed', {
     method: 'POST',
-    body: form,
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ url, path }),
+    credentials: 'include',
   });
 
   if (!res.ok) {

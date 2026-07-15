@@ -3,6 +3,10 @@ import { NextRequest, NextResponse } from 'next/server';
 import { env } from '@/config/env';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { withRateLimit } from '@/lib/rate-limit';
+import {
+  resolveRemovalImage,
+  cleanupStagedImage,
+} from '@/lib/background-removal/resolveImage';
 
 export const runtime = 'nodejs';
 export const maxDuration = 60;
@@ -48,41 +52,15 @@ async function handler(request: NextRequest) {
     );
   }
 
-  let formData: FormData;
-  try {
-    formData = await request.formData();
-  } catch {
-    return NextResponse.json(
-      { error: 'Failed to parse request' },
-      { status: 400 }
-    );
-  }
-
-  const image = formData.get('image');
-  if (!image || !(image instanceof Blob)) {
-    return NextResponse.json({ error: 'No image provided' }, { status: 400 });
+  const resolved = await resolveRemovalImage(request, user.id);
+  if (!resolved.ok) {
+    return NextResponse.json({ error: resolved.error }, { status: resolved.status });
   }
 
   const upstream = new FormData();
-  upstream.append('image', image, 'image.png');
-
-  // Forward every supported field if present
-  const passthrough = [
-    'model',
-    'mode',
-    'target_color',
-    'target_colors_json',
-    'keep_colors_json',
-    'tolerance',
-    'seed_points',
-    'post_process_white',
-    'white_threshold',
-  ];
-  for (const key of passthrough) {
-    const v = formData.get(key);
-    if (v !== null && typeof v === 'string') {
-      upstream.append(key, v);
-    }
+  upstream.append('image', resolved.blob, 'image.png');
+  for (const [key, value] of Object.entries(resolved.fields)) {
+    upstream.append(key, value);
   }
 
   const serviceRes = await fetch(`${env.REMBG_SERVICE_URL}/remove`, {
@@ -90,6 +68,9 @@ async function handler(request: NextRequest) {
     headers: { 'X-API-Key': env.REMBG_SERVICE_API_KEY },
     body: upstream,
   });
+
+  // Delete the staged temp object now that the service has the bytes.
+  await cleanupStagedImage(resolved.cleanupPath);
 
   if (!serviceRes.ok) {
     const text = await serviceRes.text().catch(() => '');

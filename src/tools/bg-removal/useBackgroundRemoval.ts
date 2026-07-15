@@ -20,6 +20,14 @@ import type {
 export interface UseBackgroundRemovalReturn {
   status: BgRemovalStatus;
   error: string | null;
+  /**
+   * SAM-embed progress, tracked separately from `status`. The embed runs
+   * concurrently with detect→remove on open; if it shared `status` it would
+   * clobber the removal's state (flipping the overlay off mid-removal and
+   * swallowing removal errors). Keep it isolated.
+   */
+  isEmbedding: boolean;
+  embedError: string | null;
   detection: BgDetectionResult | null;
   samSession: SamSession | null;
   /** Run full server removal pipeline with the given options. */
@@ -369,6 +377,8 @@ export function samplePathPoints(
 export function useBackgroundRemoval(): UseBackgroundRemovalReturn {
   const [status, setStatus] = useState<BgRemovalStatus>('idle');
   const [error, setError] = useState<string | null>(null);
+  const [isEmbedding, setIsEmbedding] = useState(false);
+  const [embedError, setEmbedError] = useState<string | null>(null);
   const [detection, setDetection] = useState<BgDetectionResult | null>(null);
   const [samSession, setSamSession] = useState<SamSession | null>(null);
   const abortRef = useRef<AbortController | null>(null);
@@ -377,6 +387,8 @@ export function useBackgroundRemoval(): UseBackgroundRemovalReturn {
     abortRef.current?.abort();
     setStatus('idle');
     setError(null);
+    setIsEmbedding(false);
+    setEmbedError(null);
     setDetection(null);
     setSamSession(null);
   }, []);
@@ -427,17 +439,19 @@ export function useBackgroundRemoval(): UseBackgroundRemovalReturn {
 
   const runEmbed = useCallback(
     async (canvas: HTMLCanvasElement): Promise<void> => {
+      // Tracked on its OWN state (isEmbedding/embedError) — never the shared
+      // `status`/`error` — so a concurrent detect→remove keeps its own state.
       try {
-        setError(null);
-        setStatus('embedding');
+        setEmbedError(null);
+        setIsEmbedding(true);
         const blob = await canvasToBlob(canvas);
         const session = await embedImage(blob);
         setSamSession(session);
-        setStatus('idle');
       } catch (err) {
         const msg = err instanceof Error ? err.message : 'Unknown error';
-        setError(msg);
-        setStatus('error');
+        setEmbedError(msg);
+      } finally {
+        setIsEmbedding(false);
       }
     },
     []
@@ -515,6 +529,8 @@ export function useBackgroundRemoval(): UseBackgroundRemovalReturn {
   return {
     status,
     error,
+    isEmbedding,
+    embedError,
     detection,
     samSession,
     runRemoval,

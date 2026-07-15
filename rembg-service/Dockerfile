@@ -21,6 +21,13 @@ RUN python -c "from rembg import new_session; new_session('bria-rmbg')" || true
 # Secondary common option: birefnet-general-lite (~178MB).
 RUN python -c "from rembg import new_session; new_session('birefnet-general-lite')" || true
 
+# Graphics/text detail model — the client auto-routes detected graphics/logos/
+# text here, so it MUST be pre-baked or the first graphic pays a cold download.
+RUN python -c "from rembg import new_session; new_session('birefnet-dis')" || true
+
+# "Maximum Quality" option offered in the Studio model picker.
+RUN python -c "from rembg import new_session; new_session('birefnet-general')" || true
+
 # SAM ViT-B (quantized) for interactive brush masking: ~100MB encoder + ~16MB decoder.
 # The /embed and /predict endpoints load these directly via onnxruntime.
 RUN python -c "from rembg import new_session; new_session('sam')" || true
