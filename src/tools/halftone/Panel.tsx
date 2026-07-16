@@ -19,7 +19,7 @@
  * user is on Free / Basic and over their monthly quota.
  */
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Loader2, Sparkles } from 'lucide-react';
 
 import {
@@ -78,6 +78,44 @@ const DOT_SHAPES: { value: DotShape; label: string }[] = [
   { value: 'line', label: 'Line' },
 ];
 
+/**
+ * One-click "looks" layered over the AM engine — the designer-friendly entry
+ * point (à la TheVectorLab's preset patterns). Each sets the AM parameters;
+ * the user can still fine-tune the sliders after picking one.
+ */
+const PRESETS: { label: string; opts: Partial<HalftoneOptions> }[] = [
+  {
+    label: 'Classic',
+    opts: { algorithm: 'am-halftone', dotShape: 'round', lpi: 45, angleDeg: 45 },
+  },
+  {
+    label: 'Fine',
+    opts: { algorithm: 'am-halftone', dotShape: 'round', lpi: 60, angleDeg: 45 },
+  },
+  {
+    label: 'Bold',
+    opts: { algorithm: 'am-halftone', dotShape: 'round', lpi: 28, angleDeg: 45 },
+  },
+  {
+    label: 'Newsprint',
+    opts: {
+      algorithm: 'am-halftone',
+      dotShape: 'round',
+      lpi: 38,
+      angleDeg: 15,
+      contrast: 12,
+    },
+  },
+  {
+    label: 'Comic',
+    opts: { algorithm: 'am-halftone', dotShape: 'round', lpi: 24, angleDeg: 0 },
+  },
+  {
+    label: 'Line Screen',
+    opts: { algorithm: 'am-halftone', dotShape: 'line', lpi: 50, angleDeg: 45 },
+  },
+];
+
 interface UsageGate {
   remaining: number;
   limit: number;
@@ -96,7 +134,8 @@ export function HalftonePanel({
   onCommit,
 }: HalftonePanelProps) {
   const [opts, setOpts] = useState<HalftoneOptions>(DEFAULT_HALFTONE_OPTIONS);
-  const [isProcessing, setIsProcessing] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false); // Apply/commit
+  const [isPreviewing, setIsPreviewing] = useState(false); // live re-render
   const [error, setError] = useState<string | null>(null);
   const [previewImage, setPreviewImage] = useState<HTMLImageElement | null>(
     null
@@ -104,11 +143,24 @@ export function HalftonePanel({
   const [viewMode, setViewMode] = useState<ViewMode>('original');
   const [zoom, setZoom] = useState(1);
 
-  // Reset preview if the working image changes (chained from another tool).
+  // The most recent rendered halftone canvas (from live preview) — reused by
+  // Apply so we don't re-render on commit.
+  const latestCanvasRef = useRef<HTMLCanvasElement | null>(null);
+  // Monotonic token so a slow render can't overwrite a newer one.
+  const previewTokenRef = useRef(0);
+  // Whether we've produced a preview for the current image yet (first preview
+  // flips the view to Halftone; later ones respect the user's toggle).
+  const hasPreviewRef = useRef(false);
+  // Last preview blob URL, revoked once its replacement has loaded.
+  const lastPreviewUrlRef = useRef<string | null>(null);
+
+  // Reset preview when the working image changes (chained from another tool).
   useEffect(() => {
     setPreviewImage(null);
     setViewMode('original');
     setError(null);
+    hasPreviewRef.current = false;
+    latestCanvasRef.current = null;
   }, [image]);
 
   const updateOption = useCallback(
@@ -118,20 +170,86 @@ export function HalftonePanel({
     []
   );
 
+  const applyPreset = useCallback((preset: Partial<HalftoneOptions>) => {
+    setOpts(prev => ({ ...prev, ...preset }));
+  }, []);
+
+  const renderToCanvas = useCallback(
+    async (o: HalftoneOptions): Promise<HTMLCanvasElement> => {
+      const provider =
+        o.algorithm === 'am-halftone' ? amHalftoneProvider : thingDitherProvider;
+      const result = await provider.run(image, o);
+      return result.canvas;
+    },
+    [image]
+  );
+
+  const canvasToPreviewImage = useCallback(
+    (canvas: HTMLCanvasElement): Promise<HTMLImageElement> =>
+      new Promise((resolve, reject) => {
+        canvas.toBlob(blob => {
+          if (!blob) {
+            reject(new Error('Halftone export failed'));
+            return;
+          }
+          const url = URL.createObjectURL(blob);
+          const img = new Image();
+          img.onload = () => {
+            // The previous preview URL is no longer displayed — revoke it.
+            if (lastPreviewUrlRef.current) {
+              URL.revokeObjectURL(lastPreviewUrlRef.current);
+            }
+            lastPreviewUrlRef.current = url;
+            resolve(img);
+          };
+          img.onerror = () => reject(new Error('Failed to load halftone'));
+          img.src = url;
+        }, 'image/png');
+      }),
+    []
+  );
+
+  // Live preview: re-render (locally, NO credit gate / no Studio commit) a
+  // short debounce after any option change. Only the explicit Apply button
+  // charges and commits.
+  useEffect(() => {
+    const token = ++previewTokenRef.current;
+    const handle = setTimeout(() => {
+      setIsPreviewing(true);
+      renderToCanvas(opts)
+        .then(async canvas => {
+          if (token !== previewTokenRef.current) return;
+          latestCanvasRef.current = canvas;
+          const img = await canvasToPreviewImage(canvas);
+          if (token !== previewTokenRef.current) return;
+          setPreviewImage(img);
+          setError(null);
+          if (!hasPreviewRef.current) {
+            hasPreviewRef.current = true;
+            setViewMode('halftone');
+          }
+        })
+        .catch(e => {
+          if (token === previewTokenRef.current) {
+            setError(e instanceof Error ? e.message : 'Halftone failed');
+          }
+        })
+        .finally(() => {
+          if (token === previewTokenRef.current) setIsPreviewing(false);
+        });
+    }, 200);
+    return () => clearTimeout(handle);
+  }, [opts, image, renderToCanvas, canvasToPreviewImage]);
+
   const handleApply = useCallback(async () => {
     setError(null);
     setIsProcessing(true);
     try {
-      const provider =
-        opts.algorithm === 'am-halftone'
-          ? amHalftoneProvider
-          : thingDitherProvider;
-      const result = await provider.run(image, opts);
+      const canvas = latestCanvasRef.current ?? (await renderToCanvas(opts));
 
-      // Tier check / credit deduction. Throws if the user's out of
-      // credits and over their monthly free limit.
+      // Tier check / credit deduction — ONLY here, never on live preview.
       try {
-        await onCommit(result.canvas);
+        await onCommit(canvas);
       } catch (gateErr) {
         const msg =
           gateErr instanceof Error ? gateErr.message : 'Halftone gate failed';
@@ -139,29 +257,12 @@ export function HalftonePanel({
         return;
       }
 
-      // Build a previewable HTMLImageElement from the canvas so the
-      // view-mode pill can swap between Original and Halftone.
-      const blob: Blob | null = await new Promise(resolve =>
-        result.canvas.toBlob(resolve, 'image/png')
-      );
-      if (!blob) throw new Error('Halftone export failed');
-      // NOTE: do NOT revoke this object URL — `previewImage.src` (this blob
-      // URL) is rendered via `<img src={displayed.src}>` for the Halftone
-      // view, so it must stay alive while displayed. Revoking here blanks the
-      // halftone preview.
-      const url = URL.createObjectURL(blob);
-      const preview = await new Promise<HTMLImageElement>((resolve, reject) => {
-        const img = new Image();
-        img.onload = () => resolve(img);
-        img.onerror = () => reject(new Error('Failed to load halftone'));
-        img.src = url;
-      });
-      setPreviewImage(preview);
-      setViewMode('halftone');
-
-      onApply(result.canvas, {
+      onApply(canvas, {
         operation: 'halftone',
-        provider: thingDitherProvider.id,
+        provider:
+          opts.algorithm === 'am-halftone'
+            ? amHalftoneProvider.id
+            : thingDitherProvider.id,
         modelId: opts.algorithm,
       });
     } catch (e) {
@@ -170,7 +271,7 @@ export function HalftonePanel({
     } finally {
       setIsProcessing(false);
     }
-  }, [image, opts, onApply, onCommit]);
+  }, [opts, onApply, onCommit, renderToCanvas]);
 
   const displayed =
     previewImage && viewMode === 'halftone' ? previewImage : image;
@@ -255,6 +356,26 @@ export function HalftonePanel({
                 Outputs a transparent PNG of black dots — your RIP software
                 handles the white underbase.
               </p>
+            </div>
+
+            {/* Presets — one-click looks (designer entry point) */}
+            <div>
+              <label className="block text-xs font-medium text-gray-500 mb-1.5 uppercase tracking-wide">
+                Presets
+              </label>
+              <div className="flex flex-wrap gap-1.5">
+                {PRESETS.map(p => (
+                  <button
+                    key={p.label}
+                    type="button"
+                    onClick={() => applyPreset(p.opts)}
+                    disabled={isProcessing}
+                    className="px-2.5 py-1 text-xs font-medium rounded-full border border-gray-200 text-gray-600 hover:bg-gray-50 hover:border-gray-300 transition-colors disabled:opacity-50"
+                  >
+                    {p.label}
+                  </button>
+                ))}
+              </div>
             </div>
 
             <div>
@@ -491,16 +612,25 @@ export function HalftonePanel({
               </p>
             </div>
 
+            <div className="flex items-center justify-center h-4">
+              {isPreviewing && (
+                <span className="flex items-center gap-1.5 text-xs text-gray-400">
+                  <Loader2 className="w-3 h-3 animate-spin" />
+                  Updating preview…
+                </span>
+              )}
+            </div>
+
             <button
               type="button"
               onClick={handleApply}
-              disabled={isProcessing}
+              disabled={isProcessing || isPreviewing}
               className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white text-sm font-medium rounded-lg transition-colors"
             >
               {isProcessing ? (
                 <>
                   <Loader2 className="w-4 h-4 animate-spin" />
-                  Halftoning…
+                  Applying…
                 </>
               ) : (
                 <>
@@ -510,9 +640,10 @@ export function HalftonePanel({
               )}
             </button>
 
-            <p className="text-xs text-gray-400 mt-auto pt-2">
-              Free on Starter plans and above. Basic and Free plans pay 1 credit
-              per halftone.
+            <p className="text-xs text-gray-400 pt-1">
+              The preview updates live as you adjust. Apply commits it to your
+              design. Free on Starter plans and above; Basic and Free plans pay
+              1 credit per halftone.
             </p>
           </div>
         </div>
