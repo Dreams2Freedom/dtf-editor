@@ -64,6 +64,111 @@ export function effectiveDpi(pixelWidth: number, printWidthIn: number): number {
   return 300;
 }
 
+/**
+ * Per-pixel luminance + alpha extracted once from a source image. Screening
+ * reads from this, so interactive re-screens don't re-rasterise the image.
+ */
+export interface LuminanceSource {
+  lum: Uint8Array; // 0-255 luminance per pixel
+  alpha: Uint8Array; // 0-255 source alpha per pixel
+  width: number;
+  height: number;
+}
+
+/** Rasterise a source image once into a luminance + alpha buffer. */
+export function extractLuminance(image: HTMLImageElement): LuminanceSource {
+  const width = image.naturalWidth || image.width;
+  const height = image.naturalHeight || image.height;
+  const c = document.createElement('canvas');
+  c.width = width;
+  c.height = height;
+  const ctx = c.getContext('2d');
+  if (!ctx) throw new Error('No 2D context');
+  ctx.drawImage(image, 0, 0, width, height);
+  const d = ctx.getImageData(0, 0, width, height).data;
+  const n = width * height;
+  const lum = new Uint8Array(n);
+  const alpha = new Uint8Array(n);
+  for (let i = 0; i < n; i++) {
+    const j = i * 4;
+    lum[i] = (0.299 * d[j] + 0.587 * d[j + 1] + 0.114 * d[j + 2]) | 0;
+    alpha[i] = d[j + 3];
+  }
+  return { lum, alpha, width, height };
+}
+
+/**
+ * Screen a luminance source into a halftone ImageData. Optional `density`
+ * (one float per pixel, roughly [-1, 1]) is added to ink coverage so an
+ * interactive brush / anchor-spread can grow (positive) or shrink (negative)
+ * dots locally. Fast enough for live editing: gamma/contrast is a 256-entry
+ * LUT and the inner loop is trig-free.
+ */
+export function renderAmImageData(
+  src: LuminanceSource,
+  options: HalftoneOptions,
+  density?: Float32Array | null
+): ImageData {
+  const { lum, alpha, width, height } = src;
+
+  const dpi = effectiveDpi(width, options.printWidthIn);
+  const lpi = Math.max(5, options.lpi);
+  const cell = Math.max(2, dpi / lpi);
+  const invCell = 1 / cell;
+
+  const a = (options.angleDeg * Math.PI) / 180;
+  const cosA = Math.cos(a);
+  const sinA = Math.sin(a);
+
+  // Tone pre-pass (gamma + contrast) as a 256-entry LUT → no pow() in the loop.
+  const invGamma = 1 / (options.gamma || 1);
+  const cfactor =
+    options.contrast >= 0
+      ? 1 + options.contrast / 100
+      : 1 + options.contrast / 200;
+  const toneLUT = new Float32Array(256);
+  for (let l = 0; l < 256; l++) {
+    let v = Math.pow(l / 255, invGamma);
+    v = (v - 0.5) * cfactor + 0.5;
+    toneLUT[l] = v < 0 ? 0 : v > 1 ? 1 : v;
+  }
+
+  const bias = (options.threshold - 50) / 100;
+  const shape = options.dotShape;
+
+  const out = new ImageData(width, height);
+  const dst = out.data;
+
+  for (let y = 0; y < height; y++) {
+    const ySin = y * sinA;
+    const yCos = y * cosA;
+    for (let x = 0; x < width; x++) {
+      const i = y * width + x;
+      const al = alpha[i] / 255;
+      let coverage = (1 - toneLUT[lum[i]]) * al - bias;
+      if (density) coverage += density[i];
+
+      const sx = x * cosA + ySin;
+      const sy = yCos - x * sinA;
+      let u = sx * invCell;
+      u = u - Math.floor(u) - 0.5;
+      let v = sy * invCell;
+      v = v - Math.floor(v) - 0.5;
+
+      const j = i * 4;
+      if (coverage >= spotThreshold(u, v, shape)) {
+        dst[j] = 0;
+        dst[j + 1] = 0;
+        dst[j + 2] = 0;
+        dst[j + 3] = 255;
+      } else {
+        dst[j + 3] = 0; // transparent (createImageData zero-fills RGB)
+      }
+    }
+  }
+  return out;
+}
+
 export const amHalftoneProvider: HalftoneProvider = {
   id: 'am-halftone',
   label: 'AM Halftone (spot-function screening)',
@@ -72,90 +177,14 @@ export const amHalftoneProvider: HalftoneProvider = {
     options: HalftoneOptions
   ): Promise<HalftoneResult> {
     const start = Date.now();
-    const w = image.naturalWidth || image.width;
-    const h = image.naturalHeight || image.height;
-
-    // Rasterise the source and read pixels.
-    const srcCanvas = document.createElement('canvas');
-    srcCanvas.width = w;
-    srcCanvas.height = h;
-    const sctx = srcCanvas.getContext('2d');
-    if (!sctx) throw new Error('No 2D context');
-    sctx.drawImage(image, 0, 0, w, h);
-    const src = sctx.getImageData(0, 0, w, h).data;
-
-    // Cell size (px per halftone cell) = DPI / LPI. Guard tiny cells: below
-    // ~2px there's no room for a dot to modulate, so clamp.
-    const dpi = effectiveDpi(w, options.printWidthIn);
-    const lpi = Math.max(5, options.lpi);
-    const cell = Math.max(2, dpi / lpi);
-    const invCell = 1 / cell;
-
-    // Screen rotation.
-    const a = (options.angleDeg * Math.PI) / 180;
-    const cosA = Math.cos(a);
-    const sinA = Math.sin(a);
-
-    // Tone pre-pass params (match the dither provider's semantics).
-    const invGamma = 1 / (options.gamma || 1);
-    const cfactor =
-      options.contrast >= 0
-        ? 1 + options.contrast / 100
-        : 1 + options.contrast / 200;
-    // Threshold slider [0,100] biases ink coverage: <50 = more/darker dots,
-    // >50 = sparser. Centre (50) is neutral.
-    const bias = (options.threshold - 50) / 100;
-
-    const out = new ImageData(w, h);
-    const dst = out.data;
-    const shape = options.dotShape;
-
-    for (let y = 0; y < h; y++) {
-      // Rotated-space contribution of y, hoisted out of the x loop.
-      const ySin = y * sinA;
-      const yCos = y * cosA;
-      for (let x = 0; x < w; x++) {
-        const i = (y * w + x) * 4;
-
-        // Transparent source contributes no ink.
-        const alpha = src[i + 3] / 255;
-        // Luminance (Rec. 601) → tone [0,1].
-        let tone =
-          (0.299 * src[i] + 0.587 * src[i + 1] + 0.114 * src[i + 2]) / 255;
-        tone = Math.pow(tone, invGamma);
-        tone = (tone - 0.5) * cfactor + 0.5;
-        if (tone < 0) tone = 0;
-        else if (tone > 1) tone = 1;
-
-        // Ink coverage: darker = more ink. Alpha-weighted, threshold-biased.
-        const coverage = (1 - tone) * alpha - bias;
-
-        // Position within the (rotated) halftone cell, mapped to [-0.5,0.5].
-        const sx = x * cosA + ySin;
-        const sy = yCos - x * sinA;
-        let u = sx * invCell;
-        u = u - Math.floor(u) - 0.5;
-        let v = sy * invCell;
-        v = v - Math.floor(v) - 0.5;
-
-        if (coverage >= spotThreshold(u, v, shape)) {
-          dst[i] = 0;
-          dst[i + 1] = 0;
-          dst[i + 2] = 0;
-          dst[i + 3] = 255;
-        } else {
-          dst[i + 3] = 0; // transparent (createImageData zero-fills RGB)
-        }
-      }
-    }
-
+    const src = extractLuminance(image);
+    const imgData = renderAmImageData(src, options);
     const canvas = document.createElement('canvas');
-    canvas.width = w;
-    canvas.height = h;
+    canvas.width = src.width;
+    canvas.height = src.height;
     const ctx = canvas.getContext('2d');
     if (!ctx) throw new Error('No 2D context');
-    ctx.putImageData(out, 0, 0);
-
+    ctx.putImageData(imgData, 0, 0);
     return { canvas, processingTimeMs: Date.now() - start };
   },
 };
