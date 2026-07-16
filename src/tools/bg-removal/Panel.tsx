@@ -1800,8 +1800,8 @@ export function BackgroundRemovalPanel({
         </div>
 
         {/* Side panel */}
-        <div className="w-full lg:w-72 bg-white border-t lg:border-t-0 lg:border-l border-gray-200 flex flex-col overflow-y-auto">
-          <div className="p-4 flex flex-col gap-4 flex-1">
+        <div className="w-full lg:w-72 bg-white border-t lg:border-t-0 lg:border-l border-gray-200 flex flex-col min-h-0">
+          <div className="p-4 flex flex-col gap-4 flex-1 overflow-y-auto min-h-0">
             {/* Mode switcher */}
             <div>
               <label className="block text-xs font-medium text-gray-500 mb-1.5 uppercase tracking-wide">
@@ -2113,24 +2113,6 @@ export function BackgroundRemovalPanel({
                     : `${strokeHistory.length} stroke${strokeHistory.length === 1 ? '' : 's'} placed.`}
                 </div>
 
-                {/* Apply button */}
-                <button
-                  onClick={handleApplyBrush}
-                  disabled={isProcessing || !brushReady}
-                  className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white text-sm font-medium rounded-lg transition-colors"
-                >
-                  {isProcessing ? (
-                    <>
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                      {STATUS_LABELS[status] || 'Processing...'}
-                    </>
-                  ) : (
-                    <>
-                      <CheckCircle2 className="w-4 h-4" />
-                      Apply Mask
-                    </>
-                  )}
-                </button>
               </>
             )}
 
@@ -2438,6 +2420,35 @@ export function BackgroundRemovalPanel({
               </div>
             ) : null}
           </div>
+
+          {/* Always-visible "Apply Changes" action bar. Pinned outside the
+              scrolling content so an unknowing user sees it before hitting the
+              top-right Download — brush edits aren't saved until this is
+              clicked (it commits the cutout to Studio's working image). */}
+          {panelMode === 'ai-brush' && !hasResult && (
+            <div className="flex-shrink-0 p-4 border-t border-gray-200 bg-white">
+              <button
+                onClick={handleApplyBrush}
+                disabled={isProcessing || !brushReady}
+                className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white text-sm font-medium rounded-lg transition-colors"
+              >
+                {isProcessing ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    {STATUS_LABELS[status] || 'Processing...'}
+                  </>
+                ) : (
+                  <>
+                    <CheckCircle2 className="w-4 h-4" />
+                    Apply Changes
+                  </>
+                )}
+              </button>
+              <p className="text-[11px] text-gray-400 text-center mt-1.5">
+                Apply your changes before downloading.
+              </p>
+            </div>
+          )}
         </div>
       </div>
 
