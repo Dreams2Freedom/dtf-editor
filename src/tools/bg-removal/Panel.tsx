@@ -58,6 +58,15 @@ interface BackgroundRemovalPanelProps {
    * runs standalone (e.g. /process/background-removal).
    */
   onSwitchToCm?: () => void;
+  /**
+   * Studio contract: register a "commit pending edits" function so the
+   * top-level Download can flush the current cutout before exporting (no
+   * silent save-of-original when the user skips "Apply Changes"). Resolves
+   * to the committed canvas, or null if nothing was pending.
+   */
+  registerPendingCommit?: (
+    commit: (() => Promise<HTMLCanvasElement | null>) | null
+  ) => void;
 }
 
 const STATUS_LABELS: Record<string, string> = {
@@ -284,6 +293,7 @@ export function BackgroundRemovalPanel({
   onCancel,
   savedImageId,
   onSwitchToCm,
+  registerPendingCommit,
 }: BackgroundRemovalPanelProps) {
   // Canvases & cached image data
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -414,6 +424,12 @@ export function BackgroundRemovalPanel({
   const [model, setModel] = useState<BgRemovalModel>('bria-rmbg');
   const [isSaving, setIsSaving] = useState(false);
   const [hasResult, setHasResult] = useState(false);
+  // Mirror of hasResult for callbacks that must read it without re-binding
+  // (e.g. the Studio pending-commit hook).
+  const hasResultRef = useRef(false);
+  useEffect(() => {
+    hasResultRef.current = hasResult;
+  }, [hasResult]);
   const [upgradeRequired, setUpgradeRequired] = useState(false);
 
   const {
@@ -1417,14 +1433,19 @@ export function BackgroundRemovalPanel({
   }, [buildOptions, runRemoval]);
 
   // ---------- AI Brush: Apply (write final masked RGBA to canvasRef) ----------
-  const handleApplyBrush = useCallback(() => {
+  // Write the current cumulative mask into canvasRef as a feathered cutout,
+  // mirror it to the preview, mark the result committed, and propagate it to
+  // Studio's working image. Returns the committed canvas (or null if there's
+  // nothing to apply). Shared by the "Apply Changes" button and the
+  // Studio-Download pending-commit hook.
+  const applyMaskToCanvas = useCallback((): HTMLCanvasElement | null => {
     const canvas = canvasRef.current;
     const preview = previewRef.current;
     const orig = originalDataRef.current;
     const mask = cumulativeMaskRef.current;
-    if (!canvas || !preview || !orig || !mask) return;
+    if (!canvas || !preview || !orig || !mask) return null;
     const ctx = canvas.getContext('2d');
-    if (!ctx) return;
+    if (!ctx) return null;
     const w = orig.width;
     const h = orig.height;
     const out = new ImageData(new Uint8ClampedArray(orig.data), w, h);
@@ -1444,15 +1465,35 @@ export function BackgroundRemovalPanel({
     }
     setHasResult(true);
 
-    // Phase 2.2 follow-up: Apply Mask now also propagates the
-    // background-removed canvas to Studio's working image so chained
-    // tools (Upscale, Color Change, Vectorize) receive the cleaned
-    // version. Studio's global Download (header) downloads the file
-    // and auto-saves to gallery once the user is done across tools.
+    // Propagate the background-removed canvas to Studio's working image so
+    // chained tools (Upscale, Color Change, Vectorize) receive the cleaned
+    // version, and the Studio Download exports the removed result.
     onSave(canvas, 'in-house').catch(err => {
       console.error('[BgRemoval] Apply propagation failed:', err);
     });
+    return canvas;
   }, [onSave]);
+
+  const handleApplyBrush = useCallback(() => {
+    applyMaskToCanvas();
+  }, [applyMaskToCanvas]);
+
+  // Register a pending-commit hook so Studio's top-level Download flushes the
+  // current cutout before exporting — even if the user never clicked "Apply
+  // Changes". Returns the freshly committed canvas so Studio can export it
+  // directly (the onApply working-image update is async and not yet visible).
+  const commitPending =
+    useCallback(async (): Promise<HTMLCanvasElement | null> => {
+      // Already applied, or nothing brushed/detected yet → nothing pending.
+      if (hasResultRef.current || !cumulativeMaskRef.current) return null;
+      return applyMaskToCanvas();
+    }, [applyMaskToCanvas]);
+
+  useEffect(() => {
+    if (!registerPendingCommit) return;
+    registerPendingCommit(commitPending);
+    return () => registerPendingCommit(null);
+  }, [registerPendingCommit, commitPending]);
 
   // ---------- Reset / Save / Download ----------
   const handleReset = useCallback(() => {

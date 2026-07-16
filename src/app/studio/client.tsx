@@ -23,7 +23,7 @@
  * and mounts the active descriptor's Panel.
  */
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import {
   AlertTriangle,
@@ -147,6 +147,20 @@ export default function StudioClient() {
   const [savedImageId, setSavedImageId] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
+  // The active tool registers a "commit pending edits" function here (see the
+  // StudioToolPanelProps contract). Download calls it first so in-panel edits
+  // that weren't explicitly applied (e.g. bg-removal brush strokes) are still
+  // included in the exported/saved image instead of silently dropped.
+  const pendingCommitRef = useRef<
+    (() => Promise<HTMLCanvasElement | null>) | null
+  >(null);
+  // Stable identity so the tool's register effect doesn't churn each render.
+  const registerPendingCommit = useCallback(
+    (fn: (() => Promise<HTMLCanvasElement | null>) | null) => {
+      pendingCommitRef.current = fn;
+    },
+    []
+  );
 
   // Load the original upload (if any) once on mount. Phase 2.1: when
   // neither imageId nor imageUrl is provided, render the upload zone
@@ -266,11 +280,25 @@ export default function StudioClient() {
    * Photoshop/Canva-style flow simple: one button, no decision required.
    */
   const handleDownload = useCallback(async () => {
-    const img = workingImage;
-    if (!img) return;
+    if (!workingImage) return;
     setIsSaving(true);
     setSaveError(null);
     try {
+      // Flush any pending in-panel edits first so we never export a stale
+      // (pre-Apply) image. commitPending returns the freshly committed canvas;
+      // we use it directly because the onApply working-image state update is
+      // async and not yet visible in this closure.
+      let img = workingImage;
+      const commitPending = pendingCommitRef.current;
+      if (commitPending) {
+        try {
+          const committed = await commitPending();
+          if (committed) img = await canvasToImage(committed);
+        } catch (err) {
+          console.error('[Studio] pending commit before download failed:', err);
+        }
+      }
+
       const canvas = document.createElement('canvas');
       canvas.width = img.naturalWidth || img.width;
       canvas.height = img.naturalHeight || img.height;
@@ -558,6 +586,7 @@ export default function StudioClient() {
             imageId={hasChanges ? null : imageId}
             onApply={handleApply}
             onCancel={() => switchTool(null)}
+            registerPendingCommit={registerPendingCommit}
           />
         )}
       </div>
