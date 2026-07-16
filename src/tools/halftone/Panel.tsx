@@ -29,7 +29,13 @@ import {
 import type { StudioToolPanelProps } from '../types';
 
 import { thingDitherProvider } from './providers/thingDither';
-import { amHalftoneProvider, effectiveDpi } from './providers/amHalftone';
+import {
+  amHalftoneProvider,
+  effectiveDpi,
+  extractLuminance,
+  renderAmImageData,
+  type LuminanceSource,
+} from './providers/amHalftone';
 import {
   DEFAULT_HALFTONE_OPTIONS,
   type DotShape,
@@ -39,6 +45,9 @@ import {
 } from './types';
 
 type ViewMode = 'original' | 'halftone';
+
+/** Interactive dot-editing tools (AM halftone only). */
+type DotTool = 'none' | 'spread' | 'add' | 'subtract';
 
 const ALGORITHMS: { value: HalftoneAlgorithm; label: string; help: string }[] =
   [
@@ -137,31 +146,129 @@ export function HalftonePanel({
   const [isProcessing, setIsProcessing] = useState(false); // Apply/commit
   const [isPreviewing, setIsPreviewing] = useState(false); // live re-render
   const [error, setError] = useState<string | null>(null);
-  const [previewImage, setPreviewImage] = useState<HTMLImageElement | null>(
-    null
-  );
+  const [hasPreview, setHasPreview] = useState(false);
   const [viewMode, setViewMode] = useState<ViewMode>('original');
   const [zoom, setZoom] = useState(1);
+  const [tool, setTool] = useState<DotTool>('none');
+  const [brushSize, setBrushSize] = useState(80);
 
-  // The most recent rendered halftone canvas (from live preview) — reused by
-  // Apply so we don't re-render on commit.
-  const latestCanvasRef = useRef<HTMLCanvasElement | null>(null);
-  // Monotonic token so a slow render can't overwrite a newer one.
+  const isAm = opts.algorithm === 'am-halftone';
+
+  // Refs for the interactive re-screen loop (stable across renders).
+  const displayCanvasRef = useRef<HTMLCanvasElement | null>(null); // visible
+  const latestCanvasRef = useRef<HTMLCanvasElement | null>(null); // full halftone → Apply
+  const baseRef = useRef<LuminanceSource | null>(null); // source luminance
+  const densityRef = useRef<Float32Array | null>(null); // committed dot edits
   const previewTokenRef = useRef(0);
-  // Whether we've produced a preview for the current image yet (first preview
-  // flips the view to Halftone; later ones respect the user's toggle).
   const hasPreviewRef = useRef(false);
-  // Last preview blob URL, revoked once its replacement has loaded.
-  const lastPreviewUrlRef = useRef<string | null>(null);
+  const optsRef = useRef(opts);
+  const viewModeRef = useRef<ViewMode>(viewMode);
+  const toolRef = useRef(tool);
+  const brushSizeRef = useRef(brushSize);
+  // Drag state for the tools.
+  const isDrawingRef = useRef(false);
+  const spreadAnchorRef = useRef<{ x: number; y: number } | null>(null);
+  const dragBaseDensityRef = useRef<Float32Array | null>(null); // density snapshot at drag start
+  const rafRef = useRef<number | null>(null);
 
-  // Reset preview when the working image changes (chained from another tool).
   useEffect(() => {
-    setPreviewImage(null);
-    setViewMode('original');
-    setError(null);
-    hasPreviewRef.current = false;
-    latestCanvasRef.current = null;
+    optsRef.current = opts;
+  }, [opts]);
+  useEffect(() => {
+    toolRef.current = tool;
+  }, [tool]);
+  useEffect(() => {
+    brushSizeRef.current = brushSize;
+  }, [brushSize]);
+
+  // Draw the current halftone (or the original) into the visible canvas.
+  const paintDisplay = useCallback(() => {
+    const disp = displayCanvasRef.current;
+    if (!disp) return;
+    const ctx = disp.getContext('2d');
+    if (!ctx) return;
+    if (viewModeRef.current === 'original' || !latestCanvasRef.current) {
+      const w = image.naturalWidth || image.width;
+      const h = image.naturalHeight || image.height;
+      disp.width = w;
+      disp.height = h;
+      ctx.clearRect(0, 0, w, h);
+      ctx.drawImage(image, 0, 0, w, h);
+      return;
+    }
+    const src = latestCanvasRef.current;
+    disp.width = src.width;
+    disp.height = src.height;
+    ctx.clearRect(0, 0, src.width, src.height);
+    ctx.drawImage(src, 0, 0);
   }, [image]);
+
+  // Re-screen the AM halftone from base + density into latestCanvasRef, then
+  // repaint the display. `density` lets a live drag pass a temporary field.
+  const rescreenAm = useCallback(
+    (density?: Float32Array | null) => {
+      const base = baseRef.current;
+      if (!base) return;
+      const imgData = renderAmImageData(
+        base,
+        optsRef.current,
+        density ?? densityRef.current
+      );
+      let lc = latestCanvasRef.current;
+      if (!lc || lc.width !== base.width || lc.height !== base.height) {
+        lc = document.createElement('canvas');
+        lc.width = base.width;
+        lc.height = base.height;
+        latestCanvasRef.current = lc;
+      }
+      lc.getContext('2d')?.putImageData(imgData, 0, 0);
+      if (viewModeRef.current === 'halftone') paintDisplay();
+    },
+    [paintDisplay]
+  );
+
+  // The density field the next animation frame should screen. Updated on every
+  // schedule call so a fast drag always renders its latest state (rAF coalesces
+  // the calls, but the field must not be the stale first one).
+  const renderFieldRef = useRef<Float32Array | null>(null);
+  const scheduleRescreen = useCallback(
+    (field?: Float32Array | null) => {
+      renderFieldRef.current = field ?? densityRef.current;
+      if (rafRef.current != null) return;
+      rafRef.current = requestAnimationFrame(() => {
+        rafRef.current = null;
+        rescreenAm(renderFieldRef.current);
+      });
+    },
+    [rescreenAm]
+  );
+
+  // Extract luminance + reset the density field when the working image changes.
+  useEffect(() => {
+    try {
+      baseRef.current = extractLuminance(image);
+      densityRef.current = new Float32Array(
+        baseRef.current.width * baseRef.current.height
+      );
+    } catch {
+      baseRef.current = null;
+      densityRef.current = null;
+    }
+    latestCanvasRef.current = null;
+    hasPreviewRef.current = false;
+    setHasPreview(false);
+    setViewMode('original');
+    viewModeRef.current = 'original';
+    setTool('none');
+    setError(null);
+    paintDisplay();
+  }, [image, paintDisplay]);
+
+  // Keep the viewMode ref in sync and repaint on toggle.
+  useEffect(() => {
+    viewModeRef.current = viewMode;
+    paintDisplay();
+  }, [viewMode, paintDisplay]);
 
   const updateOption = useCallback(
     <K extends keyof HalftoneOptions>(key: K, value: HalftoneOptions[K]) => {
@@ -174,58 +281,28 @@ export function HalftonePanel({
     setOpts(prev => ({ ...prev, ...preset }));
   }, []);
 
-  const renderToCanvas = useCallback(
-    async (o: HalftoneOptions): Promise<HTMLCanvasElement> => {
-      const provider =
-        o.algorithm === 'am-halftone' ? amHalftoneProvider : thingDitherProvider;
-      const result = await provider.run(image, o);
-      return result.canvas;
-    },
-    [image]
-  );
+  // Render a non-interactive (dither) preview into latestCanvasRef + display.
+  const renderDitherPreview = useCallback(async () => {
+    const result = await thingDitherProvider.run(image, optsRef.current);
+    latestCanvasRef.current = result.canvas;
+    if (viewModeRef.current === 'halftone') paintDisplay();
+  }, [image, paintDisplay]);
 
-  const canvasToPreviewImage = useCallback(
-    (canvas: HTMLCanvasElement): Promise<HTMLImageElement> =>
-      new Promise((resolve, reject) => {
-        canvas.toBlob(blob => {
-          if (!blob) {
-            reject(new Error('Halftone export failed'));
-            return;
-          }
-          const url = URL.createObjectURL(blob);
-          const img = new Image();
-          img.onload = () => {
-            // The previous preview URL is no longer displayed — revoke it.
-            if (lastPreviewUrlRef.current) {
-              URL.revokeObjectURL(lastPreviewUrlRef.current);
-            }
-            lastPreviewUrlRef.current = url;
-            resolve(img);
-          };
-          img.onerror = () => reject(new Error('Failed to load halftone'));
-          img.src = url;
-        }, 'image/png');
-      }),
-    []
-  );
-
-  // Live preview: re-render (locally, NO credit gate / no Studio commit) a
-  // short debounce after any option change. Only the explicit Apply button
-  // charges and commits.
+  // Live preview: re-render locally (NO credit gate / no Studio commit) a short
+  // debounce after any option change. Only the explicit Apply charges/commits.
   useEffect(() => {
     const token = ++previewTokenRef.current;
     const handle = setTimeout(() => {
       setIsPreviewing(true);
-      renderToCanvas(opts)
-        .then(async canvas => {
+      Promise.resolve()
+        .then(async () => {
+          if (isAm) rescreenAm();
+          else await renderDitherPreview();
           if (token !== previewTokenRef.current) return;
-          latestCanvasRef.current = canvas;
-          const img = await canvasToPreviewImage(canvas);
-          if (token !== previewTokenRef.current) return;
-          setPreviewImage(img);
           setError(null);
           if (!hasPreviewRef.current) {
             hasPreviewRef.current = true;
+            setHasPreview(true);
             setViewMode('halftone');
           }
         })
@@ -237,15 +314,16 @@ export function HalftonePanel({
         .finally(() => {
           if (token === previewTokenRef.current) setIsPreviewing(false);
         });
-    }, 200);
+    }, 180);
     return () => clearTimeout(handle);
-  }, [opts, image, renderToCanvas, canvasToPreviewImage]);
+  }, [opts, image, isAm, rescreenAm, renderDitherPreview]);
 
   const handleApply = useCallback(async () => {
     setError(null);
     setIsProcessing(true);
     try {
-      const canvas = latestCanvasRef.current ?? (await renderToCanvas(opts));
+      const canvas = latestCanvasRef.current;
+      if (!canvas) throw new Error('Nothing to apply yet');
 
       // Tier check / credit deduction — ONLY here, never on live preview.
       try {
@@ -259,10 +337,7 @@ export function HalftonePanel({
 
       onApply(canvas, {
         operation: 'halftone',
-        provider:
-          opts.algorithm === 'am-halftone'
-            ? amHalftoneProvider.id
-            : thingDitherProvider.id,
+        provider: isAm ? amHalftoneProvider.id : thingDitherProvider.id,
         modelId: opts.algorithm,
       });
     } catch (e) {
@@ -271,10 +346,172 @@ export function HalftonePanel({
     } finally {
       setIsProcessing(false);
     }
-  }, [opts, onApply, onCommit, renderToCanvas]);
+  }, [isAm, opts.algorithm, onApply, onCommit]);
 
-  const displayed =
-    previewImage && viewMode === 'halftone' ? previewImage : image;
+  const resetDots = useCallback(() => {
+    const base = baseRef.current;
+    if (!base) return;
+    densityRef.current = new Float32Array(base.width * base.height);
+    rescreenAm();
+  }, [rescreenAm]);
+
+  // ---- Interactive dot editing (pointer handlers) ----
+  const eventToImg = useCallback(
+    (e: React.PointerEvent<HTMLCanvasElement>): { x: number; y: number } | null => {
+      const c = displayCanvasRef.current;
+      if (!c) return null;
+      const r = c.getBoundingClientRect();
+      if (r.width === 0 || r.height === 0) return null;
+      // getBoundingClientRect reflects the on-screen size (incl. zoom), so this
+      // maps to internal image pixels regardless of CSS scale / transform.
+      return {
+        x: ((e.clientX - r.left) / r.width) * c.width,
+        y: ((e.clientY - r.top) / r.height) * c.height,
+      };
+    },
+    []
+  );
+
+  const BRUSH_STRENGTH = 0.28; // per-stamp density delta at the brush centre
+  const SPREAD_STRENGTH = 0.85; // peak density added at the spread anchor
+
+  // Stamp a soft disc of density into the committed field (brush add/subtract).
+  const stampBrush = useCallback(
+    (cx: number, cy: number, radius: number, strength: number) => {
+      const dens = densityRef.current;
+      const base = baseRef.current;
+      if (!dens || !base) return;
+      const { width: w, height: h } = base;
+      const r = Math.max(1, radius);
+      const r2 = r * r;
+      const minX = Math.max(0, Math.floor(cx - r));
+      const maxX = Math.min(w - 1, Math.ceil(cx + r));
+      const minY = Math.max(0, Math.floor(cy - r));
+      const maxY = Math.min(h - 1, Math.ceil(cy + r));
+      for (let y = minY; y <= maxY; y++) {
+        const dy = y - cy;
+        for (let x = minX; x <= maxX; x++) {
+          const dx = x - cx;
+          const d2 = dx * dx + dy * dy;
+          if (d2 > r2) continue;
+          const i = y * w + x;
+          let val = dens[i] + strength * (1 - Math.sqrt(d2) / r);
+          if (val > 1) val = 1;
+          else if (val < -1) val = -1;
+          dens[i] = val;
+        }
+      }
+    },
+    []
+  );
+
+  // Radial spread from an anchor over `radius`, layered on the drag-start
+  // snapshot. Denser at the anchor, fading to zero at the radius.
+  const buildSpread = useCallback(
+    (anchor: { x: number; y: number }, radius: number): Float32Array | null => {
+      const snap = dragBaseDensityRef.current;
+      const base = baseRef.current;
+      if (!snap || !base) return null;
+      const { width: w, height: h } = base;
+      const out = new Float32Array(snap);
+      const r = Math.max(1, radius);
+      const r2 = r * r;
+      const minX = Math.max(0, Math.floor(anchor.x - r));
+      const maxX = Math.min(w - 1, Math.ceil(anchor.x + r));
+      const minY = Math.max(0, Math.floor(anchor.y - r));
+      const maxY = Math.min(h - 1, Math.ceil(anchor.y + r));
+      for (let y = minY; y <= maxY; y++) {
+        const dy = y - anchor.y;
+        for (let x = minX; x <= maxX; x++) {
+          const dx = x - anchor.x;
+          const d2 = dx * dx + dy * dy;
+          if (d2 > r2) continue;
+          const i = y * w + x;
+          let val = out[i] + SPREAD_STRENGTH * (1 - Math.sqrt(d2) / r);
+          if (val > 1) val = 1;
+          out[i] = val;
+        }
+      }
+      return out;
+    },
+    []
+  );
+
+  const handlePointerDown = useCallback(
+    (e: React.PointerEvent<HTMLCanvasElement>) => {
+      if (!isAm || viewModeRef.current !== 'halftone') return;
+      const t = toolRef.current;
+      if (t === 'none') return;
+      const p = eventToImg(e);
+      if (!p) return;
+      try {
+        e.currentTarget.setPointerCapture(e.pointerId);
+      } catch {
+        /* ignore */
+      }
+      isDrawingRef.current = true;
+      if (t === 'spread') {
+        spreadAnchorRef.current = { x: p.x, y: p.y };
+        dragBaseDensityRef.current = densityRef.current
+          ? new Float32Array(densityRef.current)
+          : null;
+      } else {
+        stampBrush(
+          p.x,
+          p.y,
+          brushSizeRef.current,
+          t === 'add' ? BRUSH_STRENGTH : -BRUSH_STRENGTH
+        );
+        scheduleRescreen();
+      }
+    },
+    [isAm, eventToImg, stampBrush, scheduleRescreen]
+  );
+
+  const handlePointerMove = useCallback(
+    (e: React.PointerEvent<HTMLCanvasElement>) => {
+      if (!isDrawingRef.current) return;
+      const p = eventToImg(e);
+      if (!p) return;
+      const t = toolRef.current;
+      if (t === 'spread') {
+        const anchor = spreadAnchorRef.current;
+        if (!anchor) return;
+        const radius = Math.hypot(p.x - anchor.x, p.y - anchor.y);
+        const field = buildSpread(anchor, radius);
+        if (field) scheduleRescreen(field);
+      } else if (t === 'add' || t === 'subtract') {
+        stampBrush(
+          p.x,
+          p.y,
+          brushSizeRef.current,
+          t === 'add' ? BRUSH_STRENGTH : -BRUSH_STRENGTH
+        );
+        scheduleRescreen();
+      }
+    },
+    [eventToImg, stampBrush, buildSpread, scheduleRescreen]
+  );
+
+  const handlePointerUp = useCallback(
+    (e: React.PointerEvent<HTMLCanvasElement>) => {
+      if (!isDrawingRef.current) return;
+      isDrawingRef.current = false;
+      if (toolRef.current === 'spread') {
+        const anchor = spreadAnchorRef.current;
+        const p = eventToImg(e);
+        if (anchor && p) {
+          const radius = Math.hypot(p.x - anchor.x, p.y - anchor.y);
+          const field = buildSpread(anchor, radius);
+          if (field) densityRef.current = field; // commit
+        }
+        spreadAnchorRef.current = null;
+        dragBaseDensityRef.current = null;
+      }
+      scheduleRescreen();
+    },
+    [eventToImg, buildSpread, scheduleRescreen]
+  );
 
   // DPI awareness: effective print DPI derived from the image's pixel width
   // and the intended print width, and the resulting halftone dot pitch.
@@ -305,7 +542,7 @@ export function HalftonePanel({
           onZoomOut={() => setZoom(z => Math.max(z / 1.25, 0.1))}
           onFit={() => setZoom(1)}
           topBar={
-            previewImage ? (
+            hasPreview ? (
               <>
                 {(['original', 'halftone'] as const).map(m => (
                   <button
@@ -332,15 +569,27 @@ export function HalftonePanel({
               lineHeight: 0,
             }}
           >
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={displayed.src}
-              alt="Working image"
-              className="max-w-full max-h-full shadow-lg rounded block"
-              style={{ maxHeight: 'calc(100vh - 280px)' }}
+            <canvas
+              ref={displayCanvasRef}
+              onPointerDown={handlePointerDown}
+              onPointerMove={handlePointerMove}
+              onPointerUp={handlePointerUp}
+              onPointerLeave={handlePointerUp}
+              className={`max-w-full max-h-full shadow-lg rounded block ${
+                isAm && viewMode === 'halftone' && tool !== 'none'
+                  ? 'cursor-crosshair'
+                  : ''
+              }`}
+              style={{
+                maxHeight: 'calc(100vh - 280px)',
+                touchAction:
+                  isAm && viewMode === 'halftone' && tool !== 'none'
+                    ? 'none'
+                    : undefined,
+              }}
             />
           </div>
-          {isProcessing && <CanvasProcessingOverlay label="Halftoning…" />}
+          {isProcessing && <CanvasProcessingOverlay label="Applying…" />}
         </StudioCanvasFrame>
 
         <div className="w-full lg:w-72 bg-white border-t lg:border-t-0 lg:border-l border-gray-200 flex flex-col overflow-y-auto">
@@ -611,6 +860,79 @@ export function HalftonePanel({
                 &gt;1 lightens midtones, &lt;1 darkens them.
               </p>
             </div>
+
+            {isAm && hasPreview && (
+              <div className="border-t border-gray-100 pt-3">
+                <label className="block text-xs font-medium text-gray-500 mb-1.5 uppercase tracking-wide">
+                  Edit Dots
+                </label>
+                <div className="grid grid-cols-4 gap-1">
+                  {(
+                    [
+                      ['none', 'Off'],
+                      ['spread', 'Spread'],
+                      ['add', 'Add'],
+                      ['subtract', 'Erase'],
+                    ] as const
+                  ).map(([val, label]) => (
+                    <button
+                      key={val}
+                      type="button"
+                      onClick={() => setTool(val)}
+                      disabled={isProcessing}
+                      className={`py-1.5 text-xs font-medium rounded border transition-colors disabled:opacity-50 ${
+                        tool === val
+                          ? 'bg-blue-600 text-white border-blue-600'
+                          : 'text-gray-600 border-gray-200 hover:bg-gray-50'
+                      }`}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+
+                {(tool === 'add' || tool === 'subtract') && (
+                  <div className="mt-2">
+                    <div className="flex items-center justify-between mb-1">
+                      <label className="text-xs font-medium text-gray-500 uppercase tracking-wide">
+                        Brush Size
+                      </label>
+                      <span className="text-xs text-gray-500 tabular-nums">
+                        {brushSize}px
+                      </span>
+                    </div>
+                    <input
+                      type="range"
+                      min={10}
+                      max={300}
+                      step={5}
+                      value={brushSize}
+                      onChange={e => setBrushSize(Number(e.target.value))}
+                      className="w-full accent-blue-600"
+                    />
+                  </div>
+                )}
+
+                <p className="text-xs text-gray-400 mt-1.5">
+                  {tool === 'spread'
+                    ? 'Click and drag from a point — dots spread outward from where you press.'
+                    : tool === 'add'
+                      ? 'Paint to grow dots (add ink).'
+                      : tool === 'subtract'
+                        ? 'Paint to shrink dots (open up highlights).'
+                        : 'Pick a tool to hand-edit the dots right on the canvas.'}
+                </p>
+
+                <button
+                  type="button"
+                  onClick={resetDots}
+                  disabled={isProcessing}
+                  className="mt-2 w-full text-xs text-gray-500 hover:text-gray-800 border border-gray-200 hover:border-gray-300 rounded-lg py-1.5 transition-colors disabled:opacity-50"
+                >
+                  Reset dot edits
+                </button>
+              </div>
+            )}
 
             <div className="flex items-center justify-center h-4">
               {isPreviewing && (
