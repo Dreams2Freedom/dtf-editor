@@ -12,12 +12,19 @@
  */
 
 export type HalftoneAlgorithm =
+  | 'am-halftone' // True AM screening (spot function) — real halftone dots
   | 'ordered' // Bayer matrix — production-consistent, regular pattern
   | 'floyd-steinberg' // Error-diffusion — natural gradient
   | 'atkinson'; // Error-diffusion — Macintosh-classic look, tighter dots
 
 /** Bayer matrix size for ordered dithering. Smaller = finer dots. */
 export type OrderedSize = 4 | 8 | 16;
+
+/**
+ * AM halftone dot shape — the spot function that decides how each cell's
+ * dot grows as tone darkens. Round is the classic offset/screen dot.
+ */
+export type DotShape = 'round' | 'ellipse' | 'square' | 'diamond' | 'line';
 
 export interface HalftoneOptions {
   algorithm: HalftoneAlgorithm;
@@ -29,14 +36,32 @@ export interface HalftoneOptions {
   contrast: number;
   /** 0.5 to 2.0. Pre-pass gamma. >1 lightens, <1 darkens. */
   gamma: number;
+
+  // ---- AM halftone (algorithm === 'am-halftone') ----
+  /** Screen frequency in lines per inch. Physical dot pitch = DPI / LPI. */
+  lpi: number;
+  /** Screen angle in degrees. 45° is the classic single-color angle. */
+  angleDeg: number;
+  /** Dot shape / spot function. */
+  dotShape: DotShape;
+  /**
+   * Intended print width in inches. Used to derive the effective DPI from
+   * the image's pixel width (DPI = pixelWidth / printWidthIn), so LPI is a
+   * physically meaningful setting regardless of the source's pixel size.
+   */
+  printWidthIn: number;
 }
 
 export const DEFAULT_HALFTONE_OPTIONS: HalftoneOptions = {
-  algorithm: 'ordered',
+  algorithm: 'am-halftone',
   orderedSize: 8,
   threshold: 50,
   contrast: 0,
   gamma: 1,
+  lpi: 45,
+  angleDeg: 45,
+  dotShape: 'round',
+  printWidthIn: 11,
 };
 
 /**

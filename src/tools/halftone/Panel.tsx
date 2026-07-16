@@ -29,8 +29,10 @@ import {
 import type { StudioToolPanelProps } from '../types';
 
 import { thingDitherProvider } from './providers/thingDither';
+import { amHalftoneProvider, effectiveDpi } from './providers/amHalftone';
 import {
   DEFAULT_HALFTONE_OPTIONS,
+  type DotShape,
   type HalftoneAlgorithm,
   type HalftoneOptions,
   type OrderedSize,
@@ -40,6 +42,11 @@ type ViewMode = 'original' | 'halftone';
 
 const ALGORITHMS: { value: HalftoneAlgorithm; label: string; help: string }[] =
   [
+    {
+      value: 'am-halftone',
+      label: 'AM Halftone',
+      help: 'True screening — real dots that grow with tone (LPI, angle, dot shape).',
+    },
     {
       value: 'ordered',
       label: 'Ordered',
@@ -61,6 +68,14 @@ const ORDERED_SIZES: { value: OrderedSize; label: string }[] = [
   { value: 16, label: 'Coarse' },
   { value: 8, label: 'Medium' },
   { value: 4, label: 'Fine' },
+];
+
+const DOT_SHAPES: { value: DotShape; label: string }[] = [
+  { value: 'round', label: 'Round' },
+  { value: 'ellipse', label: 'Ellipse' },
+  { value: 'square', label: 'Square' },
+  { value: 'diamond', label: 'Diamond' },
+  { value: 'line', label: 'Line' },
 ];
 
 interface UsageGate {
@@ -107,7 +122,11 @@ export function HalftonePanel({
     setError(null);
     setIsProcessing(true);
     try {
-      const result = await thingDitherProvider.run(image, opts);
+      const provider =
+        opts.algorithm === 'am-halftone'
+          ? amHalftoneProvider
+          : thingDitherProvider;
+      const result = await provider.run(image, opts);
 
       // Tier check / credit deduction. Throws if the user's out of
       // credits and over their monthly free limit.
@@ -155,6 +174,12 @@ export function HalftonePanel({
 
   const displayed =
     previewImage && viewMode === 'halftone' ? previewImage : image;
+
+  // DPI awareness: effective print DPI derived from the image's pixel width
+  // and the intended print width, and the resulting halftone dot pitch.
+  const imgW = image.naturalWidth || image.width;
+  const amDpi = Math.round(effectiveDpi(imgW, opts.printWidthIn));
+  const amCellPx = opts.lpi > 0 ? amDpi / opts.lpi : 0;
 
   return (
     <div className="flex-1 flex flex-col min-h-0">
@@ -236,7 +261,7 @@ export function HalftonePanel({
               <label className="block text-xs font-medium text-gray-500 mb-1.5 uppercase tracking-wide">
                 Algorithm
               </label>
-              <div className="grid grid-cols-3 rounded-lg border border-gray-200 overflow-hidden">
+              <div className="grid grid-cols-2 rounded-lg border border-gray-200 overflow-hidden">
                 {ALGORITHMS.map(a => (
                   <button
                     key={a.value}
@@ -257,6 +282,115 @@ export function HalftonePanel({
                 {ALGORITHMS.find(a => a.value === opts.algorithm)?.help}
               </p>
             </div>
+
+            {opts.algorithm === 'am-halftone' && (
+              <>
+                {/* Dot shape */}
+                <div>
+                  <label className="block text-xs font-medium text-gray-500 mb-1.5 uppercase tracking-wide">
+                    Dot Shape
+                  </label>
+                  <div className="grid grid-cols-3 gap-1">
+                    {DOT_SHAPES.map(s => (
+                      <button
+                        key={s.value}
+                        type="button"
+                        onClick={() => updateOption('dotShape', s.value)}
+                        disabled={isProcessing}
+                        className={`py-1.5 text-xs font-medium rounded border transition-colors disabled:opacity-50 ${
+                          opts.dotShape === s.value
+                            ? 'bg-blue-600 text-white border-blue-600'
+                            : 'text-gray-600 border-gray-200 hover:bg-gray-50'
+                        }`}
+                      >
+                        {s.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Print width → DPI awareness */}
+                <div>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="text-xs font-medium text-gray-500 uppercase tracking-wide">
+                      Print Width
+                    </label>
+                    <span className="text-xs text-gray-500 tabular-nums">
+                      {opts.printWidthIn}&quot; · {amDpi} DPI
+                    </span>
+                  </div>
+                  <input
+                    type="range"
+                    min={2}
+                    max={24}
+                    step={0.5}
+                    value={opts.printWidthIn}
+                    onChange={e =>
+                      updateOption('printWidthIn', Number(e.target.value))
+                    }
+                    disabled={isProcessing}
+                    className="w-full accent-blue-600"
+                  />
+                  <p className="text-xs text-gray-400 mt-1">
+                    The size you&apos;ll print this at. Sets the true DPI so LPI
+                    is physically accurate.
+                  </p>
+                </div>
+
+                {/* LPI (screen frequency) */}
+                <div>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="text-xs font-medium text-gray-500 uppercase tracking-wide">
+                      Frequency (LPI)
+                    </label>
+                    <span className="text-xs text-gray-500 tabular-nums">
+                      {opts.lpi} LPI · {amCellPx.toFixed(1)}px dots
+                    </span>
+                  </div>
+                  <input
+                    type="range"
+                    min={10}
+                    max={100}
+                    step={1}
+                    value={opts.lpi}
+                    onChange={e => updateOption('lpi', Number(e.target.value))}
+                    disabled={isProcessing}
+                    className="w-full accent-blue-600"
+                  />
+                  <p className="text-xs text-gray-400 mt-1">
+                    Dots per inch of print. Lower = bigger, chunkier dots. DTF
+                    prints well around 35–55 LPI.
+                  </p>
+                </div>
+
+                {/* Screen angle */}
+                <div>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="text-xs font-medium text-gray-500 uppercase tracking-wide">
+                      Screen Angle
+                    </label>
+                    <span className="text-xs text-gray-500 tabular-nums">
+                      {opts.angleDeg}°
+                    </span>
+                  </div>
+                  <input
+                    type="range"
+                    min={0}
+                    max={90}
+                    step={1}
+                    value={opts.angleDeg}
+                    onChange={e =>
+                      updateOption('angleDeg', Number(e.target.value))
+                    }
+                    disabled={isProcessing}
+                    className="w-full accent-blue-600"
+                  />
+                  <p className="text-xs text-gray-400 mt-1">
+                    45° is the classic single-color angle (hides the grid).
+                  </p>
+                </div>
+              </>
+            )}
 
             {opts.algorithm === 'ordered' && (
               <div>
