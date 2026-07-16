@@ -38,6 +38,7 @@ import {
 } from './providers/amHalftone';
 import {
   DEFAULT_HALFTONE_OPTIONS,
+  type ColorMode,
   type DotShape,
   type HalftoneAlgorithm,
   type HalftoneOptions,
@@ -85,6 +86,18 @@ const DOT_SHAPES: { value: DotShape; label: string }[] = [
   { value: 'square', label: 'Square' },
   { value: 'diamond', label: 'Diamond' },
   { value: 'line', label: 'Line' },
+  { value: 'wave', label: 'Wave' },
+  { value: 'cross', label: 'Cross' },
+];
+
+const COLOR_MODES: { value: ColorMode; label: string; help: string }[] = [
+  { value: 'mono', label: 'Mono', help: 'Single ink colour.' },
+  { value: 'source', label: 'Color', help: 'Dots keep the source colour.' },
+  {
+    value: 'cmyk',
+    label: 'CMYK',
+    help: 'Full-colour process — C/M/Y/K screens at their own angles.',
+  },
 ];
 
 /**
@@ -655,6 +668,45 @@ export function HalftonePanel({
 
             {opts.algorithm === 'am-halftone' && (
               <>
+                {/* Color mode */}
+                <div>
+                  <label className="block text-xs font-medium text-gray-500 mb-1.5 uppercase tracking-wide">
+                    Color
+                  </label>
+                  <div className="grid grid-cols-3 rounded-lg border border-gray-200 overflow-hidden">
+                    {COLOR_MODES.map(c => (
+                      <button
+                        key={c.value}
+                        type="button"
+                        onClick={() => updateOption('colorMode', c.value)}
+                        disabled={isProcessing}
+                        className={`py-2 text-xs font-medium transition-colors disabled:opacity-50 ${
+                          opts.colorMode === c.value
+                            ? 'bg-blue-600 text-white'
+                            : 'text-gray-600 hover:bg-gray-50'
+                        }`}
+                      >
+                        {c.label}
+                      </button>
+                    ))}
+                  </div>
+                  <div className="flex items-center gap-2 mt-1">
+                    {opts.colorMode === 'mono' && (
+                      <input
+                        type="color"
+                        value={opts.inkColor}
+                        onChange={e => updateOption('inkColor', e.target.value)}
+                        disabled={isProcessing}
+                        title="Ink color"
+                        className="w-7 h-7 rounded border border-gray-200 bg-white p-0.5 cursor-pointer disabled:opacity-50"
+                      />
+                    )}
+                    <p className="text-xs text-gray-400">
+                      {COLOR_MODES.find(c => c.value === opts.colorMode)?.help}
+                    </p>
+                  </div>
+                </div>
+
                 {/* Dot shape */}
                 <div>
                   <label className="block text-xs font-medium text-gray-500 mb-1.5 uppercase tracking-wide">
@@ -757,6 +809,34 @@ export function HalftonePanel({
                   />
                   <p className="text-xs text-gray-400 mt-1">
                     45° is the classic single-color angle (hides the grid).
+                  </p>
+                </div>
+
+                {/* Texture / grunge */}
+                <div>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="text-xs font-medium text-gray-500 uppercase tracking-wide">
+                      Texture
+                    </label>
+                    <span className="text-xs text-gray-500 tabular-nums">
+                      {opts.texture}
+                    </span>
+                  </div>
+                  <input
+                    type="range"
+                    min={0}
+                    max={100}
+                    step={1}
+                    value={opts.texture}
+                    onChange={e =>
+                      updateOption('texture', Number(e.target.value))
+                    }
+                    disabled={isProcessing}
+                    className="w-full accent-blue-600"
+                  />
+                  <p className="text-xs text-gray-400 mt-1">
+                    Roughens the dots for a grunge / distressed screen-print
+                    look. 0 = clean.
                   </p>
                 </div>
               </>

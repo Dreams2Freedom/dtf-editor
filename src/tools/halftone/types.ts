@@ -24,7 +24,23 @@ export type OrderedSize = 4 | 8 | 16;
  * AM halftone dot shape — the spot function that decides how each cell's
  * dot grows as tone darkens. Round is the classic offset/screen dot.
  */
-export type DotShape = 'round' | 'ellipse' | 'square' | 'diamond' | 'line';
+export type DotShape =
+  | 'round'
+  | 'ellipse'
+  | 'square'
+  | 'diamond'
+  | 'line'
+  | 'wave' // wavy line screen (stylized)
+  | 'cross'; // crosshatch screen (stylized)
+
+/**
+ * Ink/color mode for the AM screen.
+ *  - mono:   single ink colour (default black) — one screen from luminance.
+ *  - source: dots keep the source pixel's colour (pop-art colour halftone).
+ *  - cmyk:   true 4-colour process — C/M/Y/K separations, each screened at its
+ *            own angle and composited (classic rosette).
+ */
+export type ColorMode = 'mono' | 'source' | 'cmyk';
 
 export interface HalftoneOptions {
   algorithm: HalftoneAlgorithm;
@@ -50,6 +66,12 @@ export interface HalftoneOptions {
    * physically meaningful setting regardless of the source's pixel size.
    */
   printWidthIn: number;
+  /** Ink/color mode. */
+  colorMode: ColorMode;
+  /** Ink color (hex) when colorMode === 'mono'. */
+  inkColor: string;
+  /** Grunge/texture amount (0-100): procedural noise mixed into the screen. */
+  texture: number;
 }
 
 export const DEFAULT_HALFTONE_OPTIONS: HalftoneOptions = {
@@ -62,6 +84,9 @@ export const DEFAULT_HALFTONE_OPTIONS: HalftoneOptions = {
   angleDeg: 45,
   dotShape: 'round',
   printWidthIn: 11,
+  colorMode: 'mono',
+  inkColor: '#000000',
+  texture: 0,
 };
 
 /**
