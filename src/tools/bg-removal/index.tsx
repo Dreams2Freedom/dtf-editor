@@ -36,7 +36,7 @@ export {
 type Mode = 'cm' | 'inhouse';
 
 function BgRemovalToolPanel(props: StudioToolPanelProps) {
-  const { image, imageId, onApply, onCancel } = props;
+  const { image, imageId, onApply, onCancel, registerPendingCommit } = props;
   const [mode, setMode] = useState<Mode>('cm');
 
   const handleInHouseSave = useCallback(
@@ -65,6 +65,7 @@ function BgRemovalToolPanel(props: StudioToolPanelProps) {
       onCancel={onCancel ?? (() => undefined)}
       savedImageId={imageId}
       onSwitchToCm={() => setMode('cm')}
+      registerPendingCommit={registerPendingCommit}
     />
   );
 }

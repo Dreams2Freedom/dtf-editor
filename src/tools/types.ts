@@ -83,6 +83,23 @@ export interface StudioToolPanelProps {
    * panel can hide chaining-only UI (e.g., "Apply" → "Save & Download").
    */
   standalone?: boolean;
+  /**
+   * Optional: a tool with in-panel edits that aren't yet committed to the
+   * working image (e.g. the bg-removal brush before "Apply Changes") can
+   * register a commit function here. Studio calls it right before the
+   * top-level Download, so pending edits are always included — no silent
+   * "saved the original" when the user skips Apply.
+   *
+   * The registered function should commit its current result (as if the
+   * user clicked Apply — including calling onApply) and resolve to the
+   * committed canvas, or null if there was nothing pending. Because Studio
+   * consumes the returned canvas directly (the onApply working-image update
+   * is async and not visible in the same tick), the canvas must be the
+   * finished, exportable result. Register null to clear (e.g. on unmount).
+   */
+  registerPendingCommit?: (
+    commit: (() => Promise<HTMLCanvasElement | null>) | null
+  ) => void;
 }
 
 export interface ApplyMetadata {
