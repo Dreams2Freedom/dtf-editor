@@ -1,14 +1,37 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { AdminLayout } from '@/components/admin/layout/AdminLayout';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { toast } from '@/lib/toast';
-import { Bell, Send, Users, DollarSign, Gift, AlertCircle } from 'lucide-react';
+import {
+  Bell,
+  Send,
+  Users,
+  DollarSign,
+  Gift,
+  AlertCircle,
+  Trash2,
+  Sparkles,
+} from 'lucide-react';
 import { useAuthStore } from '@/stores/authStore';
 import { createClientSupabaseClient } from '@/lib/supabase/client';
+import { PATCH_NOTES } from '@/config/patchNotes';
+
+type AdminTab = 'send' | 'manage' | 'patch';
+
+interface ManagedNotification {
+  id: string;
+  title: string;
+  message: string;
+  type: string;
+  target_audience: string;
+  is_active: boolean;
+  created_at: string;
+  expires_at: string | null;
+}
 
 type NotificationType =
   | 'info'
@@ -22,6 +45,47 @@ type Priority = 'low' | 'normal' | 'high' | 'urgent';
 export default function AdminNotificationsPage() {
   const { user } = useAuthStore();
   const [loading, setLoading] = useState(false);
+  const [tab, setTab] = useState<AdminTab>('send');
+  const [managed, setManaged] = useState<ManagedNotification[]>([]);
+  const [managedLoading, setManagedLoading] = useState(false);
+
+  const fetchManaged = useCallback(async () => {
+    setManagedLoading(true);
+    try {
+      const res = await fetch('/api/admin/notifications', {
+        credentials: 'include',
+      });
+      const data = await res.json();
+      if (res.ok) setManaged(data.notifications || []);
+      else toast.error(data.error || 'Failed to load announcements');
+    } catch {
+      toast.error('Failed to load announcements');
+    } finally {
+      setManagedLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (tab === 'manage') fetchManaged();
+  }, [tab, fetchManaged]);
+
+  const deleteAnnouncement = async (id: string) => {
+    if (!confirm('Delete this announcement for everyone? This cannot be undone.'))
+      return;
+    try {
+      const res = await fetch(`/api/admin/notifications?id=${id}`, {
+        method: 'DELETE',
+        credentials: 'include',
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || 'Delete failed');
+      setManaged(m => m.filter(n => n.id !== id));
+      toast.success('Announcement deleted');
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'Delete failed');
+    }
+  };
+
   const [formData, setFormData] = useState({
     title: '',
     message: '',
@@ -135,15 +199,40 @@ export default function AdminNotificationsPage() {
           <div>
             <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
               <Bell className="h-7 w-7" />
-              Send Notification
+              Notifications
             </h1>
             <p className="mt-1 text-sm text-gray-500">
-              Send targeted notifications to your users
+              Send and manage app-wide announcements, and preview patch notes.
             </p>
           </div>
         </div>
 
+        {/* Tabs */}
+        <div className="flex gap-1 border-b border-gray-200">
+          {(
+            [
+              ['send', 'Send'],
+              ['manage', 'Manage'],
+              ['patch', 'Patch Notes'],
+            ] as const
+          ).map(([val, label]) => (
+            <button
+              key={val}
+              type="button"
+              onClick={() => setTab(val)}
+              className={`px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors ${
+                tab === val
+                  ? 'border-blue-600 text-blue-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-800'
+              }`}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+
         {/* Notification Form */}
+        {tab === 'send' && (
         <Card>
           <CardHeader>
             <CardTitle>Create Notification</CardTitle>
@@ -370,6 +459,117 @@ export default function AdminNotificationsPage() {
             </form>
           </CardContent>
         </Card>
+        )}
+
+        {/* Manage tab — list + delete existing announcements */}
+        {tab === 'manage' && (
+          <Card>
+            <CardHeader>
+              <CardTitle>Live Announcements</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {managedLoading ? (
+                <p className="text-sm text-gray-500">Loading…</p>
+              ) : managed.length === 0 ? (
+                <p className="text-sm text-gray-500">
+                  No announcements yet. Send one from the Send tab.
+                </p>
+              ) : (
+                <div className="space-y-2">
+                  {managed.map(n => {
+                    const expired =
+                      n.expires_at && new Date(n.expires_at) <= new Date();
+                    const live = n.is_active && !expired;
+                    return (
+                      <div
+                        key={n.id}
+                        className="flex items-start justify-between gap-3 border border-gray-200 rounded-lg p-3"
+                      >
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-2">
+                            <p className="text-sm font-medium text-gray-900 truncate">
+                              {n.title}
+                            </p>
+                            <span
+                              className={`text-[10px] font-semibold uppercase px-1.5 py-0.5 rounded ${
+                                live
+                                  ? 'bg-green-100 text-green-700'
+                                  : 'bg-gray-100 text-gray-500'
+                              }`}
+                            >
+                              {live ? 'Live' : expired ? 'Expired' : 'Inactive'}
+                            </span>
+                          </div>
+                          <p className="text-xs text-gray-500 mt-0.5 line-clamp-2">
+                            {n.message}
+                          </p>
+                          <p className="text-[11px] text-gray-400 mt-1">
+                            {n.target_audience} ·{' '}
+                            {new Date(n.created_at).toLocaleDateString()}
+                          </p>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => deleteAnnouncement(n.id)}
+                          className="flex-shrink-0 flex items-center gap-1 text-xs text-red-600 hover:text-red-800 border border-red-200 hover:border-red-300 rounded-lg px-2.5 py-1.5 transition-colors"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                          Delete
+                        </button>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Patch Notes tab — admin-only preview of what users will see */}
+        {tab === 'patch' && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Sparkles className="h-5 w-5 text-blue-600" />
+                Patch Notes Preview
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-xs text-gray-500 mb-4">
+                This is exactly what a user sees in the &quot;What&apos;s
+                new&quot; pop-up. The most-recent entry (top) is the one shown on
+                the next release. Edit the wording in the code before it goes
+                out.
+              </p>
+              <div className="space-y-4">
+                {PATCH_NOTES.map(note => (
+                  <div
+                    key={note.version}
+                    className="border border-gray-200 rounded-lg p-4"
+                  >
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-sm font-semibold text-gray-900">
+                        v{note.version}
+                      </span>
+                      <span className="text-xs text-gray-400">{note.date}</span>
+                    </div>
+                    <ul className="space-y-1.5">
+                      {note.items.map((item, i) => (
+                        <li
+                          key={i}
+                          className="flex items-start gap-2 text-sm text-gray-700"
+                        >
+                          <span className="mt-1.5 w-1.5 h-1.5 rounded-full bg-blue-500 flex-shrink-0" />
+                          <span>{item}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        )}
       </div>
     </AdminLayout>
   );

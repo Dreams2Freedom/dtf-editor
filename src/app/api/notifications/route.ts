@@ -111,7 +111,10 @@ async function handleGet(request: NextRequest) {
     const user = await getUserFromRequest(request, supabase);
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-    const notifications = await fetchActiveForUser(supabase, user.id);
+    const active = await fetchActiveForUser(supabase, user.id);
+    // Hamilton shows at most the 2 most recent announcements to avoid clutter;
+    // the badge stays consistent with what's shown.
+    const notifications = active.slice(0, 2);
     const unreadCount = notifications.filter(n => !n.is_read).length;
     return NextResponse.json({ notifications, unreadCount });
   } catch (error) {
