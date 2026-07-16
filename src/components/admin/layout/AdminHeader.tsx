@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/stores/authStore';
 import { toast } from '@/lib/toast';
-import { NotificationBell } from '@/components/notifications/NotificationBell';
+import { HamiltonWidget } from '@/components/notifications/HamiltonWidget';
 import {
   Menu,
   Search,
@@ -96,8 +96,8 @@ export function AdminHeader({ onMenuToggle }: AdminHeaderProps) {
               Back to Dashboard
             </a>
 
-            {/* Notifications */}
-            <NotificationBell />
+            {/* Help & announcements */}
+            <HamiltonWidget />
 
             {/* Profile dropdown */}
             <div className="relative">
