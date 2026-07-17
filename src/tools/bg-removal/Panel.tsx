@@ -102,10 +102,26 @@ function rgbToHex([r, g, b]: RGB): string {
 // seed color. Brush size controls the spatial reach:
 //   • small brush → short reach → precise, local touch-ups
 //   • large brush → long reach  → fills a whole coherent region up to its edges
-const GROW_REACH_PER_SIZE = 4; // BFS reach (px) per brush-size unit
+const GROW_REACH_PER_SIZE = 4; // BFS reach (px) per brush-size unit (Precise)
+const GROW_MEDIUM_REACH_PER_SIZE = 18; // much wider reach in the Medium tier
 const GROW_SEED_RADIUS_DIVISOR = 4; // seed disc radius = brushSize / this
 const GROW_EDGE_THRESHOLD = 40; // per-step RGB gradient that counts as an edge
-const GROW_COLOR_TOLERANCE = 80; // max RGB distance from the seed mean color
+const GROW_COLOR_TOLERANCE = 80; // max RGB distance from seed mean (Precise)
+const GROW_FLOOD_COLOR_TOLERANCE = 115; // relaxed color gate when filling a region
+
+/**
+ * How far a stroke's edge-aware grow may travel, by brush size:
+ *   - Precise (small): a short reach → local, near-the-stroke touch-ups.
+ *   - Medium: a much larger reach → grows a big area beyond the stroke.
+ *   - Wide (>= BRUSH_BULK_SIZE): unbounded → FILLS the whole connected region
+ *     up to its real edges (e.g. flood the white inside a logo, or a whole
+ *     background). This is the "big brush = bulk area" behaviour.
+ */
+function reachForBrushSize(size: number): number {
+  if (size >= BRUSH_BULK_SIZE) return Infinity;
+  if (size >= BRUSH_MEDIUM_SIZE) return size * GROW_MEDIUM_REACH_PER_SIZE;
+  return size * GROW_REACH_PER_SIZE;
+}
 // Feather radius (px) for softening the cutout edge into a 0-255 alpha ramp.
 const FEATHER_RADIUS = 1;
 // Brush-size thresholds for the Precise / Medium / Bulk label.
@@ -937,15 +953,22 @@ export function BackgroundRemovalPanel({
       // size drives both the seed radius and how far the flood may travel.
       const seedRadius = Math.max(1, sizeAtCommit / GROW_SEED_RADIUS_DIVISOR);
       const seeds = strokeToSeeds(path, seedRadius, orig.width, orig.height);
+      // Small = local touch-up; Medium = large area; Wide = fill the whole
+      // connected region up to its edges (relax the colour gate when filling).
+      const reachRadius = reachForBrushSize(sizeAtCommit);
+      const colorTolerance =
+        sizeAtCommit >= BRUSH_MEDIUM_SIZE
+          ? GROW_FLOOD_COLOR_TOLERANCE
+          : GROW_COLOR_TOLERANCE;
       const region = growRegionFromStroke(
         orig.data,
         orig.width,
         orig.height,
         seeds,
         {
-          reachRadius: sizeAtCommit * GROW_REACH_PER_SIZE,
+          reachRadius,
           edgeThreshold: GROW_EDGE_THRESHOLD,
-          colorTolerance: GROW_COLOR_TOLERANCE,
+          colorTolerance,
         }
       );
       if (region.length !== total) return;
@@ -1473,10 +1496,6 @@ export function BackgroundRemovalPanel({
     });
     return canvas;
   }, [onSave]);
-
-  const handleApplyBrush = useCallback(() => {
-    applyMaskToCanvas();
-  }, [applyMaskToCanvas]);
 
   // Register a pending-commit hook so Studio's top-level Download flushes the
   // current cutout before exporting — even if the user never clicked "Apply
@@ -2006,12 +2025,14 @@ export function BackgroundRemovalPanel({
                     className="w-full accent-blue-600"
                   />
                   <p className="text-xs text-gray-400 mt-1">
-                    Controls the cursor size and how far each stroke floods —
-                    every stroke snaps to the nearest real edge.{' '}
-                    <span className="text-green-600">Small = precise</span>{' '}
-                    touch-ups;{' '}
-                    <span className="text-amber-600">large = wide</span> fills up
-                    to the region&apos;s edges.
+                    <span className="text-green-600">Precise</span> = local
+                    touch-ups right where you paint.{' '}
+                    <span className="text-blue-600">Medium</span> = grows a large
+                    area beyond the stroke.{' '}
+                    <span className="text-amber-600">Wide</span> = fills the
+                    whole connected region up to its edges (e.g. the white inside
+                    a logo, or a full background). Every stroke stops at real
+                    edges.
                   </p>
                 </div>
 
@@ -2461,35 +2482,6 @@ export function BackgroundRemovalPanel({
               </div>
             ) : null}
           </div>
-
-          {/* Always-visible "Apply Changes" action bar. Pinned outside the
-              scrolling content so an unknowing user sees it before hitting the
-              top-right Download — brush edits aren't saved until this is
-              clicked (it commits the cutout to Studio's working image). */}
-          {panelMode === 'ai-brush' && !hasResult && (
-            <div className="flex-shrink-0 p-4 border-t border-gray-200 bg-white">
-              <button
-                onClick={handleApplyBrush}
-                disabled={isProcessing || !brushReady}
-                className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white text-sm font-medium rounded-lg transition-colors"
-              >
-                {isProcessing ? (
-                  <>
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                    {STATUS_LABELS[status] || 'Processing...'}
-                  </>
-                ) : (
-                  <>
-                    <CheckCircle2 className="w-4 h-4" />
-                    Apply Changes
-                  </>
-                )}
-              </button>
-              <p className="text-[11px] text-gray-400 text-center mt-1.5">
-                Apply your changes before downloading.
-              </p>
-            </div>
-          )}
         </div>
       </div>
 
