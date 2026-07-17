@@ -28,7 +28,7 @@ import {
 } from '@/components/studio/StudioCanvasFrame';
 import type { StudioToolPanelProps } from '../types';
 
-import { thingDitherProvider } from './providers/thingDither';
+import { ditherHalftoneProvider } from './providers/ditherHalftone';
 import {
   amHalftoneProvider,
   effectiveDpi,
@@ -296,7 +296,7 @@ export function HalftonePanel({
 
   // Render a non-interactive (dither) preview into latestCanvasRef + display.
   const renderDitherPreview = useCallback(async () => {
-    const result = await thingDitherProvider.run(image, optsRef.current);
+    const result = await ditherHalftoneProvider.run(image, optsRef.current);
     latestCanvasRef.current = result.canvas;
     if (viewModeRef.current === 'halftone') paintDisplay();
   }, [image, paintDisplay]);
@@ -350,7 +350,7 @@ export function HalftonePanel({
 
       onApply(canvas, {
         operation: 'halftone',
-        provider: isAm ? amHalftoneProvider.id : thingDitherProvider.id,
+        provider: isAm ? amHalftoneProvider.id : ditherHalftoneProvider.id,
         modelId: opts.algorithm,
       });
     } catch (e) {

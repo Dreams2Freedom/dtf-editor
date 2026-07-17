@@ -3,7 +3,7 @@
 /**
  * Halftone tool — Studio plugin entry point (Phase 2.2).
  *
- * Pure-client pixel work via @thi.ng/pixel-dither, plus a tier-gated
+ * Pure-client pixel work (AM screening + CSP-safe dithering), plus a tier-gated
  * /api/halftone/use call that decides whether the operation is free
  * (paid plan, within monthly free quota) or charges 1 credit.
  *
@@ -65,4 +65,5 @@ export const halftoneTool: StudioTool = {
 
 export { HalftonePanel } from './Panel';
 export * from './types';
-export { thingDitherProvider } from './providers/thingDither';
+export { amHalftoneProvider } from './providers/amHalftone';
+export { ditherHalftoneProvider } from './providers/ditherHalftone';

@@ -1,9 +1,10 @@
 /**
  * Halftone provider contract (Phase 2.2).
  *
- * Mirrors the Upscale / Vectorize provider pattern. Today the only
- * implementation is `thingDitherProvider` (a wrapper around
- * @thi.ng/pixel-dither), but swapping in a custom WebGL shader or a
+ * Mirrors the Upscale / Vectorize provider pattern. The implementations
+ * are `amHalftoneProvider` (AM spot-function screening) and
+ * `ditherHalftoneProvider` (CSP-safe pure-JS ordered / Floyd-Steinberg /
+ * Atkinson dithering), but swapping in a custom WebGL shader or a
  * server-side ImageMagick worker is a registry change with zero panel
  * edits.
  *
