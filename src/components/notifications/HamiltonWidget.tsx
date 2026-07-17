@@ -1,12 +1,13 @@
 'use client';
 
 /**
- * Hamilton — the help & announcements widget that replaces the old notification
- * bell. Shows a count badge for unread app-wide announcements (posted from the
- * admin panel). Clicking opens a small panel with any announcements, a curated
- * FAQ, and a Contact Support button.
+ * Hamilton — the help & announcements widget. Renders as a large floating
+ * button pinned to the bottom-left of every authenticated page (it used to live
+ * in the header next to the bell). Shows a count badge for unread app-wide
+ * announcements (posted from the admin panel). Clicking opens a neutral panel
+ * with any announcements, a curated FAQ, and a Contact Support button.
  *
- * The character art loads from /hamilton.png; if it's missing we fall back to a
+ * The character art loads from /Hamilton.png; if it's missing we fall back to a
  * lucide icon so nothing breaks before the asset is added.
  */
 
@@ -136,30 +137,33 @@ export function HamiltonWidget() {
     );
 
   return (
-    <div className="relative" ref={rootRef}>
+    <div
+      className="fixed bottom-4 left-4 sm:bottom-6 sm:left-6 z-40"
+      ref={rootRef}
+    >
       <button
         onClick={toggleOpen}
-        className="relative flex items-center justify-center w-9 h-9 rounded-full hover:bg-gray-100 transition-colors"
+        className="relative flex items-center justify-center w-16 h-16 sm:w-[72px] sm:h-[72px] rounded-full bg-white border border-gray-200 shadow-lg hover:shadow-xl hover:-translate-y-0.5 transition-all"
         aria-label="Help and announcements"
         title="Hamilton — help & announcements"
       >
-        {avatar('w-8 h-8')}
+        {avatar('w-12 h-12 sm:w-14 sm:h-14')}
         {unreadCount > 0 && (
-          <span className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] px-1 rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center">
+          <span className="absolute -top-1 -right-1 min-w-[22px] h-[22px] px-1 rounded-full bg-red-500 text-white text-xs font-bold flex items-center justify-center border-2 border-white">
             {unreadCount > 9 ? '9+' : unreadCount}
           </span>
         )}
       </button>
 
       {open && (
-        <div className="absolute right-0 mt-2 w-80 max-w-[calc(100vw-2rem)] bg-white rounded-xl shadow-xl border border-gray-200 z-50 overflow-hidden">
-          <div className="flex items-center gap-3 p-4 bg-gradient-to-r from-blue-600 to-blue-500 text-white">
+        <div className="absolute bottom-full left-0 mb-3 w-80 max-w-[calc(100vw-2rem)] bg-white rounded-xl shadow-xl border border-gray-200 z-50 overflow-hidden">
+          <div className="flex items-center gap-3 p-4 bg-gray-100 border-b border-gray-200 text-gray-900">
             {avatar('w-10 h-10')}
             <div>
               <p className="font-semibold leading-tight">
                 Hamilton here — how can I help?
               </p>
-              <p className="text-xs text-white/80">
+              <p className="text-xs text-gray-500">
                 Announcements, FAQs &amp; support
               </p>
             </div>
@@ -220,19 +224,21 @@ export function HamiltonWidget() {
                 <div className="p-3 space-y-1.5">
                   <button
                     onClick={() => setTab('faq')}
-                    className="w-full flex items-center justify-between px-3 py-2.5 rounded-lg hover:bg-gray-50 text-sm text-gray-700"
+                    className="group w-full flex items-center justify-between px-3 py-2.5 rounded-lg bg-gray-50 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-700 transition-colors"
                   >
                     <span className="flex items-center gap-2">
-                      <HelpCircle className="w-4 h-4 text-gray-400" /> FAQs
+                      <HelpCircle className="w-4 h-4 text-gray-400 group-hover:text-blue-600" />{' '}
+                      FAQs
                     </span>
-                    <ChevronDown className="w-4 h-4 -rotate-90 text-gray-400" />
+                    <ChevronDown className="w-4 h-4 -rotate-90 text-gray-400 group-hover:text-blue-600" />
                   </button>
                   <Link
                     href="/support"
                     onClick={() => setOpen(false)}
-                    className="w-full flex items-center gap-2 px-3 py-2.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium justify-center"
+                    className="group w-full flex items-center gap-2 px-3 py-2.5 rounded-lg bg-gray-50 text-gray-700 hover:bg-blue-50 hover:text-blue-700 text-sm font-medium justify-center transition-colors"
                   >
-                    <LifeBuoy className="w-4 h-4" /> Contact Support
+                    <LifeBuoy className="w-4 h-4 text-gray-400 group-hover:text-blue-600" />{' '}
+                    Contact Support
                   </Link>
                 </div>
               </>

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import { withRateLimit } from '@/lib/rate-limit';
+import { PATCH_NOTE_MARKER_PREFIX } from '@/config/patchNotes';
 
 /**
  * Per-user notifications read/write.
@@ -64,6 +65,14 @@ async function fetchActiveForUser(supabase: SupabaseClient, userId: string) {
 
   const now = Date.now();
   const applies = (rows as NotificationRow[]).filter(n => {
+    // Skip the internal patch-note release marker — it's not a real
+    // announcement, just the "What's new" approval flag.
+    if (
+      typeof n.title === 'string' &&
+      n.title.startsWith(PATCH_NOTE_MARKER_PREFIX)
+    ) {
+      return false;
+    }
     if (n.expires_at && new Date(n.expires_at).getTime() <= now) return false;
     switch (n.target_audience) {
       case 'all':

@@ -16,6 +16,16 @@
 
 export const APP_VERSION = '1.4.0';
 
+/**
+ * Internal sentinel-title prefix for the admin-approval marker. Publishing a
+ * release writes one hidden `notifications` row titled
+ * `${PATCH_NOTE_MARKER_PREFIX}<version>`; the "What's new" modal only shows once
+ * that marker exists for the current build. The prefix has no SQL-LIKE wildcard
+ * characters so it can be matched with `.like('title', prefix + '%')` safely,
+ * and these rows are filtered out of every user-facing announcement list.
+ */
+export const PATCH_NOTE_MARKER_PREFIX = 'patchnote.release.';
+
 export interface PatchNote {
   /** Must match APP_VERSION for the current release's entry. */
   version: string;

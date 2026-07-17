@@ -33,9 +33,32 @@ export function PatchNotesModal() {
       /* localStorage unavailable — skip */
     }
     if (seen === latest.version) return;
-    // Small delay so it doesn't fight the initial page paint / redirects.
-    const t = setTimeout(() => setOpen(true), 700);
-    return () => clearTimeout(t);
+
+    let cancelled = false;
+    let timer: ReturnType<typeof setTimeout> | null = null;
+
+    // Only surface the modal once an admin has PUBLISHED this version from the
+    // admin panel. Until then the notes exist in the build but stay hidden.
+    (async () => {
+      try {
+        const res = await fetch('/api/patch-notes', { credentials: 'include' });
+        if (!res.ok) return;
+        const data = (await res.json()) as { publishedVersion?: string | null };
+        if (cancelled) return;
+        if (data.publishedVersion !== latest.version) return;
+        // Small delay so it doesn't fight the initial page paint / redirects.
+        timer = setTimeout(() => {
+          if (!cancelled) setOpen(true);
+        }, 700);
+      } catch {
+        /* network error — stay hidden */
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+      if (timer) clearTimeout(timer);
+    };
   }, [user, latest]);
 
   const dismiss = () => {

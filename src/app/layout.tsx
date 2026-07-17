@@ -6,6 +6,7 @@ import { ErrorBoundary } from '@/components/ui/ErrorBoundary';
 import { ToastContainer } from '@/components/ui/ToastContainer';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { PatchNotesModal } from '@/components/notifications/PatchNotesModal';
+import { HamiltonWidget } from '@/components/notifications/HamiltonWidget';
 import { MetaPixelRouteTracker } from '@/components/analytics/MetaPixelRouteTracker';
 
 // Meta (Facebook) Pixel ID — used for ad-performance tracking site-wide.
@@ -91,6 +92,7 @@ export default function RootLayout({
           <AuthProvider>
             <AppLayout>{children}</AppLayout>
             <PatchNotesModal />
+            <HamiltonWidget />
             <ToastContainer />
           </AuthProvider>
         </ErrorBoundary>

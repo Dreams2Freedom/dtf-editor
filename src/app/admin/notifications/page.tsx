@@ -18,7 +18,7 @@ import {
 } from 'lucide-react';
 import { useAuthStore } from '@/stores/authStore';
 import { createClientSupabaseClient } from '@/lib/supabase/client';
-import { PATCH_NOTES } from '@/config/patchNotes';
+import { APP_VERSION, PATCH_NOTES } from '@/config/patchNotes';
 
 type AdminTab = 'send' | 'manage' | 'patch';
 
@@ -48,6 +48,51 @@ export default function AdminNotificationsPage() {
   const [tab, setTab] = useState<AdminTab>('send');
   const [managed, setManaged] = useState<ManagedNotification[]>([]);
   const [managedLoading, setManagedLoading] = useState(false);
+  const [publishedVersion, setPublishedVersion] = useState<string | null>(null);
+  const [patchLoading, setPatchLoading] = useState(false);
+  const [patchSaving, setPatchSaving] = useState(false);
+
+  const fetchPatchStatus = useCallback(async () => {
+    setPatchLoading(true);
+    try {
+      const res = await fetch('/api/admin/patch-notes', {
+        credentials: 'include',
+      });
+      const data = await res.json();
+      if (res.ok) setPublishedVersion(data.publishedVersion ?? null);
+    } catch {
+      /* ignore */
+    } finally {
+      setPatchLoading(false);
+    }
+  }, []);
+
+  const setPatchPublish = useCallback(
+    async (publish: boolean) => {
+      setPatchSaving(true);
+      try {
+        const res = await fetch('/api/admin/patch-notes', {
+          method: 'POST',
+          credentials: 'include',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ version: APP_VERSION, publish }),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(data.error || 'Update failed');
+        setPublishedVersion(data.publishedVersion ?? null);
+        toast.success(
+          publish
+            ? `Patch notes v${APP_VERSION} are now live for users`
+            : 'Patch notes hidden from users'
+        );
+      } catch (e) {
+        toast.error(e instanceof Error ? e.message : 'Update failed');
+      } finally {
+        setPatchSaving(false);
+      }
+    },
+    []
+  );
 
   const fetchManaged = useCallback(async () => {
     setManagedLoading(true);
@@ -67,7 +112,8 @@ export default function AdminNotificationsPage() {
 
   useEffect(() => {
     if (tab === 'manage') fetchManaged();
-  }, [tab, fetchManaged]);
+    if (tab === 'patch') fetchPatchStatus();
+  }, [tab, fetchManaged, fetchPatchStatus]);
 
   const deleteAnnouncement = async (id: string) => {
     if (!confirm('Delete this announcement for everyone? This cannot be undone.'))
@@ -538,9 +584,68 @@ export default function AdminNotificationsPage() {
               <p className="text-xs text-gray-500 mb-4">
                 This is exactly what a user sees in the &quot;What&apos;s
                 new&quot; pop-up. The most-recent entry (top) is the one shown on
-                the next release. Edit the wording in the code before it goes
-                out.
+                the next release. Nothing reaches users until you publish it
+                below.
               </p>
+
+              {/* Approval gate — nothing goes out until an admin publishes it. */}
+              {(() => {
+                const isLive = publishedVersion === APP_VERSION;
+                return (
+                  <div className="mb-5 rounded-lg border border-gray-200 bg-gray-50 p-4">
+                    <div className="flex items-center justify-between gap-3 flex-wrap">
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm font-semibold text-gray-900">
+                            Current build: v{APP_VERSION}
+                          </span>
+                          <span
+                            className={`text-[10px] font-semibold uppercase px-1.5 py-0.5 rounded ${
+                              isLive
+                                ? 'bg-green-100 text-green-700'
+                                : 'bg-gray-200 text-gray-600'
+                            }`}
+                          >
+                            {patchLoading
+                              ? 'Checking…'
+                              : isLive
+                                ? 'Live for users'
+                                : 'Not published'}
+                          </span>
+                        </div>
+                        <p className="text-xs text-gray-500 mt-1">
+                          {isLive
+                            ? 'Users see the pop-up once each. Unpublish to stop showing it.'
+                            : publishedVersion
+                              ? `Users are currently being shown v${publishedVersion}. Publish to switch them to this build.`
+                              : 'No patch notes are being shown to users right now.'}
+                        </p>
+                      </div>
+                      <div className="flex gap-2">
+                        {isLive ? (
+                          <Button
+                            type="button"
+                            variant="outline"
+                            disabled={patchSaving || patchLoading}
+                            onClick={() => setPatchPublish(false)}
+                          >
+                            {patchSaving ? 'Saving…' : 'Unpublish'}
+                          </Button>
+                        ) : (
+                          <Button
+                            type="button"
+                            disabled={patchSaving || patchLoading}
+                            onClick={() => setPatchPublish(true)}
+                          >
+                            {patchSaving ? 'Publishing…' : 'Publish to users'}
+                          </Button>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })()}
+
               <div className="space-y-4">
                 {PATCH_NOTES.map(note => (
                   <div

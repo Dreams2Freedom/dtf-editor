@@ -4,6 +4,7 @@ import {
   createServiceRoleClient,
 } from '@/lib/supabase/server';
 import { withRateLimit } from '@/lib/rate-limit';
+import { PATCH_NOTE_MARKER_PREFIX } from '@/config/patchNotes';
 
 /** Admin-only: verify the caller is an admin, return the service-role client. */
 async function requireAdmin() {
@@ -44,7 +45,13 @@ async function handleGet(_request: NextRequest) {
       .limit(100);
     if (dbError) throw dbError;
 
-    return NextResponse.json({ notifications: data ?? [] });
+    // Exclude the internal patch-note release marker (managed on the Patch
+    // Notes tab, not a real announcement).
+    const notifications = (data ?? []).filter(
+      n => !(typeof n.title === 'string' && n.title.startsWith(PATCH_NOTE_MARKER_PREFIX))
+    );
+
+    return NextResponse.json({ notifications });
   } catch (e) {
     const msg = e instanceof Error ? e.message : 'Internal server error';
     return NextResponse.json({ error: msg }, { status: 500 });
