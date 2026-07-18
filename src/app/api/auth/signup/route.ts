@@ -6,12 +6,26 @@ import { trackReferralSignup } from '@/services/affiliate';
 import { env } from '@/config/env';
 import { withRateLimit } from '@/lib/rate-limit';
 import { getTrustedBaseUrl } from '@/lib/auth/request-base-url';
+import {
+  isBlockedEmailDomain,
+  BLOCKED_EMAIL_MESSAGE,
+} from '@/lib/auth/blockedEmailDomains';
 
 async function handlePost(request: NextRequest) {
   console.log('[SIGNUP API] Step 1: Signup request received');
 
   try {
     const { email, password, metadata } = await request.json();
+
+    // Reject disposable / throwaway email domains (used to bypass verification
+    // and farm free credits). Server-side gate — the authoritative one.
+    if (isBlockedEmailDomain(email)) {
+      console.warn('[SIGNUP API] Blocked disposable email domain:', email);
+      return NextResponse.json(
+        { success: false, error: BLOCKED_EMAIL_MESSAGE },
+        { status: 400 }
+      );
+    }
 
     // Check for affiliate cookie
     const affiliateCookie = request.cookies.get('dtf_ref')?.value;

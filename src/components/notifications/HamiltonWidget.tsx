@@ -136,14 +136,19 @@ export function HamiltonWidget() {
       <LifeBuoy className={`${size} text-blue-600`} />
     );
 
+  const bubbleText =
+    unreadCount > 0
+      ? 'You have a notification!'
+      : 'Hamilton here, how can I help?';
+
   return (
     <div
-      className="fixed bottom-4 left-4 sm:bottom-6 sm:left-6 z-40"
+      className="fixed bottom-4 left-4 sm:bottom-6 sm:left-6 z-40 flex items-center gap-2.5"
       ref={rootRef}
     >
       <button
         onClick={toggleOpen}
-        className="relative flex items-center justify-center w-16 h-16 sm:w-[72px] sm:h-[72px] rounded-full bg-white border border-gray-200 shadow-lg hover:shadow-xl hover:-translate-y-0.5 transition-all"
+        className="relative flex-shrink-0 flex items-center justify-center w-16 h-16 sm:w-[72px] sm:h-[72px] rounded-full bg-white border-[3px] border-sky-300 shadow-lg hover:shadow-xl hover:border-sky-400 hover:-translate-y-0.5 transition-all"
         aria-label="Help and announcements"
         title="Hamilton — help & announcements"
       >
@@ -154,6 +159,41 @@ export function HamiltonWidget() {
           </span>
         )}
       </button>
+
+      {/* Comic-style speech bubble (only when the panel is closed) */}
+      {!open && (
+        <button
+          type="button"
+          onClick={toggleOpen}
+          aria-label={
+            unreadCount > 0 ? 'You have a notification' : 'Open Hamilton help'
+          }
+          className={`relative max-w-[168px] rounded-2xl border-2 px-3 py-2 text-left shadow-md hover:shadow-lg transition-shadow ${
+            unreadCount > 0
+              ? 'border-sky-400 bg-sky-50'
+              : 'border-sky-300 bg-white'
+          }`}
+        >
+          <span
+            className={`block text-xs font-bold leading-snug ${
+              unreadCount > 0 ? 'text-sky-700' : 'text-gray-800'
+            }`}
+          >
+            {bubbleText}
+          </span>
+          {/* Tail pointing left toward Hamilton: coloured triangle + inner fill. */}
+          <span
+            className={`absolute -left-2 top-1/2 -translate-y-1/2 w-0 h-0 border-t-[7px] border-b-[7px] border-r-[9px] border-t-transparent border-b-transparent ${
+              unreadCount > 0 ? 'border-r-sky-400' : 'border-r-sky-300'
+            }`}
+          />
+          <span
+            className={`absolute -left-[5px] top-1/2 -translate-y-1/2 w-0 h-0 border-t-[6px] border-b-[6px] border-r-[8px] border-t-transparent border-b-transparent ${
+              unreadCount > 0 ? 'border-r-sky-50' : 'border-r-white'
+            }`}
+          />
+        </button>
+      )}
 
       {open && (
         <div className="absolute bottom-full left-0 mb-3 w-80 max-w-[calc(100vw-2rem)] bg-white rounded-xl shadow-xl border border-gray-200 z-50 overflow-hidden">
