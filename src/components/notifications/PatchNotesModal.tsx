@@ -23,6 +23,12 @@ export function PatchNotesModal() {
   const user = useAuthStore(state => state.user);
   const [open, setOpen] = useState(false);
   const latest = PATCH_NOTES[0];
+  // Admin-edited content (date + items) fetched from the server. Falls back to
+  // the code-authored config when the published marker carries no content.
+  const [content, setContent] = useState<{ date: string; items: string[] }>({
+    date: latest?.date ?? '',
+    items: latest?.items ?? [],
+  });
 
   useEffect(() => {
     if (!user || !latest) return;
@@ -39,13 +45,21 @@ export function PatchNotesModal() {
 
     // Only surface the modal once an admin has PUBLISHED this version from the
     // admin panel. Until then the notes exist in the build but stay hidden.
+    // Render the admin-edited content when present.
     (async () => {
       try {
         const res = await fetch('/api/patch-notes', { credentials: 'include' });
         if (!res.ok) return;
-        const data = (await res.json()) as { publishedVersion?: string | null };
+        const data = (await res.json()) as {
+          publishedVersion?: string | null;
+          date?: string | null;
+          items?: string[] | null;
+        };
         if (cancelled) return;
         if (data.publishedVersion !== latest.version) return;
+        if (Array.isArray(data.items) && data.items.length > 0) {
+          setContent({ date: data.date || latest.date, items: data.items });
+        }
         // Small delay so it doesn't fight the initial page paint / redirects.
         timer = setTimeout(() => {
           if (!cancelled) setOpen(true);
@@ -87,11 +101,11 @@ export function PatchNotesModal() {
           <Sparkles className="w-6 h-6 text-blue-600" />
         </div>
         <h2 className="text-lg font-bold text-gray-900">What&apos;s new</h2>
-        <p className="text-xs text-gray-400 mb-4">{latest.date}</p>
+        <p className="text-xs text-gray-400 mb-4">{content.date}</p>
       </div>
 
       <ul className="space-y-2.5 text-left">
-        {latest.items.map((item, i) => (
+        {content.items.map((item, i) => (
           <li
             key={i}
             className="flex items-start gap-2 text-sm text-gray-700 leading-relaxed"

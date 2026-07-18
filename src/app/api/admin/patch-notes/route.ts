@@ -4,7 +4,39 @@ import {
   createServiceRoleClient,
 } from '@/lib/supabase/server';
 import { withRateLimit } from '@/lib/rate-limit';
-import { PATCH_NOTE_MARKER_PREFIX } from '@/config/patchNotes';
+import {
+  PATCH_NOTE_MARKER_PREFIX,
+  APP_VERSION,
+  PATCH_NOTES,
+} from '@/config/patchNotes';
+
+interface PatchNoteContent {
+  date: string;
+  items: string[];
+}
+
+/** Parse the content JSON stored in a marker row's `message`, tolerantly. */
+function parseContent(message: string | null | undefined): PatchNoteContent | null {
+  if (!message) return null;
+  try {
+    const parsed = JSON.parse(message);
+    if (parsed && Array.isArray(parsed.items)) {
+      return {
+        date: typeof parsed.date === 'string' ? parsed.date : '',
+        items: parsed.items.filter((s: unknown) => typeof s === 'string'),
+      };
+    }
+  } catch {
+    /* legacy / non-JSON marker → no content */
+  }
+  return null;
+}
+
+/** The default (code-authored) content for the current build's version. */
+function defaultContent(): PatchNoteContent {
+  const cfg = PATCH_NOTES.find(n => n.version === APP_VERSION) ?? PATCH_NOTES[0];
+  return { date: cfg?.date ?? '', items: cfg?.items ? [...cfg.items] : [] };
+}
 
 /**
  * Admin approval gate for the "What's new" patch-notes pop-up.
@@ -55,20 +87,36 @@ async function handleGet(_request: NextRequest) {
     const { error, service } = await requireAdmin();
     if (error) return error;
 
+    // Latest marker row (published OR saved-draft), so the admin can edit an
+    // unpublished draft too.
     const { data } = await service!
       .from('notifications')
-      .select('title')
-      .eq('is_active', true)
+      .select('title, message, is_active')
       .like('title', `${PATCH_NOTE_MARKER_PREFIX}%`)
       .order('created_at', { ascending: false })
       .limit(1)
       .maybeSingle();
 
-    const version = data?.title?.startsWith(PATCH_NOTE_MARKER_PREFIX)
+    const storedVersion = data?.title?.startsWith(PATCH_NOTE_MARKER_PREFIX)
       ? data.title.slice(PATCH_NOTE_MARKER_PREFIX.length)
       : null;
+    const stored = parseContent(data?.message);
+    const published = !!data?.is_active;
 
-    return NextResponse.json({ publishedVersion: version });
+    // Editing surface: use the stored draft/published content if we have it,
+    // otherwise seed from the code-authored default so there's always a
+    // starting point to tweak.
+    const base = stored ?? defaultContent();
+
+    return NextResponse.json({
+      // Version is always the current build — the content is what's editable.
+      version: APP_VERSION,
+      date: base.date,
+      items: base.items,
+      published,
+      // Which version (if any) is currently LIVE for users.
+      publishedVersion: published ? storedVersion : null,
+    });
   } catch (e) {
     const msg = e instanceof Error ? e.message : 'Internal server error';
     return NextResponse.json({ error: msg }, { status: 500 });
@@ -81,10 +129,18 @@ async function handlePost(request: NextRequest) {
     if (error) return error;
 
     const body = await request.json().catch(() => ({}));
-    const { version, publish } = body as {
-      version?: string;
-      publish?: boolean;
-    };
+    const { publish } = body as { publish?: boolean };
+    const version = (body as { version?: string }).version || APP_VERSION;
+    const date = typeof (body as { date?: string }).date === 'string'
+      ? (body as { date: string }).date
+      : '';
+    const rawItems = (body as { items?: unknown }).items;
+    const items = Array.isArray(rawItems)
+      ? rawItems
+          .filter((s): s is string => typeof s === 'string')
+          .map(s => s.trim())
+          .filter(Boolean)
+      : [];
 
     if (typeof publish !== 'boolean') {
       return NextResponse.json(
@@ -92,37 +148,40 @@ async function handlePost(request: NextRequest) {
         { status: 400 }
       );
     }
-    if (publish && !version) {
+    if (publish && items.length === 0) {
       return NextResponse.json(
-        { error: 'version is required to publish' },
+        { error: 'Add at least one patch-note line before publishing.' },
         { status: 400 }
       );
     }
 
-    // Keep exactly one patch-note marker: clear any existing, then (if
-    // publishing) insert a fresh one for this version. The prefix has no
-    // LIKE-wildcard characters, so this only ever matches our own markers.
+    // Keep exactly one patch-note marker. The content is stored as JSON in
+    // `message`; is_active marks whether it's live for users (true) or just a
+    // saved draft (false). The prefix has no LIKE-wildcard characters, so this
+    // only ever matches our own markers.
     await service!
       .from('notifications')
       .delete()
       .like('title', `${PATCH_NOTE_MARKER_PREFIX}%`);
 
-    if (publish) {
-      const { error: insertError } = await service!
-        .from('notifications')
-        .insert({
-          type: 'announcement',
-          title: `${PATCH_NOTE_MARKER_PREFIX}${version}`,
-          message: 'Internal patch-notes release marker.',
-          target_audience: 'all',
-          priority: 'normal',
-          is_active: true,
-        });
-      if (insertError) throw insertError;
-    }
+    const { error: insertError } = await service!
+      .from('notifications')
+      .insert({
+        type: 'announcement',
+        title: `${PATCH_NOTE_MARKER_PREFIX}${version}`,
+        message: JSON.stringify({ date, items }),
+        target_audience: 'all',
+        priority: 'normal',
+        is_active: publish,
+      });
+    if (insertError) throw insertError;
 
     return NextResponse.json({
       success: true,
+      version,
+      date,
+      items,
+      published: publish,
       publishedVersion: publish ? version : null,
     });
   } catch (e) {
