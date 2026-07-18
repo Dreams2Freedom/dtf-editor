@@ -31,6 +31,7 @@ import {
   detectBorderColor,
   computeBackgroundMask,
   fillConnectedRegion,
+  computeWholeShapeMask,
 } from './scribbleBrush';
 import { removeStrandedSpecks } from './strandedComponents';
 import { classifyImage } from './imageStats';
@@ -106,7 +107,7 @@ function rgbToHex([r, g, b]: RGB): string {
 //   • small brush → short reach → precise, local touch-ups
 //   • large brush → long reach  → fills a whole coherent region up to its edges
 const GROW_REACH_PER_SIZE = 4; // BFS reach (px) per brush-size unit (Precise)
-const GROW_MEDIUM_REACH_PER_SIZE = 6; // reach (px) per size unit in the Fill tier
+const GROW_MEDIUM_REACH_PER_SIZE = 18; // reach (px) per size unit in the Fill tier
 const GROW_SEED_RADIUS_DIVISOR = 4; // seed disc radius = brushSize / this
 const GROW_EDGE_THRESHOLD = 40; // per-step RGB gradient that counts as an edge
 const GROW_COLOR_TOLERANCE = 80; // max RGB distance from seed mean (Precise)
@@ -140,9 +141,9 @@ function reachForBrushSize(size: number, resFactor: number): number {
 const FEATHER_RADIUS = 1;
 // Brush-size thresholds for the Precise / Fill / Whole-shape label + reach.
 const BRUSH_MEDIUM_SIZE = 20;
-// At/above this (the top of the slider) a stroke fills the entire connected
-// region in one go; below it the fill is bounded so you can isolate a part.
-const BRUSH_WHOLE_SIZE = 170;
+// At/above this a stroke fills the entire connected region in one go; below it
+// the fill is bounded (grows with size) so you can isolate a part.
+const BRUSH_WHOLE_SIZE = 48;
 // Max brush size (image-px diameter feel). Larger than before so a single
 // swipe can cover a big area on high-res designs — important for painting
 // back regions the smart fill can't grab (e.g. a dark helmet on a dark bg).
@@ -401,6 +402,15 @@ export function BackgroundRemovalPanel({
   // noise that 4-connects past the size cap of the old algorithm.
   // Default 30 = mild; cranks aggressive for distressed/grunge designs.
   const [speckRemoval, setSpeckRemoval] = useState(30);
+  // "Keep whole shape": remove only the exterior background and keep the whole
+  // design silhouette solid (skull + helmet + interior), so nothing important
+  // is lost on the initial cutout. The brush is then only for subtracting the
+  // few bits you don't want (e.g. the eye sockets). Default on.
+  const [keepWholeShape, setKeepWholeShape] = useState(true);
+  const keepWholeShapeRef = useRef(keepWholeShape);
+  useEffect(() => {
+    keepWholeShapeRef.current = keepWholeShape;
+  }, [keepWholeShape]);
   // Show the "Auto-selected for graphics" badge when the panel routed to
   // birefnet-dis on its own. Cleared the moment the user manually picks
   // any model so the manual choice is honored on subsequent loads.
@@ -676,6 +686,47 @@ export function BackgroundRemovalPanel({
    */
   const runInitialAnalysis = useCallback(
     (canvas: HTMLCanvasElement) => {
+      // Keep-whole-shape works from the original pixels alone, so seed it
+      // instantly (before the network call) — the cutout shows immediately and
+      // survives an ML failure. The ML call below still runs to populate
+      // initialMaskRef for when the toggle is switched off.
+      const origNow = originalDataRef.current;
+      if (
+        keepWholeShapeRef.current &&
+        origNow &&
+        strokeHistoryRef.current.length === 0
+      ) {
+        const bgColor = detectBorderColor(
+          origNow.data,
+          origNow.width,
+          origNow.height
+        );
+        const sealRadius = Math.max(
+          3,
+          Math.round((Math.max(origNow.width, origNow.height) / 1400) * 5)
+        );
+        const m = computeWholeShapeMask(
+          origNow.data,
+          origNow.width,
+          origNow.height,
+          bgColor,
+          BG_CONNECT_TOLERANCE,
+          sealRadius
+        );
+        samMaskRef.current = m;
+        const recompute = recomputeCumulativeRef.current;
+        if (recompute) {
+          recompute();
+        } else {
+          // Binding effect hasn't run yet on first mount — render directly.
+          const next = new Uint8Array(m);
+          cumulativeMaskRef.current = next;
+          renderPreviewFromMask(next);
+          setContoursD(
+            maskToContoursPath(next, origNow.width, origNow.height)
+          );
+        }
+      }
       // Smart initial mask: detect → ml+color when bg is flood-fillable.
       return runDetect(canvas)
         .then(detection => {
@@ -740,8 +791,13 @@ export function BackgroundRemovalPanel({
           offCtx.drawImage(img, 0, 0, orig.width, orig.height);
           const data = offCtx.getImageData(0, 0, orig.width, orig.height);
           initialMaskRef.current = data;
-          // Only seed SAM mask if user hasn't started brushing yet.
-          if (strokeHistoryRef.current.length === 0) {
+          // Seed the ML mask only when NOT keeping the whole shape (the
+          // whole-shape mask was already seeded upfront, offline). Skip if the
+          // user has started brushing.
+          if (
+            strokeHistoryRef.current.length === 0 &&
+            !keepWholeShapeRef.current
+          ) {
             const m = new Uint8Array(orig.width * orig.height);
             for (let i = 0; i < m.length; i++) {
               m[i] = data.data[i * 4 + 3] > 127 ? 1 : 0;
@@ -820,6 +876,21 @@ export function BackgroundRemovalPanel({
     const sam = samMaskRef.current;
     const orig = originalDataRef.current;
     if (!sam || !orig) return;
+
+    // Keep-whole-shape mode: the base mask is already the full design
+    // silhouette. Skip the automatic carve passes (edge flood / hole detection
+    // / speck removal) — they key off the background colour and would re-remove
+    // same-colour subject parts like a dark helmet. The user subtracts what
+    // they don't want with the brush instead. Brush edits live directly in
+    // samMask, so the mask already reflects them here.
+    if (keepWholeShapeRef.current) {
+      const next = new Uint8Array(sam);
+      cumulativeMaskRef.current = next;
+      renderPreviewFromMask(next);
+      setContoursD(maskToContoursPath(next, orig.width, orig.height));
+      return;
+    }
+
     const next = new Uint8Array(sam);
     const keepColors = collectStrokePaletteColors(
       strokeHistoryRef.current,
@@ -923,6 +994,44 @@ export function BackgroundRemovalPanel({
   useEffect(() => {
     recomputeCumulativeRef.current = recomputeCumulative;
   }, [recomputeCumulative]);
+
+  // Toggle "Keep whole shape" and re-seed the base mask immediately (no network
+  // re-run) as long as the user hasn't started brushing.
+  const toggleKeepWholeShape = useCallback(
+    (nextOn: boolean) => {
+      setKeepWholeShape(nextOn);
+      keepWholeShapeRef.current = nextOn;
+      const orig = originalDataRef.current;
+      if (!orig || strokeHistoryRef.current.length > 0) return;
+      const total = orig.width * orig.height;
+      if (nextOn) {
+        const bgColor = detectBorderColor(orig.data, orig.width, orig.height);
+        const sealRadius = Math.max(
+          3,
+          Math.round((Math.max(orig.width, orig.height) / 1400) * 5)
+        );
+        samMaskRef.current = computeWholeShapeMask(
+          orig.data,
+          orig.width,
+          orig.height,
+          bgColor,
+          BG_CONNECT_TOLERANCE,
+          sealRadius
+        );
+      } else {
+        const initial = initialMaskRef.current;
+        const m = new Uint8Array(total);
+        if (initial && initial.data.length === total * 4) {
+          for (let i = 0; i < total; i++) {
+            m[i] = initial.data[i * 4 + 3] > 127 ? 1 : 0;
+          }
+        }
+        samMaskRef.current = m;
+      }
+      recomputeCumulative();
+    },
+    [recomputeCumulative]
+  );
 
   /** Reset SAM mask to BiRefNet initial (or all-zeros if not loaded), then derive cumulative. */
   const resetCumulativeToInitial = useCallback(() => {
@@ -2077,6 +2186,29 @@ export function BackgroundRemovalPanel({
                   </p>
                 </div>
 
+                {/* Keep whole shape — initial cutout keeps the full silhouette. */}
+                <div className="rounded-lg border border-gray-200 bg-gray-50 p-3">
+                  <label className="flex items-start gap-2 cursor-pointer select-none">
+                    <input
+                      type="checkbox"
+                      checked={keepWholeShape}
+                      onChange={e => toggleKeepWholeShape(e.target.checked)}
+                      className="mt-0.5 accent-blue-600"
+                    />
+                    <span>
+                      <span className="block text-xs font-semibold text-gray-800">
+                        Keep whole shape
+                      </span>
+                      <span className="block text-[11px] text-gray-500 mt-0.5">
+                        Removes only the outside background and keeps the entire
+                        design solid — including dark parts (like a helmet) that
+                        match the shirt colour. Then just brush away anything you
+                        don&apos;t want (e.g. the eyes).
+                      </span>
+                    </span>
+                  </label>
+                </div>
+
                 {/* Brush size — controls cursor size and edge-aware reach. */}
                 <div>
                   <div className="flex items-center justify-between mb-1">
@@ -2115,12 +2247,11 @@ export function BackgroundRemovalPanel({
                     <span className="text-green-600">Precise</span> = pixel-level
                     touch-ups.{' '}
                     <span className="text-blue-600">Fill</span> = fills a bounded
-                    area around the stroke — bigger brush = bigger area, so you
-                    can grab just the forehead OR just the jaw.{' '}
-                    <span className="text-amber-600">Whole shape</span> (max) =
-                    fills the entire connected region in one stroke. Every stroke
-                    also always keeps/removes exactly what you paint over, so you
-                    can paint back areas the fill can&apos;t grab.
+                    area around the stroke (bigger = larger).{' '}
+                    <span className="text-amber-600">Whole shape</span> = fills
+                    the entire connected region in one stroke. Every stroke also
+                    always keeps/removes exactly what you paint over, so you can
+                    paint back areas the fill can&apos;t grab.
                   </p>
                 </div>
 

@@ -263,6 +263,110 @@ export function computeBackgroundMask(
 }
 
 /**
+ * Dilate a binary mask by `radius` px (4-connected, iterative). Used to seal
+ * hairline gaps in a design's outline so a background flood can't sneak inside.
+ */
+function dilateMask(
+  mask: Uint8Array,
+  width: number,
+  height: number,
+  radius: number
+): Uint8Array {
+  let a = mask;
+  for (let it = 0; it < radius; it++) {
+    const b = Uint8Array.from(a);
+    for (let y = 0; y < height; y++) {
+      for (let x = 0; x < width; x++) {
+        const i = y * width + x;
+        if (a[i]) continue;
+        if (
+          (x > 0 && a[i - 1]) ||
+          (x < width - 1 && a[i + 1]) ||
+          (y > 0 && a[i - width]) ||
+          (y < height - 1 && a[i + width])
+        ) {
+          b[i] = 1;
+        }
+      }
+    }
+    a = b;
+  }
+  return a;
+}
+
+/**
+ * "Keep whole shape" — a cutout that removes ONLY the true exterior background
+ * and keeps the entire design silhouette solid (all interior detail, including
+ * parts that are the same colour as the background, like a dark helmet on a
+ * dark shirt).
+ *
+ * How: the design's line-work (everything NOT within `colorTolerance` of the
+ * background colour) is treated as a barrier and its hairline gaps are sealed
+ * (dilate by `sealRadius`). The exterior is then flooded from the image border
+ * through non-barrier (background-coloured) pixels; everything the flood can't
+ * reach is inside the silhouette → kept. Enclosed same-colour regions (eye
+ * sockets) are kept too — the user removes those with the brush (the easy
+ * direction) rather than losing the whole subject.
+ *
+ * Returns a foreground mask: 1 = keep, 0 = background.
+ */
+export function computeWholeShapeMask(
+  data: Uint8ClampedArray,
+  width: number,
+  height: number,
+  bg: { r: number; g: number; b: number },
+  colorTolerance: number,
+  sealRadius: number
+): Uint8Array {
+  const total = width * height;
+  const tolSq = colorTolerance * colorTolerance;
+
+  // Barrier = the design's non-background-coloured content (its line-work).
+  let barrier: Uint8Array = new Uint8Array(total);
+  for (let i = 0; i < total; i++) {
+    const j = i * 4;
+    const dr = data[j] - bg.r;
+    const dg = data[j + 1] - bg.g;
+    const db = data[j + 2] - bg.b;
+    barrier[i] = dr * dr + dg * dg + db * db <= tolSq ? 0 : 1;
+  }
+  if (sealRadius > 0) barrier = dilateMask(barrier, width, height, sealRadius);
+
+  // Exterior = border-connected background that never crosses the barrier.
+  const exterior = new Uint8Array(total);
+  const queue = new Uint32Array(total);
+  let head = 0;
+  let tail = 0;
+  const push = (i: number) => {
+    if (!exterior[i] && !barrier[i]) {
+      exterior[i] = 1;
+      queue[tail++] = i;
+    }
+  };
+  for (let x = 0; x < width; x++) {
+    push(x);
+    push((height - 1) * width + x);
+  }
+  for (let y = 0; y < height; y++) {
+    push(y * width);
+    push(y * width + width - 1);
+  }
+  while (head < tail) {
+    const i = queue[head++];
+    const x = i % width;
+    const y = (i - x) / width;
+    if (x > 0) push(i - 1);
+    if (x < width - 1) push(i + 1);
+    if (y > 0) push(i - width);
+    if (y < height - 1) push(i + width);
+  }
+
+  const keep = new Uint8Array(total);
+  for (let i = 0; i < total; i++) keep[i] = exterior[i] ? 0 : 1;
+  return keep;
+}
+
+/**
  * Flood a connected region from the stroke seeds through pixels where
  * `mask[i] === passValue`, bounded by `reachRadius` BFS steps (Infinity =
  * fill the whole connected component). Used by the big "fill" brush:
