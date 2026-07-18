@@ -168,6 +168,154 @@ export function growRegionFromStroke(
 }
 
 /**
+ * Median colour of the image border pixels — a robust estimate of the
+ * background/garment colour for the connectivity fill, independent of any AI
+ * mask. Samples up to ~400 perimeter pixels.
+ */
+export function detectBorderColor(
+  data: Uint8ClampedArray,
+  width: number,
+  height: number
+): { r: number; g: number; b: number } {
+  const reds: number[] = [];
+  const greens: number[] = [];
+  const blues: number[] = [];
+  const perimeter = 2 * width + 2 * height;
+  const stride = Math.max(1, Math.floor(perimeter / 400));
+  const sample = (x: number, y: number) => {
+    const j = (y * width + x) * 4;
+    reds.push(data[j]);
+    greens.push(data[j + 1]);
+    blues.push(data[j + 2]);
+  };
+  for (let x = 0; x < width; x += stride) {
+    sample(x, 0);
+    sample(x, height - 1);
+  }
+  for (let y = 0; y < height; y += stride) {
+    sample(0, y);
+    sample(width - 1, y);
+  }
+  const median = (arr: number[]) => {
+    if (arr.length === 0) return 0;
+    arr.sort((a, b) => a - b);
+    return arr[arr.length >> 1];
+  };
+  return { r: median(reds), g: median(greens), b: median(blues) };
+}
+
+/**
+ * Background = pixels within `tolerance` (Euclidean RGB) of the border colour
+ * AND connected to the image border through such pixels. Everything else —
+ * including interior detail the SAME colour as the background but ENCLOSED by
+ * the subject (hatch lines, eye sockets, the counters of letters) — is
+ * foreground. Returns a mask: 1 = background-connected, 0 = foreground.
+ *
+ * This is what lets a "fill" brush flood across a subject's internal line-work
+ * (which shares the background colour) instead of getting trapped by it: the
+ * subject is one solid foreground blob, the background is one blob, and a
+ * single stroke selects the whole thing.
+ */
+export function computeBackgroundMask(
+  data: Uint8ClampedArray,
+  width: number,
+  height: number,
+  bg: { r: number; g: number; b: number },
+  tolerance: number
+): Uint8Array {
+  const total = width * height;
+  const bgMask = new Uint8Array(total);
+  const tolSq = tolerance * tolerance;
+  const isBg = (i: number) => {
+    const j = i * 4;
+    const dr = data[j] - bg.r;
+    const dg = data[j + 1] - bg.g;
+    const db = data[j + 2] - bg.b;
+    return dr * dr + dg * dg + db * db <= tolSq;
+  };
+  const queue = new Uint32Array(total);
+  let head = 0;
+  let tail = 0;
+  const push = (i: number) => {
+    if (!bgMask[i] && isBg(i)) {
+      bgMask[i] = 1;
+      queue[tail++] = i;
+    }
+  };
+  for (let x = 0; x < width; x++) {
+    push(x);
+    push((height - 1) * width + x);
+  }
+  for (let y = 0; y < height; y++) {
+    push(y * width);
+    push(y * width + width - 1);
+  }
+  while (head < tail) {
+    const i = queue[head++];
+    const x = i % width;
+    const y = (i - x) / width;
+    if (x > 0) push(i - 1);
+    if (x < width - 1) push(i + 1);
+    if (y > 0) push(i - width);
+    if (y < height - 1) push(i + width);
+  }
+  return bgMask;
+}
+
+/**
+ * Flood a connected region from the stroke seeds through pixels where
+ * `mask[i] === passValue`, bounded by `reachRadius` BFS steps (Infinity =
+ * fill the whole connected component). Used by the big "fill" brush:
+ *   - Keep  → passValue 0 over the background mask (fills the foreground shape).
+ *   - Remove→ passValue 1 over the background mask (fills the background area).
+ * Returns a binary region mask (1 = selected).
+ */
+export function fillConnectedRegion(
+  mask: Uint8Array,
+  passValue: 0 | 1,
+  width: number,
+  height: number,
+  seeds: number[],
+  reachRadius: number
+): Uint8Array {
+  const total = width * height;
+  const region = new Uint8Array(total);
+  if (seeds.length === 0) return region;
+  const depth = new Int32Array(total).fill(-1);
+  const queue = new Uint32Array(total);
+  let head = 0;
+  let tail = 0;
+  const maxDepth =
+    reachRadius === Infinity ? Infinity : Math.max(1, Math.round(reachRadius));
+  for (const s of seeds) {
+    if (s >= 0 && s < total && depth[s] === -1 && mask[s] === passValue) {
+      depth[s] = 0;
+      region[s] = 1;
+      queue[tail++] = s;
+    }
+  }
+  while (head < tail) {
+    const i = queue[head++];
+    const d = depth[i];
+    if (d >= maxDepth) continue;
+    const x = i % width;
+    const y = (i - x) / width;
+    const nd = d + 1;
+    const visit = (nIdx: number) => {
+      if (depth[nIdx] !== -1 || mask[nIdx] !== passValue) return;
+      depth[nIdx] = nd;
+      region[nIdx] = 1;
+      queue[tail++] = nIdx;
+    };
+    if (x > 0) visit(i - 1);
+    if (x < width - 1) visit(i + 1);
+    if (y > 0) visit(i - width);
+    if (y < height - 1) visit(i + width);
+  }
+  return region;
+}
+
+/**
  * Feather a binary mask into a soft 0-255 alpha coverage map via a separable
  * box blur. Interior stays 255 and exterior stays 0; only the boundary gets a
  * ramp, giving anti-aliased cutout edges instead of a hard 0/255 stairstep.

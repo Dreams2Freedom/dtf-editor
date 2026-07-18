@@ -28,6 +28,9 @@ import {
   strokeToSeeds,
   growRegionFromStroke,
   featherAlpha,
+  detectBorderColor,
+  computeBackgroundMask,
+  fillConnectedRegion,
 } from './scribbleBrush';
 import { removeStrandedSpecks } from './strandedComponents';
 import { classifyImage } from './imageStats';
@@ -108,6 +111,10 @@ const GROW_SEED_RADIUS_DIVISOR = 4; // seed disc radius = brushSize / this
 const GROW_EDGE_THRESHOLD = 40; // per-step RGB gradient that counts as an edge
 const GROW_COLOR_TOLERANCE = 80; // max RGB distance from seed mean (Precise)
 const GROW_FLOOD_COLOR_TOLERANCE = 115; // relaxed color gate when filling a region
+// Big-brush "fill": how close to the border colour still counts as background
+// for the connected-component fill. Higher = treats more near-bg tones as
+// background. The fill floods the whole subject (Keep) or background (Remove).
+const BG_CONNECT_TOLERANCE = 70;
 
 /**
  * How far a stroke's edge-aware grow may travel, by brush size:
@@ -317,6 +324,10 @@ export function BackgroundRemovalPanel({
   const containerRef = useRef<HTMLDivElement>(null);
   const originalDataRef = useRef<ImageData | null>(null);
   const initialMaskRef = useRef<ImageData | null>(null);
+  // Cached background-connectivity mask for the big "fill" brush (1 = a
+  // background-colored pixel connected to the image border). Computed lazily
+  // once per image; invalidated when the working image changes.
+  const bgMaskRef = useRef<Uint8Array | null>(null);
 
   // Color-pick state
   const toleranceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -755,6 +766,7 @@ export function BackgroundRemovalPanel({
     ctx.drawImage(image, 0, 0);
     canvasRef.current = canvas;
     originalDataRef.current = ctx.getImageData(0, 0, w, h);
+    bgMaskRef.current = null; // new image → recompute fill connectivity lazily
     // Original pixels are in memory — the client-side scribble brush is ready.
     setBrushReady(true);
 
@@ -953,24 +965,65 @@ export function BackgroundRemovalPanel({
       // size drives both the seed radius and how far the flood may travel.
       const seedRadius = Math.max(1, sizeAtCommit / GROW_SEED_RADIUS_DIVISOR);
       const seeds = strokeToSeeds(path, seedRadius, orig.width, orig.height);
-      // Small = local touch-up; Medium = large area; Wide = fill the whole
-      // connected region up to its edges (relax the colour gate when filling).
       const reachRadius = reachForBrushSize(sizeAtCommit);
-      const colorTolerance =
-        sizeAtCommit >= BRUSH_MEDIUM_SIZE
-          ? GROW_FLOOD_COLOR_TOLERANCE
-          : GROW_COLOR_TOLERANCE;
-      const region = growRegionFromStroke(
-        orig.data,
-        orig.width,
-        orig.height,
-        seeds,
-        {
+
+      // Region selection, by brush size:
+      //  - Precise (small): edge-aware local grow — snaps to nearby edges,
+      //    stays within a colour band of the seed. Great for touch-ups.
+      //  - Medium / Wide (big): connected-component FILL over a
+      //    background/foreground partition (background = the border-connected
+      //    background colour). This floods the whole subject (Keep) or whole
+      //    background area (Remove) in one stroke — crossing internal line-work
+      //    that shares the background colour, which the edge-grow can't. Wide =
+      //    unbounded (the entire component); Medium = reach-bounded.
+      let region: Uint8Array;
+      if (sizeAtCommit >= BRUSH_MEDIUM_SIZE) {
+        if (!bgMaskRef.current) {
+          const bgColor = detectBorderColor(orig.data, orig.width, orig.height);
+          bgMaskRef.current = computeBackgroundMask(
+            orig.data,
+            orig.width,
+            orig.height,
+            bgColor,
+            BG_CONNECT_TOLERANCE
+          );
+        }
+        const bgMask = bgMaskRef.current;
+        // Keep fills the foreground shape (bgMask 0); Remove fills the
+        // background area (bgMask 1).
+        const passValue: 0 | 1 = tool === 'keep' ? 0 : 1;
+        region = fillConnectedRegion(
+          bgMask,
+          passValue,
+          orig.width,
+          orig.height,
+          seeds,
+          reachRadius
+        );
+        // Fallback: if the fill found nothing (e.g. a Remove stroke painted on
+        // the subject, or a Keep stroke on bare background), use the edge-aware
+        // grow so the stroke still does something sensible.
+        let any = false;
+        for (let i = 0; i < region.length; i++) {
+          if (region[i]) {
+            any = true;
+            break;
+          }
+        }
+        if (!any) {
+          region = growRegionFromStroke(orig.data, orig.width, orig.height, seeds, {
+            reachRadius,
+            edgeThreshold: GROW_EDGE_THRESHOLD,
+            colorTolerance: GROW_FLOOD_COLOR_TOLERANCE,
+          });
+        }
+      } else {
+        region = growRegionFromStroke(orig.data, orig.width, orig.height, seeds, {
           reachRadius,
           edgeThreshold: GROW_EDGE_THRESHOLD,
-          colorTolerance,
-        }
-      );
+          colorTolerance: GROW_COLOR_TOLERANCE,
+        });
+      }
       if (region.length !== total) return;
 
       // Keep = add the region; Remove = subtract it.
@@ -1528,6 +1581,7 @@ export function BackgroundRemovalPanel({
       canvas.width,
       canvas.height
     );
+    bgMaskRef.current = null; // reset → recompute fill connectivity lazily
     const preview = previewRef.current;
     if (preview) {
       preview.width = canvas.width;
@@ -2025,14 +2079,14 @@ export function BackgroundRemovalPanel({
                     className="w-full accent-blue-600"
                   />
                   <p className="text-xs text-gray-400 mt-1">
-                    <span className="text-green-600">Precise</span> = local
+                    <span className="text-green-600">Precise</span> = pixel-level
                     touch-ups right where you paint.{' '}
-                    <span className="text-blue-600">Medium</span> = grows a large
-                    area beyond the stroke.{' '}
+                    <span className="text-blue-600">Medium</span> = fills a large
+                    area around the stroke.{' '}
                     <span className="text-amber-600">Wide</span> = fills the
-                    whole connected region up to its edges (e.g. the white inside
-                    a logo, or a full background). Every stroke stops at real
-                    edges.
+                    whole shape in one stroke — Keep grabs the entire subject,
+                    Remove grabs the whole background, flooding across internal
+                    line-work instead of stopping at it.
                   </p>
                 </div>
 
