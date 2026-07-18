@@ -106,7 +106,7 @@ function rgbToHex([r, g, b]: RGB): string {
 //   • small brush → short reach → precise, local touch-ups
 //   • large brush → long reach  → fills a whole coherent region up to its edges
 const GROW_REACH_PER_SIZE = 4; // BFS reach (px) per brush-size unit (Precise)
-const GROW_MEDIUM_REACH_PER_SIZE = 18; // much wider reach in the Medium tier
+const GROW_MEDIUM_REACH_PER_SIZE = 6; // reach (px) per size unit in the Fill tier
 const GROW_SEED_RADIUS_DIVISOR = 4; // seed disc radius = brushSize / this
 const GROW_EDGE_THRESHOLD = 40; // per-step RGB gradient that counts as an edge
 const GROW_COLOR_TOLERANCE = 80; // max RGB distance from seed mean (Precise)
@@ -115,25 +115,38 @@ const GROW_FLOOD_COLOR_TOLERANCE = 115; // relaxed color gate when filling a reg
 // for the connected-component fill. Higher = treats more near-bg tones as
 // background. The fill floods the whole subject (Keep) or background (Remove).
 const BG_CONNECT_TOLERANCE = 70;
+// Reach is measured in image pixels, so on a high-res design a given brush
+// size must reach FARTHER to cover the same visual fraction. Scale by the
+// image's longest side against this reference so brush behaviour is
+// resolution-independent.
+const REACH_REFERENCE_DIM = 1400;
 
 /**
- * How far a stroke's edge-aware grow may travel, by brush size:
+ * How far a stroke's grow/fill may travel, by brush size (in image pixels,
+ * scaled by image resolution):
  *   - Precise (small): a short reach → local, near-the-stroke touch-ups.
- *   - Medium: a much larger reach → grows a big area beyond the stroke.
- *   - Wide (>= BRUSH_BULK_SIZE): unbounded → FILLS the whole connected region
- *     up to its real edges (e.g. flood the white inside a logo, or a whole
- *     background). This is the "big brush = bulk area" behaviour.
+ *   - Fill (mid): reach ramps with size → fills a bounded area around the
+ *     stroke, so you can grab just the forehead OR just the jaw.
+ *   - Whole shape (>= BRUSH_WHOLE_SIZE, top of the slider): unbounded → fills
+ *     the entire connected region in one stroke.
  */
-function reachForBrushSize(size: number): number {
-  if (size >= BRUSH_BULK_SIZE) return Infinity;
-  if (size >= BRUSH_MEDIUM_SIZE) return size * GROW_MEDIUM_REACH_PER_SIZE;
-  return size * GROW_REACH_PER_SIZE;
+function reachForBrushSize(size: number, resFactor: number): number {
+  if (size >= BRUSH_WHOLE_SIZE) return Infinity;
+  if (size >= BRUSH_MEDIUM_SIZE)
+    return size * GROW_MEDIUM_REACH_PER_SIZE * resFactor;
+  return size * GROW_REACH_PER_SIZE * resFactor;
 }
 // Feather radius (px) for softening the cutout edge into a 0-255 alpha ramp.
 const FEATHER_RADIUS = 1;
-// Brush-size thresholds for the Precise / Medium / Bulk label.
+// Brush-size thresholds for the Precise / Fill / Whole-shape label + reach.
 const BRUSH_MEDIUM_SIZE = 20;
-const BRUSH_BULK_SIZE = 48;
+// At/above this (the top of the slider) a stroke fills the entire connected
+// region in one go; below it the fill is bounded so you can isolate a part.
+const BRUSH_WHOLE_SIZE = 170;
+// Max brush size (image-px diameter feel). Larger than before so a single
+// swipe can cover a big area on high-res designs — important for painting
+// back regions the smart fill can't grab (e.g. a dark helmet on a dark bg).
+const BRUSH_MAX_SIZE = 200;
 
 function pathToSvgD(
   path: Array<{ x: number; y: number }>,
@@ -965,7 +978,13 @@ export function BackgroundRemovalPanel({
       // size drives both the seed radius and how far the flood may travel.
       const seedRadius = Math.max(1, sizeAtCommit / GROW_SEED_RADIUS_DIVISOR);
       const seeds = strokeToSeeds(path, seedRadius, orig.width, orig.height);
-      const reachRadius = reachForBrushSize(sizeAtCommit);
+      // Reach scales with the image's longest side so a given brush size covers
+      // the same visual fraction on a small logo or a 4K design.
+      const resFactor = Math.max(
+        1,
+        Math.max(orig.width, orig.height) / REACH_REFERENCE_DIM
+      );
+      const reachRadius = reachForBrushSize(sizeAtCommit, resFactor);
 
       // Region selection, by brush size:
       //  - Precise (small): edge-aware local grow — snaps to nearby edges,
@@ -1025,6 +1044,20 @@ export function BackgroundRemovalPanel({
         });
       }
       if (region.length !== total) return;
+
+      // Always claim the literal brush footprint too, so a stroke ALWAYS does at
+      // least what you painted — even when the smart fill finds nothing (e.g. a
+      // dark subject part like a helmet that's the same colour as the
+      // background, where no automatic fill can key off a boundary). A big brush
+      // then reliably paints the area back over a few swipes.
+      const footprintRadius = Math.max(1, sizeAtCommit / 2);
+      const footprint = strokeToSeeds(
+        path,
+        footprintRadius,
+        orig.width,
+        orig.height
+      );
+      for (const idx of footprint) region[idx] = 1;
 
       // Keep = add the region; Remove = subtract it.
       const nextSam = new Uint8Array(currentSam);
@@ -2054,25 +2087,25 @@ export function BackgroundRemovalPanel({
                       {brushSize}px ·{' '}
                       <span
                         className={
-                          brushSize >= BRUSH_BULK_SIZE
+                          brushSize >= BRUSH_WHOLE_SIZE
                             ? 'text-amber-600 font-medium'
                             : brushSize <= BRUSH_MEDIUM_SIZE
                               ? 'text-green-600 font-medium'
                               : 'text-blue-600 font-medium'
                         }
                       >
-                        {brushSize >= BRUSH_BULK_SIZE
-                          ? 'Wide'
+                        {brushSize >= BRUSH_WHOLE_SIZE
+                          ? 'Whole shape'
                           : brushSize <= BRUSH_MEDIUM_SIZE
                             ? 'Precise'
-                            : 'Medium'}
+                            : 'Fill'}
                       </span>
                     </span>
                   </div>
                   <input
                     type="range"
                     min={1}
-                    max={80}
+                    max={BRUSH_MAX_SIZE}
                     step={1}
                     value={brushSize}
                     onChange={e => setBrushSize(Number(e.target.value))}
@@ -2080,13 +2113,14 @@ export function BackgroundRemovalPanel({
                   />
                   <p className="text-xs text-gray-400 mt-1">
                     <span className="text-green-600">Precise</span> = pixel-level
-                    touch-ups right where you paint.{' '}
-                    <span className="text-blue-600">Medium</span> = fills a large
-                    area around the stroke.{' '}
-                    <span className="text-amber-600">Wide</span> = fills the
-                    whole shape in one stroke — Keep grabs the entire subject,
-                    Remove grabs the whole background, flooding across internal
-                    line-work instead of stopping at it.
+                    touch-ups.{' '}
+                    <span className="text-blue-600">Fill</span> = fills a bounded
+                    area around the stroke — bigger brush = bigger area, so you
+                    can grab just the forehead OR just the jaw.{' '}
+                    <span className="text-amber-600">Whole shape</span> (max) =
+                    fills the entire connected region in one stroke. Every stroke
+                    also always keeps/removes exactly what you paint over, so you
+                    can paint back areas the fill can&apos;t grab.
                   </p>
                 </div>
 
