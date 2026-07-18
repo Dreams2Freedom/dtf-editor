@@ -580,6 +580,13 @@ export function HalftonePanel({
               transform: `scale(${zoom})`,
               transformOrigin: 'center',
               lineHeight: 0,
+              // Preview the knockout result on the garment colour so light ink
+              // is visible — exactly what it looks like pressed on the shirt.
+              backgroundColor:
+                isAm && viewMode === 'halftone'
+                  ? opts.knockoutColor
+                  : 'transparent',
+              borderRadius: 4,
             }}
           >
             <canvas
@@ -615,8 +622,9 @@ export function HalftonePanel({
                 </span>
               </p>
               <p className="text-blue-800/90">
-                Outputs a transparent PNG of black dots — your RIP software
-                handles the white underbase.
+                Prints your design as ink dots and knocks out the garment colour
+                to transparent — so pressed onto that shirt colour it reads as
+                the design. Preview shows it on the garment.
               </p>
             </div>
 
@@ -702,10 +710,55 @@ export function HalftonePanel({
                       />
                     )}
                     <p className="text-xs text-gray-400">
-                      {COLOR_MODES.find(c => c.value === opts.colorMode)?.help}
+                      {opts.colorMode === 'mono'
+                        ? 'Ink colour of the printed dots.'
+                        : COLOR_MODES.find(c => c.value === opts.colorMode)
+                            ?.help}
                     </p>
                   </div>
                 </div>
+
+                {/* Garment / knockout colour */}
+                {opts.colorMode !== 'cmyk' && (
+                  <div>
+                    <label className="block text-xs font-medium text-gray-500 mb-1.5 uppercase tracking-wide">
+                      Garment Color (Knockout)
+                    </label>
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="color"
+                        value={opts.knockoutColor}
+                        onChange={e =>
+                          updateOption('knockoutColor', e.target.value)
+                        }
+                        disabled={isProcessing}
+                        title="Garment / knockout color"
+                        className="w-7 h-7 rounded border border-gray-200 bg-white p-0.5 cursor-pointer disabled:opacity-50"
+                      />
+                      <div className="flex gap-1">
+                        {['#000000', '#ffffff', '#1f2937', '#7f1d1d'].map(c => (
+                          <button
+                            key={c}
+                            type="button"
+                            onClick={() => updateOption('knockoutColor', c)}
+                            disabled={isProcessing}
+                            title={c}
+                            className={`w-5 h-5 rounded border ${
+                              opts.knockoutColor.toLowerCase() === c
+                                ? 'border-blue-500 ring-1 ring-blue-400'
+                                : 'border-gray-200'
+                            }`}
+                            style={{ backgroundColor: c }}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                    <p className="text-xs text-gray-400 mt-1">
+                      The shirt colour this prints on. This colour is knocked out
+                      (transparent); everything else prints as dots.
+                    </p>
+                  </div>
+                )}
 
                 {/* Dot shape */}
                 <div>
@@ -870,31 +923,110 @@ export function HalftonePanel({
               </div>
             )}
 
-            <div>
-              <div className="flex items-center justify-between mb-1">
-                <label className="text-xs font-medium text-gray-500 uppercase tracking-wide">
-                  Threshold
-                </label>
-                <span className="text-xs text-gray-500 tabular-nums">
-                  {opts.threshold}
-                </span>
+            {isAm && opts.colorMode !== 'cmyk' ? (
+              <>
+                {/* Knockout — the headline DTF control */}
+                <div>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="text-xs font-medium text-gray-500 uppercase tracking-wide">
+                      Knockout
+                    </label>
+                    <span className="text-xs text-gray-500 tabular-nums">
+                      {opts.knockout}
+                    </span>
+                  </div>
+                  <input
+                    type="range"
+                    min={0}
+                    max={100}
+                    step={1}
+                    value={opts.knockout}
+                    onChange={e =>
+                      updateOption('knockout', Number(e.target.value))
+                    }
+                    disabled={isProcessing}
+                    className="w-full accent-blue-600"
+                  />
+                  <p className="text-xs text-gray-400 mt-1">
+                    Knocks the garment colour in and out with the dots. Low =
+                    solid design; raise it to break the fills into dots and let
+                    more shirt show through.
+                  </p>
+                </div>
+
+                {/* De-fringe edges — opt-in */}
+                <div>
+                  <label className="flex items-center gap-2 cursor-pointer select-none">
+                    <input
+                      type="checkbox"
+                      checked={opts.deFringe}
+                      onChange={e =>
+                        updateOption('deFringe', e.target.checked)
+                      }
+                      disabled={isProcessing}
+                      className="accent-blue-600"
+                    />
+                    <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">
+                      De-fringe Edges
+                    </span>
+                  </label>
+                  {opts.deFringe && (
+                    <div className="mt-2">
+                      <div className="flex items-center justify-between mb-1">
+                        <label className="text-xs font-medium text-gray-500 uppercase tracking-wide">
+                          Strength
+                        </label>
+                        <span className="text-xs text-gray-500 tabular-nums">
+                          {opts.deFringeAmount}
+                        </span>
+                      </div>
+                      <input
+                        type="range"
+                        min={0}
+                        max={100}
+                        step={1}
+                        value={opts.deFringeAmount}
+                        onChange={e =>
+                          updateOption('deFringeAmount', Number(e.target.value))
+                        }
+                        disabled={isProcessing}
+                        className="w-full accent-blue-600"
+                      />
+                    </div>
+                  )}
+                  <p className="text-xs text-gray-400 mt-1">
+                    Cleans up the thin ragged fringe along knockout edges (e.g.
+                    the lining around teeth). Off by default.
+                  </p>
+                </div>
+              </>
+            ) : (
+              <div>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="text-xs font-medium text-gray-500 uppercase tracking-wide">
+                    Threshold
+                  </label>
+                  <span className="text-xs text-gray-500 tabular-nums">
+                    {opts.threshold}
+                  </span>
+                </div>
+                <input
+                  type="range"
+                  min={0}
+                  max={100}
+                  step={1}
+                  value={opts.threshold}
+                  onChange={e =>
+                    updateOption('threshold', Number(e.target.value))
+                  }
+                  disabled={isProcessing}
+                  className="w-full accent-blue-600"
+                />
+                <p className="text-xs text-gray-400 mt-1">
+                  Bias the dot density. Lower = more black, higher = sparser.
+                </p>
               </div>
-              <input
-                type="range"
-                min={0}
-                max={100}
-                step={1}
-                value={opts.threshold}
-                onChange={e =>
-                  updateOption('threshold', Number(e.target.value))
-                }
-                disabled={isProcessing}
-                className="w-full accent-blue-600"
-              />
-              <p className="text-xs text-gray-400 mt-1">
-                Bias the dot density. Lower = more black, higher = sparser.
-              </p>
-            </div>
+            )}
 
             <div>
               <div className="flex items-center justify-between mb-1">

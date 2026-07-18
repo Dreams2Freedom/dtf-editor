@@ -113,6 +113,91 @@ function hexToRgb(hex: string): [number, number, number] {
   return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
 }
 
+const MAX_COLOR_DIST = Math.sqrt(3 * 255 * 255);
+
+/**
+ * Per-pixel "inkiness" in [0,1]: how far each pixel is from the knockout
+ * (garment) colour. 0 = equals the knockout colour → knocked out (transparent);
+ * 1 = maximally different → full ink. Gamma/contrast shape the ramp. This is
+ * the polarity that makes a DTF screen correct: the design's content becomes
+ * ink, the garment colour drops out — the opposite of black-ink-on-white-paper.
+ */
+function computeInkiness(
+  src: LuminanceSource,
+  options: HalftoneOptions
+): Float32Array {
+  const { rgba, alpha, width, height } = src;
+  const n = width * height;
+  const [kr, kg, kb] = hexToRgb(options.knockoutColor || '#000000');
+
+  // Shape LUT over the normalised distance (quantised to 256) — gamma then
+  // contrast, same maths the tone LUT used, so the sliders feel familiar.
+  const invGamma = 1 / (options.gamma || 1);
+  const cfactor =
+    options.contrast >= 0
+      ? 1 + options.contrast / 100
+      : 1 + options.contrast / 200;
+  const shape = new Float32Array(256);
+  for (let d = 0; d < 256; d++) {
+    let v = Math.pow(d / 255, invGamma);
+    v = (v - 0.5) * cfactor + 0.5;
+    shape[d] = v < 0 ? 0 : v > 1 ? 1 : v;
+  }
+
+  const ink = new Float32Array(n);
+  for (let i = 0; i < n; i++) {
+    if (alpha[i] === 0) {
+      ink[i] = 0;
+      continue;
+    }
+    const j = i * 4;
+    const dr = rgba[j] - kr;
+    const dg = rgba[j + 1] - kg;
+    const db = rgba[j + 2] - kb;
+    const dist = Math.sqrt(dr * dr + dg * dg + db * db) / MAX_COLOR_DIST; // 0..1
+    ink[i] = shape[(dist * 255) | 0];
+  }
+  return ink;
+}
+
+/**
+ * De-fringe: erode the thin bright fringe that anti-aliased edges leave right
+ * against a knockout boundary (e.g. the ragged rim around a skull's teeth),
+ * without eroding solid fills or legitimate large dots. Only low-inkiness
+ * pixels that touch a knocked-out neighbour are removed, up to a few px band.
+ */
+function deFringeInkiness(
+  ink: Float32Array,
+  width: number,
+  height: number,
+  amount: number
+): Float32Array {
+  const amt = Math.max(0, Math.min(100, amount)) / 100;
+  const cutoff = 0.15 + 0.55 * amt; // only pixels below this can be shaved
+  const passes = 1 + Math.round(amt * 2); // 1–3 px erosion band
+  let a = ink;
+  for (let p = 0; p < passes; p++) {
+    const b = Float32Array.from(a);
+    for (let y = 0; y < height; y++) {
+      for (let x = 0; x < width; x++) {
+        const i = y * width + x;
+        const v = a[i];
+        if (v <= 0 || v >= cutoff) continue;
+        // Touching a (near-)knockout neighbour → it's edge fringe, shave it.
+        const up = y > 0 ? a[i - width] : 0;
+        const down = y < height - 1 ? a[i + width] : 0;
+        const left = x > 0 ? a[i - 1] : 0;
+        const right = x < width - 1 ? a[i + 1] : 0;
+        if (up < 0.04 || down < 0.04 || left < 0.04 || right < 0.04) {
+          b[i] = 0;
+        }
+      }
+    }
+    a = b;
+  }
+  return a;
+}
+
 /** Deterministic per-pixel white noise in [0,1] for the grunge texture. */
 function hashNoise(x: number, y: number): number {
   let h = (x * 374761393 + y * 668265263) | 0;
@@ -160,7 +245,7 @@ export function renderAmImageData(
   options: HalftoneOptions,
   density?: Float32Array | null
 ): ImageData {
-  const { lum, alpha, rgba, width, height } = src;
+  const { alpha, rgba, width, height } = src;
 
   const dpi = effectiveDpi(width, options.printWidthIn);
   const lpi = Math.max(5, options.lpi);
@@ -254,18 +339,17 @@ export function renderAmImageData(
     return out;
   }
 
-  // Single screen (mono ink colour, or source-colour dots) from luminance.
-  const invGamma = 1 / (options.gamma || 1);
-  const cfactor =
-    options.contrast >= 0
-      ? 1 + options.contrast / 100
-      : 1 + options.contrast / 200;
-  const toneLUT = new Float32Array(256);
-  for (let l = 0; l < 256; l++) {
-    let v = Math.pow(l / 255, invGamma);
-    v = (v - 0.5) * cfactor + 0.5;
-    toneLUT[l] = v < 0 ? 0 : v > 1 ? 1 : v;
+  // Single screen (mono ink colour, or source-colour dots).
+  //
+  // Coverage tracks INKINESS (distance from the knockout/garment colour), not
+  // darkness: the design's content inks, the garment colour drops out. The
+  // knockout slider raises the cut so dots shrink toward transparent as it
+  // climbs into the midtones.
+  let inkiness = computeInkiness(src, options);
+  if (options.deFringe) {
+    inkiness = deFringeInkiness(inkiness, width, height, options.deFringeAmount);
   }
+  const knockoutBias = Math.max(0, Math.min(100, options.knockout ?? 0)) / 100;
 
   const cosA = Math.cos(deg(options.angleDeg));
   const sinA = Math.sin(deg(options.angleDeg));
@@ -278,7 +362,7 @@ export function renderAmImageData(
       const i = y * width + x;
       const j = i * 4;
       const al = alpha[i] / 255;
-      let coverage = (1 - toneLUT[lum[i]]) * al - bias;
+      let coverage = inkiness[i] * al - knockoutBias;
       if (density) coverage += density[i];
       if (texAmt > 0) coverage += (hashNoise(x, y) - 0.5) * texAmt;
 

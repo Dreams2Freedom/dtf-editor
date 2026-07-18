@@ -48,6 +48,31 @@ export interface HalftoneOptions {
   orderedSize: OrderedSize;
   /** 0-100. Above midpoint → more black, below → more transparent. */
   threshold: number;
+
+  // ---- Knockout (AM mono/source spot workflow) ----
+  /**
+   * Knockout / garment colour (hex). Pixels matching this colour are knocked
+   * out (left transparent) so the shirt shows through; everything else prints
+   * as ink dots. This is what makes the design read correctly when pressed onto
+   * a garment of this colour.
+   */
+  knockoutColor: string;
+  /**
+   * 0-100. Knockout amount — how aggressively the knockout colour is removed.
+   * Low = the design stays mostly solid ink (only the pure knockout colour is
+   * dropped); high = the cut climbs into the midtones, shrinking dots toward
+   * transparent. This is the slider that "knocks the colour in and out with the
+   * dots".
+   */
+  knockout: number;
+  /**
+   * De-fringe edges (opt-in, OFF by default). Erodes the thin anti-aliased
+   * fringe along knockout boundaries — e.g. cleaning stray edge dots around the
+   * lining of a skull's teeth — without touching solid fills or legit dots.
+   */
+  deFringe: boolean;
+  /** 0-100. De-fringe strength (fringe cutoff + erosion band width). */
+  deFringeAmount: number;
   /** -100 to 100. Pre-pass applied before dithering. */
   contrast: number;
   /** 0.5 to 2.0. Pre-pass gamma. >1 lightens, <1 darkens. */
@@ -78,6 +103,10 @@ export const DEFAULT_HALFTONE_OPTIONS: HalftoneOptions = {
   algorithm: 'am-halftone',
   orderedSize: 8,
   threshold: 50,
+  knockoutColor: '#000000',
+  knockout: 12,
+  deFringe: false,
+  deFringeAmount: 50,
   contrast: 0,
   gamma: 1,
   lpi: 45,
@@ -85,7 +114,8 @@ export const DEFAULT_HALFTONE_OPTIONS: HalftoneOptions = {
   dotShape: 'round',
   printWidthIn: 11,
   colorMode: 'mono',
-  inkColor: '#000000',
+  // Dark-garment DTF default: white ink knocked out against the shirt colour.
+  inkColor: '#ffffff',
   texture: 0,
 };
 
