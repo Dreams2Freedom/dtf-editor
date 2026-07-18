@@ -19,7 +19,13 @@
  * user is on Free / Basic and over their monthly quota.
  */
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  type CSSProperties,
+} from 'react';
 import { Loader2, Sparkles } from 'lucide-react';
 
 import {
@@ -164,8 +170,20 @@ export function HalftonePanel({
   const [zoom, setZoom] = useState(1);
   const [tool, setTool] = useState<DotTool>('none');
   const [brushSize, setBrushSize] = useState(80);
+  // Preview backdrop: a garment colour (hex) or 'transparent' (checkerboard).
+  // View-only — never affects the exported PNG.
+  const [previewBg, setPreviewBg] = useState<string>('transparent');
 
   const isAm = opts.algorithm === 'am-halftone';
+
+  // Checkerboard CSS for the transparent preview backdrop.
+  const CHECKERBOARD: CSSProperties = {
+    backgroundImage:
+      'linear-gradient(45deg,#d1d5db 25%,transparent 25%,transparent 75%,#d1d5db 75%),linear-gradient(45deg,#d1d5db 25%,transparent 25%,transparent 75%,#d1d5db 75%)',
+    backgroundSize: '16px 16px',
+    backgroundPosition: '0 0,8px 8px',
+    backgroundColor: '#ffffff',
+  };
 
   // Refs for the interactive re-screen loop (stable across renders).
   const displayCanvasRef = useRef<HTMLCanvasElement | null>(null); // visible
@@ -580,13 +598,14 @@ export function HalftonePanel({
               transform: `scale(${zoom})`,
               transformOrigin: 'center',
               lineHeight: 0,
-              // Preview the knockout result on the garment colour so light ink
-              // is visible — exactly what it looks like pressed on the shirt.
-              backgroundColor:
-                isAm && viewMode === 'halftone'
-                  ? opts.knockoutColor
-                  : 'transparent',
               borderRadius: 4,
+              // Preview the halftone on a garment colour or on transparency
+              // (checkerboard). View-only — the exported PNG is unaffected.
+              ...(viewMode === 'halftone'
+                ? previewBg === 'transparent'
+                  ? CHECKERBOARD
+                  : { backgroundColor: previewBg }
+                : { backgroundColor: 'transparent' }),
             }}
           >
             <canvas
@@ -718,11 +737,12 @@ export function HalftonePanel({
                   </div>
                 </div>
 
-                {/* Garment / knockout colour */}
+                {/* Knockout colour — the DESIGN colour to remove (make
+                    transparent). Separate from the garment preview below. */}
                 {opts.colorMode !== 'cmyk' && (
                   <div>
                     <label className="block text-xs font-medium text-gray-500 mb-1.5 uppercase tracking-wide">
-                      Garment Color (Knockout)
+                      Knockout Color
                     </label>
                     <div className="flex items-center gap-2">
                       <input
@@ -732,7 +752,7 @@ export function HalftonePanel({
                           updateOption('knockoutColor', e.target.value)
                         }
                         disabled={isProcessing}
-                        title="Garment / knockout color"
+                        title="Design colour to knock out"
                         className="w-7 h-7 rounded border border-gray-200 bg-white p-0.5 cursor-pointer disabled:opacity-50"
                       />
                       <div className="flex gap-1">
@@ -754,11 +774,65 @@ export function HalftonePanel({
                       </div>
                     </div>
                     <p className="text-xs text-gray-400 mt-1">
-                      The shirt colour this prints on. This colour is knocked out
-                      (transparent); everything else prints as dots.
+                      The colour in your design to remove (make transparent) so
+                      the garment shows through — e.g. black to drop out a black
+                      helmet. The Knockout slider below controls how much.
                     </p>
                   </div>
                 )}
+
+                {/* Preview background — garment colour or transparent. This is
+                    view-only; it never changes the exported PNG. */}
+                <div>
+                  <label className="block text-xs font-medium text-gray-500 mb-1.5 uppercase tracking-wide">
+                    Preview On
+                  </label>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <button
+                      type="button"
+                      onClick={() => setPreviewBg('transparent')}
+                      title="Transparent (no garment)"
+                      className={`w-6 h-6 rounded border bg-white ${
+                        previewBg === 'transparent'
+                          ? 'border-blue-500 ring-1 ring-blue-400'
+                          : 'border-gray-300'
+                      }`}
+                      style={{
+                        backgroundImage:
+                          'linear-gradient(45deg,#ccc 25%,transparent 25%,transparent 75%,#ccc 75%),linear-gradient(45deg,#ccc 25%,transparent 25%,transparent 75%,#ccc 75%)',
+                        backgroundSize: '8px 8px',
+                        backgroundPosition: '0 0,4px 4px',
+                      }}
+                    />
+                    {['#000000', '#ffffff', '#b91c1c', '#1e3a8a', '#166534'].map(
+                      c => (
+                        <button
+                          key={c}
+                          type="button"
+                          onClick={() => setPreviewBg(c)}
+                          title={`Preview on ${c}`}
+                          className={`w-6 h-6 rounded border ${
+                            previewBg.toLowerCase() === c
+                              ? 'border-blue-500 ring-1 ring-blue-400'
+                              : 'border-gray-300'
+                          }`}
+                          style={{ backgroundColor: c }}
+                        />
+                      )
+                    )}
+                    <input
+                      type="color"
+                      value={previewBg === 'transparent' ? '#000000' : previewBg}
+                      onChange={e => setPreviewBg(e.target.value)}
+                      title="Custom garment colour"
+                      className="w-6 h-6 rounded border border-gray-300 bg-white p-0.5 cursor-pointer"
+                    />
+                  </div>
+                  <p className="text-xs text-gray-400 mt-1">
+                    See the halftone on a garment colour or on transparency.
+                    Preview only — doesn&apos;t change the exported PNG.
+                  </p>
+                </div>
 
                 {/* Dot shape */}
                 <div>
