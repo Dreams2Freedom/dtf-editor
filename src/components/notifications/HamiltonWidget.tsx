@@ -143,7 +143,7 @@ export function HamiltonWidget() {
 
   return (
     <div
-      className="fixed bottom-4 left-4 sm:bottom-6 sm:left-6 z-40 flex items-center gap-2.5"
+      className="fixed bottom-20 left-4 sm:bottom-24 sm:left-6 z-40 flex items-center gap-2.5"
       ref={rootRef}
     >
       <button
