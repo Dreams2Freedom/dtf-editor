@@ -2197,13 +2197,17 @@ export function BackgroundRemovalPanel({
                     />
                     <span>
                       <span className="block text-xs font-semibold text-gray-800">
-                        Keep whole shape
+                        Keep whole shape{' '}
+                        <span className="text-blue-600">· detailed art</span>
                       </span>
                       <span className="block text-[11px] text-gray-500 mt-0.5">
-                        Removes only the outside background and keeps the entire
-                        design solid — including dark parts (like a helmet) that
-                        match the shirt colour. Then just brush away anything you
-                        don&apos;t want (e.g. the eyes).
+                        Best for complex, multi-layer designs (detailed
+                        illustrations). Removes only the outside background and
+                        keeps the whole design solid — including dark parts (like
+                        a helmet) that match the shirt colour — then brush away
+                        anything you don&apos;t want (e.g. the eyes). Turn OFF for
+                        simple photos/logos to use the standard auto-cutout and
+                        the cleanup sliders below.
                       </span>
                     </span>
                   </label>
@@ -2254,6 +2258,21 @@ export function BackgroundRemovalPanel({
                     paint back areas the fill can&apos;t grab.
                   </p>
                 </div>
+
+                {/* Fine-tuning cleanup passes — only active when Keep whole
+                    shape is OFF (that mode keeps the full silhouette as-is). */}
+                <fieldset
+                  disabled={keepWholeShape}
+                  className={`space-y-4 border-0 m-0 p-0 min-w-0 ${
+                    keepWholeShape ? 'opacity-40' : ''
+                  }`}
+                >
+                  {keepWholeShape && (
+                    <p className="text-[11px] text-gray-500 italic">
+                      Handled automatically while &ldquo;Keep whole shape&rdquo;
+                      is on. Turn it off to fine-tune these.
+                    </p>
+                  )}
 
                 {/* BG Color Flood — Phase 2.3 primary background detection.
                     Flood from image edges through pixels matching the
@@ -2367,6 +2386,7 @@ export function BackgroundRemovalPanel({
                     The main subject is never carved.
                   </p>
                 </div>
+                </fieldset>
 
                 {/* Undo / Clear */}
                 <div className="flex gap-2">
