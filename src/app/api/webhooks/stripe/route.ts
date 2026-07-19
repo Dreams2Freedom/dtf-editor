@@ -793,6 +793,33 @@ async function handleInvoicePaymentSucceeded(invoice: any) {
   if (isRenewal) {
     console.log('🔄 Processing subscription renewal for user:', userId);
 
+    // Meta Conversions API — Purchase for a REAL subscription charge: a
+    // trial→paid conversion (first charge after the trial ends) or a renewal.
+    // Initial 'subscription_create' invoices are excluded by isRenewal above
+    // (checkout.session.completed already fires Purchase for non-trial signups),
+    // so this never double-counts. event_id from the invoice id → dedupe on
+    // webhook retries. This is how we see trials converting to paid.
+    try {
+      await sendMetaEvent({
+        eventName: 'Purchase',
+        eventId: `purchase_invoice_${invoice.id}`,
+        actionSource: 'website',
+        eventSourceUrl: `${env.APP_URL}/#pricing`,
+        userData: {
+          email: invoice.customer_email || null,
+          externalId: userId,
+        },
+        customData: {
+          currency: (invoice.currency || 'usd').toUpperCase(),
+          value: (invoice.amount_paid || 0) / 100,
+          content_type: 'subscription',
+          billing_reason: invoice.billing_reason || undefined,
+        },
+      });
+    } catch (e) {
+      console.error('[Meta CAPI] subscription charge Purchase error:', e);
+    }
+
     // Idempotency guard: if this invoice was already logged, don't double-credit.
     // logPaymentTransaction uses `invoice_<id>` as the unique session key, so we
     // check the same key here BEFORE adding credits.

@@ -64,11 +64,13 @@ export const SubscriptionPlans: React.FC<SubscriptionPlansProps> = ({
     setSelectedPlan(plan.id);
     setError(null);
 
-    // Meta: InitiateCheckout on click (Pixel + Conversions API, deduped).
-    // StartTrial is NOT fired here — it only counts once the trial checkout
-    // completes server-side (see the Stripe webhook), so a click that's
-    // abandoned at the Stripe page never counts as a trial conversion.
-    metaTrack('InitiateCheckout', {
+    // Meta (Pixel + Conversions API, deduped). Clicking "Start Trial" is intent
+    // only → AddToCart; StartTrial itself fires server-side once the trial
+    // checkout actually completes (see the Stripe webhook), so an abandoned
+    // click never counts as a trial conversion. Regular (non-trial) subscribe
+    // clicks fire InitiateCheckout.
+    const trialing = trialEligible && isTrialPlan(plan.id);
+    metaTrack(trialing ? 'AddToCart' : 'InitiateCheckout', {
       customData: {
         value: plan.price,
         currency: 'USD',
