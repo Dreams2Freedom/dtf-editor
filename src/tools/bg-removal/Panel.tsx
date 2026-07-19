@@ -411,6 +411,27 @@ export function BackgroundRemovalPanel({
   useEffect(() => {
     keepWholeShapeRef.current = keepWholeShape;
   }, [keepWholeShape]);
+  // "Defringe edges" for Keep-whole-shape: peels the background-coloured bloat
+  // rim the gap-seal leaves around every element (busy multi-facet designs).
+  // 0 = legacy behaviour (no defringe). Default cleans the rim.
+  const [defringe, setDefringe] = useState(55);
+  const defringeRef = useRef(defringe);
+  useEffect(() => {
+    defringeRef.current = defringe;
+  }, [defringe]);
+  // Convert the 0-100 slider to a pixel peel, scaled by image resolution so it
+  // matches the resolution-scaled seal radius.
+  const defringePxFor = useCallback((amount: number) => {
+    const orig = originalDataRef.current;
+    if (!orig || amount <= 0) return 0;
+    const sealRadius = Math.max(
+      3,
+      Math.round((Math.max(orig.width, orig.height) / 1400) * 5)
+    );
+    // At 100 the peel reaches ~2× the seal radius; the default (~55) is enough
+    // to undo the seal's outward bloat plus a couple of anti-aliased px.
+    return Math.round((amount / 100) * sealRadius * 2);
+  }, []);
   // Show the "Auto-selected for graphics" badge when the panel routed to
   // birefnet-dis on its own. Cleared the moment the user manually picks
   // any model so the manual choice is honored on subsequent loads.
@@ -711,7 +732,8 @@ export function BackgroundRemovalPanel({
           origNow.height,
           bgColor,
           BG_CONNECT_TOLERANCE,
-          sealRadius
+          sealRadius,
+          defringePxFor(defringeRef.current)
         );
         samMaskRef.current = m;
         const recompute = recomputeCumulativeRef.current;
@@ -1016,7 +1038,8 @@ export function BackgroundRemovalPanel({
           orig.height,
           bgColor,
           BG_CONNECT_TOLERANCE,
-          sealRadius
+          sealRadius,
+          defringePxFor(defringeRef.current)
         );
       } else {
         const initial = initialMaskRef.current;
@@ -1030,7 +1053,40 @@ export function BackgroundRemovalPanel({
       }
       recomputeCumulative();
     },
-    [recomputeCumulative]
+    [recomputeCumulative, defringePxFor]
+  );
+
+  // Live-apply the Defringe slider: re-seed the whole-shape mask with the new
+  // peel amount. Only meaningful in keep-whole-shape mode with no strokes yet.
+  const applyDefringe = useCallback(
+    (amount: number) => {
+      setDefringe(amount);
+      defringeRef.current = amount;
+      const orig = originalDataRef.current;
+      if (
+        !keepWholeShapeRef.current ||
+        !orig ||
+        strokeHistoryRef.current.length > 0
+      ) {
+        return;
+      }
+      const bgColor = detectBorderColor(orig.data, orig.width, orig.height);
+      const sealRadius = Math.max(
+        3,
+        Math.round((Math.max(orig.width, orig.height) / 1400) * 5)
+      );
+      samMaskRef.current = computeWholeShapeMask(
+        orig.data,
+        orig.width,
+        orig.height,
+        bgColor,
+        BG_CONNECT_TOLERANCE,
+        sealRadius,
+        defringePxFor(amount)
+      );
+      recomputeCumulative();
+    },
+    [recomputeCumulative, defringePxFor]
   );
 
   /** Reset SAM mask to BiRefNet initial (or all-zeros if not loaded), then derive cumulative. */
@@ -2211,6 +2267,36 @@ export function BackgroundRemovalPanel({
                       </span>
                     </span>
                   </label>
+
+                  {/* Defringe edges — peels the dark bg-coloured halo/rim that
+                      busy multi-element designs leave around each element. */}
+                  {keepWholeShape && (
+                    <div className="mt-3 pt-3 border-t border-gray-200">
+                      <div className="flex items-center justify-between mb-1">
+                        <label className="text-xs font-medium text-gray-600">
+                          Defringe edges
+                        </label>
+                        <span className="text-xs text-gray-500 tabular-nums">
+                          {defringe}
+                        </span>
+                      </div>
+                      <input
+                        type="range"
+                        min={0}
+                        max={100}
+                        step={1}
+                        value={defringe}
+                        onChange={e => applyDefringe(Number(e.target.value))}
+                        className="w-full accent-blue-600"
+                      />
+                      <p className="text-[11px] text-gray-500 mt-1">
+                        Cleans the dark halo/fringe around each element (flowers,
+                        leaves) on busy multi-facet designs. Higher = peels more;
+                        0 = off. Only removes background-coloured edge pixels, so
+                        real content is never eaten.
+                      </p>
+                    </div>
+                  )}
                 </div>
 
                 {/* Brush size — controls cursor size and edge-aware reach. */}

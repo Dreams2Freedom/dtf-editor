@@ -295,6 +295,59 @@ function dilateMask(
 }
 
 /**
+ * Colour-aware defringe. Peels BACKGROUND-COLOURED pixels off the OUTER
+ * boundary of a keep mask, inward up to `maxPx`, stopping the moment it reaches
+ * real (non-background) design colour. This removes the dark halo / "bloat" rim
+ * that the gap-sealing dilation leaves around every element — very visible on
+ * busy multi-element designs (a flower wreath, etc.) — WITHOUT eroding real
+ * content and WITHOUT touching enclosed interior regions (they have no exterior
+ * neighbour to peel from). A `tolerance` a little above the seal tolerance
+ * catches the anti-aliased near-background rim.
+ */
+export function defringeBackgroundFringe(
+  mask: Uint8Array,
+  data: Uint8ClampedArray,
+  width: number,
+  height: number,
+  bg: { r: number; g: number; b: number },
+  tolerance: number,
+  maxPx: number
+): Uint8Array {
+  if (maxPx <= 0) return mask;
+  const tolSq = tolerance * tolerance;
+  const isBg = (i: number) => {
+    const j = i * 4;
+    const dr = data[j] - bg.r;
+    const dg = data[j + 1] - bg.g;
+    const db = data[j + 2] - bg.b;
+    return dr * dr + dg * dg + db * db <= tolSq;
+  };
+  let a: Uint8Array = Uint8Array.from(mask);
+  for (let pass = 0; pass < maxPx; pass++) {
+    const b = Uint8Array.from(a);
+    let changed = 0;
+    for (let y = 0; y < height; y++) {
+      for (let x = 0; x < width; x++) {
+        const i = y * width + x;
+        if (!a[i]) continue;
+        const edge =
+          (x > 0 && !a[i - 1]) ||
+          (x < width - 1 && !a[i + 1]) ||
+          (y > 0 && !a[i - width]) ||
+          (y < height - 1 && !a[i + width]);
+        if (edge && isBg(i)) {
+          b[i] = 0;
+          changed++;
+        }
+      }
+    }
+    a = b;
+    if (!changed) break;
+  }
+  return a;
+}
+
+/**
  * "Keep whole shape" — a cutout that removes ONLY the true exterior background
  * and keeps the entire design silhouette solid (all interior detail, including
  * parts that are the same colour as the background, like a dark helmet on a
@@ -316,7 +369,13 @@ export function computeWholeShapeMask(
   height: number,
   bg: { r: number; g: number; b: number },
   colorTolerance: number,
-  sealRadius: number
+  sealRadius: number,
+  /**
+   * Optional colour-aware defringe applied to the result: peels up to this many
+   * px of background-coloured "bloat" the seal dilation leaves at the edges.
+   * 0 = exact legacy behaviour (no defringe).
+   */
+  defringePx: number = 0
 ): Uint8Array {
   const total = width * height;
   const tolSq = colorTolerance * colorTolerance;
@@ -363,6 +422,20 @@ export function computeWholeShapeMask(
 
   const keep = new Uint8Array(total);
   for (let i = 0; i < total; i++) keep[i] = exterior[i] ? 0 : 1;
+
+  if (defringePx > 0) {
+    // Peel the background-coloured bloat rim. Use a tolerance a bit above the
+    // seal tolerance so the anti-aliased near-bg rim is caught too.
+    return defringeBackgroundFringe(
+      keep,
+      data,
+      width,
+      height,
+      bg,
+      colorTolerance + 40,
+      defringePx
+    );
+  }
   return keep;
 }
 
