@@ -1,5 +1,6 @@
 import { Check, Info, Infinity as InfinityIcon, RotateCcw, ArrowRight } from 'lucide-react';
 import { TRIAL_DISCLOSURE } from '@/lib/trial';
+import { MetaViewContent } from '@/components/analytics/MetaViewContent';
 import styles from './PricingTeaser.module.css';
 
 type Plan = {
@@ -82,6 +83,8 @@ const PLANS: Plan[] = [
 export function PricingTeaser() {
   return (
     <section className="section section--tint" id="pricing">
+      {/* Fires Meta ViewContent when the pricing block scrolls into view. */}
+      <MetaViewContent contentName="Pricing" contentCategory="pricing" />
       <div className="wrap">
         <div className="section-head section-head--center">
           <span className="eyebrow">Pricing</span>

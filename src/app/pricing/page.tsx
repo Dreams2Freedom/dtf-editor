@@ -1,6 +1,7 @@
 import { Suspense } from 'react';
 import type { Metadata } from 'next';
 import PricingClient from './client';
+import { MetaViewContent } from '@/components/analytics/MetaViewContent';
 
 export const metadata: Metadata = {
   title: 'Pricing — DTF Editor',
@@ -22,6 +23,8 @@ export default function PricingPage() {
         </div>
       }
     >
+      {/* Meta ViewContent — the /pricing page IS the pricing content. */}
+      <MetaViewContent contentName="Pricing" contentCategory="pricing" />
       <PricingClient />
     </Suspense>
   );

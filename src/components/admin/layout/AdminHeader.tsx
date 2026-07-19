@@ -4,7 +4,6 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/stores/authStore';
 import { toast } from '@/lib/toast';
-import { NotificationBell } from '@/components/notifications/NotificationBell';
 import {
   Menu,
   Search,
@@ -95,9 +94,6 @@ export function AdminHeader({ onMenuToggle }: AdminHeaderProps) {
               <ArrowLeft className="h-4 w-4" />
               Back to Dashboard
             </a>
-
-            {/* Notifications */}
-            <NotificationBell />
 
             {/* Profile dropdown */}
             <div className="relative">

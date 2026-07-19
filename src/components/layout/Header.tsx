@@ -28,7 +28,6 @@ import {
   Wand2,
 } from 'lucide-react';
 import { CreditDisplay } from '@/components/ui/CreditDisplay';
-import { NotificationBell } from '@/components/notifications/NotificationBell';
 
 interface NavItem {
   name: string;
@@ -228,7 +227,6 @@ export function Header() {
             {user ? (
               <>
                 <CreditDisplay />
-                <NotificationBell />
                 <div className="relative">
                   <button
                     className={`flex items-center gap-1 p-1.5 rounded-lg transition-colors ${

@@ -28,6 +28,10 @@ import {
   strokeToSeeds,
   growRegionFromStroke,
   featherAlpha,
+  detectBorderColor,
+  computeBackgroundMask,
+  fillConnectedRegion,
+  computeWholeShapeMask,
 } from './scribbleBrush';
 import { removeStrandedSpecks } from './strandedComponents';
 import { classifyImage } from './imageStats';
@@ -102,15 +106,48 @@ function rgbToHex([r, g, b]: RGB): string {
 // seed color. Brush size controls the spatial reach:
 //   • small brush → short reach → precise, local touch-ups
 //   • large brush → long reach  → fills a whole coherent region up to its edges
-const GROW_REACH_PER_SIZE = 4; // BFS reach (px) per brush-size unit
+const GROW_REACH_PER_SIZE = 4; // BFS reach (px) per brush-size unit (Precise)
+const GROW_MEDIUM_REACH_PER_SIZE = 18; // reach (px) per size unit in the Fill tier
 const GROW_SEED_RADIUS_DIVISOR = 4; // seed disc radius = brushSize / this
 const GROW_EDGE_THRESHOLD = 40; // per-step RGB gradient that counts as an edge
-const GROW_COLOR_TOLERANCE = 80; // max RGB distance from the seed mean color
+const GROW_COLOR_TOLERANCE = 80; // max RGB distance from seed mean (Precise)
+const GROW_FLOOD_COLOR_TOLERANCE = 115; // relaxed color gate when filling a region
+// Big-brush "fill": how close to the border colour still counts as background
+// for the connected-component fill. Higher = treats more near-bg tones as
+// background. The fill floods the whole subject (Keep) or background (Remove).
+const BG_CONNECT_TOLERANCE = 70;
+// Reach is measured in image pixels, so on a high-res design a given brush
+// size must reach FARTHER to cover the same visual fraction. Scale by the
+// image's longest side against this reference so brush behaviour is
+// resolution-independent.
+const REACH_REFERENCE_DIM = 1400;
+
+/**
+ * How far a stroke's grow/fill may travel, by brush size (in image pixels,
+ * scaled by image resolution):
+ *   - Precise (small): a short reach → local, near-the-stroke touch-ups.
+ *   - Fill (mid): reach ramps with size → fills a bounded area around the
+ *     stroke, so you can grab just the forehead OR just the jaw.
+ *   - Whole shape (>= BRUSH_WHOLE_SIZE, top of the slider): unbounded → fills
+ *     the entire connected region in one stroke.
+ */
+function reachForBrushSize(size: number, resFactor: number): number {
+  if (size >= BRUSH_WHOLE_SIZE) return Infinity;
+  if (size >= BRUSH_MEDIUM_SIZE)
+    return size * GROW_MEDIUM_REACH_PER_SIZE * resFactor;
+  return size * GROW_REACH_PER_SIZE * resFactor;
+}
 // Feather radius (px) for softening the cutout edge into a 0-255 alpha ramp.
 const FEATHER_RADIUS = 1;
-// Brush-size thresholds for the Precise / Medium / Bulk label.
+// Brush-size thresholds for the Precise / Fill / Whole-shape label + reach.
 const BRUSH_MEDIUM_SIZE = 20;
-const BRUSH_BULK_SIZE = 48;
+// At/above this a stroke fills the entire connected region in one go; below it
+// the fill is bounded (grows with size) so you can isolate a part.
+const BRUSH_WHOLE_SIZE = 48;
+// Max brush size (image-px diameter feel). Larger than before so a single
+// swipe can cover a big area on high-res designs — important for painting
+// back regions the smart fill can't grab (e.g. a dark helmet on a dark bg).
+const BRUSH_MAX_SIZE = 200;
 
 function pathToSvgD(
   path: Array<{ x: number; y: number }>,
@@ -301,6 +338,10 @@ export function BackgroundRemovalPanel({
   const containerRef = useRef<HTMLDivElement>(null);
   const originalDataRef = useRef<ImageData | null>(null);
   const initialMaskRef = useRef<ImageData | null>(null);
+  // Cached background-connectivity mask for the big "fill" brush (1 = a
+  // background-colored pixel connected to the image border). Computed lazily
+  // once per image; invalidated when the working image changes.
+  const bgMaskRef = useRef<Uint8Array | null>(null);
 
   // Color-pick state
   const toleranceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -361,6 +402,15 @@ export function BackgroundRemovalPanel({
   // noise that 4-connects past the size cap of the old algorithm.
   // Default 30 = mild; cranks aggressive for distressed/grunge designs.
   const [speckRemoval, setSpeckRemoval] = useState(30);
+  // "Keep whole shape": remove only the exterior background and keep the whole
+  // design silhouette solid (skull + helmet + interior), so nothing important
+  // is lost on the initial cutout. The brush is then only for subtracting the
+  // few bits you don't want (e.g. the eye sockets). Default on.
+  const [keepWholeShape, setKeepWholeShape] = useState(true);
+  const keepWholeShapeRef = useRef(keepWholeShape);
+  useEffect(() => {
+    keepWholeShapeRef.current = keepWholeShape;
+  }, [keepWholeShape]);
   // Show the "Auto-selected for graphics" badge when the panel routed to
   // birefnet-dis on its own. Cleared the moment the user manually picks
   // any model so the manual choice is honored on subsequent loads.
@@ -636,6 +686,47 @@ export function BackgroundRemovalPanel({
    */
   const runInitialAnalysis = useCallback(
     (canvas: HTMLCanvasElement) => {
+      // Keep-whole-shape works from the original pixels alone, so seed it
+      // instantly (before the network call) — the cutout shows immediately and
+      // survives an ML failure. The ML call below still runs to populate
+      // initialMaskRef for when the toggle is switched off.
+      const origNow = originalDataRef.current;
+      if (
+        keepWholeShapeRef.current &&
+        origNow &&
+        strokeHistoryRef.current.length === 0
+      ) {
+        const bgColor = detectBorderColor(
+          origNow.data,
+          origNow.width,
+          origNow.height
+        );
+        const sealRadius = Math.max(
+          3,
+          Math.round((Math.max(origNow.width, origNow.height) / 1400) * 5)
+        );
+        const m = computeWholeShapeMask(
+          origNow.data,
+          origNow.width,
+          origNow.height,
+          bgColor,
+          BG_CONNECT_TOLERANCE,
+          sealRadius
+        );
+        samMaskRef.current = m;
+        const recompute = recomputeCumulativeRef.current;
+        if (recompute) {
+          recompute();
+        } else {
+          // Binding effect hasn't run yet on first mount — render directly.
+          const next = new Uint8Array(m);
+          cumulativeMaskRef.current = next;
+          renderPreviewFromMask(next);
+          setContoursD(
+            maskToContoursPath(next, origNow.width, origNow.height)
+          );
+        }
+      }
       // Smart initial mask: detect → ml+color when bg is flood-fillable.
       return runDetect(canvas)
         .then(detection => {
@@ -700,8 +791,13 @@ export function BackgroundRemovalPanel({
           offCtx.drawImage(img, 0, 0, orig.width, orig.height);
           const data = offCtx.getImageData(0, 0, orig.width, orig.height);
           initialMaskRef.current = data;
-          // Only seed SAM mask if user hasn't started brushing yet.
-          if (strokeHistoryRef.current.length === 0) {
+          // Seed the ML mask only when NOT keeping the whole shape (the
+          // whole-shape mask was already seeded upfront, offline). Skip if the
+          // user has started brushing.
+          if (
+            strokeHistoryRef.current.length === 0 &&
+            !keepWholeShapeRef.current
+          ) {
             const m = new Uint8Array(orig.width * orig.height);
             for (let i = 0; i < m.length; i++) {
               m[i] = data.data[i * 4 + 3] > 127 ? 1 : 0;
@@ -739,6 +835,7 @@ export function BackgroundRemovalPanel({
     ctx.drawImage(image, 0, 0);
     canvasRef.current = canvas;
     originalDataRef.current = ctx.getImageData(0, 0, w, h);
+    bgMaskRef.current = null; // new image → recompute fill connectivity lazily
     // Original pixels are in memory — the client-side scribble brush is ready.
     setBrushReady(true);
 
@@ -779,6 +876,21 @@ export function BackgroundRemovalPanel({
     const sam = samMaskRef.current;
     const orig = originalDataRef.current;
     if (!sam || !orig) return;
+
+    // Keep-whole-shape mode: the base mask is already the full design
+    // silhouette. Skip the automatic carve passes (edge flood / hole detection
+    // / speck removal) — they key off the background colour and would re-remove
+    // same-colour subject parts like a dark helmet. The user subtracts what
+    // they don't want with the brush instead. Brush edits live directly in
+    // samMask, so the mask already reflects them here.
+    if (keepWholeShapeRef.current) {
+      const next = new Uint8Array(sam);
+      cumulativeMaskRef.current = next;
+      renderPreviewFromMask(next);
+      setContoursD(maskToContoursPath(next, orig.width, orig.height));
+      return;
+    }
+
     const next = new Uint8Array(sam);
     const keepColors = collectStrokePaletteColors(
       strokeHistoryRef.current,
@@ -883,6 +995,44 @@ export function BackgroundRemovalPanel({
     recomputeCumulativeRef.current = recomputeCumulative;
   }, [recomputeCumulative]);
 
+  // Toggle "Keep whole shape" and re-seed the base mask immediately (no network
+  // re-run) as long as the user hasn't started brushing.
+  const toggleKeepWholeShape = useCallback(
+    (nextOn: boolean) => {
+      setKeepWholeShape(nextOn);
+      keepWholeShapeRef.current = nextOn;
+      const orig = originalDataRef.current;
+      if (!orig || strokeHistoryRef.current.length > 0) return;
+      const total = orig.width * orig.height;
+      if (nextOn) {
+        const bgColor = detectBorderColor(orig.data, orig.width, orig.height);
+        const sealRadius = Math.max(
+          3,
+          Math.round((Math.max(orig.width, orig.height) / 1400) * 5)
+        );
+        samMaskRef.current = computeWholeShapeMask(
+          orig.data,
+          orig.width,
+          orig.height,
+          bgColor,
+          BG_CONNECT_TOLERANCE,
+          sealRadius
+        );
+      } else {
+        const initial = initialMaskRef.current;
+        const m = new Uint8Array(total);
+        if (initial && initial.data.length === total * 4) {
+          for (let i = 0; i < total; i++) {
+            m[i] = initial.data[i * 4 + 3] > 127 ? 1 : 0;
+          }
+        }
+        samMaskRef.current = m;
+      }
+      recomputeCumulative();
+    },
+    [recomputeCumulative]
+  );
+
   /** Reset SAM mask to BiRefNet initial (or all-zeros if not loaded), then derive cumulative. */
   const resetCumulativeToInitial = useCallback(() => {
     const orig = originalDataRef.current;
@@ -937,18 +1087,86 @@ export function BackgroundRemovalPanel({
       // size drives both the seed radius and how far the flood may travel.
       const seedRadius = Math.max(1, sizeAtCommit / GROW_SEED_RADIUS_DIVISOR);
       const seeds = strokeToSeeds(path, seedRadius, orig.width, orig.height);
-      const region = growRegionFromStroke(
-        orig.data,
-        orig.width,
-        orig.height,
-        seeds,
-        {
-          reachRadius: sizeAtCommit * GROW_REACH_PER_SIZE,
+      // Reach scales with the image's longest side so a given brush size covers
+      // the same visual fraction on a small logo or a 4K design.
+      const resFactor = Math.max(
+        1,
+        Math.max(orig.width, orig.height) / REACH_REFERENCE_DIM
+      );
+      const reachRadius = reachForBrushSize(sizeAtCommit, resFactor);
+
+      // Region selection, by brush size:
+      //  - Precise (small): edge-aware local grow — snaps to nearby edges,
+      //    stays within a colour band of the seed. Great for touch-ups.
+      //  - Medium / Wide (big): connected-component FILL over a
+      //    background/foreground partition (background = the border-connected
+      //    background colour). This floods the whole subject (Keep) or whole
+      //    background area (Remove) in one stroke — crossing internal line-work
+      //    that shares the background colour, which the edge-grow can't. Wide =
+      //    unbounded (the entire component); Medium = reach-bounded.
+      let region: Uint8Array;
+      if (sizeAtCommit >= BRUSH_MEDIUM_SIZE) {
+        if (!bgMaskRef.current) {
+          const bgColor = detectBorderColor(orig.data, orig.width, orig.height);
+          bgMaskRef.current = computeBackgroundMask(
+            orig.data,
+            orig.width,
+            orig.height,
+            bgColor,
+            BG_CONNECT_TOLERANCE
+          );
+        }
+        const bgMask = bgMaskRef.current;
+        // Keep fills the foreground shape (bgMask 0); Remove fills the
+        // background area (bgMask 1).
+        const passValue: 0 | 1 = tool === 'keep' ? 0 : 1;
+        region = fillConnectedRegion(
+          bgMask,
+          passValue,
+          orig.width,
+          orig.height,
+          seeds,
+          reachRadius
+        );
+        // Fallback: if the fill found nothing (e.g. a Remove stroke painted on
+        // the subject, or a Keep stroke on bare background), use the edge-aware
+        // grow so the stroke still does something sensible.
+        let any = false;
+        for (let i = 0; i < region.length; i++) {
+          if (region[i]) {
+            any = true;
+            break;
+          }
+        }
+        if (!any) {
+          region = growRegionFromStroke(orig.data, orig.width, orig.height, seeds, {
+            reachRadius,
+            edgeThreshold: GROW_EDGE_THRESHOLD,
+            colorTolerance: GROW_FLOOD_COLOR_TOLERANCE,
+          });
+        }
+      } else {
+        region = growRegionFromStroke(orig.data, orig.width, orig.height, seeds, {
+          reachRadius,
           edgeThreshold: GROW_EDGE_THRESHOLD,
           colorTolerance: GROW_COLOR_TOLERANCE,
-        }
-      );
+        });
+      }
       if (region.length !== total) return;
+
+      // Always claim the literal brush footprint too, so a stroke ALWAYS does at
+      // least what you painted — even when the smart fill finds nothing (e.g. a
+      // dark subject part like a helmet that's the same colour as the
+      // background, where no automatic fill can key off a boundary). A big brush
+      // then reliably paints the area back over a few swipes.
+      const footprintRadius = Math.max(1, sizeAtCommit / 2);
+      const footprint = strokeToSeeds(
+        path,
+        footprintRadius,
+        orig.width,
+        orig.height
+      );
+      for (const idx of footprint) region[idx] = 1;
 
       // Keep = add the region; Remove = subtract it.
       const nextSam = new Uint8Array(currentSam);
@@ -1474,10 +1692,6 @@ export function BackgroundRemovalPanel({
     return canvas;
   }, [onSave]);
 
-  const handleApplyBrush = useCallback(() => {
-    applyMaskToCanvas();
-  }, [applyMaskToCanvas]);
-
   // Register a pending-commit hook so Studio's top-level Download flushes the
   // current cutout before exporting — even if the user never clicked "Apply
   // Changes". Returns the freshly committed canvas so Studio can export it
@@ -1509,6 +1723,7 @@ export function BackgroundRemovalPanel({
       canvas.width,
       canvas.height
     );
+    bgMaskRef.current = null; // reset → recompute fill connectivity lazily
     const preview = previewRef.current;
     if (preview) {
       preview.width = canvas.width;
@@ -1971,6 +2186,33 @@ export function BackgroundRemovalPanel({
                   </p>
                 </div>
 
+                {/* Keep whole shape — initial cutout keeps the full silhouette. */}
+                <div className="rounded-lg border border-gray-200 bg-gray-50 p-3">
+                  <label className="flex items-start gap-2 cursor-pointer select-none">
+                    <input
+                      type="checkbox"
+                      checked={keepWholeShape}
+                      onChange={e => toggleKeepWholeShape(e.target.checked)}
+                      className="mt-0.5 accent-blue-600"
+                    />
+                    <span>
+                      <span className="block text-xs font-semibold text-gray-800">
+                        Keep whole shape{' '}
+                        <span className="text-blue-600">· detailed art</span>
+                      </span>
+                      <span className="block text-[11px] text-gray-500 mt-0.5">
+                        Best for complex, multi-layer designs (detailed
+                        illustrations). Removes only the outside background and
+                        keeps the whole design solid — including dark parts (like
+                        a helmet) that match the shirt colour — then brush away
+                        anything you don&apos;t want (e.g. the eyes). Turn OFF for
+                        simple photos/logos to use the standard auto-cutout and
+                        the cleanup sliders below.
+                      </span>
+                    </span>
+                  </label>
+                </div>
+
                 {/* Brush size — controls cursor size and edge-aware reach. */}
                 <div>
                   <div className="flex items-center justify-between mb-1">
@@ -1981,39 +2223,56 @@ export function BackgroundRemovalPanel({
                       {brushSize}px ·{' '}
                       <span
                         className={
-                          brushSize >= BRUSH_BULK_SIZE
+                          brushSize >= BRUSH_WHOLE_SIZE
                             ? 'text-amber-600 font-medium'
                             : brushSize <= BRUSH_MEDIUM_SIZE
                               ? 'text-green-600 font-medium'
                               : 'text-blue-600 font-medium'
                         }
                       >
-                        {brushSize >= BRUSH_BULK_SIZE
-                          ? 'Wide'
+                        {brushSize >= BRUSH_WHOLE_SIZE
+                          ? 'Whole shape'
                           : brushSize <= BRUSH_MEDIUM_SIZE
                             ? 'Precise'
-                            : 'Medium'}
+                            : 'Fill'}
                       </span>
                     </span>
                   </div>
                   <input
                     type="range"
                     min={1}
-                    max={80}
+                    max={BRUSH_MAX_SIZE}
                     step={1}
                     value={brushSize}
                     onChange={e => setBrushSize(Number(e.target.value))}
                     className="w-full accent-blue-600"
                   />
                   <p className="text-xs text-gray-400 mt-1">
-                    Controls the cursor size and how far each stroke floods —
-                    every stroke snaps to the nearest real edge.{' '}
-                    <span className="text-green-600">Small = precise</span>{' '}
-                    touch-ups;{' '}
-                    <span className="text-amber-600">large = wide</span> fills up
-                    to the region&apos;s edges.
+                    <span className="text-green-600">Precise</span> = pixel-level
+                    touch-ups.{' '}
+                    <span className="text-blue-600">Fill</span> = fills a bounded
+                    area around the stroke (bigger = larger).{' '}
+                    <span className="text-amber-600">Whole shape</span> = fills
+                    the entire connected region in one stroke. Every stroke also
+                    always keeps/removes exactly what you paint over, so you can
+                    paint back areas the fill can&apos;t grab.
                   </p>
                 </div>
+
+                {/* Fine-tuning cleanup passes — only active when Keep whole
+                    shape is OFF (that mode keeps the full silhouette as-is). */}
+                <fieldset
+                  disabled={keepWholeShape}
+                  className={`space-y-4 border-0 m-0 p-0 min-w-0 ${
+                    keepWholeShape ? 'opacity-40' : ''
+                  }`}
+                >
+                  {keepWholeShape && (
+                    <p className="text-[11px] text-gray-500 italic">
+                      Handled automatically while &ldquo;Keep whole shape&rdquo;
+                      is on. Turn it off to fine-tune these.
+                    </p>
+                  )}
 
                 {/* BG Color Flood — Phase 2.3 primary background detection.
                     Flood from image edges through pixels matching the
@@ -2127,6 +2386,7 @@ export function BackgroundRemovalPanel({
                     The main subject is never carved.
                   </p>
                 </div>
+                </fieldset>
 
                 {/* Undo / Clear */}
                 <div className="flex gap-2">
@@ -2461,35 +2721,6 @@ export function BackgroundRemovalPanel({
               </div>
             ) : null}
           </div>
-
-          {/* Always-visible "Apply Changes" action bar. Pinned outside the
-              scrolling content so an unknowing user sees it before hitting the
-              top-right Download — brush edits aren't saved until this is
-              clicked (it commits the cutout to Studio's working image). */}
-          {panelMode === 'ai-brush' && !hasResult && (
-            <div className="flex-shrink-0 p-4 border-t border-gray-200 bg-white">
-              <button
-                onClick={handleApplyBrush}
-                disabled={isProcessing || !brushReady}
-                className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white text-sm font-medium rounded-lg transition-colors"
-              >
-                {isProcessing ? (
-                  <>
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                    {STATUS_LABELS[status] || 'Processing...'}
-                  </>
-                ) : (
-                  <>
-                    <CheckCircle2 className="w-4 h-4" />
-                    Apply Changes
-                  </>
-                )}
-              </button>
-              <p className="text-[11px] text-gray-400 text-center mt-1.5">
-                Apply your changes before downloading.
-              </p>
-            </div>
-          )}
         </div>
       </div>
 

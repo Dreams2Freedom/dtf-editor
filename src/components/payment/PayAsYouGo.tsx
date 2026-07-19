@@ -6,6 +6,7 @@ import { PayAsYouGoPackage } from '@/services/stripe';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { Check, CreditCard, ShoppingCart } from 'lucide-react';
+import { metaTrack } from '@/lib/meta/trackClient';
 
 interface PayAsYouGoProps {
   onPurchaseComplete?: () => void;
@@ -50,6 +51,16 @@ export const PayAsYouGo: React.FC<PayAsYouGoProps> = ({
     setIsLoading(true);
     setError(null);
     setSelectedPackage(pkg.id);
+
+    // Meta: InitiateCheckout (Pixel + Conversions API, deduped).
+    metaTrack('InitiateCheckout', {
+      customData: {
+        value: pkg.price,
+        currency: 'USD',
+        content_name: `${pkg.credits} credits`,
+        content_type: 'credits',
+      },
+    });
 
     try {
       const response = await fetch('/api/stripe/create-checkout-session', {

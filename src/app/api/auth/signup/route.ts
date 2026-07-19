@@ -6,12 +6,30 @@ import { trackReferralSignup } from '@/services/affiliate';
 import { env } from '@/config/env';
 import { withRateLimit } from '@/lib/rate-limit';
 import { getTrustedBaseUrl } from '@/lib/auth/request-base-url';
+import {
+  isBlockedEmailDomain,
+  BLOCKED_EMAIL_MESSAGE,
+} from '@/lib/auth/blockedEmailDomains';
+import {
+  sendMetaEvent,
+  metaUserDataFromRequest,
+} from '@/lib/meta/conversionsApi';
 
 async function handlePost(request: NextRequest) {
   console.log('[SIGNUP API] Step 1: Signup request received');
 
   try {
     const { email, password, metadata } = await request.json();
+
+    // Reject disposable / throwaway email domains (used to bypass verification
+    // and farm free credits). Server-side gate — the authoritative one.
+    if (isBlockedEmailDomain(email)) {
+      console.warn('[SIGNUP API] Blocked disposable email domain:', email);
+      return NextResponse.json(
+        { success: false, error: BLOCKED_EMAIL_MESSAGE },
+        { status: 400 }
+      );
+    }
 
     // Check for affiliate cookie
     const affiliateCookie = request.cookies.get('dtf_ref')?.value;
@@ -83,6 +101,22 @@ async function handlePost(request: NextRequest) {
     } else {
       console.log('[SIGNUP API] Step 4: Profile created successfully');
     }
+
+    // Meta Conversions API — CompleteRegistration (server-side, deduped by
+    // event_id against any client Pixel event). Best-effort, non-blocking.
+    sendMetaEvent({
+      eventName: 'CompleteRegistration',
+      eventId: `signup_${signUpData.user.id}`,
+      actionSource: 'website',
+      userData: {
+        ...metaUserDataFromRequest(request),
+        email,
+        firstName: metadata?.firstName || null,
+        lastName: metadata?.lastName || null,
+        externalId: signUpData.user.id,
+      },
+      customData: { content_name: 'DTF Editor account', status: 'registered' },
+    }).catch(() => {});
 
     // Track referral if cookie exists
     if (affiliateCookie || affiliateCode) {

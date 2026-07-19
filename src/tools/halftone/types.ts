@@ -12,6 +12,7 @@
  */
 
 export type HalftoneAlgorithm =
+  | 'am-halftone' // True AM screening (spot function) — real halftone dots
   | 'ordered' // Bayer matrix — production-consistent, regular pattern
   | 'floyd-steinberg' // Error-diffusion — natural gradient
   | 'atkinson'; // Error-diffusion — Macintosh-classic look, tighter dots
@@ -19,24 +20,103 @@ export type HalftoneAlgorithm =
 /** Bayer matrix size for ordered dithering. Smaller = finer dots. */
 export type OrderedSize = 4 | 8 | 16;
 
+/**
+ * AM halftone dot shape — the spot function that decides how each cell's
+ * dot grows as tone darkens. Round is the classic offset/screen dot.
+ */
+export type DotShape =
+  | 'round'
+  | 'ellipse'
+  | 'square'
+  | 'diamond'
+  | 'line'
+  | 'wave' // wavy line screen (stylized)
+  | 'cross'; // crosshatch screen (stylized)
+
+/**
+ * Ink/color mode for the AM screen.
+ *  - mono:   single ink colour (default black) — one screen from luminance.
+ *  - source: dots keep the source pixel's colour (pop-art colour halftone).
+ *  - cmyk:   true 4-colour process — C/M/Y/K separations, each screened at its
+ *            own angle and composited (classic rosette).
+ */
+export type ColorMode = 'mono' | 'source' | 'cmyk';
+
 export interface HalftoneOptions {
   algorithm: HalftoneAlgorithm;
   /** Only used when algorithm === 'ordered'. */
   orderedSize: OrderedSize;
   /** 0-100. Above midpoint → more black, below → more transparent. */
   threshold: number;
+
+  // ---- Knockout (AM mono/source spot workflow) ----
+  /**
+   * Knockout / garment colour (hex). Pixels matching this colour are knocked
+   * out (left transparent) so the shirt shows through; everything else prints
+   * as ink dots. This is what makes the design read correctly when pressed onto
+   * a garment of this colour.
+   */
+  knockoutColor: string;
+  /**
+   * 0-100. Knockout amount — how aggressively the knockout colour is removed.
+   * Low = the design stays mostly solid ink (only the pure knockout colour is
+   * dropped); high = the cut climbs into the midtones, shrinking dots toward
+   * transparent. This is the slider that "knocks the colour in and out with the
+   * dots".
+   */
+  knockout: number;
+  /**
+   * De-fringe edges (opt-in, OFF by default). Erodes the thin anti-aliased
+   * fringe along knockout boundaries — e.g. cleaning stray edge dots around the
+   * lining of a skull's teeth — without touching solid fills or legit dots.
+   */
+  deFringe: boolean;
+  /** 0-100. De-fringe strength (fringe cutoff + erosion band width). */
+  deFringeAmount: number;
   /** -100 to 100. Pre-pass applied before dithering. */
   contrast: number;
   /** 0.5 to 2.0. Pre-pass gamma. >1 lightens, <1 darkens. */
   gamma: number;
+
+  // ---- AM halftone (algorithm === 'am-halftone') ----
+  /** Screen frequency in lines per inch. Physical dot pitch = DPI / LPI. */
+  lpi: number;
+  /** Screen angle in degrees. 45° is the classic single-color angle. */
+  angleDeg: number;
+  /** Dot shape / spot function. */
+  dotShape: DotShape;
+  /**
+   * Intended print width in inches. Used to derive the effective DPI from
+   * the image's pixel width (DPI = pixelWidth / printWidthIn), so LPI is a
+   * physically meaningful setting regardless of the source's pixel size.
+   */
+  printWidthIn: number;
+  /** Ink/color mode. */
+  colorMode: ColorMode;
+  /** Ink color (hex) when colorMode === 'mono'. */
+  inkColor: string;
+  /** Grunge/texture amount (0-100): procedural noise mixed into the screen. */
+  texture: number;
 }
 
 export const DEFAULT_HALFTONE_OPTIONS: HalftoneOptions = {
-  algorithm: 'ordered',
+  algorithm: 'am-halftone',
   orderedSize: 8,
   threshold: 50,
+  knockoutColor: '#000000',
+  knockout: 12,
+  deFringe: false,
+  deFringeAmount: 50,
   contrast: 0,
   gamma: 1,
+  lpi: 45,
+  angleDeg: 45,
+  dotShape: 'round',
+  printWidthIn: 11,
+  colorMode: 'mono',
+  // Dark-garment DTF default: white ink knocked out against the shirt colour.
+  inkColor: '#ffffff',
+  texture: 0,
 };
 
 /**

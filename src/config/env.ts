@@ -142,6 +142,22 @@ export const env = {
   REMBG_SERVICE_URL: process.env.REMBG_SERVICE_URL || '',
   REMBG_SERVICE_API_KEY: process.env.REMBG_SERVICE_API_KEY || '',
 
+  // Meta (Facebook) Pixel + Conversions API.
+  // META_PIXEL_ID is public (also embedded in the client pixel base code).
+  // META_CAPI_ACCESS_TOKEN is a SERVER-ONLY secret — never expose it to the
+  // client / never prefix it with NEXT_PUBLIC. META_CAPI_TEST_EVENT_CODE is
+  // optional: set it to route events to the Events Manager "Test Events" tab.
+  META_PIXEL_ID: (
+    process.env.META_PIXEL_ID ||
+    process.env.NEXT_PUBLIC_META_PIXEL_ID ||
+    '1537210417861525'
+  ).trim(),
+  META_CAPI_ACCESS_TOKEN: (process.env.META_CAPI_ACCESS_TOKEN || '').trim(),
+  META_CAPI_TEST_EVENT_CODE: (
+    process.env.META_CAPI_TEST_EVENT_CODE || ''
+  ).trim(),
+  META_GRAPH_VERSION: (process.env.META_GRAPH_VERSION || 'v21.0').trim(),
+
   // Feature Flags
   ENABLE_ANALYTICS: process.env.NEXT_PUBLIC_ENABLE_ANALYTICS === 'true',
   ENABLE_DEBUG: process.env.NODE_ENV === 'development',
