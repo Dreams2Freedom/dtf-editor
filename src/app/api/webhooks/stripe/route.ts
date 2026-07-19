@@ -1194,30 +1194,6 @@ async function handleCheckoutSessionCompleted(session: any) {
 
   console.log('👤 Processing for user:', userId);
 
-  // Meta Conversions API — Purchase. checkout.session.completed means payment
-  // succeeded, so this is the canonical purchase point (subscription OR
-  // one-time credits). event_id is derived from the Stripe session id, so
-  // webhook retries dedupe. Best-effort; never blocks payment processing.
-  try {
-    await sendMetaEvent({
-      eventName: 'Purchase',
-      eventId: `purchase_${session.id}`,
-      actionSource: 'website',
-      userData: {
-        email:
-          session.customer_details?.email || session.customer_email || null,
-        externalId: userId,
-      },
-      customData: {
-        currency: (session.currency || 'usd').toUpperCase(),
-        value: (session.amount_total || 0) / 100,
-        content_type: session.mode === 'subscription' ? 'subscription' : 'credits',
-      },
-    });
-  } catch (e) {
-    console.error('[Meta CAPI] Purchase event error:', e);
-  }
-
   // Handle subscription checkout
   if (session.mode === 'subscription') {
     const subscriptionId = session.subscription;
@@ -1243,6 +1219,36 @@ async function handleCheckoutSessionCompleted(session: any) {
       const priceId = subscription.items.data[0]?.price.id;
       console.log('🔍 [Checkout] Price ID from subscription:', priceId);
       const plan = await resolvePlanFromPriceId(priceId);
+
+      // Meta Conversions API. A subscription checkout that lands in 'trialing'
+      // is a completed TRIAL transaction → StartTrial (the initial charge is
+      // $0, so it is NOT a Purchase). A non-trial subscription checkout is a
+      // real Purchase. event_id derives from the Stripe session id so webhook
+      // retries dedupe. Best-effort; never blocks payment processing.
+      try {
+        const isTrial = subscription.status === 'trialing';
+        const email =
+          session.customer_details?.email || session.customer_email || null;
+        await sendMetaEvent({
+          eventName: isTrial ? 'StartTrial' : 'Purchase',
+          eventId: `${isTrial ? 'trial' : 'purchase'}_${session.id}`,
+          actionSource: 'website',
+          eventSourceUrl: `${env.APP_URL}/#pricing`,
+          userData: { email, externalId: userId },
+          customData: {
+            currency: (session.currency || 'usd').toUpperCase(),
+            // For a trial, surface the plan's price as the trial value; for a
+            // real purchase, the amount actually charged.
+            value: isTrial
+              ? (plan?.price ?? 0)
+              : (session.amount_total || 0) / 100,
+            content_name: plan?.name,
+            content_type: 'subscription',
+          },
+        });
+      } catch (e) {
+        console.error('[Meta CAPI] subscription event error:', e);
+      }
 
       if (plan) {
         console.log('✅ [Checkout] Matched plan:', plan.id);
@@ -1405,6 +1411,29 @@ async function handleCheckoutSessionCompleted(session: any) {
   // Handle one-time payment (pay-as-you-go credits)
   if (session.mode === 'payment') {
     console.log('🎯 Processing pay-as-you-go payment from checkout session');
+
+    // Meta Conversions API — Purchase (real money paid now). event_id from the
+    // Stripe session id so webhook retries dedupe. Best-effort, non-blocking.
+    try {
+      await sendMetaEvent({
+        eventName: 'Purchase',
+        eventId: `purchase_${session.id}`,
+        actionSource: 'website',
+        eventSourceUrl: `${env.APP_URL}/#pricing`,
+        userData: {
+          email:
+            session.customer_details?.email || session.customer_email || null,
+          externalId: userId,
+        },
+        customData: {
+          currency: (session.currency || 'usd').toUpperCase(),
+          value: (session.amount_total || 0) / 100,
+          content_type: 'credits',
+        },
+      });
+    } catch (e) {
+      console.error('[Meta CAPI] credits purchase event error:', e);
+    }
 
     const credits = resolveCreditsFromSession(session);
     const customerId = session.customer;
