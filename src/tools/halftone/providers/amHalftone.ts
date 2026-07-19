@@ -342,14 +342,22 @@ export function renderAmImageData(
   // Single screen (mono ink colour, or source-colour dots).
   //
   // Coverage tracks INKINESS (distance from the knockout/garment colour), not
-  // darkness: the design's content inks, the garment colour drops out. The
-  // knockout slider raises the cut so dots shrink toward transparent as it
-  // climbs into the midtones.
+  // darkness: the design's content inks, the garment colour drops out.
+  //
+  // The knockout slider CONTINUOUSLY drags the knockout-colour region in and
+  // out. With knockoutStrength ks = knockout/100:
+  //     coverage = (1 - ks*(1 - inkiness)) * alpha
+  //   - ks = 1 (100): coverage = inkiness  → the knockout colour is fully
+  //     removed (pure knockout pixels → 0, transparent), everything else prints.
+  //   - ks = 0:       coverage = 1        → nothing knocked out, printed solid.
+  //   - in between: a pure knockout pixel gets coverage (1-ks), so its dots
+  //     grow/shrink smoothly as the slider moves — even for PURE colour where
+  //     the old flat-bias cut did nothing.
   let inkiness = computeInkiness(src, options);
   if (options.deFringe) {
     inkiness = deFringeInkiness(inkiness, width, height, options.deFringeAmount);
   }
-  const knockoutBias = Math.max(0, Math.min(100, options.knockout ?? 0)) / 100;
+  const ks = Math.max(0, Math.min(100, options.knockout ?? 0)) / 100;
 
   const cosA = Math.cos(deg(options.angleDeg));
   const sinA = Math.sin(deg(options.angleDeg));
@@ -362,7 +370,7 @@ export function renderAmImageData(
       const i = y * width + x;
       const j = i * 4;
       const al = alpha[i] / 255;
-      let coverage = inkiness[i] * al - knockoutBias;
+      let coverage = (1 - ks * (1 - inkiness[i])) * al;
       if (density) coverage += density[i];
       if (texAmt > 0) coverage += (hashNoise(x, y) - 0.5) * texAmt;
 
