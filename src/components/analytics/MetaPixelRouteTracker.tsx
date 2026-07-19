@@ -3,6 +3,8 @@
 import { useEffect, useRef } from 'react';
 import { usePathname } from 'next/navigation';
 
+import { metaTrack } from '@/lib/meta/trackClient';
+
 declare global {
   interface Window {
     fbq?: (...args: unknown[]) => void;
@@ -29,9 +31,9 @@ export function MetaPixelRouteTracker() {
       isInitialLoad.current = false;
       return;
     }
-    if (typeof window !== 'undefined' && typeof window.fbq === 'function') {
-      window.fbq('track', 'PageView');
-    }
+    // Fire PageView on both the Pixel and the Conversions API (shared event id
+    // → Meta deduplicates the pair).
+    metaTrack('PageView');
   }, [pathname]);
 
   return null;

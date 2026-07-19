@@ -10,6 +10,10 @@ import {
   isBlockedEmailDomain,
   BLOCKED_EMAIL_MESSAGE,
 } from '@/lib/auth/blockedEmailDomains';
+import {
+  sendMetaEvent,
+  metaUserDataFromRequest,
+} from '@/lib/meta/conversionsApi';
 
 async function handlePost(request: NextRequest) {
   console.log('[SIGNUP API] Step 1: Signup request received');
@@ -97,6 +101,22 @@ async function handlePost(request: NextRequest) {
     } else {
       console.log('[SIGNUP API] Step 4: Profile created successfully');
     }
+
+    // Meta Conversions API — CompleteRegistration (server-side, deduped by
+    // event_id against any client Pixel event). Best-effort, non-blocking.
+    sendMetaEvent({
+      eventName: 'CompleteRegistration',
+      eventId: `signup_${signUpData.user.id}`,
+      actionSource: 'website',
+      userData: {
+        ...metaUserDataFromRequest(request),
+        email,
+        firstName: metadata?.firstName || null,
+        lastName: metadata?.lastName || null,
+        externalId: signUpData.user.id,
+      },
+      customData: { content_name: 'DTF Editor account', status: 'registered' },
+    }).catch(() => {});
 
     // Track referral if cookie exists
     if (affiliateCookie || affiliateCode) {

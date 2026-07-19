@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { Check, CreditCard, Star, Zap } from 'lucide-react';
 import { isTrialEligible, isTrialPlan, TRIAL_DISCLOSURE } from '@/lib/trial';
+import { metaTrack } from '@/lib/meta/trackClient';
 
 interface SubscriptionPlansProps {
   onSubscriptionComplete?: () => void;
@@ -62,6 +63,18 @@ export const SubscriptionPlans: React.FC<SubscriptionPlansProps> = ({
     setIsLoading(true);
     setSelectedPlan(plan.id);
     setError(null);
+
+    // Meta: InitiateCheckout (Pixel + Conversions API, deduped). Fire StartTrial
+    // too when the user is starting a free trial.
+    const trialing = trialEligible && isTrialPlan(plan.id);
+    metaTrack(trialing ? 'StartTrial' : 'InitiateCheckout', {
+      customData: {
+        value: plan.price,
+        currency: 'USD',
+        content_name: plan.name,
+        content_type: 'subscription',
+      },
+    });
 
     try {
       const response = await fetch('/api/stripe/create-checkout-session', {

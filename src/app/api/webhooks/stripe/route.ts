@@ -6,6 +6,7 @@ import { createClient } from '@supabase/supabase-js';
 import { ApiCostTracker } from '@/lib/api-cost-tracker';
 import { trackReferralConversion } from '@/services/affiliate';
 import { env } from '@/config/env';
+import { sendMetaEvent } from '@/lib/meta/conversionsApi';
 
 // Fallback plan matching by price amount (cents) when price ID env vars are misconfigured
 const PLAN_PRICE_AMOUNTS: Record<number, string> = {
@@ -1192,6 +1193,30 @@ async function handleCheckoutSessionCompleted(session: any) {
   }
 
   console.log('👤 Processing for user:', userId);
+
+  // Meta Conversions API — Purchase. checkout.session.completed means payment
+  // succeeded, so this is the canonical purchase point (subscription OR
+  // one-time credits). event_id is derived from the Stripe session id, so
+  // webhook retries dedupe. Best-effort; never blocks payment processing.
+  try {
+    await sendMetaEvent({
+      eventName: 'Purchase',
+      eventId: `purchase_${session.id}`,
+      actionSource: 'website',
+      userData: {
+        email:
+          session.customer_details?.email || session.customer_email || null,
+        externalId: userId,
+      },
+      customData: {
+        currency: (session.currency || 'usd').toUpperCase(),
+        value: (session.amount_total || 0) / 100,
+        content_type: session.mode === 'subscription' ? 'subscription' : 'credits',
+      },
+    });
+  } catch (e) {
+    console.error('[Meta CAPI] Purchase event error:', e);
+  }
 
   // Handle subscription checkout
   if (session.mode === 'subscription') {
