@@ -208,7 +208,34 @@ export default function StudioClient() {
   }, [imageId, imageUrlParam]);
 
   const switchTool = useCallback(
-    (toolId: StudioToolId | null) => {
+    async (toolId: StudioToolId | null) => {
+      // Commit any pending in-panel edits (e.g. bg-removal brush strokes that
+      // were never explicitly "Applied") BEFORE leaving the tool, so switching
+      // to another tool carries the edited result forward instead of dropping
+      // back to the pre-edit image. Same guarantee as the Download flow — the
+      // user shouldn't have to download and re-upload to chain tools.
+      const commitPending = pendingCommitRef.current;
+      if (commitPending) {
+        try {
+          const committed = await commitPending();
+          if (committed) {
+            // commitPending also fires onApply, but that setWorkingImage is
+            // async and may not land before the next panel mounts. Set it here
+            // from the returned canvas so the next tool receives the result.
+            const img = await canvasToImage(committed);
+            setWorkingImage(img);
+            setHasChanges(true);
+            const dpi = Math.round(img.width / 10);
+            setImageDpi(dpi);
+            setLowQualityWarning(dpi < 300);
+          }
+        } catch (err) {
+          console.error('[Studio] commit before tool switch failed:', err);
+        }
+      }
+      // Clear the outgoing tool's commit hook so it can't fire for the next one.
+      pendingCommitRef.current = null;
+
       setActiveToolId(toolId);
       setSavedImageId(null);
       const params = new URLSearchParams(searchParams.toString());
