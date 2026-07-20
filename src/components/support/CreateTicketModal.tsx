@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuthStore } from '@/stores/authStore';
 import { supportService } from '@/services/support';
 import { Button } from '@/components/ui/Button';
@@ -19,12 +19,22 @@ interface CreateTicketModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSuccess: () => void;
+  /**
+   * Optional starting values (used when Hamilton hands a question off to a
+   * support ticket). The user can review and edit before sending.
+   */
+  initialSubject?: string;
+  initialMessage?: string;
+  initialCategory?: TicketCategory;
 }
 
 export function CreateTicketModal({
   isOpen,
   onClose,
   onSuccess,
+  initialSubject,
+  initialMessage,
+  initialCategory,
 }: CreateTicketModalProps) {
   const { user } = useAuthStore();
   const [loading, setLoading] = useState(false);
@@ -34,6 +44,18 @@ export function CreateTicketModal({
     priority: 'medium' as TicketPriority,
     message: '',
   });
+
+  // Seed the form from the prefill props each time the modal is opened, so a
+  // Hamilton hand-off arrives with a reviewable draft ticket.
+  useEffect(() => {
+    if (!isOpen) return;
+    setFormData(prev => ({
+      ...prev,
+      subject: initialSubject ?? prev.subject,
+      message: initialMessage ?? prev.message,
+      category: initialCategory ?? prev.category,
+    }));
+  }, [isOpen, initialSubject, initialMessage, initialCategory]);
 
   const categories: Array<{
     value: TicketCategory;
