@@ -8,6 +8,7 @@ import {
   WandSparkles,
   Gauge,
   Grip,
+  Palette,
   ListChecks,
   ArrowRight,
   ArrowUp,
@@ -182,6 +183,26 @@ function DpiPreview() {
   );
 }
 
+function ColorChangePreview() {
+  return (
+    <div className={`${styles.pv} ${styles['pv-split']}`}>
+      <div className={`${styles.half} ${styles['half--gray']}`}>
+        <span className={`${styles.tag} ${styles['tag--l']}`}>Original</span>
+        <MountainBadge className={styles.badge} />
+      </div>
+      <div className={styles.half}>
+        <span className={`${styles.tag} ${styles['tag--r']}`}>Recolored</span>
+        <Spark className={styles['spark--orange']} style={{ top: '16%', right: '12%' }} />
+        <MountainBadge
+          className={styles.badge}
+          style={{ filter: 'hue-rotate(135deg) saturate(1.15)' }}
+        />
+      </div>
+      <Divider />
+    </div>
+  );
+}
+
 function HalftonePreview() {
   return (
     <div className={`${styles.pv} ${styles['pv-split']}`}>
@@ -276,6 +297,17 @@ const CARDS: Card[] = [
     desc: 'Convert logos and graphics into cleaner, scalable artwork with smooth edges.',
     ctaLabel: 'Start plan to vectorize',
     ctaHref: '#pricing',
+  },
+  {
+    preview: <ColorChangePreview />,
+    icon: Palette,
+    title: 'Color Change',
+    badgeLabel: 'Free',
+    badgeClass: 'badge--free',
+    desc: 'Swap or recolor the colors in your artwork to match a garment or brand — no credits used.',
+    ctaLabel: 'Start free to recolor',
+    ctaHref: '/auth/signup',
+    ctaGreen: true,
   },
   {
     preview: <HalftonePreview />,
