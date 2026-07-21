@@ -1,7 +1,7 @@
 'use client';
 
 import { useRef, useState, type DragEvent } from 'react';
-import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import {
   UploadCloud,
   ImageIcon,
@@ -11,6 +11,7 @@ import {
   CheckCircle2,
   AlertTriangle,
   XCircle,
+  Loader2,
 } from 'lucide-react';
 
 /**
@@ -90,8 +91,12 @@ const VERDICT_STYLE: Record<
 };
 
 export function DpiCheckerCard() {
+  const router = useRouter();
   const inputRef = useRef<HTMLInputElement>(null);
   const urlRef = useRef<string | null>(null);
+  // Keep the actual File so "Improve with Image Upscaling" can hand the real
+  // artwork to the Studio upscale tool instead of forcing a re-upload.
+  const fileRef = useRef<File | null>(null);
 
   const [hasFile, setHasFile] = useState(false);
   const [isDrag, setIsDrag] = useState(false);
@@ -101,6 +106,8 @@ export function DpiCheckerCard() {
   const [thumb, setThumb] = useState<string | null>(null);
   const [printW, setPrintW] = useState('11');
   const [printH, setPrintH] = useState('14');
+  const [handoff, setHandoff] = useState(false);
+  const [handoffError, setHandoffError] = useState<string | null>(null);
 
   const revoke = () => {
     if (urlRef.current) {
@@ -112,6 +119,8 @@ export function DpiCheckerCard() {
   const handleFile = (file: File | undefined | null) => {
     if (!file || !/^image\//.test(file.type)) return;
     revoke();
+    fileRef.current = file;
+    setHandoffError(null);
     const url = URL.createObjectURL(file);
     urlRef.current = url;
     const img = new Image();
@@ -134,12 +143,68 @@ export function DpiCheckerCard() {
 
   const reset = () => {
     revoke();
+    fileRef.current = null;
     setHasFile(false);
     setNatW(0);
     setNatH(0);
     setThumb(null);
     setFileName('');
+    setHandoffError(null);
     if (inputRef.current) inputRef.current.value = '';
+  };
+
+  // Upload the checked file and open it in the Studio upscale tool, carrying
+  // the image forward so the user never has to re-upload. Mirrors the
+  // free-DPI-checker hand-off (compress if large → /api/upload → /studio).
+  const handleFixImage = async () => {
+    const file = fileRef.current;
+    if (!file || handoff) return;
+    setHandoff(true);
+    setHandoffError(null);
+    try {
+      const { compressImage, needsCompression } = await import(
+        '@/utils/imageCompression'
+      );
+      let finalFile = file;
+      if (await needsCompression(file, 10, 4096)) {
+        finalFile = await compressImage(file, {
+          maxSizeMB: 10,
+          maxWidthOrHeight: 4096,
+          quality: 0.9,
+        });
+      }
+
+      const formData = new FormData();
+      formData.append('file', finalFile);
+      const res = await fetch('/api/upload', {
+        method: 'POST',
+        body: formData,
+        credentials: 'include',
+      });
+
+      if (res.status === 401) {
+        router.push('/auth/login?redirect=/tools/dpi-checker');
+        return;
+      }
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || !data.success || !data.imageId) {
+        throw new Error(data.error || 'Upload failed');
+      }
+
+      const params = new URLSearchParams();
+      params.set('imageId', data.imageId);
+      params.set('tool', 'upscale');
+      if (printW) params.set('printWidth', printW);
+      if (printH) params.set('printHeight', printH);
+      router.push(`/studio?${params.toString()}`);
+    } catch (err) {
+      setHandoffError(
+        err instanceof Error
+          ? err.message
+          : 'Could not open the upscaler. Please try again.'
+      );
+      setHandoff(false);
+    }
   };
 
   const onDrop = (e: DragEvent<HTMLDivElement>) => {
@@ -338,13 +403,31 @@ export function DpiCheckerCard() {
                 <p className="mt-3 text-sm text-gray-600">{verdict.message}</p>
 
                 {verdict.kind !== 'great' && (
-                  <Link
-                    href="/process?operation=upscale"
-                    className="mt-4 inline-flex min-h-[44px] items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-blue-700"
-                  >
-                    <ArrowUpCircle className="h-4 w-4" aria-hidden="true" />
-                    Improve with Image Upscaling
-                  </Link>
+                  <>
+                    <button
+                      type="button"
+                      onClick={handleFixImage}
+                      disabled={handoff}
+                      className="mt-4 inline-flex min-h-[44px] items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-blue-700 disabled:opacity-60"
+                    >
+                      {handoff ? (
+                        <Loader2
+                          className="h-4 w-4 animate-spin"
+                          aria-hidden="true"
+                        />
+                      ) : (
+                        <ArrowUpCircle className="h-4 w-4" aria-hidden="true" />
+                      )}
+                      {handoff
+                        ? 'Opening upscaler…'
+                        : 'Improve with Image Upscaling'}
+                    </button>
+                    {handoffError && (
+                      <p className="mt-2 text-xs text-red-600">
+                        {handoffError}
+                      </p>
+                    )}
+                  </>
                 )}
               </div>
             ) : (

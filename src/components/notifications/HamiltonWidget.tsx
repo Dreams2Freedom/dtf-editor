@@ -20,12 +20,23 @@ import {
   Megaphone,
   ExternalLink,
   HelpCircle,
+  MessageCircle,
+  Send,
 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 
 import { useAuthStore } from '@/stores/authStore';
 import { createClientSupabaseClient } from '@/lib/supabase/client';
 import { HAMILTON_FAQS } from './hamiltonFaqs';
+import { CreateTicketModal } from '@/components/support/CreateTicketModal';
+
+interface ChatMessage {
+  role: 'user' | 'assistant';
+  content: string;
+  // When Hamilton couldn't answer from the knowledge base we flag the turn so
+  // the UI can surface a "start a support ticket" hand-off under it.
+  offerTicket?: boolean;
+}
 
 interface Announcement {
   id: string;
@@ -43,11 +54,23 @@ export function HamiltonWidget() {
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [open, setOpen] = useState(false);
-  const [tab, setTab] = useState<'menu' | 'faq'>('menu');
+  const [tab, setTab] = useState<'menu' | 'faq' | 'ask'>('menu');
   const [openFaq, setOpenFaq] = useState<number | null>(null);
   const [imgOk, setImgOk] = useState(true);
   const rootRef = useRef<HTMLDivElement | null>(null);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  // --- Ask Hamilton (support bot) chat state ---
+  const [chat, setChat] = useState<ChatMessage[]>([]);
+  const [chatInput, setChatInput] = useState('');
+  const [chatBusy, setChatBusy] = useState(false);
+  const [conversationId, setConversationId] = useState<string | null>(null);
+  const [ticketOpen, setTicketOpen] = useState(false);
+  const [ticketSeed, setTicketSeed] = useState<{
+    subject: string;
+    message: string;
+  }>({ subject: '', message: '' });
+  const chatScrollRef = useRef<HTMLDivElement | null>(null);
 
   const authFetch = useCallback(async (init?: RequestInit) => {
     const supabase = createClientSupabaseClient();
@@ -119,6 +142,85 @@ export function HamiltonWidget() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ notificationId: id, action: 'dismiss' }),
     }).catch(() => {});
+  };
+
+  // Keep the transcript pinned to the latest turn (and the typing bubble).
+  useEffect(() => {
+    if (tab !== 'ask') return;
+    const el = chatScrollRef.current;
+    if (el) el.scrollTop = el.scrollHeight;
+  }, [chat, chatBusy, tab]);
+
+  const sendChat = useCallback(async () => {
+    const question = chatInput.trim();
+    if (!question || chatBusy) return;
+
+    setChat(prev => [...prev, { role: 'user', content: question }]);
+    setChatInput('');
+    setChatBusy(true);
+
+    try {
+      const supabase = createClientSupabaseClient();
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+      if (!session) throw new Error('no session');
+
+      const res = await fetch('/api/hamilton/ask', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({ conversationId, message: question }),
+      });
+      if (!res.ok) throw new Error(`status ${res.status}`);
+      const data = await res.json();
+      if (data.conversationId) setConversationId(data.conversationId);
+      setChat(prev => [
+        ...prev,
+        {
+          role: 'assistant',
+          content:
+            data.answer ||
+            "I'm not totally sure about that one — let me get you to our support team.",
+          offerTicket: data.canAnswer === false,
+        },
+      ]);
+    } catch {
+      setChat(prev => [
+        ...prev,
+        {
+          role: 'assistant',
+          content:
+            "Sorry, I couldn't reach my helper just now. You can start a support ticket and our team will jump in.",
+          offerTicket: true,
+        },
+      ]);
+    } finally {
+      setChatBusy(false);
+    }
+  }, [chatInput, chatBusy, conversationId]);
+
+  // Build a reviewable draft ticket from the current conversation and open the
+  // support modal (the user can edit before sending).
+  const startTicketFromChat = () => {
+    const firstQuestion =
+      chat.find(m => m.role === 'user')?.content?.trim() || '';
+    const subject = firstQuestion
+      ? firstQuestion.length > 60
+        ? `${firstQuestion.slice(0, 57)}…`
+        : firstQuestion
+      : 'Question from Hamilton';
+    const transcript = chat
+      .map(m => `${m.role === 'user' ? 'You' : 'Hamilton'}: ${m.content}`)
+      .join('\n');
+    const message = transcript
+      ? `Hi team, Hamilton couldn't fully answer this one. Here's our chat so far:\n\n${transcript}\n\n`
+      : '';
+    setTicketSeed({ subject, message });
+    setOpen(false);
+    setTicketOpen(true);
   };
 
   if (!user) return null;
@@ -263,6 +365,16 @@ export function HamiltonWidget() {
 
                 <div className="p-3 space-y-1.5">
                   <button
+                    onClick={() => setTab('ask')}
+                    className="group w-full flex items-center justify-between px-3 py-2.5 rounded-lg bg-sky-50 border border-sky-200 text-sm font-medium text-sky-800 hover:bg-sky-100 transition-colors"
+                  >
+                    <span className="flex items-center gap-2">
+                      <MessageCircle className="w-4 h-4 text-sky-500" />
+                      Have a question? Ask Hamilton
+                    </span>
+                    <ChevronDown className="w-4 h-4 -rotate-90 text-sky-400" />
+                  </button>
+                  <button
                     onClick={() => setTab('faq')}
                     className="group w-full flex items-center justify-between px-3 py-2.5 rounded-lg bg-gray-50 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-700 transition-colors"
                   >
@@ -282,7 +394,7 @@ export function HamiltonWidget() {
                   </Link>
                 </div>
               </>
-            ) : (
+            ) : tab === 'faq' ? (
               <div className="p-3">
                 <button
                   onClick={() => setTab('menu')}
@@ -320,10 +432,122 @@ export function HamiltonWidget() {
                   See all FAQs →
                 </Link>
               </div>
+            ) : (
+              <div className="flex flex-col h-[60vh] max-h-[420px]">
+                <div className="px-3 pt-3">
+                  <button
+                    onClick={() => setTab('menu')}
+                    className="text-xs text-gray-500 hover:text-gray-800"
+                  >
+                    ← Back
+                  </button>
+                </div>
+
+                {/* Transcript */}
+                <div
+                  ref={chatScrollRef}
+                  className="flex-1 overflow-y-auto px-3 py-3 space-y-2.5"
+                >
+                  {chat.length === 0 && (
+                    <div className="flex items-start gap-2">
+                      {avatar('w-7 h-7')}
+                      <div className="max-w-[80%] rounded-2xl rounded-tl-sm bg-gray-100 px-3 py-2 text-sm text-gray-700">
+                        Have a question? Ask me anything about DTF Editor and
+                        I&apos;ll do my best to help!
+                      </div>
+                    </div>
+                  )}
+
+                  {chat.map((m, i) => (
+                    <div key={i}>
+                      {m.role === 'assistant' ? (
+                        <div className="flex items-start gap-2">
+                          {avatar('w-7 h-7')}
+                          <div className="max-w-[80%] rounded-2xl rounded-tl-sm bg-gray-100 px-3 py-2 text-sm text-gray-800 whitespace-pre-wrap">
+                            {m.content}
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="flex justify-end">
+                          <div className="max-w-[80%] rounded-2xl rounded-tr-sm bg-sky-600 px-3 py-2 text-sm text-white whitespace-pre-wrap">
+                            {m.content}
+                          </div>
+                        </div>
+                      )}
+                      {m.role === 'assistant' && m.offerTicket && (
+                        <div className="mt-1.5 ml-9">
+                          <button
+                            onClick={startTicketFromChat}
+                            className="inline-flex items-center gap-1.5 rounded-lg bg-[#366494] px-3 py-1.5 text-xs font-medium text-white hover:bg-[#233E5C] transition-colors"
+                          >
+                            <LifeBuoy className="w-3.5 h-3.5" />
+                            Start a support ticket
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+
+                  {/* Typing indicator */}
+                  {chatBusy && (
+                    <div className="flex items-start gap-2">
+                      {avatar('w-7 h-7')}
+                      <div className="rounded-2xl rounded-tl-sm bg-gray-100 px-3 py-3">
+                        <span className="flex gap-1">
+                          <span className="w-1.5 h-1.5 rounded-full bg-gray-400 animate-bounce [animation-delay:-0.3s]" />
+                          <span className="w-1.5 h-1.5 rounded-full bg-gray-400 animate-bounce [animation-delay:-0.15s]" />
+                          <span className="w-1.5 h-1.5 rounded-full bg-gray-400 animate-bounce" />
+                        </span>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Composer */}
+                <div className="border-t border-gray-200 p-2.5">
+                  <form
+                    onSubmit={e => {
+                      e.preventDefault();
+                      sendChat();
+                    }}
+                    className="flex items-end gap-2"
+                  >
+                    <textarea
+                      value={chatInput}
+                      onChange={e => setChatInput(e.target.value)}
+                      onKeyDown={e => {
+                        if (e.key === 'Enter' && !e.shiftKey) {
+                          e.preventDefault();
+                          sendChat();
+                        }
+                      }}
+                      rows={1}
+                      placeholder="Have a question?"
+                      className="flex-1 resize-none rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-400 focus:border-transparent max-h-24"
+                    />
+                    <button
+                      type="submit"
+                      disabled={!chatInput.trim() || chatBusy}
+                      className="flex-shrink-0 flex items-center justify-center w-9 h-9 rounded-lg bg-sky-600 text-white hover:bg-sky-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                      aria-label="Send"
+                    >
+                      <Send className="w-4 h-4" />
+                    </button>
+                  </form>
+                </div>
+              </div>
             )}
           </div>
         </div>
       )}
+
+      <CreateTicketModal
+        isOpen={ticketOpen}
+        onClose={() => setTicketOpen(false)}
+        onSuccess={() => setTicketOpen(false)}
+        initialSubject={ticketSeed.subject}
+        initialMessage={ticketSeed.message}
+      />
     </div>
   );
 }

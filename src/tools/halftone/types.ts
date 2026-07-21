@@ -58,11 +58,11 @@ export interface HalftoneOptions {
    */
   knockoutColor: string;
   /**
-   * 0-100. Knockout amount — how aggressively the knockout colour is removed.
-   * Low = the design stays mostly solid ink (only the pure knockout colour is
-   * dropped); high = the cut climbs into the midtones, shrinking dots toward
-   * transparent. This is the slider that "knocks the colour in and out with the
-   * dots".
+   * 0-100. Knockout amount — continuously drags the knockout colour in/out.
+   * 100 = the knockout colour is fully removed (transparent); 0 = nothing
+   * knocked out (printed solid). In between, the knockout region's dots grow /
+   * shrink smoothly, even for a PURE colour (a hard black), which the old
+   * flat-bias cut could not do.
    */
   knockout: number;
   /**
@@ -104,7 +104,9 @@ export const DEFAULT_HALFTONE_OPTIONS: HalftoneOptions = {
   orderedSize: 8,
   threshold: 50,
   knockoutColor: '#000000',
-  knockout: 12,
+  // 100 = the knockout colour is fully removed (matches the "black knocked
+  // out" default). Drag DOWN to gradually bring the knockout colour back in.
+  knockout: 100,
   deFringe: false,
   deFringeAmount: 50,
   contrast: 0,

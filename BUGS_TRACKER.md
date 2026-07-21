@@ -8,6 +8,26 @@
 
 ---
 
+## 🟢 **STUDIO FIXES (July 20, 2026 Session)**
+
+### **BUG-070: Studio Loses In-House BG-Removal Edits When Switching Tools**
+
+- **Status:** 🟢 FIXED (July 20, 2026 — awaiting user confirmation)
+- **Severity:** High
+- **Description:** After using the in-house background removal tool in Studio, switching to another tool (e.g. Vectorize) before hitting Download reverted the canvas to the original pre-removal image. Brush edits that weren't explicitly "Applied" were dropped.
+- **Root Cause:** The tool's registered `pendingCommit` hook was only flushed on the top-level Download, not on tool switch. `switchTool` changed the active tool without committing pending in-panel edits.
+- **Fix:** `switchTool` (src/app/studio/client.tsx) now `await`s `pendingCommitRef.current()` before switching and sets `workingImage` from the returned canvas, so edits auto-apply and chain into the next tool — same guarantee as Download. No download/re-upload round-trip needed.
+
+### **BUG-071: DPI Checker "Improve with Image Upscaling" Doesn't Carry the Image**
+
+- **Status:** 🟢 FIXED (July 20, 2026 — awaiting user confirmation)
+- **Severity:** Medium
+- **Description:** On `/tools/dpi-checker`, a low-DPI verdict's "Improve with Image Upscaling" button linked to `/process?operation=upscale` (→ Studio) with no image, forcing the user to re-upload the file they'd just checked.
+- **Root Cause:** `DpiCheckerCard` kept the artwork only as a local object URL and used a static `<Link>` with no `imageId`.
+- **Fix:** The card now retains the `File`, and the button uploads it (compressing if large, like the free-DPI-checker flow) then routes to `/studio?imageId=…&tool=upscale`, carrying the image straight into the upscale tool.
+
+---
+
 ## 🔴 **CRITICAL BUGS (June 7, 2026 Session)**
 
 ### **BUG-063: No Emails Being Sent (Welcome / Signup Admin Alerts / Receipts)**

@@ -1022,9 +1022,9 @@ export function HalftonePanel({
                     className="w-full accent-blue-600"
                   />
                   <p className="text-xs text-gray-400 mt-1">
-                    Knocks the garment colour in and out with the dots. Low =
-                    solid design; raise it to break the fills into dots and let
-                    more shirt show through.
+                    Drags the knockout colour in and out. 100 = fully removed
+                    (garment shows through); drag down to gradually bring it
+                    back in as dots that fill toward solid at 0.
                   </p>
                 </div>
 
