@@ -305,26 +305,58 @@ export function ImageGalleryEnhanced() {
   };
 
   const handleDownload = async (image: ProcessedImage) => {
-    if (!image.storage_url) {
+    if (!image.storage_url || !image.storage_url.startsWith('http')) {
       toast.error('Image not available for download');
       return;
     }
 
+    const filename =
+      image.processed_filename || image.original_filename || 'dtf-image.png';
+
+    // Native, streamed download via Supabase Storage's `?download` param, which
+    // serves the object with Content-Disposition: attachment. The browser's own
+    // download manager transfers the file directly, so we never buffer the whole
+    // (often large / upscaled) PNG into JS memory first — that buffering is what
+    // made big downloads slow and occasionally fail on flaky connections. The
+    // user also gets native progress + resume.
     try {
-      const response = await fetch(image.storage_url);
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
+      const sep = image.storage_url.includes('?') ? '&' : '?';
+      const href = `${image.storage_url}${sep}download=${encodeURIComponent(
+        filename
+      )}`;
       const a = document.createElement('a');
-      a.href = url;
-      a.download = image.processed_filename || image.original_filename;
+      a.href = href;
+      a.download = filename;
+      a.rel = 'noopener';
       document.body.appendChild(a);
       a.click();
-      window.URL.revokeObjectURL(url);
       document.body.removeChild(a);
-      toast.success('Image downloaded successfully');
+      toast.success('Download started');
     } catch (error) {
       console.error('Download error:', error);
-      toast.error('Failed to download image');
+      // Fallback: buffer + object URL (older path) if the anchor approach throws.
+      try {
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 60000);
+        const response = await fetch(image.storage_url, {
+          signal: controller.signal,
+        });
+        clearTimeout(timeout);
+        if (!response.ok) throw new Error(`status ${response.status}`);
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+        toast.success('Download started');
+      } catch (fallbackError) {
+        console.error('Download fallback error:', fallbackError);
+        toast.error('Failed to download image. Please try again.');
+      }
     }
   };
 
