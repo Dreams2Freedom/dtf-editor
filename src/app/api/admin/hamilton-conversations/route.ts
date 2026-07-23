@@ -59,7 +59,27 @@ async function handleGet(_request: NextRequest) {
       )
       .order('updated_at', { ascending: false })
       .limit(200);
-    if (dbError) throw dbError;
+    if (dbError) {
+      // Degrade gracefully rather than 500 the whole page — surface the real
+      // reason to the admin instead of a blank "internal server error".
+      console.error('[Hamilton admin] conversations query failed:', dbError);
+      return NextResponse.json(
+        {
+          error: `Could not read conversations: ${dbError.message}`,
+          stats: {
+            totalConversations: 0,
+            uniqueUsers: 0,
+            totalMessages: 0,
+            totalUserQuestions: 0,
+            escalatedToTicket: 0,
+            activeLast24h: 0,
+            activeLast7d: 0,
+          },
+          conversations: [],
+        },
+        { status: 200 }
+      );
+    }
 
     const convos = rows ?? [];
 
@@ -123,7 +143,13 @@ async function handleGet(_request: NextRequest) {
       conversations,
     });
   } catch (e) {
-    const msg = e instanceof Error ? e.message : 'Internal server error';
+    console.error('[Hamilton admin] unexpected error:', e);
+    const msg =
+      e instanceof Error
+        ? e.message
+        : typeof e === 'object' && e && 'message' in e
+          ? String((e as { message: unknown }).message)
+          : 'Internal server error';
     return NextResponse.json({ error: msg }, { status: 500 });
   }
 }
