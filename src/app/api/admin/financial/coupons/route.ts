@@ -132,7 +132,10 @@ async function handlePost(request: NextRequest) {
         { status: 400 }
       );
     }
-    if (!body.discount_type || !['percentage', 'fixed'].includes(body.discount_type)) {
+    if (
+      !body.discount_type ||
+      !['percentage', 'fixed'].includes(body.discount_type)
+    ) {
       return NextResponse.json(
         { error: 'Invalid discount type (must be "percentage" or "fixed")' },
         { status: 400 }

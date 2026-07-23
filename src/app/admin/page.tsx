@@ -199,12 +199,21 @@ export default function AdminDashboard() {
             icon={Activity}
             trend="down"
           />
-          <StatCard
-            title="Success Rate"
-            value={stats.processing.success_rate}
-            suffix="%"
-            icon={TrendingUp}
-          />
+          <div
+            role="button"
+            tabIndex={0}
+            onClick={() => router.push('/admin/tool-usage')}
+            onKeyDown={e => e.key === 'Enter' && router.push('/admin/tool-usage')}
+            className="cursor-pointer rounded-lg transition-shadow hover:shadow-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            title="View tool failures — what failed, when, and why"
+          >
+            <StatCard
+              title="Success Rate"
+              value={stats.processing.success_rate}
+              suffix="%"
+              icon={TrendingUp}
+            />
+          </div>
         </div>
 
         {/* Quick Stats */}
@@ -278,6 +287,12 @@ export default function AdminDashboard() {
                       {stats.processing.success_rate}%
                     </span>
                   </div>
+                  <button
+                    onClick={() => router.push('/admin/tool-usage')}
+                    className="mt-2 text-sm font-medium text-blue-600 hover:underline"
+                  >
+                    View tool failures →
+                  </button>
                 </div>
               </div>
             </CardContent>

@@ -93,7 +93,9 @@ async function handleGet(request: NextRequest) {
           .or('subscription_plan.is.null,subscription_plan.eq.free');
       } else if (userType === 'subscribers') {
         // Users with an active subscription (check both subscription_tier and subscription_plan)
-        query = query.or('subscription_tier.neq.free,subscription_plan.neq.free');
+        query = query.or(
+          'subscription_tier.neq.free,subscription_plan.neq.free'
+        );
       } else if (userType === 'free') {
         // Users without stripe_customer_id (never purchased)
         query = query.is('stripe_customer_id', null);
@@ -153,13 +155,17 @@ async function handleGet(request: NextRequest) {
           }
 
           // Derive subscription_tier: prefer subscription_tier, fallback to subscription_plan/subscription_status
-          const effectiveTier = user.subscription_tier && user.subscription_tier !== 'free'
-            ? user.subscription_tier
-            : (user.subscription_plan && user.subscription_plan !== 'free'
-              ? user.subscription_plan
-              : (user.subscription_status && !['free', 'canceled', 'cancelled', 'past_due'].includes(user.subscription_status)
-                ? user.subscription_status
-                : 'free'));
+          const effectiveTier =
+            user.subscription_tier && user.subscription_tier !== 'free'
+              ? user.subscription_tier
+              : user.subscription_plan && user.subscription_plan !== 'free'
+                ? user.subscription_plan
+                : user.subscription_status &&
+                    !['free', 'canceled', 'cancelled', 'past_due'].includes(
+                      user.subscription_status
+                    )
+                  ? user.subscription_status
+                  : 'free';
 
           return {
             id: user.id,
@@ -186,13 +192,17 @@ async function handleGet(request: NextRequest) {
             enrichError
           );
 
-          const effectiveTier = user.subscription_tier && user.subscription_tier !== 'free'
-            ? user.subscription_tier
-            : (user.subscription_plan && user.subscription_plan !== 'free'
-              ? user.subscription_plan
-              : (user.subscription_status && !['free', 'canceled', 'cancelled', 'past_due'].includes(user.subscription_status)
-                ? user.subscription_status
-                : 'free'));
+          const effectiveTier =
+            user.subscription_tier && user.subscription_tier !== 'free'
+              ? user.subscription_tier
+              : user.subscription_plan && user.subscription_plan !== 'free'
+                ? user.subscription_plan
+                : user.subscription_status &&
+                    !['free', 'canceled', 'cancelled', 'past_due'].includes(
+                      user.subscription_status
+                    )
+                  ? user.subscription_status
+                  : 'free';
 
           // Return basic user data if enrichment fails
           return {

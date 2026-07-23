@@ -8,21 +8,19 @@ import { LoadingPage } from '@/components/ui/LoadingPage';
 import { Button } from '@/components/ui/Button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { CancellationFlow } from '@/components/subscription/CancellationFlow';
-import { PlanSwitcher } from '@/components/subscription/PlanSwitcher';
 import { CreditExpirationBanner } from '@/components/credits/CreditExpirationBanner';
-import { ImageGalleryEnhanced } from '@/components/image/ImageGalleryEnhanced';
-import { StorageUsageCard } from '@/components/storage/StorageUsageCard';
 import {
-  Upload,
   Settings,
   CreditCard,
-  Scissors,
-  Zap,
   Crown,
-  Sparkles,
+  ChevronDown,
 } from 'lucide-react';
 import Link from 'next/link';
-import { CreditHistory } from '@/components/dashboard/CreditHistory';
+import { ToolQuickActions } from '@/components/dashboard/ToolQuickActions';
+import { DashboardImageGalleryPreview } from '@/components/dashboard/DashboardImageGalleryPreview';
+import { FreeTrialUpgradeModal } from '@/components/dashboard/FreeTrialUpgradeModal';
+import { ResumeToolBanner } from '@/components/dashboard/ResumeToolBanner';
+import { HelpModal } from '@/components/ui/HelpModal';
 
 export default function DashboardPage() {
   const { user, profile, loading, initialize, refreshCredits } =
@@ -30,21 +28,16 @@ export default function DashboardPage() {
   const router = useRouter();
   const [showCancellationFlow, setShowCancellationFlow] = useState(false);
 
-  // Check if user has active subscription (not free plan)
   const hasActiveSubscription =
     profile?.subscription_plan && profile.subscription_plan !== 'free';
 
   useEffect(() => {
-    // Initialize auth state on mount
     initialize();
   }, [initialize]);
 
-  // Refresh credits when dashboard loads or regains focus
   useEffect(() => {
     if (user) {
       refreshCredits();
-
-      // Refresh on window focus
       const handleFocus = () => refreshCredits();
       window.addEventListener('focus', handleFocus);
       return () => window.removeEventListener('focus', handleFocus);
@@ -61,9 +54,7 @@ export default function DashboardPage() {
     try {
       const response = await fetch('/api/stripe/create-portal-session', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           userId: user?.id,
           returnUrl: window.location.origin + '/dashboard',
@@ -71,30 +62,17 @@ export default function DashboardPage() {
       });
 
       const data = await response.json();
-
-      if (!response.ok) {
-        console.error('Portal session error:', data);
-        throw new Error(data.error || 'Failed to create portal session');
-      }
-
-      if (data.url) {
-        window.location.href = data.url;
-      }
+      if (!response.ok) throw new Error(data.error || 'Failed to create portal session');
+      if (data.url) window.location.href = data.url;
     } catch (error: any) {
       console.error('Manage subscription error:', error);
-      alert(error.message || 'Unable to access subscription management. Please try again.');
+      alert(error.message || 'Unable to access subscription management.');
     }
   };
 
-  if (loading) {
-    return <LoadingPage message="Loading your dashboard..." />;
-  }
+  if (loading) return <LoadingPage message="Loading your dashboard..." />;
+  if (!user) return null;
 
-  if (!user) {
-    return null; // Will redirect to login
-  }
-
-  // Handle missing profile gracefully
   if (!profile) {
     return (
       <ClientOnly fallback={<LoadingPage message="Initializing..." />}>
@@ -105,14 +83,9 @@ export default function DashboardPage() {
                 <p className="text-lg text-gray-700 mb-4">
                   Your profile is being set up. This may take a moment.
                 </p>
-                <p className="text-gray-600">
-                  If this persists, please contact support.
-                </p>
-                <div className="mt-6">
-                  <Button onClick={() => window.location.reload()}>
-                    Refresh Page
-                  </Button>
-                </div>
+                <Button onClick={() => window.location.reload()}>
+                  Refresh Page
+                </Button>
               </CardContent>
             </Card>
           </main>
@@ -124,131 +97,134 @@ export default function DashboardPage() {
   return (
     <ClientOnly fallback={<LoadingPage message="Initializing..." />}>
       <div className="min-h-screen bg-gray-50">
-        <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          {/* Page Header */}
-          <div className="mb-8">
-            <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
-            <p className="text-gray-600">
-              Welcome back,{' '}
-              {profile?.first_name || user.email?.split('@')[0] || 'User'}!
-            </p>
+        <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
+          {/* Welcome header */}
+          <div className="flex items-center gap-2 mb-6">
+            <div className="flex-1">
+              <h1 className="text-xl sm:text-2xl font-bold text-gray-900">
+                Welcome back, {profile?.first_name || user.email?.split('@')[0] || 'there'}
+              </h1>
+              <p className="text-sm text-gray-500 mt-1">
+                {profile.credits_remaining} credits remaining
+                {profile.subscription_plan && profile.subscription_plan !== 'free' && (
+                  <span className="ml-2 px-2 py-0.5 bg-amber-100 text-amber-700 rounded-full text-xs font-medium capitalize">
+                    {profile.subscription_plan} plan
+                  </span>
+                )}
+              </p>
+            </div>
+            <HelpModal
+              storageKey="help_dashboard"
+              title="Your Dashboard"
+              accentColor="text-blue-600"
+              accentBg="bg-blue-500"
+              steps={[
+                { title: 'Quick Actions', content: 'Use the tool cards at the top to quickly access any image processing tool. Each card takes you directly to the tool.' },
+                { title: 'Your Account', content: 'View your credit balance, subscription plan, and account status. Upgrade your plan or purchase more credits here.' },
+                { title: 'My Images', content: 'All your processed images are saved in your gallery. You can download, delete, or send them to other tools for further processing.' },
+                { title: 'Credit History', content: 'Track all your credit purchases and usage at the bottom of the page.' },
+              ]}
+              tips={[
+                "Your images are stored permanently — they won't expire.",
+                'Use the search and filter options in My Images to find specific files.',
+                'You can process images further by clicking Download or using the tool links in your gallery.',
+              ]}
+            />
           </div>
-          <div className="space-y-8">
-            {/* Credit Expiration Warning */}
+
+          {/* Free-user upgrade modal — once per free cycle, eligible users only */}
+          <FreeTrialUpgradeModal />
+
+          <div className="space-y-6">
+            <ResumeToolBanner />
             <CreditExpirationBanner />
 
-            {/* Quick Actions - Core image tools */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <Card className="cursor-pointer hover:shadow-md transition-shadow">
-                <Link href="/process?operation=upscale">
-                  <CardContent className="p-5 text-center">
-                    <Upload className="w-10 h-10 text-primary-600 mx-auto mb-3" />
-                    <h3 className="font-semibold text-gray-900 mb-1">
-                      Upscale
-                    </h3>
-                    <p className="text-gray-600 text-xs">
-                      AI-powered enhancement
-                    </p>
-                  </CardContent>
-                </Link>
-              </Card>
+            {/* Tool quick actions — prominent, always-visible tool shortcuts */}
+            <ToolQuickActions />
 
-              <Card className="cursor-pointer hover:shadow-md transition-shadow">
-                <Link href="/process?operation=background-removal">
-                  <CardContent className="p-5 text-center">
-                    <Scissors className="w-10 h-10 text-accent-600 mx-auto mb-3" />
-                    <h3 className="font-semibold text-gray-900 mb-1">
-                      Remove BG
-                    </h3>
-                    <p className="text-gray-600 text-xs">
-                      Clean background removal
-                    </p>
-                  </CardContent>
-                </Link>
-              </Card>
+            {/* Cue so users know their recent images are just below the
+                toolkit (and can jump straight to them). */}
+            <button
+              type="button"
+              onClick={() =>
+                document
+                  .getElementById('recent-images')
+                  ?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+              }
+              className="mx-auto -mt-1 flex items-center gap-1.5 rounded-full border border-gray-200 bg-white px-3 py-1.5 text-sm font-medium text-gray-600 shadow-sm transition-colors hover:border-blue-300 hover:text-blue-600"
+            >
+              Your recent images
+              <ChevronDown className="h-4 w-4 animate-bounce" />
+            </button>
 
-              <Card className="cursor-pointer hover:shadow-md transition-shadow">
-                <Link href="/process?operation=vectorize">
-                  <CardContent className="p-5 text-center">
-                    <Zap className="w-10 h-10 text-accent-600 mx-auto mb-3" />
-                    <h3 className="font-semibold text-gray-900 mb-1">
-                      Vectorize
-                    </h3>
-                    <p className="text-gray-600 text-xs">
-                      Convert to scalable vectors
-                    </p>
-                  </CardContent>
-                </Link>
-              </Card>
-
-              <Card className="cursor-pointer hover:shadow-md transition-shadow">
-                <Link href="/generate">
-                  <CardContent className="p-5 text-center">
-                    <Sparkles className="w-10 h-10 text-accent-600 mx-auto mb-3" />
-                    <h3 className="font-semibold text-gray-900 mb-1">
-                      AI Generate
-                    </h3>
-                    <p className="text-gray-600 text-xs">
-                      Create images with AI
-                    </p>
-                  </CardContent>
-                </Link>
-              </Card>
+            {/* Image gallery preview — recent artwork + link to full gallery */}
+            <div id="recent-images" className="scroll-mt-24">
+              <DashboardImageGalleryPreview />
             </div>
 
-            {/* Account Overview */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {/* Account & Credits */}
+            {/* Account overview */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
               <Card>
-                <CardHeader>
-                  <CardTitle>Your Account</CardTitle>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-base">Your Account</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <p className="text-sm text-gray-600">Credits</p>
-                      <p className="text-2xl font-bold text-primary-600">
+                      <p className="text-xs text-gray-500">Credits</p>
+                      <p className="text-2xl font-bold text-amber-600">
                         {profile.credits_remaining}
                       </p>
                     </div>
                     <div>
-                      <p className="text-sm text-gray-600">Plan</p>
+                      <p className="text-xs text-gray-500">Plan</p>
                       <p className="text-lg font-medium capitalize">
                         {profile.subscription_plan || 'Free'}
-                        {profile.subscription_paused_until && (
-                          <span className="text-sm text-amber-600 ml-1">
-                            (Paused)
-                          </span>
+                        {(profile as any).subscription_paused_until && (
+                          <span className="text-xs text-amber-600 ml-1">(Paused)</span>
                         )}
                       </p>
-                      {profile.subscription_paused_until && (
-                        <p className="text-xs text-gray-500">
-                          Resumes{' '}
-                          {new Date(
-                            profile.subscription_paused_until
-                          ).toLocaleDateString()}
+                      {(profile as any).subscription_paused_until && (
+                        <p className="text-xs text-gray-400">
+                          Resumes {new Date((profile as any).subscription_paused_until).toLocaleDateString()}
                         </p>
                       )}
                     </div>
                     <div>
-                      <p className="text-sm text-gray-600">Status</p>
-                      <p className="font-medium capitalize">
+                      <p className="text-xs text-gray-500">Status</p>
+                      <p className="font-medium capitalize text-sm">
                         {profile.subscription_status || 'Active'}
                       </p>
                     </div>
                     <div>
-                      <p className="text-sm text-gray-600">Member Since</p>
-                      <p className="font-medium">
+                      <p className="text-xs text-gray-500">Member Since</p>
+                      <p className="font-medium text-sm">
                         {new Date(profile.created_at).toLocaleDateString()}
                       </p>
                     </div>
                   </div>
 
-                  {/* Upgrade prompt for free users */}
+                  {profile.subscription_status === 'trialing' && (
+                    <div className="mt-4 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
+                      You&apos;re on a 7-day free trial
+                      {(profile as any).subscription_current_period_end
+                        ? ` — billing starts ${new Date((profile as any).subscription_current_period_end).toLocaleDateString()}`
+                        : ''}
+                      . Manage or cancel anytime in{' '}
+                      <Link
+                        href="/settings?tab=billing"
+                        className="font-medium underline"
+                      >
+                        Billing &amp; Membership
+                      </Link>
+                      .
+                    </div>
+                  )}
+
                   {!hasActiveSubscription && (
                     <div className="mt-4 pt-4 border-t">
                       <Link href="/pricing">
-                        <Button className="w-full">
+                        <Button className="w-full bg-amber-500 hover:bg-amber-600 text-white">
                           <CreditCard className="w-4 h-4 mr-2" />
                           Upgrade Plan
                         </Button>
@@ -258,17 +234,16 @@ export default function DashboardPage() {
                 </CardContent>
               </Card>
 
-              {/* Actions */}
               <Card>
-                <CardHeader>
-                  <CardTitle>Manage</CardTitle>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-base">Manage</CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-3">
+                <CardContent className="space-y-2">
                   {hasActiveSubscription && (
                     <>
                       <Button
                         variant="secondary"
-                        className="w-full"
+                        className="w-full justify-start"
                         onClick={handleManageSubscription}
                       >
                         <Crown className="w-4 h-4 mr-2" />
@@ -276,23 +251,21 @@ export default function DashboardPage() {
                       </Button>
                       <Button
                         variant="secondary"
-                        className="w-full text-red-600 hover:text-red-700 hover:border-red-300"
+                        className="w-full justify-start text-red-600 hover:text-red-700 hover:border-red-300"
                         onClick={() => setShowCancellationFlow(true)}
                       >
                         Cancel Subscription
                       </Button>
                     </>
                   )}
-
                   <Link href="/pricing" className="block">
-                    <Button variant="secondary" className="w-full">
+                    <Button variant="secondary" className="w-full justify-start">
                       <CreditCard className="w-4 h-4 mr-2" />
                       Get More Credits
                     </Button>
                   </Link>
-
                   <Link href="/settings" className="block">
-                    <Button variant="secondary" className="w-full">
+                    <Button variant="secondary" className="w-full justify-start">
                       <Settings className="w-4 h-4 mr-2" />
                       Settings
                     </Button>
@@ -300,61 +273,21 @@ export default function DashboardPage() {
                 </CardContent>
               </Card>
             </div>
-
-            {/* Image Status - Only shows for free users or when images are expiring */}
-            <StorageUsageCard />
-
-            {/* My Images Gallery */}
-            <div id="my-images" className="mt-8">
-              <ImageGalleryEnhanced />
-            </div>
-
-            {/* Plan Switcher - Only show for users with active subscriptions */}
-            {hasActiveSubscription && (
-              <Card>
-                <CardHeader>
-                  <CardTitle>Change Subscription Plan</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <PlanSwitcher
-                    currentPlan={profile.subscription_plan}
-                    onPlanChange={() => {
-                      // Refresh the page to show updated plan
-                      window.location.reload();
-                    }}
-                  />
-                </CardContent>
-              </Card>
-            )}
-
-            {/* Credit History */}
-            <div className="mt-8">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Credit History & Purchases</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <CreditHistory />
-                </CardContent>
-              </Card>
-            </div>
           </div>
         </main>
       </div>
 
-      {/* Cancellation Flow Modal */}
       {profile && hasActiveSubscription && (
         <CancellationFlow
           isOpen={showCancellationFlow}
           onClose={() => setShowCancellationFlow(false)}
           onComplete={() => {
             setShowCancellationFlow(false);
-            // Refresh the page to show updated subscription status
             window.location.reload();
           }}
           subscription={{
             plan: profile.subscription_plan || 'basic',
-            nextBillingDate: new Date().toISOString(), // TODO: Get from Stripe
+            nextBillingDate: new Date().toISOString(),
           }}
         />
       )}

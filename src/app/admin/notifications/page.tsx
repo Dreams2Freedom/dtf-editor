@@ -1,14 +1,39 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { AdminLayout } from '@/components/admin/layout/AdminLayout';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { toast } from '@/lib/toast';
-import { Bell, Send, Users, DollarSign, Gift, AlertCircle } from 'lucide-react';
+import {
+  Bell,
+  Send,
+  Users,
+  DollarSign,
+  Gift,
+  AlertCircle,
+  Trash2,
+  Sparkles,
+  Plus,
+  X,
+} from 'lucide-react';
 import { useAuthStore } from '@/stores/authStore';
 import { createClientSupabaseClient } from '@/lib/supabase/client';
+import { APP_VERSION } from '@/config/patchNotes';
+
+type AdminTab = 'send' | 'manage' | 'patch';
+
+interface ManagedNotification {
+  id: string;
+  title: string;
+  message: string;
+  type: string;
+  target_audience: string;
+  is_active: boolean;
+  created_at: string;
+  expires_at: string | null;
+}
 
 type NotificationType =
   | 'info'
@@ -22,6 +47,114 @@ type Priority = 'low' | 'normal' | 'high' | 'urgent';
 export default function AdminNotificationsPage() {
   const { user } = useAuthStore();
   const [loading, setLoading] = useState(false);
+  const [tab, setTab] = useState<AdminTab>('send');
+  const [managed, setManaged] = useState<ManagedNotification[]>([]);
+  const [managedLoading, setManagedLoading] = useState(false);
+  const [publishedVersion, setPublishedVersion] = useState<string | null>(null);
+  const [patchLoading, setPatchLoading] = useState(false);
+  const [patchSaving, setPatchSaving] = useState(false);
+  // Editable patch-note content (date + bullet lines) for the current build.
+  const [patchDate, setPatchDate] = useState('');
+  const [patchItems, setPatchItems] = useState<string[]>([]);
+
+  const fetchPatchStatus = useCallback(async () => {
+    setPatchLoading(true);
+    try {
+      const res = await fetch('/api/admin/patch-notes', {
+        credentials: 'include',
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setPublishedVersion(data.publishedVersion ?? null);
+        setPatchDate(data.date ?? '');
+        setPatchItems(
+          Array.isArray(data.items) && data.items.length > 0
+            ? data.items
+            : ['']
+        );
+      }
+    } catch {
+      /* ignore */
+    } finally {
+      setPatchLoading(false);
+    }
+  }, []);
+
+  const setPatchPublish = useCallback(
+    async (publish: boolean) => {
+      const items = patchItems.map(s => s.trim()).filter(Boolean);
+      if (publish && items.length === 0) {
+        toast.error('Add at least one patch-note line before publishing.');
+        return;
+      }
+      setPatchSaving(true);
+      try {
+        const res = await fetch('/api/admin/patch-notes', {
+          method: 'POST',
+          credentials: 'include',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            version: APP_VERSION,
+            date: patchDate,
+            items,
+            publish,
+          }),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(data.error || 'Update failed');
+        setPublishedVersion(data.publishedVersion ?? null);
+        toast.success(
+          publish
+            ? `Patch notes v${APP_VERSION} are now live for users`
+            : 'Draft saved — hidden from users'
+        );
+      } catch (e) {
+        toast.error(e instanceof Error ? e.message : 'Update failed');
+      } finally {
+        setPatchSaving(false);
+      }
+    },
+    [patchDate, patchItems]
+  );
+
+  const fetchManaged = useCallback(async () => {
+    setManagedLoading(true);
+    try {
+      const res = await fetch('/api/admin/notifications', {
+        credentials: 'include',
+      });
+      const data = await res.json();
+      if (res.ok) setManaged(data.notifications || []);
+      else toast.error(data.error || 'Failed to load announcements');
+    } catch {
+      toast.error('Failed to load announcements');
+    } finally {
+      setManagedLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (tab === 'manage') fetchManaged();
+    if (tab === 'patch') fetchPatchStatus();
+  }, [tab, fetchManaged, fetchPatchStatus]);
+
+  const deleteAnnouncement = async (id: string) => {
+    if (!confirm('Delete this announcement for everyone? This cannot be undone.'))
+      return;
+    try {
+      const res = await fetch(`/api/admin/notifications?id=${id}`, {
+        method: 'DELETE',
+        credentials: 'include',
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || 'Delete failed');
+      setManaged(m => m.filter(n => n.id !== id));
+      toast.success('Announcement deleted');
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'Delete failed');
+    }
+  };
+
   const [formData, setFormData] = useState({
     title: '',
     message: '',
@@ -135,15 +268,40 @@ export default function AdminNotificationsPage() {
           <div>
             <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
               <Bell className="h-7 w-7" />
-              Send Notification
+              Notifications
             </h1>
             <p className="mt-1 text-sm text-gray-500">
-              Send targeted notifications to your users
+              Send and manage app-wide announcements, and preview patch notes.
             </p>
           </div>
         </div>
 
+        {/* Tabs */}
+        <div className="flex gap-1 border-b border-gray-200">
+          {(
+            [
+              ['send', 'Send'],
+              ['manage', 'Manage'],
+              ['patch', 'Patch Notes'],
+            ] as const
+          ).map(([val, label]) => (
+            <button
+              key={val}
+              type="button"
+              onClick={() => setTab(val)}
+              className={`px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors ${
+                tab === val
+                  ? 'border-blue-600 text-blue-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-800'
+              }`}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+
         {/* Notification Form */}
+        {tab === 'send' && (
         <Card>
           <CardHeader>
             <CardTitle>Create Notification</CardTitle>
@@ -370,6 +528,249 @@ export default function AdminNotificationsPage() {
             </form>
           </CardContent>
         </Card>
+        )}
+
+        {/* Manage tab — list + delete existing announcements */}
+        {tab === 'manage' && (
+          <Card>
+            <CardHeader>
+              <CardTitle>Live Announcements</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {managedLoading ? (
+                <p className="text-sm text-gray-500">Loading…</p>
+              ) : managed.length === 0 ? (
+                <p className="text-sm text-gray-500">
+                  No announcements yet. Send one from the Send tab.
+                </p>
+              ) : (
+                <div className="space-y-2">
+                  {managed.map(n => {
+                    const expired =
+                      n.expires_at && new Date(n.expires_at) <= new Date();
+                    const live = n.is_active && !expired;
+                    return (
+                      <div
+                        key={n.id}
+                        className="flex items-start justify-between gap-3 border border-gray-200 rounded-lg p-3"
+                      >
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-2">
+                            <p className="text-sm font-medium text-gray-900 truncate">
+                              {n.title}
+                            </p>
+                            <span
+                              className={`text-[10px] font-semibold uppercase px-1.5 py-0.5 rounded ${
+                                live
+                                  ? 'bg-green-100 text-green-700'
+                                  : 'bg-gray-100 text-gray-500'
+                              }`}
+                            >
+                              {live ? 'Live' : expired ? 'Expired' : 'Inactive'}
+                            </span>
+                          </div>
+                          <p className="text-xs text-gray-500 mt-0.5 line-clamp-2">
+                            {n.message}
+                          </p>
+                          <p className="text-[11px] text-gray-400 mt-1">
+                            {n.target_audience} ·{' '}
+                            {new Date(n.created_at).toLocaleDateString()}
+                          </p>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => deleteAnnouncement(n.id)}
+                          className="flex-shrink-0 flex items-center gap-1 text-xs text-red-600 hover:text-red-800 border border-red-200 hover:border-red-300 rounded-lg px-2.5 py-1.5 transition-colors"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                          Delete
+                        </button>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Patch Notes tab — admin-only preview of what users will see */}
+        {tab === 'patch' && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Sparkles className="h-5 w-5 text-blue-600" />
+                Patch Notes Preview
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-xs text-gray-500 mb-4">
+                Edit the wording of the &quot;What&apos;s new&quot; pop-up below,
+                then publish it. Keep it plain-language and user-relevant — no
+                code or internal detail. Nothing reaches users until you publish.
+              </p>
+
+              {/* Status + publish controls */}
+              {(() => {
+                const isLive = publishedVersion === APP_VERSION;
+                return (
+                  <div className="mb-5 rounded-lg border border-gray-200 bg-gray-50 p-4">
+                    <div className="flex items-center justify-between gap-3 flex-wrap">
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm font-semibold text-gray-900">
+                            Current build: v{APP_VERSION}
+                          </span>
+                          <span
+                            className={`text-[10px] font-semibold uppercase px-1.5 py-0.5 rounded ${
+                              isLive
+                                ? 'bg-green-100 text-green-700'
+                                : 'bg-gray-200 text-gray-600'
+                            }`}
+                          >
+                            {patchLoading
+                              ? 'Checking…'
+                              : isLive
+                                ? 'Live for users'
+                                : 'Not published'}
+                          </span>
+                        </div>
+                        <p className="text-xs text-gray-500 mt-1">
+                          {isLive
+                            ? 'Live — users see this pop-up once each. Edit and re-publish to update it.'
+                            : publishedVersion
+                              ? `Users are currently being shown v${publishedVersion}. Publish to switch them to this build.`
+                              : 'Not shown to users yet. Edit the notes, then publish.'}
+                        </p>
+                      </div>
+                      <div className="flex gap-2">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          disabled={patchSaving || patchLoading}
+                          onClick={() => setPatchPublish(false)}
+                        >
+                          {isLive ? 'Unpublish' : 'Save draft'}
+                        </Button>
+                        <Button
+                          type="button"
+                          disabled={patchSaving || patchLoading}
+                          onClick={() => setPatchPublish(true)}
+                        >
+                          {patchSaving
+                            ? 'Saving…'
+                            : isLive
+                              ? 'Update live notes'
+                              : 'Publish to users'}
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })()}
+
+              {/* Editor */}
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">
+                    Date label
+                  </label>
+                  <Input
+                    value={patchDate}
+                    onChange={e => setPatchDate(e.target.value)}
+                    placeholder="e.g. July 2026"
+                    className="max-w-xs"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">
+                    What&apos;s new — one line per bullet
+                  </label>
+                  <div className="space-y-2">
+                    {patchItems.map((item, i) => (
+                      <div key={i} className="flex items-start gap-2">
+                        <span className="mt-3 w-1.5 h-1.5 rounded-full bg-blue-500 flex-shrink-0" />
+                        <textarea
+                          value={item}
+                          onChange={e =>
+                            setPatchItems(items =>
+                              items.map((v, idx) =>
+                                idx === i ? e.target.value : v
+                              )
+                            )
+                          }
+                          rows={2}
+                          placeholder="Describe a change in plain language…"
+                          className="flex-1 px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        />
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setPatchItems(items =>
+                              items.length > 1
+                                ? items.filter((_, idx) => idx !== i)
+                                : ['']
+                            )
+                          }
+                          className="mt-1.5 p-1.5 text-gray-400 hover:text-red-600 rounded"
+                          aria-label="Remove line"
+                        >
+                          <X className="h-4 w-4" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setPatchItems(items => [...items, ''])}
+                    className="mt-2 inline-flex items-center gap-1.5 text-xs font-medium text-blue-600 hover:text-blue-700"
+                  >
+                    <Plus className="h-3.5 w-3.5" /> Add line
+                  </button>
+                </div>
+
+                {/* Live preview of the user pop-up */}
+                <div>
+                  <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">
+                    Preview
+                  </p>
+                  <div className="mx-auto max-w-sm rounded-xl border border-gray-200 p-5 shadow-sm">
+                    <div className="text-center">
+                      <div className="mx-auto w-12 h-12 rounded-full bg-blue-50 flex items-center justify-center mb-3">
+                        <Sparkles className="w-6 h-6 text-blue-600" />
+                      </div>
+                      <h2 className="text-lg font-bold text-gray-900">
+                        What&apos;s new
+                      </h2>
+                      <p className="text-xs text-gray-400 mb-4">
+                        {patchDate || 'Date'}
+                      </p>
+                    </div>
+                    <ul className="space-y-2.5 text-left">
+                      {patchItems
+                        .filter(s => s.trim())
+                        .map((item, i) => (
+                          <li
+                            key={i}
+                            className="flex items-start gap-2 text-sm text-gray-700 leading-relaxed"
+                          >
+                            <span className="mt-1.5 w-1.5 h-1.5 rounded-full bg-blue-500 flex-shrink-0" />
+                            <span>{item}</span>
+                          </li>
+                        ))}
+                      {patchItems.filter(s => s.trim()).length === 0 && (
+                        <li className="text-sm text-gray-400 italic">
+                          Add a line to see it here…
+                        </li>
+                      )}
+                    </ul>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
       </div>
     </AdminLayout>
   );

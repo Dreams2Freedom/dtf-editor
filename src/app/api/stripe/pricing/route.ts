@@ -21,5 +21,12 @@ async function handleGet() {
   }
 }
 
-// Apply rate limiting
-export const GET = withRateLimit(handleGet, 'payment');
+// Rate limiting: this is READ-ONLY public pricing data (plan names, prices,
+// price IDs) that every pricing-page visitor fetches — it performs no payment
+// action. Use the fail-OPEN, high-limit 'public' bucket rather than the
+// fail-CLOSED 'payment' bucket. Under 'payment', any rate-limiter hiccup
+// returned 503 and a shared-IP burst (ad traffic behind carrier NAT) hit the
+// 30/min cap — both of which blocked users from loading prices and checking
+// out. Actual payment MUTATIONS (create-checkout-session, etc.) stay on the
+// fail-closed 'payment' bucket.
+export const GET = withRateLimit(handleGet, 'public');

@@ -29,7 +29,8 @@ function detectTier(session, lineItems) {
   // Check session metadata first
   if (session.metadata?.plan_name) return session.metadata.plan_name;
   if (session.metadata?.tier) return session.metadata.tier;
-  if (session.metadata?.subscription_tier) return session.metadata.subscription_tier;
+  if (session.metadata?.subscription_tier)
+    return session.metadata.subscription_tier;
 
   // Try to detect from amount
   const amount = session.amount_total; // in cents
@@ -46,7 +47,8 @@ function detectTier(session, lineItems) {
 function detectCredits(session) {
   // Check metadata
   if (session.metadata?.credits) return parseInt(session.metadata.credits, 10);
-  if (session.metadata?.credits_purchased) return parseInt(session.metadata.credits_purchased, 10);
+  if (session.metadata?.credits_purchased)
+    return parseInt(session.metadata.credits_purchased, 10);
 
   // Detect from amount for pay-as-you-go packages
   const amount = session.amount_total; // in cents
@@ -137,9 +139,11 @@ async function fetchAllCheckoutSessions() {
 
 async function backfill() {
   console.log('='.repeat(60));
-  console.log(DRY_RUN
-    ? '🔍 DRY RUN — no data will be written'
-    : '🚀 COMMIT MODE — will insert into payment_transactions');
+  console.log(
+    DRY_RUN
+      ? '🔍 DRY RUN — no data will be written'
+      : '🚀 COMMIT MODE — will insert into payment_transactions'
+  );
   console.log('='.repeat(60) + '\n');
 
   const customerUserMap = await buildCustomerUserMap();
@@ -164,7 +168,9 @@ async function backfill() {
     const userInfo = customerUserMap.get(customerId);
     if (!userInfo) {
       skippedNoUser++;
-      console.log(`   ⚠️  No user found for customer ${customerId} (session ${session.id})`);
+      console.log(
+        `   ⚠️  No user found for customer ${customerId} (session ${session.id})`
+      );
       continue;
     }
 
@@ -174,24 +180,27 @@ async function backfill() {
       continue;
     }
 
-    const paymentType = session.mode === 'subscription' ? 'subscription' : 'one_time';
+    const paymentType =
+      session.mode === 'subscription' ? 'subscription' : 'one_time';
     const tier = detectTier(session, session.line_items);
     const credits = detectCredits(session);
 
     // Get payment intent ID
     let paymentIntentId = null;
     if (session.payment_intent) {
-      paymentIntentId = typeof session.payment_intent === 'string'
-        ? session.payment_intent
-        : session.payment_intent.id;
+      paymentIntentId =
+        typeof session.payment_intent === 'string'
+          ? session.payment_intent
+          : session.payment_intent.id;
     }
 
     // Get subscription ID
     let subscriptionId = null;
     if (session.subscription) {
-      subscriptionId = typeof session.subscription === 'string'
-        ? session.subscription
-        : session.subscription.id;
+      subscriptionId =
+        typeof session.subscription === 'string'
+          ? session.subscription
+          : session.subscription.id;
     }
 
     const record = {
@@ -215,7 +224,9 @@ async function backfill() {
       created_at: new Date(session.created * 1000).toISOString(),
     };
 
-    console.log(`   💳 ${record.created_at.slice(0, 10)} | $${record.amount.toFixed(2)} | ${paymentType} | ${userInfo.email} | credits: ${credits || 'unknown'} | tier: ${tier || 'n/a'}`);
+    console.log(
+      `   💳 ${record.created_at.slice(0, 10)} | $${record.amount.toFixed(2)} | ${paymentType} | ${userInfo.email} | credits: ${credits || 'unknown'} | tier: ${tier || 'n/a'}`
+    );
 
     if (!DRY_RUN) {
       const { error } = await supabase
@@ -246,7 +257,9 @@ async function backfill() {
   }
 
   if (DRY_RUN && inserted > 0) {
-    console.log(`\n💡 Run with --commit to actually insert these ${inserted} records:`);
+    console.log(
+      `\n💡 Run with --commit to actually insert these ${inserted} records:`
+    );
     console.log('   node scripts/backfill-payment-transactions.js --commit');
   }
   console.log();

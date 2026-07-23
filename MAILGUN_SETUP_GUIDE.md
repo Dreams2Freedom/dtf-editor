@@ -19,6 +19,26 @@ MAILGUN_DOMAIN=mg.yourdomain.com
 MAILGUN_FROM_EMAIL=noreply@yourdomain.com
 MAILGUN_FROM_NAME=DTF Editor
 MAILGUN_WEBHOOK_SIGNING_KEY=your_webhook_signing_key_here
+# Region: 'us' (default, api.mailgun.net) or 'eu' (api.eu.mailgun.net).
+# Set to 'eu' ONLY if your Mailgun domain is provisioned in the EU region —
+# otherwise every send returns 401 Unauthorized.
+MAILGUN_REGION=us
+```
+
+> ⚠️ **These must be set in Vercel → Settings → Environment Variables for the
+> Production environment, then redeploy.** If `MAILGUN_API_KEY` or `MAILGUN_DOMAIN`
+> is missing/empty, NO emails are sent and you'll see
+> `EmailService: Mailgun not configured` in the runtime logs.
+
+### Verifying configuration (admin-only health endpoint)
+
+After deploying, an admin can check live config and send a test email:
+
+```bash
+# Check whether Mailgun is configured (must be signed in as an admin)
+GET  /api/admin/email-health
+# Send a real test email to confirm delivery end-to-end
+POST /api/admin/email-health   body: { "email": "you@example.com" }
 ```
 
 ## Email Types

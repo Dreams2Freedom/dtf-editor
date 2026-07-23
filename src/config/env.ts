@@ -105,9 +105,29 @@ export const env = {
   MAILGUN_WEBHOOK_SIGNING_KEY: (
     process.env.MAILGUN_WEBHOOK_SIGNING_KEY || ''
   ).trim(),
+  // Mailgun region: 'us' (api.mailgun.net) or 'eu' (api.eu.mailgun.net).
+  // A domain provisioned in the EU region returns 401 on the US endpoint.
+  MAILGUN_REGION: (process.env.MAILGUN_REGION || 'us').trim().toLowerCase(),
 
-  // URLs
-  APP_URL: process.env.NEXT_PUBLIC_APP_URL || process.env.APP_URL || '',
+  // URLs — always resolve to an absolute https URL so links in emails never
+  // render as "not secure". Defaults to production, upgrades http→https for real
+  // domains, and leaves localhost alone for local dev.
+  APP_URL: (() => {
+    const raw = (
+      process.env.NEXT_PUBLIC_APP_URL ||
+      process.env.APP_URL ||
+      'https://dtfeditor.com'
+    ).trim();
+    const noSlash = raw.replace(/\/+$/, '');
+    const isLocal = /^https?:\/\/(localhost|127\.0\.0\.1)(:|\/|$)/i.test(
+      noSlash
+    );
+    if (!/^https?:\/\//i.test(noSlash)) return `https://${noSlash}`;
+    if (!isLocal && /^http:\/\//i.test(noSlash)) {
+      return noSlash.replace(/^http:\/\//i, 'https://');
+    }
+    return noSlash;
+  })(),
 
   // Admin/Cron
   CRON_SECRET: process.env.CRON_SECRET || '',
@@ -116,9 +136,34 @@ export const env = {
   UPSTASH_REDIS_REST_URL: process.env.UPSTASH_REDIS_REST_URL || '',
   UPSTASH_REDIS_REST_TOKEN: process.env.UPSTASH_REDIS_REST_TOKEN || '',
 
+  // In-house rembg microservice (Studio experimental in-house background removal).
+  // Unset by default — the in-house BG-removal path stays disabled and the
+  // Studio uses ClippingMagic. Set these only when a rembg/SAM service is deployed.
+  REMBG_SERVICE_URL: process.env.REMBG_SERVICE_URL || '',
+  REMBG_SERVICE_API_KEY: process.env.REMBG_SERVICE_API_KEY || '',
+
+  // Meta (Facebook) Pixel + Conversions API.
+  // META_PIXEL_ID is public (also embedded in the client pixel base code).
+  // META_CAPI_ACCESS_TOKEN is a SERVER-ONLY secret — never expose it to the
+  // client / never prefix it with NEXT_PUBLIC. META_CAPI_TEST_EVENT_CODE is
+  // optional: set it to route events to the Events Manager "Test Events" tab.
+  META_PIXEL_ID: (
+    process.env.META_PIXEL_ID ||
+    process.env.NEXT_PUBLIC_META_PIXEL_ID ||
+    '1537210417861525'
+  ).trim(),
+  META_CAPI_ACCESS_TOKEN: (process.env.META_CAPI_ACCESS_TOKEN || '').trim(),
+  META_CAPI_TEST_EVENT_CODE: (
+    process.env.META_CAPI_TEST_EVENT_CODE || ''
+  ).trim(),
+  META_GRAPH_VERSION: (process.env.META_GRAPH_VERSION || 'v21.0').trim(),
+
   // Feature Flags
   ENABLE_ANALYTICS: process.env.NEXT_PUBLIC_ENABLE_ANALYTICS === 'true',
   ENABLE_DEBUG: process.env.NODE_ENV === 'development',
+  // Studio (unified canvas editor). Defaults on; set NEXT_PUBLIC_STUDIO_ENABLED=false
+  // to hide the Studio entry points without removing the feature.
+  STUDIO_ENABLED: process.env.NEXT_PUBLIC_STUDIO_ENABLED !== 'false',
 } as const;
 
 // Type for environment variables
@@ -178,6 +223,13 @@ export function validateEnv(): {
   if (!env.OPENAI_API_KEY) {
     warnings.push(
       'OPENAI_API_KEY is missing - AI image generation will not work'
+    );
+  }
+
+  // Check Mailgun (required for all transactional/notification emails)
+  if (!env.MAILGUN_API_KEY || !env.MAILGUN_DOMAIN) {
+    warnings.push(
+      '⚠️  MAILGUN_API_KEY or MAILGUN_DOMAIN is missing - NO emails will be sent (welcome, signup admin alerts, receipts, etc.)'
     );
   }
 

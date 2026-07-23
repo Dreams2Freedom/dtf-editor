@@ -218,28 +218,10 @@ export function CancellationFlow({
                 Keep Subscription
               </Button>
               <Button
-                onClick={() => {
-                  console.log(
-                    'Survey submitted with reason:',
-                    cancellationReason
-                  );
-                  console.log('Current eligibility state:', eligibility); // Debug log
-                  console.log('eligibility?.canPause:', eligibility?.canPause);
-                  console.log(
-                    'eligibility?.canUseDiscount:',
-                    eligibility?.canUseDiscount
-                  );
-                  const nextStep = eligibility?.canPause
-                    ? 'pause_offer'
-                    : eligibility?.canUseDiscount
-                      ? 'discount_offer'
-                      : 'confirm_cancel';
-                  console.log('Determined next step:', nextStep); // Debug log
-                  setCurrentStep(nextStep);
-                }}
-                disabled={!cancellationReason || eligibilityLoading}
+                onClick={() => setCurrentStep('pause_offer')}
+                disabled={!cancellationReason}
               >
-                {eligibilityLoading ? 'Loading...' : 'Continue'}
+                Continue
               </Button>
             </div>
           </div>
@@ -250,49 +232,47 @@ export function CancellationFlow({
           <div className="space-y-4">
             <div className="text-center">
               <Calendar className="w-12 h-12 text-blue-600 mx-auto mb-3" />
-              <h3 className="text-lg font-semibold">Take a Break Instead?</h3>
+              <h3 className="text-lg font-semibold">Pause instead of canceling?</h3>
               <p className="text-gray-600 mt-2">
-                Extend your current billing cycle and keep all your credits!
+                Suspend your membership for 60 days. You won&apos;t be billed while
+                it&apos;s paused, you keep your account, and your subscription
+                automatically restarts after 60 days — no need to re-subscribe.
               </p>
-              {eligibility?.pauseOptions?.[0]?.currentPeriodEnd && (
-                <p className="text-sm text-gray-500 mt-2">
-                  Your current billing cycle ends on{' '}
-                  {format(
-                    new Date(eligibility.pauseOptions[0].currentPeriodEnd),
-                    'MMM d, yyyy'
-                  )}
-                </p>
-              )}
             </div>
 
-            <div className="space-y-3">
-              {eligibility?.pauseOptions?.map((option: any) => (
-                <Card
-                  key={option.duration}
-                  className="cursor-pointer hover:border-blue-500 transition-colors"
-                  onClick={() => handlePauseSubscription(option.duration)}
-                >
-                  <CardContent className="p-4">
-                    <div className="flex justify-between items-center">
-                      <div>
-                        <p className="font-medium">{option.label}</p>
-                        <p className="text-sm text-gray-500">
-                          {option.description}
-                        </p>
-                      </div>
-                      <div className="text-right">
-                        <p className="text-sm text-gray-600">Next billing</p>
-                        <p className="font-medium">
-                          {format(new Date(option.resumeDate), 'MMM d, yyyy')}
-                        </p>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
+            <Card
+              className="cursor-pointer hover:border-blue-500 transition-colors"
+              onClick={() => !loading && handlePauseSubscription('60_days')}
+            >
+              <CardContent className="p-4">
+                <div className="flex justify-between items-center">
+                  <div>
+                    <p className="font-medium">Suspend for 60 days</p>
+                    <p className="text-sm text-gray-500">
+                      No charge while paused · cancel anytime
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-sm text-gray-600">Resumes</p>
+                    <p className="font-medium">
+                      {format(
+                        new Date(Date.now() + 60 * 24 * 60 * 60 * 1000),
+                        'MMM d, yyyy'
+                      )}
+                    </p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
 
             <div className="flex gap-3 pt-2">
+              <Button
+                onClick={() => handlePauseSubscription('60_days')}
+                disabled={loading}
+                className="flex-1"
+              >
+                {loading ? 'Suspending…' : 'Suspend for 60 days'}
+              </Button>
               <Button
                 variant="outline"
                 onClick={() =>

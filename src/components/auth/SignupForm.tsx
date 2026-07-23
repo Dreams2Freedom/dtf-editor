@@ -5,10 +5,10 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Mail, Lock, Eye, EyeOff, User, Building } from 'lucide-react';
-import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { useAuthContext } from '@/contexts/AuthContext';
 import Link from 'next/link';
+import styles from './Auth.module.css';
 
 // Signup form schema
 const signupSchema = z
@@ -51,7 +51,7 @@ interface SignupFormProps {
   redirectTo?: string;
 }
 
-export function SignupForm({ onSuccess, redirectTo }: SignupFormProps) {
+export function SignupForm({ onSuccess }: SignupFormProps) {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const { signUp, loading, error, clearError } = useAuthContext();
@@ -68,37 +68,23 @@ export function SignupForm({ onSuccess, redirectTo }: SignupFormProps) {
   const onSubmit = async (data: SignupFormData) => {
     clearError();
 
-    console.log('[SIGNUP FORM] Step 1: Starting signup for:', data.email);
-
     const result = await signUp(data.email, data.password, {
       firstName: data.firstName,
       lastName: data.lastName,
       company: data.company,
     });
 
-    console.log('[SIGNUP FORM] Step 2: Signup result:', result);
-
     if (result.success) {
-      console.log(
-        '[SIGNUP FORM] Step 3: Signup successful, waiting 2 seconds before redirect'
-      );
       onSuccess?.();
 
-      // Add a 2-second delay to ensure the welcome email fetch completes
-      // This is a temporary fix to diagnose the issue
-      await new Promise(resolve => setTimeout(resolve, 2000));
-
-      console.log(
-        '[SIGNUP FORM] Step 4: Redirecting to:',
-        redirectTo || '/dashboard'
-      );
-      if (redirectTo) {
-        window.location.href = redirectTo;
-      } else {
-        window.location.href = '/dashboard';
-      }
+      // New accounts must verify their email before they can access the
+      // dashboard/tools (this blocks fake-email signups from using free
+      // credits). Send them to the verification screen; the plan/checkout
+      // handoff resumes at /auth/select-plan after they click the email link.
+      window.location.href = `/verify-email?email=${encodeURIComponent(
+        data.email
+      )}`;
     } else {
-      console.log('[SIGNUP FORM] Step 3: Signup failed:', result.error);
       setFormError('root', {
         type: 'manual',
         message: result.error || 'Sign up failed',
@@ -107,17 +93,18 @@ export function SignupForm({ onSuccess, redirectTo }: SignupFormProps) {
   };
 
   return (
-    <div className="w-full max-w-md mx-auto">
-      <div className="text-center mb-8">
-        <h1 className="text-2xl font-bold text-gray-900 mb-2">
-          Create your account
-        </h1>
-        <p className="text-gray-600">Get started with DTF Editor today</p>
+    <div>
+      <div className={styles.header}>
+        <h1 className={styles.title}>Create your DTF Editor account</h1>
+        <p className={styles.subtitle}>
+          Start with the free DPI checker, then unlock artwork tools when you
+          choose a plan.
+        </p>
       </div>
 
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+      <form onSubmit={handleSubmit(onSubmit)} className={styles.form}>
         {/* Name Fields */}
-        <div className="grid grid-cols-2 gap-4">
+        <div className={styles.nameGrid}>
           <Input
             label="First name"
             type="text"
@@ -209,50 +196,44 @@ export function SignupForm({ onSuccess, redirectTo }: SignupFormProps) {
 
         {/* Error Message */}
         {error && (
-          <div className="p-3 text-sm text-error-600 bg-error-50 border border-error-200 rounded-lg">
+          <div className={`${styles.alert} ${styles.alertError}`} role="alert">
             {error}
           </div>
         )}
 
         {/* Form Error */}
         {errors.root && (
-          <div className="p-3 text-sm text-error-600 bg-error-50 border border-error-200 rounded-lg">
+          <div className={`${styles.alert} ${styles.alertError}`} role="alert">
             {errors.root.message}
           </div>
         )}
 
         {/* Terms and Privacy */}
-        <div className="text-sm text-gray-600">
+        <p className={styles.fineprint}>
           By creating an account, you agree to our{' '}
-          <Link
-            href="/terms"
-            className="text-primary-600 hover:text-primary-500 transition-colors"
-          >
+          <Link href="/terms" className={styles.link}>
             Terms of Service
           </Link>{' '}
           and{' '}
-          <Link
-            href="/privacy"
-            className="text-primary-600 hover:text-primary-500 transition-colors"
-          >
+          <Link href="/privacy" className={styles.link}>
             Privacy Policy
           </Link>
-        </div>
+        </p>
 
         {/* Submit Button */}
-        <Button type="submit" fullWidth loading={loading} disabled={loading}>
-          Create account
-        </Button>
+        <button type="submit" className={styles.btnPrimary} disabled={loading}>
+          {loading && <span className={styles.spinner} aria-hidden="true" />}
+          {loading ? 'Creating account…' : 'Create Account'}
+        </button>
 
         {/* Sign In Link */}
-        <div className="text-center text-sm text-gray-600">
-          Already have an account?{' '}
-          <Link
-            href="/auth/login"
-            className="text-primary-600 hover:text-primary-500 font-medium transition-colors"
-          >
-            Sign in
-          </Link>
+        <div className={`${styles.linkRow} ${styles.center}`}>
+          <span>
+            Already have an account?{' '}
+            <Link href="/auth/login" className={styles.link}>
+              Sign in
+            </Link>
+          </span>
         </div>
       </form>
     </div>

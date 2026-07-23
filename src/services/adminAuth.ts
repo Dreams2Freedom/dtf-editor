@@ -40,7 +40,13 @@ class AdminAuthService {
     email,
     password,
     remember = false,
-  }: AdminLoginRequest): Promise<AdminApiResponse<{ user: AdminClientSession['user']; permissions: AdminPermissions; requires_2fa: boolean }>> {
+  }: AdminLoginRequest): Promise<
+    AdminApiResponse<{
+      user: AdminClientSession['user'];
+      permissions: AdminPermissions;
+      requires_2fa: boolean;
+    }>
+  > {
     try {
       const response = await fetch('/api/admin/auth/login', {
         method: 'POST',
