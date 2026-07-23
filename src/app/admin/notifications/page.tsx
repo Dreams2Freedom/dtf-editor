@@ -20,7 +20,6 @@ import {
 } from 'lucide-react';
 import { useAuthStore } from '@/stores/authStore';
 import { createClientSupabaseClient } from '@/lib/supabase/client';
-import { APP_VERSION } from '@/config/patchNotes';
 
 type AdminTab = 'send' | 'manage' | 'patch';
 
@@ -68,9 +67,7 @@ export default function AdminNotificationsPage() {
         setPublishedVersion(data.publishedVersion ?? null);
         setPatchDate(data.date ?? '');
         setPatchItems(
-          Array.isArray(data.items) && data.items.length > 0
-            ? data.items
-            : ['']
+          Array.isArray(data.items) && data.items.length > 0 ? data.items : ['']
         );
       }
     } catch {
@@ -80,8 +77,11 @@ export default function AdminNotificationsPage() {
     }
   }, []);
 
+  // publish=false → save/hide as draft. publish=true + asNew=true → publish a
+  // BRAND-NEW note (every user is shown it once). publish=true + asNew=false →
+  // edit the live note in place without re-notifying users who already saw it.
   const setPatchPublish = useCallback(
-    async (publish: boolean) => {
+    async (publish: boolean, asNew: boolean) => {
       const items = patchItems.map(s => s.trim()).filter(Boolean);
       if (publish && items.length === 0) {
         toast.error('Add at least one patch-note line before publishing.');
@@ -93,20 +93,17 @@ export default function AdminNotificationsPage() {
           method: 'POST',
           credentials: 'include',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            version: APP_VERSION,
-            date: patchDate,
-            items,
-            publish,
-          }),
+          body: JSON.stringify({ date: patchDate, items, publish, asNew }),
         });
         const data = await res.json().catch(() => ({}));
         if (!res.ok) throw new Error(data.error || 'Update failed');
         setPublishedVersion(data.publishedVersion ?? null);
         toast.success(
           publish
-            ? `Patch notes v${APP_VERSION} are now live for users`
-            : 'Draft saved — hidden from users'
+            ? asNew
+              ? 'New patch note published — users will see it once'
+              : 'Live patch note updated'
+            : 'Saved as a draft — hidden from users'
         );
       } catch (e) {
         toast.error(e instanceof Error ? e.message : 'Update failed');
@@ -116,6 +113,12 @@ export default function AdminNotificationsPage() {
     },
     [patchDate, patchItems]
   );
+
+  // Reset the editor to write a fresh patch note from scratch.
+  const clearPatchEditor = useCallback(() => {
+    setPatchDate('');
+    setPatchItems(['']);
+  }, []);
 
   const fetchManaged = useCallback(async () => {
     setManagedLoading(true);
@@ -139,7 +142,9 @@ export default function AdminNotificationsPage() {
   }, [tab, fetchManaged, fetchPatchStatus]);
 
   const deleteAnnouncement = async (id: string) => {
-    if (!confirm('Delete this announcement for everyone? This cannot be undone.'))
+    if (
+      !confirm('Delete this announcement for everyone? This cannot be undone.')
+    )
       return;
     try {
       const res = await fetch(`/api/admin/notifications?id=${id}`, {
@@ -302,106 +307,106 @@ export default function AdminNotificationsPage() {
 
         {/* Notification Form */}
         {tab === 'send' && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Create Notification</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-6">
-              {/* Title */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Title *
-                </label>
-                <Input
-                  value={formData.title}
-                  onChange={e =>
-                    setFormData({ ...formData, title: e.target.value })
-                  }
-                  placeholder="Notification title"
-                  required
-                />
-              </div>
-
-              {/* Message */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Message *
-                </label>
-                <textarea
-                  value={formData.message}
-                  onChange={e =>
-                    setFormData({ ...formData, message: e.target.value })
-                  }
-                  placeholder="Notification message"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
-                  rows={4}
-                  required
-                />
-              </div>
-
-              {/* Type and Priority */}
-              <div className="grid grid-cols-2 gap-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>Create Notification</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <form onSubmit={handleSubmit} className="space-y-6">
+                {/* Title */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Type
+                    Title *
                   </label>
-                  <select
-                    value={formData.type}
+                  <Input
+                    value={formData.title}
                     onChange={e =>
-                      setFormData({
-                        ...formData,
-                        type: e.target.value as NotificationType,
-                      })
+                      setFormData({ ...formData, title: e.target.value })
                     }
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
-                  >
-                    <option value="info">Info</option>
-                    <option value="success">Success</option>
-                    <option value="warning">Warning</option>
-                    <option value="error">Error</option>
-                    <option value="announcement">Announcement</option>
-                  </select>
+                    placeholder="Notification title"
+                    required
+                  />
                 </div>
 
+                {/* Message */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Priority
+                    Message *
                   </label>
-                  <select
-                    value={formData.priority}
+                  <textarea
+                    value={formData.message}
                     onChange={e =>
-                      setFormData({
-                        ...formData,
-                        priority: e.target.value as Priority,
-                      })
+                      setFormData({ ...formData, message: e.target.value })
                     }
+                    placeholder="Notification message"
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
-                  >
-                    <option value="low">Low</option>
-                    <option value="normal">Normal</option>
-                    <option value="high">High</option>
-                    <option value="urgent">Urgent</option>
-                  </select>
+                    rows={4}
+                    required
+                  />
                 </div>
-              </div>
 
-              {/* Target Audience */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Target Audience
-                </label>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                  {(
-                    ['all', 'free', 'basic', 'starter'] as TargetAudience[]
-                  ).map(audience => (
-                    <button
-                      key={audience}
-                      type="button"
-                      onClick={() =>
-                        setFormData({ ...formData, targetAudience: audience })
+                {/* Type and Priority */}
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Type
+                    </label>
+                    <select
+                      value={formData.type}
+                      onChange={e =>
+                        setFormData({
+                          ...formData,
+                          type: e.target.value as NotificationType,
+                        })
                       }
-                      className={`
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
+                    >
+                      <option value="info">Info</option>
+                      <option value="success">Success</option>
+                      <option value="warning">Warning</option>
+                      <option value="error">Error</option>
+                      <option value="announcement">Announcement</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Priority
+                    </label>
+                    <select
+                      value={formData.priority}
+                      onChange={e =>
+                        setFormData({
+                          ...formData,
+                          priority: e.target.value as Priority,
+                        })
+                      }
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
+                    >
+                      <option value="low">Low</option>
+                      <option value="normal">Normal</option>
+                      <option value="high">High</option>
+                      <option value="urgent">Urgent</option>
+                    </select>
+                  </div>
+                </div>
+
+                {/* Target Audience */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Target Audience
+                  </label>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                    {(
+                      ['all', 'free', 'basic', 'starter'] as TargetAudience[]
+                    ).map(audience => (
+                      <button
+                        key={audience}
+                        type="button"
+                        onClick={() =>
+                          setFormData({ ...formData, targetAudience: audience })
+                        }
+                        className={`
                         flex items-center justify-center gap-2 px-4 py-2 rounded-md border transition-colors
                         ${
                           formData.targetAudience === audience
@@ -409,68 +414,68 @@ export default function AdminNotificationsPage() {
                             : 'border-gray-300 hover:border-gray-400'
                         }
                       `}
-                    >
-                      {getAudienceIcon(audience)}
-                      <span className="text-sm font-medium">
-                        {getAudienceLabel(audience)}
-                      </span>
-                    </button>
-                  ))}
+                      >
+                        {getAudienceIcon(audience)}
+                        <span className="text-sm font-medium">
+                          {getAudienceLabel(audience)}
+                        </span>
+                      </button>
+                    ))}
+                  </div>
                 </div>
-              </div>
 
-              {/* Action URL and Text (Optional) */}
-              <div className="grid grid-cols-2 gap-4">
+                {/* Action URL and Text (Optional) */}
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Action URL (Optional)
+                    </label>
+                    <Input
+                      value={formData.actionUrl}
+                      onChange={e =>
+                        setFormData({ ...formData, actionUrl: e.target.value })
+                      }
+                      placeholder="https://example.com"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Action Button Text (Optional)
+                    </label>
+                    <Input
+                      value={formData.actionText}
+                      onChange={e =>
+                        setFormData({ ...formData, actionText: e.target.value })
+                      }
+                      placeholder="Learn More"
+                    />
+                  </div>
+                </div>
+
+                {/* Expiration */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Action URL (Optional)
+                    Expires In (Hours) - Leave empty for no expiration
                   </label>
                   <Input
-                    value={formData.actionUrl}
+                    type="number"
+                    value={formData.expiresIn}
                     onChange={e =>
-                      setFormData({ ...formData, actionUrl: e.target.value })
+                      setFormData({ ...formData, expiresIn: e.target.value })
                     }
-                    placeholder="https://example.com"
+                    placeholder="24"
+                    min="1"
                   />
                 </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Action Button Text (Optional)
-                  </label>
-                  <Input
-                    value={formData.actionText}
-                    onChange={e =>
-                      setFormData({ ...formData, actionText: e.target.value })
-                    }
-                    placeholder="Learn More"
-                  />
-                </div>
-              </div>
-
-              {/* Expiration */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Expires In (Hours) - Leave empty for no expiration
-                </label>
-                <Input
-                  type="number"
-                  value={formData.expiresIn}
-                  onChange={e =>
-                    setFormData({ ...formData, expiresIn: e.target.value })
-                  }
-                  placeholder="24"
-                  min="1"
-                />
-              </div>
-
-              {/* Preview */}
-              <div className="bg-gray-50 rounded-lg p-4">
-                <h3 className="text-sm font-medium text-gray-700 mb-2">
-                  Preview
-                </h3>
-                <div
-                  className={`
+                {/* Preview */}
+                <div className="bg-gray-50 rounded-lg p-4">
+                  <h3 className="text-sm font-medium text-gray-700 mb-2">
+                    Preview
+                  </h3>
+                  <div
+                    className={`
                   p-4 rounded-md border
                   ${formData.type === 'info' && 'bg-blue-50 border-blue-200'}
                   ${formData.type === 'success' && 'bg-success-50 border-green-200'}
@@ -478,10 +483,10 @@ export default function AdminNotificationsPage() {
                   ${formData.type === 'error' && 'bg-error-50 border-error-200'}
                   ${formData.type === 'announcement' && 'bg-purple-50 border-purple-200'}
                 `}
-                >
-                  <div className="flex items-start gap-3">
-                    <AlertCircle
-                      className={`
+                  >
+                    <div className="flex items-start gap-3">
+                      <AlertCircle
+                        className={`
                       h-5 w-5 flex-shrink-0 mt-0.5
                       ${formData.type === 'info' && 'text-blue-600'}
                       ${formData.type === 'success' && 'text-success-600'}
@@ -489,45 +494,45 @@ export default function AdminNotificationsPage() {
                       ${formData.type === 'error' && 'text-error-600'}
                       ${formData.type === 'announcement' && 'text-purple-600'}
                     `}
-                    />
-                    <div className="flex-1">
-                      <h4 className="font-medium text-gray-900">
-                        {formData.title || 'Notification Title'}
-                      </h4>
-                      <p className="mt-1 text-sm text-gray-600">
-                        {formData.message ||
-                          'Notification message will appear here...'}
-                      </p>
-                      {formData.actionUrl && formData.actionText && (
-                        <button className="mt-2 text-sm font-medium text-purple-600 hover:text-purple-700">
-                          {formData.actionText}
-                        </button>
-                      )}
+                      />
+                      <div className="flex-1">
+                        <h4 className="font-medium text-gray-900">
+                          {formData.title || 'Notification Title'}
+                        </h4>
+                        <p className="mt-1 text-sm text-gray-600">
+                          {formData.message ||
+                            'Notification message will appear here...'}
+                        </p>
+                        {formData.actionUrl && formData.actionText && (
+                          <button className="mt-2 text-sm font-medium text-purple-600 hover:text-purple-700">
+                            {formData.actionText}
+                          </button>
+                        )}
+                      </div>
                     </div>
                   </div>
                 </div>
-              </div>
 
-              {/* Submit Button */}
-              <div className="flex justify-end">
-                <Button
-                  type="submit"
-                  disabled={loading}
-                  className="min-w-[150px]"
-                >
-                  {loading ? (
-                    'Sending...'
-                  ) : (
-                    <>
-                      <Send className="h-4 w-4 mr-2" />
-                      Send Notification
-                    </>
-                  )}
-                </Button>
-              </div>
-            </form>
-          </CardContent>
-        </Card>
+                {/* Submit Button */}
+                <div className="flex justify-end">
+                  <Button
+                    type="submit"
+                    disabled={loading}
+                    className="min-w-[150px]"
+                  >
+                    {loading ? (
+                      'Sending...'
+                    ) : (
+                      <>
+                        <Send className="h-4 w-4 mr-2" />
+                        Send Notification
+                      </>
+                    )}
+                  </Button>
+                </div>
+              </form>
+            </CardContent>
+          </Card>
         )}
 
         {/* Manage tab — list + delete existing announcements */}
@@ -605,63 +610,78 @@ export default function AdminNotificationsPage() {
             </CardHeader>
             <CardContent>
               <p className="text-xs text-gray-500 mb-4">
-                Edit the wording of the &quot;What&apos;s new&quot; pop-up below,
-                then publish it. Keep it plain-language and user-relevant — no
-                code or internal detail. Nothing reaches users until you publish.
+                Edit the wording of the &quot;What&apos;s new&quot; pop-up
+                below, then publish it. Keep it plain-language and user-relevant
+                — no code or internal detail. Nothing reaches users until you
+                publish.
               </p>
 
               {/* Status + publish controls */}
               {(() => {
-                const isLive = publishedVersion === APP_VERSION;
+                const hasLive = !!publishedVersion;
                 return (
                   <div className="mb-5 rounded-lg border border-gray-200 bg-gray-50 p-4">
                     <div className="flex items-center justify-between gap-3 flex-wrap">
                       <div>
                         <div className="flex items-center gap-2">
                           <span className="text-sm font-semibold text-gray-900">
-                            Current build: v{APP_VERSION}
+                            Patch note
                           </span>
                           <span
                             className={`text-[10px] font-semibold uppercase px-1.5 py-0.5 rounded ${
-                              isLive
+                              hasLive
                                 ? 'bg-green-100 text-green-700'
                                 : 'bg-gray-200 text-gray-600'
                             }`}
                           >
                             {patchLoading
                               ? 'Checking…'
-                              : isLive
+                              : hasLive
                                 ? 'Live for users'
                                 : 'Not published'}
                           </span>
                         </div>
                         <p className="text-xs text-gray-500 mt-1">
-                          {isLive
-                            ? 'Live — users see this pop-up once each. Edit and re-publish to update it.'
-                            : publishedVersion
-                              ? `Users are currently being shown v${publishedVersion}. Publish to switch them to this build.`
-                              : 'Not shown to users yet. Edit the notes, then publish.'}
+                          {hasLive
+                            ? 'A patch note is live — each user sees it once. Use “Update live” to fix wording silently, or “Publish new” to send a fresh note everyone sees.'
+                            : 'No patch note is live. Write one below, then “Publish new”.'}
                         </p>
                       </div>
-                      <div className="flex gap-2">
+                      <div className="flex gap-2 flex-wrap">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          disabled={patchSaving}
+                          onClick={clearPatchEditor}
+                          title="Clear the editor to write a fresh note"
+                        >
+                          New / clear
+                        </Button>
                         <Button
                           type="button"
                           variant="outline"
                           disabled={patchSaving || patchLoading}
-                          onClick={() => setPatchPublish(false)}
+                          onClick={() => setPatchPublish(false, false)}
                         >
-                          {isLive ? 'Unpublish' : 'Save draft'}
+                          {hasLive ? 'Unpublish' : 'Save draft'}
                         </Button>
+                        {hasLive && (
+                          <Button
+                            type="button"
+                            variant="outline"
+                            disabled={patchSaving || patchLoading}
+                            onClick={() => setPatchPublish(true, false)}
+                            title="Edit the live note without re-notifying users"
+                          >
+                            Update live
+                          </Button>
+                        )}
                         <Button
                           type="button"
                           disabled={patchSaving || patchLoading}
-                          onClick={() => setPatchPublish(true)}
+                          onClick={() => setPatchPublish(true, true)}
                         >
-                          {patchSaving
-                            ? 'Saving…'
-                            : isLive
-                              ? 'Update live notes'
-                              : 'Publish to users'}
+                          {patchSaving ? 'Saving…' : 'Publish new'}
                         </Button>
                       </div>
                     </div>
