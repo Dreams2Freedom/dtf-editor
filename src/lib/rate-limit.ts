@@ -113,6 +113,12 @@ class InMemoryRateLimiter {
 // Initialize rate limiter
 let rateLimiter: Ratelimit | InMemoryRateLimiter | null = null;
 
+// Always-available in-memory limiter used as a FALLBACK when the primary
+// (Upstash) limiter throws. Upstash blips were returning fail-closed 503s on
+// critical endpoints (signup, pricing), blocking legitimate users. Degrading to
+// this per-instance limiter keeps a real limit enforced without the outage.
+const fallbackLimiter = new InMemoryRateLimiter();
+
 function getRateLimiter() {
   if (!rateLimiter) {
     // Check if we have Upstash credentials
@@ -230,16 +236,42 @@ export async function rateLimit(
 
     return null; // Continue to endpoint
   } catch (error) {
-    console.error('Rate limiting error:', error);
-    // SEC-046: Fail-closed for critical endpoints (auth, payment) — block on error
-    if (FAIL_CLOSED_TYPES.has(type)) {
-      return NextResponse.json(
-        { error: 'Service temporarily unavailable. Please try again later.' },
-        { status: 503 }
+    console.error('Rate limiting error (primary limiter):', error);
+    // The primary (Upstash) limiter threw — usually a transient backend blip.
+    // Previously this fail-closed to 503 for auth/payment, which blocked
+    // legitimate signups and pricing loads during those blips. Instead, degrade
+    // to the in-memory limiter so a real limit is STILL enforced without an
+    // outage. Only if that also fails do we honor the original fail-closed rule.
+    try {
+      const config = RATE_LIMITS[type];
+      const identifier = getClientIdentifier(request);
+      const result = await fallbackLimiter.limit(
+        identifier,
+        config.requests,
+        config.window
       );
+      if (!result.success) {
+        return NextResponse.json(
+          {
+            error: 'Too many requests',
+            message: 'Rate limit exceeded. Please try again later.',
+            retryAfter: Date.now() + 60000,
+          },
+          { status: 429, headers: { 'Retry-After': '60' } }
+        );
+      }
+      return null; // Allowed by the fallback limiter
+    } catch (fallbackError) {
+      console.error('Rate limiting fallback also failed:', fallbackError);
+      // SEC-046: Both limiters failed — fail-closed for critical endpoints only.
+      if (FAIL_CLOSED_TYPES.has(type)) {
+        return NextResponse.json(
+          { error: 'Service temporarily unavailable. Please try again later.' },
+          { status: 503 }
+        );
+      }
+      return null;
     }
-    // For non-critical endpoints, fail-open (allow through)
-    return null;
   }
 }
 
