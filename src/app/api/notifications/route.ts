@@ -64,6 +64,10 @@ async function fetchActiveForUser(supabase: SupabaseClient, userId: string) {
   if (error || !rows) return [];
 
   const now = Date.now();
+  // Hamilton announcements auto-expire 24h after they're posted, so users don't
+  // keep seeing (and having to dismiss) days-old notices. An admin-set
+  // `expires_at` can still make one disappear SOONER than 24h.
+  const MAX_AGE_MS = 24 * 60 * 60 * 1000;
   const applies = (rows as NotificationRow[]).filter(n => {
     // Skip the internal patch-note release marker — it's not a real
     // announcement, just the "What's new" approval flag.
@@ -73,6 +77,10 @@ async function fetchActiveForUser(supabase: SupabaseClient, userId: string) {
     ) {
       return false;
     }
+    // Hard 24h age cap based on when it was posted.
+    const createdAt =
+      typeof n.created_at === 'string' ? new Date(n.created_at).getTime() : 0;
+    if (createdAt && now - createdAt > MAX_AGE_MS) return false;
     if (n.expires_at && new Date(n.expires_at).getTime() <= now) return false;
     switch (n.target_audience) {
       case 'all':

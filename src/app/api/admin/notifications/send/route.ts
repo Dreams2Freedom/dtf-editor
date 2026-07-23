@@ -21,6 +21,11 @@ async function handlePost(request: NextRequest) {
       expiresAt,
     } = body;
 
+    // Announcements auto-expire 24h after posting unless the admin picked a
+    // shorter window. Keeps Hamilton from showing days-old notices.
+    const effectiveExpiresAt =
+      expiresAt || new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
+
     // Validate required fields
     if (!title || !message) {
       return NextResponse.json(
@@ -71,7 +76,7 @@ async function handlePost(request: NextRequest) {
         action_url: actionUrl,
         action_text: actionText,
         priority,
-        expires_at: expiresAt,
+        expires_at: effectiveExpiresAt,
         created_by: user.id,
         is_active: true,
       })
