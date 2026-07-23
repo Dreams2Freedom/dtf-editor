@@ -29,23 +29,45 @@ export const SubscriptionPlans: React.FC<SubscriptionPlansProps> = ({
   const [pricingLoading, setPricingLoading] = useState(true);
 
   useEffect(() => {
+    let cancelled = false;
+
+    // Retry a few times before giving up — a single transient failure on the
+    // pricing endpoint shouldn't leave the user unable to see plans or check
+    // out. Only the last attempt surfaces an error.
     const fetchPricing = async () => {
-      try {
-        const response = await fetch('/api/stripe/pricing');
-        if (!response.ok) {
-          throw new Error('Failed to fetch pricing');
+      const ATTEMPTS = 4;
+      for (let attempt = 1; attempt <= ATTEMPTS; attempt++) {
+        try {
+          const response = await fetch('/api/stripe/pricing', {
+            cache: 'no-store',
+          });
+          if (!response.ok) throw new Error(`status ${response.status}`);
+          const data = await response.json();
+          if (cancelled) return;
+          if (!Array.isArray(data.subscriptionPlans)) {
+            throw new Error('malformed pricing response');
+          }
+          setPlans(data.subscriptionPlans);
+          setError(null);
+          setPricingLoading(false);
+          return;
+        } catch (err) {
+          if (cancelled) return;
+          if (attempt === ATTEMPTS) {
+            console.error('Failed to fetch pricing:', err);
+            setError('Failed to load pricing information');
+            setPricingLoading(false);
+            return;
+          }
+          await new Promise(r => setTimeout(r, 500 * attempt));
         }
-        const data = await response.json();
-        setPlans(data.subscriptionPlans);
-      } catch (error) {
-        console.error('Failed to fetch pricing:', error);
-        setError('Failed to load pricing information');
-      } finally {
-        setPricingLoading(false);
       }
     };
 
     fetchPricing();
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const handleSubscribe = async (plan: SubscriptionPlan) => {
