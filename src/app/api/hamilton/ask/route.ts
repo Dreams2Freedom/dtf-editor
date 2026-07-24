@@ -187,12 +187,17 @@ async function handlePost(request: NextRequest) {
           updated_at: now,
         };
         if (!canAnswer) patch.escalated_to_ticket = true;
-        await supabase
+        const { error: updateError } = await supabase
           .from('hamilton_conversations')
           .update(patch)
           .eq('id', existingId);
+        // Supabase returns errors (e.g. RLS denials) in `error`, not by throwing,
+        // so log it explicitly — otherwise a failed save looks like success.
+        if (updateError) {
+          console.error('[Hamilton] conversation update failed:', updateError);
+        }
       } else {
-        const { data: inserted } = await supabase
+        const { data: inserted, error: insertError } = await supabase
           .from('hamilton_conversations')
           .insert({
             user_id: user.id,
@@ -201,6 +206,9 @@ async function handlePost(request: NextRequest) {
           })
           .select('id')
           .single();
+        if (insertError) {
+          console.error('[Hamilton] conversation insert failed:', insertError);
+        }
         savedId = (inserted?.id as string) ?? null;
       }
     } catch (e) {
