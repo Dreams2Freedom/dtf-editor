@@ -23,6 +23,7 @@ const PASSTHROUGH_FIELDS = [
   'seed_points',
   'post_process_white',
   'white_threshold',
+  'points_per_side',
 ] as const;
 
 export interface ResolvedImage {

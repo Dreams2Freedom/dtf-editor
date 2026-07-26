@@ -27,7 +27,7 @@ import {
   detectBorderColor,
   computeWholeShapeMask,
 } from '@/tools/bg-removal/scribbleBrush';
-import { removeBackground } from '@/tools/bg-removal/api';
+import { removeBackground, segmentEverything } from '@/tools/bg-removal/api';
 
 type CellStatus = 'idle' | 'running' | 'done' | 'error';
 
@@ -46,6 +46,8 @@ interface EvalRow {
   classical: Cell;
   aiBria: Cell;
   aiBirefnet: Cell;
+  samOverlay: Cell; // SAM pieces tinted over the original
+  samCutout: Cell; // subject-only cutout from SAM pieces + our heuristic
 }
 
 const MAX_DIM = 1400; // matches the tool's REACH_REFERENCE_DIM normalization
@@ -161,6 +163,8 @@ export default function BgEvalPage() {
           classical: { status: 'idle' },
           aiBria: { status: 'idle' },
           aiBirefnet: { status: 'idle' },
+          samOverlay: { status: 'idle' },
+          samCutout: { status: 'idle' },
         };
       });
       setRows(next);
@@ -185,6 +189,8 @@ export default function BgEvalPage() {
       classical: { status: 'idle' },
       aiBria: { status: 'idle' },
       aiBirefnet: { status: 'idle' },
+      samOverlay: { status: 'idle' },
+      samCutout: { status: 'idle' },
     }));
     setRows(prev => [...next, ...prev]);
   }, []);
@@ -212,6 +218,8 @@ export default function BgEvalPage() {
           classical: { status: 'error', error: msg },
           aiBria: { status: 'error', error: msg },
           aiBirefnet: { status: 'error', error: msg },
+          samOverlay: { status: 'error', error: msg },
+          samCutout: { status: 'error', error: msg },
         });
         return;
       }
@@ -265,6 +273,32 @@ export default function BgEvalPage() {
       // Sequential so the first call warms the container before the second.
       await runAi('aiBria', 'bria-rmbg');
       await runAi('aiBirefnet', 'birefnet-general');
+
+      // SAM "find everything" — one call returns both the piece overlay and the
+      // subject cutout. Heaviest step (grid sweep on CPU), so it runs last.
+      patch(row.id, {
+        samOverlay: { status: 'running' },
+        samCutout: { status: 'running' },
+      });
+      try {
+        const t0 = performance.now();
+        const seg = await segmentEverything(blob);
+        const ms = performance.now() - t0;
+        patch(row.id, {
+          samOverlay: {
+            status: 'done',
+            url: seg.overlayUrl,
+            ms,
+          },
+          samCutout: { status: 'done', url: seg.cutoutUrl, ms },
+        });
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : 'failed';
+        patch(row.id, {
+          samOverlay: { status: 'error', error: msg },
+          samCutout: { status: 'error', error: msg },
+        });
+      }
     },
     [ensureBlob, patch]
   );
@@ -356,11 +390,13 @@ export default function BgEvalPage() {
                       Run
                     </Button>
                   </div>
-                  <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+                  <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
                     <EvalCell label="Original" cell={{ status: 'done', url: row.srcUrl }} plain />
                     <EvalCell label="Current (classical)" cell={row.classical} />
                     <EvalCell label="AI: BRIA" cell={row.aiBria} />
                     <EvalCell label="AI: BiRefNet" cell={row.aiBirefnet} />
+                    <EvalCell label="SAM: pieces" cell={row.samOverlay} plain />
+                    <EvalCell label="SAM: subject" cell={row.samCutout} />
                   </div>
                 </CardContent>
               </Card>

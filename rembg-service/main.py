@@ -1,6 +1,8 @@
+import base64
 import io
 import json
 import os
+import time
 import uuid
 from collections import deque
 from typing import Optional
@@ -623,3 +625,88 @@ async def predict_mask(
     output_img = apply_mask(input_img, mask)
 
     return _png_response(output_img)
+
+
+# Cap the working resolution for automatic segmentation: SAM already operates at
+# ~1024px internally, and the grid sweep runs the decoder many times, so a
+# smaller image keeps memory + latency sane on the CPU box.
+_SEGMENT_MAX_DIM = 1024
+
+
+def _png_b64(img: Image.Image) -> str:
+    buf = io.BytesIO()
+    img.save(buf, format="PNG")
+    return base64.b64encode(buf.getvalue()).decode("ascii")
+
+
+@app.post("/segment-everything")
+async def segment_everything_route(
+    image: UploadFile = File(...),
+    points_per_side: int = Form(default=16),
+    x_api_key: Optional[str] = Header(default=None),
+):
+    """
+    Automatic "find everything" segmentation (SAM as identifier).
+
+    Returns JSON with two rendered PNGs (base64) so the caller can SEE the
+    result without a second request:
+      - overlay_png: every SAM piece tinted a distinct color over the original
+      - cutout_png:  subject-only (background transparent), using our
+        border-based subject-selection heuristic on top of SAM's pieces
+    Plus num_pieces and timing, so we can judge quality AND speed on real images.
+    """
+    _require_auth(x_api_key)
+
+    data = await image.read()
+    if len(data) > 52_428_800:
+        raise HTTPException(status_code=413, detail="Image too large (max 50MB)")
+
+    # Clamp grid density to a sane range (16 -> 256 decoder calls).
+    pps = max(4, min(32, int(points_per_side)))
+
+    try:
+        from sam_predictor import (
+            get_predictor,
+            select_subject_mask,
+            render_pieces_overlay,
+            apply_mask,
+        )
+        predictor = get_predictor()
+    except Exception as e:
+        raise HTTPException(status_code=503, detail=f"SAM unavailable: {e}")
+
+    input_img = _read_image(data)
+
+    # Downscale for tractable CPU segmentation.
+    w, h = input_img.size
+    scale = min(1.0, _SEGMENT_MAX_DIM / float(max(w, h)))
+    if scale < 1.0:
+        input_img = input_img.resize(
+            (max(1, int(w * scale)), max(1, int(h * scale))), Image.LANCZOS
+        )
+
+    t0 = time.time()
+    try:
+        pieces, state = predictor.segment_everything(
+            input_img, points_per_side=pps
+        )
+    except Exception as e:
+        raise HTTPException(status_code=503, detail=f"SAM segment failed: {e}")
+
+    orig_h, orig_w = state["original_size"]
+    subject_mask = select_subject_mask(pieces, orig_h, orig_w)
+
+    overlay_img = render_pieces_overlay(input_img, pieces)
+    cutout_img = apply_mask(input_img, subject_mask)
+
+    elapsed_ms = int((time.time() - t0) * 1000)
+
+    return {
+        "overlay_png": _png_b64(overlay_img),
+        "cutout_png": _png_b64(cutout_img),
+        "num_pieces": len(pieces),
+        "points_per_side": pps,
+        "elapsed_ms": elapsed_ms,
+        "width": orig_w,
+        "height": orig_h,
+    }

@@ -213,6 +213,163 @@ class SamPredictor:
 
         return binary_mask, best_low_res, score
 
+    def segment_everything(
+        self,
+        img: Image.Image,
+        points_per_side: int = 16,
+        pred_iou_thresh: float = 0.80,
+        min_area_frac: float = 0.002,
+        max_area_frac: float = 0.95,
+        nms_iou: float = 0.7,
+    ) -> tuple:
+        """
+        Automatic "find everything" segmentation, built on top of the proven
+        single-point predict() path: probe a regular grid of foreground points,
+        keep confident + reasonably-sized masks, and de-duplicate overlapping
+        masks via IoU non-max-suppression (highest score wins).
+
+        This intentionally reuses predict() rather than re-implementing the ONNX
+        decoder call, so the automatic mode inherits the same (working) coord
+        transforms and mask warping.
+
+        Returns:
+          pieces: list of dicts {mask(bool HxW), score, area, bbox}, sorted by
+                  score desc. Each is a distinct object/region SAM found.
+          state:  the encode state (contains original_size), reusable by callers.
+        """
+        state = self.encode_image(img)
+        orig_h, orig_w = state["original_size"]
+        total_area = float(orig_h * orig_w)
+
+        # Interior grid (skip the exact borders so points land on content).
+        xs = np.linspace(0, orig_w, points_per_side + 2)[1:-1]
+        ys = np.linspace(0, orig_h, points_per_side + 2)[1:-1]
+
+        records = []
+        for y in ys:
+            for x in xs:
+                try:
+                    mask, _low, score = self.predict(
+                        state, [(float(x), float(y))], [1]
+                    )
+                except Exception as e:  # never let one bad point kill the sweep
+                    logger.warning("segment_everything point failed: %s", e)
+                    continue
+                if score < pred_iou_thresh:
+                    continue
+                binm = mask > 0
+                area = int(binm.sum())
+                if area < min_area_frac * total_area or area > max_area_frac * total_area:
+                    continue
+                ys_idx, xs_idx = np.where(binm)
+                if ys_idx.size == 0:
+                    continue
+                bbox = (
+                    int(xs_idx.min()),
+                    int(ys_idx.min()),
+                    int(xs_idx.max()),
+                    int(ys_idx.max()),
+                )
+                records.append(
+                    {"mask": binm, "score": float(score), "area": area, "bbox": bbox}
+                )
+
+        # NMS by mask IoU: keep the highest-scoring of any heavily-overlapping set.
+        records.sort(key=lambda r: r["score"], reverse=True)
+        kept = []
+        for r in records:
+            duplicate = False
+            for k in kept:
+                inter = int(np.logical_and(r["mask"], k["mask"]).sum())
+                if inter == 0:
+                    continue
+                union = r["area"] + k["area"] - inter
+                if union > 0 and inter / union > nms_iou:
+                    duplicate = True
+                    break
+            if not duplicate:
+                kept.append(r)
+
+        logger.info(
+            "segment_everything: %d grid points -> %d raw -> %d pieces",
+            points_per_side * points_per_side,
+            len(records),
+            len(kept),
+        )
+        return kept, state
+
+
+def select_subject_mask(
+    pieces: list,
+    orig_h: int,
+    orig_w: int,
+    border_touch_thresh: float = 0.14,
+) -> np.ndarray:
+    """
+    Our removal-engine logic on top of SAM's unlabeled pieces: decide which
+    pieces are the SUBJECT (keep) vs BACKGROUND (remove).
+
+    Heuristic mirrors the classical engine's "reachable from the border =
+    background" idea, but at the piece level: a piece that covers a large share
+    of the image's outer border is background; everything else is subject.
+    Falls back to the single largest piece if nothing qualifies.
+
+    Returns a (H, W) uint8 mask: 255=keep (subject), 0=remove (background).
+    """
+    subject = np.zeros((orig_h, orig_w), dtype=bool)
+    if not pieces:
+        return subject.astype(np.uint8) * 255
+
+    # Perimeter pixel budget for the border-coverage ratio.
+    perimeter = max(1, 2 * orig_w + 2 * orig_h)
+
+    def border_ratio(mask: np.ndarray) -> float:
+        top = int(mask[0, :].sum())
+        bottom = int(mask[-1, :].sum())
+        left = int(mask[:, 0].sum())
+        right = int(mask[:, -1].sum())
+        return (top + bottom + left + right) / perimeter
+
+    any_kept = False
+    for p in pieces:
+        if border_ratio(p["mask"]) <= border_touch_thresh:
+            subject |= p["mask"]
+            any_kept = True
+
+    if not any_kept:
+        # Everything looked border-ish — keep the largest piece as the subject.
+        largest = max(pieces, key=lambda r: r["area"])
+        subject |= largest["mask"]
+
+    return subject.astype(np.uint8) * 255
+
+
+# Distinct, high-contrast colors for the piece-overlay visualization.
+_OVERLAY_COLORS = np.array(
+    [
+        [239, 68, 68], [59, 130, 246], [34, 197, 94], [234, 179, 8],
+        [168, 85, 247], [236, 72, 153], [14, 165, 233], [249, 115, 22],
+        [132, 204, 22], [217, 70, 239], [20, 184, 166], [244, 63, 94],
+    ],
+    dtype=np.float32,
+)
+
+
+def render_pieces_overlay(img: Image.Image, pieces: list) -> Image.Image:
+    """Blend each SAM piece as a distinct translucent color over the original,
+    so a human can SEE how the image was cut into objects."""
+    base = np.array(img.convert("RGB"), dtype=np.float32)
+    h, w = base.shape[:2]
+    out = base.copy()
+    alpha = 0.5
+    for i, p in enumerate(pieces):
+        m = p["mask"]
+        if m.shape != (h, w):
+            continue
+        color = _OVERLAY_COLORS[i % len(_OVERLAY_COLORS)]
+        out[m] = (1 - alpha) * out[m] + alpha * color
+    return Image.fromarray(np.clip(out, 0, 255).astype(np.uint8), "RGB")
+
 
 def apply_mask(img: Image.Image, mask: np.ndarray) -> Image.Image:
     """

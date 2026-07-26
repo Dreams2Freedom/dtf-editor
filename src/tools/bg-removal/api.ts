@@ -148,6 +148,49 @@ export async function removeBackgroundLegacy(
   });
 }
 
+export interface SegmentEverythingResult {
+  overlayUrl: string; // data URL: SAM pieces tinted over the original
+  cutoutUrl: string; // data URL: subject-only cutout (our selection heuristic)
+  numPieces: number;
+  ms: number;
+}
+
+/**
+ * SAM automatic "find everything" segmentation (admin eval).
+ * Stages the image then calls the segment-everything route, which returns two
+ * base64 PNGs (piece overlay + subject cutout) plus stats.
+ */
+export async function segmentEverything(
+  imageBlob: Blob,
+  pointsPerSide = 16
+): Promise<SegmentEverythingResult> {
+  const { url, path } = await stageImage(imageBlob);
+
+  const res = await fetch('/api/background-removal/segment-everything', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      url,
+      path,
+      points_per_side: String(pointsPerSide),
+    }),
+    credentials: 'include',
+  });
+
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error(body.error || `Segmentation failed (${res.status})`);
+  }
+
+  const data = await res.json();
+  return {
+    overlayUrl: `data:image/png;base64,${data.overlay_png}`,
+    cutoutUrl: `data:image/png;base64,${data.cutout_png}`,
+    numPieces: Number(data.num_pieces) || 0,
+    ms: Number(data.elapsed_ms) || 0,
+  };
+}
+
 export async function embedImage(imageBlob: Blob): Promise<SamSession> {
   const { url, path } = await stageImage(imageBlob);
 
