@@ -20,6 +20,7 @@ import {
   CreditCard,
   Activity,
   MessageCircle,
+  Wand2,
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { createClientSupabaseClient } from '@/lib/supabase/client';
@@ -116,6 +117,11 @@ const menuItems: MenuItem[] = [
     name: 'Hamilton Bot',
     href: '/admin/hamilton',
     icon: MessageCircle,
+  },
+  {
+    name: 'BG Removal Eval',
+    href: '/admin/bg-eval',
+    icon: Wand2,
   },
   {
     name: 'Notifications',
