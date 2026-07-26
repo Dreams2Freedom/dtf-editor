@@ -106,7 +106,10 @@ async function handlePost(request: NextRequest) {
     const rawMessage = typeof body.message === 'string' ? body.message : '';
     const message = rawMessage.trim().slice(0, MAX_MESSAGE_CHARS);
     if (!message) {
-      return NextResponse.json({ error: 'Message is required' }, { status: 400 });
+      return NextResponse.json(
+        { error: 'Message is required' },
+        { status: 400 }
+      );
     }
 
     // Load prior thread (verify ownership) or start fresh.
@@ -176,16 +179,36 @@ async function handlePost(request: NextRequest) {
     let savedId = existingId;
     try {
       if (existingId) {
-        await supabase
+        // Mark the thread as handed-to-support the first time Hamilton can't
+        // answer (never flip it back), so admin stats reflect where the bot
+        // fell short. Only set it when needed to avoid clobbering a prior true.
+        const patch: Record<string, unknown> = {
+          messages: nextMessages,
+          updated_at: now,
+        };
+        if (!canAnswer) patch.escalated_to_ticket = true;
+        const { error: updateError } = await supabase
           .from('hamilton_conversations')
-          .update({ messages: nextMessages, updated_at: now })
+          .update(patch)
           .eq('id', existingId);
+        // Supabase returns errors (e.g. RLS denials) in `error`, not by throwing,
+        // so log it explicitly — otherwise a failed save looks like success.
+        if (updateError) {
+          console.error('[Hamilton] conversation update failed:', updateError);
+        }
       } else {
-        const { data: inserted } = await supabase
+        const { data: inserted, error: insertError } = await supabase
           .from('hamilton_conversations')
-          .insert({ user_id: user.id, messages: nextMessages })
+          .insert({
+            user_id: user.id,
+            messages: nextMessages,
+            escalated_to_ticket: !canAnswer,
+          })
           .select('id')
           .single();
+        if (insertError) {
+          console.error('[Hamilton] conversation insert failed:', insertError);
+        }
         savedId = (inserted?.id as string) ?? null;
       }
     } catch (e) {
@@ -194,7 +217,8 @@ async function handlePost(request: NextRequest) {
 
     return NextResponse.json({ conversationId: savedId, answer, canAnswer });
   } catch (error) {
-    const msg = error instanceof Error ? error.message : 'Internal server error';
+    const msg =
+      error instanceof Error ? error.message : 'Internal server error';
     return NextResponse.json({ error: msg }, { status: 500 });
   }
 }

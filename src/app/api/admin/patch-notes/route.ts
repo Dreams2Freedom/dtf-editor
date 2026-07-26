@@ -4,11 +4,7 @@ import {
   createServiceRoleClient,
 } from '@/lib/supabase/server';
 import { withRateLimit } from '@/lib/rate-limit';
-import {
-  PATCH_NOTE_MARKER_PREFIX,
-  APP_VERSION,
-  PATCH_NOTES,
-} from '@/config/patchNotes';
+import { PATCH_NOTE_MARKER_PREFIX, PATCH_NOTES } from '@/config/patchNotes';
 
 interface PatchNoteContent {
   date: string;
@@ -16,7 +12,9 @@ interface PatchNoteContent {
 }
 
 /** Parse the content JSON stored in a marker row's `message`, tolerantly. */
-function parseContent(message: string | null | undefined): PatchNoteContent | null {
+function parseContent(
+  message: string | null | undefined
+): PatchNoteContent | null {
   if (!message) return null;
   try {
     const parsed = JSON.parse(message);
@@ -32,28 +30,28 @@ function parseContent(message: string | null | undefined): PatchNoteContent | nu
   return null;
 }
 
-/** The default (code-authored) content for the current build's version. */
+/** A starting-point default (from code) the first time no note exists yet. */
 function defaultContent(): PatchNoteContent {
-  const cfg = PATCH_NOTES.find(n => n.version === APP_VERSION) ?? PATCH_NOTES[0];
+  const cfg = PATCH_NOTES[0];
   return { date: cfg?.date ?? '', items: cfg?.items ? [...cfg.items] : [] };
 }
 
 /**
- * Admin approval gate for the "What's new" patch-notes pop-up.
+ * Patch-notes writer for the "What's new" pop-up.
  *
- * Patch notes are authored in code (src/config/patchNotes.ts) but must NOT
- * reach users automatically on deploy — an admin has to explicitly publish the
- * current version here first. The "published version" is persisted as a single
- * sentinel row in the existing `notifications` table (title =
- * `${PATCH_NOTE_MARKER_PREFIX}<version>`), so no schema migration is needed.
- * That row is hidden from the normal announcement flows (Hamilton + admin
- * Manage list).
+ * A patch note is authored entirely here (date + bullet lines) — it is NO LONGER
+ * tied to the build's APP_VERSION, so the admin can create a brand-new note any
+ * time without a code deploy. The current note is stored as a single sentinel
+ * row in `notifications` (title = `${PATCH_NOTE_MARKER_PREFIX}<version>`, content
+ * as JSON in `message`, is_active = published). Only ONE marker exists at a time,
+ * so users are only ever shown the most recent note, once each.
  *
- *   GET  → { publishedVersion: string | null }   (which version is live)
- *   POST { version, publish } → publish/unpublish that version
+ *   GET  → { version, date, items, published, publishedVersion }
+ *   POST { date, items, publish, asNew }
+ *          asNew=true  → mints a NEW version id → every user sees it once
+ *          asNew=false → keeps the current version → edit live without re-notifying
  */
 
-/** Verify the caller is an admin; return the service-role client. */
 async function requireAdmin() {
   const supabase = await createServerSupabaseClient();
   const {
@@ -82,40 +80,41 @@ async function requireAdmin() {
   return { service };
 }
 
+/** Read the single current marker (published OR draft), newest wins. */
+async function currentMarker(
+  service: ReturnType<typeof createServiceRoleClient>
+) {
+  const { data } = await service
+    .from('notifications')
+    .select('title, message, is_active')
+    .like('title', `${PATCH_NOTE_MARKER_PREFIX}%`)
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  const version = data?.title?.startsWith(PATCH_NOTE_MARKER_PREFIX)
+    ? data.title.slice(PATCH_NOTE_MARKER_PREFIX.length)
+    : null;
+  return {
+    version,
+    content: parseContent(data?.message),
+    published: !!data?.is_active,
+  };
+}
+
 async function handleGet(_request: NextRequest) {
   try {
     const { error, service } = await requireAdmin();
     if (error) return error;
 
-    // Latest marker row (published OR saved-draft), so the admin can edit an
-    // unpublished draft too.
-    const { data } = await service!
-      .from('notifications')
-      .select('title, message, is_active')
-      .like('title', `${PATCH_NOTE_MARKER_PREFIX}%`)
-      .order('created_at', { ascending: false })
-      .limit(1)
-      .maybeSingle();
-
-    const storedVersion = data?.title?.startsWith(PATCH_NOTE_MARKER_PREFIX)
-      ? data.title.slice(PATCH_NOTE_MARKER_PREFIX.length)
-      : null;
-    const stored = parseContent(data?.message);
-    const published = !!data?.is_active;
-
-    // Editing surface: use the stored draft/published content if we have it,
-    // otherwise seed from the code-authored default so there's always a
-    // starting point to tweak.
-    const base = stored ?? defaultContent();
+    const { version, content, published } = await currentMarker(service!);
+    const base = content ?? defaultContent();
 
     return NextResponse.json({
-      // Version is always the current build — the content is what's editable.
-      version: APP_VERSION,
+      version, // current note's id (null if none authored yet)
       date: base.date,
       items: base.items,
       published,
-      // Which version (if any) is currently LIVE for users.
-      publishedVersion: published ? storedVersion : null,
+      publishedVersion: published ? version : null,
     });
   } catch (e) {
     const msg = e instanceof Error ? e.message : 'Internal server error';
@@ -129,11 +128,12 @@ async function handlePost(request: NextRequest) {
     if (error) return error;
 
     const body = await request.json().catch(() => ({}));
-    const { publish } = body as { publish?: boolean };
-    const version = (body as { version?: string }).version || APP_VERSION;
-    const date = typeof (body as { date?: string }).date === 'string'
-      ? (body as { date: string }).date
-      : '';
+    const publish = (body as { publish?: boolean }).publish;
+    const asNew = (body as { asNew?: boolean }).asNew === true;
+    const date =
+      typeof (body as { date?: string }).date === 'string'
+        ? (body as { date: string }).date
+        : '';
     const rawItems = (body as { items?: unknown }).items;
     const items = Array.isArray(rawItems)
       ? rawItems
@@ -155,25 +155,27 @@ async function handlePost(request: NextRequest) {
       );
     }
 
-    // Keep exactly one patch-note marker. The content is stored as JSON in
-    // `message`; is_active marks whether it's live for users (true) or just a
-    // saved draft (false). The prefix has no LIKE-wildcard characters, so this
-    // only ever matches our own markers.
+    // Decide the version id. A NEW note (or the first one ever) mints a fresh id
+    // so every user is shown it once; editing the live note keeps the same id so
+    // users who already saw it aren't re-notified.
+    const existing = await currentMarker(service!);
+    const version =
+      asNew || !existing.version ? `v-${Date.now()}` : existing.version;
+
+    // Keep exactly one marker.
     await service!
       .from('notifications')
       .delete()
       .like('title', `${PATCH_NOTE_MARKER_PREFIX}%`);
 
-    const { error: insertError } = await service!
-      .from('notifications')
-      .insert({
-        type: 'announcement',
-        title: `${PATCH_NOTE_MARKER_PREFIX}${version}`,
-        message: JSON.stringify({ date, items }),
-        target_audience: 'all',
-        priority: 'normal',
-        is_active: publish,
-      });
+    const { error: insertError } = await service!.from('notifications').insert({
+      type: 'announcement',
+      title: `${PATCH_NOTE_MARKER_PREFIX}${version}`,
+      message: JSON.stringify({ date, items }),
+      target_audience: 'all',
+      priority: 'normal',
+      is_active: publish,
+    });
     if (insertError) throw insertError;
 
     return NextResponse.json({

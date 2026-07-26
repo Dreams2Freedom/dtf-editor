@@ -19,6 +19,7 @@ import {
   ShieldCheck,
   CreditCard,
   Activity,
+  MessageCircle,
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { createClientSupabaseClient } from '@/lib/supabase/client';
@@ -110,6 +111,11 @@ const menuItems: MenuItem[] = [
     href: '/admin/support',
     icon: HeadphonesIcon,
     permission: ['support', 'view'],
+  },
+  {
+    name: 'Hamilton Bot',
+    href: '/admin/hamilton',
+    icon: MessageCircle,
   },
   {
     name: 'Notifications',

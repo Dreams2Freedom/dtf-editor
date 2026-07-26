@@ -1,10 +1,14 @@
 'use client';
 
 /**
- * "What's new" patch-notes modal. Shows the most-recent release notes ONCE to a
- * logged-in user who hasn't seen this version. "Seen" is tracked per-browser in
- * localStorage (keyed by version), so it never re-shows for a version and a
- * user who missed older releases only ever sees the latest.
+ * "What's new" patch-notes modal. Shows the most-recent PUBLISHED patch note
+ * ONCE to a logged-in user who hasn't seen it. "Seen" is tracked per-browser in
+ * localStorage (keyed by the published version id), so it never re-shows for a
+ * version, and a user who missed older releases only ever sees the latest one.
+ *
+ * The note is authored + published from the admin panel (see
+ * /api/admin/patch-notes); this component just renders whatever is currently
+ * published — it is NOT tied to the build's APP_VERSION.
  *
  * Mounted globally (inside AuthProvider) so it can appear on any authenticated
  * page after login.
@@ -15,37 +19,24 @@ import { Sparkles } from 'lucide-react';
 
 import { Modal } from '@/components/ui/Modal';
 import { useAuthStore } from '@/stores/authStore';
-import { APP_VERSION, PATCH_NOTES } from '@/config/patchNotes';
 
 const STORAGE_KEY = 'dtf_patchnotes_seen_version';
 
 export function PatchNotesModal() {
   const user = useAuthStore(state => state.user);
   const [open, setOpen] = useState(false);
-  const latest = PATCH_NOTES[0];
-  // Admin-edited content (date + items) fetched from the server. Falls back to
-  // the code-authored config when the published marker carries no content.
+  const [version, setVersion] = useState<string | null>(null);
   const [content, setContent] = useState<{ date: string; items: string[] }>({
-    date: latest?.date ?? '',
-    items: latest?.items ?? [],
+    date: '',
+    items: [],
   });
 
   useEffect(() => {
-    if (!user || !latest) return;
-    let seen: string | null = null;
-    try {
-      seen = localStorage.getItem(STORAGE_KEY);
-    } catch {
-      /* localStorage unavailable — skip */
-    }
-    if (seen === latest.version) return;
+    if (!user) return;
 
     let cancelled = false;
     let timer: ReturnType<typeof setTimeout> | null = null;
 
-    // Only surface the modal once an admin has PUBLISHED this version from the
-    // admin panel. Until then the notes exist in the build but stay hidden.
-    // Render the admin-edited content when present.
     (async () => {
       try {
         const res = await fetch('/api/patch-notes', { credentials: 'include' });
@@ -56,10 +47,23 @@ export function PatchNotesModal() {
           items?: string[] | null;
         };
         if (cancelled) return;
-        if (data.publishedVersion !== latest.version) return;
-        if (Array.isArray(data.items) && data.items.length > 0) {
-          setContent({ date: data.date || latest.date, items: data.items });
+
+        const v = data.publishedVersion || null;
+        const items = Array.isArray(data.items) ? data.items : [];
+        // Nothing published, or an empty note → don't show anything.
+        if (!v || items.length === 0) return;
+
+        // Already saw THIS published version → don't re-show.
+        let seen: string | null = null;
+        try {
+          seen = localStorage.getItem(STORAGE_KEY);
+        } catch {
+          /* localStorage unavailable — treat as unseen */
         }
+        if (seen === v) return;
+
+        setVersion(v);
+        setContent({ date: data.date || '', items });
         // Small delay so it doesn't fight the initial page paint / redirects.
         timer = setTimeout(() => {
           if (!cancelled) setOpen(true);
@@ -73,18 +77,18 @@ export function PatchNotesModal() {
       cancelled = true;
       if (timer) clearTimeout(timer);
     };
-  }, [user, latest]);
+  }, [user]);
 
   const dismiss = () => {
     setOpen(false);
     try {
-      localStorage.setItem(STORAGE_KEY, latest?.version ?? APP_VERSION);
+      if (version) localStorage.setItem(STORAGE_KEY, version);
     } catch {
       /* ignore */
     }
   };
 
-  if (!latest) return null;
+  if (!version) return null;
 
   return (
     <Modal
