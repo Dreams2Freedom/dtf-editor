@@ -362,6 +362,23 @@ def select_subject_mask(
         return subject.astype(np.uint8) * 255
 
     bg_region = compute_background_region(rgb, tol=tol)
+    rgb_f = rgb.astype(np.float32)
+
+    def mean_saturation(m: np.ndarray) -> float:
+        """Rough HSV saturation of a piece. Flat background (white/gray) ~0;
+        colored design elements (leaves, flowers) are clearly higher."""
+        px = rgb_f[m]
+        if px.size == 0:
+            return 0.0
+        mx = px.max(axis=1)
+        mn = px.min(axis=1)
+        sat = np.where(mx > 1e-3, (mx - mn) / mx, 0.0)
+        return float(sat.mean())
+
+    # A piece is background only if it's BOTH mostly over the flooded background
+    # AND colour-flat. Colourful pieces (leaves, saturated flowers) are always
+    # kept, even when they sit right against the background.
+    sat_thresh = 0.12
 
     any_kept = False
     for p in pieces:
@@ -372,8 +389,9 @@ def select_subject_mask(
         if area == 0:
             continue
         overlap = int(np.logical_and(m, bg_region).sum()) / area
-        if overlap > bg_overlap_thresh:
-            continue  # this piece is mostly the flooded background -> remove
+        is_flat = mean_saturation(m) < sat_thresh
+        if overlap > bg_overlap_thresh and is_flat:
+            continue  # flat, background-coloured piece -> remove
         subject |= m
         any_kept = True
 
