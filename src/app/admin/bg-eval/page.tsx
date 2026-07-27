@@ -23,10 +23,14 @@ import { Button } from '@/components/ui/Button';
 import { toast } from '@/lib/toast';
 import { RefreshCw, Upload, Play, Loader2 } from 'lucide-react';
 import { createClientSupabaseClient } from '@/lib/supabase/client';
+// This admin-only eval harness deliberately runs the real bg-removal engines
+// for side-by-side comparison, so it must reach into the tool folder directly.
+// eslint-disable-next-line no-restricted-imports
 import {
   detectBorderColor,
   computeWholeShapeMask,
 } from '@/tools/bg-removal/scribbleBrush';
+// eslint-disable-next-line no-restricted-imports
 import { removeBackground, segmentEverything } from '@/tools/bg-removal/api';
 
 type CellStatus = 'idle' | 'running' | 'done' | 'error';
