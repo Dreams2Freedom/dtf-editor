@@ -400,6 +400,12 @@ def select_subject_mask(
         largest = max(pieces, key=lambda r: r["area"])
         subject |= largest["mask"]
 
+    # Carve out the border-connected background-coloured pixels. At the tight
+    # tol this only strips genuinely near-white background/gap pixels (which the
+    # loose SAM piece masks pull in around each element), NOT the coloured design
+    # itself — so the background goes transparent while flowers/leaves stay.
+    subject &= ~bg_region
+
     return subject.astype(np.uint8) * 255
 
 
