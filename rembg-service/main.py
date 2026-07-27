@@ -694,7 +694,8 @@ async def segment_everything_route(
         raise HTTPException(status_code=503, detail=f"SAM segment failed: {e}")
 
     orig_h, orig_w = state["original_size"]
-    subject_mask = select_subject_mask(pieces, orig_h, orig_w)
+    rgb_arr = np.array(input_img.convert("RGB"))
+    subject_mask = select_subject_mask(pieces, rgb_arr)
 
     overlay_img = render_pieces_overlay(input_img, pieces)
     cutout_img = apply_mask(input_img, subject_mask)

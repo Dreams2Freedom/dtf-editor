@@ -299,47 +299,91 @@ class SamPredictor:
         return kept, state
 
 
+def _detect_bg_color(rgb: np.ndarray) -> np.ndarray:
+    """Median colour of the image's 1px border (robust background estimate),
+    mirroring the classical engine's detectBorderColor."""
+    border = np.concatenate(
+        [rgb[0, :, :], rgb[-1, :, :], rgb[:, 0, :], rgb[:, -1, :]], axis=0
+    )
+    return np.median(border, axis=0)
+
+
+def compute_background_region(rgb: np.ndarray, tol: int = 50) -> np.ndarray:
+    """
+    The classical "reachable-from-the-border = background" idea, done properly:
+    background = connected regions of background-COLOURED pixels that touch the
+    image edge. Enclosed background-coloured pockets (e.g. a white flower inside
+    the design) are NOT included, because they don't connect to the outer edge.
+
+    Returns a bool (H, W) mask: True = background.
+    """
+    bg = _detect_bg_color(rgb).astype(np.int32)
+    diff = rgb.astype(np.int32) - bg
+    dist2 = (diff * diff).sum(axis=2)
+    candidate = (dist2 <= tol * tol).astype(np.uint8)  # background-coloured pixels
+
+    # Connected components of the candidate mask; keep only those touching a border.
+    num, labels = cv2.connectedComponents(candidate, connectivity=4)
+    border_labels = set(np.unique(labels[0, :]))
+    border_labels |= set(np.unique(labels[-1, :]))
+    border_labels |= set(np.unique(labels[:, 0]))
+    border_labels |= set(np.unique(labels[:, -1]))
+    border_labels.discard(0)  # 0 = non-candidate pixels
+    if not border_labels:
+        return np.zeros(rgb.shape[:2], dtype=bool)
+    return np.isin(labels, list(border_labels))
+
+
 def select_subject_mask(
     pieces: list,
-    orig_h: int,
-    orig_w: int,
-    border_touch_thresh: float = 0.14,
+    rgb: np.ndarray,
+    tol: int = 50,
+    bg_overlap_thresh: float = 0.5,
 ) -> np.ndarray:
     """
-    Our removal-engine logic on top of SAM's unlabeled pieces: decide which
-    pieces are the SUBJECT (keep) vs BACKGROUND (remove).
+    Our removal-engine decision on top of SAM's clean pieces (SAM highlights,
+    our tools remove): keep the SUBJECT, drop the BACKGROUND.
 
-    Heuristic mirrors the classical engine's "reachable from the border =
-    background" idea, but at the piece level: a piece that covers a large share
-    of the image's outer border is background; everything else is subject.
-    Falls back to the single largest piece if nothing qualifies.
+    A SAM piece is BACKGROUND when it mostly overlaps the border-connected
+    background-coloured region. This keeps design elements that sit near the
+    edge (they aren't background-coloured, so they survive) and drops both the
+    outer background and the background-coloured gaps between elements — while
+    preserving enclosed same-coloured design parts (not border-connected).
 
-    Returns a (H, W) uint8 mask: 255=keep (subject), 0=remove (background).
+    Finally the flooded background region is subtracted from the result, so any
+    background-coloured gap is transparent even if a kept piece overlapped it.
+
+    Returns a (H, W) uint8 mask: 255=keep, 0=remove.
     """
-    subject = np.zeros((orig_h, orig_w), dtype=bool)
+    h, w = rgb.shape[:2]
+    subject = np.zeros((h, w), dtype=bool)
     if not pieces:
         return subject.astype(np.uint8) * 255
 
-    # Perimeter pixel budget for the border-coverage ratio.
-    perimeter = max(1, 2 * orig_w + 2 * orig_h)
-
-    def border_ratio(mask: np.ndarray) -> float:
-        top = int(mask[0, :].sum())
-        bottom = int(mask[-1, :].sum())
-        left = int(mask[:, 0].sum())
-        right = int(mask[:, -1].sum())
-        return (top + bottom + left + right) / perimeter
+    bg_region = compute_background_region(rgb, tol=tol)
 
     any_kept = False
     for p in pieces:
-        if border_ratio(p["mask"]) <= border_touch_thresh:
-            subject |= p["mask"]
-            any_kept = True
+        m = p["mask"]
+        if m.shape != (h, w):
+            continue
+        area = int(m.sum())
+        if area == 0:
+            continue
+        overlap = int(np.logical_and(m, bg_region).sum()) / area
+        if overlap > bg_overlap_thresh:
+            continue  # this piece is mostly the flooded background -> remove
+        subject |= m
+        any_kept = True
 
     if not any_kept:
-        # Everything looked border-ish — keep the largest piece as the subject.
+        # Nothing qualified — keep the largest non-background-ish piece.
         largest = max(pieces, key=lambda r: r["area"])
         subject |= largest["mask"]
+
+    # Carve out any background-coloured, border-connected pixels that slipped
+    # into a kept piece, so the gaps stay clean and transparent.
+    subject &= ~bg_region
 
     return subject.astype(np.uint8) * 255
 
