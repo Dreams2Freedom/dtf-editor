@@ -337,21 +337,22 @@ def compute_background_region(rgb: np.ndarray, tol: int = 50) -> np.ndarray:
 def select_subject_mask(
     pieces: list,
     rgb: np.ndarray,
-    tol: int = 50,
-    bg_overlap_thresh: float = 0.5,
+    tol: int = 30,
+    bg_overlap_thresh: float = 0.6,
 ) -> np.ndarray:
     """
     Our removal-engine decision on top of SAM's clean pieces (SAM highlights,
     our tools remove): keep the SUBJECT, drop the BACKGROUND.
 
     A SAM piece is BACKGROUND when it mostly overlaps the border-connected
-    background-coloured region. This keeps design elements that sit near the
-    edge (they aren't background-coloured, so they survive) and drops both the
-    outer background and the background-coloured gaps between elements — while
-    preserving enclosed same-coloured design parts (not border-connected).
+    background-coloured region — i.e. it IS the outer background or a gap. Design
+    elements are kept whole (we do NOT carve pixels out of a kept piece), so
+    pastel flowers/leaves near the edge survive intact instead of being eroded.
+    The gaps between elements go transparent because SAM segments them as their
+    own background pieces, which get dropped here.
 
-    Finally the flooded background region is subtracted from the result, so any
-    background-coloured gap is transparent even if a kept piece overlapped it.
+    `tol` is deliberately tight so pale/pastel design colours are NOT mistaken
+    for the (usually white) background.
 
     Returns a (H, W) uint8 mask: 255=keep, 0=remove.
     """
@@ -380,10 +381,6 @@ def select_subject_mask(
         # Nothing qualified — keep the largest non-background-ish piece.
         largest = max(pieces, key=lambda r: r["area"])
         subject |= largest["mask"]
-
-    # Carve out any background-coloured, border-connected pixels that slipped
-    # into a kept piece, so the gaps stay clean and transparent.
-    subject &= ~bg_region
 
     return subject.astype(np.uint8) * 255
 
