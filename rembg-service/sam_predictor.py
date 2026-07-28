@@ -406,6 +406,27 @@ def select_subject_mask(
     # itself — so the background goes transparent while flowers/leaves stay.
     subject &= ~bg_region
 
+    # Fill tiny enclosed specks: small transparent holes that are NOT connected
+    # to the outer background are near-white design detail (highlights inside a
+    # flower, thin light areas) the carve nicked out — fill them back. Large gaps
+    # and the border-connected background stay transparent. Mirrors the classical
+    # engine's stranded-speck / internal-hole cleanup.
+    inv = (~subject).astype(np.uint8)
+    num, labels = cv2.connectedComponents(inv, connectivity=4)
+    if num > 1:
+        sizes = np.bincount(labels.ravel(), minlength=num)
+        border_ids = np.unique(
+            np.concatenate(
+                [labels[0, :], labels[-1, :], labels[:, 0], labels[:, -1]]
+            )
+        )
+        is_border = np.zeros(num, dtype=bool)
+        is_border[border_ids] = True
+        speck_px = max(1, int(0.0006 * h * w))  # ~0.06% of the image
+        fill_label = (sizes < speck_px) & (~is_border)
+        fill_label[0] = False  # label 0 is the kept subject, never refill it
+        subject |= fill_label[labels]
+
     return subject.astype(np.uint8) * 255
 
 
