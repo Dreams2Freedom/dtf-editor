@@ -1232,14 +1232,22 @@ export function BackgroundRemovalPanel({
       // size drives both the seed radius and how far the flood may travel.
       const seedRadius = Math.max(1, sizeAtCommit / GROW_SEED_RADIUS_DIVISOR);
       const seeds = strokeToSeeds(path, seedRadius, orig.width, orig.height);
-      // Context-aware region selection — INDEPENDENT of brush size
-      // (ClippingMagic-style). Every stroke fills the whole connected region of
-      // its type over the background/foreground partition: Keep fills the
-      // connected foreground, Remove fills the connected background. Brush size
-      // only sets the seed + footprint, NOT how far the fill reaches — so a
-      // small brush in the right spot still grabs the whole region it needs. The
-      // partition is colour-based, so the fill won't cross into colour-distinct
-      // linework (e.g. it clears the tan between letters without eating the text).
+      // Context-aware region selection with a CONTINUOUS, size-scaled reach (no
+      // discrete precise/fill/whole-shape tiers). Brush size sets how far a
+      // stroke's fill may travel — bigger brush = larger area — but it is BOUNDED
+      // (never the whole image), so a Keep stroke on the background grabs a local
+      // region instead of flooding the entire background back in. The fill is
+      // over the colour-based fg/bg partition, so it clears the tan between
+      // letters without crossing into the text.
+      const resFactor = Math.max(
+        1,
+        Math.max(orig.width, orig.height) / REACH_REFERENCE_DIM
+      );
+      const reachRadius = Math.max(
+        1,
+        sizeAtCommit * GROW_MEDIUM_REACH_PER_SIZE * resFactor
+      );
+
       if (!bgMaskRef.current) {
         const bgColor = detectBorderColor(orig.data, orig.width, orig.height);
         bgMaskRef.current = computeBackgroundMask(
@@ -1252,7 +1260,7 @@ export function BackgroundRemovalPanel({
       }
       const bgMask = bgMaskRef.current;
       // Keep fills the foreground shape (bgMask 0); Remove fills the background
-      // area (bgMask 1). Unbounded reach = the entire connected component.
+      // area (bgMask 1), bounded by the size-scaled reach.
       const passValue: 0 | 1 = tool === 'keep' ? 0 : 1;
       let region = fillConnectedRegion(
         bgMask,
@@ -1260,11 +1268,11 @@ export function BackgroundRemovalPanel({
         orig.width,
         orig.height,
         seeds,
-        Infinity
+        reachRadius
       );
-      // Fallback: if the partition fill found nothing (e.g. painting a subject
-      // part that shares the background colour), use an edge-aware grow so the
-      // stroke still does something sensible.
+      // Fallback: if the partition fill found nothing (e.g. a Keep stroke on bare
+      // background, or painting a subject part that shares the bg colour), use an
+      // edge-aware grow bounded by the SAME reach so the stroke stays local.
       let any = false;
       for (let i = 0; i < region.length; i++) {
         if (region[i]) {
@@ -1274,7 +1282,7 @@ export function BackgroundRemovalPanel({
       }
       if (!any) {
         region = growRegionFromStroke(orig.data, orig.width, orig.height, seeds, {
-          reachRadius: Infinity,
+          reachRadius,
           edgeThreshold: GROW_EDGE_THRESHOLD,
           colorTolerance: GROW_FLOOD_COLOR_TOLERANCE,
         });
