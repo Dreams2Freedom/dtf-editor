@@ -369,6 +369,7 @@ def select_subject_mask(
         return subject.astype(np.uint8) * 255
 
     bg_region = compute_background_region(rgb, tol=tol)
+    bg_color = _detect_bg_color(rgb).astype(np.float32)
     rgb_f = rgb.astype(np.float32)
 
     def mean_saturation(m: np.ndarray) -> float:
@@ -382,10 +383,20 @@ def select_subject_mask(
         sat = np.where(mx > 1e-3, (mx - mn) / mx, 0.0)
         return float(sat.mean())
 
-    # A piece is background only if it's BOTH mostly over the flooded background
-    # AND colour-flat. Colourful pieces (leaves, saturated flowers) are always
-    # kept, even when they sit right against the background.
+    def mean_color_dist(m: np.ndarray) -> float:
+        """Distance of a piece's mean colour to the detected background colour."""
+        px = rgb_f[m]
+        if px.size == 0:
+            return 1e9
+        return float(np.linalg.norm(px.mean(axis=0) - bg_color))
+
+    # A flat piece is BACKGROUND when it's connected to the outer background OR
+    # it's simply background-COLOURED anywhere in the image — this second case is
+    # what removes an enclosed background pocket walled off inside a border (e.g.
+    # the tan inside a circular logo frame), matching ClippingMagic. Colourful /
+    # detailed pieces (text is dark, badges are saturated) are always kept.
     sat_thresh = 0.12
+    bg_color_tol = 55  # a flat piece this close to the bg colour counts as background
 
     any_kept = False
     for p in pieces:
@@ -395,10 +406,11 @@ def select_subject_mask(
         area = int(m.sum())
         if area == 0:
             continue
-        overlap = int(np.logical_and(m, bg_region).sum()) / area
         is_flat = mean_saturation(m) < sat_thresh
-        if overlap > bg_overlap_thresh and is_flat:
-            continue  # flat, background-coloured piece -> remove
+        overlap = int(np.logical_and(m, bg_region).sum()) / area
+        is_bg_colored = mean_color_dist(m) <= bg_color_tol
+        if is_flat and (overlap > bg_overlap_thresh or is_bg_colored):
+            continue  # flat background piece (outer, gap, OR enclosed) -> remove
         subject |= m
         any_kept = True
 

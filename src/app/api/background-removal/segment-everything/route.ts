@@ -40,12 +40,23 @@ async function handler(request: NextRequest) {
 
   const { data: profile } = await supabase
     .from('profiles')
-    .select('is_admin')
+    .select('subscription_status, is_admin')
     .eq('id', user.id)
     .single();
 
-  if (profile?.is_admin !== true) {
-    return NextResponse.json({ error: 'Admin only' }, { status: 403 });
+  // Same gate as the in-house removal route: paid users + admins. This is what
+  // lets SAM actually be the primary engine for real users, not just admins.
+  const isPaid =
+    profile?.is_admin === true ||
+    (profile?.subscription_status &&
+      profile.subscription_status !== 'free' &&
+      profile.subscription_status !== 'cancelled');
+
+  if (!isPaid) {
+    return NextResponse.json(
+      { error: 'Upgrade required', code: 'UPGRADE_REQUIRED' },
+      { status: 403 }
+    );
   }
 
   if (!env.REMBG_SERVICE_URL) {
