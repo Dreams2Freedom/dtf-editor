@@ -41,6 +41,7 @@ import {
   samplePathPoints,
   useBackgroundRemoval,
 } from './useBackgroundRemoval';
+import { samRemoveBackground } from './api';
 import type {
   BgRemovalModel,
   PanelMode,
@@ -72,6 +73,21 @@ interface BackgroundRemovalPanelProps {
     commit: (() => Promise<HTMLCanvasElement | null>) | null
   ) => void;
 }
+
+/**
+ * SAM-first initial cut (step 1 of the SAM rollout). When enabled, the initial
+ * background removal is produced by the in-house SAM "find everything" +
+ * subject-selection engine instead of the classical/ML auto-cutout. It runs
+ * AFTER the existing engine (which stays as the guaranteed fallback) and simply
+ * overrides the base mask on success — so a SAM failure/timeout silently leaves
+ * today's behavior intact. Brushes, sliders, layout, and downstream pipeline are
+ * unchanged; the mask just started life as SAM's.
+ *
+ * NOTE: the /segment-everything endpoint is currently admin-gated, so in
+ * practice only admins get the SAM cut until the endpoint is opened to paid
+ * users for customer rollout. Flip to false to disable entirely.
+ */
+const SAM_FIRST_CUT_ENABLED = true;
 
 const STATUS_LABELS: Record<string, string> = {
   idle: '',
@@ -700,6 +716,57 @@ export function BackgroundRemovalPanel({
   }, [viewMode, renderPreviewFromMask]);
 
   /**
+   * SAM-first initial cut: produce the base mask from the in-house SAM engine
+   * (find-everything + subject selection) and override samMaskRef, then
+   * recompute. Returns true on success; any failure returns false so the caller
+   * keeps whatever the classical engine produced. Never runs downstream logic
+   * differently — it only swaps what the base mask started as.
+   */
+  const applySamFirstCut = useCallback(
+    async (canvas: HTMLCanvasElement): Promise<boolean> => {
+      const orig = originalDataRef.current;
+      if (!orig) return false;
+      // Respect the user: if they've already started brushing, don't clobber it.
+      if (strokeHistoryRef.current.length > 0) return false;
+      try {
+        const blob = await new Promise<Blob | null>(resolve =>
+          canvas.toBlob(b => resolve(b), 'image/png')
+        );
+        if (!blob) return false;
+        const { cutoutUrl } = await samRemoveBackground(blob);
+        const img = await new Promise<HTMLImageElement>((resolve, reject) => {
+          const el = new Image();
+          el.onload = () => resolve(el);
+          el.onerror = () => reject(new Error('cutout decode failed'));
+          el.src = cutoutUrl;
+        });
+        // Re-check after the network round-trip.
+        if (strokeHistoryRef.current.length > 0) return false;
+        const off = document.createElement('canvas');
+        off.width = orig.width;
+        off.height = orig.height;
+        const octx = off.getContext('2d');
+        if (!octx) return false;
+        octx.drawImage(img, 0, 0, orig.width, orig.height);
+        const data = octx.getImageData(0, 0, orig.width, orig.height);
+        const m = new Uint8Array(orig.width * orig.height);
+        for (let i = 0; i < m.length; i++) {
+          m[i] = data.data[i * 4 + 3] > 127 ? 1 : 0;
+        }
+        samMaskRef.current = m;
+        initialMaskRef.current = data;
+        const recompute = recomputeCumulativeRef.current;
+        if (recompute) recompute();
+        return true;
+      } catch (e) {
+        console.warn('[BG] SAM first-cut failed; keeping classical result:', e);
+        return false;
+      }
+    },
+    []
+  );
+
+  /**
    * Kick off the smart initial mask (detect → ML/color-key auto-cutout).
    * Called on mount AND from handleReset so "Reset to original" re-runs it.
    * The brush itself is client-side and needs no server warm-up here.
@@ -750,7 +817,7 @@ export function BackgroundRemovalPanel({
         }
       }
       // Smart initial mask: detect → ml+color when bg is flood-fillable.
-      return runDetect(canvas)
+      const classicalChain = runDetect(canvas)
         .then(detection => {
           const opts: RemovalOptions = (() => {
             if (!detection || detection.recommended_mode === 'noop') {
@@ -841,8 +908,20 @@ export function BackgroundRemovalPanel({
             }
           }
         });
+
+      if (!SAM_FIRST_CUT_ENABLED) return classicalChain;
+      // Kick off SAM in parallel with the classical chain (which stays the
+      // guaranteed fallback). SAM overrides the base mask when it lands; on
+      // failure the classical result remains. Running them concurrently keeps
+      // the wait at ~SAM time rather than classical + SAM. In the default
+      // keep-whole-shape mode the classical chain doesn't touch samMaskRef, so
+      // there's no race — the instant whole-shape seed shows first, then SAM.
+      const samPromise = applySamFirstCut(canvas);
+      return classicalChain
+        .catch(err => console.warn('[BG] classical initial cut error:', err))
+        .then(() => samPromise);
     },
-    [runDetect, runRemoval, renderPreviewFromMask]
+    [runDetect, runRemoval, renderPreviewFromMask, applySamFirstCut]
   );
 
   // Init canvas, kick off analysis on mount.
