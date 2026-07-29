@@ -396,6 +396,10 @@ export function BackgroundRemovalPanel({
   const recomputeCumulativeRef = useRef<(() => void) | null>(null);
   const [brushTool, setBrushTool] = useState<BrushTool>('keep');
   const [brushSize, setBrushSize] = useState(20);
+  // Diagnostic (SAM rollout): tells us whether the SAM first-cut actually ran.
+  const [samStatus, setSamStatus] = useState<
+    'idle' | 'running' | 'applied' | 'failed'
+  >('idle');
   // The edge-aware scribble brush runs entirely on the client, so it's usable
   // as soon as the original pixels are loaded — no SAM embed / model warm-up.
   const [brushReady, setBrushReady] = useState(false);
@@ -728,11 +732,15 @@ export function BackgroundRemovalPanel({
       if (!orig) return false;
       // Respect the user: if they've already started brushing, don't clobber it.
       if (strokeHistoryRef.current.length > 0) return false;
+      setSamStatus('running');
       try {
         const blob = await new Promise<Blob | null>(resolve =>
           canvas.toBlob(b => resolve(b), 'image/png')
         );
-        if (!blob) return false;
+        if (!blob) {
+          setSamStatus('failed');
+          return false;
+        }
         const { cutoutUrl } = await samRemoveBackground(blob);
         const img = await new Promise<HTMLImageElement>((resolve, reject) => {
           const el = new Image();
@@ -757,9 +765,11 @@ export function BackgroundRemovalPanel({
         initialMaskRef.current = data;
         const recompute = recomputeCumulativeRef.current;
         if (recompute) recompute();
+        setSamStatus('applied');
         return true;
       } catch (e) {
         console.warn('[BG] SAM first-cut failed; keeping classical result:', e);
+        setSamStatus('failed');
         return false;
       }
     },
@@ -1986,6 +1996,25 @@ export function BackgroundRemovalPanel({
           }}
         >
           <div className="relative">
+            {/* SAM rollout diagnostic — shows whether the SAM first-cut ran.
+                Remove once SAM is confirmed working. */}
+            {SAM_FIRST_CUT_ENABLED && samStatus !== 'idle' && (
+              <div
+                className={`absolute left-2 top-2 z-30 rounded-md px-2 py-1 text-[11px] font-semibold shadow ${
+                  samStatus === 'applied'
+                    ? 'bg-green-600 text-white'
+                    : samStatus === 'failed'
+                      ? 'bg-red-600 text-white'
+                      : 'bg-amber-500 text-white'
+                }`}
+              >
+                {samStatus === 'running'
+                  ? 'SAM: running…'
+                  : samStatus === 'applied'
+                    ? 'SAM: applied ✓'
+                    : 'SAM: failed → classical'}
+              </div>
+            )}
             {/* Zoom/pan transform wrapper — only the canvas + SVG overlays
                 live inside this. Cursor circle + view pill + zoom controls
                 stay OUTSIDE so they don't scale or pan. */}
