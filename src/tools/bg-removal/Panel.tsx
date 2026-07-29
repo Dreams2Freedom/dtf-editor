@@ -1222,69 +1222,51 @@ export function BackgroundRemovalPanel({
       // size drives both the seed radius and how far the flood may travel.
       const seedRadius = Math.max(1, sizeAtCommit / GROW_SEED_RADIUS_DIVISOR);
       const seeds = strokeToSeeds(path, seedRadius, orig.width, orig.height);
-      // Reach scales with the image's longest side so a given brush size covers
-      // the same visual fraction on a small logo or a 4K design.
-      const resFactor = Math.max(
-        1,
-        Math.max(orig.width, orig.height) / REACH_REFERENCE_DIM
-      );
-      const reachRadius = reachForBrushSize(sizeAtCommit, resFactor);
-
-      // Region selection, by brush size:
-      //  - Precise (small): edge-aware local grow — snaps to nearby edges,
-      //    stays within a colour band of the seed. Great for touch-ups.
-      //  - Medium / Wide (big): connected-component FILL over a
-      //    background/foreground partition (background = the border-connected
-      //    background colour). This floods the whole subject (Keep) or whole
-      //    background area (Remove) in one stroke — crossing internal line-work
-      //    that shares the background colour, which the edge-grow can't. Wide =
-      //    unbounded (the entire component); Medium = reach-bounded.
-      let region: Uint8Array;
-      if (sizeAtCommit >= BRUSH_MEDIUM_SIZE) {
-        if (!bgMaskRef.current) {
-          const bgColor = detectBorderColor(orig.data, orig.width, orig.height);
-          bgMaskRef.current = computeBackgroundMask(
-            orig.data,
-            orig.width,
-            orig.height,
-            bgColor,
-            BG_CONNECT_TOLERANCE
-          );
-        }
-        const bgMask = bgMaskRef.current;
-        // Keep fills the foreground shape (bgMask 0); Remove fills the
-        // background area (bgMask 1).
-        const passValue: 0 | 1 = tool === 'keep' ? 0 : 1;
-        region = fillConnectedRegion(
-          bgMask,
-          passValue,
+      // Context-aware region selection — INDEPENDENT of brush size
+      // (ClippingMagic-style). Every stroke fills the whole connected region of
+      // its type over the background/foreground partition: Keep fills the
+      // connected foreground, Remove fills the connected background. Brush size
+      // only sets the seed + footprint, NOT how far the fill reaches — so a
+      // small brush in the right spot still grabs the whole region it needs. The
+      // partition is colour-based, so the fill won't cross into colour-distinct
+      // linework (e.g. it clears the tan between letters without eating the text).
+      if (!bgMaskRef.current) {
+        const bgColor = detectBorderColor(orig.data, orig.width, orig.height);
+        bgMaskRef.current = computeBackgroundMask(
+          orig.data,
           orig.width,
           orig.height,
-          seeds,
-          reachRadius
+          bgColor,
+          BG_CONNECT_TOLERANCE
         );
-        // Fallback: if the fill found nothing (e.g. a Remove stroke painted on
-        // the subject, or a Keep stroke on bare background), use the edge-aware
-        // grow so the stroke still does something sensible.
-        let any = false;
-        for (let i = 0; i < region.length; i++) {
-          if (region[i]) {
-            any = true;
-            break;
-          }
+      }
+      const bgMask = bgMaskRef.current;
+      // Keep fills the foreground shape (bgMask 0); Remove fills the background
+      // area (bgMask 1). Unbounded reach = the entire connected component.
+      const passValue: 0 | 1 = tool === 'keep' ? 0 : 1;
+      let region = fillConnectedRegion(
+        bgMask,
+        passValue,
+        orig.width,
+        orig.height,
+        seeds,
+        Infinity
+      );
+      // Fallback: if the partition fill found nothing (e.g. painting a subject
+      // part that shares the background colour), use an edge-aware grow so the
+      // stroke still does something sensible.
+      let any = false;
+      for (let i = 0; i < region.length; i++) {
+        if (region[i]) {
+          any = true;
+          break;
         }
-        if (!any) {
-          region = growRegionFromStroke(orig.data, orig.width, orig.height, seeds, {
-            reachRadius,
-            edgeThreshold: GROW_EDGE_THRESHOLD,
-            colorTolerance: GROW_FLOOD_COLOR_TOLERANCE,
-          });
-        }
-      } else {
+      }
+      if (!any) {
         region = growRegionFromStroke(orig.data, orig.width, orig.height, seeds, {
-          reachRadius,
+          reachRadius: Infinity,
           edgeThreshold: GROW_EDGE_THRESHOLD,
-          colorTolerance: GROW_COLOR_TOLERANCE,
+          colorTolerance: GROW_FLOOD_COLOR_TOLERANCE,
         });
       }
       if (region.length !== total) return;
@@ -2378,29 +2360,15 @@ export function BackgroundRemovalPanel({
                   )}
                 </div>
 
-                {/* Brush size — controls cursor size and edge-aware reach. */}
+                {/* Brush size — just the footprint size; behavior is the same
+                    context-aware region fill at every size. */}
                 <div>
                   <div className="flex items-center justify-between mb-1">
                     <label className="text-xs font-medium text-gray-600">
-                      Brush Size &amp; Reach
+                      Brush Size
                     </label>
                     <span className="text-xs text-gray-500 tabular-nums">
-                      {brushSize}px ·{' '}
-                      <span
-                        className={
-                          brushSize >= BRUSH_WHOLE_SIZE
-                            ? 'text-amber-600 font-medium'
-                            : brushSize <= BRUSH_MEDIUM_SIZE
-                              ? 'text-green-600 font-medium'
-                              : 'text-blue-600 font-medium'
-                        }
-                      >
-                        {brushSize >= BRUSH_WHOLE_SIZE
-                          ? 'Whole shape'
-                          : brushSize <= BRUSH_MEDIUM_SIZE
-                            ? 'Precise'
-                            : 'Fill'}
-                      </span>
+                      {brushSize}px
                     </span>
                   </div>
                   <input
@@ -2413,14 +2381,12 @@ export function BackgroundRemovalPanel({
                     className="w-full accent-blue-600"
                   />
                   <p className="text-xs text-gray-400 mt-1">
-                    <span className="text-green-600">Precise</span> = pixel-level
-                    touch-ups.{' '}
-                    <span className="text-blue-600">Fill</span> = fills a bounded
-                    area around the stroke (bigger = larger).{' '}
-                    <span className="text-amber-600">Whole shape</span> = fills
-                    the entire connected region in one stroke. Every stroke also
-                    always keeps/removes exactly what you paint over, so you can
-                    paint back areas the fill can&apos;t grab.
+                    Paint with <span className="text-green-600">Keep</span> or{' '}
+                    <span className="text-red-600">Remove</span> — each stroke
+                    intelligently grabs the whole connected region it touches
+                    (keeps the subject / clears the background) without crossing
+                    into the artwork. Brush size only sets how much area you cover;
+                    it always also keeps/removes exactly what you paint over.
                   </p>
                 </div>
 
