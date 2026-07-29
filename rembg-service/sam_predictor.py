@@ -201,13 +201,20 @@ class SamPredictor:
 
         masks, iou_preds, low_res_masks = self.decoder.run(None, decoder_inputs)
 
-        # Warp masks from INPUT_SIZE space back to original image space
-        inv_transform = np.linalg.inv(transform_matrix)
-        output_masks = _transform_masks(masks, original_size, inv_transform)
-
-        # Pick highest-IoU mask
+        # Pick the highest-IoU mask, then warp ONLY that one back to original
+        # space. The decoder returns 3 candidate masks but we only ever keep the
+        # best, so warping all 3 (as before) was 3x wasted work per call — a big
+        # cost in the automatic grid sweep.
         best = int(np.argmax(iou_preds[0]))
-        binary_mask = (output_masks[best] > 0.0).astype(np.uint8) * 255
+        inv_transform = np.linalg.inv(transform_matrix)
+        orig_h, orig_w = original_size
+        m_back = cv2.warpAffine(
+            masks[0, best],
+            inv_transform[:2],
+            (orig_w, orig_h),
+            flags=cv2.INTER_LINEAR,
+        )
+        binary_mask = (m_back > 0.0).astype(np.uint8) * 255
         best_low_res = low_res_masks[:, best : best + 1]
         score = float(iou_preds[0, best])
 
@@ -216,7 +223,7 @@ class SamPredictor:
     def segment_everything(
         self,
         img: Image.Image,
-        points_per_side: int = 16,
+        points_per_side: int = 12,
         pred_iou_thresh: float = 0.80,
         min_area_frac: float = 0.002,
         max_area_frac: float = 0.95,

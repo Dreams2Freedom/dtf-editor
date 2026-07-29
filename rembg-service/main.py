@@ -630,7 +630,7 @@ async def predict_mask(
 # Cap the working resolution for automatic segmentation: SAM already operates at
 # ~1024px internally, and the grid sweep runs the decoder many times, so a
 # smaller image keeps memory + latency sane on the CPU box.
-_SEGMENT_MAX_DIM = 1024
+_SEGMENT_MAX_DIM = 768
 
 
 def _png_b64(img: Image.Image) -> str:
@@ -642,7 +642,7 @@ def _png_b64(img: Image.Image) -> str:
 @app.post("/segment-everything")
 async def segment_everything_route(
     image: UploadFile = File(...),
-    points_per_side: int = Form(default=16),
+    points_per_side: int = Form(default=12),
     x_api_key: Optional[str] = Header(default=None),
 ):
     """

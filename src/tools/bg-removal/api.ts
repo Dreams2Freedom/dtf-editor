@@ -162,7 +162,7 @@ export interface SegmentEverythingResult {
  */
 export async function segmentEverything(
   imageBlob: Blob,
-  pointsPerSide = 16
+  pointsPerSide = 12
 ): Promise<SegmentEverythingResult> {
   const { url, path } = await stageImage(imageBlob);
 
