@@ -191,6 +191,40 @@ export async function segmentEverything(
   };
 }
 
+/**
+ * Customer-facing SAM removal: returns ONLY the finished cutout (no piece
+ * overlay), for the studio-style tool. Skips overlay rendering for speed.
+ */
+export async function samRemoveBackground(
+  imageBlob: Blob,
+  pointsPerSide = 12
+): Promise<{ cutoutUrl: string; ms: number }> {
+  const { url, path } = await stageImage(imageBlob);
+
+  const res = await fetch('/api/background-removal/segment-everything', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      url,
+      path,
+      points_per_side: String(pointsPerSide),
+      overlay: 'false',
+    }),
+    credentials: 'include',
+  });
+
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error(body.error || `Background removal failed (${res.status})`);
+  }
+
+  const data = await res.json();
+  return {
+    cutoutUrl: `data:image/png;base64,${data.cutout_png}`,
+    ms: Number(data.elapsed_ms) || 0,
+  };
+}
+
 export async function embedImage(imageBlob: Blob): Promise<SamSession> {
   const { url, path } = await stageImage(imageBlob);
 

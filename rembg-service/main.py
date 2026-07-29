@@ -643,6 +643,7 @@ def _png_b64(img: Image.Image) -> str:
 async def segment_everything_route(
     image: UploadFile = File(...),
     points_per_side: int = Form(default=12),
+    overlay: str = Form(default="true"),
     x_api_key: Optional[str] = Header(default=None),
 ):
     """
@@ -697,13 +698,17 @@ async def segment_everything_route(
     rgb_arr = np.array(input_img.convert("RGB"))
     subject_mask = select_subject_mask(pieces, rgb_arr)
 
-    overlay_img = render_pieces_overlay(input_img, pieces)
     cutout_img = apply_mask(input_img, subject_mask)
+
+    # The piece overlay is a debug/eval visualization only — the customer path
+    # skips it (both to hide internals and to save the render time).
+    want_overlay = overlay.lower() not in ("false", "0", "no")
+    overlay_b64 = _png_b64(render_pieces_overlay(input_img, pieces)) if want_overlay else ""
 
     elapsed_ms = int((time.time() - t0) * 1000)
 
     return {
-        "overlay_png": _png_b64(overlay_img),
+        "overlay_png": overlay_b64,
         "cutout_png": _png_b64(cutout_img),
         "num_pieces": len(pieces),
         "points_per_side": pps,

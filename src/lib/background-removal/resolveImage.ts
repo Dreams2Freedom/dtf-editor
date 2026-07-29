@@ -24,6 +24,7 @@ const PASSTHROUGH_FIELDS = [
   'post_process_white',
   'white_threshold',
   'points_per_side',
+  'overlay',
 ] as const;
 
 export interface ResolvedImage {
