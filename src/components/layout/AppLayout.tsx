@@ -32,6 +32,8 @@ export function AppLayout({ children, showFooter = true }: AppLayoutProps) {
   const isAuthPage = pathname?.startsWith('/auth/');
   const isAdminPage = pathname?.startsWith('/admin');
   const isClippingMagicEditor = pathname?.includes('/clippingmagic-editor');
+  // Partner embed (external gangsheet app): render bare, no app chrome.
+  const isEmbedPage = pathname?.startsWith('/embed');
   const isHomePage = pathname === '/';
   // /pricing renders its own public/logged-in chrome (see app/pricing),
   // so skip the global app header/footer here to avoid a duplicate header.
@@ -45,6 +47,7 @@ export function AppLayout({ children, showFooter = true }: AppLayoutProps) {
     isAuthPage ||
     isAdminPage ||
     isClippingMagicEditor ||
+    isEmbedPage ||
     isHomePage ||
     isPricingPage
   ) {

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { authenticatePartner } from './auth';
+import { verifyEmbedToken } from './embedToken';
 
 /**
  * Shared HTTP helpers for the Partner Tools API: permissive CORS (the API key
@@ -29,10 +30,32 @@ export type PartnerGate =
     }
   | { ok: false; response: NextResponse };
 
-/** Authenticate the partner and require a `shop` in the JSON body. */
+/**
+ * Authenticate a tool call and resolve { partnerId, shop }. Accepts EITHER:
+ *  - a partner API key (server-to-server) — shop comes from the JSON body, or
+ *  - an embed session token via the `X-Embed-Token` header (browser embed) —
+ *    partnerId + shop come from the signed token, so the browser can't forge
+ *    which shop is billed.
+ */
 export async function requirePartnerAndShop(
   request: NextRequest
 ): Promise<PartnerGate> {
+  const embedToken = request.headers.get('x-embed-token');
+  if (embedToken) {
+    const claims = verifyEmbedToken(embedToken);
+    if (!claims) {
+      return {
+        ok: false,
+        response: json({ error: 'Invalid or expired embed token' }, 401),
+      };
+    }
+    const body = (await request.json().catch(() => ({}))) as Record<
+      string,
+      unknown
+    >;
+    return { ok: true, partnerId: claims.partnerId, shop: claims.shop, body };
+  }
+
   const authRes = await authenticatePartner(request);
   if (!authRes.ok) {
     return { ok: false, response: json({ error: authRes.error }, authRes.status) };
