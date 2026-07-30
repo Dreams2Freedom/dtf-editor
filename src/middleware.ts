@@ -22,7 +22,7 @@ const securityHeaders = {
 // fbevents.js can load, and connect.facebook.net + www.facebook.com in
 // connect-src so the pixel can send events to https://www.facebook.com/tr.
 // Without these, the browser blocks the pixel and Meta can't detect it.
-const getCSP = () => {
+const getCSP = (allowFraming = false) => {
   const policy = [
     "default-src 'self'",
     "script-src 'self' 'unsafe-inline' https://js.stripe.com https://checkout.stripe.com https://clippingmagic.com https://connect.facebook.net",
@@ -34,7 +34,10 @@ const getCSP = () => {
     "object-src 'none'",
     "base-uri 'self'",
     "form-action 'self' https://checkout.stripe.com https://clippingmagic.com https://*.clippingmagic.com",
-    "frame-ancestors 'none'",
+    // Partner embed (/embed/*) must be framable by external apps (Shopify admin
+    // iframe → gangsheet app → our embed). The embed token is the security
+    // boundary, so any parent may frame it. Everything else stays 'none'.
+    allowFraming ? 'frame-ancestors *' : "frame-ancestors 'none'",
     "upgrade-insecure-requests",
   ];
 
@@ -43,6 +46,11 @@ const getCSP = () => {
 
 export async function middleware(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
+
+  // Partner embed pages must be framable by external apps (Shopify admin →
+  // gangsheet app → our /embed/*). For these routes we relax the frame guards
+  // below; the HMAC embed token is the real security boundary.
+  const isEmbed = pathname.startsWith('/embed');
 
   // Skip middleware for webhook routes — they need raw body access
   // and have their own auth (Stripe signature verification)
@@ -165,13 +173,16 @@ export async function middleware(request: NextRequest) {
     }
   }
 
-  // Apply security headers to all responses
+  // Apply security headers to all responses. For /embed/* skip X-Frame-Options
+  // entirely (it has no allowlist form — any value would block the Shopify
+  // parent) and let the CSP frame-ancestors directive govern framing instead.
   Object.entries(securityHeaders).forEach(([key, value]) => {
+    if (isEmbed && key === 'X-Frame-Options') return;
     response.headers.set(key, value);
   });
 
-  // Add CSP header
-  response.headers.set('Content-Security-Policy', getCSP());
+  // Add CSP header — allow framing only for partner embed routes.
+  response.headers.set('Content-Security-Policy', getCSP(isEmbed));
 
   // Add HSTS in production
   if (process.env.NODE_ENV === 'production') {
