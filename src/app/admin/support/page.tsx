@@ -62,83 +62,17 @@ export default function AdminSupportPage() {
   const fetchAllTickets = async () => {
     try {
       setLoading(true);
-      const supabase = (
-        await import('@/lib/supabase/client')
-      ).createClientSupabaseClient();
-      const { data: tickets, error } = await supabase
-        .from('support_tickets')
-        .select('*')
-        .order('created_at', { ascending: false });
+      // Fetch via the server-side admin route (service-role, bypasses RLS).
+      // Reading support_tickets directly from the client went through the
+      // "Admins can view all tickets" RLS policy, which subqueries the profiles
+      // table whose admin SELECT policy is self-referential (BUG-062) — that
+      // recursion could make the cross-user read fail and leave this page empty.
+      const res = await fetch('/api/admin/support');
+      if (!res.ok) throw new Error(`status ${res.status}`);
+      const { tickets: ticketsWithInfo } = await res.json();
 
-      if (error) throw error;
-
-      // Fetch all unique user IDs to get their emails (via admin API to bypass RLS)
-      const ticketData = tickets || [];
-      const userIds = [
-        ...new Set(
-          ticketData.map((t: { user_id: string }) => t.user_id).filter(Boolean)
-        ),
-      ];
-      const userEmailMap: Record<string, string> = {};
-      if (userIds.length > 0) {
-        try {
-          const res = await fetch('/api/admin/users/profiles', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ userIds }),
-          });
-          if (res.ok) {
-            const { profiles: profileMap } = await res.json();
-            for (const [id, p] of Object.entries(profileMap || {}) as [
-              string,
-              { email: string; name: string },
-            ][]) {
-              if (p.email) {
-                userEmailMap[id] = p.name ? `${p.name} (${p.email})` : p.email;
-              }
-            }
-          }
-        } catch (profileError) {
-          console.error('Error fetching user profiles:', profileError);
-        }
-      }
-
-      // Get message information for each ticket
-      const ticketsWithInfo = await Promise.all(
-        ticketData.map(async (ticket: SupportTicket) => {
-          // Get all messages for this ticket
-          const { data: messages } = await supabase
-            .from('support_messages')
-            .select('id, is_admin, created_at')
-            .eq('ticket_id', ticket.id)
-            .order('created_at', { ascending: false });
-
-          const messageCount = messages?.length || 0;
-          const lastMessage = messages?.[0];
-          const hasUserReply =
-            messages?.some((msg: { is_admin: boolean }) => !msg.is_admin) ||
-            false;
-          const lastReplyIsFromUser = lastMessage && !lastMessage.is_admin;
-
-          // Check if waiting for admin response (last message is from user and ticket is open)
-          const waitingForAdmin =
-            lastReplyIsFromUser &&
-            (ticket.status === 'open' || ticket.status === 'in_progress');
-
-          return {
-            ...ticket,
-            user_email: userEmailMap[ticket.user_id] || ticket.user_id,
-            message_count: messageCount,
-            has_user_reply: hasUserReply,
-            last_reply_from_user: lastReplyIsFromUser,
-            waiting_for_admin: waitingForAdmin,
-            last_message_at: lastMessage?.created_at,
-          };
-        })
-      );
-
-      setTickets(ticketsWithInfo);
-      setFilteredTickets(ticketsWithInfo);
+      setTickets(ticketsWithInfo || []);
+      setFilteredTickets(ticketsWithInfo || []);
     } catch (error) {
       console.error('Error fetching tickets:', error);
       setTickets([]);
