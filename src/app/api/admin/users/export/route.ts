@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
+import { fetchAllRows } from '@/lib/supabase/fetchAllRows';
 import { withRateLimit } from '@/lib/rate-limit';
 
 async function handleGet(request: NextRequest) {
@@ -35,11 +36,13 @@ async function handleGet(request: NextRequest) {
       ?.split(',')
       .filter(id => id);
 
-    // Build query
-    let query = supabase
-      .from('profiles')
-      .select(
-        `
+    // Build + run the query, paginating past Supabase's default 1000-row cap
+    // so a full export includes every user, not just the first 1000.
+    const users = await fetchAllRows((from, to) => {
+      let query = supabase
+        .from('profiles')
+        .select(
+          `
         id,
         email,
         full_name,
@@ -55,21 +58,18 @@ async function handleGet(request: NextRequest) {
         is_admin,
         user_settings
       `
-      )
-      .order('created_at', { ascending: false });
+        )
+        .order('created_at', { ascending: false });
 
-    // Filter by user IDs if provided
-    if (userIds && userIds.length > 0) {
-      query = query.in('id', userIds);
-    }
+      // Filter by user IDs if provided
+      if (userIds && userIds.length > 0) {
+        query = query.in('id', userIds);
+      }
 
-    const { data: users, error } = await query;
+      return query.range(from, to);
+    });
 
-    if (error) {
-      throw error;
-    }
-
-    if (!users) {
+    if (!users || users.length === 0) {
       return NextResponse.json({ error: 'No users found' }, { status: 404 });
     }
 

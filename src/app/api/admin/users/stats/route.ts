@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { createServiceRoleSupabaseClient } from '@/lib/supabase/service';
+import { fetchAllRows } from '@/lib/supabase/fetchAllRows';
 import { withRateLimit } from '@/lib/rate-limit';
 
 async function handleGet() {
@@ -42,12 +43,22 @@ async function handleGet() {
       );
     }
 
-    // Get all users to calculate statistics
-    const { data: allUsers, error: usersError } = await serviceClient
-      .from('profiles')
-      .select('is_active, subscription_plan');
-
-    if (usersError) {
+    // Get all users to calculate statistics. Paginate past Supabase's
+    // default 1000-row cap so totals reflect the real user count instead of
+    // topping out at 1000.
+    type StatsRow = {
+      is_active: boolean | null;
+      subscription_plan: string | null;
+    };
+    let allUsers: StatsRow[];
+    try {
+      allUsers = await fetchAllRows<StatsRow>((from, to) =>
+        serviceClient
+          .from('profiles')
+          .select('is_active, subscription_plan')
+          .range(from, to)
+      );
+    } catch (usersError) {
       console.error('Error fetching users:', usersError);
       throw usersError;
     }
