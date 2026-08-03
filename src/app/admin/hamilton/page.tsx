@@ -48,6 +48,7 @@ export default function HamiltonAdminPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [expanded, setExpanded] = useState<string | null>(null);
+  const [backfilling, setBackfilling] = useState(false);
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -74,6 +75,36 @@ export default function HamiltonAdminPage() {
 
   useEffect(() => {
     fetchData();
+  }, [fetchData]);
+
+  // Create support tickets for conversations handed to support before
+  // auto-ticket creation existed. Safe to run more than once (idempotent).
+  const backfillTickets = useCallback(async () => {
+    setBackfilling(true);
+    try {
+      const res = await fetch('/api/admin/hamilton/backfill-tickets', {
+        method: 'POST',
+        credentials: 'include',
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(data.error || `Request failed (${res.status})`);
+      }
+      if (data.created > 0) {
+        toast.success(
+          `Created ${data.created} support ticket${data.created === 1 ? '' : 's'} from handed-off chats.` +
+            (data.failed ? ` ${data.failed} failed — check logs.` : '')
+        );
+      } else {
+        toast.success('No new tickets to create — everything is up to date.');
+      }
+      fetchData();
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : 'Back-fill failed';
+      toast.error(msg);
+    } finally {
+      setBackfilling(false);
+    }
   }, [fetchData]);
 
   const statCards: Array<{
@@ -123,12 +154,25 @@ export default function HamiltonAdminPage() {
               What users are asking Hamilton, and where he hands off to support.
             </p>
           </div>
-          <Button variant="outline" onClick={fetchData} disabled={loading}>
-            <RefreshCw
-              className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`}
-            />
-            Refresh
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              onClick={backfillTickets}
+              disabled={backfilling || loading}
+              title="Create support tickets for chats that were handed to support before auto-ticketing existed"
+            >
+              <LifeBuoy
+                className={`h-4 w-4 mr-2 ${backfilling ? 'animate-spin' : ''}`}
+              />
+              {backfilling ? 'Creating tickets…' : 'Backfill support tickets'}
+            </Button>
+            <Button variant="outline" onClick={fetchData} disabled={loading}>
+              <RefreshCw
+                className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`}
+              />
+              Refresh
+            </Button>
+          </div>
         </div>
 
         {/* Stats */}
