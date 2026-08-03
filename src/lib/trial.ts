@@ -123,7 +123,10 @@ export function markFirstDashboardPromptSeen(userId: string): void {
   if (typeof window === 'undefined' || !userId) return;
   try {
     if (!window.localStorage.getItem(firstDashKey(userId))) {
-      window.localStorage.setItem(firstDashKey(userId), new Date().toISOString());
+      window.localStorage.setItem(
+        firstDashKey(userId),
+        new Date().toISOString()
+      );
     }
   } catch {
     /* ignore storage failures */

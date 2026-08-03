@@ -36,7 +36,15 @@ const FAQS = [
   },
 ];
 
-function FaqItem({ q, a, defaultOpen }: { q: string; a: string; defaultOpen?: boolean }) {
+function FaqItem({
+  q,
+  a,
+  defaultOpen,
+}: {
+  q: string;
+  a: string;
+  defaultOpen?: boolean;
+}) {
   const [open, setOpen] = useState(!!defaultOpen);
   const ref = useRef<HTMLDivElement>(null);
   const [maxH, setMaxH] = useState<number>(0);
@@ -55,7 +63,11 @@ function FaqItem({ q, a, defaultOpen }: { q: string; a: string; defaultOpen?: bo
         {q}
         <ChevronDown size={20} aria-hidden="true" />
       </button>
-      <div ref={ref} className={styles.acc__a} style={{ maxHeight: `${maxH}px` }}>
+      <div
+        ref={ref}
+        className={styles.acc__a}
+        style={{ maxHeight: `${maxH}px` }}
+      >
         <p>{a}</p>
       </div>
     </div>

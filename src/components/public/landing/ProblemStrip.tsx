@@ -27,7 +27,9 @@ export function ProblemStrip() {
     <section className="section">
       <div className="wrap">
         <div className="section-head section-head--center">
-          <h2 className="h-sec">Artwork problems shouldn&apos;t ruin your transfers</h2>
+          <h2 className="h-sec">
+            Artwork problems shouldn&apos;t ruin your transfers
+          </h2>
           <p className="sub">
             Most failed prints come down to three fixable issues. DTF Editor
             catches them before you press.

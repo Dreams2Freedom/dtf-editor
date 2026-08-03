@@ -54,7 +54,10 @@ async function handler(request: NextRequest) {
 
   const resolved = await resolveRemovalImage(request, user.id);
   if (!resolved.ok) {
-    return NextResponse.json({ error: resolved.error }, { status: resolved.status });
+    return NextResponse.json(
+      { error: resolved.error },
+      { status: resolved.status }
+    );
   }
 
   const upstream = new FormData();

@@ -40,7 +40,10 @@ export function ResumeToolBanner() {
   return (
     <div className="flex items-center justify-between gap-3 rounded-xl border border-green-200 bg-green-50 px-4 py-3">
       <div className="flex items-center gap-2 text-sm text-green-800">
-        <CheckCircle2 className="h-5 w-5 flex-shrink-0 text-green-600" aria-hidden="true" />
+        <CheckCircle2
+          className="h-5 w-5 flex-shrink-0 text-green-600"
+          aria-hidden="true"
+        />
         <span>
           You&apos;re all set — pick up where you left off with{' '}
           <span className="font-semibold">{tool.toolName}</span>.

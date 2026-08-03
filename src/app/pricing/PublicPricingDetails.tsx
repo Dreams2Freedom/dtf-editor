@@ -173,11 +173,41 @@ type ToolRow = {
 };
 
 const TOOL_ROWS: ToolRow[] = [
-  { tool: 'Free DPI Checker', cost: '0 credits', costKind: 'free', access: 'Public / free', notes: 'Always free' },
-  { tool: 'Background Removal', cost: '1 credit', costKind: 'paid', access: 'Plan or credit pack', notes: 'Removes backgrounds' },
-  { tool: 'Image Upscaling', cost: '1 credit', costKind: 'paid', access: 'Plan or credit pack', notes: 'Improves low-resolution artwork' },
-  { tool: 'Vectorization', cost: '2 credits', costKind: 'paid', access: 'Plan or credit pack', notes: 'Converts graphics to cleaner scalable artwork' },
-  { tool: 'AI Image Generation', cost: '1 credit · HD may cost 2', costKind: 'paid', access: 'Paid only', notes: 'Creates artwork from prompts' },
+  {
+    tool: 'Free DPI Checker',
+    cost: '0 credits',
+    costKind: 'free',
+    access: 'Public / free',
+    notes: 'Always free',
+  },
+  {
+    tool: 'Background Removal',
+    cost: '1 credit',
+    costKind: 'paid',
+    access: 'Plan or credit pack',
+    notes: 'Removes backgrounds',
+  },
+  {
+    tool: 'Image Upscaling',
+    cost: '1 credit',
+    costKind: 'paid',
+    access: 'Plan or credit pack',
+    notes: 'Improves low-resolution artwork',
+  },
+  {
+    tool: 'Vectorization',
+    cost: '2 credits',
+    costKind: 'paid',
+    access: 'Plan or credit pack',
+    notes: 'Converts graphics to cleaner scalable artwork',
+  },
+  {
+    tool: 'AI Image Generation',
+    cost: '1 credit · HD may cost 2',
+    costKind: 'paid',
+    access: 'Paid only',
+    notes: 'Creates artwork from prompts',
+  },
 ];
 
 const FAQS = [
@@ -230,14 +260,25 @@ function PlanCard({ plan }: { plan: Plan }) {
           </li>
         ))}
       </ul>
-      <a className={`btn btn--${plan.ctaVariant} btn--block`} href={plan.ctaHref}>
+      <a
+        className={`btn btn--${plan.ctaVariant} btn--block`}
+        href={plan.ctaHref}
+      >
         {plan.ctaLabel}
       </a>
     </div>
   );
 }
 
-function FaqRow({ q, a, defaultOpen }: { q: string; a: string; defaultOpen?: boolean }) {
+function FaqRow({
+  q,
+  a,
+  defaultOpen,
+}: {
+  q: string;
+  a: string;
+  defaultOpen?: boolean;
+}) {
   const [open, setOpen] = useState(!!defaultOpen);
   const ref = useRef<HTMLDivElement>(null);
   const [maxH, setMaxH] = useState(0);
@@ -248,11 +289,19 @@ function FaqRow({ q, a, defaultOpen }: { q: string; a: string; defaultOpen?: boo
 
   return (
     <div className={`${styles.acc} ${open ? styles['is-open'] : ''}`}>
-      <button className={styles.acc__q} aria-expanded={open} onClick={() => setOpen(v => !v)}>
+      <button
+        className={styles.acc__q}
+        aria-expanded={open}
+        onClick={() => setOpen(v => !v)}
+      >
         {q}
         <ChevronDown size={20} aria-hidden="true" />
       </button>
-      <div ref={ref} className={styles.acc__a} style={{ maxHeight: `${maxH}px` }}>
+      <div
+        ref={ref}
+        className={styles.acc__a}
+        style={{ maxHeight: `${maxH}px` }}
+      >
         <p>{a}</p>
       </div>
     </div>
@@ -283,7 +332,11 @@ export function PublicPricingDetails() {
             </div>
 
             <div className={styles.tabsWrap}>
-              <div className={styles.tabs} role="tablist" aria-label="Pricing options">
+              <div
+                className={styles.tabs}
+                role="tablist"
+                aria-label="Pricing options"
+              >
                 <button
                   type="button"
                   role="tab"
@@ -333,13 +386,16 @@ export function PublicPricingDetails() {
 
             <div className={card.pricing__note}>
               <span>
-                <Info size={14} aria-hidden="true" /> Monthly credits don&apos;t roll over
+                <Info size={14} aria-hidden="true" /> Monthly credits don&apos;t
+                roll over
               </span>
               <span>
-                <InfinityIcon size={14} aria-hidden="true" /> Purchased credits never expire
+                <InfinityIcon size={14} aria-hidden="true" /> Purchased credits
+                never expire
               </span>
               <span>
-                <RotateCcw size={14} aria-hidden="true" /> Auto-refund on processing failure
+                <RotateCcw size={14} aria-hidden="true" /> Auto-refund on
+                processing failure
               </span>
             </div>
           </div>
@@ -375,7 +431,10 @@ export function PublicPricingDetails() {
             </div>
 
             {/* Tool credit costs */}
-            <div className="section-head section-head--center" style={{ marginTop: 48 }}>
+            <div
+              className="section-head section-head--center"
+              style={{ marginTop: 48 }}
+            >
               <h3 className="h-sec">What each tool costs</h3>
             </div>
             <div className={styles.tableWrap}>
@@ -395,7 +454,9 @@ export function PublicPricingDetails() {
                       <td>
                         <span
                           className={`${styles.cost} ${
-                            row.costKind === 'free' ? styles['cost--free'] : styles['cost--paid']
+                            row.costKind === 'free'
+                              ? styles['cost--free']
+                              : styles['cost--paid']
                           }`}
                         >
                           {row.cost}
@@ -437,11 +498,22 @@ export function PublicPricingDetails() {
                       {COMPARE_COLS.map(col => {
                         const v = feature[col];
                         return (
-                          <td key={col} className={col === 'basic' ? styles.colFeat : ''}>
+                          <td
+                            key={col}
+                            className={col === 'basic' ? styles.colFeat : ''}
+                          >
                             {v === true ? (
-                              <Check size={16} className={styles.ok} aria-label="Included" />
+                              <Check
+                                size={16}
+                                className={styles.ok}
+                                aria-label="Included"
+                              />
                             ) : v === false ? (
-                              <Minus size={16} className={styles.no} aria-label="Not included" />
+                              <Minus
+                                size={16}
+                                className={styles.no}
+                                aria-label="Not included"
+                              />
                             ) : (
                               <span>{v}</span>
                             )}
@@ -465,7 +537,12 @@ export function PublicPricingDetails() {
             </div>
             <div className={styles.faq}>
               {FAQS.map((item, i) => (
-                <FaqRow key={item.q} q={item.q} a={item.a} defaultOpen={i === 0} />
+                <FaqRow
+                  key={item.q}
+                  q={item.q}
+                  a={item.a}
+                  defaultOpen={i === 0}
+                />
               ))}
             </div>
           </div>

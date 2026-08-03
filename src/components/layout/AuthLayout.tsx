@@ -18,7 +18,11 @@ export function AuthLayout({ children }: AuthLayoutProps) {
   return (
     <div className={styles.page}>
       <div className={styles.card}>
-        <Link href="/" className={styles.brandLink} aria-label="DTF Editor home">
+        <Link
+          href="/"
+          className={styles.brandLink}
+          aria-label="DTF Editor home"
+        >
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src="/branding/dtf-editor-logo.png"

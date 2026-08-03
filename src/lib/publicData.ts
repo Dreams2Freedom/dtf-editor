@@ -1,4 +1,12 @@
-import { LucideIcon, ArrowUpCircle, Palette, Scissors, Pen, Sparkles, Package } from 'lucide-react';
+import {
+  LucideIcon,
+  ArrowUpCircle,
+  Palette,
+  Scissors,
+  Pen,
+  Sparkles,
+  Package,
+} from 'lucide-react';
 
 export interface ToolData {
   name: string;
@@ -8,7 +16,13 @@ export interface ToolData {
   headline: string;
   copy: string;
   bullets: string[];
-  mockupType: 'upscale' | 'color-change' | 'bg-removal' | 'vectorize' | 'ai-generate' | 'bulk-process';
+  mockupType:
+    | 'upscale'
+    | 'color-change'
+    | 'bg-removal'
+    | 'vectorize'
+    | 'ai-generate'
+    | 'bulk-process';
 }
 
 export const TOOLS: ToolData[] = [
@@ -19,7 +33,11 @@ export const TOOLS: ToolData[] = [
     color: 'blue',
     headline: 'Never reprint a blurry design again',
     copy: 'Customers send low-res files? Upscale to 4K with AI — every detail sharp, every line clean.',
-    bullets: ['Up to 4x resolution increase', 'Preserves text clarity and fine lines', '300 DPI output, ready for print'],
+    bullets: [
+      'Up to 4x resolution increase',
+      'Preserves text clarity and fine lines',
+      '300 DPI output, ready for print',
+    ],
     mockupType: 'upscale',
   },
   {
@@ -29,7 +47,11 @@ export const TOOLS: ToolData[] = [
     color: 'amber',
     headline: 'One design, unlimited colorways',
     copy: 'Click any color, pick a new one. Sell the same design in 10 colors without redesigning anything.',
-    bullets: ['Click-to-select with tolerance control', 'Preserves shading and texture', 'Multiple color changes per image'],
+    bullets: [
+      'Click-to-select with tolerance control',
+      'Preserves shading and texture',
+      'Multiple color changes per image',
+    ],
     mockupType: 'color-change',
   },
   {
@@ -39,7 +61,11 @@ export const TOOLS: ToolData[] = [
     color: 'emerald',
     headline: 'Clean cutouts without Photoshop',
     copy: 'One click removes any background. Perfect edges on hair, fur, and complex shapes.',
-    bullets: ['AI-powered edge detection', 'Handles hair, fur, and fine details', 'Transparent PNG ready for transfer'],
+    bullets: [
+      'AI-powered edge detection',
+      'Handles hair, fur, and fine details',
+      'Transparent PNG ready for transfer',
+    ],
     mockupType: 'bg-removal',
   },
   {
@@ -49,7 +75,11 @@ export const TOOLS: ToolData[] = [
     color: 'purple',
     headline: 'Scale to any size without losing a pixel',
     copy: 'Convert raster images to clean SVG vectors. Perfect for vinyl cutting and large-format prints.',
-    bullets: ['Pixel-perfect SVG output', 'Infinite scaling, zero quality loss', 'Perfect for vinyl and large formats'],
+    bullets: [
+      'Pixel-perfect SVG output',
+      'Infinite scaling, zero quality loss',
+      'Perfect for vinyl and large formats',
+    ],
     mockupType: 'vectorize',
   },
   {
@@ -57,9 +87,13 @@ export const TOOLS: ToolData[] = [
     slug: 'ai-generate',
     icon: Sparkles,
     color: 'pink',
-    headline: 'Describe it. We\'ll design it.',
+    headline: "Describe it. We'll design it.",
     copy: 'Type what you want and get a unique, print-ready design in seconds. No design skills needed.',
-    bullets: ['Text-to-image with AI', 'Unique designs every time', 'Print-ready output from the start'],
+    bullets: [
+      'Text-to-image with AI',
+      'Unique designs every time',
+      'Print-ready output from the start',
+    ],
     mockupType: 'ai-generate',
   },
   {
@@ -69,7 +103,11 @@ export const TOOLS: ToolData[] = [
     color: 'sky',
     headline: 'Process 50 files while you grab coffee',
     copy: 'Upload a batch, pick your settings, and let it run. Every file processed and ready to download.',
-    bullets: ['Upload multiple files at once', 'Apply same processing to all', 'Download as ZIP when done'],
+    bullets: [
+      'Upload multiple files at once',
+      'Apply same processing to all',
+      'Download as ZIP when done',
+    ],
     mockupType: 'bulk-process',
   },
 ];
@@ -91,7 +129,12 @@ export const PLANS: PlanData[] = [
     slug: 'free',
     price: '$0',
     period: '/mo',
-    features: ['2 credits monthly', 'All AI tools', '48-hour file storage', 'Basic support'],
+    features: [
+      '2 credits monthly',
+      'All AI tools',
+      '48-hour file storage',
+      'Basic support',
+    ],
     highlighted: false,
     ctaText: 'Start Free',
   },
@@ -100,7 +143,12 @@ export const PLANS: PlanData[] = [
     slug: 'basic',
     price: '$9.99',
     period: '/mo',
-    features: ['20 credits monthly', 'Priority support', 'HD downloads', 'Unlimited storage while subscribed'],
+    features: [
+      '20 credits monthly',
+      'Priority support',
+      'HD downloads',
+      'Unlimited storage while subscribed',
+    ],
     highlighted: true,
     badge: 'MOST POPULAR',
     ctaText: 'Get Started',
@@ -110,7 +158,12 @@ export const PLANS: PlanData[] = [
     slug: 'starter',
     price: '$24.99',
     period: '/mo',
-    features: ['60 credits monthly', 'Priority support', 'HD downloads', 'Bulk processing (coming soon)'],
+    features: [
+      '60 credits monthly',
+      'Priority support',
+      'HD downloads',
+      'Bulk processing (coming soon)',
+    ],
     highlighted: false,
     ctaText: 'Get Started',
   },
@@ -119,7 +172,12 @@ export const PLANS: PlanData[] = [
     slug: 'professional',
     price: '$49.99',
     period: '/mo',
-    features: ['150 credits monthly', 'Priority support', 'HD downloads', 'Bulk processing (coming soon)'],
+    features: [
+      '150 credits monthly',
+      'Priority support',
+      'HD downloads',
+      'Bulk processing (coming soon)',
+    ],
     highlighted: false,
     ctaText: 'Get Started',
   },
@@ -135,8 +193,20 @@ export interface CreditPackData {
 
 export const CREDIT_PACKS: CreditPackData[] = [
   { credits: 10, price: '$7.99', perCredit: '$0.80' },
-  { credits: 20, price: '$14.99', perCredit: '$0.75', savingsPercent: 6, badge: 'POPULAR' },
-  { credits: 50, price: '$29.99', perCredit: '$0.60', savingsPercent: 25, badge: 'BEST VALUE' },
+  {
+    credits: 20,
+    price: '$14.99',
+    perCredit: '$0.75',
+    savingsPercent: 6,
+    badge: 'POPULAR',
+  },
+  {
+    credits: 50,
+    price: '$29.99',
+    perCredit: '$0.60',
+    savingsPercent: 25,
+    badge: 'BEST VALUE',
+  },
 ];
 
 export interface FAQItem {
@@ -145,30 +215,128 @@ export interface FAQItem {
 }
 
 export const LANDING_FAQS: FAQItem[] = [
-  { question: 'What file formats do you support?', answer: 'PNG, JPG, WebP, and BMP for input. Output is always 300 DPI PNG with transparency (or SVG for vectorization).' },
-  { question: 'How does the credit system work?', answer: 'Each processing action costs 1 credit. Sign up free and get 2 credits. Buy more anytime or subscribe for monthly credits.' },
-  { question: 'Can I try it before paying?', answer: 'Yes. Every account starts with 2 free credits. No credit card required.' },
-  { question: 'What does "print-ready" mean?', answer: '300 DPI resolution with transparent backgrounds, optimized for DTF transfer printing.' },
-  { question: 'How is this different from Photoshop?', answer: 'DTF Editor is purpose-built for transfer printing. One click does what takes 15 minutes in Photoshop. No design skills needed.' },
-  { question: 'Do you store my images?', answer: 'Storage depends on your plan. Free: 48 hours. Paid plans (Basic, Starter, Professional): unlimited while subscribed. Pay-as-you-go: 90 days from your last purchase. You can delete anytime.' },
+  {
+    question: 'What file formats do you support?',
+    answer:
+      'PNG, JPG, WebP, and BMP for input. Output is always 300 DPI PNG with transparency (or SVG for vectorization).',
+  },
+  {
+    question: 'How does the credit system work?',
+    answer:
+      'Each processing action costs 1 credit. Sign up free and get 2 credits. Buy more anytime or subscribe for monthly credits.',
+  },
+  {
+    question: 'Can I try it before paying?',
+    answer:
+      'Yes. Every account starts with 2 free credits. No credit card required.',
+  },
+  {
+    question: 'What does "print-ready" mean?',
+    answer:
+      '300 DPI resolution with transparent backgrounds, optimized for DTF transfer printing.',
+  },
+  {
+    question: 'How is this different from Photoshop?',
+    answer:
+      'DTF Editor is purpose-built for transfer printing. One click does what takes 15 minutes in Photoshop. No design skills needed.',
+  },
+  {
+    question: 'Do you store my images?',
+    answer:
+      'Storage depends on your plan. Free: 48 hours. Paid plans (Basic, Starter, Professional): unlimited while subscribed. Pay-as-you-go: 90 days from your last purchase. You can delete anytime.',
+  },
 ];
 
 export const PRICING_FAQS: FAQItem[] = [
-  { question: "What's the difference between subscriptions and credit packs?", answer: 'Subscriptions give you monthly credits at the best per-credit rate with extras like storage and rollover. Credit packs are one-time purchases that never expire — buy them when you need a quick top-up.' },
-  { question: 'Do unused credits expire?', answer: 'Subscription credits roll over for up to 2 months on paid plans. Credit pack credits never expire.' },
-  { question: 'Can I cancel anytime?', answer: 'Yes. Cancel your subscription anytime from your account settings. You keep access until the end of your billing period.' },
-  { question: 'What payment methods do you accept?', answer: 'We accept all major credit cards, debit cards, and Apple Pay via Stripe.' },
-  { question: 'Is there a refund policy?', answer: 'Unused credit packs can be refunded within 7 days of purchase. Subscription refunds are handled on a case-by-case basis.' },
+  {
+    question: "What's the difference between subscriptions and credit packs?",
+    answer:
+      'Subscriptions give you monthly credits at the best per-credit rate with extras like storage and rollover. Credit packs are one-time purchases that never expire — buy them when you need a quick top-up.',
+  },
+  {
+    question: 'Do unused credits expire?',
+    answer:
+      'Subscription credits roll over for up to 2 months on paid plans. Credit pack credits never expire.',
+  },
+  {
+    question: 'Can I cancel anytime?',
+    answer:
+      'Yes. Cancel your subscription anytime from your account settings. You keep access until the end of your billing period.',
+  },
+  {
+    question: 'What payment methods do you accept?',
+    answer:
+      'We accept all major credit cards, debit cards, and Apple Pay via Stripe.',
+  },
+  {
+    question: 'Is there a refund policy?',
+    answer:
+      'Unused credit packs can be refunded within 7 days of purchase. Subscription refunds are handled on a case-by-case basis.',
+  },
 ];
 
 export const COMPARISON_FEATURES = [
-  { name: 'Monthly credits', free: '2', basic: '20', starter: '60', professional: '150' },
-  { name: 'AI Upscaling', free: true, basic: true, starter: true, professional: true },
-  { name: 'Background Removal', free: true, basic: true, starter: true, professional: true },
-  { name: 'Color Changing', free: true, basic: true, starter: true, professional: true },
-  { name: 'Vectorization', free: true, basic: true, starter: true, professional: true },
-  { name: 'AI Generation', free: true, basic: true, starter: true, professional: true },
-  { name: 'Batch Processing', free: false, basic: false, starter: 'Coming soon', professional: 'Coming soon' },
-  { name: 'File Storage', free: '48 hours', basic: 'Unlimited', starter: 'Unlimited', professional: 'Unlimited' },
-  { name: 'Support', free: 'Email', basic: 'Priority', starter: 'Priority', professional: 'Priority' },
+  {
+    name: 'Monthly credits',
+    free: '2',
+    basic: '20',
+    starter: '60',
+    professional: '150',
+  },
+  {
+    name: 'AI Upscaling',
+    free: true,
+    basic: true,
+    starter: true,
+    professional: true,
+  },
+  {
+    name: 'Background Removal',
+    free: true,
+    basic: true,
+    starter: true,
+    professional: true,
+  },
+  {
+    name: 'Color Changing',
+    free: true,
+    basic: true,
+    starter: true,
+    professional: true,
+  },
+  {
+    name: 'Vectorization',
+    free: true,
+    basic: true,
+    starter: true,
+    professional: true,
+  },
+  {
+    name: 'AI Generation',
+    free: true,
+    basic: true,
+    starter: true,
+    professional: true,
+  },
+  {
+    name: 'Batch Processing',
+    free: false,
+    basic: false,
+    starter: 'Coming soon',
+    professional: 'Coming soon',
+  },
+  {
+    name: 'File Storage',
+    free: '48 hours',
+    basic: 'Unlimited',
+    starter: 'Unlimited',
+    professional: 'Unlimited',
+  },
+  {
+    name: 'Support',
+    free: 'Email',
+    basic: 'Priority',
+    starter: 'Priority',
+    professional: 'Priority',
+  },
 ] as const;

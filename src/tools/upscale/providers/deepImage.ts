@@ -17,7 +17,10 @@ import type {
 export const deepImageProvider: UpscaleProvider = {
   id: 'deepimage',
   label: 'Deep-Image.ai',
-  async run(input: UpscaleInput, options: UpscaleOptions): Promise<UpscaleResult> {
+  async run(
+    input: UpscaleInput,
+    options: UpscaleOptions
+  ): Promise<UpscaleResult> {
     const fd = new FormData();
     // Prefer the URL path: the server hands Deep-Image the URL and it fetches
     // the image directly — no large PNG upload through the function.

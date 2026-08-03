@@ -21,7 +21,9 @@ function bayerMatrix(n: number): number[][] {
   let size = 1;
   while (size < n) {
     const ns = size * 2;
-    const nm: number[][] = Array.from({ length: ns }, () => new Array(ns).fill(0));
+    const nm: number[][] = Array.from({ length: ns }, () =>
+      new Array(ns).fill(0)
+    );
     for (let y = 0; y < size; y++) {
       for (let x = 0; x < size; x++) {
         const v = m[y][x];

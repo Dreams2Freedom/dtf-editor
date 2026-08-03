@@ -179,9 +179,7 @@ export default function BgStudioPage() {
       if (activeId) saveSnapshot(activeId, true);
     } catch (e) {
       setStatus('error');
-      toast.error(
-        e instanceof Error ? e.message : 'Background removal failed'
-      );
+      toast.error(e instanceof Error ? e.message : 'Background removal failed');
     }
   }, [activePhoto, activeId, render, saveSnapshot]);
 
@@ -293,9 +291,7 @@ export default function BgStudioPage() {
                   type="button"
                   onClick={() => setActiveId(p.id)}
                   className={`h-16 w-16 overflow-hidden rounded-lg border-2 ${
-                    p.id === activeId
-                      ? 'border-blue-500'
-                      : 'border-transparent'
+                    p.id === activeId ? 'border-blue-500' : 'border-transparent'
                   }`}
                 >
                   {/* eslint-disable-next-line @next/next/no-img-element */}

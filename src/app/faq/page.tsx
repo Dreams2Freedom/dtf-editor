@@ -239,10 +239,10 @@ const faqs: FAQItem[] = [
     question: 'What if I forgot my password?',
     answer: (
       <div>
-        You can reset your password by clicking the &ldquo;Forgot Password?&rdquo; link on
-        the login page. We&apos;ll send you an email with instructions to create
-        a new password. Check your spam folder if you don&apos;t see it within a
-        few minutes.
+        You can reset your password by clicking the &ldquo;Forgot
+        Password?&rdquo; link on the login page. We&apos;ll send you an email
+        with instructions to create a new password. Check your spam folder if
+        you don&apos;t see it within a few minutes.
       </div>
     ),
     category: 'Account & Security',
@@ -377,9 +377,7 @@ export default function FAQPage() {
         {/* FAQ Items grouped by category */}
         {filteredFAQs.length === 0 ? (
           <div className="text-center py-12">
-            <p className="text-gray-500">
-              No FAQs found matching your search.
-            </p>
+            <p className="text-gray-500">No FAQs found matching your search.</p>
           </div>
         ) : (
           <div className="space-y-10">

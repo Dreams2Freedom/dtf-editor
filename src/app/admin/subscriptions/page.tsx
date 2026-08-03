@@ -17,7 +17,9 @@ import {
 } from 'lucide-react';
 
 const money = (n: number | null | undefined) =>
-  n == null ? '—' : `$${n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  n == null
+    ? '—'
+    : `$${n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 const date = (s: string | null | undefined) =>
   s ? new Date(s).toLocaleDateString() : '—';
 
@@ -25,7 +27,12 @@ type Category = 'onPlan' | 'trialing' | 'canceled';
 
 const CATEGORY_META: Record<
   Category,
-  { label: string; icon: React.ComponentType<{ className?: string }>; tone: string; ring: string }
+  {
+    label: string;
+    icon: React.ComponentType<{ className?: string }>;
+    tone: string;
+    ring: string;
+  }
 > = {
   onPlan: {
     label: 'On a Plan',
@@ -108,12 +115,17 @@ export default function SubscriptionTrackingPage() {
         plan: r.plan,
         primary: `${money(r.monthlyValue)}/mo`,
         secondary: r.cancelAtPeriodEnd ? 'Canceling at period end' : 'Active',
-        secondaryTone: r.cancelAtPeriodEnd ? 'text-orange-700' : 'text-green-700',
+        secondaryTone: r.cancelAtPeriodEnd
+          ? 'text-orange-700'
+          : 'text-green-700',
       }));
     }
     if (selected === 'trialing') {
       return (data.trialingUsers ?? [])
-        .filter((t: any) => t.status === 'active_trial' || t.status === 'trial_ending_soon')
+        .filter(
+          (t: any) =>
+            t.status === 'active_trial' || t.status === 'trial_ending_soon'
+        )
         .map((t: any) => ({
           userId: t.userId,
           name: t.name,
@@ -123,7 +135,9 @@ export default function SubscriptionTrackingPage() {
           secondary:
             t.daysRemaining != null ? `${t.daysRemaining} days left` : '',
           secondaryTone:
-            t.status === 'trial_ending_soon' ? 'text-orange-700' : 'text-blue-700',
+            t.status === 'trial_ending_soon'
+              ? 'text-orange-700'
+              : 'text-blue-700',
         }));
     }
     return (data.canceled ?? []).map((c: any) => ({
@@ -156,8 +170,8 @@ export default function SubscriptionTrackingPage() {
     return (
       <AdminLayout>
         <div className="flex h-64 items-center justify-center text-gray-500">
-          <RefreshCw className="mr-2 h-5 w-5 animate-spin" /> Loading subscription
-          data…
+          <RefreshCw className="mr-2 h-5 w-5 animate-spin" /> Loading
+          subscription data…
         </div>
       </AdminLayout>
     );
@@ -220,7 +234,9 @@ export default function SubscriptionTrackingPage() {
                 <p className="mt-3 text-3xl font-bold text-gray-900">
                   {counts[cat] ?? 0}
                 </p>
-                <p className="text-sm font-medium text-gray-600">{meta.label}</p>
+                <p className="text-sm font-medium text-gray-600">
+                  {meta.label}
+                </p>
               </button>
             );
           })}
@@ -267,7 +283,10 @@ export default function SubscriptionTrackingPage() {
                 <tbody className="divide-y divide-gray-100">
                   {filteredRows.length === 0 && (
                     <tr>
-                      <td colSpan={5} className="px-2 py-10 text-center text-gray-400">
+                      <td
+                        colSpan={5}
+                        className="px-2 py-10 text-center text-gray-400"
+                      >
                         No tenants in this category.
                       </td>
                     </tr>
@@ -275,18 +294,26 @@ export default function SubscriptionTrackingPage() {
                   {filteredRows.map((r: any, i: number) => (
                     <tr key={r.userId || i} className="hover:bg-gray-50">
                       <td className="px-2 py-2.5">
-                        <div className="font-medium text-gray-900">{r.name || '—'}</div>
-                        <div className="text-xs text-gray-500">{r.email || '—'}</div>
+                        <div className="font-medium text-gray-900">
+                          {r.name || '—'}
+                        </div>
+                        <div className="text-xs text-gray-500">
+                          {r.email || '—'}
+                        </div>
                       </td>
                       <td className="px-2 py-2.5 capitalize">{r.plan}</td>
                       <td className="px-2 py-2.5">{r.primary}</td>
-                      <td className={`px-2 py-2.5 ${r.secondaryTone}`}>{r.secondary}</td>
+                      <td className={`px-2 py-2.5 ${r.secondaryTone}`}>
+                        {r.secondary}
+                      </td>
                       <td className="px-2 py-2.5 text-right">
                         {r.userId && (
                           <Button
                             variant="ghost"
                             size="sm"
-                            onClick={() => router.push(`/admin/users/${r.userId}`)}
+                            onClick={() =>
+                              router.push(`/admin/users/${r.userId}`)
+                            }
                           >
                             View
                           </Button>
@@ -304,14 +331,22 @@ export default function SubscriptionTrackingPage() {
         <section>
           <h2 className="mb-4 text-lg font-bold text-gray-900">Revenue</h2>
           <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-            <RevenueCard label="Monthly (MRR)" value={money(proj.currentMRR)} tone="green" />
+            <RevenueCard
+              label="Monthly (MRR)"
+              value={money(proj.currentMRR)}
+              tone="green"
+            />
             <RevenueCard
               label="Projected monthly"
               value={money(proj.projectedMRRIfAllTrialsConvert)}
               hint="if all trials convert"
               tone="blue"
             />
-            <RevenueCard label="ARR (current)" value={money(proj.projectedARR)} tone="green" />
+            <RevenueCard
+              label="ARR (current)"
+              value={money(proj.projectedARR)}
+              tone="green"
+            />
             <RevenueCard
               label="ARR (with trials)"
               value={money(arrWithTrials)}

@@ -203,7 +203,9 @@ export default function AdminDashboard() {
             role="button"
             tabIndex={0}
             onClick={() => router.push('/admin/tool-usage')}
-            onKeyDown={e => e.key === 'Enter' && router.push('/admin/tool-usage')}
+            onKeyDown={e =>
+              e.key === 'Enter' && router.push('/admin/tool-usage')
+            }
             className="cursor-pointer rounded-lg transition-shadow hover:shadow-md focus:outline-none focus:ring-2 focus:ring-blue-500"
             title="View tool failures — what failed, when, and why"
           >

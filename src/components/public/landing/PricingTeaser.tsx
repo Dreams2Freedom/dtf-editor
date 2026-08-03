@@ -1,4 +1,10 @@
-import { Check, Info, Infinity as InfinityIcon, RotateCcw, ArrowRight } from 'lucide-react';
+import {
+  Check,
+  Info,
+  Infinity as InfinityIcon,
+  RotateCcw,
+  ArrowRight,
+} from 'lucide-react';
 import { TRIAL_DISCLOSURE } from '@/lib/trial';
 import { MetaViewContent } from '@/components/analytics/MetaViewContent';
 import styles from './PricingTeaser.module.css';
@@ -24,7 +30,11 @@ const PLANS: Plan[] = [
     price: '$0',
     unit: '/mo',
     tag: 'A quick look at the tools',
-    features: ['2 credits per month', '48-hour file storage', 'Free DPI checker'],
+    features: [
+      '2 credits per month',
+      '48-hour file storage',
+      'Free DPI checker',
+    ],
     ctaLabel: 'Continue with Free',
     ctaVariant: 'ghost',
     ctaHref: '/auth/signup',
@@ -104,7 +114,9 @@ export function PricingTeaser() {
                 plan.muted ? styles['plan--muted'] : ''
               }`}
             >
-              {plan.flag && <span className={styles.plan__flag}>{plan.flag}</span>}
+              {plan.flag && (
+                <span className={styles.plan__flag}>{plan.flag}</span>
+              )}
               <div className={styles.plan__name}>{plan.name}</div>
               <div className={styles.plan__price}>
                 <b>{plan.price}</b>
@@ -118,7 +130,10 @@ export function PricingTeaser() {
                   </li>
                 ))}
               </ul>
-              <a className={`btn btn--${plan.ctaVariant} btn--block`} href={plan.ctaHref}>
+              <a
+                className={`btn btn--${plan.ctaVariant} btn--block`}
+                href={plan.ctaHref}
+              >
                 {plan.ctaLabel}
               </a>
               {plan.note && <p className={styles.plan__note}>{plan.note}</p>}
@@ -128,13 +143,16 @@ export function PricingTeaser() {
 
         <div className={styles.pricing__note}>
           <span>
-            <Info size={14} aria-hidden="true" /> Monthly credits don&apos;t roll over
+            <Info size={14} aria-hidden="true" /> Monthly credits don&apos;t
+            roll over
           </span>
           <span>
-            <InfinityIcon size={14} aria-hidden="true" /> Purchased credits never expire
+            <InfinityIcon size={14} aria-hidden="true" /> Purchased credits
+            never expire
           </span>
           <span>
-            <RotateCcw size={14} aria-hidden="true" /> Auto-refund on processing failure
+            <RotateCcw size={14} aria-hidden="true" /> Auto-refund on processing
+            failure
           </span>
         </div>
         <p

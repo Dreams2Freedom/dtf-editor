@@ -264,9 +264,14 @@ export function DpiCheckerCard() {
               }`}
             >
               <span className="mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-blue-50">
-                <UploadCloud className="h-6 w-6 text-blue-600" aria-hidden="true" />
+                <UploadCloud
+                  className="h-6 w-6 text-blue-600"
+                  aria-hidden="true"
+                />
               </span>
-              <p className="font-medium text-gray-900">Drag &amp; drop an image</p>
+              <p className="font-medium text-gray-900">
+                Drag &amp; drop an image
+              </p>
               <p className="mb-4 text-sm text-gray-500">or</p>
               <button
                 type="button"

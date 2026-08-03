@@ -42,7 +42,9 @@
   padding: 30px 20px;
   text-align: center;
   background: var(--surface);
-  transition: border-color var(--motion-fast), background var(--motion-fast);
+  transition:
+    border-color var(--motion-fast),
+    background var(--motion-fast);
   cursor: pointer;
 }
 .checker__drop.is-drag {

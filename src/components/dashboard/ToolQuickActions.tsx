@@ -121,9 +121,10 @@ export function ToolQuickActions({
   className = '',
 }: ToolQuickActionsProps) {
   const { profile, isAdmin } = useAuthStore();
-  const [blocked, setBlocked] = useState<{ name: string; route: string } | null>(
-    null
-  );
+  const [blocked, setBlocked] = useState<{
+    name: string;
+    route: string;
+  } | null>(null);
 
   // UX gate: stop a paid tool launch up front when the user can't afford it
   // (server-side credit checks still apply). Admins bypass.
@@ -169,7 +170,10 @@ export function ToolQuickActions({
           >
             <div className="flex items-center justify-between gap-2">
               <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-blue-50 transition-transform group-hover:scale-105">
-                <tool.icon className="h-5 w-5 text-blue-600" aria-hidden="true" />
+                <tool.icon
+                  className="h-5 w-5 text-blue-600"
+                  aria-hidden="true"
+                />
               </span>
               <span
                 className={`inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-semibold ${BADGE_TONE[tool.badge.tone]}`}
@@ -195,8 +199,8 @@ export function ToolQuickActions({
 
       <p className="mt-2 text-[11px] text-gray-500">
         Not sure where to start? The{' '}
-        <span className="font-medium text-gray-700">Free DPI Checker</span> never
-        uses credits. Each paid tool uses 1 credit, and failed jobs are
+        <span className="font-medium text-gray-700">Free DPI Checker</span>{' '}
+        never uses credits. Each paid tool uses 1 credit, and failed jobs are
         automatically refunded.
       </p>
 

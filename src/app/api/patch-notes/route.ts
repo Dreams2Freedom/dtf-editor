@@ -58,7 +58,11 @@ async function handleGet(_request: NextRequest) {
 
     return NextResponse.json({ publishedVersion: version, date, items });
   } catch {
-    return NextResponse.json({ publishedVersion: null, date: null, items: null });
+    return NextResponse.json({
+      publishedVersion: null,
+      date: null,
+      items: null,
+    });
   }
 }
 

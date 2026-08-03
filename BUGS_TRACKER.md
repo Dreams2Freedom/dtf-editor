@@ -82,7 +82,7 @@
   3. **Auth emails (password reset / confirmation / magic link):** enabled
      Supabase **Custom SMTP** pointing at Mailgun (`smtp.mailgun.org:587`,
      user `postmaster@mg.dtfeditor.com`). **Gotcha that cost a delivery:** the
-     SMTP *Sender email* was initially `noreply@dtfeditor.com` (root domain) while
+     SMTP _Sender email_ was initially `noreply@dtfeditor.com` (root domain) while
      the DKIM-signed sending domain is `mg.dtfeditor.com` → Gmail accepted (250)
      then silently dropped it (DKIM/DMARC alignment failure, not even in spam).
      **Fix:** set Sender email to `noreply@mg.dtfeditor.com`. Verified delivered.

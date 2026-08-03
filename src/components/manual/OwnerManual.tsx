@@ -50,13 +50,7 @@ function Panel({
   );
 }
 
-function Section({
-  id,
-  children,
-}: {
-  id: string;
-  children: React.ReactNode;
-}) {
+function Section({ id, children }: { id: string; children: React.ReactNode }) {
   // scroll-mt clears the sticky app header when jumping to an anchor.
   return (
     <section id={id} className="scroll-mt-24">
@@ -95,7 +89,10 @@ function Hero() {
         </p>
 
         {/* Pill-style quick navigation */}
-        <nav aria-label="Quick navigation" className="mt-6 flex flex-wrap gap-2">
+        <nav
+          aria-label="Quick navigation"
+          className="mt-6 flex flex-wrap gap-2"
+        >
           {QUICK_NAV_CHIPS.map(chip => (
             <a
               key={chip.id}
@@ -315,7 +312,11 @@ function ToolSection({ section }: { section: ManualToolSection }) {
         </h3>
         <div className="mt-3 space-y-2">
           {section.troubleshooting.map((t, i) => (
-            <TroubleshootingItem key={i} issue={t.issue} solution={t.solution} />
+            <TroubleshootingItem
+              key={i}
+              issue={t.issue}
+              solution={t.solution}
+            />
           ))}
         </div>
       </Panel>

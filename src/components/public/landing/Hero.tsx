@@ -31,8 +31,8 @@ export function Hero() {
           </a>
         </div>
         <p className={styles.hero__note}>
-          <CircleCheck size={15} aria-hidden="true" /> Free DPI checker available
-          instantly · Full tools unlock after signup
+          <CircleCheck size={15} aria-hidden="true" /> Free DPI checker
+          available instantly · Full tools unlock after signup
         </p>
         <ul className={styles.hero__trust}>
           {TRUST.map(({ icon: Icon, label }) => (

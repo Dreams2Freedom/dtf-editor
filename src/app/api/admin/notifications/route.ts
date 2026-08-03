@@ -14,7 +14,9 @@ async function requireAdmin() {
     error: authError,
   } = await supabase.auth.getUser();
   if (authError || !user) {
-    return { error: NextResponse.json({ error: 'Unauthorized' }, { status: 401 }) };
+    return {
+      error: NextResponse.json({ error: 'Unauthorized' }, { status: 401 }),
+    };
   }
   const service = createServiceRoleClient();
   const { data: profile } = await service
@@ -24,7 +26,10 @@ async function requireAdmin() {
     .single();
   if (!profile?.is_admin) {
     return {
-      error: NextResponse.json({ error: 'Admin access required' }, { status: 403 }),
+      error: NextResponse.json(
+        { error: 'Admin access required' },
+        { status: 403 }
+      ),
     };
   }
   return { service };
@@ -48,7 +53,11 @@ async function handleGet(_request: NextRequest) {
     // Exclude the internal patch-note release marker (managed on the Patch
     // Notes tab, not a real announcement).
     const notifications = (data ?? []).filter(
-      n => !(typeof n.title === 'string' && n.title.startsWith(PATCH_NOTE_MARKER_PREFIX))
+      n =>
+        !(
+          typeof n.title === 'string' &&
+          n.title.startsWith(PATCH_NOTE_MARKER_PREFIX)
+        )
     );
 
     return NextResponse.json({ notifications });

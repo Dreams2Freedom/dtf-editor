@@ -232,11 +232,14 @@ export function CancellationFlow({
           <div className="space-y-4">
             <div className="text-center">
               <Calendar className="w-12 h-12 text-blue-600 mx-auto mb-3" />
-              <h3 className="text-lg font-semibold">Pause instead of canceling?</h3>
+              <h3 className="text-lg font-semibold">
+                Pause instead of canceling?
+              </h3>
               <p className="text-gray-600 mt-2">
-                Suspend your membership for 60 days. You won&apos;t be billed while
-                it&apos;s paused, you keep your account, and your subscription
-                automatically restarts after 60 days — no need to re-subscribe.
+                Suspend your membership for 60 days. You won&apos;t be billed
+                while it&apos;s paused, you keep your account, and your
+                subscription automatically restarts after 60 days — no need to
+                re-subscribe.
               </p>
             </div>
 

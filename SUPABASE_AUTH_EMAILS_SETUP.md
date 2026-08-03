@@ -5,8 +5,9 @@
 > Edge Function, no hook/HMAC wiring). This is the live, working configuration:
 >
 > **Supabase → Authentication → Emails → SMTP Settings** (Enable Custom SMTP):
-> - Host: `smtp.mailgun.org`  ·  Port: `587`
-> - Username: `postmaster@mg.dtfeditor.com`  ·  Password: *Mailgun SMTP password (NOT the API key)*
+>
+> - Host: `smtp.mailgun.org` · Port: `587`
+> - Username: `postmaster@mg.dtfeditor.com` · Password: _Mailgun SMTP password (NOT the API key)_
 > - **Sender email: `noreply@mg.dtfeditor.com`** ← MUST be on the verified `mg.dtfeditor.com` domain.
 >   Using the root `noreply@dtfeditor.com` causes Gmail to accept (250) then silently
 >   drop the message (DKIM/DMARC alignment failure) — emails won't even hit spam.

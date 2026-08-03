@@ -58,7 +58,10 @@ export async function requirePartnerAndShop(
 
   const authRes = await authenticatePartner(request);
   if (!authRes.ok) {
-    return { ok: false, response: json({ error: authRes.error }, authRes.status) };
+    return {
+      ok: false,
+      response: json({ error: authRes.error }, authRes.status),
+    };
   }
   const body = (await request.json().catch(() => ({}))) as Record<
     string,

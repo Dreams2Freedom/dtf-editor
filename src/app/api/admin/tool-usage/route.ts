@@ -21,7 +21,9 @@ async function requireAdmin() {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) {
-    return { error: NextResponse.json({ error: 'Unauthorized' }, { status: 401 }) };
+    return {
+      error: NextResponse.json({ error: 'Unauthorized' }, { status: 401 }),
+    };
   }
   const { data: profile } = await supabase
     .from('profiles')
@@ -29,7 +31,9 @@ async function requireAdmin() {
     .eq('id', user.id)
     .single();
   if (!profile?.is_admin) {
-    return { error: NextResponse.json({ error: 'Forbidden' }, { status: 403 }) };
+    return {
+      error: NextResponse.json({ error: 'Forbidden' }, { status: 403 }),
+    };
   }
   return { user };
 }
@@ -74,26 +78,35 @@ async function handleGet(request: NextRequest) {
 
   // Summary over the whole window.
   const total = all.length;
-  const successCount = all.filter(l => l.processing_status === 'success').length;
+  const successCount = all.filter(
+    l => l.processing_status === 'success'
+  ).length;
   const failedCount = all.filter(l => l.processing_status === 'failed').length;
-  const refundedCount = all.filter(l => l.processing_status === 'refunded').length;
+  const refundedCount = all.filter(
+    l => l.processing_status === 'refunded'
+  ).length;
   const successRate = total > 0 ? (successCount / total) * 100 : 100;
 
   // Failures grouped by tool (operation), with the most recent error + count.
   const byTool = new Map<
     string,
-    { tool: string; failures: number; total: number; lastError: string | null; lastFailedAt: string | null }
+    {
+      tool: string;
+      failures: number;
+      total: number;
+      lastError: string | null;
+      lastFailedAt: string | null;
+    }
   >();
   for (const l of all) {
     const key = l.operation || 'unknown';
-    const entry =
-      byTool.get(key) || {
-        tool: key,
-        failures: 0,
-        total: 0,
-        lastError: null,
-        lastFailedAt: null,
-      };
+    const entry = byTool.get(key) || {
+      tool: key,
+      failures: 0,
+      total: 0,
+      lastError: null,
+      lastFailedAt: null,
+    };
     entry.total++;
     if (l.processing_status === 'failed') {
       entry.failures++;
@@ -110,8 +123,10 @@ async function handleGet(request: NextRequest) {
 
   // Rows for the table — apply status + tool filters.
   let rows = all;
-  if (status === 'failed') rows = rows.filter(l => l.processing_status === 'failed');
-  else if (status === 'success') rows = rows.filter(l => l.processing_status === 'success');
+  if (status === 'failed')
+    rows = rows.filter(l => l.processing_status === 'failed');
+  else if (status === 'success')
+    rows = rows.filter(l => l.processing_status === 'success');
   if (toolFilter) rows = rows.filter(l => l.operation === toolFilter);
   rows = rows.slice(0, limit);
 
@@ -127,7 +142,11 @@ async function handleGet(request: NextRequest) {
   }
 
   return NextResponse.json({
-    meta: { days, generatedAt: new Date().toISOString(), windowCapped: all.length >= 2000 },
+    meta: {
+      days,
+      generatedAt: new Date().toISOString(),
+      windowCapped: all.length >= 2000,
+    },
     summary: {
       total,
       success: successCount,
@@ -136,7 +155,9 @@ async function handleGet(request: NextRequest) {
       successRate,
     },
     failuresByTool,
-    tools: Array.from(new Set(all.map(l => l.operation).filter(Boolean))).sort(),
+    tools: Array.from(
+      new Set(all.map(l => l.operation).filter(Boolean))
+    ).sort(),
     rows: rows.map(r => ({
       id: r.id,
       tool: r.operation,

@@ -111,10 +111,7 @@ function loadCmSdk(): Promise<void> {
 // 26.2-megapixel maximum, which it would downscale to anyway.
 const CM_MAX_PIXELS = 26214400;
 
-function pngBlobAtScale(
-  image: HTMLImageElement,
-  scale: number
-): Promise<Blob> {
+function pngBlobAtScale(image: HTMLImageElement, scale: number): Promise<Blob> {
   const w = Math.max(1, Math.round(image.naturalWidth * scale));
   const h = Math.max(1, Math.round(image.naturalHeight * scale));
   const canvas = document.createElement('canvas');
@@ -419,7 +416,9 @@ export function ClippingMagicPanel({
         });
       if (!mountedRef.current) return;
       if (uploadErr) {
-        throw new Error(`Couldn't stage image for upload: ${uploadErr.message}`);
+        throw new Error(
+          `Couldn't stage image for upload: ${uploadErr.message}`
+        );
       }
 
       const { data: pub } = supabase.storage

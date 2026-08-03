@@ -1089,12 +1089,16 @@ export function ImageGalleryEnhanced() {
                       sizes="(max-width: 640px) 100vw, (max-width: 768px) 50vw, (max-width: 1024px) 33vw, 25vw"
                       loading="lazy"
                       className="object-cover"
-                      onError={(e) => {
+                      onError={e => {
                         // Hide broken image and show fallback icon
                         const target = e.currentTarget;
                         target.style.display = 'none';
-                        const fallback = target.parentElement?.querySelector('.image-fallback');
-                        if (fallback) (fallback as HTMLElement).style.display = 'flex';
+                        const fallback =
+                          target.parentElement?.querySelector(
+                            '.image-fallback'
+                          );
+                        if (fallback)
+                          (fallback as HTMLElement).style.display = 'flex';
                       }}
                     />
                   ) : null}
@@ -1219,11 +1223,15 @@ export function ImageGalleryEnhanced() {
                         sizes="64px"
                         loading="lazy"
                         className="object-cover rounded"
-                        onError={(e) => {
+                        onError={e => {
                           const target = e.currentTarget;
                           target.style.display = 'none';
-                          const fallback = target.parentElement?.querySelector('.image-fallback');
-                          if (fallback) (fallback as HTMLElement).style.display = 'flex';
+                          const fallback =
+                            target.parentElement?.querySelector(
+                              '.image-fallback'
+                            );
+                          if (fallback)
+                            (fallback as HTMLElement).style.display = 'flex';
                         }}
                       />
                     ) : null}

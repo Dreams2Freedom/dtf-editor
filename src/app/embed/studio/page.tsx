@@ -132,7 +132,11 @@ function EmbedStudio() {
 
   const done = () => {
     window.parent?.postMessage(
-      { type: 'dtf-studio-result', resultUrl: workingUrl.split('?')[0], totalCents },
+      {
+        type: 'dtf-studio-result',
+        resultUrl: workingUrl.split('?')[0],
+        totalCents,
+      },
       '*'
     );
   };

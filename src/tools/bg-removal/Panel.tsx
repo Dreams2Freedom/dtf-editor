@@ -523,13 +523,8 @@ export function BackgroundRemovalPanel({
   }, [hasResult]);
   const [upgradeRequired, setUpgradeRequired] = useState(false);
 
-  const {
-    status,
-    error,
-    runDetect,
-    runRemoval,
-    reset,
-  } = useBackgroundRemoval();
+  const { status, error, runDetect, runRemoval, reset } =
+    useBackgroundRemoval();
 
   // Track preview's UN-transformed layout size via ResizeObserver. Using
   // `contentRect` (not getBoundingClientRect) is critical: contentRect is
@@ -821,9 +816,7 @@ export function BackgroundRemovalPanel({
           const next = new Uint8Array(m);
           cumulativeMaskRef.current = next;
           renderPreviewFromMask(next);
-          setContoursD(
-            maskToContoursPath(next, origNow.width, origNow.height)
-          );
+          setContoursD(maskToContoursPath(next, origNow.width, origNow.height));
         }
       }
       // Smart initial mask: detect → ml+color when bg is flood-fillable.
@@ -1281,11 +1274,17 @@ export function BackgroundRemovalPanel({
         }
       }
       if (!any) {
-        region = growRegionFromStroke(orig.data, orig.width, orig.height, seeds, {
-          reachRadius,
-          edgeThreshold: GROW_EDGE_THRESHOLD,
-          colorTolerance: GROW_FLOOD_COLOR_TOLERANCE,
-        });
+        region = growRegionFromStroke(
+          orig.data,
+          orig.width,
+          orig.height,
+          seeds,
+          {
+            reachRadius,
+            edgeThreshold: GROW_EDGE_THRESHOLD,
+            colorTolerance: GROW_FLOOD_COLOR_TOLERANCE,
+          }
+        );
       }
       if (region.length !== total) return;
 
@@ -2335,8 +2334,9 @@ export function BackgroundRemovalPanel({
                     </button>
                   </div>
                   <p className="text-xs text-gray-400 mt-1">
-                    Use <span className="font-medium">Move</span> (or hold Space,
-                    or drag with the middle mouse button) to pan. Scroll to zoom.
+                    Use <span className="font-medium">Move</span> (or hold
+                    Space, or drag with the middle mouse button) to pan. Scroll
+                    to zoom.
                   </p>
                 </div>
 
@@ -2357,11 +2357,11 @@ export function BackgroundRemovalPanel({
                       <span className="block text-[11px] text-gray-500 mt-0.5">
                         Best for complex, multi-layer designs (detailed
                         illustrations). Removes only the outside background and
-                        keeps the whole design solid — including dark parts (like
-                        a helmet) that match the shirt colour — then brush away
-                        anything you don&apos;t want (e.g. the eyes). Turn OFF for
-                        simple photos/logos to use the standard auto-cutout and
-                        the cleanup sliders below.
+                        keeps the whole design solid — including dark parts
+                        (like a helmet) that match the shirt colour — then brush
+                        away anything you don&apos;t want (e.g. the eyes). Turn
+                        OFF for simple photos/logos to use the standard
+                        auto-cutout and the cleanup sliders below.
                       </span>
                     </span>
                   </label>
@@ -2388,10 +2388,10 @@ export function BackgroundRemovalPanel({
                         className="w-full accent-blue-600"
                       />
                       <p className="text-[11px] text-gray-500 mt-1">
-                        Cleans the dark halo/fringe around each element (flowers,
-                        leaves) on busy multi-facet designs. Higher = peels more;
-                        0 = off. Only removes background-coloured edge pixels, so
-                        real content is never eaten.
+                        Cleans the dark halo/fringe around each element
+                        (flowers, leaves) on busy multi-facet designs. Higher =
+                        peels more; 0 = off. Only removes background-coloured
+                        edge pixels, so real content is never eaten.
                       </p>
                     </div>
                   )}
@@ -2422,8 +2422,9 @@ export function BackgroundRemovalPanel({
                     <span className="text-red-600">Remove</span> — each stroke
                     intelligently grabs the whole connected region it touches
                     (keeps the subject / clears the background) without crossing
-                    into the artwork. Brush size only sets how much area you cover;
-                    it always also keeps/removes exactly what you paint over.
+                    into the artwork. Brush size only sets how much area you
+                    cover; it always also keeps/removes exactly what you paint
+                    over.
                   </p>
                 </div>
 
@@ -2442,118 +2443,121 @@ export function BackgroundRemovalPanel({
                     </p>
                   )}
 
-                {/* BG Color Flood — Phase 2.3 primary background detection.
+                  {/* BG Color Flood — Phase 2.3 primary background detection.
                     Flood from image edges through pixels matching the
                     detected BG color. The single biggest knob for
                     DTF-grade cutouts on solid backgrounds. */}
-                <div>
-                  <div className="flex items-center justify-between mb-1">
-                    <label className="text-xs font-medium text-gray-600">
-                      BG Color Flood
-                    </label>
-                    <span className="text-xs text-gray-500 tabular-nums">
-                      {bgFlood}
-                    </span>
+                  <div>
+                    <div className="flex items-center justify-between mb-1">
+                      <label className="text-xs font-medium text-gray-600">
+                        BG Color Flood
+                      </label>
+                      <span className="text-xs text-gray-500 tabular-nums">
+                        {bgFlood}
+                      </span>
+                    </div>
+                    <input
+                      type="range"
+                      min={0}
+                      max={100}
+                      step={1}
+                      value={bgFlood}
+                      onChange={e => setBgFlood(Number(e.target.value))}
+                      className="w-full accent-blue-600"
+                    />
+                    <p className="text-xs text-gray-400 mt-1">
+                      Floods from the image edges through anything matching the
+                      detected background color. Higher = wider tolerance
+                      (catches off-whites / light grays). Keep brush strokes
+                      block the flood.
+                    </p>
                   </div>
-                  <input
-                    type="range"
-                    min={0}
-                    max={100}
-                    step={1}
-                    value={bgFlood}
-                    onChange={e => setBgFlood(Number(e.target.value))}
-                    className="w-full accent-blue-600"
-                  />
-                  <p className="text-xs text-gray-400 mt-1">
-                    Floods from the image edges through anything matching the
-                    detected background color. Higher = wider tolerance (catches
-                    off-whites / light grays). Keep brush strokes block the
-                    flood.
-                  </p>
-                </div>
 
-                {/* Edge cleanup tolerance */}
-                <div>
-                  <div className="flex items-center justify-between mb-1">
-                    <label className="text-xs font-medium text-gray-600">
-                      Edge Cleanup
-                    </label>
-                    <span className="text-xs text-gray-500 tabular-nums">
-                      {cleanupTolerance}
-                    </span>
+                  {/* Edge cleanup tolerance */}
+                  <div>
+                    <div className="flex items-center justify-between mb-1">
+                      <label className="text-xs font-medium text-gray-600">
+                        Edge Cleanup
+                      </label>
+                      <span className="text-xs text-gray-500 tabular-nums">
+                        {cleanupTolerance}
+                      </span>
+                    </div>
+                    <input
+                      type="range"
+                      min={0}
+                      max={150}
+                      step={1}
+                      value={cleanupTolerance}
+                      onChange={e =>
+                        setCleanupTolerance(Number(e.target.value))
+                      }
+                      className="w-full accent-blue-600"
+                    />
+                    <p className="text-xs text-gray-400 mt-1">
+                      Higher = removes more anti-aliased fringe and specks. Too
+                      high may erase darker valid content.
+                    </p>
                   </div>
-                  <input
-                    type="range"
-                    min={0}
-                    max={150}
-                    step={1}
-                    value={cleanupTolerance}
-                    onChange={e => setCleanupTolerance(Number(e.target.value))}
-                    className="w-full accent-blue-600"
-                  />
-                  <p className="text-xs text-gray-400 mt-1">
-                    Higher = removes more anti-aliased fringe and specks. Too
-                    high may erase darker valid content.
-                  </p>
-                </div>
 
-                {/* Hole Detection — Phase 2.2 internal-hole carve. */}
-                <div>
-                  <div className="flex items-center justify-between mb-1">
-                    <label className="text-xs font-medium text-gray-600">
-                      Hole Detection
-                    </label>
-                    <span className="text-xs text-gray-500 tabular-nums">
-                      {holeDetection}
-                    </span>
+                  {/* Hole Detection — Phase 2.2 internal-hole carve. */}
+                  <div>
+                    <div className="flex items-center justify-between mb-1">
+                      <label className="text-xs font-medium text-gray-600">
+                        Hole Detection
+                      </label>
+                      <span className="text-xs text-gray-500 tabular-nums">
+                        {holeDetection}
+                      </span>
+                    </div>
+                    <input
+                      type="range"
+                      min={0}
+                      max={100}
+                      step={1}
+                      value={holeDetection}
+                      onChange={e => setHoleDetection(Number(e.target.value))}
+                      className="w-full accent-blue-600"
+                    />
+                    <p className="text-xs text-gray-400 mt-1">
+                      Carves background-colored pockets fully ENCLOSED by the
+                      subject (inside of letter shapes). The BG Color Flood
+                      above handles open pockets; this catches the leftovers a
+                      flood can&apos;t reach. Honors Keep / Remove brush
+                      strokes.
+                    </p>
                   </div>
-                  <input
-                    type="range"
-                    min={0}
-                    max={100}
-                    step={1}
-                    value={holeDetection}
-                    onChange={e => setHoleDetection(Number(e.target.value))}
-                    className="w-full accent-blue-600"
-                  />
-                  <p className="text-xs text-gray-400 mt-1">
-                    Carves background-colored pockets fully ENCLOSED by the
-                    subject (inside of letter shapes). The BG Color Flood above
-                    handles open pockets; this catches the leftovers a flood
-                    can&apos;t reach. Honors Keep / Remove brush strokes.
-                  </p>
-                </div>
 
-                {/* Speck Removal — Phase 2.7 stranded-component pass.
+                  {/* Speck Removal — Phase 2.7 stranded-component pass.
                     Color-agnostic: carves any small foreground island
                     sitting in mostly-transparent surroundings. Crank up
                     for distressed/grunge designs (TOP DAD); leave low
                     for clean illustrations to preserve small details. */}
-                <div>
-                  <div className="flex items-center justify-between mb-1">
-                    <label className="text-xs font-medium text-gray-600">
-                      Speck Removal
-                    </label>
-                    <span className="text-xs text-gray-500 tabular-nums">
-                      {speckRemoval}
-                    </span>
+                  <div>
+                    <div className="flex items-center justify-between mb-1">
+                      <label className="text-xs font-medium text-gray-600">
+                        Speck Removal
+                      </label>
+                      <span className="text-xs text-gray-500 tabular-nums">
+                        {speckRemoval}
+                      </span>
+                    </div>
+                    <input
+                      type="range"
+                      min={0}
+                      max={100}
+                      step={1}
+                      value={speckRemoval}
+                      onChange={e => setSpeckRemoval(Number(e.target.value))}
+                      className="w-full accent-blue-600"
+                    />
+                    <p className="text-xs text-gray-400 mt-1">
+                      Carves small foreground specks left stranded after the
+                      background passes — grunge noise, distressed marks,
+                      isolated islands of any color. Higher = larger components
+                      eligible. The main subject is never carved.
+                    </p>
                   </div>
-                  <input
-                    type="range"
-                    min={0}
-                    max={100}
-                    step={1}
-                    value={speckRemoval}
-                    onChange={e => setSpeckRemoval(Number(e.target.value))}
-                    className="w-full accent-blue-600"
-                  />
-                  <p className="text-xs text-gray-400 mt-1">
-                    Carves small foreground specks left stranded after the
-                    background passes — grunge noise, distressed marks, isolated
-                    islands of any color. Higher = larger components eligible.
-                    The main subject is never carved.
-                  </p>
-                </div>
                 </fieldset>
 
                 {/* Undo / Clear */}
@@ -2581,7 +2585,6 @@ export function BackgroundRemovalPanel({
                     ? 'No strokes yet — showing initial AI guess.'
                     : `${strokeHistory.length} stroke${strokeHistory.length === 1 ? '' : 's'} placed.`}
                 </div>
-
               </>
             )}
 

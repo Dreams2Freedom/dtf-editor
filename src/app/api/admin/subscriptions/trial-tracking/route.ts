@@ -106,9 +106,7 @@ async function listByStatus(
 // historical subscription sequentially (which timed out). Canceled subs are
 // scoped to the last 180 days — enough to catch any canceled/expired trial,
 // since trials are only 7 days. Deduped by id.
-async function loadSubscriptions(
-  stripe: ReturnType<typeof getStripeService>
-) {
+async function loadSubscriptions(stripe: ReturnType<typeof getStripeService>) {
   const since = Math.floor(Date.now() / 1000) - 180 * DAY;
   const results = await Promise.all([
     listByStatus(stripe, 'trialing'),
@@ -155,7 +153,9 @@ async function handleGet(request: NextRequest) {
   const customerIds = Array.from(
     new Set(
       subscriptions
-        .map(s => (typeof s.customer === 'string' ? s.customer : s.customer?.id))
+        .map(s =>
+          typeof s.customer === 'string' ? s.customer : s.customer?.id
+        )
         .filter(Boolean)
     )
   );
@@ -236,7 +236,8 @@ async function handleGet(request: NextRequest) {
   }
 
   const userInfo = (sub: any) => {
-    const cid = typeof sub.customer === 'string' ? sub.customer : sub.customer?.id;
+    const cid =
+      typeof sub.customer === 'string' ? sub.customer : sub.customer?.id;
     const p = cid ? profByCustomer.get(cid) : undefined;
     const usage = p ? usageByUser.get(p.id) : undefined;
     return {
@@ -278,7 +279,8 @@ async function handleGet(request: NextRequest) {
       plan,
       trialStart: trialStart ? new Date(trialStart * 1000).toISOString() : null,
       trialEnd: trialEnd ? new Date(trialEnd * 1000).toISOString() : null,
-      daysRemaining: daysRemaining != null ? Math.round(daysRemaining * 10) / 10 : null,
+      daysRemaining:
+        daysRemaining != null ? Math.round(daysRemaining * 10) / 10 : null,
       cardOnFile: !!sub.default_payment_method,
       monthlyValue,
       ...info,
@@ -309,7 +311,8 @@ async function handleGet(request: NextRequest) {
       // Trial ended and the user paid at least once → converted.
       conversions.push({
         ...base,
-        status: sub.status === 'active' ? 'converted' : 'converted_then_churned',
+        status:
+          sub.status === 'active' ? 'converted' : 'converted_then_churned',
         convertedAt: info.firstSubChargeAt,
       });
     } else if (sub.status === 'past_due' || sub.status === 'unpaid') {
@@ -366,7 +369,10 @@ async function handleGet(request: NextRequest) {
   const trialsByPlan: Record<string, { count: number; projectedMRR: number }> =
     {};
   for (const t of activeTrialList) {
-    trialsByPlan[t.plan] = trialsByPlan[t.plan] || { count: 0, projectedMRR: 0 };
+    trialsByPlan[t.plan] = trialsByPlan[t.plan] || {
+      count: 0,
+      projectedMRR: 0,
+    };
     trialsByPlan[t.plan].count++;
     trialsByPlan[t.plan].projectedMRR += t.monthlyValue || 0;
   }
@@ -464,13 +470,14 @@ async function handleGet(request: NextRequest) {
     avgDaysToConversion,
     mostConvertedPlan,
     // Among non-converters (canceled + active trials that haven't paid):
-    highUsageNoConversion: canceledTrials.filter(t => t.creditsUsed >= 3).length,
-    noActivity: [...activeTrialList, ...canceledTrials].filter(isInactive).length,
-    usedCreditsNoSubscribe: canceledTrials.filter(t => t.creditsUsed > 0).length,
+    highUsageNoConversion: canceledTrials.filter(t => t.creditsUsed >= 3)
+      .length,
+    noActivity: [...activeTrialList, ...canceledTrials].filter(isInactive)
+      .length,
+    usedCreditsNoSubscribe: canceledTrials.filter(t => t.creditsUsed > 0)
+      .length,
     dpiCheckerOnly: [...activeTrialList, ...canceledTrials].filter(
-      t =>
-        t.toolsUsed.length === 1 &&
-        /dpi/i.test(t.toolsUsed[0] || '')
+      t => t.toolsUsed.length === 1 && /dpi/i.test(t.toolsUsed[0] || '')
     ).length,
   };
 

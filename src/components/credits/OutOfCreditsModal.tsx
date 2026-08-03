@@ -119,7 +119,13 @@ export function OutOfCreditsModal({
               } for more monthly credits, or buy Pay As You Go credits to keep working now.`;
 
   return (
-    <Modal open={open} onOpenChange={next => !next && onClose()} title={title} description={body} size="md">
+    <Modal
+      open={open}
+      onOpenChange={next => !next && onClose()}
+      title={title}
+      description={body}
+      size="md"
+    >
       {error && (
         <div
           role="alert"

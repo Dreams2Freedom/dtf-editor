@@ -25,10 +25,24 @@ import styles from './ToolShowcase.module.css';
 
 /* ---------- shared bits ---------- */
 
-function Spark({ className, style }: { className?: string; style?: React.CSSProperties }) {
+function Spark({
+  className,
+  style,
+}: {
+  className?: string;
+  style?: React.CSSProperties;
+}) {
   return (
-    <svg className={className} style={style} viewBox="0 0 12 12" aria-hidden="true">
-      <path d="M6 0 L7 4.6 L12 6 L7 7.4 L6 12 L5 7.4 L0 6 L5 4.6 Z" fill="currentColor" />
+    <svg
+      className={className}
+      style={style}
+      viewBox="0 0 12 12"
+      aria-hidden="true"
+    >
+      <path
+        d="M6 0 L7 4.6 L12 6 L7 7.4 L6 12 L5 7.4 L0 6 L5 4.6 Z"
+        fill="currentColor"
+      />
     </svg>
   );
 }
@@ -54,7 +68,10 @@ function UpscalePreview() {
       </div>
       <div className={styles.half}>
         <span className={`${styles.tag} ${styles['tag--r']}`}>After</span>
-        <Spark className={styles['spark--blue']} style={{ top: '16%', right: '12%' }} />
+        <Spark
+          className={styles['spark--blue']}
+          style={{ top: '16%', right: '12%' }}
+        />
         <MountainBadge className={styles.badge} />
       </div>
       <Divider />
@@ -66,8 +83,14 @@ function BgRemovalPreview() {
   return (
     <div className={`${styles.pv} ${styles['pv-split']}`}>
       <div className={`${styles.half} ${styles['half--blue']}`}>
-        <Spark className={styles['spark--white']} style={{ top: '18%', left: '14%' }} />
-        <Spark className={styles['spark--white']} style={{ bottom: '20%', left: '22%', opacity: 0.7 }} />
+        <Spark
+          className={styles['spark--white']}
+          style={{ top: '18%', left: '14%' }}
+        />
+        <Spark
+          className={styles['spark--white']}
+          style={{ bottom: '20%', left: '22%', opacity: 0.7 }}
+        />
         <MountainBadge transparent className={styles.badge} />
       </div>
       <div className={`${styles.half} ${styles['half--checker']}`}>
@@ -83,7 +106,9 @@ function VectorPreview() {
     <div className={`${styles.pv} ${styles['pv-split']}`}>
       <div className={`${styles.half} ${styles['half--gray']}`}>
         <span className={`${styles.tag} ${styles['tag--l']}`}>Raster</span>
-        <MountainBadge className={`${styles.badge} ${styles['badge--pixel']}`} />
+        <MountainBadge
+          className={`${styles.badge} ${styles['badge--pixel']}`}
+        />
       </div>
       <div className={styles.half}>
         <span className={`${styles.tag} ${styles['tag--r']}`}>Vector</span>
@@ -115,8 +140,14 @@ function AiPreviewSvg() {
   return (
     <div className={`${styles.pv} ${styles['pv-ai']}`}>
       <span className={styles.dots} aria-hidden="true" />
-      <Spark className={styles['spark--blue']} style={{ top: '14%', left: '46%' }} />
-      <Spark className={styles['spark--orange']} style={{ bottom: '20%', right: '14%' }} />
+      <Spark
+        className={styles['spark--blue']}
+        style={{ top: '14%', left: '46%' }}
+      />
+      <Spark
+        className={styles['spark--orange']}
+        style={{ bottom: '20%', right: '14%' }}
+      />
 
       <div className={styles.prompt}>
         <span className={styles.prompt__txt}>
@@ -129,7 +160,12 @@ function AiPreviewSvg() {
         </span>
       </div>
 
-      <svg className={styles.flow} viewBox="0 0 100 60" aria-hidden="true" preserveAspectRatio="none">
+      <svg
+        className={styles.flow}
+        viewBox="0 0 100 60"
+        aria-hidden="true"
+        preserveAspectRatio="none"
+      >
         <path
           d="M14 40 C40 56 52 40 70 26"
           stroke="#9fb3c8"
@@ -192,7 +228,10 @@ function ColorChangePreview() {
       </div>
       <div className={styles.half}>
         <span className={`${styles.tag} ${styles['tag--r']}`}>Recolored</span>
-        <Spark className={styles['spark--orange']} style={{ top: '16%', right: '12%' }} />
+        <Spark
+          className={styles['spark--orange']}
+          style={{ top: '16%', right: '12%' }}
+        />
         <MountainBadge
           className={styles.badge}
           style={{ filter: 'hue-rotate(135deg) saturate(1.15)' }}
@@ -220,19 +259,26 @@ function HalftonePreview() {
   );
 }
 
-const FLOW_STEPS: Array<{ icon: LucideIcon; label: string; active?: boolean }> = [
-  { icon: UploadCloud, label: 'Upload artwork' },
-  { icon: Wrench, label: 'Fix & clean up' },
-  { icon: Crosshair, label: 'Check DPI' },
-  { icon: Download, label: 'Download print-ready', active: true },
-];
+const FLOW_STEPS: Array<{ icon: LucideIcon; label: string; active?: boolean }> =
+  [
+    { icon: UploadCloud, label: 'Upload artwork' },
+    { icon: Wrench, label: 'Fix & clean up' },
+    { icon: Crosshair, label: 'Check DPI' },
+    { icon: Download, label: 'Download print-ready', active: true },
+  ];
 
 function WorkflowPreview() {
   return (
     <div className={`${styles.pv} ${styles['pv-pad']}`}>
       <span className={styles.dots} aria-hidden="true" />
-      <Spark className={styles['spark--blue']} style={{ top: '16%', right: '10%' }} />
-      <Spark className={styles['spark--orange']} style={{ bottom: '24%', right: '16%' }} />
+      <Spark
+        className={styles['spark--blue']}
+        style={{ top: '16%', right: '10%' }}
+      />
+      <Spark
+        className={styles['spark--orange']}
+        style={{ bottom: '24%', right: '16%' }}
+      />
       <div className={styles.flowcard}>
         <ul className={styles.checklist}>
           {FLOW_STEPS.map(({ icon: Icon, label, active }) => (
@@ -382,7 +428,9 @@ export function ToolShowcase() {
                       </span>{' '}
                       {card.title}
                     </div>
-                    <span className={`badge ${card.badgeClass}`}>{card.badgeLabel}</span>
+                    <span className={`badge ${card.badgeClass}`}>
+                      {card.badgeLabel}
+                    </span>
                   </div>
                   <p className={styles.tool__desc}>{card.desc}</p>
                   <div className={styles.tool__foot}>
@@ -390,7 +438,8 @@ export function ToolShowcase() {
                       className={`btn btn--link ${card.ctaGreen ? styles['cta--green'] : ''}`}
                       href={card.ctaHref}
                     >
-                      {card.ctaLabel} <ArrowRight size={16} aria-hidden="true" />
+                      {card.ctaLabel}{' '}
+                      <ArrowRight size={16} aria-hidden="true" />
                     </a>
                   </div>
                 </div>

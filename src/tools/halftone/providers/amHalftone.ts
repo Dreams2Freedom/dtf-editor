@@ -355,7 +355,12 @@ export function renderAmImageData(
   //     the old flat-bias cut did nothing.
   let inkiness = computeInkiness(src, options);
   if (options.deFringe) {
-    inkiness = deFringeInkiness(inkiness, width, height, options.deFringeAmount);
+    inkiness = deFringeInkiness(
+      inkiness,
+      width,
+      height,
+      options.deFringeAmount
+    );
   }
   const ks = Math.max(0, Math.min(100, options.knockout ?? 0)) / 100;
 

@@ -124,14 +124,9 @@ export default function BgEvalPage() {
   const [loading, setLoading] = useState(false);
   const [runningAll, setRunningAll] = useState(false);
 
-  const patch = useCallback(
-    (id: string, updates: Partial<EvalRow>) => {
-      setRows(prev =>
-        prev.map(r => (r.id === id ? { ...r, ...updates } : r))
-      );
-    },
-    []
-  );
+  const patch = useCallback((id: string, updates: Partial<EvalRow>) => {
+    setRows(prev => prev.map(r => (r.id === id ? { ...r, ...updates } : r)));
+  }, []);
 
   /** Pull the admin's recent uploads from the images table (in-browser, as the user). */
   const loadRecentUploads = useCallback(async () => {
@@ -174,9 +169,7 @@ export default function BgEvalPage() {
       setRows(next);
       if (!next.length) toast.info('No uploaded images found.');
     } catch (e) {
-      toast.error(
-        e instanceof Error ? e.message : 'Could not load uploads'
-      );
+      toast.error(e instanceof Error ? e.message : 'Could not load uploads');
     } finally {
       setLoading(false);
     }
@@ -359,10 +352,7 @@ export default function BgEvalPage() {
 
             <div className="flex-1" />
 
-            <Button
-              onClick={runAll}
-              disabled={runningAll || rows.length === 0}
-            >
+            <Button onClick={runAll} disabled={runningAll || rows.length === 0}>
               {runningAll ? (
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
               ) : (
@@ -395,8 +385,15 @@ export default function BgEvalPage() {
                     </Button>
                   </div>
                   <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
-                    <EvalCell label="Original" cell={{ status: 'done', url: row.srcUrl }} plain />
-                    <EvalCell label="Current (classical)" cell={row.classical} />
+                    <EvalCell
+                      label="Original"
+                      cell={{ status: 'done', url: row.srcUrl }}
+                      plain
+                    />
+                    <EvalCell
+                      label="Current (classical)"
+                      cell={row.classical}
+                    />
                     <EvalCell label="AI: BRIA" cell={row.aiBria} />
                     <EvalCell label="AI: BiRefNet" cell={row.aiBirefnet} />
                     <EvalCell label="SAM: pieces" cell={row.samOverlay} plain />

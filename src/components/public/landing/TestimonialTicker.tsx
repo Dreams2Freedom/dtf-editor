@@ -35,7 +35,11 @@ export function TestimonialTicker() {
           </div>
 
           <blockquote className={styles.card__quote}>
-            <Quote className={styles.card__quoteMark} size={36} aria-hidden="true" />
+            <Quote
+              className={styles.card__quoteMark}
+              size={36}
+              aria-hidden="true"
+            />
             {t.quote}
           </blockquote>
 

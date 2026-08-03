@@ -22,7 +22,10 @@ function serviceClient(): SupabaseClient {
   );
 }
 
-async function getUserFromRequest(request: NextRequest, supabase: SupabaseClient) {
+async function getUserFromRequest(
+  request: NextRequest,
+  supabase: SupabaseClient
+) {
   const authHeader = request.headers.get('authorization');
   if (!authHeader) return null;
   const token = authHeader.replace('Bearer ', '');
@@ -86,7 +89,9 @@ async function fetchActiveForUser(supabase: SupabaseClient, userId: string) {
       case 'all':
         return true;
       case 'custom':
-        return Array.isArray(n.target_user_ids) && n.target_user_ids.includes(userId);
+        return (
+          Array.isArray(n.target_user_ids) && n.target_user_ids.includes(userId)
+        );
       case 'free':
         return plan === 'free';
       case 'basic':
@@ -99,7 +104,10 @@ async function fetchActiveForUser(supabase: SupabaseClient, userId: string) {
   });
 
   const ids = applies.map(n => n.id);
-  const stateMap = new Map<string, { is_read: boolean; is_dismissed: boolean }>();
+  const stateMap = new Map<
+    string,
+    { is_read: boolean; is_dismissed: boolean }
+  >();
   if (ids.length > 0) {
     const { data: uns } = await supabase
       .from('user_notifications')
@@ -117,7 +125,11 @@ async function fetchActiveForUser(supabase: SupabaseClient, userId: string) {
   return applies
     .map(n => {
       const st = stateMap.get(n.id);
-      return { ...n, is_read: st?.is_read ?? false, is_dismissed: st?.is_dismissed ?? false };
+      return {
+        ...n,
+        is_read: st?.is_read ?? false,
+        is_dismissed: st?.is_dismissed ?? false,
+      };
     })
     .filter(n => !n.is_dismissed);
 }
@@ -126,7 +138,8 @@ async function handleGet(request: NextRequest) {
   try {
     const supabase = serviceClient();
     const user = await getUserFromRequest(request, supabase);
-    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    if (!user)
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
     const active = await fetchActiveForUser(supabase, user.id);
     // Hamilton shows at most the 2 most recent announcements to avoid clutter;
@@ -135,7 +148,8 @@ async function handleGet(request: NextRequest) {
     const unreadCount = notifications.filter(n => !n.is_read).length;
     return NextResponse.json({ notifications, unreadCount });
   } catch (error) {
-    const msg = error instanceof Error ? error.message : 'Internal server error';
+    const msg =
+      error instanceof Error ? error.message : 'Internal server error';
     console.error('Error in get notifications:', error);
     return NextResponse.json({ error: msg }, { status: 500 });
   }
@@ -145,7 +159,8 @@ async function handlePatch(request: NextRequest) {
   try {
     const supabase = serviceClient();
     const user = await getUserFromRequest(request, supabase);
-    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    if (!user)
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
     const body = await request.json();
     const { notificationId, action } = body as {
@@ -153,7 +168,10 @@ async function handlePatch(request: NextRequest) {
       action?: string;
     };
     if (!action) {
-      return NextResponse.json({ error: 'Action is required' }, { status: 400 });
+      return NextResponse.json(
+        { error: 'Action is required' },
+        { status: 400 }
+      );
     }
 
     const nowIso = new Date().toISOString();
@@ -212,7 +230,8 @@ async function handlePatch(request: NextRequest) {
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    const msg = error instanceof Error ? error.message : 'Internal server error';
+    const msg =
+      error instanceof Error ? error.message : 'Internal server error';
     console.error('Error updating notification:', error);
     return NextResponse.json({ error: msg }, { status: 500 });
   }

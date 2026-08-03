@@ -49,6 +49,7 @@ Every tool returns a `usage` block: `{ tool, costCents, eventId }`. Feed this
 into Shopify billing (§5).
 
 ### Background removal (in-house SAM)
+
 ```
 POST /api/partner/v1/background-removal
 { "shop": "store.myshopify.com", "imageUrl": "https://…" }
@@ -56,14 +57,17 @@ POST /api/partner/v1/background-removal
 ```
 
 ### Upscale (Deep-Image)
+
 ```
 POST /api/partner/v1/upscale
 { "shop": "…", "imageUrl": "https://…", "scale": 2, "processingMode": "auto_enhance", "faceEnhance": false }
 → { "resultUrl": "https://…", "usage": { … } }
 ```
+
 `scale`: 2 | 4. `processingMode`: `auto_enhance` | `generative_upscale` | `basic_upscale`.
 
 ### Vectorize (Vectorizer.ai)
+
 ```
 POST /api/partner/v1/vectorize
 { "shop": "…", "imageUrl": "https://…" }
@@ -71,6 +75,7 @@ POST /api/partner/v1/vectorize
 ```
 
 ### AI generate (OpenAI gpt-image-1)
+
 ```
 POST /api/partner/v1/generate
 { "shop": "…", "prompt": "…", "size": "1024x1024", "quality": "medium" }
@@ -78,6 +83,7 @@ POST /api/partner/v1/generate
 ```
 
 ### DPI check (in-house — reports, does not transform)
+
 ```
 POST /api/partner/v1/dpi-check
 { "shop": "…", "imageUrl": "https://…", "targetWidthInches": 11, "targetHeightInches": 11 }
@@ -89,8 +95,10 @@ POST /api/partner/v1/dpi-check
 ```
 
 ### Report usage for a client-side in-house tool (halftone, color-change)
+
 Halftone and color-change run in the browser (inside the embed). After a
 successful client-side use, meter it:
+
 ```
 POST /api/partner/v1/report-usage
 { "shop": "…", "tool": "halftone" }         // or "color-change"
@@ -108,6 +116,7 @@ logged with `costCents: 0` and are **not** billable.
 For a ready-made UI, open the hosted Studio for one image.
 
 **Step 1 — mint a session (partner backend, API key):**
+
 ```
 POST /api/partner/v1/embed-session
 { "shop": "store.myshopify.com", "imageUrl": "https://…", "ttlSeconds": 1800 }
@@ -117,8 +126,9 @@ POST /api/partner/v1/embed-session
 **Step 2 — open `embedUrl`** in an iframe or popup.
 
 **Step 3 — receive the result** via `postMessage`:
+
 ```js
-window.addEventListener('message', (e) => {
+window.addEventListener('message', e => {
   if (e.data?.type === 'dtf-studio-result') {
     const { resultUrl, totalCents } = e.data; // drop resultUrl back into the sheet
   }
@@ -146,18 +156,26 @@ subscription line (which must have a usage-pricing plan with a capped amount):
 
 ```graphql
 mutation appUsageRecordCreate(
-  $subscriptionLineItemId: ID!, $price: MoneyInput!, $description: String!
+  $subscriptionLineItemId: ID!
+  $price: MoneyInput!
+  $description: String!
 ) {
   appUsageRecordCreate(
     subscriptionLineItemId: $subscriptionLineItemId
     price: $price
     description: $description
   ) {
-    appUsageRecord { id }
-    userErrors { field message }
+    appUsageRecord {
+      id
+    }
+    userErrors {
+      field
+      message
+    }
   }
 }
 ```
+
 ```js
 // price = costCents / 100, in the shop's currency
 await admin.graphql(APP_USAGE_RECORD_CREATE, {
@@ -168,18 +186,22 @@ await admin.graphql(APP_USAGE_RECORD_CREATE, {
   },
 });
 ```
+
 Prerequisite: create the per-shop app subscription once (on install/upgrade) via
 `appSubscriptionCreate` with a `usagePricing` line + `cappedAmount`.
 
 **B. Reconcile periodically.** Meter throughout the period, then at cycle end
 pull the total per shop from us and create one usage record:
+
 ```
 POST /api/partner/v1/usage/summary
 { "shop": "store.myshopify.com", "from": "2026-07-01T00:00:00Z", "to": "2026-08-01T00:00:00Z" }
 → { "shop": "…", "byTool": { "background-removal": { "uses": 40, "costCents": 200 }, … },
     "totalUses": 63, "totalCents": 410 }
 ```
+
 Individual events for audit:
+
 ```
 POST /api/partner/v1/usage/events
 { "shop": "…", "from": "…", "to": "…", "limit": 100 }
@@ -193,19 +215,20 @@ DTF Editor's usage records as the source of truth for reconciliation.
 
 ## 6. Pricing (per use, cents — tune in `src/lib/partner/pricing.ts`)
 
-| Tool | cents |
-|---|---|
-| background-removal | 5 |
-| upscale | 8 |
-| vectorize | 10 |
-| halftone | 3 |
-| dpi-check | 1 |
-| color-change | 3 |
-| generate | 12 |
+| Tool               | cents |
+| ------------------ | ----- |
+| background-removal | 5     |
+| upscale            | 8     |
+| vectorize          | 10    |
+| halftone           | 3     |
+| dpi-check          | 1     |
+| color-change       | 3     |
+| generate           | 12    |
 
 ---
 
 ## 7. Notes / roadmap
+
 - **Speed:** in-house SAM background removal is CPU-bound (~seconds+). MobileSAM
   is the planned speed upgrade (see `SAM_BG_REMOVAL_CHECKPOINT.md`).
 - **Client-side tools in the embed:** halftone + color-change need their canvas

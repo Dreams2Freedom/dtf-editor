@@ -805,8 +805,8 @@ function BillingSettings() {
                     Cancel Membership
                   </Button>
                   <p className="px-1 text-xs text-gray-500">
-                    Manage billing details and payment methods through the secure
-                    billing portal.
+                    Manage billing details and payment methods through the
+                    secure billing portal.
                   </p>
                 </>
               ) : (
@@ -826,8 +826,8 @@ function BillingSettings() {
                     Buy Credits
                   </Button>
                   <p className="px-1 text-xs text-gray-500">
-                    You&apos;re on the Free plan. Upgrade anytime — you can change
-                    or cancel later through the secure billing portal.
+                    You&apos;re on the Free plan. Upgrade anytime — you can
+                    change or cancel later through the secure billing portal.
                   </p>
                 </>
               )}

@@ -33,9 +33,16 @@
   z-index: 0;
   pointer-events: none;
   opacity: 0.5;
-  background-image: radial-gradient(var(--line-strong) 1.1px, transparent 1.1px);
+  background-image: radial-gradient(
+    var(--line-strong) 1.1px,
+    transparent 1.1px
+  );
   background-size: 22px 22px;
-  -webkit-mask-image: radial-gradient(72% 66% at 50% 46%, #000 0%, transparent 78%);
+  -webkit-mask-image: radial-gradient(
+    72% 66% at 50% 46%,
+    #000 0%,
+    transparent 78%
+  );
   mask-image: radial-gradient(72% 66% at 50% 46%, #000 0%, transparent 78%);
 }
 .float {

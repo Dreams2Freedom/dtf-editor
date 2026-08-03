@@ -29,10 +29,12 @@ export function WhyDtfEditor() {
     <section className="section">
       <div className="wrap">
         <div className="section-head section-head--center">
-          <h2 className="h-sec">Built for DTF creators, not generic photo editing</h2>
+          <h2 className="h-sec">
+            Built for DTF creators, not generic photo editing
+          </h2>
           <p className="sub">
-            Every tool is framed around one outcome: artwork that presses cleanly
-            onto a shirt.
+            Every tool is framed around one outcome: artwork that presses
+            cleanly onto a shirt.
           </p>
         </div>
         <div className={styles.why__grid}>

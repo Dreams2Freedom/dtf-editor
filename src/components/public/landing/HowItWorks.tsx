@@ -25,7 +25,9 @@ export function HowItWorks() {
       <div className="wrap">
         <div className="section-head section-head--center">
           <span className="eyebrow">How it works</span>
-          <h2 className="h-sec">Upload, choose a tool, and export cleaner artwork</h2>
+          <h2 className="h-sec">
+            Upload, choose a tool, and export cleaner artwork
+          </h2>
           <p className="sub">
             DTF Editor keeps artwork prep simple. Start with your file, pick the
             fix you need, and download a cleaner version for your DTF workflow.

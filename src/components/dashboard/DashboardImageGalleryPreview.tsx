@@ -143,52 +143,28 @@ export function DashboardImageGalleryPreview() {
   const requestRef = useRef(0);
   const retryTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const load = useCallback(
-    (id: string, attempt = 0, isBackground = false) => {
-      const requestId = ++requestRef.current;
-      if (!isBackground && attempt === 0 && !recentCache.has(id)) {
-        setState('loading');
-      }
+  const load = useCallback((id: string, attempt = 0, isBackground = false) => {
+    const requestId = ++requestRef.current;
+    if (!isBackground && attempt === 0 && !recentCache.has(id)) {
+      setState('loading');
+    }
 
-      (async () => {
-        try {
-          const supabase = createClientSupabaseClient();
-          // Fetch only the 6 most recent records (RPC sorts created_at DESC).
-          const { data, error } = await supabase.rpc('get_user_images', {
-            p_user_id: id,
-            p_limit: PREVIEW_COUNT,
-            p_offset: 0,
-          });
+    (async () => {
+      try {
+        const supabase = createClientSupabaseClient();
+        // Fetch only the 6 most recent records (RPC sorts created_at DESC).
+        const { data, error } = await supabase.rpc('get_user_images', {
+          p_user_id: id,
+          p_limit: PREVIEW_COUNT,
+          p_offset: 0,
+        });
 
-          // Ignore if a newer request started or the user changed.
-          if (requestId !== requestRef.current) return;
+        // Ignore if a newer request started or the user changed.
+        if (requestId !== requestRef.current) return;
 
-          if (error) {
-            // Transient failures (e.g. session not yet hydrated right after
-            // login) — retry with backoff before surfacing an error.
-            if (attempt < MAX_RETRIES) {
-              retryTimer.current = setTimeout(
-                () => load(id, attempt + 1, isBackground),
-                400 * 2 ** attempt
-              );
-              return;
-            }
-            // Keep any cached images visible rather than blanking the section.
-            if (!recentCache.has(id)) setState('error');
-            return;
-          }
-
-          const resolved = resolveUrls(
-            ((data as RecentImage[]) || []).slice(0, PREVIEW_COUNT),
-            supabase
-          );
-
-          recentCache.set(id, resolved);
-          setImages(resolved);
-          setBroken(new Set());
-          setState('success');
-        } catch {
-          if (requestId !== requestRef.current) return;
+        if (error) {
+          // Transient failures (e.g. session not yet hydrated right after
+          // login) — retry with backoff before surfacing an error.
           if (attempt < MAX_RETRIES) {
             retryTimer.current = setTimeout(
               () => load(id, attempt + 1, isBackground),
@@ -196,12 +172,33 @@ export function DashboardImageGalleryPreview() {
             );
             return;
           }
+          // Keep any cached images visible rather than blanking the section.
           if (!recentCache.has(id)) setState('error');
+          return;
         }
-      })();
-    },
-    []
-  );
+
+        const resolved = resolveUrls(
+          ((data as RecentImage[]) || []).slice(0, PREVIEW_COUNT),
+          supabase
+        );
+
+        recentCache.set(id, resolved);
+        setImages(resolved);
+        setBroken(new Set());
+        setState('success');
+      } catch {
+        if (requestId !== requestRef.current) return;
+        if (attempt < MAX_RETRIES) {
+          retryTimer.current = setTimeout(
+            () => load(id, attempt + 1, isBackground),
+            400 * 2 ** attempt
+          );
+          return;
+        }
+        if (!recentCache.has(id)) setState('error');
+      }
+    })();
+  }, []);
 
   useEffect(() => {
     if (!userId) return;
@@ -238,7 +235,9 @@ export function DashboardImageGalleryPreview() {
           >
             Your Image Gallery
           </h2>
-          <p className="mt-1 text-sm text-gray-500">Your 6 most recent images.</p>
+          <p className="mt-1 text-sm text-gray-500">
+            Your 6 most recent images.
+          </p>
         </div>
         <Link
           href="/dashboard/my-images"
@@ -280,7 +279,8 @@ export function DashboardImageGalleryPreview() {
               href="/dashboard/my-images"
               className="inline-flex min-h-[44px] items-center gap-1 rounded-lg border border-gray-300 px-4 py-2 text-sm font-semibold text-gray-700 transition-colors hover:bg-gray-50"
             >
-              Open My Images <ArrowRight className="h-4 w-4" aria-hidden="true" />
+              Open My Images{' '}
+              <ArrowRight className="h-4 w-4" aria-hidden="true" />
             </Link>
           </div>
         </div>
@@ -298,7 +298,8 @@ export function DashboardImageGalleryPreview() {
               href="/process"
               className="inline-flex min-h-[44px] items-center gap-1 rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-blue-700"
             >
-              Choose a Tool <ArrowRight className="h-4 w-4" aria-hidden="true" />
+              Choose a Tool{' '}
+              <ArrowRight className="h-4 w-4" aria-hidden="true" />
             </Link>
           </div>
         </div>
@@ -353,7 +354,10 @@ export function DashboardImageGalleryPreview() {
                           aria-label={`Download ${name}`}
                           className="inline-flex flex-1 items-center justify-center gap-1 rounded-md bg-white/95 px-2 py-1.5 text-[11px] font-semibold text-gray-900 transition-colors hover:bg-white focus:outline-none focus-visible:ring-2 focus-visible:ring-white"
                         >
-                          <Download className="h-3.5 w-3.5" aria-hidden="true" />
+                          <Download
+                            className="h-3.5 w-3.5"
+                            aria-hidden="true"
+                          />
                           Download
                         </button>
                         <Link
@@ -385,7 +389,8 @@ export function DashboardImageGalleryPreview() {
             href="/dashboard/my-images"
             className="mt-4 flex min-h-[44px] w-full items-center justify-center gap-1 rounded-lg border border-gray-200 px-3 py-2.5 text-sm font-semibold text-blue-600 transition-colors hover:bg-blue-50 sm:hidden"
           >
-            View All Images <ArrowRight className="h-4 w-4" aria-hidden="true" />
+            View All Images{' '}
+            <ArrowRight className="h-4 w-4" aria-hidden="true" />
           </Link>
         </>
       )}

@@ -26,21 +26,21 @@ blocks tag pushes, so the commit SHA above is the canonical anchor.)
 
 All under `src/tools/bg-removal/`:
 
-| File | Responsibility (do not gut these) |
-| --- | --- |
-| `Panel.tsx` | Orchestrator: canvas, zoom/pan, pointer handlers, brush commit, the `samMask → recomputeCumulative → cumulativeMask → render` pipeline, all tuning constants, and the "Keep whole shape" mode. |
-| `scribbleBrush.ts` | Core brush algorithms: `strokeToSeeds`, `growRegionFromStroke` (edge-aware local grow), `computeBackgroundMask` + `fillConnectedRegion` (big-brush connected-component fill), `computeWholeShapeMask` (silhouette keep), `featherAlpha`, `detectBorderColor`. |
-| `strokeSemantics.ts` | Turns stroke history into `protect` (Keep) / `forceCarve` (Remove) masks for the cleanup passes. |
-| `strokeMask.ts` | Rasterizes the literal brush footprint (always honored). |
-| `holeDetection.ts` | Carves background-colored pockets enclosed by the subject (e.g. inside of letters). |
-| `edgeFlood.ts` | Border-connected background flood (primary bg detection) + `floodFromSeeds`. |
-| `strandedComponents.ts` | Removes small stranded foreground specks. |
-| `imageStats.ts` | Classifies graphic vs. photographic content. |
-| `useBackgroundRemoval.ts` | Server-model calls (BRIA / BiRefNet; legacy SAM embed/predict). |
-| `api.ts` | Client → API wrappers for the removal/detect endpoints. |
-| `types.ts` | Shared types. |
-| `ClippingMagicPanel.tsx` | The separate ClippingMagic panel (not the in-house brush). |
-| `index.tsx` | Studio plugin entry. |
+| File                      | Responsibility (do not gut these)                                                                                                                                                                                                                             |
+| ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `Panel.tsx`               | Orchestrator: canvas, zoom/pan, pointer handlers, brush commit, the `samMask → recomputeCumulative → cumulativeMask → render` pipeline, all tuning constants, and the "Keep whole shape" mode.                                                                |
+| `scribbleBrush.ts`        | Core brush algorithms: `strokeToSeeds`, `growRegionFromStroke` (edge-aware local grow), `computeBackgroundMask` + `fillConnectedRegion` (big-brush connected-component fill), `computeWholeShapeMask` (silhouette keep), `featherAlpha`, `detectBorderColor`. |
+| `strokeSemantics.ts`      | Turns stroke history into `protect` (Keep) / `forceCarve` (Remove) masks for the cleanup passes.                                                                                                                                                              |
+| `strokeMask.ts`           | Rasterizes the literal brush footprint (always honored).                                                                                                                                                                                                      |
+| `holeDetection.ts`        | Carves background-colored pockets enclosed by the subject (e.g. inside of letters).                                                                                                                                                                           |
+| `edgeFlood.ts`            | Border-connected background flood (primary bg detection) + `floodFromSeeds`.                                                                                                                                                                                  |
+| `strandedComponents.ts`   | Removes small stranded foreground specks.                                                                                                                                                                                                                     |
+| `imageStats.ts`           | Classifies graphic vs. photographic content.                                                                                                                                                                                                                  |
+| `useBackgroundRemoval.ts` | Server-model calls (BRIA / BiRefNet; legacy SAM embed/predict).                                                                                                                                                                                               |
+| `api.ts`                  | Client → API wrappers for the removal/detect endpoints.                                                                                                                                                                                                       |
+| `types.ts`                | Shared types.                                                                                                                                                                                                                                                 |
+| `ClippingMagicPanel.tsx`  | The separate ClippingMagic panel (not the in-house brush).                                                                                                                                                                                                    |
+| `index.tsx`               | Studio plugin entry.                                                                                                                                                                                                                                          |
 
 ## The logic to preserve (the contract)
 
@@ -56,7 +56,7 @@ All under `src/tools/bg-removal/`:
      resolution — grabs a coherent region, isolatable by size.
    - **Whole shape** (`>= BRUSH_WHOLE_SIZE`): unbounded connected-component fill.
    - **Every stroke also always unions its literal footprint**, so painting
-     never does *less* than what you paint (critical for same-color-as-bg areas
+     never does _less_ than what you paint (critical for same-color-as-bg areas
      like a helmet).
 
 3. **Keep-whole-shape mode (default on for graphics).** Base mask =

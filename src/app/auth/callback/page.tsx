@@ -90,7 +90,10 @@ export default function AuthCallbackPage() {
   return (
     <AuthLayout>
       <div className={styles.header}>
-        <div className={styles.statusIcon} style={{ background: 'transparent' }}>
+        <div
+          className={styles.statusIcon}
+          style={{ background: 'transparent' }}
+        >
           {getIcon()}
         </div>
         <h1 className={styles.title}>{getTitle()}</h1>

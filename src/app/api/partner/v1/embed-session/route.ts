@@ -47,8 +47,7 @@ export async function POST(request: NextRequest) {
     ttlSeconds
   );
 
-  const origin =
-    process.env.NEXT_PUBLIC_APP_URL || new URL(request.url).origin;
+  const origin = process.env.NEXT_PUBLIC_APP_URL || new URL(request.url).origin;
   const embedUrl = `${origin}/embed/studio?token=${encodeURIComponent(token)}`;
 
   return json({

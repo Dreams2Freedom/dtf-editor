@@ -349,7 +349,8 @@ export function HamiltonWidget() {
                               href={n.action_url}
                               className="inline-flex items-center gap-1 text-xs text-blue-600 mt-1.5 hover:underline"
                             >
-                              {n.action_text} <ExternalLink className="w-3 h-3" />
+                              {n.action_text}{' '}
+                              <ExternalLink className="w-3 h-3" />
                             </a>
                           )}
                           <p className="text-[10px] text-gray-400 mt-1">

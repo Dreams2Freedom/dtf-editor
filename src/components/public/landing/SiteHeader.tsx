@@ -24,7 +24,11 @@ export function SiteHeader() {
       <div className={`wrap ${styles.hdr__inner}`}>
         <Link className="brand" href="/" aria-label="DTF Editor home">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/branding/dtf-editor-logo.png" alt="DTF Editor" className="brand__logo" />
+          <img
+            src="/branding/dtf-editor-logo.png"
+            alt="DTF Editor"
+            className="brand__logo"
+          />
         </Link>
 
         <nav className={styles.hdr__nav} aria-label="Primary">
@@ -36,7 +40,10 @@ export function SiteHeader() {
         </nav>
 
         <div className={styles.hdr__actions}>
-          <a className={`btn btn--ghost btn--sm ${styles.hdr__signin}`} href="/auth/login">
+          <a
+            className={`btn btn--ghost btn--sm ${styles.hdr__signin}`}
+            href="/auth/login"
+          >
             Sign in
           </a>
           <a className="btn btn--primary btn--sm" href="/auth/signup">
@@ -63,10 +70,18 @@ export function SiteHeader() {
           Sign in
         </a>
         <div className={styles.mnav__cta}>
-          <a className="btn btn--primary btn--block" href="/auth/signup" onClick={() => setOpen(false)}>
+          <a
+            className="btn btn--primary btn--block"
+            href="/auth/signup"
+            onClick={() => setOpen(false)}
+          >
             Get Started Free
           </a>
-          <Link className="btn btn--ghost btn--block" href="/#dpi" onClick={() => setOpen(false)}>
+          <Link
+            className="btn btn--ghost btn--block"
+            href="/#dpi"
+            onClick={() => setOpen(false)}
+          >
             Check DPI Free
           </Link>
         </div>

@@ -42,9 +42,7 @@ export function verifyEmbedToken(token: string): EmbedClaims | null {
   try {
     const [body, sig] = token.split('.');
     if (!body || !sig) return null;
-    const expected = b64url(
-      createHmac('sha256', SECRET).update(body).digest()
-    );
+    const expected = b64url(createHmac('sha256', SECRET).update(body).digest());
     const a = Buffer.from(sig);
     const b = Buffer.from(expected);
     if (a.length !== b.length || !timingSafeEqual(a, b)) return null;

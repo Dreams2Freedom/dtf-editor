@@ -56,13 +56,13 @@ function VerifyEmailContent() {
           <Mail className="h-8 w-8 text-[#366494]" />
         </div>
 
-        <h1 className="text-2xl font-bold text-gray-900">
-          Verify your email
-        </h1>
+        <h1 className="text-2xl font-bold text-gray-900">Verify your email</h1>
 
         <p className="mt-3 text-gray-600">
           We sent a verification link{email ? ' to ' : ' to your email address'}
-          {email && <span className="font-semibold text-gray-900">{email}</span>}
+          {email && (
+            <span className="font-semibold text-gray-900">{email}</span>
+          )}
           . Click the link to activate your account and start using the tools.
         </p>
 

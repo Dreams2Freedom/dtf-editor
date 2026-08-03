@@ -16,7 +16,9 @@
 }
 .plan--feat {
   border-color: var(--orange);
-  box-shadow: 0 0 0 1px var(--orange), var(--shadow-lift);
+  box-shadow:
+    0 0 0 1px var(--orange),
+    var(--shadow-lift);
 }
 .plan__flag {
   position: absolute;

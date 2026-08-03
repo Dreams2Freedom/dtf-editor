@@ -114,15 +114,30 @@ const COLOR_MODES: { value: ColorMode; label: string; help: string }[] = [
 const PRESETS: { label: string; opts: Partial<HalftoneOptions> }[] = [
   {
     label: 'Classic',
-    opts: { algorithm: 'am-halftone', dotShape: 'round', lpi: 45, angleDeg: 45 },
+    opts: {
+      algorithm: 'am-halftone',
+      dotShape: 'round',
+      lpi: 45,
+      angleDeg: 45,
+    },
   },
   {
     label: 'Fine',
-    opts: { algorithm: 'am-halftone', dotShape: 'round', lpi: 60, angleDeg: 45 },
+    opts: {
+      algorithm: 'am-halftone',
+      dotShape: 'round',
+      lpi: 60,
+      angleDeg: 45,
+    },
   },
   {
     label: 'Bold',
-    opts: { algorithm: 'am-halftone', dotShape: 'round', lpi: 28, angleDeg: 45 },
+    opts: {
+      algorithm: 'am-halftone',
+      dotShape: 'round',
+      lpi: 28,
+      angleDeg: 45,
+    },
   },
   {
     label: 'Newsprint',
@@ -388,7 +403,9 @@ export function HalftonePanel({
 
   // ---- Interactive dot editing (pointer handlers) ----
   const eventToImg = useCallback(
-    (e: React.PointerEvent<HTMLCanvasElement>): { x: number; y: number } | null => {
+    (
+      e: React.PointerEvent<HTMLCanvasElement>
+    ): { x: number; y: number } | null => {
       const c = displayCanvasRef.current;
       if (!c) return null;
       const r = c.getBoundingClientRect();
@@ -804,25 +821,31 @@ export function HalftonePanel({
                         backgroundPosition: '0 0,4px 4px',
                       }}
                     />
-                    {['#000000', '#ffffff', '#b91c1c', '#1e3a8a', '#166534'].map(
-                      c => (
-                        <button
-                          key={c}
-                          type="button"
-                          onClick={() => setPreviewBg(c)}
-                          title={`Preview on ${c}`}
-                          className={`w-6 h-6 rounded border ${
-                            previewBg.toLowerCase() === c
-                              ? 'border-blue-500 ring-1 ring-blue-400'
-                              : 'border-gray-300'
-                          }`}
-                          style={{ backgroundColor: c }}
-                        />
-                      )
-                    )}
+                    {[
+                      '#000000',
+                      '#ffffff',
+                      '#b91c1c',
+                      '#1e3a8a',
+                      '#166534',
+                    ].map(c => (
+                      <button
+                        key={c}
+                        type="button"
+                        onClick={() => setPreviewBg(c)}
+                        title={`Preview on ${c}`}
+                        className={`w-6 h-6 rounded border ${
+                          previewBg.toLowerCase() === c
+                            ? 'border-blue-500 ring-1 ring-blue-400'
+                            : 'border-gray-300'
+                        }`}
+                        style={{ backgroundColor: c }}
+                      />
+                    ))}
                     <input
                       type="color"
-                      value={previewBg === 'transparent' ? '#000000' : previewBg}
+                      value={
+                        previewBg === 'transparent' ? '#000000' : previewBg
+                      }
                       onChange={e => setPreviewBg(e.target.value)}
                       title="Custom garment colour"
                       className="w-6 h-6 rounded border border-gray-300 bg-white p-0.5 cursor-pointer"
@@ -1034,9 +1057,7 @@ export function HalftonePanel({
                     <input
                       type="checkbox"
                       checked={opts.deFringe}
-                      onChange={e =>
-                        updateOption('deFringe', e.target.checked)
-                      }
+                      onChange={e => updateOption('deFringe', e.target.checked)}
                       disabled={isProcessing}
                       className="accent-blue-600"
                     />

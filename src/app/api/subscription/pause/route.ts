@@ -35,9 +35,12 @@ async function handlePost(request: NextRequest) {
     // hard-block when it EXPLICITLY says no, so a missing/odd RPC doesn't break
     // the 60-day suspension (pausing is self-limiting — it auto-resumes and the
     // user has no access while paused).
-    const { data: eligibility } = await supabase.rpc('check_pause_eligibility', {
-      p_user_id: user.id,
-    });
+    const { data: eligibility } = await supabase.rpc(
+      'check_pause_eligibility',
+      {
+        p_user_id: user.id,
+      }
+    );
     const elig = Array.isArray(eligibility) ? eligibility[0] : eligibility;
     if (elig && elig.can_pause === false) {
       return NextResponse.json(

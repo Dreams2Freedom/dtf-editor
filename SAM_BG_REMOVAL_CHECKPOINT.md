@@ -13,6 +13,7 @@ size-scaled reach. Awaiting user retest of the brush.
 ---
 
 ## The goal
+
 Replace the **first cut** (initial background removal) in the existing in-house
 BG-removal tool with the **SAM semantic engine**, while keeping the tool's
 brushes, sliders, layout, and location **unchanged**. Target quality: match
@@ -20,6 +21,7 @@ ClippingMagic, especially on complex photos and framed/graphic logos. The brush
 logic should feel like ClippingMagic (context-aware keep/remove).
 
 ## How it works (architecture)
+
 - **AI service:** `rembg-service/` (FastAPI, Python) hosted on **Railway** (app
   reachable via `REMBG_SERVICE_URL`; the `fly.toml` in that dir is a stale,
   abandoned plan — ignore it). Railway **auto-deploys from GitHub** on push.
@@ -31,7 +33,7 @@ logic should feel like ClippingMagic (context-aware keep/remove).
     detailed pieces (text, badges). Removes outer bg, gaps, AND enclosed bg
     pockets (tan inside a border). Fills tiny enclosed specks.
   - `/segment-everything` endpoint in `rembg-service/main.py` (returns cutout PNG
-    + optional debug overlay; `overlay=false` for the customer path).
+    - optional debug overlay; `overlay=false` for the customer path).
 - **Next.js proxy:** `src/app/api/background-removal/segment-everything/route.ts`
   — gated to **paid users + admins** (same as the in-house route).
 - **Client call:** `src/tools/bg-removal/api.ts` → `samRemoveBackground()` (lean,
@@ -49,6 +51,7 @@ logic should feel like ClippingMagic (context-aware keep/remove).
     already cleaned), which is the existing behavior.
 
 ## Testing surfaces (admin-only, additive, safe)
+
 - `/admin/bg-eval` — 6-column engine comparison (Classical / BRIA / BiRefNet /
   SAM pieces / SAM subject). `src/app/admin/bg-eval/page.tsx`.
 - `/admin/bg-studio` — customer-experience sandbox (upload → Remove Background →
@@ -57,6 +60,7 @@ logic should feel like ClippingMagic (context-aware keep/remove).
   `/process/background-removal`) — this is where SAM is wired in.
 
 ## Key commits (on `claude/festive-hamilton-6nHZj`)
+
 - `f736286` Phase 1: bg-eval comparison page
 - `fe5dc25` Phase 2: SAM find-everything + eval integration
 - `b754d2d`/`4b9593a`/`9785ce3`/`91e4f1d` subject-selection tuning (border-connect,
@@ -70,10 +74,12 @@ logic should feel like ClippingMagic (context-aware keep/remove).
 - `433ff3c` brush: bounded continuous reach (fix keep-stroke flooding whole bg)
 
 ## What works
+
 - SAM runs as the primary first cut (confirmed via badge). Classical fallback
   intact. Enclosed-tan removal in place. Auto-cut is the semantic engine.
 
 ## Open issues / next steps (resume here)
+
 1. **SAM click-brush (semantic touch-up)** — TOP priority for ClippingMagic
    parity. The current brush is COLOR-based and will always risk nibbling
    grunge/distressed text (tan baked into letters). The real fix is a semantic
@@ -92,6 +98,7 @@ logic should feel like ClippingMagic (context-aware keep/remove).
    "New AI removal (beta)" first, then default.
 
 ## Deploy notes
+
 - **Two systems:** Vercel (website/frontend) + Railway (`rembg-service` AI).
   Both auto-deploy from GitHub push. **Vercel's webhook has been flaky** — if a
   push doesn't build, do a manual Redeploy in the Vercel dashboard.

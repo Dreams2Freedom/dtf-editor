@@ -85,7 +85,10 @@ async function handlePost(request: NextRequest) {
         typeof body?.fileSize === 'number' ? body.fileSize : 0;
 
       if (!url || typeof url !== 'string') {
-        return NextResponse.json({ error: 'Missing image url' }, { status: 400 });
+        return NextResponse.json(
+          { error: 'Missing image url' },
+          { status: 400 }
+        );
       }
 
       const savedId = await saveProcessedImageToGallery({

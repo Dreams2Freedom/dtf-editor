@@ -10,7 +10,8 @@ import { toast } from '@/lib/toast';
 import { RefreshCw, AlertTriangle, CheckCircle2, Activity } from 'lucide-react';
 
 const when = (s: string | null) => (s ? new Date(s).toLocaleString() : '—');
-const ms = (n: number | null) => (n == null ? '—' : `${(n / 1000).toFixed(1)}s`);
+const ms = (n: number | null) =>
+  n == null ? '—' : `${(n / 1000).toFixed(1)}s`;
 
 const STATUS_CLS: Record<string, string> = {
   success: 'bg-green-100 text-green-800',
@@ -29,29 +30,26 @@ export default function ToolUsagePage() {
   const [tool, setTool] = useState('');
   const [days, setDays] = useState(30);
 
-  const fetchData = useCallback(
-    async (st: string, tl: string, d: number) => {
-      setLoading(true);
-      setError(null);
-      try {
-        const qs = new URLSearchParams({ status: st, days: String(d) });
-        if (tl) qs.set('tool', tl);
-        const res = await fetch(`/api/admin/tool-usage?${qs.toString()}`, {
-          credentials: 'include',
-        });
-        if (!res.ok) {
-          const body = await res.json().catch(() => ({}));
-          throw new Error(body.error || `Request failed (${res.status})`);
-        }
-        setData(await res.json());
-      } catch (e: any) {
-        setError(e.message || 'Failed to load tool usage');
-      } finally {
-        setLoading(false);
+  const fetchData = useCallback(async (st: string, tl: string, d: number) => {
+    setLoading(true);
+    setError(null);
+    try {
+      const qs = new URLSearchParams({ status: st, days: String(d) });
+      if (tl) qs.set('tool', tl);
+      const res = await fetch(`/api/admin/tool-usage?${qs.toString()}`, {
+        credentials: 'include',
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(body.error || `Request failed (${res.status})`);
       }
-    },
-    []
-  );
+      setData(await res.json());
+    } catch (e: any) {
+      setError(e.message || 'Failed to load tool usage');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
   useEffect(() => {
     const run = async () => {
@@ -88,7 +86,8 @@ export default function ToolUsagePage() {
     return (
       <AdminLayout>
         <div className="flex h-64 items-center justify-center text-gray-500">
-          <RefreshCw className="mr-2 h-5 w-5 animate-spin" /> Loading tool usage…
+          <RefreshCw className="mr-2 h-5 w-5 animate-spin" /> Loading tool
+          usage…
         </div>
       </AdminLayout>
     );
@@ -99,7 +98,9 @@ export default function ToolUsagePage() {
       <div className="space-y-8">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Tool Usage &amp; Failures</h1>
+            <h1 className="text-2xl font-bold text-gray-900">
+              Tool Usage &amp; Failures
+            </h1>
             <p className="mt-1 text-sm text-gray-600">
               What failed, when, and why — last {days} days.
             </p>
@@ -133,24 +134,48 @@ export default function ToolUsagePage() {
 
         {/* Summary */}
         <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
-          <Stat label="Success rate" value={`${(summary.successRate ?? 0).toFixed(1)}%`} icon={CheckCircle2} tone="green" />
-          <Stat label="Total runs" value={summary.total ?? 0} icon={Activity} tone="gray" />
-          <Stat label="Failed" value={summary.failed ?? 0} icon={AlertTriangle} tone="red" />
-          <Stat label="Refunded" value={summary.refunded ?? 0} icon={AlertTriangle} tone="amber" />
+          <Stat
+            label="Success rate"
+            value={`${(summary.successRate ?? 0).toFixed(1)}%`}
+            icon={CheckCircle2}
+            tone="green"
+          />
+          <Stat
+            label="Total runs"
+            value={summary.total ?? 0}
+            icon={Activity}
+            tone="gray"
+          />
+          <Stat
+            label="Failed"
+            value={summary.failed ?? 0}
+            icon={AlertTriangle}
+            tone="red"
+          />
+          <Stat
+            label="Refunded"
+            value={summary.refunded ?? 0}
+            icon={AlertTriangle}
+            tone="amber"
+          />
         </div>
 
         {/* Failures by tool */}
         {failuresByTool.length > 0 && (
           <Card>
             <CardContent className="p-5">
-              <p className="mb-3 text-sm font-semibold text-gray-700">Failures by tool</p>
+              <p className="mb-3 text-sm font-semibold text-gray-700">
+                Failures by tool
+              </p>
               <div className="flex flex-wrap gap-3">
                 {failuresByTool.map((t: any) => (
                   <button
                     key={t.tool}
                     onClick={() => reload('failed', t.tool, days)}
                     className={`rounded-xl border px-4 py-2 text-left transition-colors hover:bg-gray-50 ${
-                      tool === t.tool ? 'border-red-400 ring-1 ring-red-300' : 'border-gray-200'
+                      tool === t.tool
+                        ? 'border-red-400 ring-1 ring-red-300'
+                        : 'border-gray-200'
                     }`}
                   >
                     <p className="text-sm font-semibold capitalize text-gray-900">
@@ -160,7 +185,10 @@ export default function ToolUsagePage() {
                       {t.failures} failed / {t.total} runs
                     </p>
                     {t.lastError && (
-                      <p className="mt-0.5 max-w-[220px] truncate text-xs text-gray-500" title={t.lastError}>
+                      <p
+                        className="mt-0.5 max-w-[220px] truncate text-xs text-gray-500"
+                        title={t.lastError}
+                      >
                         {t.lastError}
                       </p>
                     )}
@@ -200,7 +228,9 @@ export default function ToolUsagePage() {
                   </option>
                 ))}
               </select>
-              <span className="ml-auto text-sm text-gray-400">{rows.length} shown</span>
+              <span className="ml-auto text-sm text-gray-400">
+                {rows.length} shown
+              </span>
             </div>
 
             <div className="overflow-x-auto">
@@ -218,7 +248,10 @@ export default function ToolUsagePage() {
                 <tbody className="divide-y divide-gray-100">
                   {rows.length === 0 && (
                     <tr>
-                      <td colSpan={6} className="px-2 py-10 text-center text-gray-400">
+                      <td
+                        colSpan={6}
+                        className="px-2 py-10 text-center text-gray-400"
+                      >
                         No tool runs match these filters.
                       </td>
                     </tr>
@@ -229,7 +262,9 @@ export default function ToolUsagePage() {
                         <div className="font-medium capitalize text-gray-900">
                           {(r.tool || 'unknown').replace(/_/g, ' ')}
                         </div>
-                        <div className="text-xs text-gray-400">{r.provider}</div>
+                        <div className="text-xs text-gray-400">
+                          {r.provider}
+                        </div>
                       </td>
                       <td className="px-2 py-2.5">
                         <span
@@ -240,10 +275,15 @@ export default function ToolUsagePage() {
                           {r.status}
                         </span>
                       </td>
-                      <td className="px-2 py-2.5 text-xs">{when(r.createdAt)}</td>
+                      <td className="px-2 py-2.5 text-xs">
+                        {when(r.createdAt)}
+                      </td>
                       <td className="px-2 py-2.5 text-xs text-gray-700">
                         {r.errorMessage ? (
-                          <span className="block max-w-md break-words" title={r.errorMessage}>
+                          <span
+                            className="block max-w-md break-words"
+                            title={r.errorMessage}
+                          >
                             {r.errorMessage}
                           </span>
                         ) : (
@@ -253,7 +293,9 @@ export default function ToolUsagePage() {
                       <td className="px-2 py-2.5">
                         {r.userId ? (
                           <button
-                            onClick={() => router.push(`/admin/users/${r.userId}`)}
+                            onClick={() =>
+                              router.push(`/admin/users/${r.userId}`)
+                            }
                             className="text-xs text-blue-600 hover:underline"
                           >
                             {r.email || 'view'}
@@ -262,7 +304,9 @@ export default function ToolUsagePage() {
                           '—'
                         )}
                       </td>
-                      <td className="px-2 py-2.5 text-xs">{ms(r.processingTimeMs)}</td>
+                      <td className="px-2 py-2.5 text-xs">
+                        {ms(r.processingTimeMs)}
+                      </td>
                     </tr>
                   ))}
                 </tbody>

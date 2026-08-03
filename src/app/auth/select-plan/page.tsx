@@ -41,7 +41,9 @@ export default function SelectPlanPage() {
     return <LoadingPage message="Setting up your account…" />;
   }
 
-  const eligible = isTrialEligible(profile as Parameters<typeof isTrialEligible>[0]);
+  const eligible = isTrialEligible(
+    profile as Parameters<typeof isTrialEligible>[0]
+  );
 
   return (
     <div className="min-h-screen bg-gray-50">

@@ -8,7 +8,10 @@ const BENEFITS = [
   { icon: Eye, label: 'Know before you print or press' },
   { icon: ShieldCheck, label: 'Avoid pixelated, wasted transfers' },
   { icon: Hash, label: 'Get exact DPI numbers for your size' },
-  { icon: Palette, label: 'Great for Canva, Kittl & customer-uploaded artwork' },
+  {
+    icon: Palette,
+    label: 'Great for Canva, Kittl & customer-uploaded artwork',
+  },
 ];
 
 const trim = (n: number) => (Math.round(n * 10) / 10).toString();
@@ -130,8 +133,8 @@ export function DpiChecker() {
             <h2 className="h-sec">Check Your Image DPI Free</h2>
             <p className="sub">
               Upload your design, enter the size you want to print, and see
-              whether it is likely to print crisp or pixelated — before you order
-              transfers.
+              whether it is likely to print crisp or pixelated — before you
+              order transfers.
             </p>
             <ul className={styles.dpi__benefits}>
               {BENEFITS.map(({ icon: Icon, label }) => (
@@ -259,7 +262,9 @@ export function DpiChecker() {
                 <div className={`${styles.cres__verdict} ${verdictClass}`}>
                   <div className={styles.top}>
                     <span className={styles.dpi}>{verdict?.dpi ?? '—'}</span>
-                    <span className={styles.status}>{verdict?.status ?? ''}</span>
+                    <span className={styles.status}>
+                      {verdict?.status ?? ''}
+                    </span>
                   </div>
                   <p>{verdict?.message ?? ''}</p>
                 </div>

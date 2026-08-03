@@ -165,10 +165,7 @@ async function handlePost(request: NextRequest) {
           firstName: metadata?.firstName || '',
           confirmationLink,
         });
-        console.log(
-          '[SIGNUP API] Step 6: Verification email sent:',
-          emailSent
-        );
+        console.log('[SIGNUP API] Step 6: Verification email sent:', emailSent);
       } catch (emailError) {
         console.error(
           '[SIGNUP API] Step 6: Verification email error caught:',

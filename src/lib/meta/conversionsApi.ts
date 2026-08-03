@@ -155,9 +155,7 @@ export function metaUserDataFromRequest(request: Request): MetaUserData {
   const clientUserAgent = request.headers.get('user-agent') ?? undefined;
   const xff = request.headers.get('x-forwarded-for') ?? '';
   const clientIp =
-    xff.split(',')[0].trim() ||
-    request.headers.get('x-real-ip') ||
-    undefined;
+    xff.split(',')[0].trim() || request.headers.get('x-real-ip') || undefined;
 
   // Parse _fbp / _fbc from the Cookie header (no dependency on a cookie lib).
   let fbp: string | undefined;

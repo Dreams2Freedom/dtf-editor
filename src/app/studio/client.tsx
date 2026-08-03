@@ -64,9 +64,7 @@ function loadImageFromUrl(url: string, attempt = 0): Promise<HTMLImageElement> {
     // yet — or a non-CORS cached copy poisoned by a plain <img> elsewhere
     // (e.g. the gallery) — is refetched cleanly with CORS.
     img.src =
-      attempt > 0
-        ? `${url}${url.includes('?') ? '&' : '?'}cb=${attempt}`
-        : url;
+      attempt > 0 ? `${url}${url.includes('?') ? '&' : '?'}cb=${attempt}` : url;
   });
 }
 
@@ -405,16 +403,17 @@ export default function StudioClient() {
         // The user already has their downloaded file; surface a soft notice
         // that the gallery copy didn't save rather than failing silently.
         setSaveError(data.error || 'Could not save to your gallery');
-        console.error('[Studio] gallery save failed:', data.error || res.status);
+        console.error(
+          '[Studio] gallery save failed:',
+          data.error || res.status
+        );
       } else {
         const result = await res.json();
         setSavedImageId(result.savedId || null);
       }
     } catch (err) {
       console.error('[Studio] download failed:', err);
-      toast.error(
-        "Couldn't prepare the download. Please try again."
-      );
+      toast.error("Couldn't prepare the download. Please try again.");
     } finally {
       setIsSaving(false);
     }

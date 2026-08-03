@@ -57,7 +57,10 @@ export function Header() {
   // Close dropdown on outside click
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(e.target as Node)
+      ) {
         setOpenDropdown(null);
       }
     };
@@ -94,10 +97,30 @@ export function Header() {
                   },
                 ]
               : []),
-            { name: 'Process Image', href: '/process', icon: Upload, description: 'Upscale, remove bg, vectorize' },
-            { name: 'Change Colors', href: '/process/color-change', icon: Palette, description: 'Replace colors in designs' },
-            { name: 'Generate Image', href: '/generate', icon: Sparkles, description: 'Create with AI' },
-            { name: 'DPI Checker', href: '/tools/dpi-checker', icon: Ruler, description: 'Check print quality' },
+            {
+              name: 'Process Image',
+              href: '/process',
+              icon: Upload,
+              description: 'Upscale, remove bg, vectorize',
+            },
+            {
+              name: 'Change Colors',
+              href: '/process/color-change',
+              icon: Palette,
+              description: 'Replace colors in designs',
+            },
+            {
+              name: 'Generate Image',
+              href: '/generate',
+              icon: Sparkles,
+              description: 'Create with AI',
+            },
+            {
+              name: 'DPI Checker',
+              href: '/tools/dpi-checker',
+              icon: Ruler,
+              description: 'Check print quality',
+            },
           ],
         },
         { name: 'My Images', href: '/dashboard/my-images', icon: Images },
@@ -115,7 +138,11 @@ export function Header() {
       : []),
     { name: 'Affiliate Dashboard', href: '/dashboard/affiliate', icon: Crown },
     { name: 'Storage', href: '/storage', icon: HardDrive },
-    { name: 'Billing & Membership', href: '/settings?tab=billing', icon: CreditCard },
+    {
+      name: 'Billing & Membership',
+      href: '/settings?tab=billing',
+      icon: CreditCard,
+    },
     { name: 'Account Settings', href: '/settings', icon: Settings },
     {
       name: 'Support',
@@ -166,13 +193,17 @@ export function Header() {
                           : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
                       }`}
                       onClick={() =>
-                        setOpenDropdown(openDropdown === item.name ? null : item.name)
+                        setOpenDropdown(
+                          openDropdown === item.name ? null : item.name
+                        )
                       }
                       onMouseEnter={() => setOpenDropdown(item.name)}
                     >
                       <item.icon className="w-4 h-4" />
                       {item.name}
-                      <ChevronDown className={`w-3 h-3 transition-transform ${openDropdown === item.name ? 'rotate-180' : ''}`} />
+                      <ChevronDown
+                        className={`w-3 h-3 transition-transform ${openDropdown === item.name ? 'rotate-180' : ''}`}
+                      />
                     </button>
                     {openDropdown === item.name && (
                       <div
@@ -191,11 +222,17 @@ export function Header() {
                               }`}
                               onClick={() => setOpenDropdown(null)}
                             >
-                              <subitem.icon className={`w-4 h-4 mt-0.5 flex-shrink-0 ${isActive(subitem.href) ? 'text-amber-600' : 'text-gray-400'}`} />
+                              <subitem.icon
+                                className={`w-4 h-4 mt-0.5 flex-shrink-0 ${isActive(subitem.href) ? 'text-amber-600' : 'text-gray-400'}`}
+                              />
                               <div>
-                                <div className="text-sm font-medium">{subitem.name}</div>
+                                <div className="text-sm font-medium">
+                                  {subitem.name}
+                                </div>
                                 {subitem.description && (
-                                  <div className="text-xs text-gray-400 mt-0.5">{subitem.description}</div>
+                                  <div className="text-xs text-gray-400 mt-0.5">
+                                    {subitem.description}
+                                  </div>
                                 )}
                               </div>
                             </Link>
@@ -230,7 +267,9 @@ export function Header() {
                 <div className="relative">
                   <button
                     className={`flex items-center gap-1 p-1.5 rounded-lg transition-colors ${
-                      openDropdown === 'user' ? 'bg-gray-100' : 'hover:bg-gray-50'
+                      openDropdown === 'user'
+                        ? 'bg-gray-100'
+                        : 'hover:bg-gray-50'
                     }`}
                     onClick={() =>
                       setOpenDropdown(openDropdown === 'user' ? null : 'user')
@@ -238,10 +277,17 @@ export function Header() {
                   >
                     <div className="w-7 h-7 rounded-full bg-gradient-to-br from-amber-400 to-amber-600 flex items-center justify-center">
                       <span className="text-white text-xs font-bold">
-                        {(profile?.first_name?.[0] || profile?.email?.[0] || user.email?.[0] || 'U').toUpperCase()}
+                        {(
+                          profile?.first_name?.[0] ||
+                          profile?.email?.[0] ||
+                          user.email?.[0] ||
+                          'U'
+                        ).toUpperCase()}
                       </span>
                     </div>
-                    <ChevronDown className={`w-3 h-3 text-gray-400 hidden sm:block transition-transform ${openDropdown === 'user' ? 'rotate-180' : ''}`} />
+                    <ChevronDown
+                      className={`w-3 h-3 text-gray-400 hidden sm:block transition-transform ${openDropdown === 'user' ? 'rotate-180' : ''}`}
+                    />
                   </button>
                   {openDropdown === 'user' && (
                     <div className="absolute right-0 top-full mt-1 w-56 rounded-xl shadow-lg shadow-gray-200/50 bg-white border border-gray-200 overflow-hidden">
@@ -287,7 +333,10 @@ export function Header() {
                   </Button>
                 </Link>
                 <Link href="/auth/signup">
-                  <Button size="sm" className="bg-amber-500 hover:bg-amber-600 text-white shadow-sm">
+                  <Button
+                    size="sm"
+                    className="bg-amber-500 hover:bg-amber-600 text-white shadow-sm"
+                  >
                     Get Started Free
                   </Button>
                 </Link>
@@ -331,7 +380,9 @@ export function Header() {
                           : 'text-gray-700 hover:bg-gray-50'
                       }`}
                     >
-                      <subitem.icon className={`w-4 h-4 ${isActive(subitem.href) ? 'text-amber-600' : 'text-gray-400'}`} />
+                      <subitem.icon
+                        className={`w-4 h-4 ${isActive(subitem.href) ? 'text-amber-600' : 'text-gray-400'}`}
+                      />
                       {subitem.name}
                     </Link>
                   ))}
@@ -346,7 +397,9 @@ export function Header() {
                       : 'text-gray-700 hover:bg-gray-50'
                   }`}
                 >
-                  <item.icon className={`w-4 h-4 ${isActive(item.href) ? 'text-amber-600' : 'text-gray-400'}`} />
+                  <item.icon
+                    className={`w-4 h-4 ${isActive(item.href) ? 'text-amber-600' : 'text-gray-400'}`}
+                  />
                   {item.name}
                 </Link>
               ) : null
@@ -358,7 +411,11 @@ export function Header() {
               <div className="flex items-center gap-3 mb-3 px-3">
                 <div className="w-9 h-9 rounded-full bg-gradient-to-br from-amber-400 to-amber-600 flex items-center justify-center flex-shrink-0">
                   <span className="text-white text-sm font-bold">
-                    {(profile?.first_name?.[0] || user.email?.[0] || 'U').toUpperCase()}
+                    {(
+                      profile?.first_name?.[0] ||
+                      user.email?.[0] ||
+                      'U'
+                    ).toUpperCase()}
                   </span>
                 </div>
                 <div className="min-w-0">

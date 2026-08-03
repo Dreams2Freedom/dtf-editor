@@ -124,7 +124,10 @@ export function ResetPasswordForm({ onSuccess }: ResetPasswordFormProps) {
         </div>
 
         <div className={`${styles.linkRow} ${styles.center}`}>
-          <Link href="/auth/login" className={`${styles.link} ${styles.backLink}`}>
+          <Link
+            href="/auth/login"
+            className={`${styles.link} ${styles.backLink}`}
+          >
             <ArrowLeft className="h-4 w-4" aria-hidden="true" />
             Back to sign in
           </Link>
@@ -208,7 +211,10 @@ export function ResetPasswordForm({ onSuccess }: ResetPasswordFormProps) {
 
         {/* Back to Login */}
         <div className={`${styles.linkRow} ${styles.center}`}>
-          <Link href="/auth/login" className={`${styles.link} ${styles.backLink}`}>
+          <Link
+            href="/auth/login"
+            className={`${styles.link} ${styles.backLink}`}
+          >
             <ArrowLeft className="h-4 w-4" aria-hidden="true" />
             Back to sign in
           </Link>

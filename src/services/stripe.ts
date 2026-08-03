@@ -244,9 +244,7 @@ export class StripeService {
         status: 'all',
         limit: 100,
       });
-      return subs.data.some(
-        s => s.trial_start != null || s.trial_end != null
-      );
+      return subs.data.some(s => s.trial_start != null || s.trial_end != null);
     } catch (error) {
       console.error('[Stripe] hasUsedTrial check failed:', error);
       return false;

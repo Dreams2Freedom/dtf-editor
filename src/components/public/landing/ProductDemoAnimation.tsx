@@ -38,7 +38,12 @@ const STEPS = [
   'Ready to download',
 ];
 
-const QUALITY = ['Resolution', 'Color & Contrast', 'Edge Sharpness', 'File Format'];
+const QUALITY = [
+  'Resolution',
+  'Color & Contrast',
+  'Edge Sharpness',
+  'File Format',
+];
 
 const DPI_TARGET = 285;
 
@@ -48,8 +53,24 @@ function MountainBadge() {
   const clip = useId().replace(/:/g, '');
   return (
     <svg viewBox="0 0 100 100" fill="none" aria-hidden="true">
-      <rect x="6" y="6" width="88" height="88" rx="20" fill="#fff" stroke="#15294d" strokeWidth="5" />
-      <circle cx="50" cy="50" r="33" fill="#fff" stroke="#15294d" strokeWidth="3.5" />
+      <rect
+        x="6"
+        y="6"
+        width="88"
+        height="88"
+        rx="20"
+        fill="#fff"
+        stroke="#15294d"
+        strokeWidth="5"
+      />
+      <circle
+        cx="50"
+        cy="50"
+        r="33"
+        fill="#fff"
+        stroke="#15294d"
+        strokeWidth="3.5"
+      />
       <clipPath id={clip}>
         <circle cx="50" cy="50" r="31.5" />
       </clipPath>
@@ -58,8 +79,14 @@ function MountainBadge() {
         <rect x="15" y="64" width="70" height="22" fill="#15294d" />
         <path d="M18 70 L40 41 L62 70 Z" fill="#15294d" />
         <path d="M47 70 L64 49 L83 70 Z" fill="#15294d" />
-        <path d="M34 52 L40 41 L46 52 L42.5 49 L40 52.5 L37.5 49 Z" fill="#fff" />
-        <path d="M56 57 L64 49 L72 57 L68.5 54.5 L65 57.5 L61.5 54.5 Z" fill="#fff" />
+        <path
+          d="M34 52 L40 41 L46 52 L42.5 49 L40 52.5 L37.5 49 Z"
+          fill="#fff"
+        />
+        <path
+          d="M56 57 L64 49 L72 57 L68.5 54.5 L65 57.5 L61.5 54.5 Z"
+          fill="#fff"
+        />
         <rect x="31" y="71" width="38" height="2.6" rx="1.3" fill="#fff" />
         <rect x="27" y="76" width="46" height="2.6" rx="1.3" fill="#fff" />
         <rect x="33" y="81" width="34" height="2.6" rx="1.3" fill="#fff" />
@@ -160,16 +187,28 @@ export function ProductDemoAnimation() {
     <div className={styles['demo-scene']}>
       <div className={styles['demo-scene__glow']} aria-hidden="true" />
       <div className={styles['demo-scene__dots']} aria-hidden="true" />
-      <div className={`${styles.float} ${styles['float--a']}`} aria-hidden="true">
+      <div
+        className={`${styles.float} ${styles['float--a']}`}
+        aria-hidden="true"
+      >
         <FileImage size={14} /> mountain-badge.png
       </div>
-      <div className={`${styles.float} ${styles['float--b']}`} aria-hidden="true">
+      <div
+        className={`${styles.float} ${styles['float--b']}`}
+        aria-hidden="true"
+      >
         <Ruler size={14} /> 11 in wide
       </div>
-      <div className={`${styles.float} ${styles['float--c']}`} aria-hidden="true">
+      <div
+        className={`${styles.float} ${styles['float--c']}`}
+        aria-hidden="true"
+      >
         <span className={styles.float__dot} /> 300 DPI target
       </div>
-      <div className={`${styles.float} ${styles['float--d']}`} aria-hidden="true">
+      <div
+        className={`${styles.float} ${styles['float--d']}`}
+        aria-hidden="true"
+      >
         <Download size={14} /> PNG export
       </div>
 
@@ -238,16 +277,28 @@ export function ProductDemoAnimation() {
             </div>
 
             <div className={styles.sbadges}>
-              <span className={`${styles.sbadge} ${styles['sbadge--ok']}`} data-b="bgremoved">
+              <span
+                className={`${styles.sbadge} ${styles['sbadge--ok']}`}
+                data-b="bgremoved"
+              >
                 <Scissors size={12} aria-hidden="true" /> Background removed
               </span>
-              <span className={`${styles.sbadge} ${styles['sbadge--ok']}`} data-b="improved">
+              <span
+                className={`${styles.sbadge} ${styles['sbadge--ok']}`}
+                data-b="improved"
+              >
                 <Sparkles size={12} aria-hidden="true" /> Image improved
               </span>
-              <span className={`${styles.sbadge} ${styles['sbadge--accent']}`} data-b="scale">
+              <span
+                className={`${styles.sbadge} ${styles['sbadge--accent']}`}
+                data-b="scale"
+              >
                 2.7× sharper
               </span>
-              <span className={`${styles.sbadge} ${styles['sbadge--info']}`} data-b="vector">
+              <span
+                className={`${styles.sbadge} ${styles['sbadge--info']}`}
+                data-b="vector"
+              >
                 <Spline size={12} aria-hidden="true" /> Vector ready
               </span>
             </div>
@@ -262,8 +313,16 @@ export function ProductDemoAnimation() {
                 <li key={label} className={`${styles.dstep} ${stepClass(i)}`}>
                   <span className={styles.dstep__ic}>
                     <span className={styles.dstep__num}>{i + 1}</span>
-                    <Loader2 className={styles.dstep__spin} size={13} aria-hidden="true" />
-                    <Check className={styles.dstep__check} size={13} aria-hidden="true" />
+                    <Loader2
+                      className={styles.dstep__spin}
+                      size={13}
+                      aria-hidden="true"
+                    />
+                    <Check
+                      className={styles.dstep__check}
+                      size={13}
+                      aria-hidden="true"
+                    />
                   </span>{' '}
                   {label}
                 </li>
@@ -273,9 +332,23 @@ export function ProductDemoAnimation() {
             <div className={styles.rzone}>
               <div className={styles.rzone__dpi}>
                 <div className={styles.gauge}>
-                  <svg className={styles.gauge__svg} viewBox="0 0 100 100" aria-hidden="true">
-                    <circle className={styles.gauge__track} cx="50" cy="50" r="42" />
-                    <circle className={styles.gauge__fill} cx="50" cy="50" r="42" />
+                  <svg
+                    className={styles.gauge__svg}
+                    viewBox="0 0 100 100"
+                    aria-hidden="true"
+                  >
+                    <circle
+                      className={styles.gauge__track}
+                      cx="50"
+                      cy="50"
+                      r="42"
+                    />
+                    <circle
+                      className={styles.gauge__fill}
+                      cx="50"
+                      cy="50"
+                      r="42"
+                    />
                   </svg>
                   <div className={styles.gauge__val}>
                     <b>{dpi}</b>
@@ -289,7 +362,10 @@ export function ProductDemoAnimation() {
                   </div>
                   <ul className={styles.qlist}>
                     {QUALITY.map((q, i) => (
-                      <li key={q} style={{ transitionDelay: `${0.15 + i * 0.12}s` }}>
+                      <li
+                        key={q}
+                        style={{ transitionDelay: `${0.15 + i * 0.12}s` }}
+                      >
                         <Check size={12} aria-hidden="true" /> {q}
                       </li>
                     ))}
@@ -309,7 +385,12 @@ export function ProductDemoAnimation() {
                     <Check size={12} aria-hidden="true" /> Ready
                   </span>
                 </div>
-                <button className={styles.rzone__btn} type="button" tabIndex={-1} aria-hidden="true">
+                <button
+                  className={styles.rzone__btn}
+                  type="button"
+                  tabIndex={-1}
+                  aria-hidden="true"
+                >
                   <Download size={16} /> Print-ready PNG
                 </button>
               </div>

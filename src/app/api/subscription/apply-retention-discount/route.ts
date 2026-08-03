@@ -214,7 +214,10 @@ async function handlePost(request: NextRequest) {
       // Roll back the claim so a failed apply doesn't permanently block the user.
       try {
         await getStripe().customers.update(profile.stripe_customer_id, {
-          metadata: { retention_discount_used: '', retention_discount_date: '' },
+          metadata: {
+            retention_discount_used: '',
+            retention_discount_date: '',
+          },
         });
       } catch {
         /* ignore rollback failure */

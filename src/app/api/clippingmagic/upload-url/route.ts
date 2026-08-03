@@ -41,10 +41,7 @@ export async function POST(request: NextRequest) {
     const path: string | undefined = body?.path;
 
     if (!url || typeof url !== 'string') {
-      return NextResponse.json(
-        { error: 'Missing image url' },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: 'Missing image url' }, { status: 400 });
     }
 
     // Credit precheck (deduction still happens on result-generated, mirroring

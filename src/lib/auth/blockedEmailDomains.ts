@@ -574,14 +574,19 @@ export const BLOCKED_EMAIL_DOMAINS: ReadonlySet<string> = new Set([
 export function emailDomain(email: string): string | null {
   const at = email.lastIndexOf('@');
   if (at < 0 || at === email.length - 1) return null;
-  return email.slice(at + 1).trim().toLowerCase();
+  return email
+    .slice(at + 1)
+    .trim()
+    .toLowerCase();
 }
 
 /**
  * True if the email's domain is blocked — either an exact match or a subdomain
  * of a blocked domain (so `foo@x.mailinator.com` is blocked too).
  */
-export function isBlockedEmailDomain(email: string | null | undefined): boolean {
+export function isBlockedEmailDomain(
+  email: string | null | undefined
+): boolean {
   if (!email) return false;
   const domain = emailDomain(email);
   if (!domain) return false;
