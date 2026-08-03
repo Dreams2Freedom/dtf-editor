@@ -14,7 +14,9 @@ import {
   Unlock,
   Info,
   Upload,
+  CheckCircle,
 } from 'lucide-react';
+import { toast } from '@/lib/toast';
 import { Button } from '@/components/ui/Button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { Input } from '@/components/ui/Input';
@@ -43,6 +45,11 @@ export default function UpscaleClient() {
   const printHeightParam = searchParams.get('printHeight');
 
   const [imageUrl, setImageUrl] = useState<string | null>(null);
+
+  // Result section anchor + a guard so we announce completion exactly once per
+  // finished image (covers both the sync and async processing paths).
+  const resultRef = useRef<HTMLDivElement>(null);
+  const announcedUrlRef = useRef<string | null>(null);
 
   // Async job polling hook
   const { startPolling, stopPolling, cancelJob, jobStatus, isPolling } =
@@ -490,6 +497,32 @@ export default function UpscaleClient() {
       };
     }
   }, [user, refreshCredits]);
+
+  // Announce completion the moment a result is ready. Users reported not
+  // noticing when the upscale finished, so we (1) pop a success toast and
+  // (2) smooth-scroll the result into view. Guarded so it fires once per
+  // finished image, and works for both the synchronous and async paths since
+  // both set processedUrl.
+  useEffect(() => {
+    if (!processedUrl) {
+      // Reset when the user starts over ("Upscale Again") so the next result
+      // announces again.
+      announcedUrlRef.current = null;
+      return;
+    }
+    if (announcedUrlRef.current === processedUrl) return;
+    announcedUrlRef.current = processedUrl;
+
+    toast.success('Upscale complete! Your image is ready below.', 5000);
+
+    const t = setTimeout(() => {
+      resultRef.current?.scrollIntoView({
+        behavior: 'smooth',
+        block: 'start',
+      });
+    }, 100);
+    return () => clearTimeout(t);
+  }, [processedUrl]);
 
   // Process image with Deep-Image.ai
   const processImage = async () => {
@@ -1776,7 +1809,25 @@ export default function UpscaleClient() {
 
               {/* Processed Result for Uploaded Image*/}
               {imageUrl && processedUrl && (
-                <div className="space-y-4">
+                <div ref={resultRef} className="space-y-4 scroll-mt-6">
+                  {/* Prominent completion banner — the main "it finished" cue */}
+                  <div
+                    role="status"
+                    aria-live="polite"
+                    className="flex items-center gap-3 rounded-lg border-2 border-green-300 bg-green-50 p-4 shadow-sm"
+                  >
+                    <CheckCircle className="w-8 h-8 flex-shrink-0 text-green-600" />
+                    <div>
+                      <p className="font-semibold text-green-800">
+                        Upscale complete!
+                      </p>
+                      <p className="text-sm text-green-700">
+                        Your image is ready — download it or send it to another
+                        tool below. It&apos;s also saved to your account.
+                      </p>
+                    </div>
+                  </div>
+
                   <h3 className="font-medium mb-2">Upscaled Result</h3>
                   <img
                     src={processedUrl}
@@ -1896,16 +1947,11 @@ export default function UpscaleClient() {
                       Upscale Again
                     </Button>
                   </div>
-                  <div className="space-y-1">
-                    <p className="text-sm text-green-600">
-                      ✓ Image upscaled and saved to your account
+                  {isAsyncProcessing && (
+                    <p className="text-xs text-blue-600">
+                      ✓ Enhanced processing used for optimal quality
                     </p>
-                    {isAsyncProcessing && (
-                      <p className="text-xs text-blue-600">
-                        ✓ Enhanced processing used for optimal quality
-                      </p>
-                    )}
-                  </div>
+                  )}
 
                   {/* Instructions */}
                   <div className="bg-blue-50 p-4 rounded-lg">
