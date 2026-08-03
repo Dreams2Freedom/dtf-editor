@@ -3,6 +3,7 @@ import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import { withRateLimit } from '@/lib/rate-limit';
 import { env } from '@/config/env';
 import { buildHamiltonKnowledgeBase } from '@/lib/hamilton/knowledgeBase';
+import { createEscalationTicket } from '@/lib/hamilton/escalationTicket';
 
 /**
  * Hamilton support-bot endpoint. The browser sends a single question plus the
@@ -24,101 +25,6 @@ interface ChatMsg {
 
 function serviceClient(): SupabaseClient {
   return createClient(env.SUPABASE_URL, env.SUPABASE_SERVICE_ROLE_KEY);
-}
-
-/**
- * Create a support ticket from a Hamilton hand-off, server-side with the
- * service-role client so it does not depend on the customer clicking the
- * "Start a support ticket" button (and so it bypasses RLS reliably). Mirrors
- * the column shape of the client-side createTicket path (support.ts), which is
- * the write path that produces the tickets admins already see. Best-effort:
- * never throws — a failure here must not break the chat reply.
- */
-async function createEscalationTicket(
-  supabase: SupabaseClient,
-  userId: string,
-  messages: ChatMsg[]
-) {
-  try {
-    const firstQuestion =
-      messages.find(m => m.role === 'user')?.content?.trim() || '';
-    const subject = firstQuestion
-      ? firstQuestion.length > 60
-        ? `${firstQuestion.slice(0, 57)}…`
-        : firstQuestion
-      : 'Question from Hamilton';
-
-    const transcript = messages
-      .map(m => `${m.role === 'user' ? 'Customer' : 'Hamilton'}: ${m.content}`)
-      .join('\n');
-    const body = `Hamilton handed this conversation off to support because it couldn't fully answer it. Here's the chat so far:\n\n${transcript}`;
-
-    // Explicit ticket number (the client path does the same because the DB
-    // trigger isn't relied upon). Format: TKT-YYYYMM-XXXX.
-    const now = new Date();
-    const yearMonth = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}`;
-    const randomNum = Math.floor(Math.random() * 10000)
-      .toString()
-      .padStart(4, '0');
-    const ticketNumber = `TKT-${yearMonth}-${randomNum}`;
-
-    const { data: ticket, error: ticketError } = await supabase
-      .from('support_tickets')
-      .insert({
-        user_id: userId,
-        ticket_number: ticketNumber,
-        subject,
-        category: 'other',
-        priority: 'medium',
-      })
-      .select('id, ticket_number, subject')
-      .single();
-
-    if (ticketError || !ticket) {
-      console.error('[Hamilton] escalation ticket insert failed:', ticketError);
-      return;
-    }
-
-    const { error: messageError } = await supabase
-      .from('support_messages')
-      .insert({
-        ticket_id: ticket.id,
-        user_id: userId,
-        message: body,
-        is_admin: false,
-      });
-    if (messageError) {
-      console.error(
-        '[Hamilton] escalation ticket message insert failed:',
-        messageError
-      );
-    }
-
-    // Ring the admin bell, same as the guest contact path.
-    try {
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('email, first_name, last_name')
-        .eq('id', userId)
-        .maybeSingle();
-      const senderName =
-        `${profile?.first_name || ''} ${profile?.last_name || ''}`.trim() ||
-        profile?.email ||
-        'Customer';
-      const { notifyAdminsOfNewTicket } = await import('@/lib/notify-admins');
-      await notifyAdminsOfNewTicket({
-        ticketId: ticket.id,
-        subject: ticket.subject,
-        senderName,
-        senderEmail: profile?.email || 'unknown',
-        priority: 'medium',
-      });
-    } catch (notifyError) {
-      console.error('[Hamilton] escalation ticket notify failed:', notifyError);
-    }
-  } catch (e) {
-    console.error('[Hamilton] escalation ticket error:', e);
-  }
 }
 
 async function getUser(request: NextRequest, supabase: SupabaseClient) {
@@ -320,7 +226,26 @@ async function handlePost(request: NextRequest) {
     // lands in the admin support queue — independent of whether the customer
     // clicks the "Start a support ticket" button. Best-effort, non-blocking.
     if (!canAnswer && !priorEscalated) {
-      await createEscalationTicket(supabase, user.id, nextMessages);
+      const ticketId = await createEscalationTicket(
+        supabase,
+        user.id,
+        nextMessages
+      );
+      // Record the link so the ticket is created exactly once per conversation
+      // and the back-fill can skip it. Best-effort; tolerates the column not
+      // existing yet if code deploys ahead of the migration.
+      if (ticketId && savedId) {
+        const { error: linkError } = await supabase
+          .from('hamilton_conversations')
+          .update({ support_ticket_id: ticketId })
+          .eq('id', savedId);
+        if (linkError) {
+          console.error(
+            '[Hamilton] linking ticket to conversation failed:',
+            linkError
+          );
+        }
+      }
     }
 
     return NextResponse.json({ conversationId: savedId, answer, canAnswer });
