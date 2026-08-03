@@ -20,12 +20,13 @@
  */
 
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Loader2, Sparkles } from 'lucide-react';
+import { CheckCircle, Loader2, Sparkles } from 'lucide-react';
 
 import {
   StudioCanvasFrame,
   CanvasProcessingOverlay,
 } from '@/components/studio/StudioCanvasFrame';
+import { toast } from '@/lib/toast';
 import type { StudioToolPanelProps } from '../types';
 
 import { deepImageProvider } from './providers/deepImage';
@@ -177,6 +178,11 @@ export function UpscalePanel({ image, onApply }: StudioToolPanelProps) {
     null
   );
   const [viewMode, setViewMode] = useState<ViewMode>('original');
+  // Persistent "it finished" cue. Users reported not noticing when an upscale
+  // completed — the canvas just swapped and the only signal was a small
+  // Original/Upscaled pill. This banner stays up until they start another
+  // upscale, switch the working image, or dismiss it.
+  const [showSuccess, setShowSuccess] = useState(false);
 
   // Canvas zoom — local to the tool, controls forwarded to frame.
   const [zoom, setZoom] = useState(1);
@@ -191,6 +197,7 @@ export function UpscalePanel({ image, onApply }: StudioToolPanelProps) {
     setUpscaledImage(null);
     setViewMode('original');
     setError(null);
+    setShowSuccess(false);
     aspectRatioRef.current = image.width / image.height;
     setPrintWidth('10');
     setPrintHeight((10 / aspectRatioRef.current).toFixed(2));
@@ -214,6 +221,7 @@ export function UpscalePanel({ image, onApply }: StudioToolPanelProps) {
 
   const handleUpscale = useCallback(async () => {
     setError(null);
+    setShowSuccess(false);
     setIsUpscaling(true);
     try {
       // Fast path: if the working image is already URL-backed (the original
@@ -247,6 +255,8 @@ export function UpscalePanel({ image, onApply }: StudioToolPanelProps) {
       const upscaled = await loadImageFromUrl(result.url);
       setUpscaledImage(upscaled);
       setViewMode('upscaled');
+      setShowSuccess(true);
+      toast.success('Upscale complete! Your image is ready.', 5000);
       const canvas = imageToCanvas(upscaled);
       onApply(canvas, {
         operation:
@@ -293,6 +303,34 @@ export function UpscalePanel({ image, onApply }: StudioToolPanelProps) {
             <button
               onClick={() => setError(null)}
               className="text-xs text-red-600 hover:text-red-800"
+            >
+              Dismiss
+            </button>
+          </div>
+        </div>
+      )}
+
+      {showSuccess && !error && (
+        <div
+          role="status"
+          aria-live="polite"
+          className="bg-green-50 border-b-2 border-green-300 px-4 py-3"
+        >
+          <div className="max-w-[1800px] mx-auto flex items-center gap-3">
+            <CheckCircle className="w-6 h-6 flex-shrink-0 text-green-600" />
+            <div className="flex-1">
+              <p className="text-sm font-semibold text-green-800">
+                Upscale complete!
+              </p>
+              <p className="text-xs text-green-700">
+                Compare with the Original / Upscaled toggle above the canvas,
+                then hit Download in the header when you&apos;re happy — or pick
+                another tool to keep editing.
+              </p>
+            </div>
+            <button
+              onClick={() => setShowSuccess(false)}
+              className="text-xs text-green-700 hover:text-green-900"
             >
               Dismiss
             </button>
