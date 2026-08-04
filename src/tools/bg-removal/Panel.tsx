@@ -147,6 +147,70 @@ const BG_CONNECT_TOLERANCE = 70;
 // linework — every clearly-not-background pixel survives. Slightly more
 // inclusive than the brush's default so anti-aliased letter edges fill in.
 const INK_PRESERVE_TOLERANCE = 70;
+// Weaker threshold for edge-linking (hysteresis). Anti-aliased letter edges
+// sit between this and the strong threshold; we keep them only when they
+// connect to a strong-ink core, which fills thin small text out to a clean
+// edge (so it's "outlined" like the big text) without dragging in faint
+// background noise.
+const INK_PRESERVE_WEAK_TOLERANCE = 34;
+
+/**
+ * Build the "ink" mask via two-threshold hysteresis: pixels far from the
+ * background colour (> strong) are seeds; weaker pixels (> weak) are kept only
+ * when reachable from a seed through other kept pixels. Result = every clearly-
+ * not-background pixel plus the anti-aliased fringe that belongs to it. 8-conn
+ * so diagonal letter edges link.
+ */
+function computeInkMask(
+  data: Uint8ClampedArray,
+  w: number,
+  h: number,
+  bg: { r: number; g: number; b: number },
+  strongTolSq: number,
+  weakTolSq: number
+): Uint8Array {
+  const total = w * h;
+  const strong = new Uint8Array(total);
+  const weak = new Uint8Array(total);
+  for (let i = 0; i < total; i++) {
+    const j = i * 4;
+    const dr = data[j] - bg.r;
+    const dg = data[j + 1] - bg.g;
+    const db = data[j + 2] - bg.b;
+    const d2 = dr * dr + dg * dg + db * db;
+    if (d2 > strongTolSq) strong[i] = 1;
+    else if (d2 > weakTolSq) weak[i] = 1;
+  }
+  const ink = new Uint8Array(total);
+  const queue = new Uint32Array(total);
+  let qh = 0;
+  let qt = 0;
+  for (let i = 0; i < total; i++) {
+    if (strong[i]) {
+      ink[i] = 1;
+      queue[qt++] = i;
+    }
+  }
+  while (qh < qt) {
+    const idx = queue[qh++];
+    const y = (idx / w) | 0;
+    const x = idx - y * w;
+    for (let dy = -1; dy <= 1; dy++) {
+      const ny = y + dy;
+      if (ny < 0 || ny >= h) continue;
+      for (let dx = -1; dx <= 1; dx++) {
+        const nx = x + dx;
+        if (nx < 0 || nx >= w) continue;
+        const n = ny * w + nx;
+        if (!ink[n] && weak[n]) {
+          ink[n] = 1;
+          queue[qt++] = n;
+        }
+      }
+    }
+  }
+  return ink;
+}
 // Reach is measured in image pixels, so on a high-res design a given brush
 // size must reach FARTHER to cover the same visual fraction. Scale by the
 // image's longest side against this reference so brush behaviour is
@@ -460,6 +524,10 @@ export function BackgroundRemovalPanel({
   const inkToleranceRef = useRef(90);
   // Cached detected background colour for ink-mode classification.
   const bgColorRef = useRef<{ r: number; g: number; b: number } | null>(null);
+  // Cached hysteresis ink mask for the current image (built once, reused by
+  // the first-cut preservation and the recompute ink guard). Invalidated on a
+  // new image / reset.
+  const inkMaskRef = useRef<Uint8Array | null>(null);
 
   // Diagnostic (SAM rollout): tells us whether the SAM first-cut actually ran.
   const [samStatus, setSamStatus] = useState<
@@ -786,14 +854,11 @@ export function BackgroundRemovalPanel({
    * keeps whatever the classical engine produced. Never runs downstream logic
    * differently — it only swaps what the base mask started as.
    */
-  // First-cut ink preservation: union every clearly-not-background pixel into
-  // the auto-cut mask so thin text / linework can't be mutilated. Automatic
-  // and graphics-only — photographic images don't have the thin-text problem
-  // and could pick up dark background texture. Mutates + returns the mask.
-  const preserveInkInMask = useCallback((mask: Uint8Array): Uint8Array => {
+  // Build (once) + return the hysteresis ink mask for the current image.
+  const ensureInkMask = useCallback((): Uint8Array | null => {
     const orig = originalDataRef.current;
-    if (!orig) return mask;
-    if (!isGraphicRef.current) return mask;
+    if (!orig) return null;
+    if (inkMaskRef.current) return inkMaskRef.current;
     if (!bgColorRef.current) {
       bgColorRef.current = detectBorderColor(
         orig.data,
@@ -801,19 +866,31 @@ export function BackgroundRemovalPanel({
         orig.height
       );
     }
-    const { r, g, b } = bgColorRef.current;
-    const tolSq = INK_PRESERVE_TOLERANCE * INK_PRESERVE_TOLERANCE;
-    const data = orig.data;
-    for (let i = 0; i < mask.length; i++) {
-      if (mask[i]) continue;
-      const j = i * 4;
-      const dr = data[j] - r;
-      const dg = data[j + 1] - g;
-      const db = data[j + 2] - b;
-      if (dr * dr + dg * dg + db * db > tolSq) mask[i] = 1;
-    }
-    return mask;
+    inkMaskRef.current = computeInkMask(
+      orig.data,
+      orig.width,
+      orig.height,
+      bgColorRef.current,
+      INK_PRESERVE_TOLERANCE * INK_PRESERVE_TOLERANCE,
+      INK_PRESERVE_WEAK_TOLERANCE * INK_PRESERVE_WEAK_TOLERANCE
+    );
+    return inkMaskRef.current;
   }, []);
+
+  // First-cut ink preservation: union the hysteresis ink mask into the auto-cut
+  // mask so thin text / linework can't be mutilated and small text keeps its
+  // anti-aliased edge (outlined like the big text). Automatic and graphics-only
+  // — photographic images don't have the thin-text problem. Mutates + returns.
+  const preserveInkInMask = useCallback(
+    (mask: Uint8Array): Uint8Array => {
+      if (!isGraphicRef.current) return mask;
+      const ink = ensureInkMask();
+      if (!ink || ink.length !== mask.length) return mask;
+      for (let i = 0; i < mask.length; i++) if (ink[i]) mask[i] = 1;
+      return mask;
+    },
+    [ensureInkMask]
+  );
 
   const applySamFirstCut = useCallback(
     async (canvas: HTMLCanvasElement): Promise<boolean> => {
@@ -1046,6 +1123,7 @@ export function BackgroundRemovalPanel({
     originalDataRef.current = ctx.getImageData(0, 0, w, h);
     bgMaskRef.current = null; // new image → recompute fill connectivity lazily
     bgColorRef.current = null; // new image → re-detect bg colour for ink mode
+    inkMaskRef.current = null; // new image → rebuild ink mask lazily
     // New pixels → any cached SAM embedding is stale; force a fresh /embed
     // on the next smart click.
     samSessionRef.current = null;
@@ -1197,23 +1275,11 @@ export function BackgroundRemovalPanel({
     // "keep the ink" automatic and cleanup-proof, so text no longer needs
     // manual repair, while a Remove stroke still wins.
     if (isGraphicRef.current) {
-      if (!bgColorRef.current) {
-        bgColorRef.current = detectBorderColor(
-          orig.data,
-          orig.width,
-          orig.height
-        );
-      }
-      const { r: igr, g: igg, b: igb } = bgColorRef.current;
-      const inkTolSq = INK_PRESERVE_TOLERANCE * INK_PRESERVE_TOLERANCE;
-      const d = orig.data;
-      for (let i = 0; i < next.length; i++) {
-        if (next[i] || removeStrokeMask[i]) continue;
-        const j = i * 4;
-        const dr = d[j] - igr;
-        const dg = d[j + 1] - igg;
-        const db = d[j + 2] - igb;
-        if (dr * dr + dg * dg + db * db > inkTolSq) next[i] = 1;
+      const ink = ensureInkMask();
+      if (ink && ink.length === next.length) {
+        for (let i = 0; i < next.length; i++) {
+          if (ink[i] && !removeStrokeMask[i]) next[i] = 1;
+        }
       }
     }
 
@@ -1227,6 +1293,7 @@ export function BackgroundRemovalPanel({
     holeDetection,
     speckRemoval,
     renderPreviewFromMask,
+    ensureInkMask,
   ]);
 
   // Keep the forward-binding ref in sync — runInitialAnalysis (declared
@@ -2355,6 +2422,7 @@ export function BackgroundRemovalPanel({
     );
     bgMaskRef.current = null; // reset → recompute fill connectivity lazily
     bgColorRef.current = null; // reset → re-detect bg colour for ink mode
+    inkMaskRef.current = null; // reset → rebuild ink mask lazily
     // Same original pixels, but drop the embedding too so a fresh session is
     // built on demand (cheap insurance; the reset re-runs the whole pipeline).
     samSessionRef.current = null;

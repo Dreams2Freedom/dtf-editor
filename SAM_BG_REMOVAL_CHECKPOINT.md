@@ -134,6 +134,17 @@ logic should feel like ClippingMagic (context-aware keep/remove).
   EXCEPT where the user explicitly Removed (`removeStrokeMask`). `Panel.tsx`,
   `INK_PRESERVE_TOLERANCE = 70`. Result target: all tan removed, full design +
   crisp text kept, no manual repair. Non-graphic (photo) inputs unaffected.
+  - **Hysteresis upgrade:** team saw big + small text survive, but small text
+    wasn't "outlined" (only its dark core kept, ragged edges). Now the ink mask
+    is built by two-threshold hysteresis (`computeInkMask`): strong core
+    (>70) + weak edge (>34) linked to it, 8-connected. Fills thin small text
+    out to a clean anti-aliased edge without adding faint background noise.
+    Cached in `inkMaskRef` (built once per image), shared by both preservation
+    points.
+  - **Known follow-up (→ step 2):** a Remove stroke over small text still
+    suppresses the ink guard there (removeStrokeMask), so Remove can nibble it.
+    The conscious/ink-aware Remove brush in step 2 fixes this (Remove erases
+    tan, never ink).
 
 ## Open issues / next steps (resume here)
 
