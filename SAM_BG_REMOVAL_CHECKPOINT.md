@@ -214,3 +214,14 @@ logic should feel like ClippingMagic (context-aware keep/remove).
   toggle (default on); `renderPreviewFromMask` now also paints the feathered
   final result into that pane (dims synced there). Layout: editing pane +
   result pane (both flex-1) + sidebar; "Split/Single" button in the zoom pill.
+
+- **Panel presentation → ClippingMagic-style — IMPLEMENTED.** Team feedback:
+  our panel required scrolling and scattered tools vs ClippingMagic's compact
+  top toolbar + two panes, no scroll. Changes: advanced sliders (keep-whole-
+  shape, defringe, BG flood, edge cleanup, hole detection, speck removal)
+  collapsed into an "Advanced settings" <details> (closed by default);
+  verbose help text trimmed; Brush Size promoted above Advanced; Undo/Clear
+  moved into the top-right toolbar pill (with zoom + Split) so they're
+  centralized and always visible. Default AI-Brush sidebar is now short and
+  scroll-free: Mode · one-line hint · Keep/Remove/Move · Brush Size · Advanced
+  (collapsed) · Save/Download.
