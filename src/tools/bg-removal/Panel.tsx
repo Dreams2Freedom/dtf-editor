@@ -141,6 +141,12 @@ const GROW_FLOOD_COLOR_TOLERANCE = 115; // relaxed color gate when filling a reg
 // for the connected-component fill. Higher = treats more near-bg tones as
 // background. The fill floods the whole subject (Keep) or background (Remove).
 const BG_CONNECT_TOLERANCE = 70;
+// First-cut ink preservation (graphics): after the auto-cut, any pixel whose
+// colour is farther than this (RGB Euclidean) from the detected background is
+// forced KEPT. This stops the ML/colour-key cut from mutilating thin text and
+// linework — every clearly-not-background pixel survives. Slightly more
+// inclusive than the brush's default so anti-aliased letter edges fill in.
+const INK_PRESERVE_TOLERANCE = 70;
 // Reach is measured in image pixels, so on a high-res design a given brush
 // size must reach FARTHER to cover the same visual fraction. Scale by the
 // image's longest side against this reference so brush behaviour is
@@ -780,6 +786,35 @@ export function BackgroundRemovalPanel({
    * keeps whatever the classical engine produced. Never runs downstream logic
    * differently — it only swaps what the base mask started as.
    */
+  // First-cut ink preservation: union every clearly-not-background pixel into
+  // the auto-cut mask so thin text / linework can't be mutilated. Automatic
+  // and graphics-only — photographic images don't have the thin-text problem
+  // and could pick up dark background texture. Mutates + returns the mask.
+  const preserveInkInMask = useCallback((mask: Uint8Array): Uint8Array => {
+    const orig = originalDataRef.current;
+    if (!orig) return mask;
+    if (!isGraphicRef.current) return mask;
+    if (!bgColorRef.current) {
+      bgColorRef.current = detectBorderColor(
+        orig.data,
+        orig.width,
+        orig.height
+      );
+    }
+    const { r, g, b } = bgColorRef.current;
+    const tolSq = INK_PRESERVE_TOLERANCE * INK_PRESERVE_TOLERANCE;
+    const data = orig.data;
+    for (let i = 0; i < mask.length; i++) {
+      if (mask[i]) continue;
+      const j = i * 4;
+      const dr = data[j] - r;
+      const dg = data[j + 1] - g;
+      const db = data[j + 2] - b;
+      if (dr * dr + dg * dg + db * db > tolSq) mask[i] = 1;
+    }
+    return mask;
+  }, []);
+
   const applySamFirstCut = useCallback(
     async (canvas: HTMLCanvasElement): Promise<boolean> => {
       const orig = originalDataRef.current;
@@ -815,6 +850,8 @@ export function BackgroundRemovalPanel({
         for (let i = 0; i < m.length; i++) {
           m[i] = data.data[i * 4 + 3] > 127 ? 1 : 0;
         }
+        // Keep every clearly-not-background pixel so thin text survives.
+        preserveInkInMask(m);
         samMaskRef.current = m;
         initialMaskRef.current = data;
         const recompute = recomputeCumulativeRef.current;
@@ -827,7 +864,7 @@ export function BackgroundRemovalPanel({
         return false;
       }
     },
-    []
+    [preserveInkInMask]
   );
 
   /**
@@ -953,6 +990,9 @@ export function BackgroundRemovalPanel({
             for (let i = 0; i < m.length; i++) {
               m[i] = data.data[i * 4 + 3] > 127 ? 1 : 0;
             }
+            // Keep every clearly-not-background pixel so thin text survives
+            // the auto-cut (graphics only).
+            preserveInkInMask(m);
             samMaskRef.current = m;
             // Run the same cleanup + hole-detection pipeline the
             // sliders use, via a forward-bound ref. Falls back to the
@@ -983,7 +1023,13 @@ export function BackgroundRemovalPanel({
         .catch(err => console.warn('[BG] classical initial cut error:', err))
         .then(() => samPromise);
     },
-    [runDetect, runRemoval, renderPreviewFromMask, applySamFirstCut]
+    [
+      runDetect,
+      runRemoval,
+      renderPreviewFromMask,
+      applySamFirstCut,
+      preserveInkInMask,
+    ]
   );
 
   // Init canvas, kick off analysis on mount.
@@ -1143,6 +1189,32 @@ export function BackgroundRemovalPanel({
         sensitivity: speckRemoval,
         protectMask: keepStrokeMask,
       });
+    }
+
+    // Final ink guard (graphics only): re-assert every clearly-not-background
+    // pixel so the carve/speck passes can't mutilate thin text or linework —
+    // EXCEPT where the user explicitly Removed (removeStrokeMask). This makes
+    // "keep the ink" automatic and cleanup-proof, so text no longer needs
+    // manual repair, while a Remove stroke still wins.
+    if (isGraphicRef.current) {
+      if (!bgColorRef.current) {
+        bgColorRef.current = detectBorderColor(
+          orig.data,
+          orig.width,
+          orig.height
+        );
+      }
+      const { r: igr, g: igg, b: igb } = bgColorRef.current;
+      const inkTolSq = INK_PRESERVE_TOLERANCE * INK_PRESERVE_TOLERANCE;
+      const d = orig.data;
+      for (let i = 0; i < next.length; i++) {
+        if (next[i] || removeStrokeMask[i]) continue;
+        const j = i * 4;
+        const dr = d[j] - igr;
+        const dg = d[j + 1] - igg;
+        const db = d[j + 2] - igb;
+        if (dr * dr + dg * dg + db * db > inkTolSq) next[i] = 1;
+      }
     }
 
     cumulativeMaskRef.current = next;

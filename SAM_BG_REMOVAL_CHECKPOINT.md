@@ -123,14 +123,28 @@ logic should feel like ClippingMagic (context-aware keep/remove).
   `commitStroke`, and `bgColorRef` (detectBorderColor, invalidated on new
   image/reset). Additive — the region brush is unchanged when Ink mode is off.
 
+- **Auto ink-preservation in the first cut — IMPLEMENTED (awaiting user test).**
+  Team feedback: text still mutilated by the auto-cut. Root cause: the cut (and
+  especially `removeStrandedSpecks` in `recomputeCumulative`) eats thin text
+  that, once its tan is gone, looks like small stranded components. Fix: for
+  GRAPHIC inputs, automatically force-keep every clearly-not-background pixel
+  ("ink") at two points — (1) `preserveInkInMask()` on the base mask right after
+  the SAM/classical cut, and (2) a final ink guard at the END of
+  `recomputeCumulative` (after all carve/speck passes) that re-asserts ink,
+  EXCEPT where the user explicitly Removed (`removeStrokeMask`). `Panel.tsx`,
+  `INK_PRESERVE_TOLERANCE = 70`. Result target: all tan removed, full design +
+  crisp text kept, no manual repair. Non-graphic (photo) inputs unaffected.
+
 ## Open issues / next steps (resume here)
 
-0. **NEXT (planned, agreed "both — brush first"):** after Ink-mode testing,
-   add a **colour-key first cut for graphics** — remove near-background colour
-   globally, keep everything else, so fine text isn't mutilated to begin with
-   (photographic parts then cleaned with Remove). The panel's existing "Color"
-   mode already does colour removal; likely a routing/UX change more than new
-   machinery.
+0. **NEXT — single "conscious" brush (agreed direction).** Collapse Ink mode /
+   Fill area / (suspended) Smart select into ONE context-aware Keep/Remove
+   brush that auto-decides from what's under it (border-connectivity separates
+   exterior background = drop from ink + enclosed regions = keep). Then hide the
+   advanced sliders behind an "Advanced" disclosure so the default panel is just
+   Keep · Remove · size. User's goal: the algorithm makes the choices; minimal
+   UI. (First-cut ink-preservation above is step 1; this brush unification is
+   step 2.)
 
 1. **Smart-select + Fill-area click tools — TEST + refine.** Implemented
    (above). Next:
