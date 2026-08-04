@@ -437,6 +437,11 @@ export function BackgroundRemovalPanel({
   // Canvases & cached image data
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const previewRef = useRef<HTMLCanvasElement>(null);
+  // Side-by-side clean-result pane (ClippingMagic-style): shows the final
+  // cutout next to the editing view so the marching-ants outline never hides
+  // what the design actually looks like.
+  const resultPreviewRef = useRef<HTMLCanvasElement>(null);
+  const [splitView, setSplitView] = useState(true);
   const containerRef = useRef<HTMLDivElement>(null);
   const originalDataRef = useRef<ImageData | null>(null);
   const initialMaskRef = useRef<ImageData | null>(null);
@@ -816,10 +821,34 @@ export function BackgroundRemovalPanel({
     const orig = originalDataRef.current;
     const p = previewRef.current;
     if (!orig || !p) return;
-    const pCtx = p.getContext('2d');
-    if (!pCtx) return;
     const w = orig.width;
     const h = orig.height;
+
+    // Side-by-side clean-result pane: always the FINAL cutout (kept = original
+    // alpha with a feathered edge, removed = transparent), independent of the
+    // editing view's mode/outline. Dims are (re)synced here so it renders
+    // correctly even when the pane mounts after the first cut.
+    const rp = resultPreviewRef.current;
+    if (rp && mask.length === w * h) {
+      if (rp.width !== w || rp.height !== h) {
+        rp.width = w;
+        rp.height = h;
+      }
+      const rCtx = rp.getContext('2d');
+      if (rCtx) {
+        rCtx.clearRect(0, 0, w, h);
+        const clean = new ImageData(new Uint8ClampedArray(orig.data), w, h);
+        const cd = clean.data;
+        const soft = featherAlpha(mask, w, h, FEATHER_RADIUS);
+        for (let i = 0; i < mask.length; i++) {
+          cd[i * 4 + 3] = Math.round((orig.data[i * 4 + 3] * soft[i]) / 255);
+        }
+        rCtx.putImageData(clean, 0, 0);
+      }
+    }
+
+    const pCtx = p.getContext('2d');
+    if (!pCtx) return;
     pCtx.clearRect(0, 0, w, h);
     const mode = viewModeRef.current;
     if (mode === 'original') {
@@ -853,6 +882,14 @@ export function BackgroundRemovalPanel({
     const mask = cumulativeMaskRef.current;
     if (mask) renderPreviewFromMask(mask);
   }, [viewMode, renderPreviewFromMask]);
+
+  // When the side-by-side result pane is toggled on, its canvas mounts fresh —
+  // re-render so it populates immediately.
+  useEffect(() => {
+    if (!splitView) return;
+    const mask = cumulativeMaskRef.current;
+    if (mask) renderPreviewFromMask(mask);
+  }, [splitView, renderPreviewFromMask]);
 
   /**
    * SAM-first initial cut: produce the base mask from the in-house SAM engine
@@ -2863,10 +2900,52 @@ export function BackgroundRemovalPanel({
                 >
                   Fit
                 </button>
+                <button
+                  type="button"
+                  onClick={() => setSplitView(v => !v)}
+                  className={`px-2.5 py-1 border-l border-gray-200 hover:bg-gray-50 ${
+                    splitView ? 'text-blue-600' : 'text-gray-700'
+                  }`}
+                  title={
+                    splitView
+                      ? 'Hide the result preview'
+                      : 'Show the result side-by-side'
+                  }
+                >
+                  {splitView ? 'Single' : 'Split'}
+                </button>
               </div>
             )}
           </div>
         </div>
+
+        {/* Side-by-side clean result pane (ClippingMagic-style) */}
+        {panelMode === 'ai-brush' && !hasResult && splitView && (
+          <div
+            className="flex-1 flex items-center justify-center min-h-[200px] overflow-hidden p-4 border-t lg:border-t-0 lg:border-l border-gray-200"
+            style={{
+              backgroundColor: '#ffffff',
+              backgroundImage:
+                'repeating-conic-gradient(#e0e0e0 0% 25%, #ffffff 0% 50%)',
+              backgroundSize: '20px 20px',
+            }}
+          >
+            <div className="relative">
+              <span className="absolute top-2 left-2 z-10 rounded-full bg-white/90 backdrop-blur-sm shadow border border-gray-200 px-3 py-1 text-xs font-medium text-gray-700">
+                Result
+              </span>
+              <canvas
+                ref={resultPreviewRef}
+                suppressHydrationWarning
+                className="max-w-full max-h-full shadow-lg rounded block"
+                style={{
+                  maxHeight: 'calc(100vh - 280px)',
+                  background: 'transparent',
+                }}
+              />
+            </div>
+          </div>
+        )}
 
         {/* Side panel */}
         <div className="w-full lg:w-72 bg-white border-t lg:border-t-0 lg:border-l border-gray-200 flex flex-col min-h-0">

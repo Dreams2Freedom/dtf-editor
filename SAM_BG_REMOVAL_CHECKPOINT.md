@@ -206,3 +206,11 @@ logic should feel like ClippingMagic (context-aware keep/remove).
 - `REMBG_SERVICE_URL` + `REMBG_SERVICE_API_KEY` must be set for the environment
   (confirmed on Production; also added to Preview).
 - Nothing in this effort is on `main`/production yet.
+
+- **Side-by-side result pane (ClippingMagic-style) — IMPLEMENTED.** Team
+  feedback: the marching-ants removal outline makes fine text unreadable while
+  editing. Instead of changing the kept-design outline, show the clean FINAL
+  cutout next to the editing view. `resultPreviewRef` canvas + `splitView`
+  toggle (default on); `renderPreviewFromMask` now also paints the feathered
+  final result into that pane (dims synced there). Layout: editing pane +
+  result pane (both flex-1) + sidebar; "Split/Single" button in the zoom pill.
