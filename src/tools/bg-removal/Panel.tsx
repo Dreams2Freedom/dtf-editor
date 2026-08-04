@@ -548,6 +548,16 @@ export function BackgroundRemovalPanel({
   // The edge-aware scribble brush runs entirely on the client, so it's usable
   // as soon as the original pixels are loaded — no SAM embed / model warm-up.
   const [brushReady, setBrushReady] = useState(false);
+  // Blur-overlay gating. The heavy "Removing background…" pulse should clear the
+  // moment the FIRST real cutout is on screen — not when the parallel classical
+  // detect→remove chain resolves. In the default keep-whole-shape mode that
+  // chain's network result isn't even shown (it only backs initialMaskRef for
+  // when the toggle is off), yet its `status === 'removing'` kept the pulse up
+  // long after the instant whole-shape seed and the SAM override had already
+  // painted. Flip this the first time a mask actually paints; reset on new image
+  // so a fresh upload shows the pulse until its own first cut lands.
+  const [firstCutPainted, setFirstCutPainted] = useState(false);
+  const firstCutPaintedRef = useRef(false);
   const [cleanupTolerance, setCleanupTolerance] = useState(60);
   // Phase 2.2 (revised): default 50 with the new connected-component
   // algorithm. Higher = wider color tolerance + smaller blob threshold
@@ -874,6 +884,12 @@ export function BackgroundRemovalPanel({
       }
     }
     pCtx.putImageData(out, 0, 0);
+    // A real cutout is now on screen — drop the heavy blur overlay. Guarded by a
+    // ref so this fires once, not on every re-render/preview repaint.
+    if (!firstCutPaintedRef.current) {
+      firstCutPaintedRef.current = true;
+      setFirstCutPainted(true);
+    }
   }, []);
 
   // Sync viewMode state → ref AND re-render preview on change.
@@ -1173,6 +1189,9 @@ export function BackgroundRemovalPanel({
     samSessionRef.current = null;
     samEmbedInFlightRef.current = null;
     setSamBrushStatus('idle');
+    // New image → no cutout painted yet; show the pulse until its first cut lands.
+    firstCutPaintedRef.current = false;
+    setFirstCutPainted(false);
     // Original pixels are in memory — the client-side scribble brush is ready.
     setBrushReady(true);
 
@@ -2816,7 +2835,7 @@ export function BackgroundRemovalPanel({
                 the original image and assumes nothing's happening
                 while SAM is loading. Sits OUTSIDE the zoom transform so
                 it always covers the visible canvas correctly. */}
-            {isProcessing && (
+            {isProcessing && !(panelMode === 'ai-brush' && firstCutPainted) && (
               <CanvasProcessingOverlay
                 label={STATUS_LABELS[status] || 'Preparing AI Brush…'}
               />
