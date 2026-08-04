@@ -17,6 +17,7 @@ import {
   Scissors,
   CheckCircle2,
   Hand,
+  MousePointerClick,
 } from 'lucide-react';
 
 import MagicWand from '@/lib/magic-wand';
@@ -41,13 +42,14 @@ import {
   samplePathPoints,
   useBackgroundRemoval,
 } from './useBackgroundRemoval';
-import { samRemoveBackground } from './api';
+import { samRemoveBackground, embedImage, predictMask } from './api';
 import type {
   BgRemovalModel,
   PanelMode,
   RGB,
   RemovalOptions,
   SamPoint,
+  SamSession,
 } from './types';
 
 interface BackgroundRemovalPanelProps {
@@ -396,6 +398,26 @@ export function BackgroundRemovalPanel({
   const recomputeCumulativeRef = useRef<(() => void) | null>(null);
   const [brushTool, setBrushTool] = useState<BrushTool>('keep');
   const [brushSize, setBrushSize] = useState(20);
+
+  // ---- Smart select (SAM semantic click-brush, Phase 2.9 / beta) ----------
+  // When on, a click in the canvas asks SAM to select the whole object under
+  // the cursor (via the /embed + /predict endpoints) instead of the local
+  // colour-grow brush. The active Keep/Remove tool then unions or subtracts
+  // that segment. This is the fix for colour-based nibbling on distressed/
+  // grunge text — SAM keys off the object, not the pixel colour.
+  const [smartSelect, setSmartSelect] = useState(false);
+  const smartSelectRef = useRef(false);
+  // Cached SAM embedding for the current original image. One /embed serves
+  // every subsequent click; invalidated when a new image loads.
+  const samSessionRef = useRef<SamSession | null>(null);
+  const samEmbedInFlightRef = useRef<Promise<SamSession> | null>(null);
+  const [samBrushStatus, setSamBrushStatus] = useState<
+    'idle' | 'embedding' | 'ready' | 'failed'
+  >('idle');
+  const [isSamPredicting, setIsSamPredicting] = useState(false);
+  // Ref mirror so overlapping clicks can be ignored without a stale closure.
+  const isSamPredictingRef = useRef(false);
+
   // Diagnostic (SAM rollout): tells us whether the SAM first-cut actually ran.
   const [samStatus, setSamStatus] = useState<
     'idle' | 'running' | 'applied' | 'failed'
@@ -940,6 +962,11 @@ export function BackgroundRemovalPanel({
     canvasRef.current = canvas;
     originalDataRef.current = ctx.getImageData(0, 0, w, h);
     bgMaskRef.current = null; // new image → recompute fill connectivity lazily
+    // New pixels → any cached SAM embedding is stale; force a fresh /embed
+    // on the next smart click.
+    samSessionRef.current = null;
+    samEmbedInFlightRef.current = null;
+    setSamBrushStatus('idle');
     // Original pixels are in memory — the client-side scribble brush is ready.
     setBrushReady(true);
 
@@ -1333,6 +1360,184 @@ export function BackgroundRemovalPanel({
     [recomputeCumulative]
   );
 
+  // ---------- Smart select: SAM semantic click-brush ----------------------
+  // Render the current original pixels to a PNG blob to feed /embed.
+  const originalToBlob = useCallback((): Promise<Blob> => {
+    return new Promise((resolve, reject) => {
+      const orig = originalDataRef.current;
+      if (!orig) {
+        reject(new Error('Image not ready'));
+        return;
+      }
+      const c = document.createElement('canvas');
+      c.width = orig.width;
+      c.height = orig.height;
+      const cx = c.getContext('2d');
+      if (!cx) {
+        reject(new Error('Canvas unavailable'));
+        return;
+      }
+      cx.putImageData(orig, 0, 0);
+      c.toBlob(
+        b => (b ? resolve(b) : reject(new Error('Failed to encode image'))),
+        'image/png'
+      );
+    });
+  }, []);
+
+  // Lazily create (and cache) the SAM embedding for the current image. Callers
+  // that fire concurrently share the same in-flight promise.
+  const ensureSamSession = useCallback(async (): Promise<SamSession> => {
+    if (samSessionRef.current) return samSessionRef.current;
+    if (samEmbedInFlightRef.current) return samEmbedInFlightRef.current;
+    setSamBrushStatus('embedding');
+    const p = (async () => {
+      const blob = await originalToBlob();
+      const session = await embedImage(blob);
+      samSessionRef.current = session;
+      setSamBrushStatus('ready');
+      return session;
+    })();
+    samEmbedInFlightRef.current = p;
+    try {
+      return await p;
+    } catch (e) {
+      setSamBrushStatus('failed');
+      throw e;
+    } finally {
+      samEmbedInFlightRef.current = null;
+    }
+  }, [originalToBlob]);
+
+  // Convert a SAM cutout PNG (subject opaque, background transparent) into a
+  // binary region mask at the original image's resolution.
+  const maskFromCutout = useCallback(
+    (url: string, w: number, h: number): Promise<Uint8Array> => {
+      return new Promise((resolve, reject) => {
+        const img = new Image();
+        img.onload = () => {
+          const c = document.createElement('canvas');
+          c.width = w;
+          c.height = h;
+          const cx = c.getContext('2d');
+          if (!cx) {
+            reject(new Error('Canvas unavailable'));
+            return;
+          }
+          cx.clearRect(0, 0, w, h);
+          // Draw scaled to the working resolution so the region always lines
+          // up 1:1 with samMaskRef even if SAM returned a resized mask.
+          cx.drawImage(img, 0, 0, w, h);
+          const data = cx.getImageData(0, 0, w, h).data;
+          const region = new Uint8Array(w * h);
+          for (let i = 0; i < region.length; i++) {
+            region[i] = data[i * 4 + 3] > 127 ? 1 : 0;
+          }
+          resolve(region);
+        };
+        img.onerror = () => reject(new Error('Failed to load SAM mask'));
+        img.src = url;
+      });
+    },
+    []
+  );
+
+  // A smart click: SAM selects the object under the cursor, then the active
+  // Keep/Remove tool unions or subtracts that segment into samMaskRef. Records
+  // a StrokeRecord so Undo works exactly like a brush stroke.
+  const runSmartSelect = useCallback(
+    async (pt: { x: number; y: number }, tool: BrushTool) => {
+      if (isSamPredictingRef.current) return; // ignore overlapping clicks
+      const orig = originalDataRef.current;
+      if (!orig) return;
+      const total = orig.width * orig.height;
+
+      isSamPredictingRef.current = true;
+      setIsSamPredicting(true);
+      try {
+        // Always a positive point — the click identifies WHICH object; the tool
+        // decides add vs. subtract afterward.
+        const point: SamPoint = {
+          x: Math.round(pt.x),
+          y: Math.round(pt.y),
+          label: 1,
+        };
+
+        let session = await ensureSamSession();
+        let result;
+        try {
+          result = await predictMask(session, [point]);
+        } catch (err) {
+          // Embeddings expire server-side (TTL). If ours lapsed mid-edit,
+          // re-embed once and retry so a long session doesn't dead-end.
+          const msg = err instanceof Error ? err.message : '';
+          if (/not found|expired|404/i.test(msg)) {
+            samSessionRef.current = null;
+            session = await ensureSamSession();
+            result = await predictMask(session, [point]);
+          } else {
+            throw err;
+          }
+        }
+
+        const region = await maskFromCutout(
+          result.url,
+          orig.width,
+          orig.height
+        );
+        URL.revokeObjectURL(result.url);
+        if (region.length !== total) return;
+
+        // SAM can return an empty mask on a bare-background click — no-op then.
+        let any = false;
+        for (let i = 0; i < total; i++) {
+          if (region[i]) {
+            any = true;
+            break;
+          }
+        }
+        if (!any) return;
+
+        const currentSam = samMaskRef.current ?? new Uint8Array(total);
+        const maskBefore = new Uint8Array(currentSam);
+        const nextSam = new Uint8Array(currentSam);
+        if (tool === 'keep') {
+          for (let i = 0; i < total; i++) nextSam[i] = nextSam[i] | region[i];
+        } else {
+          for (let i = 0; i < total; i++)
+            nextSam[i] = nextSam[i] & (region[i] ^ 1);
+        }
+
+        const record: StrokeRecord = {
+          tool,
+          points: [point],
+          rawPath: [{ x: pt.x, y: pt.y }],
+          brushSize: 0, // smart click — extent decided by SAM, not brush size
+          maskBefore,
+          samMask: region,
+        };
+        const updatedHistory = [...strokeHistoryRef.current, record];
+        samMaskRef.current = nextSam;
+        strokeHistoryRef.current = updatedHistory;
+        setStrokeHistory(updatedHistory);
+        recomputeCumulative();
+      } catch (e) {
+        // Non-fatal: a failed predict just leaves the mask untouched. The
+        // status badge already surfaces an embed failure.
+        console.error('[bg-removal] smart select failed:', e);
+      } finally {
+        isSamPredictingRef.current = false;
+        setIsSamPredicting(false);
+      }
+    },
+    [ensureSamSession, maskFromCutout, recomputeCumulative]
+  );
+
+  // Keep the ref mirror of smartSelect in sync for the pointer handler.
+  useEffect(() => {
+    smartSelectRef.current = smartSelect;
+  }, [smartSelect]);
+
   // ---------- Canvas pointer handlers (mouse + touch + pen) + zoom/pan ----------
   // Compute scale from canvas-pixel space → SVG display space
   const overlayScaleNow = useCallback(() => {
@@ -1419,6 +1624,15 @@ export function BackgroundRemovalPanel({
       }
 
       if (!brushReady) return;
+
+      // Smart-select mode: a single click hands the point to SAM and unions/
+      // subtracts the selected object — no paint stroke is started.
+      if (smartSelectRef.current) {
+        const sc = eventToCanvasCoords(e);
+        if (sc) void runSmartSelect({ x: sc.x, y: sc.y }, brushTool);
+        return;
+      }
+
       const c = eventToCanvasCoords(e);
       if (!c) return;
       isDrawingRef.current = true;
@@ -1451,6 +1665,7 @@ export function BackgroundRemovalPanel({
       pan,
       zoom,
       cancelInProgressStroke,
+      runSmartSelect,
     ]
   );
 
@@ -1858,6 +2073,11 @@ export function BackgroundRemovalPanel({
       canvas.height
     );
     bgMaskRef.current = null; // reset → recompute fill connectivity lazily
+    // Same original pixels, but drop the embedding too so a fresh session is
+    // built on demand (cheap insurance; the reset re-runs the whole pipeline).
+    samSessionRef.current = null;
+    samEmbedInFlightRef.current = null;
+    setSamBrushStatus('idle');
     const preview = previewRef.current;
     if (preview) {
       preview.width = canvas.width;
@@ -2338,6 +2558,71 @@ export function BackgroundRemovalPanel({
                     Space, or drag with the middle mouse button) to pan. Scroll
                     to zoom.
                   </p>
+                </div>
+
+                {/* Smart select (SAM click-brush) — semantic touch-up. */}
+                <div className="rounded-lg border border-gray-200 bg-gray-50 p-3">
+                  <label className="flex items-start gap-2 cursor-pointer select-none">
+                    <input
+                      type="checkbox"
+                      checked={smartSelect}
+                      onChange={e => {
+                        const on = e.target.checked;
+                        setSmartSelect(on);
+                        smartSelectRef.current = on;
+                        // Warm the embedding as soon as it's switched on so the
+                        // first click feels instant.
+                        if (on) void ensureSamSession();
+                      }}
+                      disabled={!brushReady}
+                      className="mt-0.5 accent-blue-600"
+                    />
+                    <span>
+                      <span className="flex items-center gap-1.5 text-xs font-semibold text-gray-800">
+                        <MousePointerClick className="w-3.5 h-3.5 text-blue-600" />
+                        Smart select{' '}
+                        <span className="text-blue-600">· beta</span>
+                      </span>
+                      <span className="block text-[11px] text-gray-500 mt-0.5">
+                        Click an object and the AI selects the whole thing — the
+                        active <span className="text-green-700">Keep</span> /{' '}
+                        <span className="text-red-700">Remove</span> tool then
+                        adds or subtracts it. Best for distressed/grunge text
+                        the colour brush nibbles. Each click ≈ a second.
+                      </span>
+                    </span>
+                  </label>
+
+                  {smartSelect && (
+                    <div className="mt-2 pt-2 border-t border-gray-200 text-[11px]">
+                      {isSamPredicting ? (
+                        <span className="flex items-center gap-1.5 text-blue-700">
+                          <Loader2 className="w-3 h-3 animate-spin" />
+                          Selecting…
+                        </span>
+                      ) : samBrushStatus === 'embedding' ? (
+                        <span className="flex items-center gap-1.5 text-gray-600">
+                          <Loader2 className="w-3 h-3 animate-spin" />
+                          Preparing AI (first click may take a moment)…
+                        </span>
+                      ) : samBrushStatus === 'ready' ? (
+                        <span className="flex items-center gap-1.5 text-green-700">
+                          <CheckCircle2 className="w-3 h-3" />
+                          Ready — click any object on the canvas.
+                        </span>
+                      ) : samBrushStatus === 'failed' ? (
+                        <span className="flex items-center gap-1.5 text-red-700">
+                          <AlertTriangle className="w-3 h-3" />
+                          AI selection unavailable — the colour brush still
+                          works.
+                        </span>
+                      ) : (
+                        <span className="text-gray-500">
+                          Click any object on the canvas to select it.
+                        </span>
+                      )}
+                    </div>
+                  )}
                 </div>
 
                 {/* Keep whole shape — initial cutout keeps the full silhouette. */}

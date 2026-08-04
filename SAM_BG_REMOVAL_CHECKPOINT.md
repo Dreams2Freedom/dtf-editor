@@ -77,14 +77,30 @@ logic should feel like ClippingMagic (context-aware keep/remove).
 
 - SAM runs as the primary first cut (confirmed via badge). Classical fallback
   intact. Enclosed-tan removal in place. Auto-cut is the semantic engine.
+- **SAM semantic click-brush ("Smart select") — IMPLEMENTED (beta, awaiting
+  user test).** In the AI-Brush tool, a "Smart select" toggle switches the
+  Keep/Remove brush from colour-grow to a SAM click-to-select. Click an object
+  → SAM `/embed` + `/predict` return that segment → the active Keep tool unions
+  it, Remove subtracts it. Undo works like any stroke.
+  - All in `src/tools/bg-removal/Panel.tsx` (additive): `smartSelect` state +
+    toggle UI, `ensureSamSession()` (lazy, cached `/embed`; invalidated on new
+    image), `runSmartSelect()` (predict → alpha→mask → union/subtract →
+    StrokeRecord → recompute), and a smart-click branch in `handlePointerDown`.
+    Reuses existing `embedImage`/`predictMask` in `api.ts` and the gated
+    `/api/background-removal/{embed,predict}` routes.
+  - Resilience: overlapping clicks ignored while a predict is in flight;
+    expired-embedding (server TTL) → auto re-embed + retry once; predict
+    failure no-ops the click and shows a status line.
 
 ## Open issues / next steps (resume here)
 
-1. **SAM click-brush (semantic touch-up)** — TOP priority for ClippingMagic
-   parity. The current brush is COLOR-based and will always risk nibbling
-   grunge/distressed text (tan baked into letters). The real fix is a semantic
-   click-to-select brush using the existing SAM `/embed` + `/predict` endpoints
-   (already live). Click an object → SAM selects it precisely → union/subtract.
+1. **Smart-select click-brush — TEST + refine.** Implemented (above). Next:
+   real-image testing for ClippingMagic parity, especially on distressed/grunge
+   text. Possible refinements once tested: cumulative multi-point refinement
+   (accumulate points to refine one selection instead of independent clicks),
+   a visual marker at the clicked point, and tuning the alpha→mask threshold
+   (currently >127). The current brush-size slider is inert in Smart mode
+   (SAM decides extent) — consider hiding it there.
 2. **Speed** — SAM is ~20s warm (grid sweep on CPU). Fix: **MobileSAM** (docs
    scoped it in `docs/AI_BRUSH_PLAN_HISTORY.md`; ~2s vs ~15s). Needs new model
    files + adapting `sam_predictor.py` loader. Blocks making SAM the default for
