@@ -105,6 +105,19 @@ class SamPredictor:
     def __init__(self, encoder_path: str, decoder_path: str):
         opts = ort.SessionOptions()
         opts.log_severity_level = 3
+        # Speed: use all available vCPUs for the intra-op thread pool and enable
+        # full graph optimization. Defaults leave threads at ~1 core and skip
+        # graph fusions, which is the main CPU-side cost on the 144-call
+        # segment-everything sweep. No effect on output/quality.
+        #
+        # RembgService may set SAM_ORT_THREADS to pin the count to the Railway
+        # container's real vCPU allotment; otherwise fall back to os.cpu_count().
+        _threads = int(os.environ.get("SAM_ORT_THREADS", "0")) or (os.cpu_count() or 1)
+        opts.intra_op_num_threads = _threads
+        opts.inter_op_num_threads = 1
+        opts.execution_mode = ort.ExecutionMode.ORT_SEQUENTIAL
+        opts.graph_optimization_level = ort.GraphOptimizationLevel.ORT_ENABLE_ALL
+        logger.info("SAM ONNX sessions: intra_op_num_threads=%d, graph_opt=ALL", _threads)
         self.encoder = ort.InferenceSession(
             encoder_path, sess_options=opts, providers=["CPUExecutionProvider"]
         )
