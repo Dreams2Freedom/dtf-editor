@@ -91,6 +91,13 @@ interface BackgroundRemovalPanelProps {
  */
 const SAM_FIRST_CUT_ENABLED = true;
 
+// Smart select (SAM semantic click-brush) is SUSPENDED — it groups by
+// appearance, so on a tan-on-tan design it keeps/removes ALL the tan at once
+// (unusable per team testing). The code stays for a later revisit; this flag
+// hides the UI so it can't be turned on. The client-side "Fill area" flood
+// and the colour brush remain the touch-up tools.
+const SMART_SELECT_ENABLED = false;
+
 const STATUS_LABELS: Record<string, string> = {
   idle: '',
   authorizing: 'Checking plan...',
@@ -2725,7 +2732,9 @@ export function BackgroundRemovalPanel({
                   )}
                 </div>
 
-                {/* Smart select (SAM click-brush) — semantic touch-up. */}
+                {/* Smart select (SAM click-brush) — SUSPENDED (see
+                    SMART_SELECT_ENABLED). Unusable on tan-on-tan designs. */}
+                {SMART_SELECT_ENABLED && (
                 <div className="rounded-lg border border-gray-200 bg-gray-50 p-3">
                   <label className="flex items-start gap-2 cursor-pointer select-none">
                     <input
@@ -2794,6 +2803,7 @@ export function BackgroundRemovalPanel({
                     </div>
                   )}
                 </div>
+                )}
 
                 {/* Keep whole shape — initial cutout keeps the full silhouette. */}
                 <div className="rounded-lg border border-gray-200 bg-gray-50 p-3">
