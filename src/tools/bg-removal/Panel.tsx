@@ -439,6 +439,22 @@ export function BackgroundRemovalPanel({
   const [fillTolerance, setFillTolerance] = useState(45);
   const fillToleranceRef = useRef(45);
 
+  // ---- Ink mode (colour-keyed brush) --------------------------------------
+  // When on, the Keep/Remove brush keys off the background colour instead of
+  // grabbing a spatial region. Within the painted footprint: Keep adds only
+  // NON-background (ink/linework) pixels; Remove deletes only background-
+  // coloured pixels. This is the fix for keeping distressed text without also
+  // dragging its tan background back in. Brush size = area of effect only.
+  const [inkMode, setInkMode] = useState(false);
+  const inkModeRef = useRef(false);
+  // Squared-distance threshold: a pixel is "ink" when its colour is farther
+  // than this from the detected background colour. Higher = stricter (only
+  // very dark ink counts); lower = also grabs faint/anti-aliased edges.
+  const [inkTolerance, setInkTolerance] = useState(90);
+  const inkToleranceRef = useRef(90);
+  // Cached detected background colour for ink-mode classification.
+  const bgColorRef = useRef<{ r: number; g: number; b: number } | null>(null);
+
   // Diagnostic (SAM rollout): tells us whether the SAM first-cut actually ran.
   const [samStatus, setSamStatus] = useState<
     'idle' | 'running' | 'applied' | 'failed'
@@ -983,6 +999,7 @@ export function BackgroundRemovalPanel({
     canvasRef.current = canvas;
     originalDataRef.current = ctx.getImageData(0, 0, w, h);
     bgMaskRef.current = null; // new image → recompute fill connectivity lazily
+    bgColorRef.current = null; // new image → re-detect bg colour for ink mode
     // New pixels → any cached SAM embedding is stale; force a fresh /embed
     // on the next smart click.
     samSessionRef.current = null;
@@ -1255,6 +1272,78 @@ export function BackgroundRemovalPanel({
       if (!orig) return;
       const total = orig.width * orig.height;
 
+      // Ink mode: colour-keyed brush. Within the painted footprint, act only
+      // on ink (Keep) or only on background-coloured (Remove) pixels, so
+      // keeping over text doesn't drag its tan background back in. Self-
+      // contained apply (mirrors the region path below) to avoid a forward
+      // reference to applyRegionEdit.
+      if (inkModeRef.current) {
+        if (!bgColorRef.current) {
+          bgColorRef.current = detectBorderColor(
+            orig.data,
+            orig.width,
+            orig.height
+          );
+        }
+        const { r: bcr, g: bcg, b: bcb } = bgColorRef.current;
+        const tolSq = inkToleranceRef.current * inkToleranceRef.current;
+        const footprintRadius = Math.max(1, sizeAtCommit / 2);
+        const footprint = strokeToSeeds(
+          path,
+          footprintRadius,
+          orig.width,
+          orig.height
+        );
+        const region = new Uint8Array(total);
+        let anyInk = false;
+        for (const idx of footprint) {
+          const j = idx * 4;
+          const dr = orig.data[j] - bcr;
+          const dg = orig.data[j + 1] - bcg;
+          const db = orig.data[j + 2] - bcb;
+          const isInk = dr * dr + dg * dg + db * db > tolSq;
+          // Keep → mark ink (union it in). Remove → mark background (subtract).
+          if (tool === 'keep' ? isInk : !isInk) {
+            region[idx] = 1;
+            anyInk = true;
+          }
+        }
+        if (!anyInk) return;
+
+        const inkBefore = new Uint8Array(
+          samMaskRef.current ?? new Uint8Array(total)
+        );
+        const inkNext = new Uint8Array(inkBefore);
+        if (tool === 'keep') {
+          for (let i = 0; i < total; i++) inkNext[i] = inkNext[i] | region[i];
+        } else {
+          for (let i = 0; i < total; i++)
+            inkNext[i] = inkNext[i] & (region[i] ^ 1);
+        }
+
+        const inkPoints: SamPoint[] = [
+          {
+            x: Math.round(path[path.length - 1]?.x ?? path[0].x),
+            y: Math.round(path[path.length - 1]?.y ?? path[0].y),
+            label: tool === 'keep' ? 1 : 0,
+          },
+        ];
+        const inkRecord: StrokeRecord = {
+          tool,
+          points: inkPoints,
+          rawPath: path.slice(),
+          brushSize: sizeAtCommit,
+          maskBefore: inkBefore,
+          samMask: region,
+        };
+        const inkHistory = [...strokeHistoryRef.current, inkRecord];
+        samMaskRef.current = inkNext;
+        strokeHistoryRef.current = inkHistory;
+        setStrokeHistory(inkHistory);
+        recomputeCumulative();
+        return;
+      }
+
       const sampled = samplePathPoints(path, sizeAtCommit);
       const label: 0 | 1 = tool === 'keep' ? 1 : 0;
       const points: SamPoint[] = sampled.map(p => ({
@@ -1470,8 +1559,9 @@ export function BackgroundRemovalPanel({
     (
       region: Uint8Array,
       tool: BrushTool,
-      rawPoint: { x: number; y: number },
-      points: SamPoint[]
+      rawPath: Array<{ x: number; y: number }>,
+      points: SamPoint[],
+      recordBrushSize = 0
     ) => {
       const orig = originalDataRef.current;
       if (!orig) return;
@@ -1500,8 +1590,10 @@ export function BackgroundRemovalPanel({
       const record: StrokeRecord = {
         tool,
         points,
-        rawPath: [rawPoint],
-        brushSize: 0, // click select — extent is the region, not brush size
+        rawPath: rawPath.slice(),
+        // 0 for click selects (extent is the region); the brush size for
+        // painted strokes so the overlay renders at the right width.
+        brushSize: recordBrushSize,
         maskBefore,
         samMask: region,
       };
@@ -1562,9 +1654,12 @@ export function BackgroundRemovalPanel({
         if (x < w - 1) tryN(idx + 1);
       }
 
-      applyRegionEdit(region, tool, pt, [
-        { x: sx, y: sy, label: tool === 'keep' ? 1 : 0 },
-      ]);
+      applyRegionEdit(
+        region,
+        tool,
+        [pt],
+        [{ x: sx, y: sy, label: tool === 'keep' ? 1 : 0 }]
+      );
     },
     [applyRegionEdit]
   );
@@ -1614,7 +1709,7 @@ export function BackgroundRemovalPanel({
         URL.revokeObjectURL(result.url);
         // SAM can return an empty mask on a bare-bg click — applyRegionEdit
         // no-ops then.
-        applyRegionEdit(region, tool, { x: pt.x, y: pt.y }, [point]);
+        applyRegionEdit(region, tool, [{ x: pt.x, y: pt.y }], [point]);
       } catch (e) {
         // Non-fatal: a failed predict just leaves the mask untouched. The
         // status badge already surfaces an embed failure.
@@ -1638,6 +1733,12 @@ export function BackgroundRemovalPanel({
   useEffect(() => {
     fillToleranceRef.current = fillTolerance;
   }, [fillTolerance]);
+  useEffect(() => {
+    inkModeRef.current = inkMode;
+  }, [inkMode]);
+  useEffect(() => {
+    inkToleranceRef.current = inkTolerance;
+  }, [inkTolerance]);
 
   // ---------- Canvas pointer handlers (mouse + touch + pen) + zoom/pan ----------
   // Compute scale from canvas-pixel space → SVG display space
@@ -2181,6 +2282,7 @@ export function BackgroundRemovalPanel({
       canvas.height
     );
     bgMaskRef.current = null; // reset → recompute fill connectivity lazily
+    bgColorRef.current = null; // reset → re-detect bg colour for ink mode
     // Same original pixels, but drop the embedding too so a fresh session is
     // built on demand (cheap insurance; the reset re-runs the whole pipeline).
     samSessionRef.current = null;
@@ -2668,6 +2770,70 @@ export function BackgroundRemovalPanel({
                   </p>
                 </div>
 
+                {/* Ink mode — colour-keyed brush for text & fine lines. */}
+                <div className="rounded-lg border border-gray-200 bg-gray-50 p-3">
+                  <label className="flex items-start gap-2 cursor-pointer select-none">
+                    <input
+                      type="checkbox"
+                      checked={inkMode}
+                      onChange={e => {
+                        const on = e.target.checked;
+                        setInkMode(on);
+                        inkModeRef.current = on;
+                      }}
+                      disabled={!brushReady}
+                      className="mt-0.5 accent-blue-600"
+                    />
+                    <span>
+                      <span className="flex items-center gap-1.5 text-xs font-semibold text-gray-800">
+                        <Wand2 className="w-3.5 h-3.5 text-blue-600" />
+                        Ink mode{' '}
+                        <span className="text-blue-600">
+                          · text &amp; lines
+                        </span>
+                      </span>
+                      <span className="block text-[11px] text-gray-500 mt-0.5">
+                        Paints by colour, not area.{' '}
+                        <span className="text-green-700">Keep</span> brings back
+                        only the ink you paint over (not its tan background);{' '}
+                        <span className="text-red-700">Remove</span> erases only
+                        the tan and leaves the ink. Best for repairing mutilated
+                        text. Brush size = how wide an area you affect.
+                      </span>
+                    </span>
+                  </label>
+
+                  {inkMode && (
+                    <div className="mt-3 pt-3 border-t border-gray-200">
+                      <div className="flex items-center justify-between mb-1">
+                        <label className="text-xs font-medium text-gray-600">
+                          Ink sensitivity
+                        </label>
+                        <span className="text-[11px] tabular-nums text-gray-500">
+                          {inkTolerance}
+                        </span>
+                      </div>
+                      <input
+                        type="range"
+                        min={40}
+                        max={160}
+                        value={inkTolerance}
+                        onChange={e => {
+                          const v = Number(e.target.value);
+                          setInkTolerance(v);
+                          inkToleranceRef.current = v;
+                        }}
+                        className="w-full accent-blue-600"
+                      />
+                      <p className="text-[11px] text-gray-400 mt-0.5">
+                        Lower grabs faint/anti-aliased edges too (fuller
+                        letters); higher keeps only the darkest ink (less tan
+                        halo). Tune per design.
+                      </p>
+                    </div>
+                  )}
+                </div>
+
                 {/* Fill area (client flood) — enclosed same-colour regions. */}
                 <div className="rounded-lg border border-gray-200 bg-gray-50 p-3">
                   <label className="flex items-start gap-2 cursor-pointer select-none">
@@ -2735,74 +2901,75 @@ export function BackgroundRemovalPanel({
                 {/* Smart select (SAM click-brush) — SUSPENDED (see
                     SMART_SELECT_ENABLED). Unusable on tan-on-tan designs. */}
                 {SMART_SELECT_ENABLED && (
-                <div className="rounded-lg border border-gray-200 bg-gray-50 p-3">
-                  <label className="flex items-start gap-2 cursor-pointer select-none">
-                    <input
-                      type="checkbox"
-                      checked={smartSelect}
-                      onChange={e => {
-                        const on = e.target.checked;
-                        setSmartSelect(on);
-                        smartSelectRef.current = on;
-                        // Mutually exclusive with Fill area.
-                        if (on) {
-                          setFillArea(false);
-                          fillAreaRef.current = false;
-                        }
-                        // Warm the embedding as soon as it's switched on so the
-                        // first click feels instant.
-                        if (on) void ensureSamSession();
-                      }}
-                      disabled={!brushReady}
-                      className="mt-0.5 accent-blue-600"
-                    />
-                    <span>
-                      <span className="flex items-center gap-1.5 text-xs font-semibold text-gray-800">
-                        <MousePointerClick className="w-3.5 h-3.5 text-blue-600" />
-                        Smart select{' '}
-                        <span className="text-blue-600">· beta</span>
+                  <div className="rounded-lg border border-gray-200 bg-gray-50 p-3">
+                    <label className="flex items-start gap-2 cursor-pointer select-none">
+                      <input
+                        type="checkbox"
+                        checked={smartSelect}
+                        onChange={e => {
+                          const on = e.target.checked;
+                          setSmartSelect(on);
+                          smartSelectRef.current = on;
+                          // Mutually exclusive with Fill area.
+                          if (on) {
+                            setFillArea(false);
+                            fillAreaRef.current = false;
+                          }
+                          // Warm the embedding as soon as it's switched on so the
+                          // first click feels instant.
+                          if (on) void ensureSamSession();
+                        }}
+                        disabled={!brushReady}
+                        className="mt-0.5 accent-blue-600"
+                      />
+                      <span>
+                        <span className="flex items-center gap-1.5 text-xs font-semibold text-gray-800">
+                          <MousePointerClick className="w-3.5 h-3.5 text-blue-600" />
+                          Smart select{' '}
+                          <span className="text-blue-600">· beta</span>
+                        </span>
+                        <span className="block text-[11px] text-gray-500 mt-0.5">
+                          Click an object and the AI selects the whole thing —
+                          the active{' '}
+                          <span className="text-green-700">Keep</span> /{' '}
+                          <span className="text-red-700">Remove</span> tool then
+                          adds or subtracts it. Best for distressed/grunge text
+                          the colour brush nibbles. Each click ≈ a second.
+                        </span>
                       </span>
-                      <span className="block text-[11px] text-gray-500 mt-0.5">
-                        Click an object and the AI selects the whole thing — the
-                        active <span className="text-green-700">Keep</span> /{' '}
-                        <span className="text-red-700">Remove</span> tool then
-                        adds or subtracts it. Best for distressed/grunge text
-                        the colour brush nibbles. Each click ≈ a second.
-                      </span>
-                    </span>
-                  </label>
+                    </label>
 
-                  {smartSelect && (
-                    <div className="mt-2 pt-2 border-t border-gray-200 text-[11px]">
-                      {isSamPredicting ? (
-                        <span className="flex items-center gap-1.5 text-blue-700">
-                          <Loader2 className="w-3 h-3 animate-spin" />
-                          Selecting…
-                        </span>
-                      ) : samBrushStatus === 'embedding' ? (
-                        <span className="flex items-center gap-1.5 text-gray-600">
-                          <Loader2 className="w-3 h-3 animate-spin" />
-                          Preparing AI (first click may take a moment)…
-                        </span>
-                      ) : samBrushStatus === 'ready' ? (
-                        <span className="flex items-center gap-1.5 text-green-700">
-                          <CheckCircle2 className="w-3 h-3" />
-                          Ready — click any object on the canvas.
-                        </span>
-                      ) : samBrushStatus === 'failed' ? (
-                        <span className="flex items-center gap-1.5 text-red-700">
-                          <AlertTriangle className="w-3 h-3" />
-                          AI selection unavailable — the colour brush still
-                          works.
-                        </span>
-                      ) : (
-                        <span className="text-gray-500">
-                          Click any object on the canvas to select it.
-                        </span>
-                      )}
-                    </div>
-                  )}
-                </div>
+                    {smartSelect && (
+                      <div className="mt-2 pt-2 border-t border-gray-200 text-[11px]">
+                        {isSamPredicting ? (
+                          <span className="flex items-center gap-1.5 text-blue-700">
+                            <Loader2 className="w-3 h-3 animate-spin" />
+                            Selecting…
+                          </span>
+                        ) : samBrushStatus === 'embedding' ? (
+                          <span className="flex items-center gap-1.5 text-gray-600">
+                            <Loader2 className="w-3 h-3 animate-spin" />
+                            Preparing AI (first click may take a moment)…
+                          </span>
+                        ) : samBrushStatus === 'ready' ? (
+                          <span className="flex items-center gap-1.5 text-green-700">
+                            <CheckCircle2 className="w-3 h-3" />
+                            Ready — click any object on the canvas.
+                          </span>
+                        ) : samBrushStatus === 'failed' ? (
+                          <span className="flex items-center gap-1.5 text-red-700">
+                            <AlertTriangle className="w-3 h-3" />
+                            AI selection unavailable — the colour brush still
+                            works.
+                          </span>
+                        ) : (
+                          <span className="text-gray-500">
+                            Click any object on the canvas to select it.
+                          </span>
+                        )}
+                      </div>
+                    )}
+                  </div>
                 )}
 
                 {/* Keep whole shape — initial cutout keeps the full silhouette. */}

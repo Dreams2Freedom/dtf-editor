@@ -109,7 +109,28 @@ logic should feel like ClippingMagic (context-aware keep/remove).
     inside letters). Smart select = whole objects/detailed art. Colour brush =
     freehand precise touch-ups.
 
+- **Smart select SUSPENDED** (team call): SAM groups by appearance, so on a
+  tan-on-tan design a click keeps/removes ALL the tan. Gated behind
+  `SMART_SELECT_ENABLED = false` in `Panel.tsx` (code kept for later). Focus is
+  the brush.
+- **"Ink mode" colour-keyed brush — IMPLEMENTED (awaiting user test).** The fix
+  for "keeping over text also keeps its tan background." When on, the brush
+  keys off the detected background colour instead of grabbing a region: within
+  the painted footprint, Keep unions only NON-background (ink/linework) pixels;
+  Remove subtracts only background-coloured pixels. Brush size = area of effect
+  only (no fill spread). `Panel.tsx`: `inkMode` toggle + `inkTolerance` slider
+  (40–160, default 90), a self-contained colour-keyed branch at the top of
+  `commitStroke`, and `bgColorRef` (detectBorderColor, invalidated on new
+  image/reset). Additive — the region brush is unchanged when Ink mode is off.
+
 ## Open issues / next steps (resume here)
+
+0. **NEXT (planned, agreed "both — brush first"):** after Ink-mode testing,
+   add a **colour-key first cut for graphics** — remove near-background colour
+   globally, keep everything else, so fine text isn't mutilated to begin with
+   (photographic parts then cleaned with Remove). The panel's existing "Color"
+   mode already does colour removal; likely a routing/UX change more than new
+   machinery.
 
 1. **Smart-select + Fill-area click tools — TEST + refine.** Implemented
    (above). Next:
