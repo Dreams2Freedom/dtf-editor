@@ -98,6 +98,13 @@ const SAM_FIRST_CUT_ENABLED = true;
 // and the colour brush remain the touch-up tools.
 const SMART_SELECT_ENABLED = false;
 
+// Step 2 (conscious brush): the mode toggles are folded into ONE brush —
+// graphics get the ink-aware drag automatically, and a Keep-click fills the
+// enclosed area. These flags hide the now-redundant toggles (code kept, easily
+// re-enabled) so the default panel is just Keep · Remove · size.
+const INK_MODE_TOGGLE_ENABLED = false;
+const FILL_AREA_TOGGLE_ENABLED = false;
+
 const STATUS_LABELS: Record<string, string> = {
   idle: '',
   authorizing: 'Checking plan...',
@@ -1411,12 +1418,14 @@ export function BackgroundRemovalPanel({
       if (!orig) return;
       const total = orig.width * orig.height;
 
-      // Ink mode: colour-keyed brush. Within the painted footprint, act only
-      // on ink (Keep) or only on background-coloured (Remove) pixels, so
-      // keeping over text doesn't drag its tan background back in. Self-
-      // contained apply (mirrors the region path below) to avoid a forward
+      // Conscious brush (graphics): the drag brush is automatically colour-
+      // keyed — within the painted footprint it acts only on ink (Keep) or
+      // only on background-coloured (Remove) pixels, so Keep never drags the
+      // tan back in and Remove never eats the letters. Automatic for graphic
+      // art; photographic images fall through to the region brush below.
+      // Self-contained apply (mirrors the region path) to avoid a forward
       // reference to applyRegionEdit.
-      if (inkModeRef.current) {
+      if (isGraphicRef.current) {
         if (!bgColorRef.current) {
           bgColorRef.current = detectBorderColor(
             orig.data,
@@ -1906,8 +1915,35 @@ export function BackgroundRemovalPanel({
     currentStrokeRef.current = [];
     const live = livePathRef.current;
     if (live) live.setAttribute('d', '');
+
+    // Gesture split: a near-stationary press (a "click") with the Keep tool
+    // FILLS the enclosed area under the cursor — one tap keeps the cream inside
+    // a badge without a mode toggle. A drag PAINTS (ink-aware for graphics).
+    // Remove is always a paint stroke so a stray click can't flood-erase a
+    // whole connected region.
+    let travelSq = 0;
+    if (path.length > 0) {
+      const x0 = path[0].x;
+      const y0 = path[0].y;
+      for (let i = 1; i < path.length; i++) {
+        const dx = path[i].x - x0;
+        const dy = path[i].y - y0;
+        const t = dx * dx + dy * dy;
+        if (t > travelSq) travelSq = t;
+      }
+    }
+    const orig = originalDataRef.current;
+    const clickRadius = orig
+      ? Math.max(4, Math.max(orig.width, orig.height) / 250)
+      : 4;
+    const isClick = path.length > 0 && travelSq <= clickRadius * clickRadius;
+
+    if (isClick && toolAtCommit === 'keep') {
+      runFillArea({ x: path[0].x, y: path[0].y }, 'keep');
+      return;
+    }
     commitStroke(toolAtCommit, path, sizeAtCommit);
-  }, [commitStroke, brushTool, brushSize]);
+  }, [commitStroke, runFillArea, brushTool, brushSize]);
 
   const handlePointerDown = useCallback(
     (e: React.PointerEvent<HTMLCanvasElement>) => {
@@ -1966,20 +2002,17 @@ export function BackgroundRemovalPanel({
 
       if (!brushReady) return;
 
-      // Click-select modes: a single click selects a region and unions/
-      // subtracts it — no paint stroke is started. Fill-area is checked first
-      // (both are mutually exclusive in the UI, but guard the order anyway).
-      if (fillAreaRef.current) {
-        const fc = eventToCanvasCoords(e);
-        if (fc) runFillArea({ x: fc.x, y: fc.y }, brushTool);
-        return;
-      }
+      // Smart select is suspended (SMART_SELECT_ENABLED = false), so this guard
+      // is dead — kept only to retain the SAM click machinery for a later
+      // revisit without an unused-code purge.
       if (smartSelectRef.current) {
         const sc = eventToCanvasCoords(e);
         if (sc) void runSmartSelect({ x: sc.x, y: sc.y }, brushTool);
         return;
       }
 
+      // Always start a stroke; endStroke decides click-to-fill vs paint once
+      // the gesture is known (a click hasn't travelled).
       const c = eventToCanvasCoords(e);
       if (!c) return;
       isDrawingRef.current = true;
@@ -2013,7 +2046,6 @@ export function BackgroundRemovalPanel({
       zoom,
       cancelInProgressStroke,
       runSmartSelect,
-      runFillArea,
     ]
   );
 
@@ -2837,12 +2869,16 @@ export function BackgroundRemovalPanel({
                     <div className="flex items-start gap-2 text-gray-700">
                       <CheckCircle2 className="w-3.5 h-3.5 mt-0.5 text-green-600 flex-shrink-0" />
                       <p>
-                        Brush ready. We auto-detected the subject. Paint a rough
-                        line — it snaps to the nearest edge. Use{' '}
+                        Brush ready. One smart brush — it reads what&apos;s
+                        under it.{' '}
                         <span className="text-green-700 font-medium">Keep</span>{' '}
-                        to add,{' '}
+                        brings back the artwork,{' '}
                         <span className="text-red-700 font-medium">Remove</span>{' '}
-                        to erase. Bigger brush = wider reach.
+                        erases the background — on text it keeps the ink and
+                        drops the tan automatically, so letters aren&apos;t
+                        touched. <span className="font-medium">Click</span> an
+                        area with Keep to fill it (e.g. keep the cream inside
+                        the badge). Brush size = how wide you paint.
                       </p>
                     </div>
                   )}
@@ -2910,133 +2946,142 @@ export function BackgroundRemovalPanel({
                   </p>
                 </div>
 
-                {/* Ink mode — colour-keyed brush for text & fine lines. */}
-                <div className="rounded-lg border border-gray-200 bg-gray-50 p-3">
-                  <label className="flex items-start gap-2 cursor-pointer select-none">
-                    <input
-                      type="checkbox"
-                      checked={inkMode}
-                      onChange={e => {
-                        const on = e.target.checked;
-                        setInkMode(on);
-                        inkModeRef.current = on;
-                      }}
-                      disabled={!brushReady}
-                      className="mt-0.5 accent-blue-600"
-                    />
-                    <span>
-                      <span className="flex items-center gap-1.5 text-xs font-semibold text-gray-800">
-                        <Wand2 className="w-3.5 h-3.5 text-blue-600" />
-                        Ink mode{' '}
-                        <span className="text-blue-600">
-                          · text &amp; lines
-                        </span>
-                      </span>
-                      <span className="block text-[11px] text-gray-500 mt-0.5">
-                        Paints by colour, not area.{' '}
-                        <span className="text-green-700">Keep</span> brings back
-                        only the ink you paint over (not its tan background);{' '}
-                        <span className="text-red-700">Remove</span> erases only
-                        the tan and leaves the ink. Best for repairing mutilated
-                        text. Brush size = how wide an area you affect.
-                      </span>
-                    </span>
-                  </label>
-
-                  {inkMode && (
-                    <div className="mt-3 pt-3 border-t border-gray-200">
-                      <div className="flex items-center justify-between mb-1">
-                        <label className="text-xs font-medium text-gray-600">
-                          Ink sensitivity
-                        </label>
-                        <span className="text-[11px] tabular-nums text-gray-500">
-                          {inkTolerance}
-                        </span>
-                      </div>
+                {/* Ink mode — folded into the default brush (auto for
+                    graphics); toggle hidden. */}
+                {INK_MODE_TOGGLE_ENABLED && (
+                  <div className="rounded-lg border border-gray-200 bg-gray-50 p-3">
+                    <label className="flex items-start gap-2 cursor-pointer select-none">
                       <input
-                        type="range"
-                        min={40}
-                        max={160}
-                        value={inkTolerance}
+                        type="checkbox"
+                        checked={inkMode}
                         onChange={e => {
-                          const v = Number(e.target.value);
-                          setInkTolerance(v);
-                          inkToleranceRef.current = v;
+                          const on = e.target.checked;
+                          setInkMode(on);
+                          inkModeRef.current = on;
                         }}
-                        className="w-full accent-blue-600"
+                        disabled={!brushReady}
+                        className="mt-0.5 accent-blue-600"
                       />
-                      <p className="text-[11px] text-gray-400 mt-0.5">
-                        Lower grabs faint/anti-aliased edges too (fuller
-                        letters); higher keeps only the darkest ink (less tan
-                        halo). Tune per design.
-                      </p>
-                    </div>
-                  )}
-                </div>
-
-                {/* Fill area (client flood) — enclosed same-colour regions. */}
-                <div className="rounded-lg border border-gray-200 bg-gray-50 p-3">
-                  <label className="flex items-start gap-2 cursor-pointer select-none">
-                    <input
-                      type="checkbox"
-                      checked={fillArea}
-                      onChange={e => {
-                        const on = e.target.checked;
-                        setFillArea(on);
-                        fillAreaRef.current = on;
-                        // Mutually exclusive with Smart select.
-                        if (on) {
-                          setSmartSelect(false);
-                          smartSelectRef.current = false;
-                        }
-                      }}
-                      disabled={!brushReady}
-                      className="mt-0.5 accent-blue-600"
-                    />
-                    <span>
-                      <span className="flex items-center gap-1.5 text-xs font-semibold text-gray-800">
-                        <MousePointerClick className="w-3.5 h-3.5 text-blue-600" />
-                        Fill area
-                      </span>
-                      <span className="block text-[11px] text-gray-500 mt-0.5">
-                        Click a solid area (like the cream inside a badge) and
-                        it fills the whole region up to the surrounding lines —
-                        contained, so it won&apos;t leak into the outside
-                        background. Best for the cases Smart select over-grabs.
-                      </span>
-                    </span>
-                  </label>
-
-                  {fillArea && (
-                    <div className="mt-3 pt-3 border-t border-gray-200">
-                      <div className="flex items-center justify-between mb-1">
-                        <label className="text-xs font-medium text-gray-600">
-                          Fill sensitivity
-                        </label>
-                        <span className="text-[11px] tabular-nums text-gray-500">
-                          {fillTolerance}
+                      <span>
+                        <span className="flex items-center gap-1.5 text-xs font-semibold text-gray-800">
+                          <Wand2 className="w-3.5 h-3.5 text-blue-600" />
+                          Ink mode{' '}
+                          <span className="text-blue-600">
+                            · text &amp; lines
+                          </span>
                         </span>
+                        <span className="block text-[11px] text-gray-500 mt-0.5">
+                          Paints by colour, not area.{' '}
+                          <span className="text-green-700">Keep</span> brings
+                          back only the ink you paint over (not its tan
+                          background);{' '}
+                          <span className="text-red-700">Remove</span> erases
+                          only the tan and leaves the ink. Best for repairing
+                          mutilated text. Brush size = how wide an area you
+                          affect.
+                        </span>
+                      </span>
+                    </label>
+
+                    {inkMode && (
+                      <div className="mt-3 pt-3 border-t border-gray-200">
+                        <div className="flex items-center justify-between mb-1">
+                          <label className="text-xs font-medium text-gray-600">
+                            Ink sensitivity
+                          </label>
+                          <span className="text-[11px] tabular-nums text-gray-500">
+                            {inkTolerance}
+                          </span>
+                        </div>
+                        <input
+                          type="range"
+                          min={40}
+                          max={160}
+                          value={inkTolerance}
+                          onChange={e => {
+                            const v = Number(e.target.value);
+                            setInkTolerance(v);
+                            inkToleranceRef.current = v;
+                          }}
+                          className="w-full accent-blue-600"
+                        />
+                        <p className="text-[11px] text-gray-400 mt-0.5">
+                          Lower grabs faint/anti-aliased edges too (fuller
+                          letters); higher keeps only the darkest ink (less tan
+                          halo). Tune per design.
+                        </p>
                       </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Fill area — folded into the Keep-click gesture; toggle
+                    hidden. */}
+                {FILL_AREA_TOGGLE_ENABLED && (
+                  <div className="rounded-lg border border-gray-200 bg-gray-50 p-3">
+                    <label className="flex items-start gap-2 cursor-pointer select-none">
                       <input
-                        type="range"
-                        min={10}
-                        max={90}
-                        value={fillTolerance}
+                        type="checkbox"
+                        checked={fillArea}
                         onChange={e => {
-                          const v = Number(e.target.value);
-                          setFillTolerance(v);
-                          fillToleranceRef.current = v;
+                          const on = e.target.checked;
+                          setFillArea(on);
+                          fillAreaRef.current = on;
+                          // Mutually exclusive with Smart select.
+                          if (on) {
+                            setSmartSelect(false);
+                            smartSelectRef.current = false;
+                          }
                         }}
-                        className="w-full accent-blue-600"
+                        disabled={!brushReady}
+                        className="mt-0.5 accent-blue-600"
                       />
-                      <p className="text-[11px] text-gray-400 mt-0.5">
-                        Higher grabs more shading in one click; lower stays
-                        tighter to the exact colour. Undo if a fill spreads too
-                        far.
-                      </p>
-                    </div>
-                  )}
-                </div>
+                      <span>
+                        <span className="flex items-center gap-1.5 text-xs font-semibold text-gray-800">
+                          <MousePointerClick className="w-3.5 h-3.5 text-blue-600" />
+                          Fill area
+                        </span>
+                        <span className="block text-[11px] text-gray-500 mt-0.5">
+                          Click a solid area (like the cream inside a badge) and
+                          it fills the whole region up to the surrounding lines
+                          — contained, so it won&apos;t leak into the outside
+                          background. Best for the cases Smart select
+                          over-grabs.
+                        </span>
+                      </span>
+                    </label>
+
+                    {fillArea && (
+                      <div className="mt-3 pt-3 border-t border-gray-200">
+                        <div className="flex items-center justify-between mb-1">
+                          <label className="text-xs font-medium text-gray-600">
+                            Fill sensitivity
+                          </label>
+                          <span className="text-[11px] tabular-nums text-gray-500">
+                            {fillTolerance}
+                          </span>
+                        </div>
+                        <input
+                          type="range"
+                          min={10}
+                          max={90}
+                          value={fillTolerance}
+                          onChange={e => {
+                            const v = Number(e.target.value);
+                            setFillTolerance(v);
+                            fillToleranceRef.current = v;
+                          }}
+                          className="w-full accent-blue-600"
+                        />
+                        <p className="text-[11px] text-gray-400 mt-0.5">
+                          Higher grabs more shading in one click; lower stays
+                          tighter to the exact colour. Undo if a fill spreads
+                          too far.
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                )}
 
                 {/* Smart select (SAM click-brush) — SUSPENDED (see
                     SMART_SELECT_ENABLED). Unusable on tan-on-tan designs. */}

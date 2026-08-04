@@ -146,9 +146,27 @@ logic should feel like ClippingMagic (context-aware keep/remove).
     The conscious/ink-aware Remove brush in step 2 fixes this (Remove erases
     tan, never ink).
 
+- **Step 2 — single "conscious" brush — IMPLEMENTED (part 1, awaiting test).**
+  Collapsed the Ink mode / Fill area / Smart select toggles into ONE brush:
+  - Graphics get the ink-aware drag AUTOMATICALLY (`commitStroke` gates on
+    `isGraphicRef` now, not an `inkMode` toggle): Keep keeps only ink, Remove
+    erases only tan — so text/letters are never touched by a Remove stroke.
+  - "Fill area" is now a GESTURE: a Keep-**click** (near-stationary press) fills
+    the enclosed region under the cursor (e.g. keep the cream inside the badge);
+    a drag paints. Detected in `endStroke` by travel distance. Remove is always
+    a paint stroke (a stray click can't flood-erase).
+  - Toggles hidden behind `INK_MODE_TOGGLE_ENABLED` / `FILL_AREA_TOGGLE_ENABLED`
+    / `SMART_SELECT_ENABLED` (all false) — code kept, easily re-enabled. Default
+    panel is now just Keep · Remove · size + hint. Photographic images still use
+    the region brush (unchanged).
+  - **Still TODO (part 2):** tuck the advanced sliders (cleanup / hole / bgFlood
+    / speck / defringe / keep-whole-shape / model) under an "Advanced"
+    disclosure so the default panel is truly minimal.
+
 ## Open issues / next steps (resume here)
 
-0. **NEXT — single "conscious" brush (agreed direction).** Collapse Ink mode /
+0. **NEXT — single "conscious" brush part 2:** advanced-slider disclosure (see
+   above). Original notes: Collapse Ink mode /
    Fill area / (suspended) Smart select into ONE context-aware Keep/Remove
    brush that auto-decides from what's under it (border-connectivity separates
    exterior background = drop from ink + enclosed regions = keep). Then hide the
