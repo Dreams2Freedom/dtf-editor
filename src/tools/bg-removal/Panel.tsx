@@ -1418,13 +1418,16 @@ export function BackgroundRemovalPanel({
       if (!orig) return;
       const total = orig.width * orig.height;
 
-      // Conscious brush (graphics): the drag brush is automatically colour-
-      // keyed — within the painted footprint it acts only on ink (Keep) or
-      // only on background-coloured (Remove) pixels, so Keep never drags the
-      // tan back in and Remove never eats the letters. Automatic for graphic
-      // art; photographic images fall through to the region brush below.
-      // Self-contained apply (mirrors the region path) to avoid a forward
-      // reference to applyRegionEdit.
+      // Conscious brush (graphics), automatically colour-keyed:
+      //   Keep  → within the painted footprint, add back only ink pixels (never
+      //           drags the tan back in).
+      //   Remove→ flood the CONNECTED background-coloured region from the stroke
+      //           and clear it — so one swipe on the tan removes the whole
+      //           enclosed area at once, bounded by the ink (which stays put, so
+      //           letters/artwork are never eaten).
+      // Photographic images fall through to the region brush below. Self-
+      // contained apply (mirrors the region path) to avoid a forward reference
+      // to applyRegionEdit.
       if (isGraphicRef.current) {
         if (!bgColorRef.current) {
           bgColorRef.current = detectBorderColor(
@@ -1434,29 +1437,84 @@ export function BackgroundRemovalPanel({
           );
         }
         const { r: bcr, g: bcg, b: bcb } = bgColorRef.current;
-        const tolSq = inkToleranceRef.current * inkToleranceRef.current;
+        const data = orig.data;
+        const w = orig.width;
+        const h = orig.height;
         const footprintRadius = Math.max(1, sizeAtCommit / 2);
-        const footprint = strokeToSeeds(
-          path,
-          footprintRadius,
-          orig.width,
-          orig.height
-        );
+        const footprint = strokeToSeeds(path, footprintRadius, w, h);
         const region = new Uint8Array(total);
-        let anyInk = false;
-        for (const idx of footprint) {
-          const j = idx * 4;
-          const dr = orig.data[j] - bcr;
-          const dg = orig.data[j + 1] - bcg;
-          const db = orig.data[j + 2] - bcb;
-          const isInk = dr * dr + dg * dg + db * db > tolSq;
-          // Keep → mark ink (union it in). Remove → mark background (subtract).
-          if (tool === 'keep' ? isInk : !isInk) {
-            region[idx] = 1;
-            anyInk = true;
+        let anyChange = false;
+
+        if (tool === 'keep') {
+          const tolSq = inkToleranceRef.current * inkToleranceRef.current;
+          for (const idx of footprint) {
+            const j = idx * 4;
+            const dr = data[j] - bcr;
+            const dg = data[j + 1] - bcg;
+            const db = data[j + 2] - bcb;
+            if (dr * dr + dg * dg + db * db > tolSq) {
+              region[idx] = 1;
+              anyChange = true;
+            }
+          }
+        } else {
+          // Remove: BFS flood connected "tan" (within INK_PRESERVE_TOLERANCE of
+          // the background colour) from the stroke footprint. Ink is a wall, so
+          // the flood fills the enclosed background area and stops at the
+          // artwork — clearing the whole region in one swipe.
+          const tanTolSq = INK_PRESERVE_TOLERANCE * INK_PRESERVE_TOLERANCE;
+          const isTan = (idx: number) => {
+            const j = idx * 4;
+            const dr = data[j] - bcr;
+            const dg = data[j + 1] - bcg;
+            const db = data[j + 2] - bcb;
+            return dr * dr + dg * dg + db * db <= tanTolSq;
+          };
+          const queue = new Uint32Array(total);
+          let qh = 0;
+          let qt = 0;
+          for (const idx of footprint) {
+            if (!region[idx] && isTan(idx)) {
+              region[idx] = 1;
+              queue[qt++] = idx;
+              anyChange = true;
+            }
+          }
+          while (qh < qt) {
+            const idx = queue[qh++];
+            const y = (idx / w) | 0;
+            const x = idx - y * w;
+            if (y > 0) {
+              const n = idx - w;
+              if (!region[n] && isTan(n)) {
+                region[n] = 1;
+                queue[qt++] = n;
+              }
+            }
+            if (y < h - 1) {
+              const n = idx + w;
+              if (!region[n] && isTan(n)) {
+                region[n] = 1;
+                queue[qt++] = n;
+              }
+            }
+            if (x > 0) {
+              const n = idx - 1;
+              if (!region[n] && isTan(n)) {
+                region[n] = 1;
+                queue[qt++] = n;
+              }
+            }
+            if (x < w - 1) {
+              const n = idx + 1;
+              if (!region[n] && isTan(n)) {
+                region[n] = 1;
+                queue[qt++] = n;
+              }
+            }
           }
         }
-        if (!anyInk) return;
+        if (!anyChange) return;
 
         const inkBefore = new Uint8Array(
           samMaskRef.current ?? new Uint8Array(total)

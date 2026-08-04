@@ -159,6 +159,9 @@ logic should feel like ClippingMagic (context-aware keep/remove).
     / `SMART_SELECT_ENABLED` (all false) — code kept, easily re-enabled. Default
     panel is now just Keep · Remove · size + hint. Photographic images still use
     the region brush (unchanged).
+  - **Remove is now region-aware:** a Remove swipe floods the CONNECTED tan
+    (within INK_PRESERVE_TOLERANCE of bg) from the stroke and clears it in one
+    pass, bounded by ink (kept by the guard). Keep stays ink-in-footprint.
   - **Still TODO (part 2):** tuck the advanced sliders (cleanup / hole / bgFlood
     / speck / defringe / keep-whole-shape / model) under an "Advanced"
     disclosure so the default panel is truly minimal.
