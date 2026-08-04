@@ -418,6 +418,20 @@ export function BackgroundRemovalPanel({
   // Ref mirror so overlapping clicks can be ignored without a stale closure.
   const isSamPredictingRef = useRef(false);
 
+  // ---- Fill area (client-side flood, boundary-contained) ------------------
+  // When on, a click floods over the connected same-coloured region under the
+  // cursor, STOPPED by dissimilar pixels (dark ring / linework). Keep unions
+  // that region, Remove subtracts it. This is the right tool for enclosed
+  // areas (e.g. the cream inside a badge ring) that SAM over-grabs — the ring
+  // physically separates the interior from the exterior, so the flood can't
+  // leak out. No brush-size dependence, no server round-trip.
+  const [fillArea, setFillArea] = useState(false);
+  const fillAreaRef = useRef(false);
+  // Colour distance (0-100) a pixel may differ from the clicked pixel and
+  // still be part of the region. Higher = more tolerant of shading.
+  const [fillTolerance, setFillTolerance] = useState(45);
+  const fillToleranceRef = useRef(45);
+
   // Diagnostic (SAM rollout): tells us whether the SAM first-cut actually ran.
   const [samStatus, setSamStatus] = useState<
     'idle' | 'running' | 'applied' | 'failed'
@@ -1442,6 +1456,112 @@ export function BackgroundRemovalPanel({
     []
   );
 
+  // Union (Keep) or subtract (Remove) a region into samMaskRef, recording a
+  // StrokeRecord so Undo treats it like a brush stroke. Shared by the SAM
+  // click and the Fill-area click. No-ops on an empty region.
+  const applyRegionEdit = useCallback(
+    (
+      region: Uint8Array,
+      tool: BrushTool,
+      rawPoint: { x: number; y: number },
+      points: SamPoint[]
+    ) => {
+      const orig = originalDataRef.current;
+      if (!orig) return;
+      const total = orig.width * orig.height;
+      if (region.length !== total) return;
+
+      let any = false;
+      for (let i = 0; i < total; i++) {
+        if (region[i]) {
+          any = true;
+          break;
+        }
+      }
+      if (!any) return;
+
+      const currentSam = samMaskRef.current ?? new Uint8Array(total);
+      const maskBefore = new Uint8Array(currentSam);
+      const nextSam = new Uint8Array(currentSam);
+      if (tool === 'keep') {
+        for (let i = 0; i < total; i++) nextSam[i] = nextSam[i] | region[i];
+      } else {
+        for (let i = 0; i < total; i++)
+          nextSam[i] = nextSam[i] & (region[i] ^ 1);
+      }
+
+      const record: StrokeRecord = {
+        tool,
+        points,
+        rawPath: [rawPoint],
+        brushSize: 0, // click select — extent is the region, not brush size
+        maskBefore,
+        samMask: region,
+      };
+      const updatedHistory = [...strokeHistoryRef.current, record];
+      samMaskRef.current = nextSam;
+      strokeHistoryRef.current = updatedHistory;
+      setStrokeHistory(updatedHistory);
+      recomputeCumulative();
+    },
+    [recomputeCumulative]
+  );
+
+  // Fill area: flood from the click over the connected region of pixels within
+  // `fillTolerance` colour distance of the clicked pixel (4-connected), then
+  // Keep-union / Remove-subtract it. Bounded by dissimilar pixels, so a click
+  // inside a ring fills only the enclosed area.
+  const runFillArea = useCallback(
+    (pt: { x: number; y: number }, tool: BrushTool) => {
+      const orig = originalDataRef.current;
+      if (!orig) return;
+      const { data, width: w, height: h } = orig;
+      const total = w * h;
+      const sx = Math.max(0, Math.min(w - 1, Math.round(pt.x)));
+      const sy = Math.max(0, Math.min(h - 1, Math.round(pt.y)));
+      const si = sy * w + sx;
+      const sr = data[si * 4];
+      const sg = data[si * 4 + 1];
+      const sb = data[si * 4 + 2];
+      const tol = fillToleranceRef.current;
+      const tolSq = tol * tol;
+
+      const region = new Uint8Array(total);
+      const queue = new Uint32Array(total);
+      let qh = 0;
+      let qt = 0;
+      region[si] = 1;
+      queue[qt++] = si;
+
+      const tryN = (n: number) => {
+        if (region[n]) return;
+        const j = n * 4;
+        const dr = data[j] - sr;
+        const dg = data[j + 1] - sg;
+        const db = data[j + 2] - sb;
+        if (dr * dr + dg * dg + db * db <= tolSq) {
+          region[n] = 1;
+          queue[qt++] = n;
+        }
+      };
+
+      while (qh < qt) {
+        const idx = queue[qh++];
+        const y = (idx / w) | 0;
+        const x = idx - y * w;
+        if (y > 0) tryN(idx - w);
+        if (y < h - 1) tryN(idx + w);
+        if (x > 0) tryN(idx - 1);
+        if (x < w - 1) tryN(idx + 1);
+      }
+
+      applyRegionEdit(region, tool, pt, [
+        { x: sx, y: sy, label: tool === 'keep' ? 1 : 0 },
+      ]);
+    },
+    [applyRegionEdit]
+  );
+
   // A smart click: SAM selects the object under the cursor, then the active
   // Keep/Remove tool unions or subtracts that segment into samMaskRef. Records
   // a StrokeRecord so Undo works exactly like a brush stroke.
@@ -1450,7 +1570,6 @@ export function BackgroundRemovalPanel({
       if (isSamPredictingRef.current) return; // ignore overlapping clicks
       const orig = originalDataRef.current;
       if (!orig) return;
-      const total = orig.width * orig.height;
 
       isSamPredictingRef.current = true;
       setIsSamPredicting(true);
@@ -1486,41 +1605,9 @@ export function BackgroundRemovalPanel({
           orig.height
         );
         URL.revokeObjectURL(result.url);
-        if (region.length !== total) return;
-
-        // SAM can return an empty mask on a bare-background click — no-op then.
-        let any = false;
-        for (let i = 0; i < total; i++) {
-          if (region[i]) {
-            any = true;
-            break;
-          }
-        }
-        if (!any) return;
-
-        const currentSam = samMaskRef.current ?? new Uint8Array(total);
-        const maskBefore = new Uint8Array(currentSam);
-        const nextSam = new Uint8Array(currentSam);
-        if (tool === 'keep') {
-          for (let i = 0; i < total; i++) nextSam[i] = nextSam[i] | region[i];
-        } else {
-          for (let i = 0; i < total; i++)
-            nextSam[i] = nextSam[i] & (region[i] ^ 1);
-        }
-
-        const record: StrokeRecord = {
-          tool,
-          points: [point],
-          rawPath: [{ x: pt.x, y: pt.y }],
-          brushSize: 0, // smart click — extent decided by SAM, not brush size
-          maskBefore,
-          samMask: region,
-        };
-        const updatedHistory = [...strokeHistoryRef.current, record];
-        samMaskRef.current = nextSam;
-        strokeHistoryRef.current = updatedHistory;
-        setStrokeHistory(updatedHistory);
-        recomputeCumulative();
+        // SAM can return an empty mask on a bare-bg click — applyRegionEdit
+        // no-ops then.
+        applyRegionEdit(region, tool, { x: pt.x, y: pt.y }, [point]);
       } catch (e) {
         // Non-fatal: a failed predict just leaves the mask untouched. The
         // status badge already surfaces an embed failure.
@@ -1530,13 +1617,20 @@ export function BackgroundRemovalPanel({
         setIsSamPredicting(false);
       }
     },
-    [ensureSamSession, maskFromCutout, recomputeCumulative]
+    [ensureSamSession, maskFromCutout, applyRegionEdit]
   );
 
-  // Keep the ref mirror of smartSelect in sync for the pointer handler.
+  // Keep the ref mirrors of the click-tool toggles in sync for the pointer
+  // handler (which reads refs to stay a stable callback).
   useEffect(() => {
     smartSelectRef.current = smartSelect;
   }, [smartSelect]);
+  useEffect(() => {
+    fillAreaRef.current = fillArea;
+  }, [fillArea]);
+  useEffect(() => {
+    fillToleranceRef.current = fillTolerance;
+  }, [fillTolerance]);
 
   // ---------- Canvas pointer handlers (mouse + touch + pen) + zoom/pan ----------
   // Compute scale from canvas-pixel space → SVG display space
@@ -1625,8 +1719,14 @@ export function BackgroundRemovalPanel({
 
       if (!brushReady) return;
 
-      // Smart-select mode: a single click hands the point to SAM and unions/
-      // subtracts the selected object — no paint stroke is started.
+      // Click-select modes: a single click selects a region and unions/
+      // subtracts it — no paint stroke is started. Fill-area is checked first
+      // (both are mutually exclusive in the UI, but guard the order anyway).
+      if (fillAreaRef.current) {
+        const fc = eventToCanvasCoords(e);
+        if (fc) runFillArea({ x: fc.x, y: fc.y }, brushTool);
+        return;
+      }
       if (smartSelectRef.current) {
         const sc = eventToCanvasCoords(e);
         if (sc) void runSmartSelect({ x: sc.x, y: sc.y }, brushTool);
@@ -1666,6 +1766,7 @@ export function BackgroundRemovalPanel({
       zoom,
       cancelInProgressStroke,
       runSmartSelect,
+      runFillArea,
     ]
   );
 
@@ -2560,6 +2661,70 @@ export function BackgroundRemovalPanel({
                   </p>
                 </div>
 
+                {/* Fill area (client flood) — enclosed same-colour regions. */}
+                <div className="rounded-lg border border-gray-200 bg-gray-50 p-3">
+                  <label className="flex items-start gap-2 cursor-pointer select-none">
+                    <input
+                      type="checkbox"
+                      checked={fillArea}
+                      onChange={e => {
+                        const on = e.target.checked;
+                        setFillArea(on);
+                        fillAreaRef.current = on;
+                        // Mutually exclusive with Smart select.
+                        if (on) {
+                          setSmartSelect(false);
+                          smartSelectRef.current = false;
+                        }
+                      }}
+                      disabled={!brushReady}
+                      className="mt-0.5 accent-blue-600"
+                    />
+                    <span>
+                      <span className="flex items-center gap-1.5 text-xs font-semibold text-gray-800">
+                        <MousePointerClick className="w-3.5 h-3.5 text-blue-600" />
+                        Fill area
+                      </span>
+                      <span className="block text-[11px] text-gray-500 mt-0.5">
+                        Click a solid area (like the cream inside a badge) and
+                        it fills the whole region up to the surrounding lines —
+                        contained, so it won&apos;t leak into the outside
+                        background. Best for the cases Smart select over-grabs.
+                      </span>
+                    </span>
+                  </label>
+
+                  {fillArea && (
+                    <div className="mt-3 pt-3 border-t border-gray-200">
+                      <div className="flex items-center justify-between mb-1">
+                        <label className="text-xs font-medium text-gray-600">
+                          Fill sensitivity
+                        </label>
+                        <span className="text-[11px] tabular-nums text-gray-500">
+                          {fillTolerance}
+                        </span>
+                      </div>
+                      <input
+                        type="range"
+                        min={10}
+                        max={90}
+                        value={fillTolerance}
+                        onChange={e => {
+                          const v = Number(e.target.value);
+                          setFillTolerance(v);
+                          fillToleranceRef.current = v;
+                        }}
+                        className="w-full accent-blue-600"
+                      />
+                      <p className="text-[11px] text-gray-400 mt-0.5">
+                        Higher grabs more shading in one click; lower stays
+                        tighter to the exact colour. Undo if a fill spreads too
+                        far.
+                      </p>
+                    </div>
+                  )}
+                </div>
+
                 {/* Smart select (SAM click-brush) — semantic touch-up. */}
                 <div className="rounded-lg border border-gray-200 bg-gray-50 p-3">
                   <label className="flex items-start gap-2 cursor-pointer select-none">
@@ -2570,6 +2735,11 @@ export function BackgroundRemovalPanel({
                         const on = e.target.checked;
                         setSmartSelect(on);
                         smartSelectRef.current = on;
+                        // Mutually exclusive with Fill area.
+                        if (on) {
+                          setFillArea(false);
+                          fillAreaRef.current = false;
+                        }
                         // Warm the embedding as soon as it's switched on so the
                         // first click feels instant.
                         if (on) void ensureSamSession();

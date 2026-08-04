@@ -92,9 +92,27 @@ logic should feel like ClippingMagic (context-aware keep/remove).
     expired-embedding (server TTL) → auto re-embed + retry once; predict
     failure no-ops the click and shows a status line.
 
+- **"Fill area" click tool — IMPLEMENTED (awaiting user test).** Client-side
+  flood-fill touch-up for ENCLOSED same-colour regions that Smart select
+  over-grabs. Team feedback on the Bobby Kemp badge: a SAM click on the cream
+  either kept the ENTIRE tan (inside + outside the ring) or removed it all —
+  because SAM groups by appearance and can't tell the enclosed cream from the
+  exterior cream. Fill area solves this spatially: flood from the click over
+  pixels within a colour tolerance, 4-connected, STOPPED by the dark ring/
+  linework, so it fills only the enclosed region and physically can't leak
+  out. No brush size, no server call. All additive in `Panel.tsx`:
+  `fillArea` toggle + `fillTolerance` slider (10–90, default 45), `runFillArea`
+  (BFS flood), and a shared `applyRegionEdit()` used by BOTH the SAM click and
+  the fill click (union Keep / subtract Remove + StrokeRecord for Undo).
+  Fill area and Smart select are mutually exclusive toggles.
+  - **When to use which:** Fill area = enclosed solid regions (badge interior,
+    inside letters). Smart select = whole objects/detailed art. Colour brush =
+    freehand precise touch-ups.
+
 ## Open issues / next steps (resume here)
 
-1. **Smart-select click-brush — TEST + refine.** Implemented (above). Next:
+1. **Smart-select + Fill-area click tools — TEST + refine.** Implemented
+   (above). Next:
    real-image testing for ClippingMagic parity, especially on distressed/grunge
    text. Possible refinements once tested: cumulative multi-point refinement
    (accumulate points to refine one selection instead of independent clicks),
