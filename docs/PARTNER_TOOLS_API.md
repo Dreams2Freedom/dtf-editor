@@ -109,6 +109,21 @@ POST /api/partner/v1/report-usage
 failure, `503` engine not configured, `500` internal. Failed tool runs are
 logged with `costCents: 0` and are **not** billable.
 
+### Result URLs — canonical host
+
+Every `resultUrl` we return (from the tool endpoints and from the embed's
+`dtf-studio-result` message) is a **public object in our Supabase Storage**,
+served from:
+
+```
+https://xysuxhdqukjtqgzetwps.supabase.co/storage/v1/object/public/images/…
+```
+
+Allowlist that host for result downloads. It is **not** on `dtfeditor.com`, and
+it is never the `imageUrl` you passed in. If we ever have to change the host,
+we will announce it in advance — a silent change would break edits only at your
+download step, after the merchant has already been billed for the tool run.
+
 ---
 
 ## 4. Embeddable Studio (per-image editor)
@@ -129,14 +144,25 @@ POST /api/partner/v1/embed-session
 
 ```js
 window.addEventListener('message', e => {
+  if (e.data?.type === 'dtf-studio-ready') {
+    // Embed has rendered and is interactive. Fires once, on first render.
+    // Use this instead of the iframe `load` event to hide your loading state —
+    // `load` also fires for a frame blocked by X-Frame-Options.
+  }
   if (e.data?.type === 'dtf-studio-result') {
     const { resultUrl, totalCents } = e.data; // drop resultUrl back into the sheet
+    // resultUrl is always on our Supabase host (see "Result URLs" above) and is
+    // the edited file — never the imageUrl you passed in.
   }
   if (e.data?.type === 'dtf-studio-cancel') {
     // user closed without saving
   }
 });
 ```
+
+**Messages the embed emits:** `dtf-studio-ready` (once, on first render),
+`dtf-studio-result` (`{ resultUrl, totalCents }` on Done), `dtf-studio-cancel`
+(on Cancel/close).
 
 Inside the embed, each tool call is authorized by the token (`X-Embed-Token`)
 and metered per shop automatically — you don't manage keys client-side. The

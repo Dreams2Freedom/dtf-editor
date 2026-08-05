@@ -16,7 +16,7 @@
  *   });
  */
 
-import { Suspense, useCallback, useEffect, useState } from 'react';
+import { Suspense, useCallback, useEffect, useRef, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import {
   Scissors,
@@ -45,6 +45,17 @@ function EmbedStudio() {
   const [error, setError] = useState<string | null>(null);
   const [printW, setPrintW] = useState(11);
   const [printH, setPrintH] = useState(11);
+  // #1 fix: the canonical URL of the last SUCCESSFUL tool result. `workingUrl`
+  // doubles as the tool input + <img> src (and carries a cache-bust query), so
+  // posting it on Done risked echoing the merchant's own input back when the
+  // state update hadn't committed. This ref is set ONLY on a confirmed
+  // resultUrl, so Done always returns the real edited file (or nothing changed).
+  const lastResultUrlRef = useRef<string | null>(null);
+
+  // #4: tell the parent the embed is alive as soon as the image is ready, so the
+  // host can distinguish "still loading" from "loaded and editable" without
+  // relying on the iframe load event (which fires even for a blocked frame).
+  const readyPostedRef = useRef(false);
 
   useEffect(() => {
     if (!token) {
@@ -70,6 +81,16 @@ function EmbedStudio() {
       }
     })();
   }, [token]);
+
+  // #4: announce readiness to the host exactly once, when the embed is
+  // interactive. Lets the parent distinguish "loading" from "loaded" without
+  // relying on the iframe load event.
+  useEffect(() => {
+    if (status === 'ready' && !readyPostedRef.current) {
+      readyPostedRef.current = true;
+      window.parent?.postMessage({ type: 'dtf-studio-ready' }, '*');
+    }
+  }, [status]);
 
   const callTool = useCallback(
     async (
@@ -107,7 +128,9 @@ function EmbedStudio() {
     async (path: string, extra: Record<string, unknown> = {}) => {
       const data = await callTool(path, extra);
       if (data?.resultUrl && typeof data.resultUrl === 'string') {
-        // Cache-bust so the <img> reloads even if the URL path repeats.
+        // Record the canonical result (no cache-bust query) so Done posts the
+        // real edited file, not the input. Then cache-bust the <img> src.
+        lastResultUrlRef.current = data.resultUrl;
         setWorkingUrl(`${data.resultUrl}?v=${Date.now()}`);
       }
     },
@@ -131,12 +154,12 @@ function EmbedStudio() {
   }, [callTool, printW, printH]);
 
   const done = () => {
+    // Prefer the last real tool result; fall back to the (unedited) working
+    // image only if no tool ran. Never post the cache-bust query.
+    const resultUrl =
+      lastResultUrlRef.current || workingUrl.split('?')[0] || workingUrl;
     window.parent?.postMessage(
-      {
-        type: 'dtf-studio-result',
-        resultUrl: workingUrl.split('?')[0],
-        totalCents,
-      },
+      { type: 'dtf-studio-result', resultUrl, totalCents },
       '*'
     );
   };
