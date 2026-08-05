@@ -57,6 +57,84 @@ function EmbedStudio() {
   // relying on the iframe load event (which fires even for a blocked frame).
   const readyPostedRef = useRef(false);
 
+  // #5: pan + zoom on the edited image so merchants can inspect edges (esp.
+  // after background removal) before accepting. Self-contained to the embed —
+  // wheel to zoom, drag to pan, double-click to reset.
+  const [zoom, setZoom] = useState(1);
+  const [pan, setPan] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
+  const zoomRef = useRef(1);
+  const panRef = useRef({ x: 0, y: 0 });
+  const canvasRef = useRef<HTMLDivElement | null>(null);
+  const dragRef = useRef<{
+    px: number;
+    py: number;
+    panX: number;
+    panY: number;
+  } | null>(null);
+  const [dragging, setDragging] = useState(false);
+
+  const setViewport = useCallback((z: number, p: { x: number; y: number }) => {
+    zoomRef.current = z;
+    panRef.current = p;
+    setZoom(z);
+    setPan(p);
+  }, []);
+  const resetViewport = useCallback(
+    () => setViewport(1, { x: 0, y: 0 }),
+    [setViewport]
+  );
+
+  // Reset the viewport whenever the working image changes (new tool result).
+  useEffect(() => {
+    setViewport(1, { x: 0, y: 0 });
+  }, [workingUrl, setViewport]);
+
+  // Non-passive wheel listener so we can preventDefault the page scroll.
+  useEffect(() => {
+    const el = canvasRef.current;
+    if (!el) return;
+    const onWheel = (e: WheelEvent) => {
+      e.preventDefault();
+      const rect = el.getBoundingClientRect();
+      const factor = e.deltaY < 0 ? 1.15 : 1 / 1.15;
+      const next = Math.min(8, Math.max(0.2, zoomRef.current * factor));
+      if (next === zoomRef.current) return;
+      const ratio = next / zoomRef.current;
+      const sx = e.clientX - rect.left - rect.width / 2;
+      const sy = e.clientY - rect.top - rect.height / 2;
+      const p = panRef.current;
+      setViewport(next, {
+        x: p.x + (sx - p.x) * (1 - ratio),
+        y: p.y + (sy - p.y) * (1 - ratio),
+      });
+    };
+    el.addEventListener('wheel', onWheel, { passive: false });
+    return () => el.removeEventListener('wheel', onWheel);
+  }, [status, setViewport]);
+
+  const onCanvasPointerDown = (e: React.PointerEvent) => {
+    dragRef.current = {
+      px: e.clientX,
+      py: e.clientY,
+      panX: panRef.current.x,
+      panY: panRef.current.y,
+    };
+    setDragging(true);
+    (e.currentTarget as HTMLElement).setPointerCapture?.(e.pointerId);
+  };
+  const onCanvasPointerMove = (e: React.PointerEvent) => {
+    const d = dragRef.current;
+    if (!d) return;
+    setViewport(zoomRef.current, {
+      x: d.panX + (e.clientX - d.px),
+      y: d.panY + (e.clientY - d.py),
+    });
+  };
+  const onCanvasPointerUp = () => {
+    dragRef.current = null;
+    setDragging(false);
+  };
+
   useEffect(() => {
     if (!token) {
       setStatus('invalid');
@@ -210,15 +288,70 @@ function EmbedStudio() {
 
       {/* Canvas */}
       <div
-        className="relative flex flex-1 items-center justify-center overflow-hidden p-4"
-        style={{ background: CHECKER }}
+        ref={canvasRef}
+        onPointerDown={onCanvasPointerDown}
+        onPointerMove={onCanvasPointerMove}
+        onPointerUp={onCanvasPointerUp}
+        onPointerCancel={onCanvasPointerUp}
+        onDoubleClick={resetViewport}
+        className={`relative flex flex-1 items-center justify-center overflow-hidden p-4 select-none ${
+          dragging ? 'cursor-grabbing' : 'cursor-grab'
+        }`}
+        style={{ background: CHECKER, touchAction: 'none' }}
       >
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src={workingUrl}
-          alt="Editing"
-          className="max-h-full max-w-full object-contain"
-        />
+        <div
+          style={{
+            transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})`,
+            transformOrigin: 'center',
+            lineHeight: 0,
+            willChange: 'transform',
+          }}
+        >
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={workingUrl}
+            alt="Editing"
+            draggable={false}
+            className="max-h-full max-w-full object-contain"
+            style={{ maxHeight: 'calc(100vh - 160px)' }}
+          />
+        </div>
+
+        {/* Zoom controls (fixed — not panned) */}
+        <div className="absolute right-3 top-3 z-10 flex items-center rounded-full border border-gray-200 bg-white/90 text-xs font-medium shadow backdrop-blur-sm">
+          <button
+            type="button"
+            onClick={() =>
+              setViewport(Math.max(0.2, zoomRef.current / 1.25), panRef.current)
+            }
+            className="px-2.5 py-1 text-gray-700 hover:bg-gray-50"
+            title="Zoom out"
+          >
+            −
+          </button>
+          <span className="select-none px-2 tabular-nums text-gray-500">
+            {Math.round(zoom * 100)}%
+          </span>
+          <button
+            type="button"
+            onClick={() =>
+              setViewport(Math.min(8, zoomRef.current * 1.25), panRef.current)
+            }
+            className="px-2.5 py-1 text-gray-700 hover:bg-gray-50"
+            title="Zoom in"
+          >
+            +
+          </button>
+          <button
+            type="button"
+            onClick={resetViewport}
+            className="border-l border-gray-200 px-2 py-1 text-gray-700 hover:bg-gray-50"
+            title="Fit"
+          >
+            Fit
+          </button>
+        </div>
+
         {busy && (
           <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-white/60 backdrop-blur-sm">
             <Loader2 className="h-7 w-7 animate-spin text-blue-600" />
