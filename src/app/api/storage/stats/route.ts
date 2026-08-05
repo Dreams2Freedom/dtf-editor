@@ -114,10 +114,7 @@ async function handleGet(request: NextRequest) {
     };
     const rows = (images ?? []) as ImageStatRow[];
     const totalImages = rows.length;
-    const totalSize = rows.reduce(
-      (sum, img) => sum + (img.file_size || 0),
-      0
-    );
+    const totalSize = rows.reduce((sum, img) => sum + (img.file_size || 0), 0);
 
     // Count images by type
     const imagesByType = {
