@@ -548,16 +548,6 @@ export function BackgroundRemovalPanel({
   // The edge-aware scribble brush runs entirely on the client, so it's usable
   // as soon as the original pixels are loaded — no SAM embed / model warm-up.
   const [brushReady, setBrushReady] = useState(false);
-  // Blur-overlay gating. The heavy "Removing background…" pulse should clear the
-  // moment the FIRST real cutout is on screen — not when the parallel classical
-  // detect→remove chain resolves. In the default keep-whole-shape mode that
-  // chain's network result isn't even shown (it only backs initialMaskRef for
-  // when the toggle is off), yet its `status === 'removing'` kept the pulse up
-  // long after the instant whole-shape seed and the SAM override had already
-  // painted. Flip this the first time a mask actually paints; reset on new image
-  // so a fresh upload shows the pulse until its own first cut lands.
-  const [firstCutPainted, setFirstCutPainted] = useState(false);
-  const firstCutPaintedRef = useRef(false);
   const [cleanupTolerance, setCleanupTolerance] = useState(60);
   // Phase 2.2 (revised): default 50 with the new connected-component
   // algorithm. Higher = wider color tolerance + smaller blob threshold
@@ -884,12 +874,6 @@ export function BackgroundRemovalPanel({
       }
     }
     pCtx.putImageData(out, 0, 0);
-    // A real cutout is now on screen — drop the heavy blur overlay. Guarded by a
-    // ref so this fires once, not on every re-render/preview repaint.
-    if (!firstCutPaintedRef.current) {
-      firstCutPaintedRef.current = true;
-      setFirstCutPainted(true);
-    }
   }, []);
 
   // Sync viewMode state → ref AND re-render preview on change.
@@ -1189,9 +1173,6 @@ export function BackgroundRemovalPanel({
     samSessionRef.current = null;
     samEmbedInFlightRef.current = null;
     setSamBrushStatus('idle');
-    // New image → no cutout painted yet; show the pulse until its first cut lands.
-    firstCutPaintedRef.current = false;
-    setFirstCutPainted(false);
     // Original pixels are in memory — the client-side scribble brush is ready.
     setBrushReady(true);
 
@@ -2623,6 +2604,24 @@ export function BackgroundRemovalPanel({
   const isProcessing = ['authorizing', 'detecting', 'removing'].includes(
     status
   );
+
+  // Blur "Removing background…" overlay gating. It should last as long as the
+  // ACTUAL removal and no longer. The bug was tying it to the classical
+  // detect→remove `status`: in the default keep-whole-shape + SAM flow the SAM
+  // cut lands (and paints) well before the parallel classical `runRemoval`
+  // network call resolves, so `status === 'removing'` kept the pulse up after
+  // the cutout was already applied. Track the authoritative removal instead —
+  // the SAM first-cut — and clear the moment SAM settles (applied/failed).
+  //   • SAM path: up while SAM runs (plus the brief pre-SAM 'detecting' window);
+  //     down when SAM settles. If SAM fails, only the non-whole-shape mode still
+  //     needs the classical fallback cut (whole-shape already shows its seed).
+  //   • SAM disabled: fall back to the classical `isProcessing` as before.
+  const removalInProgress = SAM_FIRST_CUT_ENABLED
+    ? samStatus === 'running' ||
+      (isProcessing &&
+        (samStatus === 'idle' || (samStatus === 'failed' && !keepWholeShape)))
+    : isProcessing;
+
   const cursorClass = (() => {
     if (hasResult) return '';
     if (isSpaceHeld || isPanMode) return 'cursor-grab';
@@ -2829,15 +2828,18 @@ export function BackgroundRemovalPanel({
                   </svg>
                 )}
             </div>
-            {/* Phase 2.2: pulsing overlay while the AI is doing initial
-                setup (`embedding`, `detecting`) or in-flight work
-                (`removing`, `predicting`). Without this, the user sees
-                the original image and assumes nothing's happening
-                while SAM is loading. Sits OUTSIDE the zoom transform so
-                it always covers the visible canvas correctly. */}
-            {isProcessing && !(panelMode === 'ai-brush' && firstCutPainted) && (
+            {/* Phase 2.2: pulsing overlay while the removal is actually running.
+                Gated by removalInProgress (SAM-aware) so it lasts as long as the
+                removal and clears when the cut lands — no lingering after SAM +
+                cutout have applied. Sits OUTSIDE the zoom transform so it always
+                covers the visible canvas correctly. */}
+            {removalInProgress && (
               <CanvasProcessingOverlay
-                label={STATUS_LABELS[status] || 'Preparing AI Brush…'}
+                label={
+                  status === 'detecting'
+                    ? STATUS_LABELS.detecting
+                    : STATUS_LABELS.removing
+                }
               />
             )}
             {/* Brush cursor overlay — outside transform; positioned in untransformed
