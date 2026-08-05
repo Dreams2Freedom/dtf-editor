@@ -23,10 +23,12 @@ import {
   ArrowUpCircle,
   Pen,
   Ruler,
+  Sparkles,
   Check,
   X,
   Loader2,
 } from 'lucide-react';
+import EmbedBrush from './EmbedBrush';
 
 type Status = 'loading' | 'ready' | 'invalid';
 
@@ -56,6 +58,18 @@ function EmbedStudio() {
   // host can distinguish "still loading" from "loaded and editable" without
   // relying on the iframe load event (which fires even for a blocked frame).
   const readyPostedRef = useRef(false);
+
+  // Smart refine brush (client-side, free). After Remove BG we hold the pre-cut
+  // original (`brushOriginalUrl`, CORS-clean re-host so its pixels are canvas-
+  // readable) and the cutout (`workingUrl`). Opening the brush lets the merchant
+  // paint Keep/Remove to fix the cut; the refined PNG is uploaded via a signed
+  // URL and becomes the new result. `canRefine` gates the button to "there is a
+  // cut to refine".
+  const [brushOpen, setBrushOpen] = useState(false);
+  const [brushOriginalUrl, setBrushOriginalUrl] = useState<string | null>(null);
+  const [canRefine, setCanRefine] = useState(false);
+  // The image the LAST Remove BG ran on — the "original" the brush restores from.
+  const preCutUrlRef = useRef<string | null>(null);
 
   // #5: pan + zoom on the edited image so merchants can inspect edges (esp.
   // after background removal) before accepting. Self-contained to the embed —
@@ -204,15 +218,106 @@ function EmbedStudio() {
 
   const runTransform = useCallback(
     async (path: string, extra: Record<string, unknown> = {}) => {
+      // Capture the tool INPUT before it's replaced — for Remove BG this is the
+      // pre-cut original the refine brush restores wrongly-removed areas from.
+      const inputUrl = workingUrl.split('?')[0] || workingUrl;
       const data = await callTool(path, extra);
       if (data?.resultUrl && typeof data.resultUrl === 'string') {
         // Record the canonical result (no cache-bust query) so Done posts the
         // real edited file, not the input. Then cache-bust the <img> src.
         lastResultUrlRef.current = data.resultUrl;
         setWorkingUrl(`${data.resultUrl}?v=${Date.now()}`);
+        if (path === 'background-removal') {
+          // Enable the refine brush against the image we just cut.
+          preCutUrlRef.current = inputUrl;
+          setBrushOriginalUrl(null); // re-host lazily on open
+          setCanRefine(true);
+        } else {
+          // Any other transform changes the pixels — the old cut no longer
+          // matches, so hide Refine until the next Remove BG.
+          setCanRefine(false);
+        }
       }
     },
-    [callTool]
+    [callTool, workingUrl]
+  );
+
+  // Open the refine brush: ensure we have a CORS-clean copy of the pre-cut
+  // original (the merchant's input often lacks CORS headers, which would taint
+  // the canvas and block PNG export), then show the brush over the cutout.
+  const openRefine = useCallback(async () => {
+    const preCut = preCutUrlRef.current;
+    if (!preCut) return;
+    setError(null);
+    if (brushOriginalUrl) {
+      setBrushOpen(true);
+      return;
+    }
+    setBusy('refine');
+    try {
+      const res = await fetch('/api/partner/v1/rehost', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-Embed-Token': token },
+        body: JSON.stringify({ imageUrl: preCut }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.url) {
+        throw new Error(data.error || 'Could not prepare the brush.');
+      }
+      setBrushOriginalUrl(data.url as string);
+      setBrushOpen(true);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Could not open the brush.');
+    } finally {
+      setBusy(null);
+    }
+  }, [brushOriginalUrl, token]);
+
+  // Commit a refined PNG from the brush: upload it to Storage via a one-shot
+  // signed URL (bypasses Vercel's ~4.5MB body limit), then make its public URL
+  // the new result. No tool endpoint is charged — the brush is free.
+  const commitRefine = useCallback(
+    async (blob: Blob) => {
+      setBrushOpen(false);
+      setError(null);
+      setBusy('refine');
+      try {
+        const res = await fetch('/api/partner/v1/embed-save', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-Embed-Token': token,
+          },
+          body: JSON.stringify({}),
+        });
+        const data = await res.json();
+        if (!res.ok || !data.path || !data.token) {
+          throw new Error(data.error || 'Could not save the refined image.');
+        }
+        const { createClientSupabaseClient } = await import(
+          '@/lib/supabase/client'
+        );
+        const supabase = createClientSupabaseClient();
+        const { error: upErr } = await supabase.storage
+          .from('images')
+          .uploadToSignedUrl(data.path as string, data.token as string, blob, {
+            contentType: 'image/png',
+          });
+        if (upErr) throw new Error(upErr.message);
+        const publicUrl = data.publicUrl as string;
+        lastResultUrlRef.current = publicUrl;
+        // The refined PNG becomes the new cutout (seed for the next refine pass).
+        // We keep `brushOriginalUrl` (the re-hosted TRUE original) cached so a
+        // second pass still restores from real pixels, not the transparent cut.
+        setWorkingUrl(`${publicUrl}?v=${Date.now()}`);
+        setNote('Edges refined.');
+      } catch (e) {
+        setError(e instanceof Error ? e.message : 'Could not save the image.');
+      } finally {
+        setBusy(null);
+      }
+    },
+    [token]
   );
 
   const runDpi = useCallback(async () => {
@@ -358,6 +463,15 @@ function EmbedStudio() {
             <span className="text-sm font-medium text-gray-700">Working…</span>
           </div>
         )}
+
+        {brushOpen && brushOriginalUrl && (
+          <EmbedBrush
+            originalUrl={brushOriginalUrl}
+            cutoutUrl={workingUrl}
+            onCommit={commitRefine}
+            onCancel={() => setBrushOpen(false)}
+          />
+        )}
       </div>
 
       {/* Messages */}
@@ -395,6 +509,15 @@ function EmbedStudio() {
             disabled={!!busy}
             onClick={() => runTransform('vectorize')}
           />
+          {canRefine && (
+            <ToolButton
+              label="Refine"
+              icon={<Sparkles className="h-4 w-4" />}
+              busy={busy === 'refine'}
+              disabled={!!busy}
+              onClick={openRefine}
+            />
+          )}
           <div className="mx-1 h-6 w-px bg-gray-200" />
           <div className="flex items-center gap-1 text-xs text-gray-500">
             <input
