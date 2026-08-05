@@ -40,7 +40,7 @@ const getCSP = (allowFraming = false) => {
     // iframe → gangsheet app → our embed). The embed token is the security
     // boundary, so any parent may frame it. Everything else stays 'none'.
     allowFraming ? 'frame-ancestors *' : "frame-ancestors 'none'",
-    "upgrade-insecure-requests",
+    'upgrade-insecure-requests',
   ];
 
   return policy.join('; ');
@@ -171,7 +171,9 @@ export async function middleware(request: NextRequest) {
       .single();
 
     if (profile?.subscription_status === 'past_due') {
-      return NextResponse.redirect(new URL('/settings?tab=billing&reason=past_due', request.url));
+      return NextResponse.redirect(
+        new URL('/settings?tab=billing&reason=past_due', request.url)
+      );
     }
   }
 
