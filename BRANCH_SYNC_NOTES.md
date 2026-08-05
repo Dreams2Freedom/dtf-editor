@@ -12,20 +12,20 @@ _Last updated: partner-integration fix session._
 
 Cherry-picked directly onto `main` (partner/coworker integration work):
 
-| main commit | What | festive twin |
-|---|---|---|
-| `666d40b` | Pan + zoom in shared Studio canvas (Upscale, Vectorize) | `927ba18` |
-| `1b448f7` | Partner background-removal auth: accept `X-Embed-Token` (fixed embed "Missing API key") | `21a9dda` |
-| `6e5694e` | CSP: allow `www.facebook.com` in `frame-src` (Meta Pixel iframe) | `daecda6` |
+| main commit | What                                                                                    | festive twin |
+| ----------- | --------------------------------------------------------------------------------------- | ------------ |
+| `666d40b`   | Pan + zoom in shared Studio canvas (Upscale, Vectorize)                                 | `927ba18`    |
+| `1b448f7`   | Partner background-removal auth: accept `X-Embed-Token` (fixed embed "Missing API key") | `21a9dda`    |
+| `6e5694e`   | CSP: allow `www.facebook.com` in `frame-src` (Meta Pixel iframe)                        | `daecda6`    |
 
 These are LIVE on main. Do not re-push / duplicate them.
 
 ## 🌿 On festive only — NOT yet on main (intentional)
 
-| festive commit | What |
-|---|---|
-| `2673db0` | Fix lingering blur overlay after bg-removal cut completes (in-house tool) |
-| + ongoing in-house BG-removal work | (this is what we're continuing now) |
+| festive commit                     | What                                                                      |
+| ---------------------------------- | ------------------------------------------------------------------------- |
+| `2673db0`                          | Fix lingering blur overlay after bg-removal cut completes (in-house tool) |
+| + ongoing in-house BG-removal work | (this is what we're continuing now)                                       |
 
 ## ⚠️ Divergence warning — READ BEFORE festive → main
 
@@ -57,6 +57,7 @@ work that main already has. Most important:
 4. `npm run type-check` + `npm run lint`, then deploy.
 
 ## Checklist: "must be on main" at deploy time
+
 - [ ] Partner bg-removal embed-token auth (`requirePartnerAndShop`)
 - [ ] Studio pan/zoom (interactive canvas)
 - [ ] CSP `frame-src` facebook.com
