@@ -5,6 +5,7 @@ import {
 } from '@/lib/supabase/server';
 import { withRateLimit } from '@/lib/rate-limit';
 import { cookies } from 'next/headers';
+import { verifyCookieValue } from '@/lib/cookie-signing';
 
 interface StorageStats {
   totalImages: number;
@@ -36,41 +37,48 @@ async function handleGet(request: NextRequest) {
     let effectiveUserId: string;
     let effectiveSupabase;
 
-    // Check for impersonation
+    // Always establish the caller's own authenticated session first.
+    const supabase = await createServerSupabaseClient();
+    const {
+      data: { user: caller },
+    } = await supabase.auth.getUser();
+
+    if (!caller) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    // Default: the caller sees their OWN stats via their RLS-scoped client.
+    effectiveUserId = caller.id;
+    effectiveSupabase = supabase;
+
+    // Impersonation is honored ONLY for an ADMIN caller with a valid HMAC-signed
+    // cookie (mirrors src/middleware/impersonation.ts). Without these checks a
+    // forged cookie would expose any user's storage/image stats via the
+    // service-role client.
     const impersonationCookie = cookieStore.get('impersonation_session');
     const authOverrideCookie = cookieStore.get('supabase-auth-override');
-
     if (impersonationCookie && authOverrideCookie) {
-      // We're impersonating - use the impersonated user's ID
-      try {
-        const impersonationData = JSON.parse(impersonationCookie.value);
-        effectiveUserId = impersonationData.impersonatedUserId;
-        effectiveSupabase = createServiceRoleClient(); // Use service role for impersonation
-      } catch (error) {
-        console.error('Error parsing impersonation data:', error);
-        // Fall through to regular auth
-        const supabase = await createServerSupabaseClient();
-        const {
-          data: { user },
-        } = await supabase.auth.getUser();
-        if (!user) {
-          return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      const verifiedPayload = await verifyCookieValue(
+        impersonationCookie.value
+      );
+      if (verifiedPayload) {
+        const { data: callerProfile } = await supabase
+          .from('profiles')
+          .select('is_admin')
+          .eq('id', caller.id)
+          .single();
+        if (callerProfile?.is_admin) {
+          try {
+            const impersonationData = JSON.parse(verifiedPayload);
+            if (impersonationData.impersonatedUserId) {
+              effectiveUserId = impersonationData.impersonatedUserId;
+              effectiveSupabase = createServiceRoleClient();
+            }
+          } catch (error) {
+            console.error('Error parsing impersonation data:', error);
+          }
         }
-        effectiveUserId = user.id;
-        effectiveSupabase = supabase;
       }
-    } else {
-      // Regular auth flow
-      const supabase = await createServerSupabaseClient();
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-
-      if (!user) {
-        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-      }
-      effectiveUserId = user.id;
-      effectiveSupabase = supabase;
     }
 
     // Get user's profile to determine plan
@@ -99,9 +107,17 @@ async function handleGet(request: NextRequest) {
     }
 
     // Calculate statistics
-    const totalImages = images?.length || 0;
-    const totalSize =
-      images?.reduce((sum, img) => sum + (img.file_size || 0), 0) || 0;
+    type ImageStatRow = {
+      file_size?: number | null;
+      operation_type?: string;
+      expires_at?: string | null;
+    };
+    const rows = (images ?? []) as ImageStatRow[];
+    const totalImages = rows.length;
+    const totalSize = rows.reduce(
+      (sum, img) => sum + (img.file_size || 0),
+      0
+    );
 
     // Count images by type
     const imagesByType = {
@@ -114,9 +130,9 @@ async function handleGet(request: NextRequest) {
     let expiringImages = 0;
     let permanentImages = 0;
 
-    images?.forEach(img => {
+    rows.forEach(img => {
       // Count by type
-      if (img.operation_type in imagesByType) {
+      if (img.operation_type && img.operation_type in imagesByType) {
         imagesByType[img.operation_type as keyof typeof imagesByType]++;
       }
 
