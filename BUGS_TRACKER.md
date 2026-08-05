@@ -8,6 +8,56 @@
 
 ---
 
+## 🔐 **SECURITY AUDIT (Aug 5, 2026 Session)**
+
+> Money + data-exposure audit triggered after the partner-integration work. **None
+> of these were caused by the partner changes** — all pre-existing. The two
+> criticals were fixed + deployed to `main`; the change-plan money bug fixed on
+> `festive`. Remaining items are OPEN (lower severity, none unauthenticated).
+
+### **BUG-072: Unauthenticated credit minting via credit-mutating RPCs**
+
+- **Status:** 🟢 FIXED (Aug 5, 2026 — DB migration applied + verified `anon` locked out)
+- **Severity:** 🔴 Critical (money / unauthenticated)
+- **Description:** `refund_credits`/`deduct_credits` were `GRANT`ed to `anon`, and the `*_atomic`/`add_user_credits`/bulk fns to `authenticated` or PUBLIC-by-default. All take an arbitrary `user_id` with no ownership check under `SECURITY DEFINER`, so anyone with the public anon key could mint unlimited credits: `supabase.rpc('refund_credits',{user_id,credits:999999,reason:'x'})`.
+- **Fix:** `supabase/migrations/20260805_lock_down_credit_rpcs.sql` — `REVOKE EXECUTE` from PUBLIC/anon/authenticated, `GRANT` to `service_role` only. Every legit caller is server-side/service-role (imageProcessing, Stripe webhook, generate/image), verified. Applied via SQL Editor; `has_function_privilege('anon', …)` returns false.
+
+### **BUG-073: Cross-user PII leak via forged impersonation cookie**
+
+- **Status:** 🟢 FIXED (Aug 5, 2026 — code on `main` `6b873b2`)
+- **Severity:** 🔴 Critical (data / unauthenticated)
+- **Description:** `/api/auth/session` and `/api/storage/stats` trusted the `impersonation_session` cookie with NO HMAC signature check and NO admin check, returning any user's profile/credits/subscription/storage stats via the service-role client to an unauthenticated forged-cookie request (curl).
+- **Fix:** Both routes now require caller `auth.getUser()` + `profiles.is_admin` + `verifyCookieValue()` before honoring impersonation (mirrors `src/middleware/impersonation.ts`), else fall through to the caller's own session.
+
+### **BUG-074: change-plan credit farming (un-prorated grant)**
+
+- **Status:** 🟢 FIXED (Aug 5, 2026 — code on `festive`, not yet on `main`)
+- **Severity:** 🟠 High (money / authenticated)
+- **Description:** `/api/subscription/change-plan` granted the full monthly tier credit difference up-front regardless of cycle timing; under default `create_prorations` the charge is tiny+deferred → upgrade→spend→downgrade farm (reverse adjustment clamps at 0).
+- **Fix:** Prorate credit delta by remaining cycle fraction. Further hardening (OPEN): grant credits only after `invoice.payment_succeeded` webhook rather than synchronously.
+
+### **BUG-075: Embed-token secret fail-open to guessable value**
+
+- **Status:** 🟢 FIXED (Aug 5, 2026 — code on `festive`)
+- **Severity:** 🟡 Medium (defensive)
+- **Description:** `src/lib/partner/embedToken.ts` secret fell back to `HMAC(...,'dev-secret')` if both `PARTNER_EMBED_SECRET` and `SUPABASE_SERVICE_ROLE_KEY` were unset → forgeable tokens.
+- **Fix:** Fail-closed guard in production (sign throws, verify returns null) when no strong secret source. No-op under normal prod config.
+
+### **OPEN — to fix in a dedicated security pass**
+
+- **BUG-076** 🟠 (money): No server-side `priceId` allowlist in `create-checkout-session` & `create-subscription` (unlike `create-payment-intent`). Also stale `PAYG_CREDIT_AMOUNTS` fallback in the Stripe webhook (499/899/1999) vs current pricing (799/1499/2999) — a legacy price ID could pay old amount, get current credits.
+- **BUG-077** 🟡 (integrity): `/api/admin/audit/log` & `/api/admin/auth/check-ip` `JSON.parse` an unsigned `admin_session` cookie with no auth → unauthenticated audit-log spoofing (dead/stale code; delete or gate on real Supabase admin check).
+- **BUG-078** 🟡 (integrity): `/api/auth/effective-user` & `src/lib/supabase/impersonation.ts` (dead) parse `impersonation_session` without `verifyCookieValue()` — admin can craft cookie to impersonate anyone, bypassing the "no admin impersonation" rule + audit log.
+- **BUG-079** 🟠 (landmine): `supabase/migrations/20260218_restore_admin_profiles_policy.sql` reintroduces BUG-062's recursive `profiles_admin_select` RLS policy on any migration replay (fresh env / db reset). Replace with a `SECURITY DEFINER is_admin()` helper.
+- **BUG-080** 🟡 (partner SSRF): all `/api/partner/v1/*` tools `fetch(imageUrl)` from the request body with no host/scheme allowlist (localhost/link-local reachable) and the token's signed `imageUrl` claim is not enforced. Add SSRF guard.
+- **BUG-081** 🟡 (partner): no rate limiting on any `/api/partner/*` route — a valid token/key can call tools unthrottled for its lifetime.
+- **BUG-082** 🟡 (partner clickjacking): `frame-ancestors '*'` for `/embed/*` (on `main`) lets any site iframe the one-click-to-bill embed. Narrow to Shopify origins (`https://*.myshopify.com`, `https://admin.shopify.com`).
+- **BUG-083** 🟢 (low): `/api/admin/notification-preferences` missing `is_admin` check (self-scoped; POST leaks whether an email is a configured admin + quiet-hours).
+- **BUG-084** 🔵 (low/theoretical): `/api/clippingmagic/download/[id]` doesn't verify the CM image ID belongs to the caller (IDOR, gated by CM's opaque ID space).
+- **BUG-085** 🟡 (money, not user-triggered): `handleChargeRefunded` can't claw back credits for subscription-invoice refunds (`charge.metadata` only set for PAYG) — resolve `userId` via `stripe_customer_id` lookup.
+
+---
+
 ## 🟢 **STUDIO FIXES (July 20, 2026 Session)**
 
 ### **BUG-070: Studio Loses In-House BG-Removal Edits When Switching Tools**
