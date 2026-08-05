@@ -50,7 +50,20 @@ export async function POST(request: NextRequest) {
   if (!imageUrl) return json({ error: 'Missing imageUrl' }, 400);
 
   if (!env.REMBG_SERVICE_URL) {
+    console.error(
+      '[Partner API] Background removal unconfigured: REMBG_SERVICE_URL is empty'
+    );
     return json({ error: 'Background removal is not configured' }, 503);
+  }
+  // Diagnostic only — do NOT hard-fail on an empty key. The SAM service enforces
+  // auth only when it ITSELF has a key set (main.py: `if API_KEY and ...`), so an
+  // empty key here is valid when the service runs keyless. If the service DOES
+  // require a key, an empty/mismatched value yields a 401 from the engine, which
+  // is surfaced with its real status in the upstream-error branch below.
+  if (!env.REMBG_SERVICE_API_KEY) {
+    console.warn(
+      '[Partner API] REMBG_SERVICE_API_KEY is empty — if the SAM service requires a key, expect an upstream 401'
+    );
   }
 
   // Fetch the source image.
@@ -73,17 +86,33 @@ export async function POST(request: NextRequest) {
       body: upstream,
     });
     if (!svcRes.ok) {
-      const text = await svcRes.text().catch(() => '');
-      console.error('[Partner API] SAM service error:', svcRes.status, text);
+      // Surface the engine's REAL error to the partner instead of a blank 502,
+      // so an unconfigured engine (503) or a key mismatch (401 Unauthorized) is
+      // self-evident rather than masquerading as a generic failure. Mirrors the
+      // Studio embed route's upstream-error passthrough.
+      let detail = 'Background removal failed';
+      try {
+        const body = await svcRes.json();
+        if (body?.detail) detail = String(body.detail);
+      } catch {
+        try {
+          const text = await svcRes.text();
+          if (text) detail = text.slice(0, 500);
+        } catch {}
+      }
+      console.error('[Partner API] SAM service error:', svcRes.status, detail);
       await recordUsage({
         partnerId,
         shopDomain: shop,
         tool: TOOL,
         costCents: 0,
         status: 'error',
-        metadata: { reason: `service_${svcRes.status}` },
+        metadata: { reason: `service_${svcRes.status}`, detail },
       });
-      return json({ error: 'Background removal failed' }, 502);
+      return json(
+        { error: detail, upstreamStatus: svcRes.status },
+        svcRes.status === 503 ? 503 : 502
+      );
     }
     const data = await svcRes.json();
     cutoutB64 = data.cutout_png;
