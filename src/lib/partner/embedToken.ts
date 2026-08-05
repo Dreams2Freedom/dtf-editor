@@ -10,11 +10,35 @@ import { env } from '@/config/env';
  * exposed client-side. Stateless (HMAC-signed), so no DB lookup.
  */
 
+const EXPLICIT_SECRET = process.env.PARTNER_EMBED_SECRET || '';
+const SERVICE_KEY = env.SUPABASE_SERVICE_ROLE_KEY || '';
+
+// A strong signing secret requires either an explicit PARTNER_EMBED_SECRET or,
+// failing that, a real service-role key to derive from. If NEITHER is present
+// the derived secret collapses to HMAC(..., 'dev-secret') — a hardcoded,
+// source-visible value that would make embed tokens trivially forgeable for any
+// shop. We therefore refuse to sign or verify tokens in that state (in
+// production) rather than run the Partner Tools API with a guessable key. In
+// production the service-role key is always set, so this is a fail-safe guard,
+// not a functional constraint.
+const HAS_STRONG_SECRET = Boolean(EXPLICIT_SECRET || SERVICE_KEY);
+const IS_PROD = process.env.NODE_ENV === 'production';
+
 const SECRET =
-  process.env.PARTNER_EMBED_SECRET ||
+  EXPLICIT_SECRET ||
   createHmac('sha256', 'dtf-partner-embed-v1')
-    .update(env.SUPABASE_SERVICE_ROLE_KEY || 'dev-secret')
+    .update(SERVICE_KEY || 'dev-secret')
     .digest('hex');
+
+function assertStrongSecret(): void {
+  if (IS_PROD && !HAS_STRONG_SECRET) {
+    throw new Error(
+      'Embed token secret is not configured: set PARTNER_EMBED_SECRET ' +
+        '(or SUPABASE_SERVICE_ROLE_KEY). Refusing to mint tokens with a ' +
+        'guessable fallback secret.'
+    );
+  }
+}
 
 export interface EmbedClaims {
   partnerId: string;
@@ -31,6 +55,7 @@ export function signEmbedToken(
   claims: Omit<EmbedClaims, 'exp'>,
   ttlSeconds = 1800
 ): { token: string; exp: number } {
+  assertStrongSecret();
   const exp = Math.floor(Date.now() / 1000) + ttlSeconds;
   const payload: EmbedClaims = { ...claims, exp };
   const body = b64url(Buffer.from(JSON.stringify(payload)));
@@ -39,6 +64,9 @@ export function signEmbedToken(
 }
 
 export function verifyEmbedToken(token: string): EmbedClaims | null {
+  // Fail closed: if the secret would be the guessable fallback in production,
+  // reject every token rather than accept a possibly-forged one.
+  if (IS_PROD && !HAS_STRONG_SECRET) return null;
   try {
     const [body, sig] = token.split('.');
     if (!body || !sig) return null;

@@ -63,3 +63,4 @@ work that main already has. Most important:
 - [ ] CSP `frame-src` facebook.com
 - [ ] CSP embed-framing (`/embed/*` frame-ancestors) — already on main, don't lose it
 - [ ] In-house BG-removal blur fix + whatever we build next
+- [ ] Embed-token secret fail-safe guard (`src/lib/partner/embedToken.ts`) — security hardening
