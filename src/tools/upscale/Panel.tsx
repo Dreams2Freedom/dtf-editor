@@ -184,9 +184,7 @@ export function UpscalePanel({ image, onApply }: StudioToolPanelProps) {
   // upscale, switch the working image, or dismiss it.
   const [showSuccess, setShowSuccess] = useState(false);
 
-  // Canvas zoom — local to the tool, controls forwarded to frame.
-  const [zoom, setZoom] = useState(1);
-
+  // Canvas zoom + pan are owned by StudioCanvasFrame in interactive mode.
   const provider = DEFAULT_PROVIDER;
 
   // Reset upscaled state if the working image changes (chained from
@@ -340,10 +338,10 @@ export function UpscalePanel({ image, onApply }: StudioToolPanelProps) {
 
       <div className="flex-1 flex flex-col lg:flex-row min-h-0">
         <StudioCanvasFrame
-          zoom={zoom}
-          onZoomIn={() => setZoom(z => Math.min(z * 1.25, 8))}
-          onZoomOut={() => setZoom(z => Math.max(z / 1.25, 0.1))}
-          onFit={() => setZoom(1)}
+          interactive
+          overlay={
+            isUpscaling ? <CanvasProcessingOverlay label="Upscaling…" /> : null
+          }
           topBar={
             upscaledImage ? (
               <>
@@ -365,22 +363,14 @@ export function UpscalePanel({ image, onApply }: StudioToolPanelProps) {
             ) : null
           }
         >
-          <div
-            style={{
-              transform: `scale(${zoom})`,
-              transformOrigin: 'center',
-              lineHeight: 0,
-            }}
-          >
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={displayed.src}
-              alt="Working image"
-              className="max-w-full max-h-full shadow-lg rounded block"
-              style={{ maxHeight: 'calc(100vh - 280px)' }}
-            />
-          </div>
-          {isUpscaling && <CanvasProcessingOverlay label="Upscaling…" />}
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={displayed.src}
+            alt="Working image"
+            className="max-w-full max-h-full shadow-lg rounded block"
+            style={{ maxHeight: 'calc(100vh - 280px)' }}
+            draggable={false}
+          />
         </StudioCanvasFrame>
 
         <div className="w-full lg:w-72 bg-white border-t lg:border-t-0 lg:border-l border-gray-200 flex flex-col overflow-y-auto">
