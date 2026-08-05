@@ -1,7 +1,7 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { env } from '@/config/env';
 import { createServiceRoleClient } from '@/lib/supabase/server';
-import { authenticatePartner } from '@/lib/partner/auth';
+import { json, preflight, requirePartnerAndShop } from '@/lib/partner/http';
 import { recordUsage } from '@/lib/partner/usage';
 import { priceForTool } from '@/lib/partner/pricing';
 
@@ -9,8 +9,14 @@ import { priceForTool } from '@/lib/partner/pricing';
  * Partner Tools API — In-house background removal (SAM).
  *
  * POST /api/partner/v1/background-removal
- *   Auth:  Authorization: Bearer <partner-api-key>   (or X-API-Key)
- *   Body:  { shop: "store.myshopify.com", imageUrl: "https://..." }
+ *   Auth:  Authorization: Bearer <partner-api-key> (or X-API-Key) for
+ *          server-to-server calls, OR X-Embed-Token for the browser embed
+ *          Studio. Both are handled by requirePartnerAndShop — matching the
+ *          Upscale/Vectorize/DPI routes. (Previously this route used
+ *          authenticatePartner directly, so the embed's X-Embed-Token call was
+ *          rejected with "Missing API key" — the embed Remove BG never ran.)
+ *   Body:  { imageUrl: "https://..." }  (+ { shop } for API-key callers; the
+ *          embed's shop comes from the signed token)
  *   Returns: { resultUrl, usage: { tool, costCents, eventId } }
  *
  * Uses ONLY the in-house SAM engine (no ClippingMagic). Each call is metered so
@@ -22,31 +28,16 @@ export const maxDuration = 120; // in-house SAM can take a while on CPU.
 
 const TOOL = 'background-removal';
 
-const CORS_HEADERS: Record<string, string> = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-API-Key',
-};
-
-function json(body: unknown, status = 200) {
-  return NextResponse.json(body, { status, headers: CORS_HEADERS });
-}
-
-export async function OPTIONS() {
-  return new NextResponse(null, { status: 204, headers: CORS_HEADERS });
+export function OPTIONS() {
+  return preflight();
 }
 
 export async function POST(request: NextRequest) {
-  const authRes = await authenticatePartner(request);
-  if (!authRes.ok) {
-    return json({ error: authRes.error }, authRes.status);
-  }
-  const { partnerId } = authRes.partner;
+  const gate = await requirePartnerAndShop(request);
+  if (!gate.ok) return gate.response;
+  const { partnerId, shop, body } = gate;
 
-  const body = await request.json().catch(() => ({}));
-  const shop = typeof body.shop === 'string' ? body.shop.trim() : '';
   const imageUrl = typeof body.imageUrl === 'string' ? body.imageUrl : '';
-  if (!shop) return json({ error: 'Missing shop' }, 400);
   if (!imageUrl) return json({ error: 'Missing imageUrl' }, 400);
 
   if (!env.REMBG_SERVICE_URL) {
