@@ -19,9 +19,11 @@ const securityHeaders = {
 // a full nonce-based CSP requires custom Next.js Document integration.
 //
 // Meta (Facebook) Pixel: connect.facebook.net is allowlisted in script-src so
-// fbevents.js can load, and connect.facebook.net + www.facebook.com in
-// connect-src so the pixel can send events to https://www.facebook.com/tr.
-// Without these, the browser blocks the pixel and Meta can't detect it.
+// fbevents.js can load, connect.facebook.net + www.facebook.com in connect-src
+// so the pixel can send events to https://www.facebook.com/tr, AND
+// www.facebook.com in frame-src because the pixel injects a hidden iframe to
+// facebook.com for cookie-sync. Without the frame-src entry the browser blocks
+// it ("Framing 'https://www.facebook.com/' violates ... frame-src").
 const getCSP = (allowFraming = false) => {
   const policy = [
     "default-src 'self'",
@@ -30,7 +32,7 @@ const getCSP = (allowFraming = false) => {
     "img-src 'self' data: blob: https:",
     "font-src 'self' data: https://fonts.gstatic.com",
     "connect-src 'self' https://api.stripe.com https://checkout.stripe.com https://*.supabase.co wss://*.supabase.co https://api.openai.com https://deep-image.ai https://clippingmagic.com https://*.clippingmagic.com https://api.vectorizer.ai https://api.mailgun.net https://connect.facebook.net https://www.facebook.com",
-    "frame-src 'self' https://checkout.stripe.com https://js.stripe.com https://clippingmagic.com https://*.clippingmagic.com",
+    "frame-src 'self' https://checkout.stripe.com https://js.stripe.com https://clippingmagic.com https://*.clippingmagic.com https://www.facebook.com",
     "object-src 'none'",
     "base-uri 'self'",
     "form-action 'self' https://checkout.stripe.com https://clippingmagic.com https://*.clippingmagic.com",
