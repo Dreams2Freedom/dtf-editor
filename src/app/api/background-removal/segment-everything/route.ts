@@ -7,6 +7,7 @@ import {
   resolveRemovalImage,
   cleanupStagedImage,
 } from '@/lib/background-removal/resolveImage';
+import { logInhouseToolEvent } from '@/lib/analytics/inhouseToolEvents';
 
 /**
  * SAM automatic "find everything" segmentation (admin eval only).
@@ -38,6 +39,23 @@ async function handler(request: NextRequest) {
     );
   }
 
+  // Telemetry for the free in-house SAM tool (see /admin/inhouse-tools).
+  // Fire-and-forget; never blocks or fails the removal.
+  const startedAt = Date.now();
+  const logEvent = (
+    status: 'success' | 'error',
+    errorMessage?: string
+  ): void => {
+    void logInhouseToolEvent({
+      userId: user.id,
+      tool: 'background-removal',
+      operation: 'sam-auto',
+      status,
+      processingTimeMs: Date.now() - startedAt,
+      errorMessage,
+    });
+  };
+
   // Free beta tool: any authenticated user may use the in-house SAM engine — it
   // deducts no credits and runs on our own service. The auth check above is the
   // only gate (this route previously returned 403 UPGRADE_REQUIRED for free
@@ -52,6 +70,7 @@ async function handler(request: NextRequest) {
 
   const resolved = await resolveRemovalImage(request, user.id);
   if (!resolved.ok) {
+    logEvent('error', `input: ${resolved.error}`);
     return NextResponse.json(
       { error: resolved.error },
       { status: resolved.status }
@@ -79,6 +98,7 @@ async function handler(request: NextRequest) {
     if (!serviceRes.ok) {
       const text = await serviceRes.text().catch(() => '');
       console.error('[SAM Segment] Service error:', serviceRes.status, text);
+      logEvent('error', `service ${serviceRes.status}`);
       return NextResponse.json(
         { error: `Segmentation failed (${serviceRes.status})` },
         { status: 502 }
@@ -86,10 +106,12 @@ async function handler(request: NextRequest) {
     }
 
     const json = await serviceRes.json();
+    logEvent('success', undefined);
     return NextResponse.json(json, { status: 200 });
   } catch (err) {
     await cleanupStagedImage(resolved.cleanupPath);
     console.error('[SAM Segment] Fetch error:', err);
+    logEvent('error', 'service unreachable');
     return NextResponse.json(
       { error: 'Segmentation service unreachable' },
       { status: 502 }

@@ -20,8 +20,6 @@ import {
   CreditCard,
   Activity,
   MessageCircle,
-  Wand2,
-  Paintbrush,
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { createClientSupabaseClient } from '@/lib/supabase/client';
@@ -120,14 +118,9 @@ const menuItems: MenuItem[] = [
     icon: MessageCircle,
   },
   {
-    name: 'BG Removal Eval',
-    href: '/admin/bg-eval',
-    icon: Wand2,
-  },
-  {
-    name: 'BG Studio',
-    href: '/admin/bg-studio',
-    icon: Paintbrush,
+    name: 'In-House Tools',
+    href: '/admin/inhouse-tools',
+    icon: Activity,
   },
   {
     name: 'Notifications',
