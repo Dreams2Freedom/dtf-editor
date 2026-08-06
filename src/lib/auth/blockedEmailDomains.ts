@@ -73,6 +73,7 @@ export const BLOCKED_EMAIL_DOMAINS: ReadonlySet<string> = new Set([
   'ak1314.eu.cc',
   'akunku.site',
   'akunqu.net',
+  'amupx.com',
   'anawebs.com',
   'andreasenpai.my.id',
   'andreasenpai.web.id',
