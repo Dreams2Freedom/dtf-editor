@@ -7,6 +7,7 @@ import {
   resolveRemovalImage,
   cleanupStagedImage,
 } from '@/lib/background-removal/resolveImage';
+import { logInhouseToolEvent } from '@/lib/analytics/inhouseToolEvents';
 
 export const runtime = 'nodejs';
 export const maxDuration = 60;
@@ -26,6 +27,23 @@ async function handler(request: NextRequest) {
     );
   }
 
+  // Telemetry for the free in-house tool (see /admin/inhouse-tools). Never
+  // blocks or fails the removal — logging is fire-and-forget.
+  const startedAt = Date.now();
+  const logEvent = (
+    status: 'success' | 'error',
+    errorMessage?: string
+  ): void => {
+    void logInhouseToolEvent({
+      userId: user.id,
+      tool: 'background-removal',
+      operation: 'ml-color',
+      status,
+      processingTimeMs: Date.now() - startedAt,
+      errorMessage,
+    });
+  };
+
   // Free beta tool: any authenticated user may use the in-house engine — it
   // deducts no credits and runs on our own SAM service. The auth check above is
   // the only gate (this route previously returned 403 UPGRADE_REQUIRED for free
@@ -40,6 +58,7 @@ async function handler(request: NextRequest) {
 
   const resolved = await resolveRemovalImage(request, user.id);
   if (!resolved.ok) {
+    logEvent('error', `input: ${resolved.error}`);
     return NextResponse.json(
       { error: resolved.error },
       { status: resolved.status }
@@ -64,6 +83,7 @@ async function handler(request: NextRequest) {
   if (!serviceRes.ok) {
     const text = await serviceRes.text().catch(() => '');
     console.error('[BG Removal] Service error:', serviceRes.status, text);
+    logEvent('error', `service ${serviceRes.status}`);
     return NextResponse.json(
       { error: 'Background removal failed' },
       { status: 502 }
@@ -71,6 +91,7 @@ async function handler(request: NextRequest) {
   }
 
   const resultBuffer = await serviceRes.arrayBuffer();
+  logEvent('success');
   return new NextResponse(resultBuffer, {
     status: 200,
     headers: { 'Content-Type': 'image/png' },
