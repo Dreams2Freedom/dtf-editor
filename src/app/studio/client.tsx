@@ -39,6 +39,8 @@ import { createClientSupabaseClient } from '@/lib/supabase/client';
 import { toast } from '@/lib/toast';
 import { STUDIO_TOOLS, getStudioTool } from '@/tools/registry';
 import type { ApplyMetadata, StudioToolId } from '@/tools/types';
+import { ToolHelpButton } from '@/components/help/ToolHelpMenu';
+import { STUDIO_TOOL_HELP_KEY } from '@/config/toolHelpVideos';
 
 import { StudioUploadZone } from './StudioUploadZone';
 
@@ -603,17 +605,28 @@ export default function StudioClient() {
         )}
 
         {workingImage && !error && activeTool && (
-          <activeTool.Panel
-            image={workingImage}
-            // Once a tool result has been applied, workingImage is a
-            // tool-derived blob, not the original upload — so imageId no
-            // longer describes it. Pass null then (per the StudioTool
-            // contract) so a tool can't attribute work to the wrong source.
-            imageId={hasChanges ? null : imageId}
-            onApply={handleApply}
-            onCancel={() => switchTool(null)}
-            registerPendingCommit={registerPendingCommit}
-          />
+          <>
+            {/* Per-tool help: Ask / FAQ / Owner's manual / Video help. */}
+            <div className="flex items-center justify-end px-1 pb-2">
+              <ToolHelpButton
+                helpKey={STUDIO_TOOL_HELP_KEY[activeTool.id] || activeTool.id}
+                toolLabel={activeTool.label}
+                menuClassName="top-full right-0 mt-2"
+                variant="ghost"
+              />
+            </div>
+            <activeTool.Panel
+              image={workingImage}
+              // Once a tool result has been applied, workingImage is a
+              // tool-derived blob, not the original upload — so imageId no
+              // longer describes it. Pass null then (per the StudioTool
+              // contract) so a tool can't attribute work to the wrong source.
+              imageId={hasChanges ? null : imageId}
+              onApply={handleApply}
+              onCancel={() => switchTool(null)}
+              registerPendingCommit={registerPendingCommit}
+            />
+          </>
         )}
       </div>
 

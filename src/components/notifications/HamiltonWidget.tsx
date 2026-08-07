@@ -22,6 +22,8 @@ import {
   HelpCircle,
   MessageCircle,
   Send,
+  BookOpen,
+  PlayCircle,
 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 
@@ -29,6 +31,7 @@ import { useAuthStore } from '@/stores/authStore';
 import { createClientSupabaseClient } from '@/lib/supabase/client';
 import { HAMILTON_FAQS } from './hamiltonFaqs';
 import { CreateTicketModal } from '@/components/support/CreateTicketModal';
+import { HELP_VIDEO_PLAYLIST_URL } from '@/config/toolHelpVideos';
 
 interface ChatMessage {
   role: 'user' | 'assistant';
@@ -118,6 +121,21 @@ export function HamiltonWidget() {
     document.addEventListener('mousedown', onDown);
     return () => document.removeEventListener('mousedown', onDown);
   }, [open]);
+
+  // Let other components (e.g. a tool's "Ask a question" help button) open
+  // Hamilton on a specific tab, optionally prefilling the chat box.
+  useEffect(() => {
+    const onOpen = (e: Event) => {
+      const detail = (e as CustomEvent).detail as
+        | { tab?: 'menu' | 'faq' | 'ask'; prefill?: string }
+        | undefined;
+      setOpen(true);
+      setTab(detail?.tab || 'menu');
+      if (detail?.prefill) setChatInput(detail.prefill);
+    };
+    window.addEventListener('hamilton:open', onOpen);
+    return () => window.removeEventListener('hamilton:open', onOpen);
+  }, []);
 
   const toggleOpen = () => {
     const next = !open;
@@ -385,6 +403,40 @@ export function HamiltonWidget() {
                     </span>
                     <ChevronDown className="w-4 h-4 -rotate-90 text-gray-400 group-hover:text-blue-600" />
                   </button>
+                  <Link
+                    href="/dashboard/owner-manual"
+                    onClick={() => setOpen(false)}
+                    className="group w-full flex items-center justify-between px-3 py-2.5 rounded-lg bg-gray-50 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-700 transition-colors"
+                  >
+                    <span className="flex items-center gap-2">
+                      <BookOpen className="w-4 h-4 text-gray-400 group-hover:text-blue-600" />{' '}
+                      Owner&apos;s Manual
+                    </span>
+                    <ChevronDown className="w-4 h-4 -rotate-90 text-gray-400 group-hover:text-blue-600" />
+                  </Link>
+                  {HELP_VIDEO_PLAYLIST_URL ? (
+                    <a
+                      href={HELP_VIDEO_PLAYLIST_URL}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      onClick={() => setOpen(false)}
+                      className="group w-full flex items-center justify-between px-3 py-2.5 rounded-lg bg-gray-50 text-sm text-gray-700 hover:bg-red-50 hover:text-red-700 transition-colors"
+                    >
+                      <span className="flex items-center gap-2">
+                        <PlayCircle className="w-4 h-4 text-gray-400 group-hover:text-red-600" />{' '}
+                        Video help
+                      </span>
+                      <ChevronDown className="w-4 h-4 -rotate-90 text-gray-400 group-hover:text-red-600" />
+                    </a>
+                  ) : (
+                    <div className="w-full flex items-center justify-between px-3 py-2.5 rounded-lg bg-gray-50 text-sm text-gray-400">
+                      <span className="flex items-center gap-2">
+                        <PlayCircle className="w-4 h-4 text-gray-300" /> Video
+                        help
+                      </span>
+                      <span className="text-xs">Coming soon</span>
+                    </div>
+                  )}
                   <Link
                     href="/support"
                     onClick={() => setOpen(false)}
