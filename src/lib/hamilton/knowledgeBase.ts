@@ -15,6 +15,10 @@
 import { HAMILTON_FAQS } from '@/components/notifications/hamiltonFaqs';
 import { TOOL_MANUAL_SECTIONS } from '@/config/toolManualContent';
 import {
+  listToolVideos,
+  HELP_VIDEO_PLAYLIST_URL,
+} from '@/config/toolHelpVideos';
+import {
   PLANS,
   CREDIT_PACKS,
   LANDING_FAQS,
@@ -143,6 +147,49 @@ function faqBlock(
   return lines.join('\n');
 }
 
+/**
+ * Tutorial-video availability. Built from src/config/toolHelpVideos.ts, so the
+ * moment a video URL is added there and deployed, Hamilton starts sharing it —
+ * no prompt changes needed. Tools without a URL are listed as "no video yet"
+ * so Hamilton correctly says those aren't available instead of guessing.
+ */
+function videos(): string {
+  const list = listToolVideos();
+  const withVideo = list.filter(v => v.url);
+  const withoutVideo = list.filter(v => !v.url);
+
+  const lines: string[] = ['# Tutorial videos'];
+  lines.push(
+    'Use ONLY this list to answer questions about videos/tutorials. Give the',
+    'exact link for a tool that has one. If a tool is listed under "No video',
+    'yet", tell the user a video for that tool isn’t available yet and point',
+    'them to the written steps in the Owner’s Manual instead. If the user asks',
+    'generally for a video (no specific tool), share an available one below.'
+  );
+  lines.push('');
+
+  if (withVideo.length > 0) {
+    lines.push('Available now:');
+    for (const v of withVideo) lines.push(`  - ${v.label}: ${v.url}`);
+  } else {
+    lines.push('Available now: (none yet)');
+  }
+
+  if (withoutVideo.length > 0) {
+    lines.push(
+      `No video yet (not available): ${withoutVideo
+        .map(v => v.label)
+        .join(', ')}.`
+    );
+  }
+
+  if (HELP_VIDEO_PLAYLIST_URL) {
+    lines.push(`Full tutorial playlist: ${HELP_VIDEO_PLAYLIST_URL}`);
+  }
+
+  return lines.join('\n');
+}
+
 export function buildHamiltonKnowledgeBase(): string {
   if (cached) return cached;
 
@@ -163,6 +210,9 @@ export function buildHamiltonKnowledgeBase(): string {
   );
   parts.push(faqBlock('General FAQ', LANDING_FAQS));
   parts.push(faqBlock('Pricing & billing FAQ', PRICING_FAQS));
+
+  // Which tools have tutorial videos (auto-synced from the video config).
+  parts.push(videos());
 
   // Owner's Manual — per-tool how-to.
   parts.push('# DTF Editor — Owner’s Manual (tools)');

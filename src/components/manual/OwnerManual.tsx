@@ -9,6 +9,7 @@ import {
   MessageCircle,
   LayoutDashboard,
   Wand2,
+  PlayCircle,
 } from 'lucide-react';
 import {
   TOOL_MANUAL_SECTIONS,
@@ -20,6 +21,10 @@ import {
   GENERAL_TROUBLESHOOTING,
   type ManualToolSection,
 } from '@/config/toolManualContent';
+import {
+  getExactToolVideo,
+  helpKeyForManualSection,
+} from '@/config/toolHelpVideos';
 
 const PAGE_SUBTITLE =
   'Learn how to prep artwork, remove backgrounds, upscale images, check DPI, change colors, and create cleaner files before you print.';
@@ -226,6 +231,7 @@ function ToolImageCard({ section }: { section: ManualToolSection }) {
 }
 
 function ToolSection({ section }: { section: ManualToolSection }) {
+  const videoUrl = getExactToolVideo(helpKeyForManualSection(section.id));
   return (
     <Section id={section.id}>
       <Panel>
@@ -234,6 +240,18 @@ function ToolSection({ section }: { section: ManualToolSection }) {
           {section.title}
         </h2>
         <p className="mt-1 text-gray-600">{section.subtitle}</p>
+
+        {videoUrl && (
+          <a
+            href={videoUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="mt-3 inline-flex items-center gap-1.5 rounded-lg bg-red-50 px-3 py-1.5 text-sm font-medium text-red-700 transition-colors hover:bg-red-100"
+          >
+            <PlayCircle className="h-4 w-4" />
+            Watch the video
+          </a>
+        )}
 
         <div className="mt-6">
           <ToolImageCard section={section} />
