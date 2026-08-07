@@ -70,6 +70,7 @@ export const BLOCKED_EMAIL_DOMAINS: ReadonlySet<string> = new Set([
   'addrin.uk',
   'adrapier.tokenized.name',
   'aftely.eu.cc',
+  'aghism.com',
   'ak1314.eu.cc',
   'akunku.site',
   'akunqu.net',
