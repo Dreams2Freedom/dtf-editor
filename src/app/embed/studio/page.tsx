@@ -467,15 +467,6 @@ function EmbedStudio() {
             <span className="text-sm font-medium text-gray-700">Working…</span>
           </div>
         )}
-
-        {brushOpen && brushOriginalUrl && (
-          <EmbedBrush
-            originalUrl={brushOriginalUrl}
-            cutoutUrl={workingUrl}
-            onCommit={commitRefine}
-            onCancel={() => setBrushOpen(false)}
-          />
-        )}
       </div>
 
       {/* Messages */}
@@ -554,6 +545,19 @@ function EmbedStudio() {
           </span>
         </div>
       </div>
+
+      {/* Refine brush overlay — rendered at the ROOT (not inside the canvas
+          div), so its pointer/wheel events don't bubble into the Studio's
+          pan/zoom handlers (which would steal the pointer and break painting).
+          It's fixed inset-0, so DOM position doesn't affect its placement. */}
+      {brushOpen && brushOriginalUrl && (
+        <EmbedBrush
+          originalUrl={brushOriginalUrl}
+          cutoutUrl={workingUrl}
+          onCommit={commitRefine}
+          onCancel={() => setBrushOpen(false)}
+        />
+      )}
     </div>
   );
 }
