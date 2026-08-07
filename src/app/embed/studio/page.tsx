@@ -220,7 +220,11 @@ function EmbedStudio() {
     async (path: string, extra: Record<string, unknown> = {}) => {
       // Capture the tool INPUT before it's replaced — for Remove BG this is the
       // pre-cut original the refine brush restores wrongly-removed areas from.
-      const inputUrl = workingUrl.split('?')[0] || workingUrl;
+      // Use the FULL url (query intact): it's the exact string callTool just
+      // fetched, so it's guaranteed fetchable. Stripping "?..." would drop a
+      // presigned URL's signature (S3 / Shopify CDN), which then 403s when the
+      // rehost route re-fetches it — surfacing as "Could not fetch imageUrl".
+      const inputUrl = workingUrl;
       const data = await callTool(path, extra);
       if (data?.resultUrl && typeof data.resultUrl === 'string') {
         // Record the canonical result (no cache-bust query) so Done posts the
