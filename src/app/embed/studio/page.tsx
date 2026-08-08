@@ -663,8 +663,16 @@ function EmbedStudio() {
             src={workingUrl}
             alt="Editing"
             draggable={false}
-            className="max-h-full max-w-full object-contain"
-            style={{ maxHeight: 'calc(100vh - 160px)' }}
+            className="object-contain"
+            // SVG results (Vectorize) often have percentage/viewBox-only sizing,
+            // so an <img> that relies on intrinsic pixels collapses to ~0 and
+            // "disappears". Give SVGs a DEFINITE height (they scale to the
+            // viewBox); rasters keep natural max-constrained sizing.
+            style={
+              /\.svg(\?|$)/i.test(workingUrl)
+                ? { height: 'min(72vh, 720px)', width: 'auto', maxWidth: '85vw' }
+                : { maxHeight: 'calc(100vh - 160px)', maxWidth: '85vw' }
+            }
           />
         </div>
 
