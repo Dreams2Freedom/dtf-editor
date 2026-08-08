@@ -84,6 +84,11 @@ function EmbedStudio() {
   const [bgWorkspace, setBgWorkspace] = useState(false);
   const [brushOriginalUrl, setBrushOriginalUrl] = useState<string | null>(null);
   const [brushCutoutUrl, setBrushCutoutUrl] = useState<string | null>(null);
+  // The brush registers a flush fn here so unsaved strokes are auto-saved when
+  // the user switches tools or hits Done (carrying the refined cutout forward
+  // without an explicit Apply). The bg-removal API charge already happened at
+  // the initial cut, so this upload is free and never re-bills.
+  const pendingBrushCommit = useRef<(() => Promise<Blob | null>) | null>(null);
 
   // #5: pan + zoom on the edited image so merchants can inspect edges (esp.
   // after background removal) before accepting. Self-contained to the embed —
@@ -291,8 +296,12 @@ function EmbedStudio() {
   // Apply the brush's current cutout: upload the refined PNG via a one-shot
   // signed URL (bypasses Vercel's ~4.5MB limit) and make it the new result.
   // Free — no tool endpoint is charged. The workspace stays open.
-  const commitRefine = useCallback(
-    async (blob: Blob) => {
+  // Upload a refined-brush PNG via a one-shot signed URL and make it the new
+  // working image / result. Free — the bg-removal API charge already happened
+  // at the initial cut, so applying or carrying edits never re-bills. Returns
+  // true on success.
+  const uploadRefined = useCallback(
+    async (blob: Blob, note = 'Edges applied.'): Promise<boolean> => {
       setError(null);
       setBusy('refine');
       try {
@@ -321,14 +330,39 @@ function EmbedStudio() {
         const publicUrl = data.publicUrl as string;
         lastResultUrlRef.current = publicUrl;
         setWorkingUrl(`${publicUrl}?v=${Date.now()}`);
-        setNote('Edges applied.');
+        if (note) setNote(note);
+        return true;
       } catch (e) {
         setError(e instanceof Error ? e.message : 'Could not save the image.');
+        return false;
       } finally {
         setBusy(null);
       }
     },
     [token]
+  );
+
+  // Auto-save any unsaved brush strokes (used on tool switch + Done), so the
+  // refined cutout carries forward without an explicit Apply.
+  const flushBrush = useCallback(async () => {
+    const flush = pendingBrushCommit.current;
+    if (!flush) return;
+    const blob = await flush();
+    if (blob) await uploadRefined(blob, 'Background removal applied.');
+  }, [uploadRefined]);
+
+  // Tool switch: flush the brush first so its strokes are saved into the working
+  // image before the next tool sees it.
+  const switchTool = useCallback(
+    async (id: EmbedToolId) => {
+      if (id === activeTool) return;
+      if (activeTool === 'remove' && bgWorkspace) {
+        await flushBrush();
+        setBgWorkspace(false);
+      }
+      setActiveTool(id);
+    },
+    [activeTool, bgWorkspace, flushBrush]
   );
 
   const runDpi = useCallback(async () => {
@@ -347,7 +381,9 @@ function EmbedStudio() {
     }
   }, [callTool, printW, printH]);
 
-  const done = () => {
+  const done = async () => {
+    // Save any unsaved brush strokes first so Done always returns the latest.
+    await flushBrush();
     // Prefer the last real tool result; fall back to the (unedited) working
     // image only if no tool ran. Never post the cache-bust query.
     const resultUrl =
@@ -397,8 +433,9 @@ function EmbedStudio() {
                 <button
                   key={t.id}
                   type="button"
-                  onClick={() => setActiveTool(t.id)}
-                  className={`flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition-all ${
+                  onClick={() => switchTool(t.id)}
+                  disabled={!!busy}
+                  className={`flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition-all disabled:opacity-50 ${
                     active
                       ? 'bg-white text-gray-900 shadow-sm'
                       : 'text-gray-500 hover:text-gray-800'
@@ -413,7 +450,7 @@ function EmbedStudio() {
           <div className="min-w-0 flex-1 md:hidden">
             <select
               value={activeTool}
-              onChange={e => setActiveTool(e.target.value as EmbedToolId)}
+              onChange={e => switchTool(e.target.value as EmbedToolId)}
               className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm font-medium text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
               aria-label="Switch tool"
             >
@@ -595,8 +632,9 @@ function EmbedStudio() {
           <EmbedBrush
             originalUrl={brushOriginalUrl}
             cutoutUrl={brushCutoutUrl}
-            onCommit={commitRefine}
+            onCommit={uploadRefined}
             onCancel={() => setBgWorkspace(false)}
+            registerCommit={fn => (pendingBrushCommit.current = fn)}
           />
         </div>
       ) : (
