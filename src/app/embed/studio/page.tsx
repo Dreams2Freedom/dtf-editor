@@ -29,7 +29,16 @@ import {
   Loader2,
 } from 'lucide-react';
 import EmbedBrush from './EmbedBrush';
-import { UpscaleOptions, type UpscaleOpts } from './UpscaleOptions';
+import { MODES as UPSCALE_MODES, type UpscaleOpts } from './UpscaleOptions';
+
+type EmbedToolId = 'remove' | 'upscale' | 'vectorize' | 'dpi';
+const EMBED_TOOLS: { id: EmbedToolId; label: string; icon: typeof Scissors }[] =
+  [
+    { id: 'remove', label: 'Remove BG', icon: Scissors },
+    { id: 'upscale', label: 'Upscale', icon: ArrowUpCircle },
+    { id: 'vectorize', label: 'Vectorize', icon: Pen },
+    { id: 'dpi', label: 'DPI Check', icon: Ruler },
+  ];
 
 type Status = 'loading' | 'ready' | 'invalid';
 
@@ -48,8 +57,8 @@ function EmbedStudio() {
   const [error, setError] = useState<string | null>(null);
   const [printW, setPrintW] = useState(11);
   const [printH, setPrintH] = useState(11);
-  // Upscale options popover (mirrors the real tool: scale + mode + face enhance).
-  const [upscaleOpen, setUpscaleOpen] = useState(false);
+  // Active tool (Studio-style pill switcher) + upscale options.
+  const [activeTool, setActiveTool] = useState<EmbedToolId>('remove');
   const [upscaleOpts, setUpscaleOpts] = useState<UpscaleOpts>({
     scale: 4,
     processingMode: 'auto_enhance',
@@ -382,24 +391,211 @@ function EmbedStudio() {
 
   return (
     <div className="flex h-screen flex-col bg-gray-100">
-      {/* Header */}
-      <div className="flex items-center justify-between gap-3 border-b border-gray-200 bg-white px-4 py-2">
-        <span className="text-sm font-semibold text-gray-800">Edit image</span>
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={cancel}
-            className="flex items-center gap-1 rounded-lg px-3 py-1.5 text-sm font-medium text-gray-600 hover:bg-gray-100"
-          >
-            <X className="h-4 w-4" /> Cancel
-          </button>
-          <button
-            type="button"
-            onClick={done}
-            className="flex items-center gap-1 rounded-lg bg-blue-600 px-3 py-1.5 text-sm font-semibold text-white hover:bg-blue-700"
-          >
-            <Check className="h-4 w-4" /> Done
-          </button>
+      {/* Header — Studio-style pill switcher + session actions. */}
+      <div className="border-b border-gray-200 bg-white px-3 py-2 sm:px-4">
+        <div className="flex items-center justify-between gap-2 sm:gap-4">
+          <span className="hidden text-sm font-semibold text-gray-800 sm:block">
+            Edit image
+          </span>
+
+          {/* Tool switcher: pill row (desktop) / native select (mobile). */}
+          <div className="hidden items-center gap-1 rounded-lg bg-gray-100 p-1 md:flex">
+            {EMBED_TOOLS.map(t => {
+              const Icon = t.icon;
+              const active = activeTool === t.id;
+              return (
+                <button
+                  key={t.id}
+                  type="button"
+                  onClick={() => setActiveTool(t.id)}
+                  className={`flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition-all ${
+                    active
+                      ? 'bg-white text-gray-900 shadow-sm'
+                      : 'text-gray-500 hover:text-gray-800'
+                  }`}
+                >
+                  <Icon className="h-3.5 w-3.5" />
+                  {t.label}
+                </button>
+              );
+            })}
+          </div>
+          <div className="min-w-0 flex-1 md:hidden">
+            <select
+              value={activeTool}
+              onChange={e => setActiveTool(e.target.value as EmbedToolId)}
+              className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm font-medium text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              aria-label="Switch tool"
+            >
+              {EMBED_TOOLS.map(t => (
+                <option key={t.id} value={t.id}>
+                  {t.label}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="flex flex-shrink-0 items-center gap-1.5">
+            <button
+              type="button"
+              onClick={cancel}
+              className="flex items-center gap-1 rounded-md px-2 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-100 sm:px-3"
+            >
+              <X className="h-4 w-4" />
+              <span className="hidden sm:inline">Cancel</span>
+            </button>
+            <button
+              type="button"
+              onClick={done}
+              className="flex items-center gap-1 rounded-md bg-blue-600 px-2 py-1.5 text-xs font-semibold text-white hover:bg-blue-700 sm:px-3"
+            >
+              <Check className="h-4 w-4" />
+              <span className="hidden sm:inline">Done</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Per-tool control strip (mirrors the real Studio's per-tool panel). */}
+      <div className="border-b border-gray-200 bg-white px-3 py-2 sm:px-4">
+        <div className="flex flex-wrap items-center gap-2">
+          {activeTool === 'remove' && (
+            <>
+              <StripButton
+                label="Remove background"
+                icon={<Scissors className="h-4 w-4" />}
+                busy={busy === 'background-removal'}
+                disabled={!!busy}
+                primary
+                onClick={() => runTransform('background-removal')}
+              />
+              {canRefine && (
+                <StripButton
+                  label="Refine edges"
+                  icon={<Sparkles className="h-4 w-4" />}
+                  busy={busy === 'refine'}
+                  disabled={!!busy}
+                  onClick={openRefine}
+                />
+              )}
+              <span className="text-xs text-gray-400">
+                In-house SAM cutout. After removing, refine the edges by hand.
+              </span>
+            </>
+          )}
+
+          {activeTool === 'upscale' && (
+            <>
+              <div className="flex overflow-hidden rounded-lg border border-gray-200">
+                {([2, 4] as const).map(s => (
+                  <button
+                    key={s}
+                    type="button"
+                    onClick={() => setUpscaleOpts(o => ({ ...o, scale: s }))}
+                    className={`px-3 py-1.5 text-sm font-medium ${
+                      upscaleOpts.scale === s
+                        ? 'bg-blue-600 text-white'
+                        : 'bg-white text-gray-700 hover:bg-gray-50'
+                    }`}
+                  >
+                    {s}×
+                  </button>
+                ))}
+              </div>
+              <select
+                value={upscaleOpts.processingMode}
+                onChange={e =>
+                  setUpscaleOpts(o => ({
+                    ...o,
+                    processingMode: e.target
+                      .value as UpscaleOpts['processingMode'],
+                  }))
+                }
+                className="rounded-lg border border-gray-300 px-2 py-1.5 text-sm text-gray-700"
+              >
+                {UPSCALE_MODES.map(m => (
+                  <option key={m.value} value={m.value}>
+                    {m.label}
+                  </option>
+                ))}
+              </select>
+              <label className="flex items-center gap-1.5 text-sm text-gray-600">
+                <input
+                  type="checkbox"
+                  checked={upscaleOpts.faceEnhance}
+                  onChange={e =>
+                    setUpscaleOpts(o => ({
+                      ...o,
+                      faceEnhance: e.target.checked,
+                    }))
+                  }
+                  className="h-4 w-4 accent-blue-600"
+                />
+                Faces
+              </label>
+              <StripButton
+                label="Apply upscale"
+                icon={<ArrowUpCircle className="h-4 w-4" />}
+                busy={busy === 'upscale'}
+                disabled={!!busy}
+                primary
+                onClick={() =>
+                  runTransform('upscale', {
+                    scale: upscaleOpts.scale,
+                    processingMode: upscaleOpts.processingMode,
+                    faceEnhance: upscaleOpts.faceEnhance,
+                  })
+                }
+              />
+            </>
+          )}
+
+          {activeTool === 'vectorize' && (
+            <>
+              <StripButton
+                label="Vectorize"
+                icon={<Pen className="h-4 w-4" />}
+                busy={busy === 'vectorize'}
+                disabled={!!busy}
+                primary
+                onClick={() => runTransform('vectorize')}
+              />
+              <span className="text-xs text-gray-400">
+                Convert to a clean, scalable vector (SVG).
+              </span>
+            </>
+          )}
+
+          {activeTool === 'dpi' && (
+            <>
+              <div className="flex items-center gap-1 text-xs text-gray-500">
+                <input
+                  type="number"
+                  value={printW}
+                  min={1}
+                  onChange={e => setPrintW(Number(e.target.value) || 1)}
+                  className="w-14 rounded border border-gray-300 px-1 py-1 text-center"
+                />
+                <span>×</span>
+                <input
+                  type="number"
+                  value={printH}
+                  min={1}
+                  onChange={e => setPrintH(Number(e.target.value) || 1)}
+                  className="w-14 rounded border border-gray-300 px-1 py-1 text-center"
+                />
+                <span>in</span>
+              </div>
+              <StripButton
+                label="Check DPI"
+                icon={<Ruler className="h-4 w-4" />}
+                busy={busy === 'dpi-check'}
+                disabled={!!busy}
+                primary
+                onClick={runDpi}
+              />
+            </>
+          )}
         </div>
       </div>
 
@@ -488,87 +684,11 @@ function EmbedStudio() {
         </div>
       )}
 
-      {/* Toolbar */}
-      <div className="border-t border-gray-200 bg-white px-3 py-2">
-        <div className="flex flex-wrap items-center gap-2">
-          <ToolButton
-            label="Remove BG"
-            icon={<Scissors className="h-4 w-4" />}
-            busy={busy === 'background-removal'}
-            disabled={!!busy}
-            onClick={() => runTransform('background-removal')}
-          />
-          <div className="relative inline-block">
-            <ToolButton
-              label="Upscale"
-              icon={<ArrowUpCircle className="h-4 w-4" />}
-              busy={busy === 'upscale'}
-              disabled={!!busy}
-              onClick={() => setUpscaleOpen(o => !o)}
-            />
-            <UpscaleOptions
-              open={upscaleOpen}
-              onClose={() => setUpscaleOpen(false)}
-              busy={busy === 'upscale'}
-              value={upscaleOpts}
-              onChange={setUpscaleOpts}
-              onApply={() => {
-                setUpscaleOpen(false);
-                runTransform('upscale', {
-                  scale: upscaleOpts.scale,
-                  processingMode: upscaleOpts.processingMode,
-                  faceEnhance: upscaleOpts.faceEnhance,
-                });
-              }}
-            />
-          </div>
-          <ToolButton
-            label="Vectorize"
-            icon={<Pen className="h-4 w-4" />}
-            busy={busy === 'vectorize'}
-            disabled={!!busy}
-            onClick={() => runTransform('vectorize')}
-          />
-          {canRefine && (
-            <ToolButton
-              label="Refine"
-              icon={<Sparkles className="h-4 w-4" />}
-              busy={busy === 'refine'}
-              disabled={!!busy}
-              onClick={openRefine}
-            />
-          )}
-          <div className="mx-1 h-6 w-px bg-gray-200" />
-          <div className="flex items-center gap-1 text-xs text-gray-500">
-            <input
-              type="number"
-              value={printW}
-              min={1}
-              onChange={e => setPrintW(Number(e.target.value) || 1)}
-              className="w-12 rounded border border-gray-300 px-1 py-0.5 text-center"
-            />
-            <span>×</span>
-            <input
-              type="number"
-              value={printH}
-              min={1}
-              onChange={e => setPrintH(Number(e.target.value) || 1)}
-              className="w-12 rounded border border-gray-300 px-1 py-0.5 text-center"
-            />
-            <span>in</span>
-          </div>
-          <ToolButton
-            label="DPI Check"
-            icon={<Ruler className="h-4 w-4" />}
-            busy={busy === 'dpi-check'}
-            disabled={!!busy}
-            onClick={runDpi}
-          />
-          <div className="flex-1" />
-          <span className="text-xs text-gray-400">
-            Session cost: ${(totalCents / 100).toFixed(2)}
-          </span>
-        </div>
+      {/* Footer — session cost. */}
+      <div className="flex items-center justify-end border-t border-gray-200 bg-white px-4 py-2">
+        <span className="text-xs text-gray-400">
+          Session cost: ${(totalCents / 100).toFixed(2)}
+        </span>
       </div>
 
       {/* Refine brush overlay — rendered at the ROOT (not inside the canvas
@@ -587,25 +707,31 @@ function EmbedStudio() {
   );
 }
 
-function ToolButton({
+function StripButton({
   label,
   icon,
   busy,
   disabled,
   onClick,
+  primary = false,
 }: {
   label: string;
   icon: React.ReactNode;
   busy: boolean;
   disabled: boolean;
   onClick: () => void;
+  primary?: boolean;
 }) {
   return (
     <button
       type="button"
       onClick={onClick}
       disabled={disabled}
-      className="flex items-center gap-1.5 rounded-lg border border-gray-300 px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+      className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium disabled:opacity-50 ${
+        primary
+          ? 'bg-blue-600 text-white hover:bg-blue-700'
+          : 'border border-gray-300 text-gray-700 hover:bg-gray-50'
+      }`}
     >
       {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : icon}
       {label}
