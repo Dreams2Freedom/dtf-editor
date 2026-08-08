@@ -31,15 +31,20 @@ import { Check, X, Loader2, Undo2, Hand, Brush } from 'lucide-react';
 import {
   strokeToSeeds,
   growRegionFromStroke,
+  fillConnectedRegion,
+  computeBackgroundMask,
+  detectBorderColor,
   featherAlpha,
 } from '@/lib/bg-brush/scribble';
 
-// Mirror the main Studio's tuning so the embed brush behaves identically.
+// Mirror the real DTF Editor Studio brush tuning exactly (see
+// src/tools/bg-removal/Panel.tsx) so the embed brush behaves identically.
 const GROW_SEED_RADIUS_DIVISOR = 4; // seed disc radius = brushSize / this
-const GROW_REACH_PER_SIZE = 6; // BFS reach (px) per brush-size unit
+const GROW_MEDIUM_REACH_PER_SIZE = 18; // BFS reach (px) per brush-size unit (fill tier)
 const GROW_EDGE_THRESHOLD = 40; // per-step RGB gradient that counts as an edge
 const GROW_FLOOD_COLOR_TOLERANCE = 115; // max RGB distance from the seed mean
 const REACH_REFERENCE_DIM = 1400; // reach scales up for larger images
+const BG_CONNECT_TOLERANCE = 70; // border-colour band for the background partition
 const FEATHER_RADIUS = 1; // soft-edge ramp on the exported alpha
 const ALPHA_KEEP_THRESHOLD = 16; // cutout alpha above this seeds the keep-mask
 const MAX_UNDO = 25;
@@ -85,6 +90,10 @@ export default function EmbedBrush({
   const origDataRef = useRef<Uint8ClampedArray | null>(null);
   const keepMaskRef = useRef<Uint8Array | null>(null);
   const undoRef = useRef<Uint8Array[]>([]);
+  // Background partition (border-connected background over the ORIGINAL pixels),
+  // computed lazily once per image and reused by every stroke — the same
+  // "fill" mechanism the real Studio brush uses to snap to the whole shape.
+  const bgMaskRef = useRef<Uint8Array | null>(null);
 
   // Visible canvas (intrinsic size = image size; CSS size = fit × zoom).
   const viewRef = useRef<HTMLCanvasElement | null>(null);
@@ -150,6 +159,8 @@ export default function EmbedBrush({
         if (!octx) throw new Error('Canvas unavailable');
         octx.drawImage(origImg, 0, 0, w, h);
         origDataRef.current = octx.getImageData(0, 0, w, h).data;
+        // New original → invalidate the cached background partition.
+        bgMaskRef.current = null;
 
         // Seed the keep-mask from the cutout's alpha (drawn at the SAME size, so
         // a resolution mismatch between the two sources can't shift the mask).
@@ -207,24 +218,58 @@ export default function EmbedBrush({
       const sizeAtCommit = brushSizeRef.current;
       const toolAtCommit = toolRef.current;
 
+      // Seeds from the stroke footprint (a solid disc per point).
       const seedRadius = Math.max(1, sizeAtCommit / GROW_SEED_RADIUS_DIVISOR);
       const seeds = strokeToSeeds(path, seedRadius, w, h);
+
+      // Continuous, size-scaled reach — bigger brush travels farther, but always
+      // BOUNDED (never the whole image), scaled up for high-res inputs.
       const resFactor = Math.max(1, Math.max(w, h) / REACH_REFERENCE_DIM);
       const reachRadius = Math.max(
         1,
-        sizeAtCommit * GROW_REACH_PER_SIZE * resFactor
+        sizeAtCommit * GROW_MEDIUM_REACH_PER_SIZE * resFactor
       );
 
-      // Edge-aware region grow over the ORIGINAL pixels — snaps to real edges,
-      // stays within a colour band of the seed, bounded by the brush reach.
-      const region = growRegionFromStroke(orig, w, h, seeds, {
-        reachRadius,
-        edgeThreshold: GROW_EDGE_THRESHOLD,
-        colorTolerance: GROW_FLOOD_COLOR_TOLERANCE,
-      });
-      // Always claim the literal brush footprint, so a stroke does at least what
-      // you painted even when the smart grow finds nothing (e.g. a subject part
-      // the same colour as the removed background).
+      // Background partition over the ORIGINAL pixels (border colour →
+      // border-connected background), computed once and cached. This is what
+      // makes the real brush "snap" to the whole subject/background instead of
+      // a local blob: Keep fills the foreground shape (bgMask 0), Remove fills
+      // the background area (bgMask 1), bounded by the reach.
+      if (!bgMaskRef.current) {
+        const bgColor = detectBorderColor(orig, w, h);
+        bgMaskRef.current = computeBackgroundMask(
+          orig,
+          w,
+          h,
+          bgColor,
+          BG_CONNECT_TOLERANCE
+        );
+      }
+      const bgMask = bgMaskRef.current;
+      const passValue: 0 | 1 = toolAtCommit === 'keep' ? 0 : 1;
+      let region = fillConnectedRegion(bgMask, passValue, w, h, seeds, reachRadius);
+
+      // Fallback: if the partition fill found nothing (e.g. a Keep stroke on
+      // bare background, or a subject part sharing the bg colour), use the
+      // edge-aware grow bounded by the SAME reach so the stroke stays local.
+      let any = false;
+      for (let i = 0; i < region.length; i++) {
+        if (region[i]) {
+          any = true;
+          break;
+        }
+      }
+      if (!any) {
+        region = growRegionFromStroke(orig, w, h, seeds, {
+          reachRadius,
+          edgeThreshold: GROW_EDGE_THRESHOLD,
+          colorTolerance: GROW_FLOOD_COLOR_TOLERANCE,
+        });
+      }
+      if (region.length !== total) return;
+
+      // Always claim the literal brush footprint, so a stroke ALWAYS does at
+      // least what you painted — even when the smart fill finds nothing.
       const footprintRadius = Math.max(1, sizeAtCommit / 2);
       const footprint = strokeToSeeds(path, footprintRadius, w, h);
       for (const idx of footprint) region[idx] = 1;
