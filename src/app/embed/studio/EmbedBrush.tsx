@@ -43,6 +43,13 @@ interface Props {
   cutoutUrl: string;
   onCommit: (blob: Blob) => void;
   onCancel: () => void;
+  /**
+   * Register a "flush" callback the parent can call to export any UNSAVED brush
+   * edits as a PNG (e.g. when the user switches tools, so the strokes carry
+   * over without an explicit Apply). Resolves to null when there's nothing
+   * unsaved. The parent uploads the blob and makes it the working image.
+   */
+  registerCommit?: (fn: (() => Promise<Blob | null>) | null) => void;
 }
 
 function loadImage(url: string): Promise<HTMLImageElement> {
@@ -70,6 +77,7 @@ export default function EmbedBrush({
   cutoutUrl,
   onCommit,
   onCancel,
+  registerCommit,
 }: Props) {
   const [ready, setReady] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -93,6 +101,8 @@ export default function EmbedBrush({
   const keepMaskRef = useRef<Uint8Array | null>(null);
   const undoRef = useRef<Uint8Array[]>([]);
   const bgMaskRef = useRef<Uint8Array | null>(null);
+  // Unsaved edits since the last export (Apply or flush-on-switch).
+  const dirtyRef = useRef(false);
 
   const viewRef = useRef<HTMLCanvasElement | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -311,10 +321,32 @@ export default function EmbedBrush({
       } else {
         for (let i = 0; i < total; i++) keep[i] = keep[i] & (region[i] ^ 1);
       }
+      dirtyRef.current = true;
       repaint();
     },
     [repaint]
   );
+
+  // Expose a flush callback so the parent can auto-save unsaved strokes when the
+  // user switches tools (carry the refined cutout forward without an explicit
+  // Apply). Resolves null when there's nothing unsaved.
+  useEffect(() => {
+    if (!registerCommit) return;
+    const flush = () =>
+      new Promise<Blob | null>(resolve => {
+        const canvas = viewRef.current;
+        if (!dirtyRef.current || !canvas) {
+          resolve(null);
+          return;
+        }
+        canvas.toBlob(blob => {
+          dirtyRef.current = false;
+          resolve(blob);
+        }, 'image/png');
+      });
+    registerCommit(flush);
+    return () => registerCommit(null);
+  }, [registerCommit]);
 
   // ---- Pointer handling (draw or pan), all on the viewport container ----
   const onPointerDown = (e: React.PointerEvent) => {
@@ -383,8 +415,10 @@ export default function EmbedBrush({
     setBusy(true);
     canvas.toBlob(blob => {
       setBusy(false);
-      if (blob) onCommit(blob);
-      else setLoadError('Could not export the refined image.');
+      if (blob) {
+        dirtyRef.current = false; // saved
+        onCommit(blob);
+      } else setLoadError('Could not export the refined image.');
     }, 'image/png');
   }, [onCommit]);
 
