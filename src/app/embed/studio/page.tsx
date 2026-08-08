@@ -23,7 +23,6 @@ import {
   ArrowUpCircle,
   Pen,
   Ruler,
-  Sparkles,
   Check,
   X,
   Loader2,
@@ -76,17 +75,15 @@ function EmbedStudio() {
   // relying on the iframe load event (which fires even for a blocked frame).
   const readyPostedRef = useRef(false);
 
-  // Smart refine brush (client-side, free). After Remove BG we hold the pre-cut
-  // original (`brushOriginalUrl`, CORS-clean re-host so its pixels are canvas-
-  // readable) and the cutout (`workingUrl`). Opening the brush lets the merchant
-  // paint Keep/Remove to fix the cut; the refined PNG is uploaded via a signed
-  // URL and becomes the new result. `canRefine` gates the button to "there is a
-  // cut to refine".
-  const [brushOpen, setBrushOpen] = useState(false);
+  // Background-removal workspace (the integrated dual-panel brush — like the
+  // real DTF Editor bg-removal tool). Selecting Remove BG runs the SAM cut AND
+  // re-hosts the pre-cut original (CORS-clean, so the brush can read its
+  // pixels), then drops the user straight into the inline brush — no separate
+  // "Refine" step. `brushCutoutUrl` is the cut used to seed the brush (captured
+  // once so re-applying edits doesn't remount/reset the workspace).
+  const [bgWorkspace, setBgWorkspace] = useState(false);
   const [brushOriginalUrl, setBrushOriginalUrl] = useState<string | null>(null);
-  const [canRefine, setCanRefine] = useState(false);
-  // The image the LAST Remove BG ran on — the "original" the brush restores from.
-  const preCutUrlRef = useRef<string | null>(null);
+  const [brushCutoutUrl, setBrushCutoutUrl] = useState<string | null>(null);
 
   // #5: pan + zoom on the edited image so merchants can inspect edges (esp.
   // after background removal) before accepting. Self-contained to the embed —
@@ -235,71 +232,67 @@ function EmbedStudio() {
 
   const runTransform = useCallback(
     async (path: string, extra: Record<string, unknown> = {}) => {
-      // Capture the tool INPUT before it's replaced — for Remove BG this is the
-      // pre-cut original the refine brush restores wrongly-removed areas from.
-      // Use the FULL url (query intact): it's the exact string callTool just
-      // fetched, so it's guaranteed fetchable. Stripping "?..." would drop a
-      // presigned URL's signature (S3 / Shopify CDN), which then 403s when the
-      // rehost route re-fetches it — surfacing as "Could not fetch imageUrl".
-      const inputUrl = workingUrl;
       const data = await callTool(path, extra);
       if (data?.resultUrl && typeof data.resultUrl === 'string') {
         // Record the canonical result (no cache-bust query) so Done posts the
         // real edited file, not the input. Then cache-bust the <img> src.
         lastResultUrlRef.current = data.resultUrl;
         setWorkingUrl(`${data.resultUrl}?v=${Date.now()}`);
-        if (path === 'background-removal') {
-          // Enable the refine brush against the image we just cut.
-          preCutUrlRef.current = inputUrl;
-          setBrushOriginalUrl(null); // re-host lazily on open
-          setCanRefine(true);
-        } else {
-          // Any other transform changes the pixels — the old cut no longer
-          // matches, so hide Refine until the next Remove BG.
-          setCanRefine(false);
-        }
+        // Any non-bg transform changes the pixels — an open bg workspace no
+        // longer matches, so close it.
+        setBgWorkspace(false);
       }
     },
-    [callTool, workingUrl]
+    [callTool]
   );
 
-  // Open the refine brush: ensure we have a CORS-clean copy of the pre-cut
-  // original (the merchant's input often lacks CORS headers, which would taint
-  // the canvas and block PNG export), then show the brush over the cutout.
-  const openRefine = useCallback(async () => {
-    const preCut = preCutUrlRef.current;
-    if (!preCut) return;
+  // Start background removal: run the SAM cut AND re-host the pre-cut original
+  // (CORS-clean, so the brush can read its pixels) in parallel, then drop the
+  // user straight into the integrated dual-panel brush workspace — no separate
+  // "Refine" step, mirroring the real DTF Editor bg-removal tool.
+  const startBgRemoval = useCallback(async () => {
+    // Full URL (query intact) — the exact string callTool fetches, so the
+    // rehost re-fetch is guaranteed to work even for presigned inputs.
+    const preCut = workingUrl;
     setError(null);
-    if (brushOriginalUrl) {
-      setBrushOpen(true);
-      return;
-    }
-    setBusy('refine');
+    setNote(null);
+    setBusy('background-removal');
     try {
-      const res = await fetch('/api/partner/v1/rehost', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'X-Embed-Token': token },
-        body: JSON.stringify({ imageUrl: preCut }),
-      });
-      const data = await res.json();
-      if (!res.ok || !data.url) {
-        throw new Error(data.error || 'Could not prepare the brush.');
+      const [cutData, rehost] = await Promise.all([
+        callTool('background-removal'),
+        fetch('/api/partner/v1/rehost', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-Embed-Token': token,
+          },
+          body: JSON.stringify({ imageUrl: preCut }),
+        }).then(async r => ({ ok: r.ok, body: await r.json().catch(() => ({})) })),
+      ]);
+      if (!cutData?.resultUrl || typeof cutData.resultUrl !== 'string') {
+        return; // callTool already surfaced the error
       }
-      setBrushOriginalUrl(data.url as string);
-      setBrushOpen(true);
+      if (!rehost.ok || !rehost.body?.url) {
+        throw new Error(rehost.body?.error || 'Could not prepare the brush.');
+      }
+      const cutoutUrl = cutData.resultUrl as string;
+      lastResultUrlRef.current = cutoutUrl;
+      setBrushCutoutUrl(cutoutUrl);
+      setBrushOriginalUrl(rehost.body.url as string);
+      setWorkingUrl(`${cutoutUrl}?v=${Date.now()}`);
+      setBgWorkspace(true);
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Could not open the brush.');
+      setError(e instanceof Error ? e.message : 'Background removal failed.');
     } finally {
       setBusy(null);
     }
-  }, [brushOriginalUrl, token]);
+  }, [callTool, token, workingUrl]);
 
-  // Commit a refined PNG from the brush: upload it to Storage via a one-shot
-  // signed URL (bypasses Vercel's ~4.5MB body limit), then make its public URL
-  // the new result. No tool endpoint is charged — the brush is free.
+  // Apply the brush's current cutout: upload the refined PNG via a one-shot
+  // signed URL (bypasses Vercel's ~4.5MB limit) and make it the new result.
+  // Free — no tool endpoint is charged. The workspace stays open.
   const commitRefine = useCallback(
     async (blob: Blob) => {
-      setBrushOpen(false);
       setError(null);
       setBusy('refine');
       try {
@@ -327,11 +320,8 @@ function EmbedStudio() {
         if (upErr) throw new Error(upErr.message);
         const publicUrl = data.publicUrl as string;
         lastResultUrlRef.current = publicUrl;
-        // The refined PNG becomes the new cutout (seed for the next refine pass).
-        // We keep `brushOriginalUrl` (the re-hosted TRUE original) cached so a
-        // second pass still restores from real pixels, not the transparent cut.
         setWorkingUrl(`${publicUrl}?v=${Date.now()}`);
-        setNote('Edges refined.');
+        setNote('Edges applied.');
       } catch (e) {
         setError(e instanceof Error ? e.message : 'Could not save the image.');
       } finally {
@@ -462,24 +452,17 @@ function EmbedStudio() {
           {activeTool === 'remove' && (
             <>
               <StripButton
-                label="Remove background"
+                label={bgWorkspace ? 'Re-run cutout' : 'Remove background'}
                 icon={<Scissors className="h-4 w-4" />}
                 busy={busy === 'background-removal'}
                 disabled={!!busy}
                 primary
-                onClick={() => runTransform('background-removal')}
+                onClick={startBgRemoval}
               />
-              {canRefine && (
-                <StripButton
-                  label="Refine edges"
-                  icon={<Sparkles className="h-4 w-4" />}
-                  busy={busy === 'refine'}
-                  disabled={!!busy}
-                  onClick={openRefine}
-                />
-              )}
               <span className="text-xs text-gray-400">
-                In-house SAM cutout. After removing, refine the edges by hand.
+                {bgWorkspace
+                  ? 'Paint Keep / Remove to refine, then Apply.'
+                  : 'In-house SAM cutout, then hand-refine the edges.'}
               </span>
             </>
           )}
@@ -599,20 +582,34 @@ function EmbedStudio() {
         </div>
       </div>
 
-      {/* Canvas */}
-      <div
-        ref={canvasRef}
-        onPointerDown={onCanvasPointerDown}
-        onPointerMove={onCanvasPointerMove}
-        onPointerUp={onCanvasPointerUp}
-        onPointerCancel={onCanvasPointerUp}
-        onDoubleClick={resetViewport}
-        className={`relative flex flex-1 items-center justify-center overflow-hidden p-4 select-none ${
-          dragging ? 'cursor-grabbing' : 'cursor-grab'
-        }`}
-        style={{ background: CHECKER, touchAction: 'none' }}
-      >
+      {/* Canvas — integrated bg-removal workspace for the Remove BG tool,
+          otherwise the generic pan/zoom image viewer. */}
+      {activeTool === 'remove' &&
+      bgWorkspace &&
+      brushOriginalUrl &&
+      brushCutoutUrl ? (
+        <div className="flex min-h-0 flex-1">
+          <EmbedBrush
+            originalUrl={brushOriginalUrl}
+            cutoutUrl={brushCutoutUrl}
+            onCommit={commitRefine}
+            onCancel={() => setBgWorkspace(false)}
+          />
+        </div>
+      ) : (
         <div
+          ref={canvasRef}
+          onPointerDown={onCanvasPointerDown}
+          onPointerMove={onCanvasPointerMove}
+          onPointerUp={onCanvasPointerUp}
+          onPointerCancel={onCanvasPointerUp}
+          onDoubleClick={resetViewport}
+          className={`relative flex flex-1 items-center justify-center overflow-hidden p-4 select-none ${
+            dragging ? 'cursor-grabbing' : 'cursor-grab'
+          }`}
+          style={{ background: CHECKER, touchAction: 'none' }}
+        >
+          <div
           style={{
             transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})`,
             transformOrigin: 'center',
@@ -665,13 +662,16 @@ function EmbedStudio() {
           </button>
         </div>
 
-        {busy && (
-          <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-white/60 backdrop-blur-sm">
-            <Loader2 className="h-7 w-7 animate-spin text-blue-600" />
-            <span className="text-sm font-medium text-gray-700">Working…</span>
-          </div>
-        )}
-      </div>
+          {busy && (
+            <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-white/60 backdrop-blur-sm">
+              <Loader2 className="h-7 w-7 animate-spin text-blue-600" />
+              <span className="text-sm font-medium text-gray-700">
+                Working…
+              </span>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Messages */}
       {(note || error) && (
@@ -691,18 +691,6 @@ function EmbedStudio() {
         </span>
       </div>
 
-      {/* Refine brush overlay — rendered at the ROOT (not inside the canvas
-          div), so its pointer/wheel events don't bubble into the Studio's
-          pan/zoom handlers (which would steal the pointer and break painting).
-          It's fixed inset-0, so DOM position doesn't affect its placement. */}
-      {brushOpen && brushOriginalUrl && (
-        <EmbedBrush
-          originalUrl={brushOriginalUrl}
-          cutoutUrl={workingUrl}
-          onCommit={commitRefine}
-          onCancel={() => setBrushOpen(false)}
-        />
-      )}
     </div>
   );
 }
