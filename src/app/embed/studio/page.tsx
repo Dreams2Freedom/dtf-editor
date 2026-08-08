@@ -469,21 +469,23 @@ function EmbedStudio() {
 
           {activeTool === 'upscale' && (
             <>
-              <div className="flex overflow-hidden rounded-lg border border-gray-200">
-                {([2, 4] as const).map(s => (
-                  <button
-                    key={s}
-                    type="button"
-                    onClick={() => setUpscaleOpts(o => ({ ...o, scale: s }))}
-                    className={`px-3 py-1.5 text-sm font-medium ${
-                      upscaleOpts.scale === s
-                        ? 'bg-blue-600 text-white'
-                        : 'bg-white text-gray-700 hover:bg-gray-50'
-                    }`}
-                  >
-                    {s}×
-                  </button>
-                ))}
+              <div className="flex items-center gap-1 text-xs text-gray-500">
+                <input
+                  type="number"
+                  value={printW}
+                  min={1}
+                  onChange={e => setPrintW(Number(e.target.value) || 1)}
+                  className="w-14 rounded border border-gray-300 px-1 py-1 text-center"
+                />
+                <span>×</span>
+                <input
+                  type="number"
+                  value={printH}
+                  min={1}
+                  onChange={e => setPrintH(Number(e.target.value) || 1)}
+                  className="w-14 rounded border border-gray-300 px-1 py-1 text-center"
+                />
+                <span>in → 300&nbsp;DPI</span>
               </div>
               <select
                 value={upscaleOpts.processingMode}
@@ -517,14 +519,15 @@ function EmbedStudio() {
                 Faces
               </label>
               <StripButton
-                label="Apply upscale"
+                label="Upscale to 300 DPI"
                 icon={<ArrowUpCircle className="h-4 w-4" />}
                 busy={busy === 'upscale'}
                 disabled={!!busy}
                 primary
                 onClick={() =>
                   runTransform('upscale', {
-                    scale: upscaleOpts.scale,
+                    targetWidthInches: printW,
+                    targetHeightInches: printH,
                     processingMode: upscaleOpts.processingMode,
                     faceEnhance: upscaleOpts.faceEnhance,
                   })

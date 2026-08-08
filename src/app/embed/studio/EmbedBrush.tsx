@@ -1,42 +1,18 @@
 'use client';
 
 /**
- * Embed Studio — client-side edge-aware refine brush.
+ * Embed Studio — client-side edge-aware refine brush (BG removal workspace).
  *
- * This is the "smart brush" from the main DTF Studio, ported into the
- * cross-origin Partner embed as a SELF-CONTAINED component. It deliberately
- * does NOT import the main Studio's bg-removal Panel or its `api.ts` client:
- * that path is coupled to a logged-in DTF session (Supabase auth cookies,
- * server SAM endpoints) which don't exist inside a merchant's iframe. Instead
- * it reuses only the PURE geometry functions from `scribbleBrush.ts`
- * (no session/network coupling) and runs entirely in the browser.
- *
- * Flow:
- *   - `originalUrl`  = CORS-clean re-host of the merchant's input (so its pixels
- *     can be read onto a <canvas> without tainting it → export stays allowed).
- *   - `cutoutUrl`    = the current Remove-BG result (already on our Supabase
- *     host, so it's CORS-clean). Its alpha channel seeds the initial keep-mask.
- *   - Keep / Remove strokes grow an edge-aware region over the ORIGINAL pixels
- *     and add/subtract it from the keep-mask.
- *   - On commit we composite ORIGINAL RGB × feathered(keep-mask) alpha and
- *     export a full-resolution PNG, handed back to the page for upload.
- *
- * The brush itself is FREE — no tool endpoint is called here. Metering happened
- * once on the initial Remove-BG ("charge initial only"); manual refinement is
- * unmetered by design.
+ * Self-contained port of the real DTF Editor bg-removal brush: it reuses only
+ * the PURE geometry from `@/lib/bg-brush/scribble` (no session/network/tool
+ * coupling) and runs entirely in the browser. Single editing canvas with an
+ * open (drag-to-pan, wheel/buttons-to-zoom) viewport, a live coloured stroke
+ * overlay (green = Keep, red = Remove), and the real stroke pipeline
+ * (background-partition fill + edge-aware grow fallback + feathered export).
  */
 
 import { useCallback, useEffect, useRef, useState } from 'react';
-import {
-  Check,
-  X,
-  Loader2,
-  Undo2,
-  Hand,
-  Brush,
-  Eye,
-  EyeOff,
-} from 'lucide-react';
+import { Check, X, Loader2, Undo2, Hand, Brush } from 'lucide-react';
 import {
   strokeToSeeds,
   growRegionFromStroke,
@@ -46,17 +22,19 @@ import {
   featherAlpha,
 } from '@/lib/bg-brush/scribble';
 
-// Mirror the real DTF Editor Studio brush tuning exactly (see
-// src/tools/bg-removal/Panel.tsx) so the embed brush behaves identically.
-const GROW_SEED_RADIUS_DIVISOR = 4; // seed disc radius = brushSize / this
-const GROW_MEDIUM_REACH_PER_SIZE = 18; // BFS reach (px) per brush-size unit (fill tier)
-const GROW_EDGE_THRESHOLD = 40; // per-step RGB gradient that counts as an edge
-const GROW_FLOOD_COLOR_TOLERANCE = 115; // max RGB distance from the seed mean
-const REACH_REFERENCE_DIM = 1400; // reach scales up for larger images
-const BG_CONNECT_TOLERANCE = 70; // border-colour band for the background partition
-const FEATHER_RADIUS = 1; // soft-edge ramp on the exported alpha
-const ALPHA_KEEP_THRESHOLD = 16; // cutout alpha above this seeds the keep-mask
+// Mirror the real DTF Editor Studio brush tuning exactly.
+const GROW_SEED_RADIUS_DIVISOR = 4;
+const GROW_MEDIUM_REACH_PER_SIZE = 18;
+const GROW_EDGE_THRESHOLD = 40;
+const GROW_FLOOD_COLOR_TOLERANCE = 115;
+const REACH_REFERENCE_DIM = 1400;
+const BG_CONNECT_TOLERANCE = 70;
+const FEATHER_RADIUS = 1;
+const ALPHA_KEEP_THRESHOLD = 16;
 const MAX_UNDO = 25;
+
+const CHECKER =
+  'repeating-conic-gradient(#e5e7eb 0% 25%, #ffffff 0% 50%) 50% / 20px 20px';
 
 type Tool = 'keep' | 'remove';
 
@@ -78,6 +56,15 @@ function loadImage(url: string): Promise<HTMLImageElement> {
   });
 }
 
+function pathToD(pts: Array<{ x: number; y: number }>): string {
+  if (pts.length === 0) return '';
+  let d = `M ${pts[0].x} ${pts[0].y}`;
+  for (let i = 1; i < pts.length; i++) d += ` L ${pts[i].x} ${pts[i].y}`;
+  // A single tap needs a tiny segment to render as a round dot.
+  if (pts.length === 1) d += ` L ${pts[0].x + 0.01} ${pts[0].y}`;
+  return d;
+}
+
 export default function EmbedBrush({
   originalUrl,
   cutoutUrl,
@@ -89,46 +76,58 @@ export default function EmbedBrush({
   const [tool, setTool] = useState<Tool>('remove');
   const [brushSize, setBrushSize] = useState(24);
   const [panMode, setPanMode] = useState(false);
-  const [zoom, setZoom] = useState(1);
   const [busy, setBusy] = useState(false);
   const [canUndo, setCanUndo] = useState(false);
   const [cursor, setCursor] = useState<{ x: number; y: number } | null>(null);
-  // Dual-panel: show the original alongside the editable cutout (like the real
-  // DTF Editor bg-removal workspace).
-  const [splitView, setSplitView] = useState(true);
+
+  // Open-canvas viewport: translate(pan) scale(zoom).
+  const [zoom, setZoom] = useState(1);
+  const [pan, setPan] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
+  const [dragging, setDragging] = useState(false);
+  const zoomRef = useRef(1);
+  const panRef = useRef({ x: 0, y: 0 });
 
   // Natural-resolution image data + working keep-mask.
   const dimsRef = useRef<{ w: number; h: number }>({ w: 0, h: 0 });
   const origDataRef = useRef<Uint8ClampedArray | null>(null);
   const keepMaskRef = useRef<Uint8Array | null>(null);
   const undoRef = useRef<Uint8Array[]>([]);
-  // Background partition (border-connected background over the ORIGINAL pixels),
-  // computed lazily once per image and reused by every stroke — the same
-  // "fill" mechanism the real Studio brush uses to snap to the whole shape.
   const bgMaskRef = useRef<Uint8Array | null>(null);
 
-  // Visible canvas (intrinsic size = image size; CSS size = fit × zoom).
   const viewRef = useRef<HTMLCanvasElement | null>(null);
-  const scrollRef = useRef<HTMLDivElement | null>(null);
-  // Live stroke, in image-pixel coordinates.
+  const containerRef = useRef<HTMLDivElement | null>(null);
+  const livePathRef = useRef<SVGPathElement | null>(null);
   const strokeRef = useRef<Array<{ x: number; y: number }> | null>(null);
-  const brushSizeRef = useRef(brushSize);
-  const toolRef = useRef(tool);
-  const panDragRef = useRef<{
+  const dragRef = useRef<{
     px: number;
     py: number;
-    left: number;
-    top: number;
+    panX: number;
+    panY: number;
   } | null>(null);
+  const brushSizeRef = useRef(brushSize);
+  const toolRef = useRef(tool);
+  const panModeRef = useRef(panMode);
   useEffect(() => {
     brushSizeRef.current = brushSize;
   }, [brushSize]);
   useEffect(() => {
     toolRef.current = tool;
   }, [tool]);
+  useEffect(() => {
+    panModeRef.current = panMode;
+  }, [panMode]);
 
-  // Paint the composited preview (original RGB × keep-mask alpha) plus the
-  // subject silhouette, onto the visible canvas.
+  const setViewport = useCallback(
+    (z: number, p: { x: number; y: number }) => {
+      zoomRef.current = z;
+      panRef.current = p;
+      setZoom(z);
+      setPan(p);
+    },
+    []
+  );
+
+  // Composite preview (original RGB × feathered keep-mask alpha) onto the canvas.
   const repaint = useCallback(() => {
     const canvas = viewRef.current;
     const orig = origDataRef.current;
@@ -150,7 +149,7 @@ export default function EmbedBrush({
     ctx.putImageData(out, 0, 0);
   }, []);
 
-  // Load both images, build original pixel buffer + initial keep-mask.
+  // Load original + cutout, build the pixel buffer and initial keep-mask.
   useEffect(() => {
     let cancelled = false;
     (async () => {
@@ -171,11 +170,8 @@ export default function EmbedBrush({
         if (!octx) throw new Error('Canvas unavailable');
         octx.drawImage(origImg, 0, 0, w, h);
         origDataRef.current = octx.getImageData(0, 0, w, h).data;
-        // New original → invalidate the cached background partition.
         bgMaskRef.current = null;
 
-        // Seed the keep-mask from the cutout's alpha (drawn at the SAME size, so
-        // a resolution mismatch between the two sources can't shift the mask).
         const cc = document.createElement('canvas');
         cc.width = w;
         cc.height = h;
@@ -195,7 +191,6 @@ export default function EmbedBrush({
           canvas.height = h;
         }
         setReady(true);
-        // Paint on the next frame once the canvas has its intrinsic size.
         requestAnimationFrame(() => repaint());
       } catch (e) {
         if (!cancelled)
@@ -209,15 +204,41 @@ export default function EmbedBrush({
     };
   }, [originalUrl, cutoutUrl, repaint]);
 
-  // Map a pointer event to image-pixel coordinates.
+  // Wheel to zoom (around the cursor), non-passive so we can preventDefault.
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    const onWheel = (e: WheelEvent) => {
+      e.preventDefault();
+      const rect = el.getBoundingClientRect();
+      const factor = e.deltaY < 0 ? 1.15 : 1 / 1.15;
+      const next = Math.min(8, Math.max(1, zoomRef.current * factor));
+      if (next === zoomRef.current) return;
+      const ratio = next / zoomRef.current;
+      const sx = e.clientX - rect.left - rect.width / 2;
+      const sy = e.clientY - rect.top - rect.height / 2;
+      const p = panRef.current;
+      setViewport(next, {
+        x: p.x + (sx - p.x) * (1 - ratio),
+        y: p.y + (sy - p.y) * (1 - ratio),
+      });
+    };
+    el.addEventListener('wheel', onWheel, { passive: false });
+    return () => el.removeEventListener('wheel', onWheel);
+  }, [ready, setViewport]);
+
+  // Map a pointer event to image-pixel coordinates via the canvas's on-screen
+  // rect (which already reflects the pan/zoom transform).
   const toImageCoords = useCallback((e: React.PointerEvent) => {
     const canvas = viewRef.current;
     if (!canvas) return null;
     const rect = canvas.getBoundingClientRect();
+    if (rect.width === 0 || rect.height === 0) return null;
     const { w, h } = dimsRef.current;
-    const x = ((e.clientX - rect.left) / rect.width) * w;
-    const y = ((e.clientY - rect.top) / rect.height) * h;
-    return { x, y };
+    return {
+      x: ((e.clientX - rect.left) / rect.width) * w,
+      y: ((e.clientY - rect.top) / rect.height) * h,
+    };
   }, []);
 
   const commitStroke = useCallback(
@@ -230,23 +251,15 @@ export default function EmbedBrush({
       const sizeAtCommit = brushSizeRef.current;
       const toolAtCommit = toolRef.current;
 
-      // Seeds from the stroke footprint (a solid disc per point).
       const seedRadius = Math.max(1, sizeAtCommit / GROW_SEED_RADIUS_DIVISOR);
       const seeds = strokeToSeeds(path, seedRadius, w, h);
 
-      // Continuous, size-scaled reach — bigger brush travels farther, but always
-      // BOUNDED (never the whole image), scaled up for high-res inputs.
       const resFactor = Math.max(1, Math.max(w, h) / REACH_REFERENCE_DIM);
       const reachRadius = Math.max(
         1,
         sizeAtCommit * GROW_MEDIUM_REACH_PER_SIZE * resFactor
       );
 
-      // Background partition over the ORIGINAL pixels (border colour →
-      // border-connected background), computed once and cached. This is what
-      // makes the real brush "snap" to the whole subject/background instead of
-      // a local blob: Keep fills the foreground shape (bgMask 0), Remove fills
-      // the background area (bgMask 1), bounded by the reach.
       if (!bgMaskRef.current) {
         const bgColor = detectBorderColor(orig, w, h);
         bgMaskRef.current = computeBackgroundMask(
@@ -259,11 +272,15 @@ export default function EmbedBrush({
       }
       const bgMask = bgMaskRef.current;
       const passValue: 0 | 1 = toolAtCommit === 'keep' ? 0 : 1;
-      let region = fillConnectedRegion(bgMask, passValue, w, h, seeds, reachRadius);
+      let region = fillConnectedRegion(
+        bgMask,
+        passValue,
+        w,
+        h,
+        seeds,
+        reachRadius
+      );
 
-      // Fallback: if the partition fill found nothing (e.g. a Keep stroke on
-      // bare background, or a subject part sharing the bg colour), use the
-      // edge-aware grow bounded by the SAME reach so the stroke stays local.
       let any = false;
       for (let i = 0; i < region.length; i++) {
         if (region[i]) {
@@ -280,13 +297,10 @@ export default function EmbedBrush({
       }
       if (region.length !== total) return;
 
-      // Always claim the literal brush footprint, so a stroke ALWAYS does at
-      // least what you painted — even when the smart fill finds nothing.
       const footprintRadius = Math.max(1, sizeAtCommit / 2);
       const footprint = strokeToSeeds(path, footprintRadius, w, h);
       for (const idx of footprint) region[idx] = 1;
 
-      // Snapshot for undo (bounded), then apply: Keep = add, Remove = subtract.
       const before = Uint8Array.from(keep);
       undoRef.current.push(before);
       if (undoRef.current.length > MAX_UNDO) undoRef.current.shift();
@@ -302,50 +316,55 @@ export default function EmbedBrush({
     [repaint]
   );
 
-  // ---- Pointer handling: pan (scroll) vs. draw ----
+  // ---- Pointer handling (draw or pan), all on the viewport container ----
   const onPointerDown = (e: React.PointerEvent) => {
     if (!ready || busy) return;
-    if (panMode) {
-      const sc = scrollRef.current;
-      if (!sc) return;
-      panDragRef.current = {
+    (e.currentTarget as HTMLElement).setPointerCapture?.(e.pointerId);
+    if (panModeRef.current) {
+      dragRef.current = {
         px: e.clientX,
         py: e.clientY,
-        left: sc.scrollLeft,
-        top: sc.scrollTop,
+        panX: panRef.current.x,
+        panY: panRef.current.y,
       };
-      (e.currentTarget as HTMLElement).setPointerCapture?.(e.pointerId);
+      setDragging(true);
       return;
     }
     const p = toImageCoords(e);
     if (!p) return;
     strokeRef.current = [p];
-    (e.currentTarget as HTMLElement).setPointerCapture?.(e.pointerId);
+    if (livePathRef.current)
+      livePathRef.current.setAttribute('d', pathToD([p]));
   };
 
   const onPointerMove = (e: React.PointerEvent) => {
-    if (panMode) {
-      const d = panDragRef.current;
-      const sc = scrollRef.current;
-      if (d && sc) {
-        sc.scrollLeft = d.left - (e.clientX - d.px);
-        sc.scrollTop = d.top - (e.clientY - d.py);
-      }
+    if (panModeRef.current) {
+      const d = dragRef.current;
+      if (d) setViewport(zoomRef.current, {
+        x: d.panX + (e.clientX - d.px),
+        y: d.panY + (e.clientY - d.py),
+      });
       return;
     }
     const p = toImageCoords(e);
     if (p) setCursor(p);
     const stroke = strokeRef.current;
-    if (stroke && p) stroke.push(p);
+    if (stroke && p) {
+      stroke.push(p);
+      if (livePathRef.current)
+        livePathRef.current.setAttribute('d', pathToD(stroke));
+    }
   };
 
   const endStroke = () => {
-    if (panMode) {
-      panDragRef.current = null;
+    if (panModeRef.current) {
+      dragRef.current = null;
+      setDragging(false);
       return;
     }
     const stroke = strokeRef.current;
     strokeRef.current = null;
+    if (livePathRef.current) livePathRef.current.setAttribute('d', '');
     if (stroke && stroke.length > 0) commitStroke(stroke);
   };
 
@@ -369,12 +388,12 @@ export default function EmbedBrush({
     }, 'image/png');
   }, [onCommit]);
 
-  // Displayed size: fit the image into the viewport, then multiply by zoom.
   const { w, h } = dimsRef.current;
+  const strokeColor = tool === 'keep' ? '#10b981' : '#ef4444';
 
   return (
     <div className="flex h-full w-full flex-col bg-gray-100">
-      {/* Controls bar (light — matches the modal + the real Studio brush). */}
+      {/* Control bar */}
       <div className="flex flex-wrap items-center gap-2 border-b border-gray-200 bg-white px-3 py-2">
         <div className="flex overflow-hidden rounded-lg border border-gray-200">
           <button
@@ -411,9 +430,11 @@ export default function EmbedBrush({
           type="button"
           onClick={() => setPanMode(p => !p)}
           className={`flex items-center gap-1.5 rounded-lg border border-gray-200 px-3 py-1.5 text-sm font-medium ${
-            panMode ? 'bg-gray-200 text-gray-900' : 'text-gray-700 hover:bg-gray-50'
+            panMode
+              ? 'bg-gray-200 text-gray-900'
+              : 'text-gray-700 hover:bg-gray-50'
           }`}
-          title="Pan"
+          title="Pan the canvas"
         >
           <Hand className="h-4 w-4" /> Pan
         </button>
@@ -446,7 +467,9 @@ export default function EmbedBrush({
         <div className="flex items-center rounded-full border border-gray-200 text-xs font-medium text-gray-600">
           <button
             type="button"
-            onClick={() => setZoom(z => Math.max(1, z - 0.5))}
+            onClick={() =>
+              setViewport(Math.max(1, zoomRef.current / 1.25), panRef.current)
+            }
             className="px-2.5 py-1 hover:bg-gray-50"
             title="Zoom out"
           >
@@ -457,29 +480,23 @@ export default function EmbedBrush({
           </span>
           <button
             type="button"
-            onClick={() => setZoom(z => Math.min(6, z + 0.5))}
+            onClick={() =>
+              setViewport(Math.min(8, zoomRef.current * 1.25), panRef.current)
+            }
             className="px-2.5 py-1 hover:bg-gray-50"
             title="Zoom in"
           >
             +
           </button>
+          <button
+            type="button"
+            onClick={() => setViewport(1, { x: 0, y: 0 })}
+            className="border-l border-gray-200 px-2 py-1 hover:bg-gray-50"
+            title="Fit"
+          >
+            Fit
+          </button>
         </div>
-
-        <button
-          type="button"
-          onClick={() => setSplitView(s => !s)}
-          className={`flex items-center gap-1.5 rounded-lg border border-gray-200 px-3 py-1.5 text-sm font-medium ${
-            splitView ? 'bg-gray-200 text-gray-900' : 'text-gray-700 hover:bg-gray-50'
-          }`}
-          title="Show the original alongside the cutout"
-        >
-          {splitView ? (
-            <EyeOff className="h-4 w-4" />
-          ) : (
-            <Eye className="h-4 w-4" />
-          )}
-          Original
-        </button>
 
         <div className="flex-1" />
 
@@ -505,97 +522,97 @@ export default function EmbedBrush({
         </button>
       </div>
 
-      {/* Dual-panel body: editable cutout (left) + original reference (right). */}
-      <div className="flex min-h-0 flex-1 flex-col lg:flex-row">
-        {/* Left — editable cutout (paint Keep/Remove here). */}
-        <div className="relative flex min-h-0 flex-1 flex-col">
-          <span className="absolute left-2 top-2 z-10 rounded bg-white/85 px-2 py-0.5 text-[11px] font-medium text-gray-600 shadow-sm backdrop-blur-sm">
-            Edit — paint Keep / Remove
-          </span>
-          <div
-            ref={scrollRef}
-            className="relative flex-1 overflow-auto"
-            style={{ background: CHECKER }}
-          >
-            {!ready && !loadError && (
-              <div className="absolute inset-0 flex items-center justify-center">
-                <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
-              </div>
-            )}
-            {loadError && (
-              <div className="absolute inset-0 flex items-center justify-center p-6 text-center">
-                <p className="text-sm text-red-600">{loadError}</p>
-              </div>
-            )}
-            <div className="flex min-h-full min-w-full items-center justify-center p-4">
-              <div
-                className="relative"
-                style={
-                  w && h
-                    ? { width: `min(${w}px, ${zoom * 100}%)`, maxWidth: 'none' }
-                    : undefined
-                }
-              >
-                <canvas
-                  ref={viewRef}
-                  onPointerDown={onPointerDown}
-                  onPointerMove={onPointerMove}
-                  onPointerUp={endStroke}
-                  onPointerCancel={endStroke}
-                  onPointerLeave={() => setCursor(null)}
-                  className="block h-auto w-full select-none rounded shadow"
-                  style={{
-                    touchAction: 'none',
-                    cursor: panMode ? 'grab' : 'crosshair',
-                    imageRendering: zoom > 1.5 ? 'pixelated' : 'auto',
-                  }}
-                />
-                {!panMode && cursor && ready && w > 0 && (
-                  <div
-                    className="pointer-events-none absolute rounded-full border-2"
-                    style={{
-                      left: `${(cursor.x / w) * 100}%`,
-                      top: `${(cursor.y / h) * 100}%`,
-                      width: `${(brushSize / w) * 100}%`,
-                      aspectRatio: '1 / 1',
-                      transform: 'translate(-50%, -50%)',
-                      borderColor: tool === 'keep' ? '#10b981' : '#ef4444',
-                      background:
-                        tool === 'keep'
-                          ? 'rgba(16,185,129,0.15)'
-                          : 'rgba(239,68,68,0.15)',
-                    }}
-                  />
-                )}
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Right — original reference (the dual-panel display). */}
-        {splitView && (
-          <div className="relative flex min-h-0 flex-1 flex-col border-t border-gray-200 lg:border-l lg:border-t-0">
-            <span className="absolute left-2 top-2 z-10 rounded bg-white/85 px-2 py-0.5 text-[11px] font-medium text-gray-600 shadow-sm backdrop-blur-sm">
-              Original
-            </span>
-            <div
-              className="relative flex flex-1 items-center justify-center overflow-hidden p-4"
-              style={{ background: CHECKER }}
-            >
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={originalUrl}
-                alt="Original"
-                draggable={false}
-                className="max-h-full max-w-full rounded object-contain shadow"
-              />
-            </div>
+      {/* Open-canvas viewport */}
+      <div
+        ref={containerRef}
+        onPointerDown={onPointerDown}
+        onPointerMove={onPointerMove}
+        onPointerUp={endStroke}
+        onPointerCancel={endStroke}
+        onPointerLeave={() => {
+          setCursor(null);
+          endStroke();
+        }}
+        className="relative flex flex-1 items-center justify-center overflow-hidden select-none"
+        style={{
+          background: CHECKER,
+          touchAction: 'none',
+          cursor: panMode
+            ? dragging
+              ? 'grabbing'
+              : 'grab'
+            : 'crosshair',
+        }}
+      >
+        {!ready && !loadError && (
+          <div className="absolute inset-0 flex items-center justify-center">
+            <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
           </div>
         )}
+        {loadError && (
+          <div className="absolute inset-0 flex items-center justify-center p-6 text-center">
+            <p className="text-sm text-red-600">{loadError}</p>
+          </div>
+        )}
+
+        <div
+          style={{
+            transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})`,
+            transformOrigin: 'center',
+            lineHeight: 0,
+            willChange: 'transform',
+          }}
+        >
+          <div className="relative">
+            <canvas
+              ref={viewRef}
+              className="block rounded shadow"
+              style={{
+                maxHeight: 'calc(100vh - 220px)',
+                maxWidth: '100%',
+                imageRendering: zoom > 1.5 ? 'pixelated' : 'auto',
+              }}
+            />
+            {/* Live coloured stroke overlay (green Keep / red Remove). */}
+            {w > 0 && h > 0 && (
+              <svg
+                className="pointer-events-none absolute inset-0 h-full w-full"
+                viewBox={`0 0 ${w} ${h}`}
+                preserveAspectRatio="none"
+              >
+                <path
+                  ref={livePathRef}
+                  d=""
+                  fill="none"
+                  stroke={strokeColor}
+                  strokeWidth={brushSize}
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  opacity={0.55}
+                />
+              </svg>
+            )}
+            {/* Brush-size ring cursor (draw mode). */}
+            {!panMode && cursor && ready && w > 0 && (
+              <div
+                className="pointer-events-none absolute rounded-full border-2"
+                style={{
+                  left: `${(cursor.x / w) * 100}%`,
+                  top: `${(cursor.y / h) * 100}%`,
+                  width: `${(brushSize / w) * 100}%`,
+                  aspectRatio: '1 / 1',
+                  transform: 'translate(-50%, -50%)',
+                  borderColor: strokeColor,
+                  background:
+                    tool === 'keep'
+                      ? 'rgba(16,185,129,0.15)'
+                      : 'rgba(239,68,68,0.15)',
+                }}
+              />
+            )}
+          </div>
+        </div>
       </div>
     </div>
   );
 }
-
-const CHECKER =
-  'repeating-conic-gradient(#e5e7eb 0% 25%, #ffffff 0% 50%) 50% / 20px 20px';

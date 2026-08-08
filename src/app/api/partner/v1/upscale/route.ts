@@ -39,11 +39,34 @@ export async function POST(request: NextRequest) {
     ? (body.processingMode as ProcessingMode)
     : 'auto_enhance';
 
-  const result = await deepImageService.upscaleImage(imageUrl, {
-    scale,
-    processingMode,
-    faceEnhance: body.faceEnhance === true,
-  });
+  // DPI-targeted upscale (the API environment's default). When the caller gives
+  // a print size, resize to EXACTLY 300 DPI at that size — no more, no less.
+  // This prevents the runaway output (a 4x scale can land at ~1000 DPI and blow
+  // past the file-size limit); at 300 DPI the file stays sane. Falls back to a
+  // plain 2x/4x scale only when no print size is supplied (server-to-server
+  // callers that don't pass one).
+  const DPI = 300;
+  // Guard against absurd targets (e.g. a huge gangsheet) that would exceed
+  // limits: cap the longest side so we never request a runaway canvas.
+  const MAX_SIDE_PX = 8000;
+  const wIn = Number(body.targetWidthInches);
+  const hIn = Number(body.targetHeightInches);
+  const useDpi = Number.isFinite(wIn) && Number.isFinite(hIn) && wIn > 0 && hIn > 0;
+
+  const upscaleOpts = useDpi
+    ? {
+        processingMode,
+        faceEnhance: body.faceEnhance === true,
+        targetWidth: Math.min(MAX_SIDE_PX, Math.round(wIn * DPI)),
+        targetHeight: Math.min(MAX_SIDE_PX, Math.round(hIn * DPI)),
+      }
+    : {
+        scale,
+        processingMode,
+        faceEnhance: body.faceEnhance === true,
+      };
+
+  const result = await deepImageService.upscaleImage(imageUrl, upscaleOpts);
 
   if (result.status !== 'success' || !result.url) {
     await recordUsage({
@@ -68,7 +91,9 @@ export async function POST(request: NextRequest) {
     costCents,
     status: 'success',
     resultRef: resultUrl,
-    metadata: { scale, processingMode },
+    metadata: useDpi
+      ? { mode: 'dpi', dpi: DPI, widthIn: wIn, heightIn: hIn, processingMode }
+      : { mode: 'scale', scale, processingMode },
   });
 
   return json({
