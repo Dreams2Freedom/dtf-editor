@@ -29,6 +29,7 @@ import {
   Loader2,
 } from 'lucide-react';
 import EmbedBrush from './EmbedBrush';
+import { UpscaleOptions, type UpscaleOpts } from './UpscaleOptions';
 
 type Status = 'loading' | 'ready' | 'invalid';
 
@@ -47,6 +48,13 @@ function EmbedStudio() {
   const [error, setError] = useState<string | null>(null);
   const [printW, setPrintW] = useState(11);
   const [printH, setPrintH] = useState(11);
+  // Upscale options popover (mirrors the real tool: scale + mode + face enhance).
+  const [upscaleOpen, setUpscaleOpen] = useState(false);
+  const [upscaleOpts, setUpscaleOpts] = useState<UpscaleOpts>({
+    scale: 4,
+    processingMode: 'auto_enhance',
+    faceEnhance: false,
+  });
   // #1 fix: the canonical URL of the last SUCCESSFUL tool result. `workingUrl`
   // doubles as the tool input + <img> src (and carries a cache-bust query), so
   // posting it on Done risked echoing the merchant's own input back when the
@@ -490,13 +498,30 @@ function EmbedStudio() {
             disabled={!!busy}
             onClick={() => runTransform('background-removal')}
           />
-          <ToolButton
-            label="Upscale"
-            icon={<ArrowUpCircle className="h-4 w-4" />}
-            busy={busy === 'upscale'}
-            disabled={!!busy}
-            onClick={() => runTransform('upscale', { scale: 2 })}
-          />
+          <div className="relative inline-block">
+            <ToolButton
+              label="Upscale"
+              icon={<ArrowUpCircle className="h-4 w-4" />}
+              busy={busy === 'upscale'}
+              disabled={!!busy}
+              onClick={() => setUpscaleOpen(o => !o)}
+            />
+            <UpscaleOptions
+              open={upscaleOpen}
+              onClose={() => setUpscaleOpen(false)}
+              busy={busy === 'upscale'}
+              value={upscaleOpts}
+              onChange={setUpscaleOpts}
+              onApply={() => {
+                setUpscaleOpen(false);
+                runTransform('upscale', {
+                  scale: upscaleOpts.scale,
+                  processingMode: upscaleOpts.processingMode,
+                  faceEnhance: upscaleOpts.faceEnhance,
+                });
+              }}
+            />
+          </div>
           <ToolButton
             label="Vectorize"
             icon={<Pen className="h-4 w-4" />}
