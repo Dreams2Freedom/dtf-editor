@@ -23,7 +23,11 @@ export interface UpscaleOpts {
   faceEnhance: boolean;
 }
 
-const MODES: { value: UpscaleProcessingMode; label: string; hint: string }[] = [
+export const MODES: {
+  value: UpscaleProcessingMode;
+  label: string;
+  hint: string;
+}[] = [
   {
     value: 'auto_enhance',
     label: 'Auto Enhance',
