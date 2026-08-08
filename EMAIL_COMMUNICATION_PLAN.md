@@ -255,6 +255,11 @@ MAILGUN_API_KEY=xxx
 MAILGUN_DOMAIN=mg.dtfeditor.com
 MAILGUN_FROM_EMAIL=noreply@mg.dtfeditor.com
 MAILGUN_FROM_NAME=DTF Editor
+MAILGUN_REGION=us   # 'eu' only if the domain is EU-provisioned
 ```
 
-All currently configured and working! ✅
+> ⚠️ **June 7, 2026 (BUG-063):** These vars were found missing/empty in Vercel
+> Production — confirmed via runtime logs (`EmailService: Mailgun not configured`),
+> so NO emails were being sent. Restore them in Vercel Production and redeploy, then
+> verify with `GET /api/admin/email-health`. The code no longer reports false
+> success when unconfigured (it logs `NOT SENT [type]` and returns `false`).

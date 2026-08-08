@@ -73,7 +73,9 @@ async function handlePost(request: NextRequest) {
     // Check if user is an admin in profiles table
     const { data: profile, error: profileError } = await supabase
       .from('profiles')
-      .select('id, email, full_name, is_admin, is_active, created_at, updated_at')
+      .select(
+        'id, email, full_name, is_admin, is_active, created_at, updated_at'
+      )
       .eq('id', authData.user.id)
       .single();
 

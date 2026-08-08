@@ -1,0 +1,51 @@
+.problems__grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 16px;
+  margin-top: 36px;
+}
+.pcard {
+  background: var(--card-bg);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  padding: 22px;
+  box-shadow: var(--shadow-card);
+}
+.pcard__ic {
+  width: 42px;
+  height: 42px;
+  border-radius: 10px;
+  display: grid;
+  place-items: center;
+  margin-bottom: 14px;
+}
+.pcard--a .pcard__ic {
+  background: var(--blue-tint);
+  color: var(--blue);
+}
+.pcard--b .pcard__ic {
+  background: var(--orange-tint);
+  color: var(--orange-deep);
+}
+.pcard--c .pcard__ic {
+  background: var(--green-bg);
+  color: var(--green);
+}
+.pcard h3 {
+  font-size: 17px;
+  font-weight: 700;
+  margin: 0 0 6px;
+  letter-spacing: -0.01em;
+}
+.pcard p {
+  font-size: 14.5px;
+  color: var(--ink-2);
+  margin: 0;
+  line-height: 1.55;
+}
+@media (min-width: 760px) {
+  .problems__grid {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 20px;
+  }
+}

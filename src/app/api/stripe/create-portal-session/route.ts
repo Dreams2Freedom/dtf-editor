@@ -29,7 +29,12 @@ async function findOrCreateCustomer(
     const existing = await stripe.customers.list({ email, limit: 1 });
     if (existing.data.length > 0) {
       const customerId = existing.data[0].id;
-      console.log('[Portal] Found existing Stripe customer:', customerId, 'for email:', email);
+      console.log(
+        '[Portal] Found existing Stripe customer:',
+        customerId,
+        'for email:',
+        email
+      );
       // Update the profile with the found customer ID
       await supabase
         .from('profiles')
@@ -42,7 +47,12 @@ async function findOrCreateCustomer(
   // No existing customer found - create a new one
   const stripeService = getStripeService();
   const customer = await stripeService.createCustomer(email, undefined);
-  console.log('[Portal] Created new Stripe customer:', customer.id, 'for user:', userId);
+  console.log(
+    '[Portal] Created new Stripe customer:',
+    customer.id,
+    'for user:',
+    userId
+  );
 
   await supabase
     .from('profiles')
@@ -96,8 +106,10 @@ async function handlePost(request: NextRequest) {
       return NextResponse.json({ url: session.url });
     } catch (portalError: any) {
       // If the customer doesn't exist in Stripe, find/create and retry
-      if (portalError.type === 'StripeInvalidRequestError' &&
-          portalError.message?.includes('No such customer')) {
+      if (
+        portalError.type === 'StripeInvalidRequestError' &&
+        portalError.message?.includes('No such customer')
+      ) {
         console.warn('[Portal] Stale customer ID:', customerId, '- recovering');
         customerId = await findOrCreateCustomer(userId, profile.email || '');
 
@@ -109,12 +121,21 @@ async function handlePost(request: NextRequest) {
       }
 
       // If billing portal isn't configured in Stripe Dashboard
-      if (portalError.type === 'StripeInvalidRequestError' &&
-          portalError.message?.includes('portal configuration')) {
-        console.error('[Portal] Billing portal not configured in Stripe Dashboard.');
-        console.error('[Portal] Go to https://dashboard.stripe.com/settings/billing/portal to configure it.');
+      if (
+        portalError.type === 'StripeInvalidRequestError' &&
+        portalError.message?.includes('portal configuration')
+      ) {
+        console.error(
+          '[Portal] Billing portal not configured in Stripe Dashboard.'
+        );
+        console.error(
+          '[Portal] Go to https://dashboard.stripe.com/settings/billing/portal to configure it.'
+        );
         return NextResponse.json(
-          { error: 'Billing portal is not yet configured. The admin needs to set it up in the Stripe Dashboard.' },
+          {
+            error:
+              'Billing portal is not yet configured. The admin needs to set it up in the Stripe Dashboard.',
+          },
           { status: 500 }
         );
       }

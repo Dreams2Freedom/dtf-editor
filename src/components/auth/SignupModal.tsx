@@ -52,8 +52,13 @@ export function SignupModal({
           throw new Error(result.error || 'Failed to sign up');
         }
 
-        // Close modal on successful signup
+        // New accounts must verify their email before using any tool. Send
+        // them to the verification screen instead of dropping them back into
+        // Studio (where every tool action would be blocked until verified).
         onClose();
+        window.location.href = `/verify-email?email=${encodeURIComponent(
+          email
+        )}`;
       } else {
         const result = await signIn(email, password);
         if (!result.success) {

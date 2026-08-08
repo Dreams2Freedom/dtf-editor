@@ -1,0 +1,3902 @@
+'use client';
+
+import React, { useCallback, useEffect, useRef, useState } from 'react';
+import {
+  AlertTriangle,
+  Download,
+  Loader2,
+  Save,
+  RotateCcw,
+  Pipette,
+  Cpu,
+  Wand2,
+  Plus,
+  Minus,
+  Undo2,
+  Trash2,
+  Scissors,
+  CheckCircle2,
+  Hand,
+  MousePointerClick,
+} from 'lucide-react';
+
+import MagicWand from '@/lib/magic-wand';
+import { CanvasProcessingOverlay } from '@/components/studio/StudioCanvasFrame';
+import { detectInternalHoles } from './holeDetection';
+import { edgeFloodBackground, detectBgColorFromEdges } from './edgeFlood';
+import { computeStrokeRegions } from './strokeSemantics';
+import {
+  strokeToSeeds,
+  growRegionFromStroke,
+  featherAlpha,
+  detectBorderColor,
+  computeBackgroundMask,
+  fillConnectedRegion,
+  computeWholeShapeMask,
+} from './scribbleBrush';
+import { removeStrandedSpecks } from './strandedComponents';
+import { classifyImage } from './imageStats';
+import {
+  clientFloodFill,
+  clientMultiFloodFill,
+  samplePathPoints,
+  useBackgroundRemoval,
+} from './useBackgroundRemoval';
+import { samRemoveBackground, embedImage, predictMask } from './api';
+import type {
+  BgRemovalModel,
+  PanelMode,
+  RGB,
+  RemovalOptions,
+  SamPoint,
+  SamSession,
+} from './types';
+
+interface BackgroundRemovalPanelProps {
+  image: HTMLImageElement;
+  onSave: (canvas: HTMLCanvasElement, provider: 'in-house') => Promise<void>;
+  onCancel: () => void;
+  savedImageId: string | null;
+  /**
+   * Phase 2.8: when this panel is mounted as the in-house "backup" mode
+   * inside the Studio bg-removal tool, the adapter passes a callback
+   * that flips back to the ClippingMagic panel. Rendered as a small
+   * "← Back to ClippingMagic" header button. Omitted when the panel
+   * runs standalone (e.g. /process/background-removal).
+   */
+  onSwitchToCm?: () => void;
+  /**
+   * Studio contract: register a "commit pending edits" function so the
+   * top-level Download can flush the current cutout before exporting (no
+   * silent save-of-original when the user skips "Apply Changes"). Resolves
+   * to the committed canvas, or null if nothing was pending.
+   */
+  registerPendingCommit?: (
+    commit: (() => Promise<HTMLCanvasElement | null>) | null
+  ) => void;
+}
+
+/**
+ * SAM-first initial cut (step 1 of the SAM rollout). When enabled, the initial
+ * background removal is produced by the in-house SAM "find everything" +
+ * subject-selection engine instead of the classical/ML auto-cutout. It runs
+ * AFTER the existing engine (which stays as the guaranteed fallback) and simply
+ * overrides the base mask on success — so a SAM failure/timeout silently leaves
+ * today's behavior intact. Brushes, sliders, layout, and downstream pipeline are
+ * unchanged; the mask just started life as SAM's.
+ *
+ * NOTE: the /segment-everything endpoint is currently admin-gated, so in
+ * practice only admins get the SAM cut until the endpoint is opened to paid
+ * users for customer rollout. Flip to false to disable entirely.
+ */
+const SAM_FIRST_CUT_ENABLED = true;
+
+// Smart select (SAM semantic click-brush) is SUSPENDED — it groups by
+// appearance, so on a tan-on-tan design it keeps/removes ALL the tan at once
+// (unusable per team testing). The code stays for a later revisit; this flag
+// hides the UI so it can't be turned on. The client-side "Fill area" flood
+// and the colour brush remain the touch-up tools.
+const SMART_SELECT_ENABLED = false;
+
+// Step 2 (conscious brush): the mode toggles are folded into ONE brush —
+// graphics get the ink-aware drag automatically, and a Keep-click fills the
+// enclosed area. These flags hide the now-redundant toggles (code kept, easily
+// re-enabled) so the default panel is just Keep · Remove · size.
+const INK_MODE_TOGGLE_ENABLED = false;
+const FILL_AREA_TOGGLE_ENABLED = false;
+
+const STATUS_LABELS: Record<string, string> = {
+  idle: '',
+  authorizing: 'Checking plan...',
+  detecting: 'Detecting background...',
+  removing: 'Removing background...',
+  embedding: 'Preparing AI Brush...',
+  predicting: 'Updating mask...',
+  done: 'Done!',
+  error: '',
+};
+
+const MODELS: { value: BgRemovalModel; label: string }[] = [
+  { value: 'bria-rmbg', label: 'Best Quality (BRIA AI)' },
+  { value: 'birefnet-general-lite', label: 'Standard (BiRefNet)' },
+  { value: 'birefnet-dis', label: 'High Detail (Graphics + Text)' },
+  { value: 'birefnet-general', label: 'Maximum Quality (BiRefNet, slow)' },
+  { value: 'birefnet-massive', label: 'Massive Dataset (BiRefNet, slow)' },
+  { value: 'u2net', label: 'Fast (U2Net)' },
+  { value: 'u2net_human_seg', label: 'People & Portraits' },
+  { value: 'isnet-anime', label: 'Anime / Illustrations' },
+];
+
+function rgbToHex([r, g, b]: RGB): string {
+  return '#' + [r, g, b].map(v => v.toString(16).padStart(2, '0')).join('');
+}
+
+// ---------- Edge-aware scribble brush tuning ----------
+// The brush is a client-side, edge-aware region grow (ClippingMagic-style),
+// not a semantic AI object selector. Each stroke floods outward from where you
+// paint, snapping to real image edges and staying within a color band of the
+// seed color. Brush size controls the spatial reach:
+//   • small brush → short reach → precise, local touch-ups
+//   • large brush → long reach  → fills a whole coherent region up to its edges
+const GROW_REACH_PER_SIZE = 4; // BFS reach (px) per brush-size unit (Precise)
+const GROW_MEDIUM_REACH_PER_SIZE = 18; // reach (px) per size unit in the Fill tier
+const GROW_SEED_RADIUS_DIVISOR = 4; // seed disc radius = brushSize / this
+const GROW_EDGE_THRESHOLD = 40; // per-step RGB gradient that counts as an edge
+const GROW_COLOR_TOLERANCE = 80; // max RGB distance from seed mean (Precise)
+const GROW_FLOOD_COLOR_TOLERANCE = 115; // relaxed color gate when filling a region
+// Big-brush "fill": how close to the border colour still counts as background
+// for the connected-component fill. Higher = treats more near-bg tones as
+// background. The fill floods the whole subject (Keep) or background (Remove).
+const BG_CONNECT_TOLERANCE = 70;
+// First-cut ink preservation (graphics): after the auto-cut, any pixel whose
+// colour is farther than this (RGB Euclidean) from the detected background is
+// forced KEPT. This stops the ML/colour-key cut from mutilating thin text and
+// linework — every clearly-not-background pixel survives. Slightly more
+// inclusive than the brush's default so anti-aliased letter edges fill in.
+const INK_PRESERVE_TOLERANCE = 70;
+// Weaker threshold for edge-linking (hysteresis). Anti-aliased letter edges
+// sit between this and the strong threshold; we keep them only when they
+// connect to a strong-ink core, which fills thin small text out to a clean
+// edge (so it's "outlined" like the big text) without dragging in faint
+// background noise.
+const INK_PRESERVE_WEAK_TOLERANCE = 34;
+
+/**
+ * Build the "ink" mask via two-threshold hysteresis: pixels far from the
+ * background colour (> strong) are seeds; weaker pixels (> weak) are kept only
+ * when reachable from a seed through other kept pixels. Result = every clearly-
+ * not-background pixel plus the anti-aliased fringe that belongs to it. 8-conn
+ * so diagonal letter edges link.
+ */
+function computeInkMask(
+  data: Uint8ClampedArray,
+  w: number,
+  h: number,
+  bg: { r: number; g: number; b: number },
+  strongTolSq: number,
+  weakTolSq: number
+): Uint8Array {
+  const total = w * h;
+  const strong = new Uint8Array(total);
+  const weak = new Uint8Array(total);
+  for (let i = 0; i < total; i++) {
+    const j = i * 4;
+    const dr = data[j] - bg.r;
+    const dg = data[j + 1] - bg.g;
+    const db = data[j + 2] - bg.b;
+    const d2 = dr * dr + dg * dg + db * db;
+    if (d2 > strongTolSq) strong[i] = 1;
+    else if (d2 > weakTolSq) weak[i] = 1;
+  }
+  const ink = new Uint8Array(total);
+  const queue = new Uint32Array(total);
+  let qh = 0;
+  let qt = 0;
+  for (let i = 0; i < total; i++) {
+    if (strong[i]) {
+      ink[i] = 1;
+      queue[qt++] = i;
+    }
+  }
+  while (qh < qt) {
+    const idx = queue[qh++];
+    const y = (idx / w) | 0;
+    const x = idx - y * w;
+    for (let dy = -1; dy <= 1; dy++) {
+      const ny = y + dy;
+      if (ny < 0 || ny >= h) continue;
+      for (let dx = -1; dx <= 1; dx++) {
+        const nx = x + dx;
+        if (nx < 0 || nx >= w) continue;
+        const n = ny * w + nx;
+        if (!ink[n] && weak[n]) {
+          ink[n] = 1;
+          queue[qt++] = n;
+        }
+      }
+    }
+  }
+  return ink;
+}
+// Reach is measured in image pixels, so on a high-res design a given brush
+// size must reach FARTHER to cover the same visual fraction. Scale by the
+// image's longest side against this reference so brush behaviour is
+// resolution-independent.
+const REACH_REFERENCE_DIM = 1400;
+
+/**
+ * How far a stroke's grow/fill may travel, by brush size (in image pixels,
+ * scaled by image resolution):
+ *   - Precise (small): a short reach → local, near-the-stroke touch-ups.
+ *   - Fill (mid): reach ramps with size → fills a bounded area around the
+ *     stroke, so you can grab just the forehead OR just the jaw.
+ *   - Whole shape (>= BRUSH_WHOLE_SIZE, top of the slider): unbounded → fills
+ *     the entire connected region in one stroke.
+ */
+function reachForBrushSize(size: number, resFactor: number): number {
+  if (size >= BRUSH_WHOLE_SIZE) return Infinity;
+  if (size >= BRUSH_MEDIUM_SIZE)
+    return size * GROW_MEDIUM_REACH_PER_SIZE * resFactor;
+  return size * GROW_REACH_PER_SIZE * resFactor;
+}
+// Feather radius (px) for softening the cutout edge into a 0-255 alpha ramp.
+const FEATHER_RADIUS = 1;
+// Brush-size thresholds for the Precise / Fill / Whole-shape label + reach.
+const BRUSH_MEDIUM_SIZE = 20;
+// At/above this a stroke fills the entire connected region in one go; below it
+// the fill is bounded (grows with size) so you can isolate a part.
+const BRUSH_WHOLE_SIZE = 48;
+// Max brush size (image-px diameter feel). Larger than before so a single
+// swipe can cover a big area on high-res designs — important for painting
+// back regions the smart fill can't grab (e.g. a dark helmet on a dark bg).
+const BRUSH_MAX_SIZE = 200;
+
+function pathToSvgD(
+  path: Array<{ x: number; y: number }>,
+  scale: number
+): string {
+  if (path.length === 0) return '';
+  let d = `M ${(path[0].x * scale).toFixed(1)} ${(path[0].y * scale).toFixed(1)}`;
+  for (let i = 1; i < path.length; i++) {
+    d += ` L ${(path[i].x * scale).toFixed(1)} ${(path[i].y * scale).toFixed(1)}`;
+  }
+  return d;
+}
+
+/**
+ * Trace the boundary of a binary mask and return a single SVG path `d`
+ * string covering all contours (concatenated, each closed with Z).
+ * Coordinates are in canvas-pixel (mask) space — render the SVG with
+ * viewBox="0 0 width height" so the browser handles display scaling.
+ * Returns '' for empty masks.
+ */
+function maskToContoursPath(
+  mask: Uint8Array,
+  width: number,
+  height: number
+): string {
+  if (mask.length !== width * height) return '';
+  const wandMask = {
+    data: mask,
+    width,
+    height,
+    bounds: { minX: 0, minY: 0, maxX: width - 1, maxY: height - 1 },
+  };
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const wand = MagicWand as any;
+  const contours = wand.traceContours(wandMask) as Array<{
+    points: Array<{ x: number; y: number }>;
+    inner: boolean;
+    label: number;
+  }>;
+  if (contours.length === 0) return '';
+  // Simplify (Douglas-Peucker) to keep SVG DOM small.
+  const simplified = wand.simplifyContours
+    ? (wand.simplifyContours(contours, 0.75, 6) as typeof contours)
+    : contours;
+  const parts: string[] = [];
+  for (const c of simplified) {
+    const pts = c.points;
+    if (!pts || pts.length === 0) continue;
+    let d = `M ${pts[0].x} ${pts[0].y}`;
+    for (let i = 1; i < pts.length; i++) {
+      d += ` L ${pts[i].x} ${pts[i].y}`;
+    }
+    d += ' Z';
+    parts.push(d);
+  }
+  return parts.join(' ');
+}
+
+/**
+ * After SAM produces a kept region, refine the mask using user-supplied
+ * color hints: any kept pixel whose color is closer to a Remove-stroke
+ * sample than to a Keep-stroke sample (within tolerance) is removed.
+ * No-op unless both palettes are non-empty. `tolerance` is in linear
+ * RGB-distance units (0-100ish); the function squares it internally.
+ */
+function applyColorCleanup(
+  mask: Uint8Array,
+  orig: ImageData,
+  keepColors: Array<[number, number, number]>,
+  removeColors: Array<[number, number, number]>,
+  tolerance: number
+): void {
+  if (tolerance <= 0) return;
+  if (keepColors.length === 0 || removeColors.length === 0) return;
+  const TOL_SQ = tolerance * tolerance;
+  const data = orig.data;
+  const total = mask.length;
+  for (let i = 0; i < total; i++) {
+    if (mask[i] === 0) continue;
+    const j = i * 4;
+    const r = data[j];
+    const g = data[j + 1];
+    const b = data[j + 2];
+
+    let dK = Infinity;
+    for (let k = 0; k < keepColors.length; k++) {
+      const c = keepColors[k];
+      const dr = r - c[0];
+      const dg = g - c[1];
+      const db = b - c[2];
+      const d = dr * dr + dg * dg + db * db;
+      if (d < dK) dK = d;
+    }
+
+    let dR = Infinity;
+    for (let k = 0; k < removeColors.length; k++) {
+      const c = removeColors[k];
+      const dr = r - c[0];
+      const dg = g - c[1];
+      const db = b - c[2];
+      const d = dr * dr + dg * dg + db * db;
+      if (d < dR) dR = d;
+    }
+
+    if (dR < dK && dR < TOL_SQ) mask[i] = 0;
+  }
+}
+
+/**
+ * Sample colors densely from a stroke's raw mouse path.
+ * For each point along the path (every 2 pixels) we grab a 3×3 neighborhood
+ * (9 pixels per sample), then dedupe via 4-bit-per-channel quantization
+ * so the palette stays small (typically 20–80 unique colors per stroke).
+ *
+ * This catches anti-aliased fringe colors that a sparse one-pixel-per-SAM-point
+ * sample would miss — the main complaint that AI Brush "only sees black"
+ * when the stroke visibly sweeps across both black and gray fringe.
+ */
+function collectStrokePaletteColors(
+  history: Array<{
+    tool: 'keep' | 'remove';
+    rawPath?: Array<{ x: number; y: number }>;
+    points: { x: number; y: number; label: 0 | 1 }[];
+  }>,
+  tool: 'keep' | 'remove',
+  orig: ImageData
+): Array<[number, number, number]> {
+  const w = orig.width;
+  const h = orig.height;
+  const data = orig.data;
+  const seen = new Set<number>();
+  const out: Array<[number, number, number]> = [];
+
+  const addPixel = (x: number, y: number) => {
+    if (x < 0 || y < 0 || x >= w || y >= h) return;
+    const j = (y * w + x) * 4;
+    const r = data[j];
+    const g = data[j + 1];
+    const b = data[j + 2];
+    // 4 bits/channel quantization → 16³ = 4096 buckets
+    const key = ((r >> 4) << 8) | ((g >> 4) << 4) | (b >> 4);
+    if (seen.has(key)) return;
+    seen.add(key);
+    out.push([r, g, b]);
+  };
+
+  for (const s of history) {
+    if (s.tool !== tool) continue;
+    // Prefer rawPath (dense). Fall back to SAM points if rawPath missing.
+    const path =
+      s.rawPath && s.rawPath.length > 0
+        ? s.rawPath
+        : s.points.map(p => ({ x: p.x, y: p.y }));
+
+    let lastX = -999;
+    let lastY = -999;
+    for (let i = 0; i < path.length; i++) {
+      const px = Math.round(path[i].x);
+      const py = Math.round(path[i].y);
+      // Stride: skip points within 2 pixels of the last sampled point
+      const dx = px - lastX;
+      const dy = py - lastY;
+      if (dx * dx + dy * dy < 4) continue;
+      lastX = px;
+      lastY = py;
+      // 3×3 neighborhood
+      for (let oy = -1; oy <= 1; oy++) {
+        for (let ox = -1; ox <= 1; ox++) {
+          addPixel(px + ox, py + oy);
+        }
+      }
+    }
+  }
+  return out;
+}
+
+export function BackgroundRemovalPanel({
+  image,
+  onSave,
+  onCancel,
+  savedImageId,
+  onSwitchToCm,
+  registerPendingCommit,
+}: BackgroundRemovalPanelProps) {
+  // Canvases & cached image data
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const previewRef = useRef<HTMLCanvasElement>(null);
+  // Side-by-side clean-result pane (ClippingMagic-style): shows the final
+  // cutout next to the editing view so the marching-ants outline never hides
+  // what the design actually looks like.
+  const resultPreviewRef = useRef<HTMLCanvasElement>(null);
+  const [splitView, setSplitView] = useState(true);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const originalDataRef = useRef<ImageData | null>(null);
+  const initialMaskRef = useRef<ImageData | null>(null);
+  // Cached background-connectivity mask for the big "fill" brush (1 = a
+  // background-colored pixel connected to the image border). Computed lazily
+  // once per image; invalidated when the working image changes.
+  const bgMaskRef = useRef<Uint8Array | null>(null);
+
+  // Color-pick state
+  const toleranceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [tolerance, setTolerance] = useState(30);
+  const [targetColor, setTargetColor] = useState<RGB | null>(null);
+  const [clickRemoveMode, setClickRemoveMode] = useState(false);
+  // Multi-color (Phase 1.14): user-built remove + keep palettes for Color Pick mode
+  const [removeColors, setRemoveColors] = useState<RGB[]>([]);
+  const [keepColors, setKeepColors] = useState<RGB[]>([]);
+  const [pickTool, setPickTool] = useState<'remove' | 'keep'>('remove');
+
+  // AI Brush state
+  type BrushTool = 'keep' | 'remove';
+  interface StrokeRecord {
+    tool: BrushTool;
+    points: SamPoint[];
+    rawPath: Array<{ x: number; y: number }>;
+    brushSize: number;
+    maskBefore: Uint8Array;
+    /** Phase 2.4: SAM's predicted region for this stroke. Stored so the
+     *  global passes (edge flood, hole detection, dark speck) can treat
+     *  Keep/Remove strokes as semantic selections — protect or carve the
+     *  whole SAM-predicted segment, not just the literal brush footprint. */
+    samMask: Uint8Array;
+  }
+  const [strokeHistory, setStrokeHistory] = useState<StrokeRecord[]>([]);
+  const strokeHistoryRef = useRef<StrokeRecord[]>([]);
+  // samMaskRef: SAM-only mask (pre-cleanup). Updated by stroke unions/diffs.
+  const samMaskRef = useRef<Uint8Array | null>(null);
+  // cumulativeMaskRef: post-cleanup mask, derived from samMaskRef via recomputeCumulative.
+  const cumulativeMaskRef = useRef<Uint8Array | null>(null);
+  // Forward-binding for recomputeCumulative so runInitialAnalysis (defined
+  // earlier in the file) can fire the cleanup + hole-detection pipeline
+  // when the AI mask first arrives. Without this, the first render would
+  // skip both passes and only kick in when the user perturbed a slider.
+  const recomputeCumulativeRef = useRef<(() => void) | null>(null);
+  const [brushTool, setBrushTool] = useState<BrushTool>('keep');
+  const [brushSize, setBrushSize] = useState(20);
+
+  // ---- Smart select (SAM semantic click-brush, Phase 2.9 / beta) ----------
+  // When on, a click in the canvas asks SAM to select the whole object under
+  // the cursor (via the /embed + /predict endpoints) instead of the local
+  // colour-grow brush. The active Keep/Remove tool then unions or subtracts
+  // that segment. This is the fix for colour-based nibbling on distressed/
+  // grunge text — SAM keys off the object, not the pixel colour.
+  const [smartSelect, setSmartSelect] = useState(false);
+  const smartSelectRef = useRef(false);
+  // Cached SAM embedding for the current original image. One /embed serves
+  // every subsequent click; invalidated when a new image loads.
+  const samSessionRef = useRef<SamSession | null>(null);
+  const samEmbedInFlightRef = useRef<Promise<SamSession> | null>(null);
+  const [samBrushStatus, setSamBrushStatus] = useState<
+    'idle' | 'embedding' | 'ready' | 'failed'
+  >('idle');
+  const [isSamPredicting, setIsSamPredicting] = useState(false);
+  // Ref mirror so overlapping clicks can be ignored without a stale closure.
+  const isSamPredictingRef = useRef(false);
+
+  // ---- Fill area (client-side flood, boundary-contained) ------------------
+  // When on, a click floods over the connected same-coloured region under the
+  // cursor, STOPPED by dissimilar pixels (dark ring / linework). Keep unions
+  // that region, Remove subtracts it. This is the right tool for enclosed
+  // areas (e.g. the cream inside a badge ring) that SAM over-grabs — the ring
+  // physically separates the interior from the exterior, so the flood can't
+  // leak out. No brush-size dependence, no server round-trip.
+  const [fillArea, setFillArea] = useState(false);
+  const fillAreaRef = useRef(false);
+  // Colour distance (0-100) a pixel may differ from the clicked pixel and
+  // still be part of the region. Higher = more tolerant of shading.
+  const [fillTolerance, setFillTolerance] = useState(45);
+  const fillToleranceRef = useRef(45);
+
+  // ---- Ink mode (colour-keyed brush) --------------------------------------
+  // When on, the Keep/Remove brush keys off the background colour instead of
+  // grabbing a spatial region. Within the painted footprint: Keep adds only
+  // NON-background (ink/linework) pixels; Remove deletes only background-
+  // coloured pixels. This is the fix for keeping distressed text without also
+  // dragging its tan background back in. Brush size = area of effect only.
+  const [inkMode, setInkMode] = useState(false);
+  const inkModeRef = useRef(false);
+  // Squared-distance threshold: a pixel is "ink" when its colour is farther
+  // than this from the detected background colour. Higher = stricter (only
+  // very dark ink counts); lower = also grabs faint/anti-aliased edges.
+  const [inkTolerance, setInkTolerance] = useState(90);
+  const inkToleranceRef = useRef(90);
+  // Cached detected background colour for ink-mode classification.
+  const bgColorRef = useRef<{ r: number; g: number; b: number } | null>(null);
+  // Cached hysteresis ink mask for the current image (built once, reused by
+  // the first-cut preservation and the recompute ink guard). Invalidated on a
+  // new image / reset.
+  const inkMaskRef = useRef<Uint8Array | null>(null);
+
+  // Diagnostic (SAM rollout): tells us whether the SAM first-cut actually ran.
+  const [samStatus, setSamStatus] = useState<
+    'idle' | 'running' | 'applied' | 'failed'
+  >('idle');
+  // The edge-aware scribble brush runs entirely on the client, so it's usable
+  // as soon as the original pixels are loaded — no SAM embed / model warm-up.
+  const [brushReady, setBrushReady] = useState(false);
+  const [cleanupTolerance, setCleanupTolerance] = useState(60);
+  // Phase 2.2 (revised): default 50 with the new connected-component
+  // algorithm. Higher = wider color tolerance + smaller blob threshold
+  // (more aggressive). 0 = disabled. Earlier 70 default was tuned for
+  // the buggy reachable-flood algorithm and over-carved subject pixels.
+  const [holeDetection, setHoleDetection] = useState(50);
+  // Phase 2.3 — primary background detection. Flood from image edges
+  // through pixels matching the detected BG color within tolerance.
+  // Catches background-colored pockets that connect to outside via
+  // narrow gaps (turtle's between-flower whites). Default 30 = tight
+  // tolerance, near-pure background only.
+  const [bgFlood, setBgFlood] = useState(30);
+  // Phase 2.7 — stranded-component carving. Generalizes the older
+  // dark-speck pass: any small foreground component sitting in mostly-
+  // transparent territory (after Edge Flood / Hole Detection have done
+  // their work) gets carved, regardless of color. Catches dense grunge
+  // noise that 4-connects past the size cap of the old algorithm.
+  // Default 30 = mild; cranks aggressive for distressed/grunge designs.
+  const [speckRemoval, setSpeckRemoval] = useState(30);
+  // "Keep whole shape": remove only the exterior background and keep the whole
+  // design silhouette solid (skull + helmet + interior), so nothing important
+  // is lost on the initial cutout. The brush is then only for subtracting the
+  // few bits you don't want (e.g. the eye sockets). Default on.
+  const [keepWholeShape, setKeepWholeShape] = useState(true);
+  const keepWholeShapeRef = useRef(keepWholeShape);
+  useEffect(() => {
+    keepWholeShapeRef.current = keepWholeShape;
+  }, [keepWholeShape]);
+  // "Defringe edges" for Keep-whole-shape: peels the background-coloured bloat
+  // rim the gap-seal leaves around every element (busy multi-facet designs).
+  // 0 = legacy behaviour (no defringe). Default cleans the rim.
+  const [defringe, setDefringe] = useState(55);
+  const defringeRef = useRef(defringe);
+  useEffect(() => {
+    defringeRef.current = defringe;
+  }, [defringe]);
+  // Convert the 0-100 slider to a pixel peel, scaled by image resolution so it
+  // matches the resolution-scaled seal radius.
+  const defringePxFor = useCallback((amount: number) => {
+    const orig = originalDataRef.current;
+    if (!orig || amount <= 0) return 0;
+    const sealRadius = Math.max(
+      3,
+      Math.round((Math.max(orig.width, orig.height) / 1400) * 5)
+    );
+    // At 100 the peel reaches ~2× the seal radius; the default (~55) is enough
+    // to undo the seal's outward bloat plus a couple of anti-aliased px.
+    return Math.round((amount / 100) * sealRadius * 2);
+  }, []);
+  // Show the "Auto-selected for graphics" badge when the panel routed to
+  // birefnet-dis on its own. Cleared the moment the user manually picks
+  // any model so the manual choice is honored on subsequent loads.
+  const [autoRoutedModel, setAutoRoutedModel] = useState(false);
+  const userPickedModelRef = useRef(false);
+  // Whether the current image was classified as a graphic (multi-element
+  // artwork / logo / text). Used to bias the first pass toward the lossless
+  // color-key, which preserves disconnected elements (e.g. letters below a
+  // logo) that the ML saliency model would otherwise delete.
+  const isGraphicRef = useRef(false);
+  const [viewMode, setViewMode] = useState<'cutout' | 'preview' | 'original'>(
+    'cutout'
+  );
+  const viewModeRef = useRef<'cutout' | 'preview' | 'original'>('cutout');
+  const [contoursD, setContoursD] = useState<string>('');
+  const isDrawingRef = useRef(false);
+  const currentStrokeRef = useRef<Array<{ x: number; y: number }>>([]);
+  const livePathRef = useRef<SVGPathElement | null>(null);
+  const [cursorPos, setCursorPos] = useState<{ x: number; y: number } | null>(
+    null
+  );
+  const [canvasRect, setCanvasRect] = useState<{
+    width: number;
+    height: number;
+  } | null>(null);
+
+  // Zoom & pan
+  const [zoom, setZoom] = useState(1);
+  const [pan, setPan] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
+  const [isSpaceHeld, setIsSpaceHeld] = useState(false);
+  const isSpaceHeldRef = useRef(false);
+  // Pan (hand) tool: when on, dragging pans the canvas instead of painting.
+  // Complements spacebar-pan (desktop power users) and middle-mouse-pan with a
+  // discoverable, touch-friendly toggle. Mirrored to a ref for pointer handlers.
+  const [isPanMode, setIsPanMode] = useState(false);
+  const isPanModeRef = useRef(false);
+  const canvasZoomWrapperRef = useRef<HTMLDivElement | null>(null);
+  // Pointer-event bookkeeping: active pointers, gesture start, pan-drag start
+  const activePointersRef = useRef<
+    Map<number, { x: number; y: number; type: string }>
+  >(new Map());
+  const gestureStartRef = useRef<{
+    dist: number;
+    midX: number;
+    midY: number;
+    zoom: number;
+    pan: { x: number; y: number };
+    rectLeft: number;
+    rectTop: number;
+  } | null>(null);
+  const panDragStartRef = useRef<{
+    clientX: number;
+    clientY: number;
+    panX: number;
+    panY: number;
+  } | null>(null);
+  const lastPointerTypeRef = useRef<string>('mouse');
+
+  // Common state
+  const [panelMode, setPanelMode] = useState<PanelMode>('ai-brush');
+  const [model, setModel] = useState<BgRemovalModel>('bria-rmbg');
+  const [isSaving, setIsSaving] = useState(false);
+  const [hasResult, setHasResult] = useState(false);
+  // Mirror of hasResult for callbacks that must read it without re-binding
+  // (e.g. the Studio pending-commit hook).
+  const hasResultRef = useRef(false);
+  useEffect(() => {
+    hasResultRef.current = hasResult;
+  }, [hasResult]);
+  const [upgradeRequired, setUpgradeRequired] = useState(false);
+
+  const { status, error, runDetect, runRemoval, reset } =
+    useBackgroundRemoval();
+
+  // Track preview's UN-transformed layout size via ResizeObserver. Using
+  // `contentRect` (not getBoundingClientRect) is critical: contentRect is
+  // the layout size in CSS pixels, BEFORE CSS transforms are applied. SVG
+  // overlays live inside the zoom transform, so they should be sized in
+  // un-zoomed pixels — the transform multiplies them visually.
+  useEffect(() => {
+    const p = previewRef.current;
+    if (!p || typeof ResizeObserver === 'undefined') return;
+    const ro = new ResizeObserver(entries => {
+      for (const entry of entries) {
+        const cr = entry.contentRect;
+        if (cr.width > 0 && cr.height > 0) {
+          setCanvasRect({ width: cr.width, height: cr.height });
+        }
+      }
+    });
+    ro.observe(p);
+    // Initial measurement (may report 0 first paint if canvas not yet sized)
+    const r = p.getBoundingClientRect();
+    if (r.width > 0 && r.height > 0) {
+      setCanvasRect({ width: r.width, height: r.height });
+    }
+    return () => ro.disconnect();
+  }, []);
+
+  // Detect upgrade-required errors
+  useEffect(() => {
+    if (
+      error &&
+      (error.includes('403') || error.toLowerCase().includes('upgrade'))
+    ) {
+      setUpgradeRequired(true);
+    }
+  }, [error]);
+
+  // ---------- Color Pick: client-side flood-fill preview ----------
+  /**
+   * Recompute the Color Pick preview based on current palettes + tolerance
+   * (and optional seed point). Uses multi-color flood-fill when at least one
+   * palette is non-empty; falls back to single-color flood-fill otherwise.
+   */
+  const refreshColorPickPreview = useCallback(
+    (
+      removePalette: RGB[],
+      keepPalette: RGB[],
+      tol: number,
+      seedPoint?: { x: number; y: number } | null,
+      legacyColor?: RGB
+    ) => {
+      const orig = originalDataRef.current;
+      const preview = previewRef.current;
+      if (!orig || !preview || hasResult) return;
+      const cloned = new ImageData(
+        new Uint8ClampedArray(orig.data),
+        orig.width,
+        orig.height
+      );
+      if (removePalette.length > 0) {
+        clientMultiFloodFill(
+          cloned,
+          removePalette,
+          keepPalette,
+          tol,
+          seedPoint ?? null
+        );
+      } else if (legacyColor) {
+        clientFloodFill(cloned, legacyColor, tol, seedPoint ?? null);
+      } else {
+        // Nothing to do — render the original
+        const pCtx0 = preview.getContext('2d');
+        if (pCtx0) {
+          pCtx0.clearRect(0, 0, preview.width, preview.height);
+          pCtx0.putImageData(orig, 0, 0);
+        }
+        return;
+      }
+      const pCtx = preview.getContext('2d');
+      if (!pCtx) return;
+      pCtx.clearRect(0, 0, preview.width, preview.height);
+      pCtx.putImageData(cloned, 0, 0);
+    },
+    [hasResult]
+  );
+  // Legacy alias kept for callers expecting the old signature
+  const applyClientPreview = useCallback(
+    (color: RGB, tol: number, seedPoint?: { x: number; y: number } | null) => {
+      refreshColorPickPreview([], [], tol, seedPoint, color);
+    },
+    [refreshColorPickPreview]
+  );
+
+  const handleToleranceChange = useCallback(
+    (val: number) => {
+      setTolerance(val);
+      if (panelMode !== 'color-pick' || hasResult) return;
+      const havePalette = removeColors.length > 0;
+      if (!havePalette && !targetColor) return;
+      if (toleranceTimerRef.current) clearTimeout(toleranceTimerRef.current);
+      toleranceTimerRef.current = setTimeout(() => {
+        refreshColorPickPreview(
+          removeColors,
+          keepColors,
+          val,
+          null,
+          targetColor ?? undefined
+        );
+      }, 200);
+    },
+    [
+      panelMode,
+      hasResult,
+      targetColor,
+      removeColors,
+      keepColors,
+      refreshColorPickPreview,
+    ]
+  );
+
+  // ---------- Coordinate mapping ----------
+  const eventToCanvasCoords = useCallback(
+    (e: { clientX: number; clientY: number }) => {
+      const preview = previewRef.current;
+      if (!preview) return null;
+      const rect = preview.getBoundingClientRect();
+      const sx = preview.width / rect.width;
+      const sy = preview.height / rect.height;
+      const x = (e.clientX - rect.left) * sx;
+      const y = (e.clientY - rect.top) * sy;
+      return {
+        x,
+        y,
+        displayX: e.clientX - rect.left,
+        displayY: e.clientY - rect.top,
+      };
+    },
+    []
+  );
+
+  // ---------- AI Brush: cumulative mask + dual-layer rendering ----------
+
+  /**
+   * Render preview based on viewMode (read from ref so this callback stays stable):
+   * - 'cutout' (default): kept = original alpha, removed = faded (≤76, ~30%)
+   * - 'preview': kept = original alpha, removed = 0 (final-result preview, transparent)
+   * - 'original': original at full alpha, mask not applied
+   */
+  const renderPreviewFromMask = useCallback((mask: Uint8Array) => {
+    const orig = originalDataRef.current;
+    const p = previewRef.current;
+    if (!orig || !p) return;
+    const w = orig.width;
+    const h = orig.height;
+
+    // Side-by-side clean-result pane: always the FINAL cutout (kept = original
+    // alpha with a feathered edge, removed = transparent), independent of the
+    // editing view's mode/outline. Dims are (re)synced here so it renders
+    // correctly even when the pane mounts after the first cut.
+    const rp = resultPreviewRef.current;
+    if (rp && mask.length === w * h) {
+      if (rp.width !== w || rp.height !== h) {
+        rp.width = w;
+        rp.height = h;
+      }
+      const rCtx = rp.getContext('2d');
+      if (rCtx) {
+        rCtx.clearRect(0, 0, w, h);
+        const clean = new ImageData(new Uint8ClampedArray(orig.data), w, h);
+        const cd = clean.data;
+        const soft = featherAlpha(mask, w, h, FEATHER_RADIUS);
+        for (let i = 0; i < mask.length; i++) {
+          cd[i * 4 + 3] = Math.round((orig.data[i * 4 + 3] * soft[i]) / 255);
+        }
+        rCtx.putImageData(clean, 0, 0);
+      }
+    }
+
+    const pCtx = p.getContext('2d');
+    if (!pCtx) return;
+    pCtx.clearRect(0, 0, w, h);
+    const mode = viewModeRef.current;
+    if (mode === 'original') {
+      pCtx.putImageData(orig, 0, 0);
+      return;
+    }
+    if (mask.length !== w * h) return;
+    const out = new ImageData(new Uint8ClampedArray(orig.data), w, h);
+    const od = out.data;
+    const src = orig.data;
+    if (mode === 'preview') {
+      // Feather the boundary into a soft alpha ramp so edges are anti-aliased
+      // (the ClippingMagic-quality edge), not a hard 0/255 stairstep.
+      const soft = featherAlpha(mask, w, h, FEATHER_RADIUS);
+      for (let i = 0; i < mask.length; i++) {
+        od[i * 4 + 3] = Math.round((src[i * 4 + 3] * soft[i]) / 255);
+      }
+    } else {
+      // cutout: faded for removed
+      for (let i = 0; i < mask.length; i++) {
+        const a = src[i * 4 + 3];
+        od[i * 4 + 3] = mask[i] ? a : Math.min(a, 76);
+      }
+    }
+    pCtx.putImageData(out, 0, 0);
+  }, []);
+
+  // Sync viewMode state → ref AND re-render preview on change.
+  useEffect(() => {
+    viewModeRef.current = viewMode;
+    const mask = cumulativeMaskRef.current;
+    if (mask) renderPreviewFromMask(mask);
+  }, [viewMode, renderPreviewFromMask]);
+
+  // When the side-by-side result pane is toggled on, its canvas mounts fresh —
+  // re-render so it populates immediately.
+  useEffect(() => {
+    if (!splitView) return;
+    const mask = cumulativeMaskRef.current;
+    if (mask) renderPreviewFromMask(mask);
+  }, [splitView, renderPreviewFromMask]);
+
+  /**
+   * SAM-first initial cut: produce the base mask from the in-house SAM engine
+   * (find-everything + subject selection) and override samMaskRef, then
+   * recompute. Returns true on success; any failure returns false so the caller
+   * keeps whatever the classical engine produced. Never runs downstream logic
+   * differently — it only swaps what the base mask started as.
+   */
+  // Build (once) + return the hysteresis ink mask for the current image.
+  const ensureInkMask = useCallback((): Uint8Array | null => {
+    const orig = originalDataRef.current;
+    if (!orig) return null;
+    if (inkMaskRef.current) return inkMaskRef.current;
+    if (!bgColorRef.current) {
+      bgColorRef.current = detectBorderColor(
+        orig.data,
+        orig.width,
+        orig.height
+      );
+    }
+    inkMaskRef.current = computeInkMask(
+      orig.data,
+      orig.width,
+      orig.height,
+      bgColorRef.current,
+      INK_PRESERVE_TOLERANCE * INK_PRESERVE_TOLERANCE,
+      INK_PRESERVE_WEAK_TOLERANCE * INK_PRESERVE_WEAK_TOLERANCE
+    );
+    return inkMaskRef.current;
+  }, []);
+
+  // First-cut ink preservation: union the hysteresis ink mask into the auto-cut
+  // mask so thin text / linework can't be mutilated and small text keeps its
+  // anti-aliased edge (outlined like the big text). Automatic and graphics-only
+  // — photographic images don't have the thin-text problem. Mutates + returns.
+  const preserveInkInMask = useCallback(
+    (mask: Uint8Array): Uint8Array => {
+      if (!isGraphicRef.current) return mask;
+      const ink = ensureInkMask();
+      if (!ink || ink.length !== mask.length) return mask;
+      for (let i = 0; i < mask.length; i++) if (ink[i]) mask[i] = 1;
+      return mask;
+    },
+    [ensureInkMask]
+  );
+
+  const applySamFirstCut = useCallback(
+    async (canvas: HTMLCanvasElement): Promise<boolean> => {
+      const orig = originalDataRef.current;
+      if (!orig) return false;
+      // Respect the user: if they've already started brushing, don't clobber it.
+      if (strokeHistoryRef.current.length > 0) return false;
+      setSamStatus('running');
+      try {
+        const blob = await new Promise<Blob | null>(resolve =>
+          canvas.toBlob(b => resolve(b), 'image/png')
+        );
+        if (!blob) {
+          setSamStatus('failed');
+          return false;
+        }
+        const { cutoutUrl } = await samRemoveBackground(blob);
+        const img = await new Promise<HTMLImageElement>((resolve, reject) => {
+          const el = new Image();
+          el.onload = () => resolve(el);
+          el.onerror = () => reject(new Error('cutout decode failed'));
+          el.src = cutoutUrl;
+        });
+        // Re-check after the network round-trip.
+        if (strokeHistoryRef.current.length > 0) return false;
+        const off = document.createElement('canvas');
+        off.width = orig.width;
+        off.height = orig.height;
+        const octx = off.getContext('2d');
+        if (!octx) return false;
+        octx.drawImage(img, 0, 0, orig.width, orig.height);
+        const data = octx.getImageData(0, 0, orig.width, orig.height);
+        const m = new Uint8Array(orig.width * orig.height);
+        for (let i = 0; i < m.length; i++) {
+          m[i] = data.data[i * 4 + 3] > 127 ? 1 : 0;
+        }
+        // Keep every clearly-not-background pixel so thin text survives.
+        preserveInkInMask(m);
+        samMaskRef.current = m;
+        initialMaskRef.current = data;
+        const recompute = recomputeCumulativeRef.current;
+        if (recompute) recompute();
+        setSamStatus('applied');
+        return true;
+      } catch (e) {
+        console.warn('[BG] SAM first-cut failed; keeping classical result:', e);
+        setSamStatus('failed');
+        return false;
+      }
+    },
+    [preserveInkInMask]
+  );
+
+  /**
+   * Kick off the smart initial mask (detect → ML/color-key auto-cutout).
+   * Called on mount AND from handleReset so "Reset to original" re-runs it.
+   * The brush itself is client-side and needs no server warm-up here.
+   * NOTE: must be declared AFTER renderPreviewFromMask to avoid TDZ on the deps array.
+   */
+  const runInitialAnalysis = useCallback(
+    (canvas: HTMLCanvasElement) => {
+      // Keep-whole-shape works from the original pixels alone, so seed it
+      // instantly (before the network call) — the cutout shows immediately and
+      // survives an ML failure. The ML call below still runs to populate
+      // initialMaskRef for when the toggle is switched off.
+      const origNow = originalDataRef.current;
+      if (
+        keepWholeShapeRef.current &&
+        origNow &&
+        strokeHistoryRef.current.length === 0
+      ) {
+        const bgColor = detectBorderColor(
+          origNow.data,
+          origNow.width,
+          origNow.height
+        );
+        const sealRadius = Math.max(
+          3,
+          Math.round((Math.max(origNow.width, origNow.height) / 1400) * 5)
+        );
+        const m = computeWholeShapeMask(
+          origNow.data,
+          origNow.width,
+          origNow.height,
+          bgColor,
+          BG_CONNECT_TOLERANCE,
+          sealRadius,
+          defringePxFor(defringeRef.current)
+        );
+        samMaskRef.current = m;
+        const recompute = recomputeCumulativeRef.current;
+        if (recompute) {
+          recompute();
+        } else {
+          // Binding effect hasn't run yet on first mount — render directly.
+          const next = new Uint8Array(m);
+          cumulativeMaskRef.current = next;
+          renderPreviewFromMask(next);
+          setContoursD(maskToContoursPath(next, origNow.width, origNow.height));
+        }
+      }
+      // Smart initial mask: detect → ml+color when bg is flood-fillable.
+      const classicalChain = runDetect(canvas)
+        .then(detection => {
+          const opts: RemovalOptions = (() => {
+            if (!detection || detection.recommended_mode === 'noop') {
+              return { mode: 'ml-only', model: 'bria-rmbg' };
+            }
+            const rec = detection.recommended_mode;
+            const graphic = isGraphicRef.current;
+
+            // Solid / two-color backgrounds → lossless edge-connected color key.
+            // It removes only background reachable from the border, so it strips
+            // the background AND the empty space between elements while KEEPING
+            // every foreground element — including disconnected text (e.g.
+            // letters below a logo) that the ML saliency model deletes.
+            //
+            // For graphic artwork we also route the near-solid "gradient" case
+            // here: on multi-element designs the ML model eats disconnected
+            // pieces, so we prefer the color key unless the background is
+            // genuinely complex. ML stays the default for photographic content.
+            if (rec === 'color-fill' || (rec === 'ml+color' && graphic)) {
+              return {
+                mode: 'color-fill',
+                targetColor: detection.dominant,
+                tolerance: 30,
+              };
+            }
+            if (rec === 'two-color-fill') {
+              return {
+                mode: 'color-fill',
+                targetColor: detection.dominant,
+                removeColors: detection.secondary
+                  ? [detection.dominant, detection.secondary]
+                  : undefined,
+                tolerance: 30,
+              };
+            }
+            if (rec === 'ml-only') {
+              return {
+                mode: 'ml-only',
+                model: graphic ? 'birefnet-dis' : 'bria-rmbg',
+              };
+            }
+            // gradient on photographic content → ML mask + color cleanup
+            return {
+              mode: 'ml+color',
+              model: 'bria-rmbg',
+              targetColor: detection.dominant,
+              tolerance: 30,
+            };
+          })();
+          return runRemoval(canvas, opts);
+        })
+        .then(img => {
+          const orig = originalDataRef.current;
+          if (!img || !orig) return;
+          const off = document.createElement('canvas');
+          off.width = orig.width;
+          off.height = orig.height;
+          const offCtx = off.getContext('2d');
+          if (!offCtx) return;
+          offCtx.drawImage(img, 0, 0, orig.width, orig.height);
+          const data = offCtx.getImageData(0, 0, orig.width, orig.height);
+          initialMaskRef.current = data;
+          // Seed the ML mask only when NOT keeping the whole shape (the
+          // whole-shape mask was already seeded upfront, offline). Skip if the
+          // user has started brushing.
+          if (
+            strokeHistoryRef.current.length === 0 &&
+            !keepWholeShapeRef.current
+          ) {
+            const m = new Uint8Array(orig.width * orig.height);
+            for (let i = 0; i < m.length; i++) {
+              m[i] = data.data[i * 4 + 3] > 127 ? 1 : 0;
+            }
+            // Keep every clearly-not-background pixel so thin text survives
+            // the auto-cut (graphics only).
+            preserveInkInMask(m);
+            samMaskRef.current = m;
+            // Run the same cleanup + hole-detection pipeline the
+            // sliders use, via a forward-bound ref. Falls back to the
+            // raw mask if the ref isn't populated yet (shouldn't
+            // happen in practice — the AI is async, the ref is set
+            // synchronously after first render).
+            const recompute = recomputeCumulativeRef.current;
+            if (recompute) {
+              recompute();
+            } else {
+              const next = new Uint8Array(m);
+              cumulativeMaskRef.current = next;
+              renderPreviewFromMask(next);
+              setContoursD(maskToContoursPath(next, orig.width, orig.height));
+            }
+          }
+        });
+
+      if (!SAM_FIRST_CUT_ENABLED) return classicalChain;
+      // Kick off SAM in parallel with the classical chain (which stays the
+      // guaranteed fallback). SAM overrides the base mask when it lands; on
+      // failure the classical result remains. Running them concurrently keeps
+      // the wait at ~SAM time rather than classical + SAM. In the default
+      // keep-whole-shape mode the classical chain doesn't touch samMaskRef, so
+      // there's no race — the instant whole-shape seed shows first, then SAM.
+      const samPromise = applySamFirstCut(canvas);
+      return classicalChain
+        .catch(err => console.warn('[BG] classical initial cut error:', err))
+        .then(() => samPromise);
+    },
+    [
+      runDetect,
+      runRemoval,
+      renderPreviewFromMask,
+      applySamFirstCut,
+      preserveInkInMask,
+    ]
+  );
+
+  // Init canvas, kick off analysis on mount.
+  useEffect(() => {
+    const canvas = document.createElement('canvas');
+    const w = image.naturalWidth || image.width;
+    const h = image.naturalHeight || image.height;
+    canvas.width = w;
+    canvas.height = h;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+    ctx.drawImage(image, 0, 0);
+    canvasRef.current = canvas;
+    originalDataRef.current = ctx.getImageData(0, 0, w, h);
+    bgMaskRef.current = null; // new image → recompute fill connectivity lazily
+    bgColorRef.current = null; // new image → re-detect bg colour for ink mode
+    inkMaskRef.current = null; // new image → rebuild ink mask lazily
+    // New pixels → any cached SAM embedding is stale; force a fresh /embed
+    // on the next smart click.
+    samSessionRef.current = null;
+    samEmbedInFlightRef.current = null;
+    setSamBrushStatus('idle');
+    // Original pixels are in memory — the client-side scribble brush is ready.
+    setBrushReady(true);
+
+    const preview = previewRef.current;
+    if (preview) {
+      preview.width = w;
+      preview.height = h;
+      const pCtx = preview.getContext('2d');
+      if (pCtx) pCtx.drawImage(canvas, 0, 0);
+    }
+
+    // Phase 2.2 auto-router: classify the input and bump the default
+    // model to birefnet-dis ("High Detail (Graphics + Text)") for
+    // graphics-y inputs. Honors a manual pick — once the user touches
+    // the dropdown, userPickedModelRef pins their choice.
+    let graphic = false;
+    try {
+      graphic = classifyImage(image) === 'graphic';
+    } catch {
+      // Classifier never throws in practice; fall back to non-graphic.
+    }
+    isGraphicRef.current = graphic;
+    if (!userPickedModelRef.current) {
+      if (graphic) {
+        setModel('birefnet-dis');
+        setAutoRoutedModel(true);
+      } else {
+        setAutoRoutedModel(false);
+      }
+    }
+
+    runInitialAnalysis(canvas);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [image]);
+
+  /** Derive post-cleanup mask from samMaskRef + current palettes + current tolerance, then render. */
+  const recomputeCumulative = useCallback(() => {
+    const sam = samMaskRef.current;
+    const orig = originalDataRef.current;
+    if (!sam || !orig) return;
+
+    // Keep-whole-shape mode: the base mask is already the full design
+    // silhouette. Skip the automatic carve passes (edge flood / hole detection
+    // / speck removal) — they key off the background colour and would re-remove
+    // same-colour subject parts like a dark helmet. The user subtracts what
+    // they don't want with the brush instead. Brush edits live directly in
+    // samMask, so the mask already reflects them here.
+    if (keepWholeShapeRef.current) {
+      const next = new Uint8Array(sam);
+      cumulativeMaskRef.current = next;
+      renderPreviewFromMask(next);
+      setContoursD(maskToContoursPath(next, orig.width, orig.height));
+      return;
+    }
+
+    const next = new Uint8Array(sam);
+    const keepColors = collectStrokePaletteColors(
+      strokeHistoryRef.current,
+      'keep',
+      orig
+    );
+    const removeColors = collectStrokePaletteColors(
+      strokeHistoryRef.current,
+      'remove',
+      orig
+    );
+
+    // Detect background color once and reuse across passes — saves
+    // duplicate edge sampling and keeps every pass on the same baseline.
+    // Done BEFORE stroke regions because Phase 2.5 Keep/Remove logic
+    // depends on knowing the bg color.
+    const bgColor = detectBgColorFromEdges(
+      orig.data,
+      next,
+      orig.width,
+      orig.height
+    );
+
+    // Phase 2.5 — asymmetric stroke semantics. Keep refines SAM mask
+    // by subtracting bg-colored pixels (so internal pockets aren't
+    // over-protected). Remove uses a local color flood seeded from
+    // the brush footprint (NOT SAM, which over-predicts on tiny
+    // negative-only prompts). See strokeSemantics.ts for the full
+    // rationale.
+    const { protect: keepStrokeMask, forceCarve: removeStrokeMask } =
+      computeStrokeRegions(strokeHistoryRef.current, orig.width, orig.height, {
+        data: orig.data,
+        bgColor,
+        // Slightly looser than the global edge flood — user explicitly
+        // asked to carve here, so be a touch more permissive.
+        removeFloodTolerance: Math.min(150, Math.round(bgFlood * 1.2)),
+      });
+
+    // Pass 1 (PRIMARY) — edge-flood background detection.
+    // Flood from image edges through pixels matching bgColor within
+    // tolerance. Anything reached is *certainly* background, regardless
+    // of what the AI mask said. This is what cleanly handles
+    // turtle-style "background-colored regions connected to the outside
+    // via narrow gaps." Skips Keep-stroke pixels.
+    if (bgFlood > 0) {
+      const flood = edgeFloodBackground(orig.data, orig.width, orig.height, {
+        bgColor,
+        sensitivity: bgFlood,
+        protectMask: keepStrokeMask,
+      });
+      for (let i = 0; i < next.length; i++) {
+        if (flood[i] === 1) next[i] = 0;
+      }
+    }
+
+    // Pass 2 — color cleanup (existing): palette-aware fringe filter.
+    applyColorCleanup(next, orig, keepColors, removeColors, cleanupTolerance);
+
+    // Pass 3 — hole detection (existing, now stroke-aware): carves
+    // bg-colored regions enclosed inside the foreground that the
+    // edge flood couldn't reach (e.g., inside-of-O on TOP DAD).
+    detectInternalHoles(
+      next,
+      orig.data,
+      orig.width,
+      orig.height,
+      holeDetection,
+      keepStrokeMask,
+      removeStrokeMask
+    );
+
+    // Pass 4 — stranded-component speck removal (Phase 2.7).
+    // Color-agnostic: carves any small foreground component sitting
+    // in mostly-transparent surroundings. Catches dense grunge noise
+    // (TOP DAD case) where the old size-capped dark-speck pass failed
+    // because dark pixels 4-connected into oversized components.
+    // Always runs after the bg-color passes so its transparency
+    // context is maximally informative.
+    if (speckRemoval > 0) {
+      removeStrandedSpecks(next, orig.width, orig.height, {
+        sensitivity: speckRemoval,
+        protectMask: keepStrokeMask,
+      });
+    }
+
+    // Final ink guard (graphics only): re-assert every clearly-not-background
+    // pixel so the carve/speck passes can't mutilate thin text or linework —
+    // EXCEPT where the user explicitly Removed (removeStrokeMask). This makes
+    // "keep the ink" automatic and cleanup-proof, so text no longer needs
+    // manual repair, while a Remove stroke still wins.
+    if (isGraphicRef.current) {
+      const ink = ensureInkMask();
+      if (ink && ink.length === next.length) {
+        for (let i = 0; i < next.length; i++) {
+          if (ink[i] && !removeStrokeMask[i]) next[i] = 1;
+        }
+      }
+    }
+
+    cumulativeMaskRef.current = next;
+    renderPreviewFromMask(next);
+    // Trace mask boundary for the marching-ants overlay (canvas-pixel coords).
+    setContoursD(maskToContoursPath(next, orig.width, orig.height));
+  }, [
+    bgFlood,
+    cleanupTolerance,
+    holeDetection,
+    speckRemoval,
+    renderPreviewFromMask,
+    ensureInkMask,
+  ]);
+
+  // Keep the forward-binding ref in sync — runInitialAnalysis (declared
+  // above) calls through this so the cleanup + hole-detection passes
+  // fire when the AI mask first lands.
+  useEffect(() => {
+    recomputeCumulativeRef.current = recomputeCumulative;
+  }, [recomputeCumulative]);
+
+  // Toggle "Keep whole shape" and re-seed the base mask immediately (no network
+  // re-run) as long as the user hasn't started brushing.
+  const toggleKeepWholeShape = useCallback(
+    (nextOn: boolean) => {
+      setKeepWholeShape(nextOn);
+      keepWholeShapeRef.current = nextOn;
+      const orig = originalDataRef.current;
+      if (!orig || strokeHistoryRef.current.length > 0) return;
+      const total = orig.width * orig.height;
+      if (nextOn) {
+        const bgColor = detectBorderColor(orig.data, orig.width, orig.height);
+        const sealRadius = Math.max(
+          3,
+          Math.round((Math.max(orig.width, orig.height) / 1400) * 5)
+        );
+        samMaskRef.current = computeWholeShapeMask(
+          orig.data,
+          orig.width,
+          orig.height,
+          bgColor,
+          BG_CONNECT_TOLERANCE,
+          sealRadius,
+          defringePxFor(defringeRef.current)
+        );
+      } else {
+        const initial = initialMaskRef.current;
+        const m = new Uint8Array(total);
+        if (initial && initial.data.length === total * 4) {
+          for (let i = 0; i < total; i++) {
+            m[i] = initial.data[i * 4 + 3] > 127 ? 1 : 0;
+          }
+        }
+        samMaskRef.current = m;
+      }
+      recomputeCumulative();
+    },
+    [recomputeCumulative, defringePxFor]
+  );
+
+  // Live-apply the Defringe slider: re-seed the whole-shape mask with the new
+  // peel amount. Only meaningful in keep-whole-shape mode with no strokes yet.
+  const applyDefringe = useCallback(
+    (amount: number) => {
+      setDefringe(amount);
+      defringeRef.current = amount;
+      const orig = originalDataRef.current;
+      if (
+        !keepWholeShapeRef.current ||
+        !orig ||
+        strokeHistoryRef.current.length > 0
+      ) {
+        return;
+      }
+      const bgColor = detectBorderColor(orig.data, orig.width, orig.height);
+      const sealRadius = Math.max(
+        3,
+        Math.round((Math.max(orig.width, orig.height) / 1400) * 5)
+      );
+      samMaskRef.current = computeWholeShapeMask(
+        orig.data,
+        orig.width,
+        orig.height,
+        bgColor,
+        BG_CONNECT_TOLERANCE,
+        sealRadius,
+        defringePxFor(amount)
+      );
+      recomputeCumulative();
+    },
+    [recomputeCumulative, defringePxFor]
+  );
+
+  /** Reset SAM mask to BiRefNet initial (or all-zeros if not loaded), then derive cumulative. */
+  const resetCumulativeToInitial = useCallback(() => {
+    const orig = originalDataRef.current;
+    if (!orig) return;
+    const total = orig.width * orig.height;
+    const initial = initialMaskRef.current;
+    const m = new Uint8Array(total);
+    if (initial && initial.data.length === total * 4) {
+      for (let i = 0; i < total; i++) {
+        m[i] = initial.data[i * 4 + 3] > 127 ? 1 : 0;
+      }
+    }
+    samMaskRef.current = m;
+    recomputeCumulative();
+  }, [recomputeCumulative]);
+
+  // Debounced re-cleanup when tolerance slider changes (skip until samMask exists).
+  useEffect(() => {
+    if (!samMaskRef.current) return;
+    const handle = setTimeout(() => {
+      recomputeCumulative();
+    }, 80);
+    return () => clearTimeout(handle);
+  }, [cleanupTolerance, recomputeCumulative]);
+
+  const commitStroke = useCallback(
+    (
+      tool: BrushTool,
+      path: Array<{ x: number; y: number }>,
+      sizeAtCommit: number
+    ) => {
+      if (path.length === 0) return;
+      const orig = originalDataRef.current;
+      if (!orig) return;
+      const total = orig.width * orig.height;
+
+      // Conscious brush (graphics), automatically colour-keyed:
+      //   Keep  → within the painted footprint, add back only ink pixels (never
+      //           drags the tan back in).
+      //   Remove→ flood the CONNECTED background-coloured region from the stroke
+      //           and clear it — so one swipe on the tan removes the whole
+      //           enclosed area at once, bounded by the ink (which stays put, so
+      //           letters/artwork are never eaten).
+      // Photographic images fall through to the region brush below. Self-
+      // contained apply (mirrors the region path) to avoid a forward reference
+      // to applyRegionEdit.
+      if (isGraphicRef.current) {
+        if (!bgColorRef.current) {
+          bgColorRef.current = detectBorderColor(
+            orig.data,
+            orig.width,
+            orig.height
+          );
+        }
+        const { r: bcr, g: bcg, b: bcb } = bgColorRef.current;
+        const data = orig.data;
+        const w = orig.width;
+        const h = orig.height;
+        const footprintRadius = Math.max(1, sizeAtCommit / 2);
+        const footprint = strokeToSeeds(path, footprintRadius, w, h);
+        const region = new Uint8Array(total);
+        let anyChange = false;
+
+        if (tool === 'keep') {
+          const tolSq = inkToleranceRef.current * inkToleranceRef.current;
+          for (const idx of footprint) {
+            const j = idx * 4;
+            const dr = data[j] - bcr;
+            const dg = data[j + 1] - bcg;
+            const db = data[j + 2] - bcb;
+            if (dr * dr + dg * dg + db * db > tolSq) {
+              region[idx] = 1;
+              anyChange = true;
+            }
+          }
+        } else {
+          // Remove: BFS flood connected "tan" (within INK_PRESERVE_TOLERANCE of
+          // the background colour) from the stroke footprint. Ink is a wall, so
+          // the flood fills the enclosed background area and stops at the
+          // artwork — clearing the whole region in one swipe.
+          const tanTolSq = INK_PRESERVE_TOLERANCE * INK_PRESERVE_TOLERANCE;
+          const isTan = (idx: number) => {
+            const j = idx * 4;
+            const dr = data[j] - bcr;
+            const dg = data[j + 1] - bcg;
+            const db = data[j + 2] - bcb;
+            return dr * dr + dg * dg + db * db <= tanTolSq;
+          };
+          const queue = new Uint32Array(total);
+          let qh = 0;
+          let qt = 0;
+          for (const idx of footprint) {
+            if (!region[idx] && isTan(idx)) {
+              region[idx] = 1;
+              queue[qt++] = idx;
+              anyChange = true;
+            }
+          }
+          while (qh < qt) {
+            const idx = queue[qh++];
+            const y = (idx / w) | 0;
+            const x = idx - y * w;
+            if (y > 0) {
+              const n = idx - w;
+              if (!region[n] && isTan(n)) {
+                region[n] = 1;
+                queue[qt++] = n;
+              }
+            }
+            if (y < h - 1) {
+              const n = idx + w;
+              if (!region[n] && isTan(n)) {
+                region[n] = 1;
+                queue[qt++] = n;
+              }
+            }
+            if (x > 0) {
+              const n = idx - 1;
+              if (!region[n] && isTan(n)) {
+                region[n] = 1;
+                queue[qt++] = n;
+              }
+            }
+            if (x < w - 1) {
+              const n = idx + 1;
+              if (!region[n] && isTan(n)) {
+                region[n] = 1;
+                queue[qt++] = n;
+              }
+            }
+          }
+        }
+        if (!anyChange) return;
+
+        const inkBefore = new Uint8Array(
+          samMaskRef.current ?? new Uint8Array(total)
+        );
+        const inkNext = new Uint8Array(inkBefore);
+        if (tool === 'keep') {
+          for (let i = 0; i < total; i++) inkNext[i] = inkNext[i] | region[i];
+        } else {
+          for (let i = 0; i < total; i++)
+            inkNext[i] = inkNext[i] & (region[i] ^ 1);
+        }
+
+        const inkPoints: SamPoint[] = [
+          {
+            x: Math.round(path[path.length - 1]?.x ?? path[0].x),
+            y: Math.round(path[path.length - 1]?.y ?? path[0].y),
+            label: tool === 'keep' ? 1 : 0,
+          },
+        ];
+        const inkRecord: StrokeRecord = {
+          tool,
+          points: inkPoints,
+          rawPath: path.slice(),
+          brushSize: sizeAtCommit,
+          maskBefore: inkBefore,
+          samMask: region,
+        };
+        const inkHistory = [...strokeHistoryRef.current, inkRecord];
+        samMaskRef.current = inkNext;
+        strokeHistoryRef.current = inkHistory;
+        setStrokeHistory(inkHistory);
+        recomputeCumulative();
+        return;
+      }
+
+      const sampled = samplePathPoints(path, sizeAtCommit);
+      const label: 0 | 1 = tool === 'keep' ? 1 : 0;
+      const points: SamPoint[] = sampled.map(p => ({
+        x: Math.round(p.x),
+        y: Math.round(p.y),
+        label,
+      }));
+
+      // Snapshot pre-cleanup mask BEFORE this stroke (for undo).
+      const currentSam = samMaskRef.current ?? new Uint8Array(total);
+      const maskBefore = new Uint8Array(currentSam);
+
+      // Edge-aware region grow (client-side, no server round-trip): seed from
+      // the stroke footprint, then flood over the original pixels — stopping at
+      // real edges and staying within a color band of the seed color. Brush
+      // size drives both the seed radius and how far the flood may travel.
+      const seedRadius = Math.max(1, sizeAtCommit / GROW_SEED_RADIUS_DIVISOR);
+      const seeds = strokeToSeeds(path, seedRadius, orig.width, orig.height);
+      // Context-aware region selection with a CONTINUOUS, size-scaled reach (no
+      // discrete precise/fill/whole-shape tiers). Brush size sets how far a
+      // stroke's fill may travel — bigger brush = larger area — but it is BOUNDED
+      // (never the whole image), so a Keep stroke on the background grabs a local
+      // region instead of flooding the entire background back in. The fill is
+      // over the colour-based fg/bg partition, so it clears the tan between
+      // letters without crossing into the text.
+      const resFactor = Math.max(
+        1,
+        Math.max(orig.width, orig.height) / REACH_REFERENCE_DIM
+      );
+      const reachRadius = Math.max(
+        1,
+        sizeAtCommit * GROW_MEDIUM_REACH_PER_SIZE * resFactor
+      );
+
+      if (!bgMaskRef.current) {
+        const bgColor = detectBorderColor(orig.data, orig.width, orig.height);
+        bgMaskRef.current = computeBackgroundMask(
+          orig.data,
+          orig.width,
+          orig.height,
+          bgColor,
+          BG_CONNECT_TOLERANCE
+        );
+      }
+      const bgMask = bgMaskRef.current;
+      // Keep fills the foreground shape (bgMask 0); Remove fills the background
+      // area (bgMask 1), bounded by the size-scaled reach.
+      const passValue: 0 | 1 = tool === 'keep' ? 0 : 1;
+      let region = fillConnectedRegion(
+        bgMask,
+        passValue,
+        orig.width,
+        orig.height,
+        seeds,
+        reachRadius
+      );
+      // Fallback: if the partition fill found nothing (e.g. a Keep stroke on bare
+      // background, or painting a subject part that shares the bg colour), use an
+      // edge-aware grow bounded by the SAME reach so the stroke stays local.
+      let any = false;
+      for (let i = 0; i < region.length; i++) {
+        if (region[i]) {
+          any = true;
+          break;
+        }
+      }
+      if (!any) {
+        region = growRegionFromStroke(
+          orig.data,
+          orig.width,
+          orig.height,
+          seeds,
+          {
+            reachRadius,
+            edgeThreshold: GROW_EDGE_THRESHOLD,
+            colorTolerance: GROW_FLOOD_COLOR_TOLERANCE,
+          }
+        );
+      }
+      if (region.length !== total) return;
+
+      // Always claim the literal brush footprint too, so a stroke ALWAYS does at
+      // least what you painted — even when the smart fill finds nothing (e.g. a
+      // dark subject part like a helmet that's the same colour as the
+      // background, where no automatic fill can key off a boundary). A big brush
+      // then reliably paints the area back over a few swipes.
+      const footprintRadius = Math.max(1, sizeAtCommit / 2);
+      const footprint = strokeToSeeds(
+        path,
+        footprintRadius,
+        orig.width,
+        orig.height
+      );
+      for (const idx of footprint) region[idx] = 1;
+
+      // Keep = add the region; Remove = subtract it.
+      const nextSam = new Uint8Array(currentSam);
+      if (tool === 'keep') {
+        for (let i = 0; i < total; i++) nextSam[i] = nextSam[i] | region[i];
+      } else {
+        for (let i = 0; i < total; i++)
+          nextSam[i] = nextSam[i] & (region[i] ^ 1);
+      }
+
+      const record: StrokeRecord = {
+        tool,
+        points,
+        rawPath: path.slice(),
+        brushSize: sizeAtCommit,
+        maskBefore,
+        // Store the grown region so the global passes (edge flood, hole
+        // detection, speck removal) can treat this stroke as a coherent
+        // selection, not just the literal brush footprint.
+        samMask: region,
+      };
+      const updatedHistory = [...strokeHistoryRef.current, record];
+
+      samMaskRef.current = nextSam;
+      strokeHistoryRef.current = updatedHistory;
+      setStrokeHistory(updatedHistory);
+      // Derive cumulative (post-cleanup) and render
+      recomputeCumulative();
+    },
+    [recomputeCumulative]
+  );
+
+  // ---------- Smart select: SAM semantic click-brush ----------------------
+  // Render the current original pixels to a PNG blob to feed /embed.
+  const originalToBlob = useCallback((): Promise<Blob> => {
+    return new Promise((resolve, reject) => {
+      const orig = originalDataRef.current;
+      if (!orig) {
+        reject(new Error('Image not ready'));
+        return;
+      }
+      const c = document.createElement('canvas');
+      c.width = orig.width;
+      c.height = orig.height;
+      const cx = c.getContext('2d');
+      if (!cx) {
+        reject(new Error('Canvas unavailable'));
+        return;
+      }
+      cx.putImageData(orig, 0, 0);
+      c.toBlob(
+        b => (b ? resolve(b) : reject(new Error('Failed to encode image'))),
+        'image/png'
+      );
+    });
+  }, []);
+
+  // Lazily create (and cache) the SAM embedding for the current image. Callers
+  // that fire concurrently share the same in-flight promise.
+  const ensureSamSession = useCallback(async (): Promise<SamSession> => {
+    if (samSessionRef.current) return samSessionRef.current;
+    if (samEmbedInFlightRef.current) return samEmbedInFlightRef.current;
+    setSamBrushStatus('embedding');
+    const p = (async () => {
+      const blob = await originalToBlob();
+      const session = await embedImage(blob);
+      samSessionRef.current = session;
+      setSamBrushStatus('ready');
+      return session;
+    })();
+    samEmbedInFlightRef.current = p;
+    try {
+      return await p;
+    } catch (e) {
+      setSamBrushStatus('failed');
+      throw e;
+    } finally {
+      samEmbedInFlightRef.current = null;
+    }
+  }, [originalToBlob]);
+
+  // Convert a SAM cutout PNG (subject opaque, background transparent) into a
+  // binary region mask at the original image's resolution.
+  const maskFromCutout = useCallback(
+    (url: string, w: number, h: number): Promise<Uint8Array> => {
+      return new Promise((resolve, reject) => {
+        const img = new Image();
+        img.onload = () => {
+          const c = document.createElement('canvas');
+          c.width = w;
+          c.height = h;
+          const cx = c.getContext('2d');
+          if (!cx) {
+            reject(new Error('Canvas unavailable'));
+            return;
+          }
+          cx.clearRect(0, 0, w, h);
+          // Draw scaled to the working resolution so the region always lines
+          // up 1:1 with samMaskRef even if SAM returned a resized mask.
+          cx.drawImage(img, 0, 0, w, h);
+          const data = cx.getImageData(0, 0, w, h).data;
+          const region = new Uint8Array(w * h);
+          for (let i = 0; i < region.length; i++) {
+            region[i] = data[i * 4 + 3] > 127 ? 1 : 0;
+          }
+          resolve(region);
+        };
+        img.onerror = () => reject(new Error('Failed to load SAM mask'));
+        img.src = url;
+      });
+    },
+    []
+  );
+
+  // Union (Keep) or subtract (Remove) a region into samMaskRef, recording a
+  // StrokeRecord so Undo treats it like a brush stroke. Shared by the SAM
+  // click and the Fill-area click. No-ops on an empty region.
+  const applyRegionEdit = useCallback(
+    (
+      region: Uint8Array,
+      tool: BrushTool,
+      rawPath: Array<{ x: number; y: number }>,
+      points: SamPoint[],
+      recordBrushSize = 0
+    ) => {
+      const orig = originalDataRef.current;
+      if (!orig) return;
+      const total = orig.width * orig.height;
+      if (region.length !== total) return;
+
+      let any = false;
+      for (let i = 0; i < total; i++) {
+        if (region[i]) {
+          any = true;
+          break;
+        }
+      }
+      if (!any) return;
+
+      const currentSam = samMaskRef.current ?? new Uint8Array(total);
+      const maskBefore = new Uint8Array(currentSam);
+      const nextSam = new Uint8Array(currentSam);
+      if (tool === 'keep') {
+        for (let i = 0; i < total; i++) nextSam[i] = nextSam[i] | region[i];
+      } else {
+        for (let i = 0; i < total; i++)
+          nextSam[i] = nextSam[i] & (region[i] ^ 1);
+      }
+
+      const record: StrokeRecord = {
+        tool,
+        points,
+        rawPath: rawPath.slice(),
+        // 0 for click selects (extent is the region); the brush size for
+        // painted strokes so the overlay renders at the right width.
+        brushSize: recordBrushSize,
+        maskBefore,
+        samMask: region,
+      };
+      const updatedHistory = [...strokeHistoryRef.current, record];
+      samMaskRef.current = nextSam;
+      strokeHistoryRef.current = updatedHistory;
+      setStrokeHistory(updatedHistory);
+      recomputeCumulative();
+    },
+    [recomputeCumulative]
+  );
+
+  // Fill area: flood from the click over the connected region of pixels within
+  // `fillTolerance` colour distance of the clicked pixel (4-connected), then
+  // Keep-union / Remove-subtract it. Bounded by dissimilar pixels, so a click
+  // inside a ring fills only the enclosed area.
+  const runFillArea = useCallback(
+    (pt: { x: number; y: number }, tool: BrushTool) => {
+      const orig = originalDataRef.current;
+      if (!orig) return;
+      const { data, width: w, height: h } = orig;
+      const total = w * h;
+      const sx = Math.max(0, Math.min(w - 1, Math.round(pt.x)));
+      const sy = Math.max(0, Math.min(h - 1, Math.round(pt.y)));
+      const si = sy * w + sx;
+      const sr = data[si * 4];
+      const sg = data[si * 4 + 1];
+      const sb = data[si * 4 + 2];
+      const tol = fillToleranceRef.current;
+      const tolSq = tol * tol;
+
+      const region = new Uint8Array(total);
+      const queue = new Uint32Array(total);
+      let qh = 0;
+      let qt = 0;
+      region[si] = 1;
+      queue[qt++] = si;
+
+      const tryN = (n: number) => {
+        if (region[n]) return;
+        const j = n * 4;
+        const dr = data[j] - sr;
+        const dg = data[j + 1] - sg;
+        const db = data[j + 2] - sb;
+        if (dr * dr + dg * dg + db * db <= tolSq) {
+          region[n] = 1;
+          queue[qt++] = n;
+        }
+      };
+
+      while (qh < qt) {
+        const idx = queue[qh++];
+        const y = (idx / w) | 0;
+        const x = idx - y * w;
+        if (y > 0) tryN(idx - w);
+        if (y < h - 1) tryN(idx + w);
+        if (x > 0) tryN(idx - 1);
+        if (x < w - 1) tryN(idx + 1);
+      }
+
+      applyRegionEdit(
+        region,
+        tool,
+        [pt],
+        [{ x: sx, y: sy, label: tool === 'keep' ? 1 : 0 }]
+      );
+    },
+    [applyRegionEdit]
+  );
+
+  // A smart click: SAM selects the object under the cursor, then the active
+  // Keep/Remove tool unions or subtracts that segment into samMaskRef. Records
+  // a StrokeRecord so Undo works exactly like a brush stroke.
+  const runSmartSelect = useCallback(
+    async (pt: { x: number; y: number }, tool: BrushTool) => {
+      if (isSamPredictingRef.current) return; // ignore overlapping clicks
+      const orig = originalDataRef.current;
+      if (!orig) return;
+
+      isSamPredictingRef.current = true;
+      setIsSamPredicting(true);
+      try {
+        // Always a positive point — the click identifies WHICH object; the tool
+        // decides add vs. subtract afterward.
+        const point: SamPoint = {
+          x: Math.round(pt.x),
+          y: Math.round(pt.y),
+          label: 1,
+        };
+
+        let session = await ensureSamSession();
+        let result;
+        try {
+          result = await predictMask(session, [point]);
+        } catch (err) {
+          // Embeddings expire server-side (TTL). If ours lapsed mid-edit,
+          // re-embed once and retry so a long session doesn't dead-end.
+          const msg = err instanceof Error ? err.message : '';
+          if (/not found|expired|404/i.test(msg)) {
+            samSessionRef.current = null;
+            session = await ensureSamSession();
+            result = await predictMask(session, [point]);
+          } else {
+            throw err;
+          }
+        }
+
+        const region = await maskFromCutout(
+          result.url,
+          orig.width,
+          orig.height
+        );
+        URL.revokeObjectURL(result.url);
+        // SAM can return an empty mask on a bare-bg click — applyRegionEdit
+        // no-ops then.
+        applyRegionEdit(region, tool, [{ x: pt.x, y: pt.y }], [point]);
+      } catch (e) {
+        // Non-fatal: a failed predict just leaves the mask untouched. The
+        // status badge already surfaces an embed failure.
+        console.error('[bg-removal] smart select failed:', e);
+      } finally {
+        isSamPredictingRef.current = false;
+        setIsSamPredicting(false);
+      }
+    },
+    [ensureSamSession, maskFromCutout, applyRegionEdit]
+  );
+
+  // Keep the ref mirrors of the click-tool toggles in sync for the pointer
+  // handler (which reads refs to stay a stable callback).
+  useEffect(() => {
+    smartSelectRef.current = smartSelect;
+  }, [smartSelect]);
+  useEffect(() => {
+    fillAreaRef.current = fillArea;
+  }, [fillArea]);
+  useEffect(() => {
+    fillToleranceRef.current = fillTolerance;
+  }, [fillTolerance]);
+  useEffect(() => {
+    inkModeRef.current = inkMode;
+  }, [inkMode]);
+  useEffect(() => {
+    inkToleranceRef.current = inkTolerance;
+  }, [inkTolerance]);
+
+  // ---------- Canvas pointer handlers (mouse + touch + pen) + zoom/pan ----------
+  // Compute scale from canvas-pixel space → SVG display space
+  const overlayScaleNow = useCallback(() => {
+    const p = previewRef.current;
+    if (!p || !canvasRect || !p.width) return 1;
+    return canvasRect.width / p.width;
+  }, [canvasRect]);
+
+  const clampZoom = (z: number) => Math.max(0.25, Math.min(8, z));
+
+  const cancelInProgressStroke = useCallback(() => {
+    if (!isDrawingRef.current) return;
+    isDrawingRef.current = false;
+    currentStrokeRef.current = [];
+    const live = livePathRef.current;
+    if (live) live.setAttribute('d', '');
+  }, []);
+
+  const endStroke = useCallback(() => {
+    if (!isDrawingRef.current) return;
+    const path = currentStrokeRef.current;
+    const sizeAtCommit = brushSize;
+    const toolAtCommit = brushTool;
+    isDrawingRef.current = false;
+    currentStrokeRef.current = [];
+    const live = livePathRef.current;
+    if (live) live.setAttribute('d', '');
+
+    // Gesture split: a near-stationary press (a "click") with the Keep tool
+    // FILLS the enclosed area under the cursor — one tap keeps the cream inside
+    // a badge without a mode toggle. A drag PAINTS (ink-aware for graphics).
+    // Remove is always a paint stroke so a stray click can't flood-erase a
+    // whole connected region.
+    let travelSq = 0;
+    if (path.length > 0) {
+      const x0 = path[0].x;
+      const y0 = path[0].y;
+      for (let i = 1; i < path.length; i++) {
+        const dx = path[i].x - x0;
+        const dy = path[i].y - y0;
+        const t = dx * dx + dy * dy;
+        if (t > travelSq) travelSq = t;
+      }
+    }
+    const orig = originalDataRef.current;
+    const clickRadius = orig
+      ? Math.max(4, Math.max(orig.width, orig.height) / 250)
+      : 4;
+    const isClick = path.length > 0 && travelSq <= clickRadius * clickRadius;
+
+    if (isClick && toolAtCommit === 'keep') {
+      runFillArea({ x: path[0].x, y: path[0].y }, 'keep');
+      return;
+    }
+    commitStroke(toolAtCommit, path, sizeAtCommit);
+  }, [commitStroke, runFillArea, brushTool, brushSize]);
+
+  const handlePointerDown = useCallback(
+    (e: React.PointerEvent<HTMLCanvasElement>) => {
+      if (hasResult) return;
+      if (panelMode === 'color-pick') return; // handled by onClick
+      if (panelMode !== 'ai-brush') return;
+      lastPointerTypeRef.current = e.pointerType;
+      if (e.pointerType === 'touch') setCursorPos(null);
+
+      // Track pointer
+      activePointersRef.current.set(e.pointerId, {
+        x: e.clientX,
+        y: e.clientY,
+        type: e.pointerType,
+      });
+      try {
+        e.currentTarget.setPointerCapture(e.pointerId);
+      } catch {
+        /* ignore */
+      }
+
+      const activeCount = activePointersRef.current.size;
+
+      // Two pointers down → start pinch/pan gesture; cancel any in-progress stroke
+      if (activeCount === 2) {
+        cancelInProgressStroke();
+        const pts = Array.from(activePointersRef.current.values());
+        const dx = pts[1].x - pts[0].x;
+        const dy = pts[1].y - pts[0].y;
+        const dist = Math.hypot(dx, dy) || 1;
+        const wrapper = canvasZoomWrapperRef.current;
+        const rect = wrapper?.getBoundingClientRect();
+        gestureStartRef.current = {
+          dist,
+          midX: (pts[0].x + pts[1].x) / 2,
+          midY: (pts[0].y + pts[1].y) / 2,
+          zoom,
+          pan: { ...pan },
+          rectLeft: rect?.left ?? 0,
+          rectTop: rect?.top ?? 0,
+        };
+        return;
+      }
+
+      // Single pointer → pan drag when the Hand tool is on, the spacebar is
+      // held (desktop), or the middle mouse button is used. Otherwise paint.
+      if (isPanModeRef.current || isSpaceHeldRef.current || e.button === 1) {
+        panDragStartRef.current = {
+          clientX: e.clientX,
+          clientY: e.clientY,
+          panX: pan.x,
+          panY: pan.y,
+        };
+        return;
+      }
+
+      if (!brushReady) return;
+
+      // Smart select is suspended (SMART_SELECT_ENABLED = false), so this guard
+      // is dead — kept only to retain the SAM click machinery for a later
+      // revisit without an unused-code purge.
+      if (smartSelectRef.current) {
+        const sc = eventToCanvasCoords(e);
+        if (sc) void runSmartSelect({ x: sc.x, y: sc.y }, brushTool);
+        return;
+      }
+
+      // Always start a stroke; endStroke decides click-to-fill vs paint once
+      // the gesture is known (a click hasn't travelled).
+      const c = eventToCanvasCoords(e);
+      if (!c) return;
+      isDrawingRef.current = true;
+      currentStrokeRef.current = [{ x: c.x, y: c.y }];
+      const live = livePathRef.current;
+      if (live) {
+        const scale = overlayScaleNow();
+        live.setAttribute('d', pathToSvgD(currentStrokeRef.current, scale));
+        live.setAttribute(
+          'stroke',
+          brushTool === 'keep' ? '#10b981' : '#ef4444'
+        );
+        // Phase 2.2 fix: the live SVG stroke renders INSIDE the
+        // `canvasZoomWrapperRef` which already has `transform: scale(zoom)`,
+        // so multiplying stroke-width by zoom here doubles the scaling
+        // and made the in-progress line render zoom× too thick.
+        // Committed strokes (rendered in the same SVG via JSX below) use
+        // just `brushSize * overlayScale` — match that.
+        live.setAttribute('stroke-width', String(brushSize * scale));
+      }
+    },
+    [
+      hasResult,
+      panelMode,
+      brushReady,
+      eventToCanvasCoords,
+      brushTool,
+      brushSize,
+      overlayScaleNow,
+      pan,
+      zoom,
+      cancelInProgressStroke,
+      runSmartSelect,
+    ]
+  );
+
+  const handlePointerMove = useCallback(
+    (e: React.PointerEvent<HTMLCanvasElement>) => {
+      // Update tracked pointer
+      if (activePointersRef.current.has(e.pointerId)) {
+        activePointersRef.current.set(e.pointerId, {
+          x: e.clientX,
+          y: e.clientY,
+          type: e.pointerType,
+        });
+      }
+
+      // Two-pointer pinch/pan in progress
+      if (activePointersRef.current.size === 2 && gestureStartRef.current) {
+        const pts = Array.from(activePointersRef.current.values());
+        const dist = Math.hypot(pts[1].x - pts[0].x, pts[1].y - pts[0].y) || 1;
+        const midX = (pts[0].x + pts[1].x) / 2;
+        const midY = (pts[0].y + pts[1].y) / 2;
+        const start = gestureStartRef.current;
+        const newZoom = clampZoom(start.zoom * (dist / start.dist));
+        // Zoom-toward-start-midpoint correction (using start rect, not current).
+        const factor = newZoom / start.zoom;
+        const dxZoom = (start.midX - start.rectLeft) * (1 - factor);
+        const dyZoom = (start.midY - start.rectTop) * (1 - factor);
+        // Plus pan from midpoint translation since gesture start.
+        const dxPan = midX - start.midX;
+        const dyPan = midY - start.midY;
+        setZoom(newZoom);
+        setPan({
+          x: start.pan.x + dxZoom + dxPan,
+          y: start.pan.y + dyZoom + dyPan,
+        });
+        return;
+      }
+
+      // Pan drag (spacebar + mouse)
+      if (panDragStartRef.current) {
+        const start = panDragStartRef.current;
+        setPan({
+          x: start.panX + (e.clientX - start.clientX),
+          y: start.panY + (e.clientY - start.clientY),
+        });
+        return;
+      }
+
+      // Cursor / brush move
+      const c = eventToCanvasCoords(e);
+      if (!c) return;
+      if (
+        panelMode === 'ai-brush' &&
+        e.pointerType === 'mouse' &&
+        !isSpaceHeldRef.current &&
+        !isPanModeRef.current
+      ) {
+        setCursorPos({ x: c.displayX, y: c.displayY });
+      }
+      if (!isDrawingRef.current) return;
+      currentStrokeRef.current.push({ x: c.x, y: c.y });
+      const live = livePathRef.current;
+      if (live) {
+        const scale = overlayScaleNow();
+        live.setAttribute('d', pathToSvgD(currentStrokeRef.current, scale));
+      }
+    },
+    [panelMode, eventToCanvasCoords, overlayScaleNow]
+  );
+
+  const handlePointerEnd = useCallback(
+    (e: React.PointerEvent<HTMLCanvasElement>) => {
+      activePointersRef.current.delete(e.pointerId);
+
+      // Exit gesture mode if we drop below 2 pointers
+      if (gestureStartRef.current && activePointersRef.current.size < 2) {
+        gestureStartRef.current = null;
+      }
+
+      // End pan drag
+      if (panDragStartRef.current) {
+        panDragStartRef.current = null;
+        return;
+      }
+
+      // End brush stroke
+      endStroke();
+    },
+    [endStroke]
+  );
+
+  const handlePointerLeave = useCallback(
+    (e: React.PointerEvent<HTMLCanvasElement>) => {
+      if (e.pointerType === 'mouse') setCursorPos(null);
+      // On leave, only end if no remaining pointers / not gesture / not pan-drag
+      if (activePointersRef.current.size === 0) endStroke();
+    },
+    [endStroke]
+  );
+
+  const handlePointerCancel = useCallback(
+    (e: React.PointerEvent<HTMLCanvasElement>) => {
+      activePointersRef.current.delete(e.pointerId);
+      gestureStartRef.current = null;
+      panDragStartRef.current = null;
+      cancelInProgressStroke();
+    },
+    [cancelInProgressStroke]
+  );
+
+  // ---------- Wheel zoom (desktop) ----------
+  // Attach native (non-passive) wheel listener so preventDefault actually works.
+  useEffect(() => {
+    const wrapper = canvasZoomWrapperRef.current;
+    if (!wrapper) return;
+    const handler = (e: WheelEvent) => {
+      if (panelMode !== 'ai-brush' || hasResult) return;
+      e.preventDefault();
+      const rect = wrapper.getBoundingClientRect();
+      // Proportional, smoothed zoom. Trackpads fire many small deltas and mouse
+      // wheels fire large ones; exp(delta * k) gives a gentle, consistent feel
+      // instead of the old fixed 10%-per-event step (which felt hyper-sensitive
+      // on trackpads). Normalize line-mode deltas (deltaMode 1) to pixels first.
+      const unit = e.deltaMode === 1 ? 16 : 1;
+      const delta = Math.max(-40, Math.min(40, e.deltaY * unit));
+      const factor = Math.exp(-delta * 0.0025);
+      const newZoom = clampZoom(zoom * factor);
+      if (newZoom === zoom) return;
+      const dx = (e.clientX - rect.left) * (1 - newZoom / zoom);
+      const dy = (e.clientY - rect.top) * (1 - newZoom / zoom);
+      setZoom(newZoom);
+      setPan(p => ({ x: p.x + dx, y: p.y + dy }));
+    };
+    wrapper.addEventListener('wheel', handler, { passive: false });
+    return () => wrapper.removeEventListener('wheel', handler);
+  }, [zoom, panelMode, hasResult]);
+
+  // ---------- Spacebar pan-mode (desktop) ----------
+  useEffect(() => {
+    const isFormField = (el: EventTarget | null) =>
+      el instanceof HTMLElement &&
+      ['INPUT', 'TEXTAREA', 'SELECT'].includes(el.tagName);
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.code !== 'Space' || isFormField(e.target)) return;
+      e.preventDefault();
+      isSpaceHeldRef.current = true;
+      setIsSpaceHeld(true);
+      // Cancel any cursor circle while panning
+      setCursorPos(null);
+    };
+    const onKeyUp = (e: KeyboardEvent) => {
+      if (e.code !== 'Space') return;
+      isSpaceHeldRef.current = false;
+      setIsSpaceHeld(false);
+      // If a pan-drag is mid-flight, end it.
+      panDragStartRef.current = null;
+    };
+    window.addEventListener('keydown', onKeyDown);
+    window.addEventListener('keyup', onKeyUp);
+    return () => {
+      window.removeEventListener('keydown', onKeyDown);
+      window.removeEventListener('keyup', onKeyUp);
+    };
+  }, []);
+
+  // ---------- Zoom controls ----------
+  const handleZoomIn = useCallback(() => {
+    setZoom(z => clampZoom(z * 1.25));
+  }, []);
+  const handleZoomOut = useCallback(() => {
+    setZoom(z => clampZoom(z / 1.25));
+  }, []);
+  const handleZoomFit = useCallback(() => {
+    setZoom(1);
+    setPan({ x: 0, y: 0 });
+  }, []);
+
+  // Color-pick click (eyedropper or seed-fill). Dispatches based on pickTool:
+  //   'remove' → append color to removeColors palette
+  //   'keep'   → append color to keepColors palette
+  // If clickRemoveMode is active, BFS seeds from this point instead of the edges.
+  const handlePreviewClick = useCallback(
+    (e: React.MouseEvent<HTMLCanvasElement>) => {
+      if (panelMode !== 'color-pick' || hasResult) return;
+      const orig = originalDataRef.current;
+      const c = eventToCanvasCoords(e);
+      if (!orig || !c) return;
+      const x = Math.floor(c.x);
+      const y = Math.floor(c.y);
+      const idx = (y * orig.width + x) * 4;
+      const color: RGB = [
+        orig.data[idx],
+        orig.data[idx + 1],
+        orig.data[idx + 2],
+      ];
+
+      if (clickRemoveMode) {
+        // Seed-fill from this spot using current palettes
+        const seed = { x, y };
+        if (removeColors.length === 0 && !targetColor) {
+          // No palette yet — treat seed click as "remove this color from this spot"
+          const next = [color];
+          setRemoveColors(next);
+          refreshColorPickPreview(next, keepColors, tolerance, seed);
+        } else {
+          refreshColorPickPreview(
+            removeColors,
+            keepColors,
+            tolerance,
+            seed,
+            targetColor ?? undefined
+          );
+        }
+        setClickRemoveMode(false);
+        return;
+      }
+
+      if (pickTool === 'remove') {
+        const next = [...removeColors, color];
+        setRemoveColors(next);
+        // Keep legacy targetColor synced to the most-recent remove color so
+        // tolerance-only changes still preview when palette is single-element.
+        setTargetColor(color);
+        refreshColorPickPreview(next, keepColors, tolerance);
+      } else {
+        const next = [...keepColors, color];
+        setKeepColors(next);
+        refreshColorPickPreview(removeColors, next, tolerance);
+      }
+    },
+    [
+      panelMode,
+      clickRemoveMode,
+      targetColor,
+      tolerance,
+      hasResult,
+      eventToCanvasCoords,
+      pickTool,
+      removeColors,
+      keepColors,
+      refreshColorPickPreview,
+    ]
+  );
+
+  // ---------- Mode switch / brush controls ----------
+  const handleModeSwitch = useCallback(
+    (mode: PanelMode) => {
+      setPanelMode(mode);
+      setClickRemoveMode(false);
+      if (hasResult) return;
+      // Reset preview based on the mode we're entering
+      if (mode === 'ai-brush') {
+        const m = cumulativeMaskRef.current;
+        if (m) renderPreviewFromMask(m);
+        else resetCumulativeToInitial();
+      } else if (originalDataRef.current && previewRef.current) {
+        const pCtx = previewRef.current.getContext('2d');
+        if (pCtx) {
+          pCtx.clearRect(
+            0,
+            0,
+            previewRef.current.width,
+            previewRef.current.height
+          );
+          pCtx.putImageData(originalDataRef.current, 0, 0);
+        }
+      }
+    },
+    [hasResult, renderPreviewFromMask, resetCumulativeToInitial]
+  );
+
+  const handleUndoStroke = useCallback(() => {
+    const history = strokeHistoryRef.current;
+    if (history.length === 0) return;
+    const popped = history[history.length - 1];
+    const next = history.slice(0, -1);
+    strokeHistoryRef.current = next;
+    setStrokeHistory(next);
+    // Restore pre-cleanup SAM mask, then re-derive cumulative at current tolerance.
+    samMaskRef.current = new Uint8Array(popped.maskBefore);
+    recomputeCumulative();
+  }, [recomputeCumulative]);
+
+  const handleClearStrokes = useCallback(() => {
+    strokeHistoryRef.current = [];
+    setStrokeHistory([]);
+    resetCumulativeToInitial();
+  }, [resetCumulativeToInitial]);
+
+  // ---------- Server-removal for Color Pick / AI Only ----------
+  const buildOptions = useCallback((): RemovalOptions => {
+    if (panelMode === 'color-pick') {
+      // Multi-color (Phase 1.14): prefer palettes; fall back to legacy single targetColor.
+      if (removeColors.length > 0) {
+        return {
+          mode: 'color-fill',
+          removeColors,
+          keepColors: keepColors.length > 0 ? keepColors : undefined,
+          tolerance,
+        };
+      }
+      return {
+        mode: 'color-fill',
+        targetColor: targetColor ?? [255, 255, 255],
+        tolerance,
+      };
+    }
+    return { mode: 'ml-only', model };
+  }, [panelMode, targetColor, removeColors, keepColors, tolerance, model]);
+
+  const handleRemove = useCallback(async () => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    setUpgradeRequired(false);
+    const options = buildOptions();
+    const resultImg = await runRemoval(canvas, options);
+    if (!resultImg) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.drawImage(resultImg, 0, 0, canvas.width, canvas.height);
+    const preview = previewRef.current;
+    if (preview) {
+      preview.width = canvas.width;
+      preview.height = canvas.height;
+      const pCtx = preview.getContext('2d');
+      if (pCtx) {
+        pCtx.clearRect(0, 0, canvas.width, canvas.height);
+        pCtx.drawImage(canvas, 0, 0);
+      }
+    }
+    setHasResult(true);
+  }, [buildOptions, runRemoval]);
+
+  // ---------- AI Brush: Apply (write final masked RGBA to canvasRef) ----------
+  // Write the current cumulative mask into canvasRef as a feathered cutout,
+  // mirror it to the preview, mark the result committed, and propagate it to
+  // Studio's working image. Returns the committed canvas (or null if there's
+  // nothing to apply). Shared by the "Apply Changes" button and the
+  // Studio-Download pending-commit hook.
+  const applyMaskToCanvas = useCallback((): HTMLCanvasElement | null => {
+    const canvas = canvasRef.current;
+    const preview = previewRef.current;
+    const orig = originalDataRef.current;
+    const mask = cumulativeMaskRef.current;
+    if (!canvas || !preview || !orig || !mask) return null;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return null;
+    const w = orig.width;
+    const h = orig.height;
+    const out = new ImageData(new Uint8ClampedArray(orig.data), w, h);
+    const od = out.data;
+    const src = orig.data;
+    // Feather the cutout edge into a soft alpha ramp for anti-aliased edges.
+    const soft = featherAlpha(mask, w, h, FEATHER_RADIUS);
+    for (let i = 0; i < mask.length; i++) {
+      od[i * 4 + 3] = Math.round((src[i * 4 + 3] * soft[i]) / 255);
+    }
+    ctx.clearRect(0, 0, w, h);
+    ctx.putImageData(out, 0, 0);
+    const pCtx = preview.getContext('2d');
+    if (pCtx) {
+      pCtx.clearRect(0, 0, w, h);
+      pCtx.putImageData(out, 0, 0);
+    }
+    setHasResult(true);
+
+    // Propagate the background-removed canvas to Studio's working image so
+    // chained tools (Upscale, Color Change, Vectorize) receive the cleaned
+    // version, and the Studio Download exports the removed result.
+    onSave(canvas, 'in-house').catch(err => {
+      console.error('[BgRemoval] Apply propagation failed:', err);
+    });
+    return canvas;
+  }, [onSave]);
+
+  // Register a pending-commit hook so Studio's top-level Download flushes the
+  // current cutout before exporting — even if the user never clicked "Apply
+  // Changes". Returns the freshly committed canvas so Studio can export it
+  // directly (the onApply working-image update is async and not yet visible).
+  const commitPending =
+    useCallback(async (): Promise<HTMLCanvasElement | null> => {
+      // Already applied, or nothing brushed/detected yet → nothing pending.
+      if (hasResultRef.current || !cumulativeMaskRef.current) return null;
+      return applyMaskToCanvas();
+    }, [applyMaskToCanvas]);
+
+  useEffect(() => {
+    if (!registerPendingCommit) return;
+    registerPendingCommit(commitPending);
+    return () => registerPendingCommit(null);
+  }, [registerPendingCommit, commitPending]);
+
+  // ---------- Reset / Save / Download ----------
+  const handleReset = useCallback(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.drawImage(image, 0, 0);
+    originalDataRef.current = ctx.getImageData(
+      0,
+      0,
+      canvas.width,
+      canvas.height
+    );
+    bgMaskRef.current = null; // reset → recompute fill connectivity lazily
+    bgColorRef.current = null; // reset → re-detect bg colour for ink mode
+    inkMaskRef.current = null; // reset → rebuild ink mask lazily
+    // Same original pixels, but drop the embedding too so a fresh session is
+    // built on demand (cheap insurance; the reset re-runs the whole pipeline).
+    samSessionRef.current = null;
+    samEmbedInFlightRef.current = null;
+    setSamBrushStatus('idle');
+    const preview = previewRef.current;
+    if (preview) {
+      preview.width = canvas.width;
+      preview.height = canvas.height;
+      const pCtx = preview.getContext('2d');
+      if (pCtx) pCtx.drawImage(image, 0, 0);
+    }
+    setHasResult(false);
+    setUpgradeRequired(false);
+    strokeHistoryRef.current = [];
+    setStrokeHistory([]);
+    samMaskRef.current = null;
+    cumulativeMaskRef.current = null;
+    initialMaskRef.current = null;
+    setContoursD('');
+    setRemoveColors([]);
+    setKeepColors([]);
+    setTargetColor(null);
+    setClickRemoveMode(false);
+    reset();
+    // Re-run AI pipeline so the brush + initial mask come back.
+    runInitialAnalysis(canvas);
+  }, [image, reset, runInitialAnalysis]);
+
+  const handleSave = useCallback(async () => {
+    const canvas = canvasRef.current;
+    if (!canvas || !hasResult) return;
+    setIsSaving(true);
+    try {
+      await onSave(canvas, 'in-house');
+    } finally {
+      setIsSaving(false);
+    }
+  }, [hasResult, onSave]);
+
+  const handleDownload = useCallback(() => {
+    const canvas = canvasRef.current;
+    if (!canvas || !hasResult) return;
+    const link = document.createElement('a');
+    link.download = 'background-removed.png';
+    link.href = canvas.toDataURL('image/png');
+    link.click();
+  }, [hasResult]);
+
+  // Only the initial auto-cutout (detect → ML/color-key) drives the overlay
+  // now; the brush is client-side and instant.
+  const isProcessing = ['authorizing', 'detecting', 'removing'].includes(
+    status
+  );
+
+  // Blur "Removing background…" overlay gating. It should last as long as the
+  // ACTUAL removal and no longer. The bug was tying it to the classical
+  // detect→remove `status`: in the default keep-whole-shape + SAM flow the SAM
+  // cut lands (and paints) well before the parallel classical `runRemoval`
+  // network call resolves, so `status === 'removing'` kept the pulse up after
+  // the cutout was already applied. Track the authoritative removal instead —
+  // the SAM first-cut — and clear the moment SAM settles (applied/failed).
+  //   • SAM path: up while SAM runs (plus the brief pre-SAM 'detecting' window);
+  //     down when SAM settles. If SAM fails, only the non-whole-shape mode still
+  //     needs the classical fallback cut (whole-shape already shows its seed).
+  //   • SAM disabled: fall back to the classical `isProcessing` as before.
+  const removalInProgress = SAM_FIRST_CUT_ENABLED
+    ? samStatus === 'running' ||
+      (isProcessing &&
+        (samStatus === 'idle' || (samStatus === 'failed' && !keepWholeShape)))
+    : isProcessing;
+
+  const cursorClass = (() => {
+    if (hasResult) return '';
+    if (isSpaceHeld || isPanMode) return 'cursor-grab';
+    if (panelMode === 'color-pick') {
+      return clickRemoveMode ? 'cursor-crosshair' : 'cursor-cell';
+    }
+    if (panelMode === 'ai-brush' && brushReady) return 'cursor-none';
+    return '';
+  })();
+
+  // Compute overlay scale for cursor + dot positioning
+  const overlayScale =
+    canvasRect && previewRef.current && previewRef.current.width
+      ? canvasRect.width / previewRef.current.width
+      : 1;
+
+  return (
+    <div className="flex-1 flex flex-col min-h-0">
+      {onSwitchToCm && (
+        <div className="bg-blue-50 border-b border-blue-100 px-4 py-2">
+          <div className="max-w-[1800px] mx-auto flex items-center gap-3">
+            <p className="text-xs text-blue-700 flex-1">
+              You&apos;re using the experimental in-house background remover
+              (free). For best results on complex subjects, switch back to
+              ClippingMagic (1 credit).
+            </p>
+            <button
+              onClick={onSwitchToCm}
+              className="text-xs font-medium text-blue-700 hover:text-blue-900 whitespace-nowrap"
+            >
+              ← Back to ClippingMagic
+            </button>
+          </div>
+        </div>
+      )}
+
+      {upgradeRequired && (
+        <div className="bg-amber-50 border-b border-amber-200 px-4 py-3">
+          <div className="max-w-[1800px] mx-auto flex items-center gap-3">
+            <AlertTriangle className="w-4 h-4 text-amber-600 flex-shrink-0" />
+            <p className="text-sm text-amber-800 flex-1">
+              The in-house background remover is available on paid plans.{' '}
+              <a
+                href="/pricing"
+                className="font-medium underline hover:text-amber-900"
+              >
+                Upgrade your plan
+              </a>
+              {onSwitchToCm ? (
+                <>
+                  {' '}
+                  or{' '}
+                  <button
+                    onClick={onSwitchToCm}
+                    className="font-medium underline hover:text-amber-900"
+                  >
+                    switch to ClippingMagic
+                  </button>{' '}
+                  (1 credit).
+                </>
+              ) : (
+                '.'
+              )}
+            </p>
+          </div>
+        </div>
+      )}
+
+      {error && !upgradeRequired && (
+        <div className="bg-red-50 border-b border-red-200 px-4 py-3">
+          <div className="max-w-[1800px] mx-auto flex items-center gap-3">
+            <AlertTriangle className="w-4 h-4 text-red-600 flex-shrink-0" />
+            <p className="text-sm text-red-800 flex-1">{error}</p>
+            <button
+              onClick={reset}
+              className="text-xs text-red-600 hover:text-red-800"
+            >
+              Dismiss
+            </button>
+          </div>
+        </div>
+      )}
+
+      <div className="flex-1 flex flex-col lg:flex-row min-h-0">
+        {/* Preview canvas + overlays */}
+        <div
+          ref={containerRef}
+          className={`flex-1 flex items-center justify-center min-h-[300px] overflow-hidden p-4 ${cursorClass}`}
+          style={{
+            backgroundColor: '#ffffff',
+            backgroundImage:
+              'repeating-conic-gradient(#e0e0e0 0% 25%, #ffffff 0% 50%)',
+            backgroundSize: '20px 20px',
+          }}
+        >
+          <div className="relative">
+            {/* SAM rollout diagnostic — shows whether the SAM first-cut ran.
+                Remove once SAM is confirmed working. */}
+            {SAM_FIRST_CUT_ENABLED && samStatus !== 'idle' && (
+              <div
+                className={`absolute left-2 top-2 z-30 rounded-md px-2 py-1 text-[11px] font-semibold shadow ${
+                  samStatus === 'applied'
+                    ? 'bg-green-600 text-white'
+                    : samStatus === 'failed'
+                      ? 'bg-red-600 text-white'
+                      : 'bg-amber-500 text-white'
+                }`}
+              >
+                {samStatus === 'running'
+                  ? 'SAM: running…'
+                  : samStatus === 'applied'
+                    ? 'SAM: applied ✓'
+                    : 'SAM: failed → classical'}
+              </div>
+            )}
+            {/* Zoom/pan transform wrapper — only the canvas + SVG overlays
+                live inside this. Cursor circle + view pill + zoom controls
+                stay OUTSIDE so they don't scale or pan. */}
+            <div
+              ref={canvasZoomWrapperRef}
+              style={{
+                transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})`,
+                transformOrigin: '0 0',
+                touchAction: 'none',
+                position: 'relative',
+                lineHeight: 0,
+              }}
+            >
+              <canvas
+                ref={previewRef}
+                suppressHydrationWarning
+                className="max-w-full max-h-full shadow-lg rounded block"
+                style={{
+                  maxHeight: 'calc(100vh - 280px)',
+                  background: 'transparent',
+                }}
+                onClick={handlePreviewClick}
+                onPointerDown={handlePointerDown}
+                onPointerMove={handlePointerMove}
+                onPointerUp={handlePointerEnd}
+                onPointerLeave={handlePointerLeave}
+                onPointerCancel={handlePointerCancel}
+              />
+              {/* Stroke-line overlay (committed strokes + in-progress live path) */}
+              {panelMode === 'ai-brush' && !hasResult && canvasRect && (
+                <svg
+                  className="absolute inset-0 pointer-events-none"
+                  width={canvasRect.width}
+                  height={canvasRect.height}
+                >
+                  {strokeHistory.map((s: StrokeRecord, i: number) => (
+                    <path
+                      key={i}
+                      d={pathToSvgD(s.rawPath, overlayScale)}
+                      stroke={s.tool === 'keep' ? '#10b981' : '#ef4444'}
+                      strokeWidth={s.brushSize * overlayScale}
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      fill="none"
+                      opacity={0.65}
+                    />
+                  ))}
+                  <path
+                    ref={livePathRef}
+                    d=""
+                    stroke={brushTool === 'keep' ? '#10b981' : '#ef4444'}
+                    strokeWidth={brushSize * overlayScale}
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    fill="none"
+                    opacity={0.65}
+                  />
+                </svg>
+              )}
+              {/* Marching-ants outline: hidden in 'preview' view */}
+              {panelMode === 'ai-brush' &&
+                !hasResult &&
+                viewMode !== 'preview' &&
+                canvasRect &&
+                contoursD &&
+                previewRef.current && (
+                  <svg
+                    className="absolute inset-0 pointer-events-none"
+                    width={canvasRect.width}
+                    height={canvasRect.height}
+                    viewBox={`0 0 ${previewRef.current.width} ${previewRef.current.height}`}
+                    preserveAspectRatio="none"
+                  >
+                    <path
+                      d={contoursD}
+                      fill="none"
+                      stroke="black"
+                      strokeWidth={1.5}
+                      vectorEffect="non-scaling-stroke"
+                    />
+                    <path
+                      d={contoursD}
+                      fill="none"
+                      stroke="white"
+                      strokeWidth={1.5}
+                      strokeDasharray="4 4"
+                      vectorEffect="non-scaling-stroke"
+                    />
+                  </svg>
+                )}
+            </div>
+            {/* Phase 2.2: pulsing overlay while the removal is actually running.
+                Gated by removalInProgress (SAM-aware) so it lasts as long as the
+                removal and clears when the cut lands — no lingering after SAM +
+                cutout have applied. Sits OUTSIDE the zoom transform so it always
+                covers the visible canvas correctly. */}
+            {removalInProgress && (
+              <CanvasProcessingOverlay
+                label={
+                  status === 'detecting'
+                    ? STATUS_LABELS.detecting
+                    : STATUS_LABELS.removing
+                }
+              />
+            )}
+            {/* Brush cursor overlay — outside transform; positioned in untransformed
+                space and sized by zoom so it tracks the visible brush footprint. */}
+            {panelMode === 'ai-brush' &&
+              cursorPos &&
+              brushReady &&
+              !hasResult &&
+              lastPointerTypeRef.current === 'mouse' &&
+              !isSpaceHeld &&
+              !isPanMode && (
+                <div
+                  className="absolute pointer-events-none rounded-full border-2"
+                  style={{
+                    left:
+                      pan.x +
+                      cursorPos.x -
+                      (brushSize * overlayScale * zoom) / 2,
+                    top:
+                      pan.y +
+                      cursorPos.y -
+                      (brushSize * overlayScale * zoom) / 2,
+                    width: brushSize * overlayScale * zoom,
+                    height: brushSize * overlayScale * zoom,
+                    borderColor: brushTool === 'keep' ? '#10b981' : '#ef4444',
+                    background:
+                      brushTool === 'keep'
+                        ? 'rgba(16,185,129,0.18)'
+                        : 'rgba(239,68,68,0.18)',
+                  }}
+                />
+              )}
+            {/* View-mode pill (Cutout / Preview / Original) — top-left */}
+            {panelMode === 'ai-brush' && !hasResult && (
+              <div className="absolute top-2 left-2 z-10 flex rounded-full bg-white/90 backdrop-blur-sm shadow border border-gray-200 overflow-hidden text-xs font-medium">
+                {(['cutout', 'preview', 'original'] as const).map(m => (
+                  <button
+                    key={m}
+                    type="button"
+                    onClick={() => setViewMode(m)}
+                    className={`px-3 py-1 transition-colors capitalize ${
+                      viewMode === m
+                        ? 'bg-blue-600 text-white'
+                        : 'text-gray-700 hover:bg-gray-50'
+                    }`}
+                  >
+                    {m}
+                  </button>
+                ))}
+              </div>
+            )}
+            {/* Zoom-controls pill — top-right */}
+            {panelMode === 'ai-brush' && !hasResult && (
+              <div className="absolute top-2 right-2 z-10 flex items-center rounded-full bg-white/90 backdrop-blur-sm shadow border border-gray-200 overflow-hidden text-xs font-medium">
+                <button
+                  type="button"
+                  onClick={handleUndoStroke}
+                  disabled={strokeHistory.length === 0 || isProcessing}
+                  className="px-2.5 py-1 text-gray-700 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-1"
+                  title="Undo last stroke"
+                >
+                  <Undo2 className="w-3.5 h-3.5" />
+                </button>
+                <button
+                  type="button"
+                  onClick={handleClearStrokes}
+                  disabled={strokeHistory.length === 0 || isProcessing}
+                  className="px-2.5 py-1 text-gray-700 hover:bg-gray-50 border-r border-gray-200 disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-1"
+                  title="Clear all strokes"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                </button>
+                <button
+                  type="button"
+                  onClick={handleZoomOut}
+                  className="px-2.5 py-1 text-gray-700 hover:bg-gray-50"
+                  title="Zoom out"
+                >
+                  −
+                </button>
+                <span className="px-2 text-gray-500 tabular-nums select-none">
+                  {Math.round(zoom * 100)}%
+                </span>
+                <button
+                  type="button"
+                  onClick={handleZoomIn}
+                  className="px-2.5 py-1 text-gray-700 hover:bg-gray-50"
+                  title="Zoom in"
+                >
+                  +
+                </button>
+                <button
+                  type="button"
+                  onClick={handleZoomFit}
+                  className="px-2.5 py-1 text-gray-700 hover:bg-gray-50 border-l border-gray-200"
+                  title="Reset zoom and pan"
+                >
+                  Fit
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setSplitView(v => !v)}
+                  className={`px-2.5 py-1 border-l border-gray-200 hover:bg-gray-50 ${
+                    splitView ? 'text-blue-600' : 'text-gray-700'
+                  }`}
+                  title={
+                    splitView
+                      ? 'Hide the result preview'
+                      : 'Show the result side-by-side'
+                  }
+                >
+                  {splitView ? 'Single' : 'Split'}
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Side-by-side clean result pane (ClippingMagic-style) */}
+        {panelMode === 'ai-brush' && !hasResult && splitView && (
+          <div
+            className="flex-1 flex items-center justify-center min-h-[200px] overflow-hidden p-4 border-t lg:border-t-0 lg:border-l border-gray-200"
+            style={{
+              backgroundColor: '#ffffff',
+              backgroundImage:
+                'repeating-conic-gradient(#e0e0e0 0% 25%, #ffffff 0% 50%)',
+              backgroundSize: '20px 20px',
+            }}
+          >
+            <div className="relative">
+              <span className="absolute top-2 left-2 z-10 rounded-full bg-white/90 backdrop-blur-sm shadow border border-gray-200 px-3 py-1 text-xs font-medium text-gray-700">
+                Result
+              </span>
+              <canvas
+                ref={resultPreviewRef}
+                suppressHydrationWarning
+                className="max-w-full max-h-full shadow-lg rounded block"
+                style={{
+                  maxHeight: 'calc(100vh - 280px)',
+                  background: 'transparent',
+                }}
+              />
+            </div>
+          </div>
+        )}
+
+        {/* Side panel */}
+        <div className="w-full lg:w-72 bg-white border-t lg:border-t-0 lg:border-l border-gray-200 flex flex-col min-h-0">
+          <div className="p-4 flex flex-col gap-4 flex-1 overflow-y-auto min-h-0">
+            {/* Mode switcher */}
+            <div>
+              <label className="block text-xs font-medium text-gray-500 mb-1.5 uppercase tracking-wide">
+                Mode
+              </label>
+              <div className="flex rounded-lg border border-gray-200 overflow-hidden">
+                {(
+                  [
+                    {
+                      mode: 'ai-brush' as PanelMode,
+                      label: 'AI Brush',
+                      Icon: Wand2,
+                    },
+                    {
+                      mode: 'color-pick' as PanelMode,
+                      label: 'Color',
+                      Icon: Pipette,
+                    },
+                    {
+                      mode: 'ai-only' as PanelMode,
+                      label: 'AI Only',
+                      Icon: Cpu,
+                    },
+                  ] as const
+                ).map(({ mode, label, Icon }) => (
+                  <button
+                    key={mode}
+                    onClick={() => handleModeSwitch(mode)}
+                    disabled={isProcessing}
+                    className={`flex-1 flex items-center justify-center gap-1 py-2 text-xs font-medium transition-colors disabled:opacity-50 ${
+                      panelMode === mode
+                        ? 'bg-blue-600 text-white'
+                        : 'text-gray-600 hover:bg-gray-50'
+                    }`}
+                  >
+                    <Icon className="w-3.5 h-3.5" />
+                    {label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* AI Brush mode */}
+            {panelMode === 'ai-brush' && !hasResult && (
+              <>
+                {/* Readiness banner */}
+                <div className="rounded-lg border border-gray-200 bg-gray-50 p-3 text-xs">
+                  {!brushReady ? (
+                    <div className="flex items-center gap-2 text-gray-600">
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      Loading image...
+                    </div>
+                  ) : (
+                    <div className="flex items-start gap-2 text-gray-700">
+                      <CheckCircle2 className="w-3.5 h-3.5 mt-0.5 text-green-600 flex-shrink-0" />
+                      <p>
+                        <span className="text-green-700 font-medium">Keep</span>{' '}
+                        restores artwork,{' '}
+                        <span className="text-red-700 font-medium">Remove</span>{' '}
+                        erases background — text is auto-protected.{' '}
+                        <span className="font-medium">Click</span> with Keep to
+                        fill an area.
+                      </p>
+                    </div>
+                  )}
+                </div>
+
+                {/* Tool toggle */}
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1.5">
+                    Tool
+                  </label>
+                  <div className="flex rounded-lg border border-gray-200 overflow-hidden">
+                    <button
+                      onClick={() => {
+                        setBrushTool('keep');
+                        setIsPanMode(false);
+                        isPanModeRef.current = false;
+                      }}
+                      disabled={!brushReady}
+                      className={`flex-1 flex items-center justify-center gap-1 py-2 text-xs font-medium transition-colors disabled:opacity-50 ${
+                        !isPanMode && brushTool === 'keep'
+                          ? 'bg-green-600 text-white'
+                          : 'text-gray-600 hover:bg-gray-50'
+                      }`}
+                    >
+                      <Plus className="w-3.5 h-3.5" />
+                      Keep
+                    </button>
+                    <button
+                      onClick={() => {
+                        setBrushTool('remove');
+                        setIsPanMode(false);
+                        isPanModeRef.current = false;
+                      }}
+                      disabled={!brushReady}
+                      className={`flex-1 flex items-center justify-center gap-1 py-2 text-xs font-medium transition-colors disabled:opacity-50 border-l border-gray-200 ${
+                        !isPanMode && brushTool === 'remove'
+                          ? 'bg-red-600 text-white'
+                          : 'text-gray-600 hover:bg-gray-50'
+                      }`}
+                    >
+                      <Minus className="w-3.5 h-3.5" />
+                      Remove
+                    </button>
+                    <button
+                      onClick={() => {
+                        const next = !isPanMode;
+                        setIsPanMode(next);
+                        isPanModeRef.current = next;
+                      }}
+                      title="Drag to move the design around the canvas"
+                      className={`flex-1 flex items-center justify-center gap-1 py-2 text-xs font-medium transition-colors border-l border-gray-200 ${
+                        isPanMode
+                          ? 'bg-blue-600 text-white'
+                          : 'text-gray-600 hover:bg-gray-50'
+                      }`}
+                    >
+                      <Hand className="w-3.5 h-3.5" />
+                      Move
+                    </button>
+                  </div>
+                  <p className="text-xs text-gray-400 mt-1">
+                    Use <span className="font-medium">Move</span> (or hold
+                    Space, or drag with the middle mouse button) to pan. Scroll
+                    to zoom.
+                  </p>
+                </div>
+
+                {/* Ink mode — folded into the default brush (auto for
+                    graphics); toggle hidden. */}
+                {INK_MODE_TOGGLE_ENABLED && (
+                  <div className="rounded-lg border border-gray-200 bg-gray-50 p-3">
+                    <label className="flex items-start gap-2 cursor-pointer select-none">
+                      <input
+                        type="checkbox"
+                        checked={inkMode}
+                        onChange={e => {
+                          const on = e.target.checked;
+                          setInkMode(on);
+                          inkModeRef.current = on;
+                        }}
+                        disabled={!brushReady}
+                        className="mt-0.5 accent-blue-600"
+                      />
+                      <span>
+                        <span className="flex items-center gap-1.5 text-xs font-semibold text-gray-800">
+                          <Wand2 className="w-3.5 h-3.5 text-blue-600" />
+                          Ink mode{' '}
+                          <span className="text-blue-600">
+                            · text &amp; lines
+                          </span>
+                        </span>
+                        <span className="block text-[11px] text-gray-500 mt-0.5">
+                          Paints by colour, not area.{' '}
+                          <span className="text-green-700">Keep</span> brings
+                          back only the ink you paint over (not its tan
+                          background);{' '}
+                          <span className="text-red-700">Remove</span> erases
+                          only the tan and leaves the ink. Best for repairing
+                          mutilated text. Brush size = how wide an area you
+                          affect.
+                        </span>
+                      </span>
+                    </label>
+
+                    {inkMode && (
+                      <div className="mt-3 pt-3 border-t border-gray-200">
+                        <div className="flex items-center justify-between mb-1">
+                          <label className="text-xs font-medium text-gray-600">
+                            Ink sensitivity
+                          </label>
+                          <span className="text-[11px] tabular-nums text-gray-500">
+                            {inkTolerance}
+                          </span>
+                        </div>
+                        <input
+                          type="range"
+                          min={40}
+                          max={160}
+                          value={inkTolerance}
+                          onChange={e => {
+                            const v = Number(e.target.value);
+                            setInkTolerance(v);
+                            inkToleranceRef.current = v;
+                          }}
+                          className="w-full accent-blue-600"
+                        />
+                        <p className="text-[11px] text-gray-400 mt-0.5">
+                          Lower grabs faint/anti-aliased edges too (fuller
+                          letters); higher keeps only the darkest ink (less tan
+                          halo). Tune per design.
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Fill area — folded into the Keep-click gesture; toggle
+                    hidden. */}
+                {FILL_AREA_TOGGLE_ENABLED && (
+                  <div className="rounded-lg border border-gray-200 bg-gray-50 p-3">
+                    <label className="flex items-start gap-2 cursor-pointer select-none">
+                      <input
+                        type="checkbox"
+                        checked={fillArea}
+                        onChange={e => {
+                          const on = e.target.checked;
+                          setFillArea(on);
+                          fillAreaRef.current = on;
+                          // Mutually exclusive with Smart select.
+                          if (on) {
+                            setSmartSelect(false);
+                            smartSelectRef.current = false;
+                          }
+                        }}
+                        disabled={!brushReady}
+                        className="mt-0.5 accent-blue-600"
+                      />
+                      <span>
+                        <span className="flex items-center gap-1.5 text-xs font-semibold text-gray-800">
+                          <MousePointerClick className="w-3.5 h-3.5 text-blue-600" />
+                          Fill area
+                        </span>
+                        <span className="block text-[11px] text-gray-500 mt-0.5">
+                          Click a solid area (like the cream inside a badge) and
+                          it fills the whole region up to the surrounding lines
+                          — contained, so it won&apos;t leak into the outside
+                          background. Best for the cases Smart select
+                          over-grabs.
+                        </span>
+                      </span>
+                    </label>
+
+                    {fillArea && (
+                      <div className="mt-3 pt-3 border-t border-gray-200">
+                        <div className="flex items-center justify-between mb-1">
+                          <label className="text-xs font-medium text-gray-600">
+                            Fill sensitivity
+                          </label>
+                          <span className="text-[11px] tabular-nums text-gray-500">
+                            {fillTolerance}
+                          </span>
+                        </div>
+                        <input
+                          type="range"
+                          min={10}
+                          max={90}
+                          value={fillTolerance}
+                          onChange={e => {
+                            const v = Number(e.target.value);
+                            setFillTolerance(v);
+                            fillToleranceRef.current = v;
+                          }}
+                          className="w-full accent-blue-600"
+                        />
+                        <p className="text-[11px] text-gray-400 mt-0.5">
+                          Higher grabs more shading in one click; lower stays
+                          tighter to the exact colour. Undo if a fill spreads
+                          too far.
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Smart select (SAM click-brush) — SUSPENDED (see
+                    SMART_SELECT_ENABLED). Unusable on tan-on-tan designs. */}
+                {SMART_SELECT_ENABLED && (
+                  <div className="rounded-lg border border-gray-200 bg-gray-50 p-3">
+                    <label className="flex items-start gap-2 cursor-pointer select-none">
+                      <input
+                        type="checkbox"
+                        checked={smartSelect}
+                        onChange={e => {
+                          const on = e.target.checked;
+                          setSmartSelect(on);
+                          smartSelectRef.current = on;
+                          // Mutually exclusive with Fill area.
+                          if (on) {
+                            setFillArea(false);
+                            fillAreaRef.current = false;
+                          }
+                          // Warm the embedding as soon as it's switched on so the
+                          // first click feels instant.
+                          if (on) void ensureSamSession();
+                        }}
+                        disabled={!brushReady}
+                        className="mt-0.5 accent-blue-600"
+                      />
+                      <span>
+                        <span className="flex items-center gap-1.5 text-xs font-semibold text-gray-800">
+                          <MousePointerClick className="w-3.5 h-3.5 text-blue-600" />
+                          Smart select{' '}
+                          <span className="text-blue-600">· beta</span>
+                        </span>
+                        <span className="block text-[11px] text-gray-500 mt-0.5">
+                          Click an object and the AI selects the whole thing —
+                          the active{' '}
+                          <span className="text-green-700">Keep</span> /{' '}
+                          <span className="text-red-700">Remove</span> tool then
+                          adds or subtracts it. Best for distressed/grunge text
+                          the colour brush nibbles. Each click ≈ a second.
+                        </span>
+                      </span>
+                    </label>
+
+                    {smartSelect && (
+                      <div className="mt-2 pt-2 border-t border-gray-200 text-[11px]">
+                        {isSamPredicting ? (
+                          <span className="flex items-center gap-1.5 text-blue-700">
+                            <Loader2 className="w-3 h-3 animate-spin" />
+                            Selecting…
+                          </span>
+                        ) : samBrushStatus === 'embedding' ? (
+                          <span className="flex items-center gap-1.5 text-gray-600">
+                            <Loader2 className="w-3 h-3 animate-spin" />
+                            Preparing AI (first click may take a moment)…
+                          </span>
+                        ) : samBrushStatus === 'ready' ? (
+                          <span className="flex items-center gap-1.5 text-green-700">
+                            <CheckCircle2 className="w-3 h-3" />
+                            Ready — click any object on the canvas.
+                          </span>
+                        ) : samBrushStatus === 'failed' ? (
+                          <span className="flex items-center gap-1.5 text-red-700">
+                            <AlertTriangle className="w-3 h-3" />
+                            AI selection unavailable — the colour brush still
+                            works.
+                          </span>
+                        ) : (
+                          <span className="text-gray-500">
+                            Click any object on the canvas to select it.
+                          </span>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Brush size — how wide you paint (behaviour is the same
+                    context-aware fill at every size). */}
+                <div>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="text-xs font-medium text-gray-600">
+                      Brush Size
+                    </label>
+                    <span className="text-xs text-gray-500 tabular-nums">
+                      {brushSize}px
+                    </span>
+                  </div>
+                  <input
+                    type="range"
+                    min={1}
+                    max={BRUSH_MAX_SIZE}
+                    step={1}
+                    value={brushSize}
+                    onChange={e => setBrushSize(Number(e.target.value))}
+                    className="w-full accent-blue-600"
+                  />
+                </div>
+
+                {/* Advanced settings — collapsed by default so the default
+                    panel stays scroll-free (ClippingMagic-style). */}
+                <details className="rounded-lg border border-gray-200 bg-gray-50 [&_summary]:list-none">
+                  <summary className="flex items-center justify-between cursor-pointer select-none px-3 py-2 text-xs font-semibold text-gray-700">
+                    Advanced settings
+                    <span className="text-gray-400">▾</span>
+                  </summary>
+                  <div className="p-3 pt-0 space-y-4">
+                    {/* Keep whole shape — initial cutout keeps the full silhouette. */}
+                    <div className="rounded-lg border border-gray-200 bg-white p-3">
+                      <label className="flex items-start gap-2 cursor-pointer select-none">
+                        <input
+                          type="checkbox"
+                          checked={keepWholeShape}
+                          onChange={e => toggleKeepWholeShape(e.target.checked)}
+                          className="mt-0.5 accent-blue-600"
+                        />
+                        <span>
+                          <span className="block text-xs font-semibold text-gray-800">
+                            Keep whole shape{' '}
+                            <span className="text-blue-600">
+                              · detailed art
+                            </span>
+                          </span>
+                          <span className="block text-[11px] text-gray-500 mt-0.5">
+                            Best for complex, multi-layer designs (detailed
+                            illustrations). Removes only the outside background
+                            and keeps the whole design solid — including dark
+                            parts (like a helmet) that match the shirt colour —
+                            then brush away anything you don&apos;t want (e.g.
+                            the eyes). Turn OFF for simple photos/logos to use
+                            the standard auto-cutout and the cleanup sliders
+                            below.
+                          </span>
+                        </span>
+                      </label>
+
+                      {/* Defringe edges — peels the dark bg-coloured halo/rim that
+                      busy multi-element designs leave around each element. */}
+                      {keepWholeShape && (
+                        <div className="mt-3 pt-3 border-t border-gray-200">
+                          <div className="flex items-center justify-between mb-1">
+                            <label className="text-xs font-medium text-gray-600">
+                              Defringe edges
+                            </label>
+                            <span className="text-xs text-gray-500 tabular-nums">
+                              {defringe}
+                            </span>
+                          </div>
+                          <input
+                            type="range"
+                            min={0}
+                            max={100}
+                            step={1}
+                            value={defringe}
+                            onChange={e =>
+                              applyDefringe(Number(e.target.value))
+                            }
+                            className="w-full accent-blue-600"
+                          />
+                          <p className="text-[11px] text-gray-500 mt-1">
+                            Cleans the dark halo/fringe around each element
+                            (flowers, leaves) on busy multi-facet designs.
+                            Higher = peels more; 0 = off. Only removes
+                            background-coloured edge pixels, so real content is
+                            never eaten.
+                          </p>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Fine-tuning cleanup passes — only active when Keep whole
+                    shape is OFF (that mode keeps the full silhouette as-is). */}
+                    <fieldset
+                      disabled={keepWholeShape}
+                      className={`space-y-4 border-0 m-0 p-0 min-w-0 ${
+                        keepWholeShape ? 'opacity-40' : ''
+                      }`}
+                    >
+                      {keepWholeShape && (
+                        <p className="text-[11px] text-gray-500 italic">
+                          Handled automatically while &ldquo;Keep whole
+                          shape&rdquo; is on. Turn it off to fine-tune these.
+                        </p>
+                      )}
+
+                      {/* BG Color Flood — Phase 2.3 primary background detection.
+                    Flood from image edges through pixels matching the
+                    detected BG color. The single biggest knob for
+                    DTF-grade cutouts on solid backgrounds. */}
+                      <div>
+                        <div className="flex items-center justify-between mb-1">
+                          <label className="text-xs font-medium text-gray-600">
+                            BG Color Flood
+                          </label>
+                          <span className="text-xs text-gray-500 tabular-nums">
+                            {bgFlood}
+                          </span>
+                        </div>
+                        <input
+                          type="range"
+                          min={0}
+                          max={100}
+                          step={1}
+                          value={bgFlood}
+                          onChange={e => setBgFlood(Number(e.target.value))}
+                          className="w-full accent-blue-600"
+                        />
+                        <p className="text-xs text-gray-400 mt-1">
+                          Floods from the image edges through anything matching
+                          the detected background color. Higher = wider
+                          tolerance (catches off-whites / light grays). Keep
+                          brush strokes block the flood.
+                        </p>
+                      </div>
+
+                      {/* Edge cleanup tolerance */}
+                      <div>
+                        <div className="flex items-center justify-between mb-1">
+                          <label className="text-xs font-medium text-gray-600">
+                            Edge Cleanup
+                          </label>
+                          <span className="text-xs text-gray-500 tabular-nums">
+                            {cleanupTolerance}
+                          </span>
+                        </div>
+                        <input
+                          type="range"
+                          min={0}
+                          max={150}
+                          step={1}
+                          value={cleanupTolerance}
+                          onChange={e =>
+                            setCleanupTolerance(Number(e.target.value))
+                          }
+                          className="w-full accent-blue-600"
+                        />
+                        <p className="text-xs text-gray-400 mt-1">
+                          Higher = removes more anti-aliased fringe and specks.
+                          Too high may erase darker valid content.
+                        </p>
+                      </div>
+
+                      {/* Hole Detection — Phase 2.2 internal-hole carve. */}
+                      <div>
+                        <div className="flex items-center justify-between mb-1">
+                          <label className="text-xs font-medium text-gray-600">
+                            Hole Detection
+                          </label>
+                          <span className="text-xs text-gray-500 tabular-nums">
+                            {holeDetection}
+                          </span>
+                        </div>
+                        <input
+                          type="range"
+                          min={0}
+                          max={100}
+                          step={1}
+                          value={holeDetection}
+                          onChange={e =>
+                            setHoleDetection(Number(e.target.value))
+                          }
+                          className="w-full accent-blue-600"
+                        />
+                        <p className="text-xs text-gray-400 mt-1">
+                          Carves background-colored pockets fully ENCLOSED by
+                          the subject (inside of letter shapes). The BG Color
+                          Flood above handles open pockets; this catches the
+                          leftovers a flood can&apos;t reach. Honors Keep /
+                          Remove brush strokes.
+                        </p>
+                      </div>
+
+                      {/* Speck Removal — Phase 2.7 stranded-component pass.
+                    Color-agnostic: carves any small foreground island
+                    sitting in mostly-transparent surroundings. Crank up
+                    for distressed/grunge designs (TOP DAD); leave low
+                    for clean illustrations to preserve small details. */}
+                      <div>
+                        <div className="flex items-center justify-between mb-1">
+                          <label className="text-xs font-medium text-gray-600">
+                            Speck Removal
+                          </label>
+                          <span className="text-xs text-gray-500 tabular-nums">
+                            {speckRemoval}
+                          </span>
+                        </div>
+                        <input
+                          type="range"
+                          min={0}
+                          max={100}
+                          step={1}
+                          value={speckRemoval}
+                          onChange={e =>
+                            setSpeckRemoval(Number(e.target.value))
+                          }
+                          className="w-full accent-blue-600"
+                        />
+                        <p className="text-xs text-gray-400 mt-1">
+                          Carves small foreground specks left stranded after the
+                          background passes — grunge noise, distressed marks,
+                          isolated islands of any color. Higher = larger
+                          components eligible. The main subject is never carved.
+                        </p>
+                      </div>
+                    </fieldset>
+                  </div>
+                </details>
+
+                <div className="text-xs text-gray-400">
+                  {strokeHistory.length === 0
+                    ? 'No strokes yet — showing initial AI guess.'
+                    : `${strokeHistory.length} stroke${strokeHistory.length === 1 ? '' : 's'} placed.`}
+                </div>
+              </>
+            )}
+
+            {/* Color Pick mode */}
+            {panelMode === 'color-pick' && !hasResult && (
+              <>
+                {/* Pick-tool toggle: which palette does the next click add to? */}
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1.5">
+                    Click Image To...
+                  </label>
+                  <div className="flex rounded-lg border border-gray-200 overflow-hidden">
+                    <button
+                      onClick={() => setPickTool('remove')}
+                      className={`flex-1 flex items-center justify-center gap-1 py-2 text-xs font-medium transition-colors ${
+                        pickTool === 'remove'
+                          ? 'bg-red-600 text-white'
+                          : 'text-gray-600 hover:bg-gray-50'
+                      }`}
+                    >
+                      <Minus className="w-3.5 h-3.5" />
+                      Pick to Remove
+                    </button>
+                    <button
+                      onClick={() => setPickTool('keep')}
+                      className={`flex-1 flex items-center justify-center gap-1 py-2 text-xs font-medium transition-colors ${
+                        pickTool === 'keep'
+                          ? 'bg-green-600 text-white'
+                          : 'text-gray-600 hover:bg-gray-50'
+                      }`}
+                    >
+                      <Plus className="w-3.5 h-3.5" />
+                      Pick to Keep
+                    </button>
+                  </div>
+                </div>
+
+                {/* Remove palette chips */}
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1.5">
+                    Removing ({removeColors.length})
+                  </label>
+                  <div className="flex flex-wrap gap-1.5 min-h-[2rem]">
+                    {removeColors.length === 0 && (
+                      <p className="text-xs text-gray-400 italic">
+                        Click image with &quot;Pick to Remove&quot; to add a
+                        color.
+                      </p>
+                    )}
+                    {removeColors.map((c, i) => (
+                      <button
+                        key={`r-${i}`}
+                        type="button"
+                        onClick={() => {
+                          const next = removeColors.filter((_, j) => j !== i);
+                          setRemoveColors(next);
+                          refreshColorPickPreview(
+                            next,
+                            keepColors,
+                            tolerance,
+                            null,
+                            targetColor ?? undefined
+                          );
+                        }}
+                        className="relative w-8 h-8 rounded border border-gray-300 shadow-sm group"
+                        style={{ background: rgbToHex(c) }}
+                        title={`${rgbToHex(c).toUpperCase()} — click to remove from palette`}
+                      >
+                        <span className="absolute inset-0 hidden group-hover:flex items-center justify-center bg-black/40 rounded text-white text-xs">
+                          ×
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Keep palette chips */}
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1.5">
+                    Keeping ({keepColors.length})
+                  </label>
+                  <div className="flex flex-wrap gap-1.5 min-h-[2rem]">
+                    {keepColors.length === 0 && (
+                      <p className="text-xs text-gray-400 italic">
+                        Click image with &quot;Pick to Keep&quot; to protect a
+                        color.
+                      </p>
+                    )}
+                    {keepColors.map((c, i) => (
+                      <button
+                        key={`k-${i}`}
+                        type="button"
+                        onClick={() => {
+                          const next = keepColors.filter((_, j) => j !== i);
+                          setKeepColors(next);
+                          refreshColorPickPreview(
+                            removeColors,
+                            next,
+                            tolerance,
+                            null,
+                            targetColor ?? undefined
+                          );
+                        }}
+                        className="relative w-8 h-8 rounded border border-gray-300 shadow-sm group"
+                        style={{ background: rgbToHex(c) }}
+                        title={`${rgbToHex(c).toUpperCase()} — click to remove from palette`}
+                      >
+                        <span className="absolute inset-0 hidden group-hover:flex items-center justify-center bg-black/40 rounded text-white text-xs">
+                          ×
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Click-to-seed button */}
+                <button
+                  onClick={() => setClickRemoveMode(v => !v)}
+                  disabled={removeColors.length === 0 && !targetColor}
+                  className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors disabled:opacity-40 ${
+                    clickRemoveMode
+                      ? 'bg-orange-50 border-orange-300 text-orange-700'
+                      : 'border-gray-200 text-gray-600 hover:border-gray-300'
+                  }`}
+                >
+                  {clickRemoveMode
+                    ? 'Click a spot to clean it…'
+                    : 'Click to clean a spot (interior speckle)'}
+                </button>
+
+                {/* Reset palettes */}
+                {(removeColors.length > 0 || keepColors.length > 0) && (
+                  <button
+                    onClick={() => {
+                      setRemoveColors([]);
+                      setKeepColors([]);
+                      setTargetColor(null);
+                      // Repaint with the original
+                      const orig = originalDataRef.current;
+                      const preview = previewRef.current;
+                      if (orig && preview) {
+                        const pCtx = preview.getContext('2d');
+                        if (pCtx) {
+                          pCtx.clearRect(0, 0, preview.width, preview.height);
+                          pCtx.putImageData(orig, 0, 0);
+                        }
+                      }
+                    }}
+                    className="text-xs text-gray-500 hover:text-gray-700 underline self-start"
+                  >
+                    Reset palettes
+                  </button>
+                )}
+
+                <div>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="text-xs font-medium text-gray-600">
+                      Tolerance
+                    </label>
+                    <span className="text-xs text-gray-500 tabular-nums">
+                      {tolerance}
+                    </span>
+                  </div>
+                  <input
+                    type="range"
+                    min={5}
+                    max={150}
+                    step={5}
+                    value={tolerance}
+                    onChange={e =>
+                      handleToleranceChange(Number(e.target.value))
+                    }
+                    disabled={isProcessing}
+                    className="w-full accent-blue-600 disabled:opacity-50"
+                  />
+                  <p className="text-xs text-gray-400 mt-1">
+                    Higher = removes more (use for soft or gradient edges).
+                  </p>
+                </div>
+
+                <button
+                  onClick={handleRemove}
+                  disabled={
+                    isProcessing || (removeColors.length === 0 && !targetColor)
+                  }
+                  className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white text-sm font-medium rounded-lg transition-colors"
+                >
+                  {isProcessing ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      {STATUS_LABELS[status] || 'Processing...'}
+                    </>
+                  ) : (
+                    <>
+                      <Scissors className="w-4 h-4" />
+                      Remove Background
+                    </>
+                  )}
+                </button>
+              </>
+            )}
+
+            {/* AI Only mode */}
+            {panelMode === 'ai-only' && !hasResult && (
+              <>
+                <div>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <label className="block text-xs font-medium text-gray-600">
+                      AI Model
+                    </label>
+                    {autoRoutedModel && (
+                      <span
+                        className="text-[10px] font-medium text-blue-600 bg-blue-50 border border-blue-200 rounded px-1.5 py-0.5"
+                        title="Detected as a graphic — routed to BiRefNet-DIS for sharper letter / line work."
+                      >
+                        Auto-selected for graphics
+                      </span>
+                    )}
+                  </div>
+                  <select
+                    value={model}
+                    onChange={e => {
+                      userPickedModelRef.current = true;
+                      setAutoRoutedModel(false);
+                      setModel(e.target.value as BgRemovalModel);
+                    }}
+                    disabled={isProcessing}
+                    className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 bg-white text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
+                  >
+                    {MODELS.map(m => (
+                      <option key={m.value} value={m.value}>
+                        {m.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <button
+                  onClick={handleRemove}
+                  disabled={isProcessing}
+                  className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white text-sm font-medium rounded-lg transition-colors"
+                >
+                  {isProcessing ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      {STATUS_LABELS[status] || 'Processing...'}
+                    </>
+                  ) : (
+                    <>
+                      <Scissors className="w-4 h-4" />
+                      Remove Background
+                    </>
+                  )}
+                </button>
+              </>
+            )}
+
+            {hasResult && (
+              <button
+                onClick={handleReset}
+                className="w-full flex items-center justify-center gap-2 px-4 py-2 text-sm text-gray-600 hover:text-gray-900 border border-gray-200 hover:border-gray-300 rounded-lg transition-colors"
+              >
+                <RotateCcw className="w-3.5 h-3.5" />
+                Reset to original
+              </button>
+            )}
+
+            {hasResult && (
+              <div className="flex flex-col gap-2 pt-2 border-t border-gray-100">
+                <button
+                  onClick={handleSave}
+                  disabled={isSaving}
+                  className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-green-600 hover:bg-green-700 disabled:opacity-60 text-white text-sm font-medium rounded-lg transition-colors"
+                >
+                  {isSaving ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <Save className="w-4 h-4" />
+                  )}
+                  {isSaving ? 'Saving...' : 'Save to Gallery'}
+                </button>
+                <button
+                  onClick={handleDownload}
+                  className="w-full flex items-center justify-center gap-2 px-4 py-2 text-sm text-gray-600 hover:text-gray-900 border border-gray-200 hover:border-gray-300 rounded-lg transition-colors"
+                >
+                  <Download className="w-3.5 h-3.5" />
+                  Download PNG
+                </button>
+              </div>
+            )}
+
+            {onSwitchToCm ? (
+              <div className="mt-auto pt-4 border-t border-gray-100">
+                <p className="text-xs text-gray-500 mb-2">
+                  Need cleaner edges for hair, fur, or fine detail?
+                </p>
+                <button
+                  onClick={onSwitchToCm}
+                  className="w-full flex items-center justify-center gap-2 px-3 py-2 text-xs text-gray-600 hover:text-gray-900 border border-gray-200 hover:border-gray-300 rounded-lg transition-colors"
+                >
+                  ← Back to ClippingMagic (1 credit)
+                </button>
+                <p className="text-xs text-gray-400 mt-1.5">
+                  Best quality for complex subjects.
+                </p>
+              </div>
+            ) : null}
+          </div>
+        </div>
+      </div>
+
+      <div className="bg-white border-t border-gray-200 px-4 py-3">
+        <div className="max-w-[1800px] mx-auto flex items-center justify-between gap-3">
+          <button
+            onClick={onCancel}
+            className="px-4 py-2 text-sm text-gray-600 hover:text-gray-900 border border-gray-200 hover:border-gray-300 rounded-lg transition-colors"
+          >
+            Back
+          </button>
+          {savedImageId && (
+            <div className="flex items-center gap-2 text-sm text-green-700 font-medium">
+              <CheckCircle2 className="w-4 h-4" />
+              Saved!{' '}
+              <a
+                href="/dashboard#my-images"
+                className="underline opacity-80 hover:opacity-100"
+              >
+                View gallery
+              </a>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}

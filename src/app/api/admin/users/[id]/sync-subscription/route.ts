@@ -130,15 +130,22 @@ async function handlePost(
       );
     }
 
-    // Update the user's profile
+    // Stripe Basil moved current_period_end from the subscription to its items.
+    // Read from both locations so this works regardless of API version.
+    const periodEnd =
+      (subscription as any).current_period_end ??
+      subscription.items?.data?.[0]?.current_period_end;
+
     const updateData: Record<string, string> = {
       stripe_subscription_id: subscription.id,
       subscription_plan: resolvedPlan.id,
       subscription_status: resolvedPlan.id,
-      subscription_current_period_end: new Date(
-        subscription.current_period_end * 1000
-      ).toISOString(),
     };
+    if (periodEnd) {
+      updateData.subscription_current_period_end = new Date(
+        periodEnd * 1000
+      ).toISOString();
+    }
 
     const { error: updateError } = await serviceClient
       .from('profiles')

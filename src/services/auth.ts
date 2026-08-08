@@ -57,7 +57,10 @@ export class AuthService {
 
       if (response.ok) {
         const data = await response.json();
-        console.log('Effective user response received, isImpersonating:', data.isImpersonating);
+        console.log(
+          'Effective user response received, isImpersonating:',
+          data.isImpersonating
+        );
 
         if (data.user) {
           // If impersonating, use the impersonated user data
@@ -198,6 +201,27 @@ export class AuthService {
   }
 
   // Sign in
+  /**
+   * Persist a session (e.g. one returned by the server-side signup endpoint)
+   * into the browser Supabase client so cookies/localStorage are set and the
+   * user is treated as signed in without a second manual login.
+   */
+  async setSession(session: {
+    access_token: string;
+    refresh_token: string;
+  }): Promise<{ error: AuthError | null }> {
+    try {
+      const { error } = await this.getSupabase().auth.setSession({
+        access_token: session.access_token,
+        refresh_token: session.refresh_token,
+      });
+      return { error };
+    } catch (error) {
+      console.error('[AuthService] setSession exception:', error);
+      return { error: error as AuthError };
+    }
+  }
+
   async signIn(
     email: string,
     password: string

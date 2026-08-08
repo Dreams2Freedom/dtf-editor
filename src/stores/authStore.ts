@@ -234,6 +234,14 @@ export const useAuthStore = create<AuthStore>()(
         if (result.user) {
           // If we have a session, set it up
           if (result.session) {
+            // Persist the server-issued session into the browser client so the
+            // user is actually signed in (cookies set) and doesn't have to log
+            // in again after creating an account.
+            await authService.setSession({
+              access_token: result.session.access_token,
+              refresh_token: result.session.refresh_token,
+            });
+
             // Get user profile
             const profile = await authService.getUserProfile(result.user.id);
 

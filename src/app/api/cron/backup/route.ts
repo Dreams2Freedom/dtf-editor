@@ -113,10 +113,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json(summary);
   } catch (error) {
     console.error('Backup failed:', error);
-    return NextResponse.json(
-      { error: 'Backup failed' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'Backup failed' }, { status: 500 });
   }
 }
 

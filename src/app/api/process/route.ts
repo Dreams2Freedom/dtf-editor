@@ -29,6 +29,7 @@ async function handlePost(request: NextRequest) {
     const formData = await request.formData();
     const imageFile = formData.get('image') as File;
     const operation = formData.get('operation') as string;
+    const provider = (formData.get('provider') as string) || undefined;
 
     // 3. Validate required fields
     if (!imageFile || !operation) {
@@ -85,6 +86,15 @@ async function handlePost(request: NextRequest) {
         | 'pdf'
         | 'png'
         | undefined,
+      maxColors: (() => {
+        // Vectorize-only: clamp to [1, 256] per Vectorizer.ai's
+        // processing.max_colors range. Undefined → service uses 256.
+        const raw = formData.get('maxColors');
+        if (raw == null || raw === '') return undefined;
+        const n = parseInt(raw as string, 10);
+        if (!Number.isFinite(n)) return undefined;
+        return Math.min(256, Math.max(1, n));
+      })(),
     };
 
     // 8. Validate operation-specific options
@@ -103,7 +113,8 @@ async function handlePost(request: NextRequest) {
     );
 
     // 10. Clean up original upload if processing succeeded
-    if (result.success && uploadResult.path) {
+    // Skip cleanup for color-change: the upload IS the processed result
+    if (result.success && uploadResult.path && operation !== 'color-change') {
       // Don't await cleanup to speed up response
       storageService.deleteImage(uploadResult.path).catch(() => {
         // Silently ignore cleanup errors
@@ -127,9 +138,10 @@ async function handlePost(request: NextRequest) {
           savedId = await saveProcessedImageToGallery({
             userId: user.id,
             processedUrl: result.processedUrl,
-            operationType: operation as ProcessingOperation,
+            operationType: operation as any,
             originalFilename: imageFile.name,
             fileSize: imageFile.size,
+            provider,
             metadata: {
               ...result.metadata,
               format: processingOptions.vectorFormat || 'png',
@@ -203,6 +215,10 @@ function validateProcessingOptions(options: ProcessingOptions): string | null {
 
     case 'background-removal':
       // No specific validation needed yet
+      break;
+
+    case 'color-change':
+      // No specific validation needed — all processing is client-side
       break;
 
     case 'vectorization':

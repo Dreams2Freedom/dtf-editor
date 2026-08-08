@@ -92,14 +92,36 @@ async function handleGet(request: NextRequest) {
     let currentPeriodEnd = new Date();
     if (profile.stripe_subscription_id) {
       try {
-        const subscription = await getStripeService().getSubscription(
+        const subscription: any = await getStripeService().getSubscription(
           profile.stripe_subscription_id
         );
-        currentPeriodEnd = new Date(subscription.current_period_end * 1000);
+        // Basil API moved current_period_end onto the per-item billing period;
+        // read both paths so the date isn't undefined (-> Invalid Date).
+        const periodEnd =
+          subscription.current_period_end ??
+          subscription.items?.data?.[0]?.current_period_end;
+        if (periodEnd) currentPeriodEnd = new Date(periodEnd * 1000);
       } catch (err) {
         console.error('Failed to get subscription period:', err);
         // Fall back to 30 days from now
         currentPeriodEnd.setDate(currentPeriodEnd.getDate() + 30);
+      }
+    }
+
+    // Lifetime once-per-account discount: Stripe customer metadata is the
+    // source of truth (backed by the DB counter), so the offer is hidden once
+    // it's been used even if the DB column never persisted.
+    let discountUsed = (profile.discount_used_count || 0) >= 1;
+    if (!discountUsed && profile.stripe_customer_id) {
+      try {
+        const customer: any = await getStripeService().getCustomer(
+          profile.stripe_customer_id
+        );
+        if (customer?.metadata?.retention_discount_used === 'true') {
+          discountUsed = true;
+        }
+      } catch {
+        /* ignore — fall back to the DB counter */
       }
     }
 
@@ -152,7 +174,9 @@ async function handleGet(request: NextRequest) {
       eligible: true,
       canPause: pauseResult?.can_pause || false,
       pauseReason: pauseResult?.reason,
-      canUseDiscount: discountResult?.can_use_discount || false,
+      // Lifetime once-per-account: only offer the 50% discount if it has never
+      // been used (mirrors the once-ever rule the apply endpoint enforces).
+      canUseDiscount: !discountUsed,
       discountReason: discountResult?.reason,
       pauseOptions,
       pauseHistory: pauseHistory || [],

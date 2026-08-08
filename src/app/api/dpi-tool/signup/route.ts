@@ -3,6 +3,10 @@ import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { goHighLevelService } from '@/services/goHighLevel';
 import { withRateLimit } from '@/lib/rate-limit';
 import { emailService } from '@/services/email';
+import {
+  isBlockedEmailDomain,
+  BLOCKED_EMAIL_MESSAGE,
+} from '@/lib/auth/blockedEmailDomains';
 
 async function handlePost(request: NextRequest) {
   try {
@@ -13,6 +17,14 @@ async function handlePost(request: NextRequest) {
     if (!email || !password || !firstName) {
       return NextResponse.json(
         { error: 'Email, password, and first name are required' },
+        { status: 400 }
+      );
+    }
+
+    // Reject disposable / throwaway email domains.
+    if (isBlockedEmailDomain(email)) {
+      return NextResponse.json(
+        { error: BLOCKED_EMAIL_MESSAGE },
         { status: 400 }
       );
     }

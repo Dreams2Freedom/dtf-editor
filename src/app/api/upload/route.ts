@@ -61,7 +61,10 @@ async function handlePost(request: NextRequest) {
     const allowedTypes = ['image/jpeg', 'image/png', 'image/webp'];
     if (!allowedTypes.includes(file.type)) {
       return NextResponse.json(
-        { success: false, error: 'Invalid file type. Supported: JPEG, PNG, WebP.' },
+        {
+          success: false,
+          error: 'Invalid file type. Supported: JPEG, PNG, WebP.',
+        },
         { status: 400 }
       );
     }
@@ -78,7 +81,10 @@ async function handlePost(request: NextRequest) {
     const headerSlice = await file.slice(0, 12).arrayBuffer();
     if (!validateMagicBytes(headerSlice, file.type)) {
       return NextResponse.json(
-        { success: false, error: 'File content does not match the declared type.' },
+        {
+          success: false,
+          error: 'File content does not match the declared type.',
+        },
         { status: 400 }
       );
     }

@@ -77,10 +77,17 @@ export class ChatGPTService {
         );
       }
 
-      // Initialize OpenAI client (server-side only)
+      // Initialize OpenAI client (server-side only).
+      // Bound each request so a slow/unresponsive OpenAI call fails fast with a
+      // clear error instead of hanging until the 300s function limit (which
+      // surfaced to users as "stuck on Analyzing, no result"). 120s is generous
+      // for gpt-image-1 at high quality; one retry keeps the worst case (~240s)
+      // under the function's maxDuration.
       console.log('[ChatGPT Service] Initializing OpenAI client...');
       const openai = new OpenAI({
         apiKey: apiKey,
+        timeout: 120_000,
+        maxRetries: 1,
       });
 
       // Default options
@@ -175,57 +182,88 @@ export class ChatGPTService {
       };
     } catch (error: unknown) {
       console.error('[ChatGPT Service] Image generation error:', error);
-      const err = error as Error & { stack?: string };
+      const err = error as Error & {
+        stack?: string;
+        status?: number;
+        name?: string;
+        code?: string;
+      };
       console.error('[ChatGPT Service] Error stack:', err.stack);
 
-      // Handle specific OpenAI errors
-      const errorWithResponse = error as Error & {
+      // Timeout / connection failure — the SDK aborts the request after the
+      // configured `timeout`, so a hung OpenAI call surfaces here instead of
+      // spinning until the function limit.
+      const name = err.name || '';
+      const msg = (err.message || '').toLowerCase();
+      if (
+        name === 'APIConnectionTimeoutError' ||
+        name === 'APIConnectionError' ||
+        msg.includes('timed out') ||
+        msg.includes('timeout') ||
+        msg.includes('aborted')
+      ) {
+        return {
+          success: false,
+          error:
+            'The image generator took too long to respond. Please try again — if it keeps happening, try a lower quality or a simpler prompt.',
+        };
+      }
+
+      // Status can come from the OpenAI SDK v6 error (`.status`) OR the older
+      // axios-style shape (`.response.status`). Check both so we surface the
+      // real reason instead of a generic message.
+      const legacy = error as Error & {
         response?: { status: number; data?: { error?: { message?: string } } };
       };
-      if (errorWithResponse.response) {
-        const statusCode = errorWithResponse.response.status;
-        const errorMessage =
-          errorWithResponse.response.data?.error?.message ||
-          (error as Error).message;
+      const statusCode = err.status ?? legacy.response?.status;
+      const errorMessage =
+        legacy.response?.data?.error?.message || (error as Error).message || '';
+      const lowerMsg = errorMessage.toLowerCase();
 
-        if (statusCode === 401) {
-          return {
-            success: false,
-            error: 'Invalid API key. Please check your OpenAI configuration.',
-          };
-        } else if (statusCode === 429) {
-          return {
-            success: false,
-            error: 'Rate limit exceeded. Please try again later.',
-          };
-        } else if (statusCode === 400) {
-          // Content policy violation or invalid request
-          if (errorMessage.includes('content policy')) {
-            return {
-              success: false,
-              error:
-                'Your prompt violates OpenAI content policy. Please modify your prompt.',
-            };
-          }
-          return {
-            success: false,
-            error: `Invalid request: ${errorMessage}`,
-          };
-        } else if (statusCode === 500 || statusCode === 503) {
+      if (statusCode === 401) {
+        return {
+          success: false,
+          error: 'Invalid API key. Please check your OpenAI configuration.',
+        };
+      } else if (statusCode === 429) {
+        return {
+          success: false,
+          error:
+            'The image generator is busy right now (rate limit). Please try again in a moment.',
+        };
+      } else if (statusCode === 403) {
+        return {
+          success: false,
+          error:
+            'Image generation is not available on this account right now. Please contact support.',
+        };
+      } else if (statusCode === 400) {
+        if (
+          lowerMsg.includes('content policy') ||
+          lowerMsg.includes('safety')
+        ) {
           return {
             success: false,
             error:
-              'OpenAI service is temporarily unavailable. Please try again later.',
+              'Your prompt was rejected by the content filter. Please adjust it and try again.',
           };
         }
+        return {
+          success: false,
+          error: `Invalid request: ${errorMessage}`,
+        };
+      } else if (statusCode === 500 || statusCode === 503) {
+        return {
+          success: false,
+          error:
+            'OpenAI service is temporarily unavailable. Please try again later.',
+        };
       }
 
-      // Generic error
+      // Generic fallback
       return {
         success: false,
-        error:
-          (error as Error).message ||
-          'Failed to generate image. Please try again.',
+        error: errorMessage || 'Failed to generate image. Please try again.',
       };
     }
   }
@@ -328,10 +366,17 @@ export class ChatGPTService {
         );
       }
 
-      // Initialize OpenAI client (server-side only)
+      // Initialize OpenAI client (server-side only).
+      // Bound each request so a slow/unresponsive OpenAI call fails fast with a
+      // clear error instead of hanging until the 300s function limit (which
+      // surfaced to users as "stuck on Analyzing, no result"). 120s is generous
+      // for gpt-image-1 at high quality; one retry keeps the worst case (~240s)
+      // under the function's maxDuration.
       console.log('[ChatGPT Service] Initializing OpenAI client...');
       const openai = new OpenAI({
         apiKey: apiKey,
+        timeout: 120_000,
+        maxRetries: 1,
       });
 
       // Default options

@@ -5,10 +5,10 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Mail, Lock, Eye, EyeOff } from 'lucide-react';
-import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { useAuthContext } from '@/contexts/AuthContext';
 import Link from 'next/link';
+import styles from './Auth.module.css';
 
 // Login form schema
 const loginSchema = z.object({
@@ -63,13 +63,15 @@ export function LoginForm({ onSuccess, redirectTo }: LoginFormProps) {
   };
 
   return (
-    <div className="w-full max-w-md mx-auto">
-      <div className="text-center mb-8">
-        <h1 className="text-2xl font-bold text-gray-900 mb-2">Welcome back</h1>
-        <p className="text-gray-600">Sign in to your account to continue</p>
+    <div>
+      <div className={styles.header}>
+        <h1 className={styles.title}>Welcome back</h1>
+        <p className={styles.subtitle}>
+          Sign in to continue fixing artwork for DTF printing.
+        </p>
       </div>
 
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+      <form onSubmit={handleSubmit(onSubmit)} className={styles.form}>
         {/* Email Field */}
         <Input
           label="Email address"
@@ -107,37 +109,32 @@ export function LoginForm({ onSuccess, redirectTo }: LoginFormProps) {
 
         {/* Error Messages */}
         {error && (
-          <div className="p-3 text-sm text-error-600 bg-error-50 border border-error-200 rounded-lg">
+          <div className={`${styles.alert} ${styles.alertError}`} role="alert">
             {error}
           </div>
         )}
 
         {errors.root && (
-          <div className="p-3 text-sm text-error-600 bg-error-50 border border-error-200 rounded-lg">
+          <div className={`${styles.alert} ${styles.alertError}`} role="alert">
             {errors.root.message}
           </div>
         )}
 
         {/* Submit Button */}
-        <Button type="submit" fullWidth loading={loading} disabled={loading}>
-          Sign in
-        </Button>
+        <button type="submit" className={styles.btnPrimary} disabled={loading}>
+          {loading && <span className={styles.spinner} aria-hidden="true" />}
+          {loading ? 'Signing in…' : 'Sign In'}
+        </button>
 
         {/* Links */}
-        <div className="flex items-center justify-between text-sm">
-          <Link
-            href="/auth/forgot-password"
-            className="text-primary-600 hover:text-primary-500"
-          >
-            Forgot your password?
+        <div className={styles.linkRow}>
+          <Link href="/auth/forgot-password" className={styles.link}>
+            Forgot password?
           </Link>
-          <span className="text-gray-600">
-            Don&apos;t have an account?{' '}
-            <Link
-              href="/auth/signup"
-              className="text-primary-600 hover:text-primary-500 font-medium"
-            >
-              Sign up
+          <span>
+            New to DTF Editor?{' '}
+            <Link href="/auth/signup" className={styles.link}>
+              Create an account
             </Link>
           </span>
         </div>

@@ -5,6 +5,34 @@
 
 ---
 
+## 🗓️ June 7, 2026 — Email Outage Diagnosed & Hardened (BUG-063)
+
+**Problem:** No emails sending at all (welcome, signup admin alerts, receipts).
+
+**Diagnosis (deep dive):** The email code (Mailgun via `src/services/email.ts`) was
+fully implemented and the signup route correctly `await`s sends — not a serverless
+async bug. Using the Vercel MCP, production runtime logs showed
+`EmailService: Mailgun not configured` on `/api/auth/signup`, proving
+**`MAILGUN_API_KEY`/`MAILGUN_DOMAIN` are missing/empty in Vercel Production**. The
+outage was invisible because every send method `return true`'d when unconfigured.
+
+**Fixes (code):**
+
+- Replaced all silent `return true` guards with a `notSent()` helper that logs
+  `NOT SENT [type]` and returns `false`.
+- Added `MAILGUN_REGION` (us/eu) support — the API URL was hardcoded to US
+  (`api.mailgun.net`), which 401s for EU domains. Applied in `email.ts` and the
+  `auth-email-handler` edge function.
+- `validateEnv()` now warns when Mailgun config is missing.
+- New diagnostic endpoint `GET/POST /api/admin/email-health`.
+
+**Remaining (owner action):** Restore the Mailgun env vars in Vercel Production and
+redeploy, then verify via `/api/admin/email-health`. Note: no Supabase Edge
+Functions are deployed, so auth emails (reset/confirm/magic-link) rely on Supabase
+SMTP. Also noted a pre-existing undefined `getEmailFooter()` call (follow-up).
+
+---
+
 ## 📋 Development Log Structure
 
 This Development Log has been split into multiple parts for better readability and token management. The log is organized chronologically with the newest entries first.

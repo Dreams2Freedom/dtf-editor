@@ -4,40 +4,60 @@ import {
   createServiceRoleClient,
 } from '@/lib/supabase/server';
 import { cookies } from 'next/headers';
+import { verifyCookieValue } from '@/lib/cookie-signing';
 
 export async function GET() {
   try {
     const cookieStore = await cookies();
 
-    // Check for impersonation first
+    // Check for impersonation first — but ONLY honor it for an authenticated
+    // ADMIN caller presenting a valid HMAC-signed cookie. Mirrors the checks in
+    // src/middleware/impersonation.ts. Without them a forged (unsigned) cookie
+    // would leak ANY user's profile via the service-role client.
     const impersonationCookie = cookieStore.get('impersonation_session');
     const authOverrideCookie = cookieStore.get('supabase-auth-override');
 
     if (impersonationCookie && authOverrideCookie) {
-      // We're impersonating - return the impersonated user's data
       try {
-        const impersonationData = JSON.parse(impersonationCookie.value);
-        const serviceSupabase = createServiceRoleClient();
+        const callerClient = await createServerSupabaseClient();
+        const {
+          data: { user: caller },
+        } = await callerClient.auth.getUser();
+        // 1) caller must be logged in, 2) cookie signature must verify.
+        const verifiedPayload = caller
+          ? await verifyCookieValue(impersonationCookie.value)
+          : null;
+        if (caller && verifiedPayload) {
+          // 3) caller must be an admin.
+          const { data: callerProfile } = await callerClient
+            .from('profiles')
+            .select('is_admin')
+            .eq('id', caller.id)
+            .single();
+          if (callerProfile?.is_admin) {
+            const impersonationData = JSON.parse(verifiedPayload);
+            const serviceSupabase = createServiceRoleClient();
+            const { data: profile, error: profileError } = await serviceSupabase
+              .from('profiles')
+              .select('*')
+              .eq('id', impersonationData.impersonatedUserId)
+              .single();
 
-        // Get the impersonated user's profile
-        const { data: profile, error: profileError } = await serviceSupabase
-          .from('profiles')
-          .select('*')
-          .eq('id', impersonationData.impersonatedUserId)
-          .single();
-
-        if (!profileError && profile) {
-          return NextResponse.json({
-            authenticated: true,
-            user: {
-              id: profile.id,
-              email: profile.email || impersonationData.impersonatedUserEmail,
-              credits_remaining: profile.credits_remaining,
-              subscription_status: profile.subscription_status,
-              subscription_plan: profile.subscription_plan,
-            },
-            isImpersonating: true,
-          });
+            if (!profileError && profile) {
+              return NextResponse.json({
+                authenticated: true,
+                user: {
+                  id: profile.id,
+                  email:
+                    profile.email || impersonationData.impersonatedUserEmail,
+                  credits_remaining: profile.credits_remaining,
+                  subscription_status: profile.subscription_status,
+                  subscription_plan: profile.subscription_plan,
+                },
+                isImpersonating: true,
+              });
+            }
+          }
         }
       } catch (error) {
         console.error('Error handling impersonation in session:', error);

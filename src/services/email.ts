@@ -45,6 +45,18 @@ export interface SubscriptionEmailData {
   pauseUntil?: Date;
 }
 
+export interface TrialEndingEmailData {
+  firstName?: string;
+  email: string;
+  planName: string;
+  /** Monthly price (in dollars) that will be charged when the trial ends. */
+  price: number;
+  /** Date the trial ends and billing begins. */
+  trialEndDate: Date;
+  /** Link to Billing & Membership where the user can manage/cancel. */
+  manageUrl: string;
+}
+
 export interface RetentionDiscountEmailData {
   firstName?: string;
   email: string;
@@ -114,21 +126,89 @@ export class EmailService {
   private enabled: boolean;
   private mailgunApiKey: string;
   private mailgunDomain: string;
+  private mailgunRegion: string;
   private mailgunUrl: string;
 
   constructor() {
     this.enabled = isFeatureAvailable('mailgun');
     this.mailgunApiKey = env.MAILGUN_API_KEY;
     this.mailgunDomain = env.MAILGUN_DOMAIN;
-    this.mailgunUrl = `https://api.mailgun.net/v3/${this.mailgunDomain}/messages`;
+    this.mailgunRegion = env.MAILGUN_REGION === 'eu' ? 'eu' : 'us';
+    this.mailgunUrl = `${EmailService.mailgunBaseUrl(this.mailgunRegion)}/v3/${this.mailgunDomain}/messages`;
 
     if (this.enabled && this.mailgunApiKey && this.mailgunDomain) {
-      console.log('EmailService: Mailgun configured successfully');
+      console.log(
+        `EmailService: Mailgun configured successfully (domain=${this.mailgunDomain}, region=${this.mailgunRegion})`
+      );
     } else {
       console.warn(
-        'EmailService: Mailgun not configured. Emails will not be sent.'
+        'EmailService: Mailgun NOT configured (MAILGUN_API_KEY/MAILGUN_DOMAIN missing or empty). Emails will NOT be sent.'
       );
     }
+  }
+
+  /**
+   * Mailgun API base URL for the given region.
+   * EU-provisioned domains MUST use api.eu.mailgun.net or every request 401s.
+   */
+  private static mailgunBaseUrl(region: string): string {
+    return region === 'eu'
+      ? 'https://api.eu.mailgun.net'
+      : 'https://api.mailgun.net';
+  }
+
+  /**
+   * Configuration status for diagnostics (used by the admin email-health endpoint).
+   * Never exposes the API key itself.
+   */
+  getConfigStatus(): {
+    configured: boolean;
+    region: string;
+    domain: string;
+    fromEmail: string;
+    fromName: string;
+    hasApiKey: boolean;
+  } {
+    return {
+      configured: this.enabled && !!this.mailgunApiKey && !!this.mailgunDomain,
+      region: this.mailgunRegion,
+      domain: this.mailgunDomain || '(not set)',
+      fromEmail: env.MAILGUN_FROM_EMAIL,
+      fromName: env.MAILGUN_FROM_NAME,
+      hasApiKey: !!this.mailgunApiKey,
+    };
+  }
+
+  /**
+   * Logs a loud, unambiguous "not sent" error and returns false so callers
+   * (signup, webhooks, cron, email queue) see the real failure instead of a
+   * silent success. Previously these paths returned true and masked the outage.
+   */
+  private notSent(emailType: string): false {
+    console.error(
+      `EmailService: NOT SENT [${emailType}] — Mailgun unconfigured ` +
+        `(enabled=${this.enabled}, hasKey=${!!this.mailgunApiKey}, hasDomain=${!!this.mailgunDomain})`
+    );
+    return false;
+  }
+
+  /**
+   * Shared HTML footer used by templates that call this.getEmailFooter().
+   * Matches the gray footer block used inline by the other email templates.
+   */
+  private getEmailFooter(): string {
+    return `
+          <div style="background-color: #f5f5f5; padding: 20px; text-align: center; margin-top: 20px;">
+            <p style="color: #999; font-size: 14px; margin: 0;">
+              © ${new Date().getFullYear()} DTF Editor. All rights reserved.
+            </p>
+            <p style="color: #999; font-size: 12px; margin: 8px 0 0;">
+              <a href="${env.APP_URL}/dashboard" style="color: #366494; text-decoration: none;">Dashboard</a>
+              &nbsp;•&nbsp;
+              <a href="${env.APP_URL}/help" style="color: #366494; text-decoration: none;">Help Center</a>
+            </p>
+          </div>
+    `;
   }
 
   static getInstance(): EmailService {
@@ -222,14 +302,7 @@ export class EmailService {
     console.log('[EmailService] Mailgun Domain:', this.mailgunDomain);
 
     if (!this.enabled || !this.mailgunApiKey) {
-      console.log('EmailService: Would send welcome email to', data.email);
-      console.log(
-        'EmailService: Skipping because enabled=',
-        this.enabled,
-        'hasKey=',
-        !!this.mailgunApiKey
-      );
-      return true;
+      return this.notSent('welcome');
     }
 
     try {
@@ -264,8 +337,7 @@ export class EmailService {
    */
   async sendPurchaseEmail(data: PurchaseEmailData): Promise<boolean> {
     if (!this.enabled || !this.mailgunApiKey) {
-      console.log('EmailService: Would send purchase email to', data.email);
-      return true;
+      return this.notSent('purchase');
     }
 
     try {
@@ -306,11 +378,7 @@ export class EmailService {
    */
   async sendCreditWarningEmail(data: CreditWarningEmailData): Promise<boolean> {
     if (!this.enabled || !this.mailgunApiKey) {
-      console.log(
-        'EmailService: Would send credit warning email to',
-        data.email
-      );
-      return true;
+      return this.notSent('credit-warning');
     }
 
     try {
@@ -344,8 +412,7 @@ export class EmailService {
    */
   async sendSubscriptionEmail(data: SubscriptionEmailData): Promise<boolean> {
     if (!this.enabled || !this.mailgunApiKey) {
-      console.log('EmailService: Would send subscription email to', data.email);
-      return true;
+      return this.notSent('subscription');
     }
 
     try {
@@ -382,6 +449,107 @@ export class EmailService {
   }
 
   /**
+   * Send a "your trial ends soon" reminder before the card is first charged.
+   * Triggered by Stripe's customer.subscription.trial_will_end event so users
+   * are never surprised by the first charge (clear, non-deceptive billing).
+   */
+  async sendTrialEndingEmail(data: TrialEndingEmailData): Promise<boolean> {
+    if (!this.enabled || !this.mailgunApiKey) {
+      console.log('EmailService: Would send trial-ending email to', data.email);
+      return true;
+    }
+
+    try {
+      const endDate = data.trialEndDate.toLocaleDateString('en-US', {
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+      });
+      const price = `$${data.price.toFixed(2)}`;
+      const subject = `Your ${data.planName} trial ends soon`;
+
+      const html = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <meta charset="utf-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        </head>
+        <body style="margin: 0; padding: 0; font-family: Arial, sans-serif; background-color: #f5f5f5;">
+          <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff;">
+            ${this.getEmailLogoHeader()}
+            <div style="padding: 40px 30px;">
+              <h2 style="color: #333; margin-bottom: 16px;">Hi ${data.firstName || 'there'},</h2>
+              <p style="color: #444; font-size: 15px; line-height: 1.6;">
+                Your <strong>7-day ${data.planName} trial</strong> is almost over.
+                Unless you cancel before it ends, your membership will continue
+                automatically and your card will be charged
+                <strong>${price}/month</strong> starting <strong>${endDate}</strong>.
+              </p>
+              <div style="margin: 24px 0; padding: 16px 20px; background-color: #fff7ed; border: 1px solid #fed7aa; border-radius: 8px;">
+                <p style="margin: 0; color: #9a3412; font-size: 14px;">
+                  <strong>Trial ends:</strong> ${endDate}<br>
+                  <strong>Then:</strong> ${price}/month for the ${data.planName} plan
+                </p>
+              </div>
+              <p style="color: #444; font-size: 15px; line-height: 1.6;">
+                Happy with DTF Editor? No action needed — you'll keep all your
+                ${data.planName} credits and tools. Want to make a change? You can
+                manage or cancel your membership anytime, before billing begins.
+              </p>
+              <div style="text-align: center; margin: 28px 0;">
+                <a href="${data.manageUrl}" style="display: inline-block; background-color: #2563eb; color: #ffffff; text-decoration: none; padding: 12px 28px; border-radius: 8px; font-weight: 600; font-size: 15px;">
+                  Manage or Cancel Membership
+                </a>
+              </div>
+              <hr style="margin: 28px 0; border: none; border-top: 1px solid #eee;">
+              <p style="color: #888; font-size: 13px;">
+                You're receiving this because you started a DTF Editor trial. If
+                you have any questions, just reply to this email.
+              </p>
+            </div>
+          </div>
+        </body>
+        </html>
+      `;
+
+      const text = [
+        `Hi ${data.firstName || 'there'},`,
+        '',
+        `Your 7-day ${data.planName} trial is almost over. Unless you cancel before it ends, your membership will continue automatically and your card will be charged ${price}/month starting ${endDate}.`,
+        '',
+        `Trial ends: ${endDate}`,
+        `Then: ${price}/month for the ${data.planName} plan`,
+        '',
+        `Manage or cancel anytime before billing begins: ${data.manageUrl}`,
+        '',
+        "Happy with DTF Editor? No action needed — you'll keep all your credits and tools.",
+      ].join('\n');
+
+      const mailOptions = {
+        from: `${env.MAILGUN_FROM_NAME} <${env.MAILGUN_FROM_EMAIL}>`,
+        to: data.email,
+        subject,
+        html,
+        text,
+        'o:tag': ['subscription', 'trial-ending'],
+        'o:tracking': true,
+        'o:tracking-clicks': true,
+        'o:tracking-opens': true,
+        'v:user_email': data.email,
+        'v:user_name': data.firstName || 'User',
+        'v:plan_name': data.planName,
+      };
+
+      return await this.sendMailgunEmail(mailOptions);
+    } catch (error) {
+      console.error('Error sending trial-ending email:', error);
+      return false;
+    }
+  }
+
+  /**
    * Send admin notification email to user
    */
   async sendAdminNotificationEmail(
@@ -391,8 +559,7 @@ export class EmailService {
     firstName?: string
   ): Promise<boolean> {
     if (!this.enabled || !this.mailgunApiKey) {
-      console.log('EmailService: Would send admin notification to', to);
-      return true;
+      return this.notSent('admin-notification');
     }
 
     try {
@@ -450,12 +617,12 @@ export class EmailService {
     content: string
   ): Promise<{ sent: number; failed: number }> {
     if (!this.enabled || !this.mailgunApiKey) {
-      console.log(
-        'EmailService: Would send batch emails to',
+      console.error(
+        'EmailService: NOT SENT [batch] — Mailgun unconfigured;',
         recipients.length,
-        'recipients'
+        'recipients not emailed'
       );
-      return { sent: recipients.length, failed: 0 };
+      return { sent: 0, failed: recipients.length };
     }
 
     let sent = 0;
@@ -496,11 +663,7 @@ export class EmailService {
    */
   async sendPasswordResetEmail(data: PasswordResetEmailData): Promise<boolean> {
     if (!this.enabled || !this.mailgunApiKey) {
-      console.log(
-        'EmailService: Would send password reset email to',
-        data.email
-      );
-      return true;
+      return this.notSent('password-reset');
     }
 
     try {
@@ -530,8 +693,7 @@ export class EmailService {
    */
   async sendEmailConfirmation(data: EmailConfirmationData): Promise<boolean> {
     if (!this.enabled || !this.mailgunApiKey) {
-      console.log('EmailService: Would send email confirmation to', data.email);
-      return true;
+      return this.notSent('email-confirmation');
     }
 
     try {
@@ -561,8 +723,7 @@ export class EmailService {
    */
   async sendMagicLinkEmail(data: MagicLinkEmailData): Promise<boolean> {
     if (!this.enabled || !this.mailgunApiKey) {
-      console.log('EmailService: Would send magic link email to', data.email);
-      return true;
+      return this.notSent('magic-link');
     }
 
     try {
@@ -598,11 +759,7 @@ export class EmailService {
     ticketSubject: string;
   }): Promise<boolean> {
     if (!this.enabled || !this.mailgunApiKey) {
-      console.log(
-        'EmailService: Would send ticket reply notification to',
-        data.userEmail
-      );
-      return true;
+      return this.notSent('ticket-reply-user');
     }
 
     try {
@@ -632,7 +789,7 @@ export class EmailService {
                 </div>
                 
                 <div style="margin-top: 30px;">
-                  <a href="${process.env.NEXT_PUBLIC_APP_URL || 'https://dtfeditor.com'}/support/${data.ticketNumber}" 
+                  <a href="${env.APP_URL || 'https://dtfeditor.com'}/support/${data.ticketNumber}" 
                      style="display: inline-block; background: #366494; color: white; padding: 12px 30px; text-decoration: none; border-radius: 4px;">
                     View Full Conversation
                   </a>
@@ -647,7 +804,7 @@ export class EmailService {
           </body>
           </html>
         `,
-        text: `Support Team Reply\n\nHi ${data.userName || 'there'},\n\nOur support team has replied to your ticket #${data.ticketNumber}.\n\nReply:\n${data.adminMessage}\n\nView full conversation: ${process.env.NEXT_PUBLIC_APP_URL || 'https://dtfeditor.com'}/support/${data.ticketNumber}\n\n© ${new Date().getFullYear()} DTF Editor`,
+        text: `Support Team Reply\n\nHi ${data.userName || 'there'},\n\nOur support team has replied to your ticket #${data.ticketNumber}.\n\nReply:\n${data.adminMessage}\n\nView full conversation: ${env.APP_URL || 'https://dtfeditor.com'}/support/${data.ticketNumber}\n\n© ${new Date().getFullYear()} DTF Editor`,
         'o:tag': ['support', 'ticket-reply', 'admin-reply'],
         'o:tracking': true,
         'o:tracking-clicks': true,
@@ -676,11 +833,7 @@ export class EmailService {
     const adminEmail = 's2transfers@gmail.com';
 
     if (!this.enabled || !this.mailgunApiKey) {
-      console.log(
-        'EmailService: Would send user reply notification to',
-        adminEmail
-      );
-      return true;
+      return this.notSent('ticket-reply-admin');
     }
 
     try {
@@ -720,7 +873,7 @@ export class EmailService {
                 </div>
                 
                 <div style="margin-top: 30px;">
-                  <a href="${process.env.NEXT_PUBLIC_APP_URL || 'https://dtfeditor.com'}/admin/support" 
+                  <a href="${env.APP_URL || 'https://dtfeditor.com'}/admin/support" 
                      style="display: inline-block; background: #366494; color: white; padding: 12px 30px; text-decoration: none; border-radius: 4px;">
                     View in Admin Panel
                   </a>
@@ -730,7 +883,7 @@ export class EmailService {
           </body>
           </html>
         `,
-        text: `USER REPLY - Ticket #${data.ticketNumber}\n\nFrom: ${data.userName || 'User'} (${data.userEmail})\nSubject: ${data.ticketSubject}\n\nMessage:\n${data.userMessage}\n\nView in admin panel: ${process.env.NEXT_PUBLIC_APP_URL || 'https://dtfeditor.com'}/admin/support\n\n© ${new Date().getFullYear()} DTF Editor`,
+        text: `USER REPLY - Ticket #${data.ticketNumber}\n\nFrom: ${data.userName || 'User'} (${data.userEmail})\nSubject: ${data.ticketSubject}\n\nMessage:\n${data.userMessage}\n\nView in admin panel: ${env.APP_URL || 'https://dtfeditor.com'}/admin/support\n\n© ${new Date().getFullYear()} DTF Editor`,
         'o:tag': ['support', 'ticket-reply', 'user-reply'],
         'o:tracking': true,
         'o:tracking-clicks': true,
@@ -759,11 +912,7 @@ export class EmailService {
     amount: number;
   }): Promise<boolean> {
     if (!this.enabled || !this.mailgunApiKey) {
-      console.log(
-        'EmailService: Would send payment failed email to',
-        data.email
-      );
-      return true;
+      return this.notSent('payment-failed');
     }
 
     try {
@@ -819,7 +968,7 @@ export class EmailService {
                 </div>
                 
                 <div style="margin-top: 30px; text-align: center;">
-                  <a href="${process.env.NEXT_PUBLIC_APP_URL || 'https://dtfeditor.com'}/dashboard" 
+                  <a href="${env.APP_URL || 'https://dtfeditor.com'}/dashboard" 
                      style="display: inline-block; background: #dc3545; color: white; padding: 12px 30px; text-decoration: none; border-radius: 4px;">
                     Update Payment Method
                   </a>
@@ -837,7 +986,7 @@ export class EmailService {
           </body>
           </html>
         `,
-        text: `Payment Failed\n\nHi ${data.firstName || 'there'},\n\nWe attempted to charge $${(data.amount / 100).toFixed(2)} for your DTF Editor ${data.planName} subscription, but the payment was declined.\n\n${data.nextRetryDate ? `We'll automatically retry the payment on ${data.nextRetryDate.toLocaleDateString()}.\n\n` : ''}What you can do:\n- Update your payment method\n- Ensure sufficient funds are available\n- Contact your bank if the issue persists\n\nUpdate your payment method: ${process.env.NEXT_PUBLIC_APP_URL || 'https://dtfeditor.com'}/dashboard\n\n© ${new Date().getFullYear()} DTF Editor`,
+        text: `Payment Failed\n\nHi ${data.firstName || 'there'},\n\nWe attempted to charge $${(data.amount / 100).toFixed(2)} for your DTF Editor ${data.planName} subscription, but the payment was declined.\n\n${data.nextRetryDate ? `We'll automatically retry the payment on ${data.nextRetryDate.toLocaleDateString()}.\n\n` : ''}What you can do:\n- Update your payment method\n- Ensure sufficient funds are available\n- Contact your bank if the issue persists\n\nUpdate your payment method: ${env.APP_URL || 'https://dtfeditor.com'}/dashboard\n\n© ${new Date().getFullYear()} DTF Editor`,
         'o:tag': ['payment', 'payment-failed', `attempt-${data.attemptCount}`],
         'o:tracking': true,
         'o:tracking-clicks': true,
@@ -867,8 +1016,7 @@ export class EmailService {
     planName: string;
   }): Promise<boolean> {
     if (!this.enabled || !this.mailgunApiKey) {
-      console.log('EmailService: Would send monthly summary to', data.email);
-      return true;
+      return this.notSent('monthly-summary');
     }
 
     try {
@@ -954,7 +1102,7 @@ export class EmailService {
                   data.creditsRemaining < 5
                     ? `
                   <div style="margin-top: 30px; text-align: center;">
-                    <a href="${process.env.NEXT_PUBLIC_APP_URL || 'https://dtfeditor.com'}/pricing" 
+                    <a href="${env.APP_URL || 'https://dtfeditor.com'}/pricing" 
                        style="display: inline-block; background: #366494; color: white; padding: 12px 30px; text-decoration: none; border-radius: 4px;">
                       Get More Credits
                     </a>
@@ -973,7 +1121,7 @@ export class EmailService {
           </body>
           </html>
         `,
-        text: `Your Monthly Summary\n\nHi ${data.firstName || 'there'},\n\nHere's your DTF Editor activity summary for ${data.month}:\n\nImages Processed: ${data.imagesProcessed}\nCredits Used: ${data.creditsUsed}\nCredits Remaining: ${data.creditsRemaining}\n\n${topFeatures.length > 0 ? `Most Used Features:\n${topFeatures.map(f => `- ${f.feature}: ${f.count} uses`).join('\n')}\n\n` : ''}Your Plan: ${data.planName}\n\nView your dashboard: ${process.env.NEXT_PUBLIC_APP_URL || 'https://dtfeditor.com'}/dashboard\n\n© ${new Date().getFullYear()} DTF Editor`,
+        text: `Your Monthly Summary\n\nHi ${data.firstName || 'there'},\n\nHere's your DTF Editor activity summary for ${data.month}:\n\nImages Processed: ${data.imagesProcessed}\nCredits Used: ${data.creditsUsed}\nCredits Remaining: ${data.creditsRemaining}\n\n${topFeatures.length > 0 ? `Most Used Features:\n${topFeatures.map(f => `- ${f.feature}: ${f.count} uses`).join('\n')}\n\n` : ''}Your Plan: ${data.planName}\n\nView your dashboard: ${env.APP_URL || 'https://dtfeditor.com'}/dashboard\n\n© ${new Date().getFullYear()} DTF Editor`,
         'o:tag': ['monthly-summary', 'engagement'],
         'o:tracking': true,
         'o:tracking-clicks': true,
@@ -1006,11 +1154,7 @@ export class EmailService {
     fileName?: string;
   }): Promise<boolean> {
     if (!this.enabled || !this.mailgunApiKey) {
-      console.log(
-        'EmailService: Would send processing error email to',
-        data.email
-      );
-      return true;
+      return this.notSent('processing-error');
     }
 
     try {
@@ -1081,11 +1225,11 @@ export class EmailService {
                 </div>
                 
                 <div style="margin-top: 30px; text-align: center;">
-                  <a href="${process.env.NEXT_PUBLIC_APP_URL || 'https://dtfeditor.com'}/support" 
+                  <a href="${env.APP_URL || 'https://dtfeditor.com'}/support" 
                      style="display: inline-block; background: #366494; color: white; padding: 12px 30px; text-decoration: none; border-radius: 4px; margin-right: 10px;">
                     Contact Support
                   </a>
-                  <a href="${process.env.NEXT_PUBLIC_APP_URL || 'https://dtfeditor.com'}/process" 
+                  <a href="${env.APP_URL || 'https://dtfeditor.com'}/process" 
                      style="display: inline-block; background: #fff; color: #366494; border: 2px solid #366494; padding: 10px 28px; text-decoration: none; border-radius: 4px;">
                     Try Again
                   </a>
@@ -1102,7 +1246,7 @@ export class EmailService {
           </body>
           </html>
         `,
-        text: `Processing Error\n\nHi ${data.firstName || 'there'},\n\nWe encountered an error while processing your ${errorTypeDisplay[data.errorType]} request${data.fileName ? ` for "${data.fileName}"` : ''}.\n\nError Details:\n${data.errorMessage}\n\n${data.creditsRefunded ? `✓ ${data.creditsRefunded} credit${data.creditsRefunded > 1 ? 's have' : ' has'} been refunded to your account.\n\n` : ''}What to do next:\n- Try uploading a different image\n- Ensure your image meets our requirements\n- Check your internet connection\n- Contact support if the issue persists\n\nContact Support: ${process.env.NEXT_PUBLIC_APP_URL || 'https://dtfeditor.com'}/support\nTry Again: ${process.env.NEXT_PUBLIC_APP_URL || 'https://dtfeditor.com'}/process\n\n© ${new Date().getFullYear()} DTF Editor`,
+        text: `Processing Error\n\nHi ${data.firstName || 'there'},\n\nWe encountered an error while processing your ${errorTypeDisplay[data.errorType]} request${data.fileName ? ` for "${data.fileName}"` : ''}.\n\nError Details:\n${data.errorMessage}\n\n${data.creditsRefunded ? `✓ ${data.creditsRefunded} credit${data.creditsRefunded > 1 ? 's have' : ' has'} been refunded to your account.\n\n` : ''}What to do next:\n- Try uploading a different image\n- Ensure your image meets our requirements\n- Check your internet connection\n- Contact support if the issue persists\n\nContact Support: ${env.APP_URL || 'https://dtfeditor.com'}/support\nTry Again: ${env.APP_URL || 'https://dtfeditor.com'}/process\n\n© ${new Date().getFullYear()} DTF Editor`,
         'o:tag': ['error', `error-${data.errorType}`],
         'o:tracking': true,
         'o:tracking-clicks': true,
@@ -1128,12 +1272,7 @@ export class EmailService {
     const adminEmail = 's2transfers@gmail.com';
 
     if (!this.enabled || !this.mailgunApiKey) {
-      console.log(
-        'EmailService: Would send support ticket notification to',
-        adminEmail
-      );
-      console.log('Ticket details:', data);
-      return true;
+      return this.notSent('support-ticket');
     }
 
     try {
@@ -1163,7 +1302,7 @@ export class EmailService {
   private getEmailLogoHeader(): string {
     return `
       <div style="background-color: #ffffff; padding: 20px; text-align: center; border-bottom: 2px solid #366494;">
-        <img src="${env.APP_URL}/logo-horizontal.png" alt="DTF Editor" style="height: 60px; max-width: 250px; width: auto;">
+        <img src="${env.APP_URL}/branding/dtf-editor-logo.png" alt="DTF Editor" style="height: 60px; max-width: 250px; width: auto;">
       </div>
     `;
   }
@@ -1717,7 +1856,7 @@ This link will expire in ${data.expiresIn || '10 minutes'}.
               </div>
 
               <div style="text-align: center; padding-top: 20px; border-top: 1px solid #e5e7eb;">
-                <a href="${process.env.NEXT_PUBLIC_APP_URL || 'https://dtfeditor.com'}/admin/support" 
+                <a href="${env.APP_URL || 'https://dtfeditor.com'}/admin/support" 
                    style="display: inline-block; background: #366494; color: white; padding: 12px 24px; border-radius: 6px; text-decoration: none; font-weight: 500;">
                   View Ticket in Admin Panel
                 </a>
@@ -1757,7 +1896,7 @@ ${data.message}
 ---
 
 View ticket in admin panel:
-${process.env.NEXT_PUBLIC_APP_URL || 'https://dtfeditor.com'}/admin/support
+${env.APP_URL || 'https://dtfeditor.com'}/admin/support
 
 © ${new Date().getFullYear()} DTF Editor
     `.trim();
@@ -1863,7 +2002,7 @@ ${process.env.NEXT_PUBLIC_APP_URL || 'https://dtfeditor.com'}/admin/support
             <p><strong>Was this you?</strong></p>
             <p>If you recognize this activity, you can safely ignore this email.</p>
             <p>If you don't recognize this activity, please secure your account immediately:</p>
-            <a href="${process.env.NEXT_PUBLIC_APP_URL}/account/security" class="button">Secure My Account</a>
+            <a href="${env.APP_URL}/account/security" class="button">Secure My Account</a>
             `
                 : ''
             }
@@ -1890,7 +2029,7 @@ ${process.env.NEXT_PUBLIC_APP_URL || 'https://dtfeditor.com'}/admin/support
               data.alertType === 'suspicious_activity'
                 ? `
             <p>We've temporarily secured your account. Please verify your identity to continue using DTF Editor.</p>
-            <a href="${process.env.NEXT_PUBLIC_APP_URL}/account/verify" class="button">Verify My Account</a>
+            <a href="${env.APP_URL}/account/verify" class="button">Verify My Account</a>
             `
                 : ''
             }
@@ -1912,7 +2051,7 @@ ${process.env.NEXT_PUBLIC_APP_URL || 'https://dtfeditor.com'}/admin/support
       formData.append('o:tag', `security-${data.alertType}`);
 
       const response = await fetch(
-        `https://api.mailgun.net/v3/${env.MAILGUN_DOMAIN}/messages`,
+        `${EmailService.mailgunBaseUrl(this.mailgunRegion)}/v3/${env.MAILGUN_DOMAIN}/messages`,
         {
           method: 'POST',
           headers: {
@@ -1968,7 +2107,7 @@ ${
     ? `
 If you recognize this activity, you can safely ignore this email.
 If you don't recognize this activity, please secure your account at:
-${process.env.NEXT_PUBLIC_APP_URL}/account/security
+${env.APP_URL}/account/security
 `
     : ''
 }
@@ -1985,7 +2124,7 @@ ${
   data.alertType === 'suspicious_activity'
     ? `
 We've temporarily secured your account. Please verify your identity at:
-${process.env.NEXT_PUBLIC_APP_URL}/account/verify
+${env.APP_URL}/account/verify
 `
     : ''
 }
@@ -2090,7 +2229,7 @@ ${process.env.NEXT_PUBLIC_APP_URL}/account/verify
 
             <div class="footer">
               <p>You're receiving this because you're subscribed to activity summaries.</p>
-              <p><a href="${process.env.NEXT_PUBLIC_APP_URL}/account/preferences">Update Email Preferences</a></p>
+              <p><a href="${env.APP_URL}/account/preferences">Update Email Preferences</a></p>
               <p>© ${new Date().getFullYear()} DTF Editor. All rights reserved.</p>
             </div>
           </div>
@@ -2106,7 +2245,7 @@ ${process.env.NEXT_PUBLIC_APP_URL}/account/verify
       formData.append('o:tag', `activity-${data.period}`);
 
       const response = await fetch(
-        `https://api.mailgun.net/v3/${env.MAILGUN_DOMAIN}/messages`,
+        `${EmailService.mailgunBaseUrl(this.mailgunRegion)}/v3/${env.MAILGUN_DOMAIN}/messages`,
         {
           method: 'POST',
           headers: {
@@ -2136,11 +2275,7 @@ ${process.env.NEXT_PUBLIC_APP_URL}/account/verify
     data: RetentionDiscountEmailData
   ): Promise<boolean> {
     if (!this.enabled || !this.mailgunApiKey) {
-      console.log(
-        'EmailService: Would send retention discount email to',
-        data.email
-      );
-      return true;
+      return this.notSent('retention-discount');
     }
 
     try {
@@ -2235,8 +2370,7 @@ ${process.env.NEXT_PUBLIC_APP_URL}/account/verify
    */
   async sendRefundEmail(data: RefundEmailData): Promise<boolean> {
     if (!this.enabled || !this.mailgunApiKey) {
-      console.log('EmailService: Would send refund email to', data.email);
-      return true;
+      return this.notSent('refund');
     }
 
     try {
@@ -2363,7 +2497,7 @@ Keep creating amazing DTF transfers!
 ---
 
 Update email preferences:
-${process.env.NEXT_PUBLIC_APP_URL}/account/preferences
+${env.APP_URL}/account/preferences
 
 © ${new Date().getFullYear()} DTF Editor
     `.trim();
@@ -2379,17 +2513,13 @@ ${process.env.NEXT_PUBLIC_APP_URL}/account/preferences
     const SUPER_ADMIN_EMAIL = 'Shannon@S2Transfers.com';
 
     if (!this.enabled || !this.mailgunApiKey) {
-      console.log(
-        'EmailService: Would send admin notification to',
-        SUPER_ADMIN_EMAIL
-      );
-      return true;
+      return this.notSent('admin-notification');
     }
 
     try {
       // Check if admin has this notification type enabled
       const prefsResponse = await fetch(
-        `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/admin/notification-preferences`,
+        `${env.APP_URL || 'http://localhost:3000'}/api/admin/notification-preferences`,
         {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },

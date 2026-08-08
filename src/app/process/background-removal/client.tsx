@@ -9,6 +9,9 @@ import Link from 'next/link';
 import { useAuthStore } from '@/stores/authStore';
 import { Breadcrumb } from '@/components/ui/Breadcrumb';
 import { SignupModal } from '@/components/auth/SignupModal';
+import { BulkBgRemovalTool } from '@/components/image/BulkBgRemovalTool';
+import { HelpModal } from '@/components/ui/HelpModal';
+import { NeedHelpButton } from '@/components/manual/NeedHelpButton';
 
 declare global {
   interface Window {
@@ -42,6 +45,7 @@ export default function BackgroundRemovalClient() {
   const creditsDeductedRef = useRef(false); // Synchronous guard to prevent race conditions
   const [resultGenerated, setResultGenerated] = useState(false);
   const [showSignupModal, setShowSignupModal] = useState(false);
+  const [uploadMode, setUploadMode] = useState<'single' | 'bulk'>('single');
 
   // Load image data from either imageId, imageUrl, or tempImage
   useEffect(() => {
@@ -685,12 +689,16 @@ export default function BackgroundRemovalClient() {
                 } else {
                   // SEC-026: Do NOT reset the ref — log the failure for manual review
                   // instead of risking a double charge on retry.
-                  console.error('Credit deduction failed — ref remains locked to prevent double charge');
+                  console.error(
+                    'Credit deduction failed — ref remains locked to prevent double charge'
+                  );
                 }
               })
               .catch(() => {
                 // SEC-026: Do NOT reset the ref — same rationale as above.
-                console.error('Credit deduction network error — ref remains locked');
+                console.error(
+                  'Credit deduction network error — ref remains locked'
+                );
               });
 
             // Store the image ID and download it
@@ -740,247 +748,340 @@ export default function BackgroundRemovalClient() {
               ]}
             />
           </div>
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Scissors className="w-6 h-6 text-green-600" />
-                Remove Background
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              {isLoading && !imageUrl && (
-                <div className="text-center py-12">
-                  <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4" />
-                  <p>Loading image...</p>
-                </div>
-              )}
 
-              {error && (
-                <div className="bg-red-50 border border-red-200 text-red-800 p-4 rounded-lg mb-4">
-                  <div className="flex items-start gap-3">
-                    <div className="flex-shrink-0 mt-0.5">
-                      <svg
-                        className="w-5 h-5 text-red-600"
-                        fill="currentColor"
-                        viewBox="0 0 20 20"
-                      >
-                        <path
-                          fillRule="evenodd"
-                          d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
-                          clipRule="evenodd"
-                        />
-                      </svg>
-                    </div>
-                    <div className="flex-1">
-                      <h3 className="font-semibold mb-2">
-                        Error Loading Background Removal Tool
-                      </h3>
-                      <div className="whitespace-pre-line text-sm">{error}</div>
-                    </div>
+          <HelpModal
+            storageKey="help_bg_removal"
+            title="How to Remove Backgrounds"
+            accentColor="text-green-600"
+            accentBg="bg-green-500"
+            steps={[
+              {
+                title: 'Upload your image',
+                content:
+                  'Upload an image from the Process page or come here with an image already loaded.',
+              },
+              {
+                title: 'Open the editor',
+                content:
+                  'Click "Remove Background" to upload your image to the ClippingMagic editor. The editor opens in a popup window.',
+              },
+              {
+                title: 'Refine the result',
+                content:
+                  'The AI automatically removes the background. Use the editor tools to mark areas to keep (green) or remove (red) for precision.',
+              },
+              {
+                title: 'Save your result',
+                content:
+                  'Click Done in the editor. The processed image with transparent background is saved to your gallery.',
+              },
+              {
+                title: 'Bulk mode',
+                content:
+                  'Switch to Bulk Upload to remove backgrounds from multiple images at once. Review results, flag any for re-editing, then download all as a ZIP.',
+              },
+            ]}
+            tips={[
+              'Background removal costs 1 credit per image. Re-edits in the ClippingMagic editor are free — covered by the original credit.',
+              'Results are always saved as PNG to preserve transparency.',
+              'After removing the background, you can upscale or change colors on the result.',
+              'Make sure popups are allowed for this site — the editor opens in a popup window.',
+            ]}
+          />
+
+          {/* Single / Bulk Mode Toggle */}
+          <div className="flex rounded-xl border border-gray-200 p-1 bg-gray-100 mb-6">
+            <button
+              onClick={() => setUploadMode('single')}
+              className={`flex-1 py-2 px-4 rounded-lg text-sm font-medium transition-all ${
+                uploadMode === 'single'
+                  ? 'bg-white shadow-sm text-gray-900'
+                  : 'text-gray-500 hover:text-gray-700'
+              }`}
+            >
+              Single Image
+            </button>
+            <button
+              onClick={() => setUploadMode('bulk')}
+              className={`flex-1 py-2 px-4 rounded-lg text-sm font-medium transition-all ${
+                uploadMode === 'bulk'
+                  ? 'bg-white shadow-sm text-gray-900'
+                  : 'text-gray-500 hover:text-gray-700'
+              }`}
+            >
+              Bulk Upload
+            </button>
+          </div>
+
+          {uploadMode === 'bulk' ? (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Scissors className="w-6 h-6 text-green-600" />
+                  Bulk Remove Backgrounds
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <BulkBgRemovalTool />
+              </CardContent>
+            </Card>
+          ) : (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Scissors className="w-6 h-6 text-green-600" />
+                  Remove Background
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {isLoading && !imageUrl && (
+                  <div className="text-center py-12">
+                    <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4" />
+                    <p>Loading image...</p>
                   </div>
-                </div>
-              )}
+                )}
 
-              {imageUrl && (
-                <div className="space-y-6">
-                  {/* Loading Script Indicator */}
-                  {!initialized && !error && (
-                    <div className="bg-blue-50 border border-blue-200 text-blue-800 p-4 rounded-lg">
-                      <div className="flex items-center gap-3">
-                        <Loader2 className="w-5 h-5 animate-spin text-blue-600" />
-                        <div>
-                          <h3 className="font-semibold">
-                            Loading Background Removal Tool
-                          </h3>
-                          <p className="text-sm mt-1">
-                            Please wait while we load the editor...
-                          </p>
+                {error && (
+                  <div className="bg-red-50 border border-red-200 text-red-800 p-4 rounded-lg mb-4">
+                    <div className="flex items-start gap-3">
+                      <div className="flex-shrink-0 mt-0.5">
+                        <svg
+                          className="w-5 h-5 text-red-600"
+                          fill="currentColor"
+                          viewBox="0 0 20 20"
+                        >
+                          <path
+                            fillRule="evenodd"
+                            d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
+                            clipRule="evenodd"
+                          />
+                        </svg>
+                      </div>
+                      <div className="flex-1">
+                        <h3 className="font-semibold mb-2">
+                          Error Loading Background Removal Tool
+                        </h3>
+                        <div className="whitespace-pre-line text-sm">
+                          {error}
                         </div>
                       </div>
                     </div>
-                  )}
-
-                  {/* Original Image */}
-                  <div>
-                    <h3 className="font-medium mb-2">Original Image</h3>
-                    <img
-                      src={imageUrl}
-                      alt="Original"
-                      className="max-w-full h-auto rounded-lg border"
-                      style={{ maxHeight: '400px' }}
-                    />
                   </div>
+                )}
 
-                  {/* Action Button */}
-                  {!uploadedImage && (
-                    <>
-                      {profile &&
-                        profile.is_admin !== true &&
-                        profile.credits_remaining < 1 && (
-                          <div className="bg-red-50 border border-red-200 text-red-600 p-3 rounded-lg text-sm">
-                            <p className="font-medium">Insufficient Credits</p>
-                            <p className="text-xs mt-1">
-                              You need at least 1 credit to remove backgrounds.
-                              Please purchase more credits or upgrade your plan.
+                {imageUrl && (
+                  <div className="space-y-6">
+                    {/* Loading Script Indicator */}
+                    {!initialized && !error && (
+                      <div className="bg-blue-50 border border-blue-200 text-blue-800 p-4 rounded-lg">
+                        <div className="flex items-center gap-3">
+                          <Loader2 className="w-5 h-5 animate-spin text-blue-600" />
+                          <div>
+                            <h3 className="font-semibold">
+                              Loading Background Removal Tool
+                            </h3>
+                            <p className="text-sm mt-1">
+                              Please wait while we load the editor...
                             </p>
                           </div>
-                        )}
-                      <Button
-                        onClick={uploadToClippingMagic}
-                        disabled={
-                          isLoading ||
-                          !initialized ||
-                          isUploading ||
-                          !imageFile ||
-                          (profile &&
-                            profile.is_admin !== true &&
-                            profile.credits_remaining < 1)
-                        }
-                        className="w-full"
-                        size="lg"
-                      >
-                        {isUploading ? (
-                          <>
-                            <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                            Uploading...
-                          </>
-                        ) : (
-                          <>
-                            <Scissors className="w-5 h-5 mr-2" />
-                            Remove Background
-                          </>
-                        )}
-                      </Button>
-                    </>
-                  )}
-
-                  {uploadedImage && !processedUrl && (
-                    <div className="text-center">
-                      <p className="text-green-600 mb-2">
-                        ✓ Image uploaded successfully
-                      </p>
-                      <p className="text-sm text-gray-600">
-                        The editor will open automatically...
-                      </p>
-                      <Button
-                        onClick={() => openEditor(uploadedImage)}
-                        variant="secondary"
-                        size="sm"
-                        className="mt-2"
-                      >
-                        Open Editor Manually
-                      </Button>
-                    </div>
-                  )}
-
-                  {/* Downloading Status */}
-                  {isDownloading && (
-                    <div className="text-center py-8">
-                      <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4" />
-                      <p>Downloading processed image...</p>
-                    </div>
-                  )}
-
-                  {/* Processed Result */}
-                  {processedUrl &&
-                    !isDownloading &&
-                    processedUrl !== 'completed' && (
-                      <div className="space-y-4">
-                        <h3 className="font-medium mb-2">Processed Result</h3>
-                        <div className="relative inline-block">
-                          <img
-                            src={processedUrl}
-                            alt="Processed"
-                            className="max-w-full h-auto rounded-lg border"
-                            style={{
-                              maxHeight: '400px',
-                              backgroundColor: '#f0f0f0',
-                              backgroundImage:
-                                'repeating-conic-gradient(#808080 0% 25%, transparent 0% 50%)',
-                              backgroundSize: '20px 20px',
-                            }}
-                          />
                         </div>
-                        <div className="flex gap-4">
-                          <Button
-                            onClick={() => {
-                              const link = document.createElement('a');
-                              link.href = processedUrl;
-                              link.download = 'background-removed.png';
-                              link.click();
-                            }}
-                            className="flex items-center gap-2"
-                          >
-                            <Download className="w-4 h-4" />
-                            Download Image
-                          </Button>
-                          <Button
-                            onClick={() => {
-                              // Navigate to upscale page with the processed image ID or URL
-                              if (!processedUrl) {
-                                alert('No processed image available');
-                                return;
-                              }
-
-                              // Prefer using image ID for navigation (much shorter URL)
-                              if (processedImageId) {
-                                console.log(
-                                  'Using image ID for navigation:',
-                                  processedImageId
-                                );
-                                const targetUrl = `/process/upscale?imageId=${processedImageId}`;
-                                router.push(targetUrl);
-                                return;
-                              }
-
-                              // Fallback to URL-based navigation if no ID available
-                              console.log('No image ID available, using URL');
-                              const targetUrl = `/process/upscale?imageUrl=${encodeURIComponent(processedUrl)}`;
-                              router.push(targetUrl);
-                            }}
-                            variant="secondary"
-                            className="flex items-center gap-2"
-                          >
-                            <Wand2 className="w-4 h-4" />
-                            Upscale Image
-                          </Button>
-                          <Button
-                            onClick={() => openEditor(uploadedImage!)}
-                            variant="secondary"
-                            className="flex items-center gap-2"
-                          >
-                            <Scissors className="w-4 h-4" />
-                            Edit Again
-                          </Button>
-                        </div>
-                        <p className="text-sm text-green-600">
-                          ✓ Image processed and saved to your account
-                        </p>
                       </div>
                     )}
 
-                  {/* Instructions */}
-                  <div className="bg-blue-50 p-4 rounded-lg">
-                    <h4 className="font-medium mb-2">How it works:</h4>
-                    <ol className="list-decimal list-inside space-y-1 text-sm">
-                      <li>Click "Remove Background" to upload your image</li>
-                      <li>ClippingMagic editor will open in a popup window</li>
-                      <li>Manually refine the background removal if needed</li>
-                      <li>
-                        Click "Download" in the ClippingMagic editor to save
-                        your image
-                      </li>
-                      <li>The download happens within the editor window</li>
-                    </ol>
-                    <p className="text-xs text-gray-500 mt-2">
-                      Note: The editor opens in a popup window. Make sure popups
-                      are allowed.
-                    </p>
+                    {/* Original Image */}
+                    <div>
+                      <h3 className="font-medium mb-2">Original Image</h3>
+                      <img
+                        src={imageUrl}
+                        alt="Original"
+                        className="max-w-full h-auto rounded-lg border"
+                        style={{ maxHeight: '400px' }}
+                      />
+                    </div>
+
+                    {/* Action Button */}
+                    {!uploadedImage && (
+                      <>
+                        {profile &&
+                          profile.is_admin !== true &&
+                          profile.credits_remaining < 1 && (
+                            <div className="bg-red-50 border border-red-200 text-red-600 p-3 rounded-lg text-sm">
+                              <p className="font-medium">
+                                Insufficient Credits
+                              </p>
+                              <p className="text-xs mt-1">
+                                You need at least 1 credit to remove
+                                backgrounds. Please purchase more credits or
+                                upgrade your plan.
+                              </p>
+                            </div>
+                          )}
+                        <Button
+                          onClick={uploadToClippingMagic}
+                          disabled={
+                            isLoading ||
+                            !initialized ||
+                            isUploading ||
+                            !imageFile ||
+                            (profile &&
+                              profile.is_admin !== true &&
+                              profile.credits_remaining < 1)
+                          }
+                          className="w-full"
+                          size="lg"
+                        >
+                          {isUploading ? (
+                            <>
+                              <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                              Uploading...
+                            </>
+                          ) : (
+                            <>
+                              <Scissors className="w-5 h-5 mr-2" />
+                              Remove Background
+                            </>
+                          )}
+                        </Button>
+                      </>
+                    )}
+
+                    {uploadedImage && !processedUrl && (
+                      <div className="text-center">
+                        <p className="text-green-600 mb-2">
+                          ✓ Image uploaded successfully
+                        </p>
+                        <p className="text-sm text-gray-600">
+                          The editor will open automatically...
+                        </p>
+                        <Button
+                          onClick={() => openEditor(uploadedImage)}
+                          variant="secondary"
+                          size="sm"
+                          className="mt-2"
+                        >
+                          Open Editor Manually
+                        </Button>
+                      </div>
+                    )}
+
+                    {/* Downloading Status */}
+                    {isDownloading && (
+                      <div className="text-center py-8">
+                        <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4" />
+                        <p>Downloading processed image...</p>
+                      </div>
+                    )}
+
+                    {/* Processed Result */}
+                    {processedUrl &&
+                      !isDownloading &&
+                      processedUrl !== 'completed' && (
+                        <div className="space-y-4">
+                          <h3 className="font-medium mb-2">Processed Result</h3>
+                          <div className="relative inline-block">
+                            <img
+                              src={processedUrl}
+                              alt="Processed"
+                              className="max-w-full h-auto rounded-lg border"
+                              style={{
+                                maxHeight: '400px',
+                                backgroundColor: '#f0f0f0',
+                                backgroundImage:
+                                  'repeating-conic-gradient(#808080 0% 25%, transparent 0% 50%)',
+                                backgroundSize: '20px 20px',
+                              }}
+                            />
+                          </div>
+                          <div className="flex gap-4">
+                            <Button
+                              onClick={() => {
+                                const link = document.createElement('a');
+                                link.href = processedUrl;
+                                link.download = 'background-removed.png';
+                                link.click();
+                              }}
+                              className="flex items-center gap-2"
+                            >
+                              <Download className="w-4 h-4" />
+                              Download Image
+                            </Button>
+                            <Button
+                              onClick={() => {
+                                // Navigate to upscale page with the processed image ID or URL
+                                if (!processedUrl) {
+                                  alert('No processed image available');
+                                  return;
+                                }
+
+                                // Prefer using image ID for navigation (much shorter URL)
+                                if (processedImageId) {
+                                  console.log(
+                                    'Using image ID for navigation:',
+                                    processedImageId
+                                  );
+                                  const targetUrl = `/process/upscale?imageId=${processedImageId}`;
+                                  router.push(targetUrl);
+                                  return;
+                                }
+
+                                // Fallback to URL-based navigation if no ID available
+                                console.log('No image ID available, using URL');
+                                const targetUrl = `/process/upscale?imageUrl=${encodeURIComponent(processedUrl)}`;
+                                router.push(targetUrl);
+                              }}
+                              variant="secondary"
+                              className="flex items-center gap-2"
+                            >
+                              <Wand2 className="w-4 h-4" />
+                              Upscale Image
+                            </Button>
+                            <Button
+                              onClick={() => openEditor(uploadedImage!)}
+                              variant="secondary"
+                              className="flex items-center gap-2"
+                            >
+                              <Scissors className="w-4 h-4" />
+                              Edit Again
+                            </Button>
+                          </div>
+                          <p className="text-sm text-green-600">
+                            ✓ Image processed and saved to your account
+                          </p>
+                        </div>
+                      )}
+
+                    {/* Instructions */}
+                    <div className="bg-blue-50 p-4 rounded-lg">
+                      <h4 className="font-medium mb-2">How it works:</h4>
+                      <ol className="list-decimal list-inside space-y-1 text-sm">
+                        <li>Click "Remove Background" to upload your image</li>
+                        <li>
+                          ClippingMagic editor will open in a popup window
+                        </li>
+                        <li>
+                          Manually refine the background removal if needed
+                        </li>
+                        <li>
+                          Click "Download" in the ClippingMagic editor to save
+                          your image
+                        </li>
+                        <li>The download happens within the editor window</li>
+                      </ol>
+                      <p className="text-xs text-gray-500 mt-2">
+                        Note: The editor opens in a popup window. Make sure
+                        popups are allowed.
+                      </p>
+                    </div>
                   </div>
-                </div>
-              )}
-            </CardContent>
-          </Card>
+                )}
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Link to the in-app Owner's Manual (separate from the first-time popup) */}
+          <div className="mt-6 flex justify-center">
+            <NeedHelpButton toolKey="background-removal" />
+          </div>
         </div>
       </main>
 

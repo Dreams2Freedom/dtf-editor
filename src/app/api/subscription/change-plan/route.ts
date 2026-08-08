@@ -131,13 +131,21 @@ async function handlePost(request: NextRequest) {
       const totalDays = (periodEnd - periodStart) / (24 * 60 * 60);
       const daysUsed = (now - periodStart) / (24 * 60 * 60);
 
-      const currentCreditsPerDay = currentPlan.credits / totalDays;
-      const newCreditsPerDay = newPlan.credits / totalDays;
-      const creditsUsedSoFar = Math.floor(currentCreditsPerDay * daysUsed);
-      const newTotalCredits = Math.floor(newCreditsPerDay * totalDays);
-
-      // Update user's credits
-      const creditAdjustment = newTotalCredits - currentPlan.credits;
+      // SECURITY: prorate the credit delta to the fraction of the billing
+      // period still remaining. Previously the FULL monthly tier difference was
+      // granted up-front no matter when in the cycle the change happened, which
+      // let a user upgrade near cycle-end for a tiny (and, under
+      // `create_prorations`, deferred) charge, spend the full-tier credits, then
+      // downgrade before the invoice — netting free credits (the reverse
+      // adjustment just clamps at 0). Prorating ties the bonus to the small
+      // charge actually incurred; the full new-tier allotment arrives with the
+      // next billing cycle's credit refresh.
+      const daysRemaining = Math.max(0, totalDays - daysUsed);
+      const remainingFraction =
+        totalDays > 0 ? Math.min(1, daysRemaining / totalDays) : 0;
+      const creditAdjustment = Math.round(
+        (newPlan.credits - currentPlan.credits) * remainingFraction
+      );
 
       if (creditAdjustment !== 0) {
         // Add or remove credits based on plan change

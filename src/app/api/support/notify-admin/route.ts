@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
-import { notifyAdminsOfNewTicket, notifyAdminsOfTicketReply } from '@/lib/notify-admins';
+import {
+  notifyAdminsOfNewTicket,
+  notifyAdminsOfTicketReply,
+} from '@/lib/notify-admins';
 import { withRateLimit } from '@/lib/rate-limit';
 
 async function handlePost(request: NextRequest) {
@@ -33,7 +36,8 @@ async function handlePost(request: NextRequest) {
       .single();
 
     const senderName = profile
-      ? `${profile.first_name || ''} ${profile.last_name || ''}`.trim() || 'User'
+      ? `${profile.first_name || ''} ${profile.last_name || ''}`.trim() ||
+        'User'
       : 'User';
     const senderEmail = profile?.email || user.email || 'unknown';
 

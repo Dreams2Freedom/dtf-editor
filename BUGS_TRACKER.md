@@ -1,10 +1,143 @@
 # DTF Editor - Bug Tracker
 
-**Last Updated:** February 18, 2026
+**Last Updated:** June 7, 2026
 **Status:** Active Bug Tracking - POST SECURITY AUDIT
 
 > **SECURITY RE-AUDIT (Feb 16, 2026):** A comprehensive re-audit found 28 new issues. 30+ fixes applied across 4 tiers. See `SECURITY_AUDIT_2026_02_16.md` for the full report.
 > **SECURITY AUDIT (Feb 8, 2026):** Original audit found 47 issues (12 Critical, 17 High, 12 Medium, 6 Low). See `SECURITY_AUDIT_2026_02_08.md`.
+
+---
+
+## 🔐 **SECURITY AUDIT (Aug 5, 2026 Session)**
+
+> Money + data-exposure audit triggered after the partner-integration work. **None
+> of these were caused by the partner changes** — all pre-existing. The two
+> criticals were fixed + deployed to `main`; the change-plan money bug fixed on
+> `festive`. Remaining items are OPEN (lower severity, none unauthenticated).
+
+### **BUG-072: Unauthenticated credit minting via credit-mutating RPCs**
+
+- **Status:** 🟢 FIXED (Aug 5, 2026 — DB migration applied + verified `anon` locked out)
+- **Severity:** 🔴 Critical (money / unauthenticated)
+- **Description:** `refund_credits`/`deduct_credits` were `GRANT`ed to `anon`, and the `*_atomic`/`add_user_credits`/bulk fns to `authenticated` or PUBLIC-by-default. All take an arbitrary `user_id` with no ownership check under `SECURITY DEFINER`, so anyone with the public anon key could mint unlimited credits: `supabase.rpc('refund_credits',{user_id,credits:999999,reason:'x'})`.
+- **Fix:** `supabase/migrations/20260805_lock_down_credit_rpcs.sql` — `REVOKE EXECUTE` from PUBLIC/anon/authenticated, `GRANT` to `service_role` only. Every legit caller is server-side/service-role (imageProcessing, Stripe webhook, generate/image), verified. Applied via SQL Editor; `has_function_privilege('anon', …)` returns false.
+
+### **BUG-073: Cross-user PII leak via forged impersonation cookie**
+
+- **Status:** 🟢 FIXED (Aug 5, 2026 — code on `main` `6b873b2`)
+- **Severity:** 🔴 Critical (data / unauthenticated)
+- **Description:** `/api/auth/session` and `/api/storage/stats` trusted the `impersonation_session` cookie with NO HMAC signature check and NO admin check, returning any user's profile/credits/subscription/storage stats via the service-role client to an unauthenticated forged-cookie request (curl).
+- **Fix:** Both routes now require caller `auth.getUser()` + `profiles.is_admin` + `verifyCookieValue()` before honoring impersonation (mirrors `src/middleware/impersonation.ts`), else fall through to the caller's own session.
+
+### **BUG-074: change-plan credit farming (un-prorated grant)**
+
+- **Status:** 🟢 FIXED (Aug 5, 2026 — code on `festive`, not yet on `main`)
+- **Severity:** 🟠 High (money / authenticated)
+- **Description:** `/api/subscription/change-plan` granted the full monthly tier credit difference up-front regardless of cycle timing; under default `create_prorations` the charge is tiny+deferred → upgrade→spend→downgrade farm (reverse adjustment clamps at 0).
+- **Fix:** Prorate credit delta by remaining cycle fraction. Further hardening (OPEN): grant credits only after `invoice.payment_succeeded` webhook rather than synchronously.
+
+### **BUG-075: Embed-token secret fail-open to guessable value**
+
+- **Status:** 🟢 FIXED (Aug 5, 2026 — code on `festive`)
+- **Severity:** 🟡 Medium (defensive)
+- **Description:** `src/lib/partner/embedToken.ts` secret fell back to `HMAC(...,'dev-secret')` if both `PARTNER_EMBED_SECRET` and `SUPABASE_SERVICE_ROLE_KEY` were unset → forgeable tokens.
+- **Fix:** Fail-closed guard in production (sign throws, verify returns null) when no strong secret source. No-op under normal prod config.
+
+### **OPEN — to fix in a dedicated security pass**
+
+- **BUG-076** 🟠 (money): No server-side `priceId` allowlist in `create-checkout-session` & `create-subscription` (unlike `create-payment-intent`). Also stale `PAYG_CREDIT_AMOUNTS` fallback in the Stripe webhook (499/899/1999) vs current pricing (799/1499/2999) — a legacy price ID could pay old amount, get current credits.
+- **BUG-077** 🟡 (integrity): `/api/admin/audit/log` & `/api/admin/auth/check-ip` `JSON.parse` an unsigned `admin_session` cookie with no auth → unauthenticated audit-log spoofing (dead/stale code; delete or gate on real Supabase admin check).
+- **BUG-078** 🟡 (integrity): `/api/auth/effective-user` & `src/lib/supabase/impersonation.ts` (dead) parse `impersonation_session` without `verifyCookieValue()` — admin can craft cookie to impersonate anyone, bypassing the "no admin impersonation" rule + audit log.
+- **BUG-079** 🟠 (landmine): `supabase/migrations/20260218_restore_admin_profiles_policy.sql` reintroduces BUG-062's recursive `profiles_admin_select` RLS policy on any migration replay (fresh env / db reset). Replace with a `SECURITY DEFINER is_admin()` helper.
+- **BUG-080** 🟡 (partner SSRF): all `/api/partner/v1/*` tools `fetch(imageUrl)` from the request body with no host/scheme allowlist (localhost/link-local reachable) and the token's signed `imageUrl` claim is not enforced. Add SSRF guard.
+- **BUG-081** 🟡 (partner): no rate limiting on any `/api/partner/*` route — a valid token/key can call tools unthrottled for its lifetime.
+- **BUG-082** 🟡 (partner clickjacking): `frame-ancestors '*'` for `/embed/*` (on `main`) lets any site iframe the one-click-to-bill embed. Narrow to Shopify origins (`https://*.myshopify.com`, `https://admin.shopify.com`).
+- **BUG-083** 🟢 (low): `/api/admin/notification-preferences` missing `is_admin` check (self-scoped; POST leaks whether an email is a configured admin + quiet-hours).
+- **BUG-084** 🔵 (low/theoretical): `/api/clippingmagic/download/[id]` doesn't verify the CM image ID belongs to the caller (IDOR, gated by CM's opaque ID space).
+- **BUG-085** 🟡 (money, not user-triggered): `handleChargeRefunded` can't claw back credits for subscription-invoice refunds (`charge.metadata` only set for PAYG) — resolve `userId` via `stripe_customer_id` lookup.
+
+---
+
+## 🟢 **STUDIO FIXES (July 20, 2026 Session)**
+
+### **BUG-070: Studio Loses In-House BG-Removal Edits When Switching Tools**
+
+- **Status:** 🟢 FIXED (July 20, 2026 — awaiting user confirmation)
+- **Severity:** High
+- **Description:** After using the in-house background removal tool in Studio, switching to another tool (e.g. Vectorize) before hitting Download reverted the canvas to the original pre-removal image. Brush edits that weren't explicitly "Applied" were dropped.
+- **Root Cause:** The tool's registered `pendingCommit` hook was only flushed on the top-level Download, not on tool switch. `switchTool` changed the active tool without committing pending in-panel edits.
+- **Fix:** `switchTool` (src/app/studio/client.tsx) now `await`s `pendingCommitRef.current()` before switching and sets `workingImage` from the returned canvas, so edits auto-apply and chain into the next tool — same guarantee as Download. No download/re-upload round-trip needed.
+
+### **BUG-071: DPI Checker "Improve with Image Upscaling" Doesn't Carry the Image**
+
+- **Status:** 🟢 FIXED (July 20, 2026 — awaiting user confirmation)
+- **Severity:** Medium
+- **Description:** On `/tools/dpi-checker`, a low-DPI verdict's "Improve with Image Upscaling" button linked to `/process?operation=upscale` (→ Studio) with no image, forcing the user to re-upload the file they'd just checked.
+- **Root Cause:** `DpiCheckerCard` kept the artwork only as a local object URL and used a static `<Link>` with no `imageId`.
+- **Fix:** The card now retains the `File`, and the button uploads it (compressing if large, like the free-DPI-checker flow) then routes to `/studio?imageId=…&tool=upscale`, carrying the image straight into the upscale tool.
+
+---
+
+## 🔴 **CRITICAL BUGS (June 7, 2026 Session)**
+
+### **BUG-063: No Emails Being Sent (Welcome / Signup Admin Alerts / Receipts)**
+
+- **Status:** 🟢 FIXED (June 7, 2026 — verified in production: welcome, signup admin alert, and password-reset emails all delivered)
+- **Severity:** Critical (no transactional or notification emails reaching users/admin)
+- **Component:** Email Service (Mailgun) / Vercel Production environment
+- **Description:** No emails of any kind are being delivered — no welcome emails, no
+  new-signup admin notifications, no purchase receipts. Previously working.
+- **Reported:** June 7, 2026
+- **Diagnosis (via Vercel MCP):** Production runtime logs show
+  `EmailService: Mailgun not configured` firing on `/api/auth/signup` and
+  `/api/auth/security-alert`. That warning only fires when
+  `isFeatureAvailable('mailgun')` is false — i.e. **`MAILGUN_API_KEY` and/or
+  `MAILGUN_DOMAIN` are missing/empty in the Vercel Production environment.** Every
+  send was hitting a guard that logged `"Would send…"` and then **`return true`**,
+  so callers logged "sent successfully" and the outage was invisible. (An
+  invalid-but-present key would instead log a `401`, which we did NOT see —
+  confirming the value is absent, not merely wrong.)
+- **Why it stayed hidden (3 compounding issues):**
+  1. Every send method returned `true` when unconfigured (silent success).
+  2. The Mailgun API URL was hardcoded to the US region (`api.mailgun.net`); an
+     EU-region domain would 401 on every request.
+  3. `validateEnv()` never warned about missing Mailgun config.
+- **Fix Applied (code, this session):**
+  - All send-method guards now call `notSent()` → log a loud `NOT SENT [type]`
+    error and **return `false`** (failures are now visible; safe — callers already
+    treat `false` as failure and never crash).
+  - Added `MAILGUN_REGION` (us/eu) support across `email.ts`, the auth-email edge
+    function, and a region-aware base-URL helper.
+  - `validateEnv()` now warns when Mailgun config is missing.
+  - New admin endpoint `GET/POST /api/admin/email-health` to check config and send
+    a test email from the live app.
+- **Action Required (account owner):** Set `MAILGUN_API_KEY`, `MAILGUN_DOMAIN`
+  (+ `MAILGUN_FROM_EMAIL`, `MAILGUN_FROM_NAME`, and `MAILGUN_REGION=eu` only if the
+  domain is EU) in Vercel **Production**, redeploy, then verify via
+  `/api/admin/email-health`. If the Mailgun trial lapsed or the domain is
+  unverified/deactivated, re-activate/upgrade the Mailgun account first.
+- **Also found:** No Supabase Edge Functions are deployed, so `auth-email-handler`
+  (password reset / confirmation / magic link via Mailgun) is NOT live — those rely
+  on Supabase Auth's built-in SMTP. Separate from the app-email outage.
+- **Pre-existing latent bug noted:** `this.getEmailFooter()` is called in
+  `email.ts` (retention discount + refund emails) but never defined — would throw at
+  runtime for those two emails. **FIXED** (PR #41) — added the missing method.
+- **RESOLUTION (June 7, 2026):**
+  1. **App emails (welcome / signup admin alert / receipts):** restored
+     `MAILGUN_API_KEY` + `MAILGUN_DOMAIN` in Vercel Production + redeployed.
+     Verified: `Email sent successfully` in prod logs; both emails received.
+  2. **Code hardening** merged (PR #40): loud `notSent()` failures instead of
+     silent `return true`, `MAILGUN_REGION` (us/eu) support, `validateEnv()`
+     warning, and `GET/POST /api/admin/email-health` diagnostic endpoint.
+  3. **Auth emails (password reset / confirmation / magic link):** enabled
+     Supabase **Custom SMTP** pointing at Mailgun (`smtp.mailgun.org:587`,
+     user `postmaster@mg.dtfeditor.com`). **Gotcha that cost a delivery:** the
+     SMTP _Sender email_ was initially `noreply@dtfeditor.com` (root domain) while
+     the DKIM-signed sending domain is `mg.dtfeditor.com` → Gmail accepted (250)
+     then silently dropped it (DKIM/DMARC alignment failure, not even in spam).
+     **Fix:** set Sender email to `noreply@mg.dtfeditor.com`. Verified delivered.
+  4. Supabase Edge Functions: none deployed — the `auth-email-handler` function is
+     superseded by the Custom SMTP approach above (simpler, no payload/HMAC wiring).
 
 ---
 

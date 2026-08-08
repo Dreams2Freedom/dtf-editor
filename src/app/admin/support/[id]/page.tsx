@@ -117,7 +117,9 @@ export default function AdminTicketDetailPage() {
       // Set ticket owner email
       if (ticketData.user_id && profileMap[ticketData.user_id]) {
         const p = profileMap[ticketData.user_id];
-        setUserEmail(p.name ? `${p.name} (${p.email})` : p.email || ticketData.user_id);
+        setUserEmail(
+          p.name ? `${p.name} (${p.email})` : p.email || ticketData.user_id
+        );
       }
 
       // Enrich messages with author info from the profile map
@@ -177,7 +179,9 @@ export default function AdminTicketDetailPage() {
       ]);
 
       // Update ticket status to waiting_on_user
-      setTicket(prev => prev ? { ...prev, status: 'waiting_on_user' as TicketStatus } : null);
+      setTicket(prev =>
+        prev ? { ...prev, status: 'waiting_on_user' as TicketStatus } : null
+      );
       setNewMessage('');
       toast.success('Reply sent');
     } catch (error) {
@@ -347,9 +351,16 @@ export default function AdminTicketDetailPage() {
               </h1>
 
               <div className="flex flex-wrap gap-4 text-sm text-gray-500">
-                <span>From: <span className="font-medium text-gray-700">{userEmail || 'Unknown'}</span></span>
+                <span>
+                  From:{' '}
+                  <span className="font-medium text-gray-700">
+                    {userEmail || 'Unknown'}
+                  </span>
+                </span>
                 <span>Created: {formatDate(ticket.created_at)}</span>
-                <span>{messages.length} message{messages.length !== 1 ? 's' : ''}</span>
+                <span>
+                  {messages.length} message{messages.length !== 1 ? 's' : ''}
+                </span>
               </div>
             </div>
 
@@ -467,7 +478,8 @@ export default function AdminTicketDetailPage() {
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-1">
                       <span className="font-medium text-sm">
-                        {message.author?.name || (message.is_admin ? 'Support Team' : 'User')}
+                        {message.author?.name ||
+                          (message.is_admin ? 'Support Team' : 'User')}
                       </span>
                       {message.is_admin && (
                         <Badge variant="default" className="text-xs">
@@ -493,7 +505,9 @@ export default function AdminTicketDetailPage() {
         {/* Admin Reply Form */}
         {ticket.status !== 'closed' ? (
           <Card className="p-6">
-            <h3 className="text-sm font-semibold text-gray-700 mb-3">Reply as Admin</h3>
+            <h3 className="text-sm font-semibold text-gray-700 mb-3">
+              Reply as Admin
+            </h3>
             <form onSubmit={sendAdminReply}>
               <textarea
                 value={newMessage}
@@ -505,7 +519,8 @@ export default function AdminTicketDetailPage() {
               />
               <div className="flex items-center justify-between">
                 <p className="text-xs text-gray-500">
-                  Sending will set ticket status to &quot;Waiting on User&quot; and notify them via email.
+                  Sending will set ticket status to &quot;Waiting on User&quot;
+                  and notify them via email.
                 </p>
                 <Button
                   type="submit"

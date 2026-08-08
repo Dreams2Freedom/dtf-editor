@@ -17,6 +17,9 @@ import {
   Bell,
   UsersRound,
   ShieldCheck,
+  CreditCard,
+  Activity,
+  MessageCircle,
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { createClientSupabaseClient } from '@/lib/supabase/client';
@@ -71,6 +74,18 @@ const menuItems: MenuItem[] = [
     permission: ['analytics', 'view'],
   },
   {
+    name: 'Tool Usage',
+    href: '/admin/tool-usage',
+    icon: Activity,
+    permission: ['analytics', 'view'],
+  },
+  {
+    name: 'Subscriptions',
+    href: '/admin/subscriptions',
+    icon: CreditCard,
+    permission: ['financial', 'view'],
+  },
+  {
     name: 'Affiliates',
     href: '/admin/affiliates',
     icon: UsersRound,
@@ -96,6 +111,16 @@ const menuItems: MenuItem[] = [
     href: '/admin/support',
     icon: HeadphonesIcon,
     permission: ['support', 'view'],
+  },
+  {
+    name: 'Hamilton Bot',
+    href: '/admin/hamilton',
+    icon: MessageCircle,
+  },
+  {
+    name: 'In-House Tools',
+    href: '/admin/inhouse-tools',
+    icon: Activity,
   },
   {
     name: 'Notifications',

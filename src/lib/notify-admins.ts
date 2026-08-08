@@ -36,7 +36,10 @@ export async function notifyAdmins(params: {
       .single();
 
     if (notifError || !notification) {
-      console.error('Failed to create admin notification:', notifError?.message);
+      console.error(
+        'Failed to create admin notification:',
+        notifError?.message
+      );
       return;
     }
 
@@ -61,7 +64,10 @@ export async function notifyAdmins(params: {
       .insert(userNotifications);
 
     if (insertError) {
-      console.error('Failed to distribute admin notification:', insertError.message);
+      console.error(
+        'Failed to distribute admin notification:',
+        insertError.message
+      );
     }
   } catch (error) {
     // Never let notification failures break the calling flow
@@ -79,15 +85,21 @@ export async function notifyAdminsOfNewTicket(params: {
   senderEmail: string;
   priority?: string;
 }) {
-  const priorityLabel = params.priority === 'urgent' || params.priority === 'high'
-    ? ` [${params.priority.toUpperCase()}]`
-    : '';
+  const priorityLabel =
+    params.priority === 'urgent' || params.priority === 'high'
+      ? ` [${params.priority.toUpperCase()}]`
+      : '';
 
   await notifyAdmins({
     title: `New Support Ticket${priorityLabel}`,
     message: `${params.senderName} (${params.senderEmail}): ${params.subject}`,
     type: params.priority === 'urgent' ? 'error' : 'info',
-    priority: params.priority === 'urgent' ? 'urgent' : params.priority === 'high' ? 'high' : 'normal',
+    priority:
+      params.priority === 'urgent'
+        ? 'urgent'
+        : params.priority === 'high'
+          ? 'high'
+          : 'normal',
     actionUrl: `/admin/support/${params.ticketId}`,
     actionText: 'View Ticket',
   });

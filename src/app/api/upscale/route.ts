@@ -15,12 +15,15 @@ import { validateImageUrl } from '@/lib/url-validation';
 async function handlePost(request: NextRequest) {
   console.log('[Upscale] Handler started - v2 with gallery save');
 
-  // Set a timeout for the entire request (55 seconds, leaving 5s buffer for Vercel's 60s limit)
-  // This ensures we return a proper JSON error before Vercel times out
+  // Cap the request just under the function's maxDuration (300s in vercel.json)
+  // so we can return a clean JSON error before Vercel hard-kills the function.
+  // Deep-Image's generative / "predicting" upscale routinely runs past a
+  // minute, so a short budget here surfaced as "processing is taking longer
+  // than expected" even on jobs that would have completed.
   const timeoutPromise = new Promise((_, reject) => {
     setTimeout(
-      () => reject(new Error('Request timeout after 55 seconds')),
-      55000
+      () => reject(new Error('Request timeout after 290 seconds')),
+      290000
     );
   });
 
@@ -131,7 +134,7 @@ async function handlePost(request: NextRequest) {
     const result = (await Promise.race([
       processingPromise,
       timeoutPromise.then(() => {
-        throw new Error('Image processing timed out after 45 seconds');
+        throw new Error('Image processing timed out');
       }),
     ])) as Awaited<typeof processingPromise>;
 

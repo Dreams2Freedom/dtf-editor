@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/stores/authStore';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { StorageUsageCard } from '@/components/storage/StorageUsageCard';
+import { ToolQuickActions } from '@/components/dashboard/ToolQuickActions';
 import { StorageManager } from '@/components/storage/StorageManager';
 import { StorageAnalytics } from '@/components/storage/StorageAnalytics';
 import { Breadcrumb } from '@/components/ui/Breadcrumb';
@@ -87,6 +88,13 @@ export default function StoragePage() {
           <div className="mb-8">
             <StorageUsageCard key={refreshKey} />
           </div>
+
+          {/* Tool quick actions — start another tool right from storage */}
+          <ToolQuickActions
+            heading="Process another file"
+            subheading="Pick a tool to start a new DTF Editor workflow."
+            className="mb-8"
+          />
 
           {/* Tab Navigation */}
           <Tab.Group selectedIndex={activeTab} onChange={setActiveTab}>
